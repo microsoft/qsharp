@@ -255,7 +255,7 @@ pub struct ComputeProperties {
 }
 
 /// A quantum source.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum QuantumSource {
     /// An intrinsic quantum source.
     Intrinsic,

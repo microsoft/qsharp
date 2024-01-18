@@ -73,6 +73,7 @@ fn analyze_callable_compute_properties(
 
     // Analyze the callable depending on its type.
     let input_params = derive_callable_input_params(input_elements.iter());
+    // TODO (cesarzc): Branch on function/operation instead of intrinsic/non-intrinsic.
     if callable.is_intrinsic() {
         analyze_intrinsic_callable_compute_properties(
             id,
@@ -224,14 +225,24 @@ fn create_intrinsic_function_compute_properties<'a>(
         quantum_source: None,
     };
 
-    // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
-    // on the parameter type.
+    // Calculate the properties for all parameters.
     let mut dynamic_params_properties = Vec::new();
     for param in input_params {
+        // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
+        // on the parameter type.
         let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
+
+        // For intrinsic functions, we assume any parameter can contribute to the output so if any parameter is dynamic,
+        // the output of the function is dynamic. Therefore, this function becomes a quantum source for all dynamic
+        // params if its output is non-unit.
+        let quantum_source = if callable.is_output_unit() {
+            None
+        } else {
+            Some(QuantumSource::Intrinsic)
+        };
         let param_compute_properties = ComputeProperties {
             runtime_capabilities: param_runtime_capabilities,
-            quantum_source: Some(QuantumSource::Intrinsic),
+            quantum_source,
         };
         dynamic_params_properties.push(param_compute_properties);
     }
@@ -251,19 +262,40 @@ fn create_intrinsic_function_compute_properties<'a>(
 
 fn create_instrinsic_operation_compute_properties<'a>(
     callable: &CallableDecl,
-    _input_params: impl Iterator<Item = &'a InputParam>,
+    input_params: impl Iterator<Item = &'a InputParam>,
 ) -> CallableComputeProperties {
     assert!(matches!(callable.kind, CallableKind::Operation));
 
-    // TODO (cesarzc): Implement this properly.
-    let body = ApplicationsTable {
-        inherent_properties: ComputeProperties {
-            runtime_capabilities: RuntimeCapabilityFlags::empty(),
-            quantum_source: None,
-        },
-        dynamic_params_properties: Vec::new(),
+    // For intrinsic operations, they inherently do not require any runtime capabilities and they are a quantum source
+    // if their output is non-unit.
+    let quantum_source = if callable.is_output_unit() {
+        None
+    } else {
+        Some(QuantumSource::Intrinsic)
+    };
+    let inherent_properties = ComputeProperties {
+        runtime_capabilities: RuntimeCapabilityFlags::empty(),
+        quantum_source,
     };
 
+    // Calculate the properties for all parameters.
+    let mut dynamic_params_properties = Vec::new();
+    for param in input_params {
+        // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
+        // on the parameter type.
+        let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
+        let param_compute_properties = ComputeProperties {
+            runtime_capabilities: param_runtime_capabilities,
+            quantum_source,
+        };
+        dynamic_params_properties.push(param_compute_properties);
+    }
+
+    // Construct the callable compute properties.
+    let body = ApplicationsTable {
+        inherent_properties,
+        dynamic_params_properties,
+    };
     CallableComputeProperties {
         body,
         adj: None,
