@@ -52,6 +52,7 @@ export interface ILanguageService {
   closeDocument(uri: string): Promise<void>;
   closeNotebookDocument(notebookUri: string): Promise<void>;
   getCompletions(documentUri: string, offset: number): Promise<ICompletionList>;
+  getFormatChanges(documentUri: string): Promise<ITextEdit[]>;
   getHover(documentUri: string, offset: number): Promise<IHover | undefined>;
   getDefinition(
     documentUri: string,
@@ -205,6 +206,24 @@ export class QSharpLanguageService implements ILanguageService {
         }),
     );
     return result;
+  }
+
+  async getFormatChanges(documentUri: string): Promise<ITextEdit[]> {
+    const code = await this.loadFile(documentUri);
+
+    if (code === null) {
+      log.error(
+        `getFormatChanges: expected ${documentUri} to be in the document map`,
+      );
+      return [];
+    }
+    const results = this.languageService.get_format_changes(documentUri);
+    if (results && results.length > 0) {
+      for (const result of results) {
+        updateSpanFromUtf8ToUtf16(result.range, code);
+      }
+    }
+    return results;
   }
 
   async getHover(

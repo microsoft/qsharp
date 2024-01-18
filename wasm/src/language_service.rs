@@ -208,6 +208,23 @@ impl LanguageService {
             .collect()
     }
 
+    pub fn get_format_changes(&self, uri: &str) -> Vec<ITextEdit> {
+        let edits = self.0.get_format_changes(uri);
+        edits
+            .into_iter()
+            .map(|edit| {
+                TextEdit {
+                    range: Span {
+                        start: edit.span.start,
+                        end: edit.span.end,
+                    },
+                    newText: edit.contents,
+                }
+                .into()
+            })
+            .collect()
+    }
+
     pub fn get_hover(&self, uri: &str, offset: u32) -> Option<IHover> {
         let hover = self.0.get_hover(uri, offset);
         hover.map(|hover| {

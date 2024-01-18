@@ -18,6 +18,7 @@ const requests: MethodMap<ILanguageService> = {
   closeDocument: "request",
   closeNotebookDocument: "request",
   getCompletions: "request",
+  getFormatChanges: "request",
   getHover: "request",
   getDefinition: "request",
   getReferences: "request",

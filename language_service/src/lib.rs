@@ -8,6 +8,7 @@ mod compilation;
 pub mod completion;
 pub mod definition;
 mod display;
+pub mod format;
 pub mod hover;
 mod name_locator;
 mod project_system;
@@ -27,7 +28,7 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
-    CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
+    CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp, TextEdit,
     WorkspaceConfigurationUpdate,
 };
 use qsc_project::JSFileEntry;
@@ -193,6 +194,12 @@ impl LanguageService {
             uri,
             offset,
         )
+    }
+
+    /// LSP: textDocument/format
+    #[must_use]
+    pub fn get_format_changes(&self, uri: &str) -> Vec<TextEdit> {
+        self.document_op(format::get_format_changes, "get_format_changes", uri, 0)
     }
 
     /// LSP: textDocument/hover

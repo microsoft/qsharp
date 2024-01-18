@@ -41,6 +41,7 @@ import { createReferenceProvider } from "./references.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
 import { getManifest, readFile, listDir } from "./projectSystem.js";
+import { createFormatProvider } from "./format.js";
 
 export async function activate(context: vscode.ExtensionContext) {
   initializeLogger();
@@ -185,6 +186,14 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
       qsharpLanguageId,
       createCompletionItemProvider(languageService),
       "@", // for attribute completion
+    ),
+  );
+
+  // format document
+  subscriptions.push(
+    vscode.languages.registerDocumentFormattingEditProvider(
+      qsharpLanguageId,
+      createFormatProvider(languageService),
     ),
   );
 
