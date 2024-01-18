@@ -31,15 +31,15 @@ impl TyExt for Ty {
         fn infer_rt_caps_from_prim(prim: &Prim) -> RuntimeCapabilityFlags {
             match prim {
                 Prim::BigInt => RuntimeCapabilityFlags::HigherLevelConstructs,
-                Prim::Bool => RuntimeCapabilityFlags::ConditionalForwardBranching,
-                Prim::Double => RuntimeCapabilityFlags::FloatingPointComputation,
+                Prim::Bool => RuntimeCapabilityFlags::ForwardBranching,
+                Prim::Double => RuntimeCapabilityFlags::FloatingPointComputations,
                 Prim::Int => RuntimeCapabilityFlags::IntegerComputations,
                 Prim::Pauli => RuntimeCapabilityFlags::IntegerComputations,
                 Prim::Qubit => RuntimeCapabilityFlags::empty(),
                 Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
                     RuntimeCapabilityFlags::IntegerComputations
                 }
-                Prim::Result => RuntimeCapabilityFlags::ConditionalForwardBranching,
+                Prim::Result => RuntimeCapabilityFlags::ForwardBranching,
                 Prim::String => RuntimeCapabilityFlags::HigherLevelConstructs,
             }
         }

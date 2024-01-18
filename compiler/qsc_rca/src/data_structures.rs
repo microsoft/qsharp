@@ -122,6 +122,7 @@ pub struct CallableVar {
 /// Kinds of callable variables.
 #[derive(Debug)]
 pub enum CallableVarKind {
+    #[allow(dead_code)] // TODO (ceasarzc): Remove.
     Local,
     InputParam(InputParamIdx),
 }
