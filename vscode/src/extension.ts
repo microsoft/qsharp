@@ -52,11 +52,12 @@ export async function activate(
 ): Promise<ExtensionApi> {
   const api: ExtensionApi = {};
 
-  if (context.extensionMode !== vscode.ExtensionMode.Test) {
-    initOutputWindowLogger();
-  } else {
+  if (context.extensionMode === vscode.ExtensionMode.Test) {
     // Don't log to the output window in tests, forward to a listener instead
     api.logging = initLogForwarder();
+  } else {
+    // Direct logging to the output window
+    initOutputWindowLogger();
   }
 
   log.info("Q# extension activating.");

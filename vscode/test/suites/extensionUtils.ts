@@ -19,13 +19,14 @@ export async function activateExtension() {
   const logForwarder = extensionApi.logging;
   if (!logForwarder) {
     throw new Error(`qsharp-tests: extension did not return a log forwarder`);
-  } else {
-    logForwarder.setLevel(extensionLogLevel);
-    logForwarder.setListener((level, ...args) => {
-      // Write extension logs to the console.
-      console.log(`qsharp: [${level}] ${args.join(" ")}`);
-    });
   }
+
+  logForwarder.setLevel(extensionLogLevel);
+  logForwarder.setListener((level, ...args) => {
+    // Write extension logs to the console.
+    console.log(`qsharp: [${level}] ${args.join(" ")}`);
+  });
+
   console.log(
     `qsharp-tests: activate() completed in ${performance.now() - start}ms`,
   );
