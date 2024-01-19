@@ -782,6 +782,68 @@ impl Display for CallableDecl {
     }
 }
 
+/// The kinds of callable implementations.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CallableImplKind {
+    /// An intrinsic callable implementation.
+    Intrinsic(NodeId, Span),
+    /// A specialized callable implementation.
+    Specialized(CallableSpecImpl),
+}
+
+impl Display for CallableImplKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        match self {
+            CallableImplKind::Intrinsic(node_id, span) => {
+                write!(indent, "Instrinsic {node_id} {span}")?;
+            }
+            CallableImplKind::Specialized(spec_impl) => {
+                write!(indent, "Specialized:")?;
+                indent = set_indentation(indent, 1);
+                write!(indent, "\n{spec_impl}")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// A callable specialized implementation.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CallableSpecImpl {
+    /// The callable body.
+    pub body: SpecDecl,
+    /// The adjoint specialization.
+    pub adj: Option<SpecDecl>,
+    /// The controlled specialization.
+    pub ctl: Option<SpecDecl>,
+    /// The controlled adjoint specialization.
+    pub ctl_adj: Option<SpecDecl>,
+}
+
+impl Display for CallableSpecImpl {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "CallableSpecDecl:",)?;
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nbody: {}", self.body)?;
+        match &self.adj {
+            Some(spec) => write!(indent, "\nadj: {spec}")?,
+            None => write!(indent, "\nadj: <none>")?,
+        }
+        match &self.ctl {
+            Some(spec) => write!(indent, "\nctl: {spec}")?,
+            None => write!(indent, "\nctl: <none>")?,
+        }
+        match &self.ctl_adj {
+            Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
+            None => write!(indent, "\nctl-adj: <none>")?,
+        }
+        Ok(())
+    }
+}
+
 /// A specialization declaration.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpecDecl {
