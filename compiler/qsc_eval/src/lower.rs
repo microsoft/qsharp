@@ -194,18 +194,16 @@ impl Lowerer {
     }
 
     fn lower_spec_decl(&mut self, decl: &hir::SpecDecl) -> fir::SpecDecl {
-        let (controls, block) = if let SpecBody::Impl(pat, block) = &decl.body {
-            let pat_id = pat.as_ref().map(|p| self.lower_spec_decl_pat(p));
-            let block_id = self.lower_block(block);
-            (pat_id, block_id)
-        } else {
+        let SpecBody::Impl(pat, block) = &decl.body else {
             panic!("if a SpecDecl is some, then it must be an implementation");
         };
+        let input = pat.as_ref().map(|p| self.lower_spec_decl_pat(p));
+        let block = self.lower_block(block);
         fir::SpecDecl {
             id: self.lower_id(decl.id),
             span: decl.span,
             block,
-            input: controls,
+            input,
         }
     }
 
