@@ -243,12 +243,9 @@ impl Lowerer {
                 self.lower_pat(pat),
                 self.lower_expr(expr),
             ),
-            hir::StmtKind::Qubit(source, pat, init, block) => fir::StmtKind::Qubit(
-                lower_qubit_source(*source),
-                self.lower_pat(pat),
-                self.lower_qubit_init(init),
-                block.as_ref().map(|b| self.lower_block(b)),
-            ),
+            hir::StmtKind::Qubit(_, _, _, _) => {
+                panic!("qubit statements should have been eliminated by passes");
+            }
             hir::StmtKind::Semi(expr) => fir::StmtKind::Semi(self.lower_expr(expr)),
         };
         let stmt = fir::Stmt {
@@ -401,26 +398,6 @@ impl Lowerer {
         };
         self.pats.insert(id, pat);
         id
-    }
-
-    fn lower_qubit_init(&mut self, init: &hir::QubitInit) -> fir::QubitInit {
-        let id = self.lower_id(init.id);
-        let ty = self.lower_ty(&init.ty);
-        let kind = match &init.kind {
-            hir::QubitInitKind::Array(length) => fir::QubitInitKind::Array(self.lower_expr(length)),
-            hir::QubitInitKind::Single => fir::QubitInitKind::Single,
-            hir::QubitInitKind::Tuple(items) => {
-                fir::QubitInitKind::Tuple(items.iter().map(|i| self.lower_qubit_init(i)).collect())
-            }
-            hir::QubitInitKind::Err => unreachable!("error qubit init should not be present"),
-        };
-
-        fir::QubitInit {
-            id,
-            span: init.span,
-            ty,
-            kind,
-        }
     }
 
     fn lower_id(&mut self, id: hir::NodeId) -> fir::NodeId {
@@ -675,13 +652,6 @@ fn lower_functor(functor: hir::Functor) -> fir::Functor {
     match functor {
         hir::Functor::Adj => fir::Functor::Adj,
         hir::Functor::Ctl => fir::Functor::Ctl,
-    }
-}
-
-fn lower_qubit_source(functor: hir::QubitSource) -> fir::QubitSource {
-    match functor {
-        hir::QubitSource::Dirty => fir::QubitSource::Dirty,
-        hir::QubitSource::Fresh => fir::QubitSource::Fresh,
     }
 }
 

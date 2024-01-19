@@ -871,7 +871,6 @@ impl State {
                 self.push_expr(*expr);
                 self.push_val(Value::unit());
             }
-            StmtKind::Qubit(..) => panic!("qubit use-stmt should be eliminated by passes"),
             StmtKind::Semi(expr) => {
                 self.push_action(Action::Consume);
                 self.push_expr(*expr);

@@ -558,10 +558,6 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
                 self.add_stmt(stmt_res);
                 visit::walk_expr(self, expr);
             }
-            qsc_fir::fir::StmtKind::Qubit(_, _, _, block) => match block {
-                Some(block) => visit::walk_block(self, block),
-                None => self.add_stmt(stmt_res),
-            },
             qsc_fir::fir::StmtKind::Item(_) | qsc_fir::fir::StmtKind::Semi(_) => {
                 self.add_stmt(stmt_res);
             }
