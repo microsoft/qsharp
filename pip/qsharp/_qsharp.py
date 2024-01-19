@@ -245,6 +245,24 @@ def estimate(
         json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
     )
 
+def set_quantum_seed(seed: Optional[int]) -> None:
+    """
+    Sets the seed for the quantum random number generator used for measurements.
+
+    :param seed: The seed to use for the quantum random number generator.
+        If None, the seed will be generated from entropy.
+    """
+    get_interpreter().set_quantum_seed(seed)
+
+def set_classical_seed(seed: Optional[int]) -> None:
+    """
+    Sets the seed for the classical random number generator used for standard
+    library random number operations.
+
+    :param seed: The seed to use for the classical random number generator.
+        If None, the seed will be generated from entropy.
+    """
+    get_interpreter().set_classical_seed(seed)
 
 def dump_machine() -> StateDump:
     """

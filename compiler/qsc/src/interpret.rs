@@ -98,6 +98,12 @@ pub struct Interpreter {
     source_package: PackageId,
     /// The default simulator backend.
     sim: SparseSim,
+    /// The quantum seed, if any. This is cached here so that it can be used in calls to
+    /// `run_internal` which use a passed instance of the simulator instead of the one above.
+    quantum_seed: Option<u64>,
+    /// The classical seed, if any. This needs to be passed to the evaluator for use in intrinsic
+    /// calls that produce classical random numbers.
+    classical_seed: Option<u64>,
     /// The evaluator environment.
     env: Env,
     /// The current state of the evaluator.
@@ -141,10 +147,21 @@ impl Interpreter {
             lowerer,
             env: Env::default(),
             sim: SparseSim::new(),
-            state: State::new(map_hir_package_to_fir(source_package_id)),
+            quantum_seed: None,
+            classical_seed: None,
+            state: State::new(map_hir_package_to_fir(source_package_id), None),
             package: map_hir_package_to_fir(package_id),
             source_package: map_hir_package_to_fir(source_package_id),
         })
+    }
+
+    pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
+        self.quantum_seed = seed;
+        self.sim.set_seed(seed);
+    }
+
+    pub fn set_classical_seed(&mut self, seed: Option<u64>) {
+        self.classical_seed = seed;
     }
 
     /// Loads the entry expression to the top of the evaluation stack.
@@ -193,6 +210,7 @@ impl Interpreter {
         let expr = self.get_entry_expr()?;
         eval(
             self.source_package,
+            self.classical_seed,
             expr.into(),
             self.compiler.package_store(),
             &self.fir_store,
@@ -210,8 +228,12 @@ impl Interpreter {
         receiver: &mut impl Receiver,
     ) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
+        if self.quantum_seed.is_some() {
+            sim.set_seed(self.quantum_seed);
+        }
         eval(
             self.source_package,
+            self.classical_seed,
             expr.into(),
             self.compiler.package_store(),
             &self.fir_store,
@@ -263,6 +285,7 @@ impl Interpreter {
         for stmt_id in stmts {
             result = eval(
                 self.package,
+                self.classical_seed,
                 stmt_id.into(),
                 self.compiler.package_store(),
                 &self.fir_store,
@@ -315,9 +338,13 @@ impl Interpreter {
         expr: &str,
     ) -> Result<InterpretResult, Vec<Error>> {
         let stmt_id = self.compile_expr_to_stmt(expr)?;
+        if self.quantum_seed.is_some() {
+            sim.set_seed(self.quantum_seed);
+        }
 
         Ok(eval(
             self.package,
+            self.classical_seed,
             stmt_id.into(),
             self.compiler.package_store(),
             &self.fir_store,
@@ -448,8 +475,10 @@ impl Interpreter {
 }
 
 /// Wrapper function for `qsc_eval::eval` that handles error conversion.
+#[allow(clippy::too_many_arguments)]
 fn eval(
     package: PackageId,
+    classical_seed: Option<u64>,
     id: EvalId,
     package_store: &PackageStore,
     fir_store: &fir::PackageStore,
@@ -457,7 +486,7 @@ fn eval(
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> InterpretResult {
-    qsc_eval::eval(package, id, fir_store, env, sim, receiver)
+    qsc_eval::eval(package, classical_seed, id, fir_store, env, sim, receiver)
         .map_err(|(error, call_stack)| eval_error(package_store, fir_store, call_stack, error))
 }
 

@@ -32,6 +32,32 @@ def test_stdout_multiple_lines() -> None:
 
     assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000𝑖\nHello!\n"
 
+def test_quantum_seed() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    qsharp.set_quantum_seed(42)
+    value1 = qsharp.eval("{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    qsharp.set_quantum_seed(42)
+    value2 = qsharp.eval("{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    assert value1 == value2
+    qsharp.set_quantum_seed(None)
+    value3 = qsharp.eval("{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    assert value1 != value3
+
+
+def test_classical_seed() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    qsharp.set_classical_seed(42)
+    value1 = qsharp.eval("{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }")
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    qsharp.set_classical_seed(42)
+    value2 = qsharp.eval("{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }")
+    assert value1 == value2
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    qsharp.set_classical_seed(None)
+    value3 = qsharp.eval("{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }")
+    assert value1 != value3
+
 
 def test_dump_machine() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
