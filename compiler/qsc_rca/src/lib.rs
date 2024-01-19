@@ -11,12 +11,26 @@ mod test_utils;
 mod tests;
 
 use crate::rca::analyze_package;
-use qsc_data_structures::index_map::IndexMap;
+use indenter::{indented, Indented};
+use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
     BlockId, ExprId, LocalItemId, NodeId, PackageId, PackageStore, PatId, StmtId, StoreBlockId,
     StoreExprId, StoreItemId, StorePatId, StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
+use std::fmt::{self, Debug, Display, Formatter, Write};
+
+fn set_indentation<'a, 'b>(
+    indent: Indented<'a, Formatter<'b>>,
+    level: usize,
+) -> Indented<'a, Formatter<'b>> {
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
+}
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {
@@ -142,6 +156,10 @@ impl PackageStoreComputeProperties {
         self.0.get_mut(id)
     }
 
+    pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {
+        self.0.iter()
+    }
+
     pub fn with_empty_packages(fir_store: &PackageStore) -> Self {
         let mut package_store_compute_props = IndexMap::new();
         for (id, _) in fir_store.iter() {
@@ -178,6 +196,44 @@ impl Default for PackageComputeProperties {
     }
 }
 
+impl Display for PackageComputeProperties {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Package:")?;
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nItems:")?;
+        indent = set_indentation(indent, 2);
+        for (item_id, item) in self.items.iter() {
+            write!(indent, "\nItem {item_id}: {item}")?;
+        }
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nBlocks:")?;
+        indent = set_indentation(indent, 2);
+        for (block_id, block) in self.blocks.iter() {
+            write!(indent, "\nBlock {block_id}: {block}")?;
+        }
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nStmts:")?;
+        indent = set_indentation(indent, 2);
+        for (stmt_id, stmt) in self.stmts.iter() {
+            write!(indent, "\nStmt {stmt_id}: {stmt}")?;
+        }
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nExprs:")?;
+        indent = set_indentation(indent, 2);
+        for (expr_id, expr) in self.exprs.iter() {
+            write!(indent, "\nExpr {expr_id}: {expr}")?;
+        }
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nPats:")?;
+        indent = set_indentation(indent, 2);
+        for (pat_id, pat) in self.pats.iter() {
+            write!(indent, "\nPat {pat_id}: {pat}")?;
+        }
+        Ok(())
+    }
+}
+
 impl PackageComputeProperties {
     pub fn clear(&mut self) {
         self.items.clear();
@@ -197,6 +253,17 @@ pub enum ItemComputeProperties {
     NonCallable,
 }
 
+impl Display for ItemComputeProperties {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match &self {
+            ItemComputeProperties::Callable(callable_compute_properties) => {
+                write!(f, "Callable: {}", callable_compute_properties)
+            }
+            ItemComputeProperties::NonCallable => write!(f, "NonCallable"),
+        }
+    }
+}
+
 /// The compute properties of a callable.
 #[derive(Debug)]
 pub struct CallableComputeProperties {
@@ -210,6 +277,28 @@ pub struct CallableComputeProperties {
     pub ctl_adj: Option<ApplicationsTable>,
 }
 
+impl Display for CallableComputeProperties {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "CallableComputeProperties:",)?;
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nbody: {}", self.body)?;
+        match &self.adj {
+            Some(spec) => write!(indent, "\nadj: {spec}")?,
+            None => write!(indent, "\nadj: <none>")?,
+        }
+        match &self.ctl {
+            Some(spec) => write!(indent, "\nctl: {spec}")?,
+            None => write!(indent, "\nctl: <none>")?,
+        }
+        match &self.ctl_adj {
+            Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
+            None => write!(indent, "\nctl-adj: <none>")?,
+        }
+        Ok(())
+    }
+}
+
 /// The compute properties of pattern.
 #[derive(Debug)]
 pub enum PatComputeProperties {
@@ -219,7 +308,7 @@ pub enum PatComputeProperties {
     LocalNode(NodeId, CallableElementComputeProperties),
     /// A local tuple. No compute properties tracked because it is not a node.
     LocalTuple(Vec<PatId>),
-    ///
+    /// A discarded input parameter.
     InputParamDiscard,
     /// An input parameter. No compute properties tracked.
     InputParamNode(NodeId),
@@ -227,13 +316,45 @@ pub enum PatComputeProperties {
     InputParamTuple(Vec<PatId>),
 }
 
+impl Display for PatComputeProperties {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match &self {
+            PatComputeProperties::LocalDiscard => write!(f, "LocalDiscard"),
+            PatComputeProperties::LocalNode(node_id, element_compute_properties) => {
+                write!(f, "LocalNode ({}): {}", node_id, element_compute_properties)
+            }
+            PatComputeProperties::LocalTuple(tuple) => write!(f, "LocalTuple: {:?}", tuple),
+            PatComputeProperties::InputParamDiscard => write!(f, "InputParamDiscard"),
+            PatComputeProperties::InputParamNode(node_id) => {
+                write!(f, "InputParamNode: {}", node_id)
+            }
+            PatComputeProperties::InputParamTuple(tuple) => {
+                write!(f, "InputParamTuple: {:?}", tuple)
+            }
+        }
+    }
+}
+
 /// The compute properties of a callable element.
 #[derive(Debug)]
 pub enum CallableElementComputeProperties {
     /// An application dependent element.
-    AppDependent(ApplicationsTable),
+    ApplicationDependent(ApplicationsTable),
     /// An application independent element.
-    AppIndependent(ComputeProperties),
+    ApplicationIndependent(ComputeProperties),
+}
+
+impl Display for CallableElementComputeProperties {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match &self {
+            CallableElementComputeProperties::ApplicationDependent(applications_table) => {
+                write!(f, "ApplicationDependent: {}", applications_table)
+            }
+            CallableElementComputeProperties::ApplicationIndependent(compute_properties) => {
+                write!(f, "ApplicationIndependent: {}", compute_properties)
+            }
+        }
+    }
 }
 
 /// The compute properties associated to an application table.
@@ -246,6 +367,21 @@ pub struct ApplicationsTable {
     pub dynamic_params_properties: Vec<ComputeProperties>,
 }
 
+impl Display for ApplicationsTable {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "ApplicationsTable:",)?;
+        indent = set_indentation(indent, 1);
+        write!(indent, "\ninherent: {}", self.inherent_properties)?;
+        write!(indent, "\ndynamic_params_properties:")?;
+        indent = set_indentation(indent, 2);
+        for (para_index, param_properties) in self.dynamic_params_properties.iter().enumerate() {
+            write!(indent, "\n[{}]: {}", para_index, param_properties)?;
+        }
+        Ok(())
+    }
+}
+
 /// The tracked compute properties.
 #[derive(Debug)]
 pub struct ComputeProperties {
@@ -255,6 +391,24 @@ pub struct ComputeProperties {
     pub quantum_source: Option<QuantumSource>,
 }
 
+impl Display for ComputeProperties {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "ComputeProperties:",)?;
+        indent = set_indentation(indent, 1);
+        write!(
+            indent,
+            "\nruntime_capabilities: {:?}",
+            self.runtime_capabilities
+        )?;
+        if let Some(quantum_source) = self.quantum_source {
+            write!(indent, "\nquantum_source: {quantum_source}")?;
+        }
+
+        Ok(())
+    }
+}
+
 /// A quantum source.
 #[derive(Clone, Copy, Debug)]
 pub enum QuantumSource {
@@ -262,6 +416,15 @@ pub enum QuantumSource {
     Intrinsic,
     /// A quantum source that comes from another expression.
     Expr(ExprId),
+}
+
+impl Display for QuantumSource {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match &self {
+            QuantumSource::Intrinsic => write!(f, "Intrinsic",),
+            QuantumSource::Expr(expr_id) => write!(f, "Expr: {}", expr_id),
+        }
+    }
 }
 
 /// The runtime capabilities analyzer.

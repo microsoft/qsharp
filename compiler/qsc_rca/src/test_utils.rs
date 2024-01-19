@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::PackageStoreComputeProperties;
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use std::{fs::File, io::Write};
 
@@ -42,6 +43,16 @@ impl PackageSearch for Package {
 pub fn write_fir_store_to_files(store: &PackageStore) {
     for (id, package) in store {
         let filename = format!("dbg/fir.package{id}.txt");
+        let mut package_file = File::create(filename).expect("File could be created");
+        let package_string = format!("{package}");
+        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+    }
+}
+
+// TODO (cesarzc): for debugging purposes only, remove later.
+pub fn write_compute_properties_to_files(store: &PackageStoreComputeProperties) {
+    for (id, package) in store.iter() {
+        let filename = format!("dbg/rca.package{id}.txt");
         let mut package_file = File::create(filename).expect("File could be created");
         let package_string = format!("{package}");
         write!(package_file, "{package_string}").expect("Writing to file should succeed.");

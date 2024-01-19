@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::test_utils::{write_fir_store_to_files, PackageStoreSearch};
+use crate::test_utils::{
+    write_compute_properties_to_files, write_fir_store_to_files, PackageStoreSearch,
+};
 use crate::{Analyzer, ComputePropertiesLookup};
 use qsc::incremental::Compiler;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
@@ -28,8 +30,10 @@ fn core_library_intrinsics_analysis_is_correct() {
     }
     write_fir_store_to_files(&fir_store);
     let analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+    write_compute_properties_to_files(analyzer.get_package_store_compute_properties());
     let callable_id = fir_store
         .find_callable_id_by_name("__quantum__rt__qubit_allocate")
         .expect("callable should exist");
+
     let _callable_compute_properties = analyzer.compute_properties.get_item(callable_id);
 }
