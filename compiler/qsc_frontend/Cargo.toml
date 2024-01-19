@@ -18,6 +18,7 @@ qsc_ast = { path = "../qsc_ast" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_parse = { path = "../qsc_parse" }
+library = { path = "../../library" }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 

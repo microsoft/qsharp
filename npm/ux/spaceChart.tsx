@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ReData } from "./reTable.js";
+import { SingleEstimateResult } from "./data.js";
 
 function getPieSegment(
   x: number,
@@ -26,7 +26,7 @@ function getPieSegment(
   return d;
 }
 
-export function SpaceChart(props: { estimatesData: ReData }) {
+export function SpaceChart(props: { estimatesData: SingleEstimateResult }) {
   const breakdown = props.estimatesData.physicalCounts.breakdown;
 
   // The values to be shown on the pie chart
