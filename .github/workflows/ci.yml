@@ -178,7 +178,7 @@ jobs:
       - uses: actions/github-script@v6
         with:
           script: |
-            if (${{ env.BRANCH_MEASUREMENT }} !== ${{ env.MAIN_MEASUREMENT }}) {
+            if ( 42 !== ${{ env.MAIN_MEASUREMENT }}) {
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: 'microsoft',
