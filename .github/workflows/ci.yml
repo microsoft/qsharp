@@ -150,6 +150,7 @@ jobs:
         if: ${{ github.base_ref != null }}
 
   runMemoryProfile:
+    permissions: write-all
     name: run memory profile
     runs-on: ubuntu-latest
     steps:
