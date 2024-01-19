@@ -19,7 +19,7 @@ use qsc_fir::{
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 
-pub fn analyze_package_compute_properties(
+pub fn analyze_package(
     id: PackageId,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
@@ -33,7 +33,7 @@ pub fn analyze_package_compute_properties(
 
     // Analyze all items in the package.
     for (item_id, _) in &package.items {
-        analyze_item_compute_properties(
+        analyze_item(
             (id, item_id).into(),
             package_store,
             package_store_compute_properties,
@@ -42,7 +42,7 @@ pub fn analyze_package_compute_properties(
 
     // Analyze all statements in the package.
     for (stmt_id, _) in &package.stmts {
-        analyze_statement_compute_properties(
+        analyze_statement(
             (id, stmt_id).into(),
             package_store,
             package_store_compute_properties,
@@ -50,7 +50,7 @@ pub fn analyze_package_compute_properties(
     }
 }
 
-fn analyze_callable_compute_properties(
+fn analyze_callable(
     id: StoreItemId,
     callable: &CallableDecl,
     package_store: &PackageStore,
@@ -73,7 +73,6 @@ fn analyze_callable_compute_properties(
 
     // Analyze the callable depending on its type.
     let input_params = derive_callable_input_params(input_elements.iter());
-    // TODO (cesarzc): Branch on function/operation instead of intrinsic/non-intrinsic.
     if callable.is_intrinsic() {
         analyze_intrinsic_callable_compute_properties(
             id,
@@ -145,7 +144,7 @@ fn analyze_intrinsic_callable_compute_properties<'a>(
     );
 }
 
-fn analyze_item_compute_properties(
+fn analyze_item(
     id: StoreItemId,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
@@ -156,7 +155,7 @@ fn analyze_item_compute_properties(
     }
 
     if let Some(Global::Callable(callable)) = package_store.get_global(id) {
-        analyze_callable_compute_properties(
+        analyze_callable(
             id,
             callable,
             package_store,
@@ -183,7 +182,7 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
     // TODO (cesarzc): Implement.
 }
 
-fn analyze_statement_compute_properties(
+fn analyze_statement(
     id: StoreStmtId,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,

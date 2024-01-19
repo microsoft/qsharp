@@ -16,6 +16,7 @@ pub trait CallableDeclExtension {
 
 impl CallableDeclExtension for CallableDecl {
     fn is_intrinsic(&self) -> bool {
+        // TODO (cesarzc): Update this when FIR is refactored to encode the assumptions made at that point.
         match self.body.body {
             SpecBody::Gen(spec_gen) => spec_gen == SpecGen::Intrinsic,
             _ => false,

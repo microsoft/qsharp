@@ -9,7 +9,7 @@ mod rca;
 #[cfg(test)]
 mod tests;
 
-use crate::rca::analyze_package_compute_properties;
+use crate::rca::analyze_package;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
     BlockId, ExprId, LocalItemId, NodeId, PackageId, PackageStore, PatId, StmtId, StoreBlockId,
@@ -282,7 +282,7 @@ impl Analyzer {
 
         // Analyze each package in the store.
         for (package_id, _) in fir_store.iter() {
-            analyze_package_compute_properties(package_id, fir_store, &mut compute_properties);
+            analyze_package(package_id, fir_store, &mut compute_properties);
         }
         Self {
             compute_properties,
