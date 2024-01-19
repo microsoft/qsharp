@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use qsc::fir::StmtId;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
-use qsc::{fmt_complex, target::Profile, PackageType, SourceMap};
+use qsc::{fmt_complex, target::Profile};
 
 use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
