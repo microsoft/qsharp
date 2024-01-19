@@ -6,6 +6,8 @@
 mod data_structures;
 mod rca;
 #[cfg(test)]
+mod test_utils;
+#[cfg(test)]
 mod tests;
 
 use crate::rca::analyze_package;

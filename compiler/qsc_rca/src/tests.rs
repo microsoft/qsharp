@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::test_utils::write_fir_store_to_files;
 use crate::Analyzer;
 use qsc::incremental::Compiler;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
@@ -12,7 +13,7 @@ use qsc_passes::PackageType;
 fn core_library_analysis_is_correct() {
     let compiler = Compiler::new(
         false,
-        SourceMap::new(vec![], None),
+        SourceMap::default(),
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
     )
@@ -25,5 +26,6 @@ fn core_library_analysis_is_correct() {
             lowerer.lower_package(&unit.package),
         );
     }
+    write_fir_store_to_files(&fir_store);
     let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
 }
