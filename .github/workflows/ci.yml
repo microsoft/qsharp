@@ -192,7 +192,7 @@ jobs:
                 | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes |`
                 })
               } catch (err) {
-                core.warning(`Failed writting comment to GitHub issue.`)
+                core.warning(`Failed writting comment to GitHub issue: ${err}`)
               }
             } else {
               console.log("no change in memory usage detected by benchmark");
