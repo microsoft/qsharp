@@ -578,10 +578,41 @@ impl Display for Package {
         write!(indent, "Package:")?;
         indent = set_indentation(indent, 1);
         if let Some(e) = &self.entry {
-            write!(indent, "\nentry expression: {e}")?;
+            write!(indent, "\nEntry Expression: {e}")?;
         }
+
+        write!(indent, "\nItems:")?;
+        indent = set_indentation(indent, 2);
         for item in self.items.values() {
             write!(indent, "\n{item}")?;
+        }
+
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nBlocks:")?;
+        indent = set_indentation(indent, 2);
+        for block in self.blocks.values() {
+            write!(indent, "\n{block}")?;
+        }
+
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nStmts:")?;
+        indent = set_indentation(indent, 2);
+        for stmt in self.stmts.values() {
+            write!(indent, "\n{stmt}")?;
+        }
+
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nExprs:")?;
+        indent = set_indentation(indent, 2);
+        for expr in self.exprs.values() {
+            write!(indent, "\n{expr}")?;
+        }
+
+        indent = set_indentation(indent, 1);
+        write!(indent, "\nPats:")?;
+        indent = set_indentation(indent, 2);
+        for pat in self.pats.values() {
+            write!(indent, "\n{pat}")?;
         }
         Ok(())
     }
