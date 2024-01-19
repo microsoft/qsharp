@@ -98,6 +98,32 @@ namespace Microsoft.Quantum.Convert {
     }
 
     /// # Summary
+    /// Converts an array of Boolean values into a non-negative BigInt, interpreting the
+    /// array as a binary representation in little-endian format.
+    ///
+    /// # Input
+    /// ## boolArray
+    /// An array of Boolean values representing the binary digits of a BigInt.
+    ///
+    /// # Output
+    /// A BigInt represented by `boolArray`.
+    ///
+    /// # Remarks
+    /// The function interprets the array in little-endian format, where the first
+    /// element of the array represents the least significant bit.
+    /// The input `boolArray` should not be empty.
+    function BoolArrayAsBigInt(boolArray : Bool[]) : BigInt {
+        mutable result = 0L;
+        for i in 0..Length(boolArray) - 1 {
+            if boolArray[i] {
+                set result += 1L <<< i;
+            }
+        }
+        
+        result
+    }
+
+    /// # Summary
     /// Produces a binary representation of a non-negative BigInt, using the
     /// little-endian representation for the returned array.
     ///
