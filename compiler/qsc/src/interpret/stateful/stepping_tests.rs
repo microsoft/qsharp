@@ -108,7 +108,7 @@ fn expect_out(debugger: &mut Debugger) {
 }
 
 #[cfg(test)]
-mod given_interpreter_with_sources {
+mod given_debugger {
     use super::*;
 
     static STEPPING_SOURCE: &str = r#"
