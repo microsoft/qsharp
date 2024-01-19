@@ -4,6 +4,7 @@
 // A component including the results table and the scatter chart together.
 // The results table is also a legend for the scatter chart.
 
+import { useState } from "preact/hooks";
 import { ColorMap } from "./colormap.js";
 import {
   CreateSingleEstimateResult,
@@ -124,6 +125,8 @@ export function EstimatesOverview(props: {
   onRowDeleted: (rowId: string) => void;
   setEstimate: (estimate: SingleEstimateResult | null) => void;
 }) {
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
+
   props.estimatesData.forEach((item, idx) => {
     if (
       props.runNames != null &&
@@ -141,8 +144,8 @@ export function EstimatesOverview(props: {
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
     const data = props.estimatesData[seriesIndex];
     props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
-    // const rowId = props.estimatesData[seriesIndex].jobParams.runName;
-    // onRowSelected(rowId);
+    const rowId = props.estimatesData[seriesIndex].jobParams.runName;
+    setSelectedRow(rowId);
   }
 
   function onRowSelected(rowId: string) {
@@ -185,6 +188,8 @@ export function EstimatesOverview(props: {
           ensureSelected={true}
           onRowSelected={onRowSelected}
           onRowDeleted={props.onRowDeleted}
+          selectedRow={selectedRow}
+          setSelectedRow={setSelectedRow}
         />
         <ScatterChart
           xAxis={xAxis}
@@ -210,6 +215,8 @@ export function EstimatesOverview(props: {
             reDataToRow(dataItem, colormap[index]),
           )}
           initialColumns={initialColumns}
+          selectedRow={selectedRow}
+          setSelectedRow={setSelectedRow}
           ensureSelected={true}
           onRowSelected={onRowSelected}
           onRowDeleted={props.onRowDeleted}

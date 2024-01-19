@@ -17,13 +17,15 @@ export function ResultsTable(props: {
   ensureSelected: boolean;
   onRowSelected(rowId: string): void;
   onRowDeleted(rowId: string): void;
+  selectedRow: string | null; // type selected to confirm with the useState pattern on the parent component
+  setSelectedRow(rowId: string): void;
 }) {
   const [showColumns, setShowColumns] = useState(props.initialColumns);
   const [sortColumn, setSortColumn] = useState<{
     columnId: number;
     ascending: boolean;
   } | null>(null);
-  const [selectedRow, setSelectedRow] = useState<string>("");
+
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [showRowMenu, setShowRowMenu] = useState("");
 
@@ -37,7 +39,11 @@ export function ResultsTable(props: {
     const rowId = newest.cells[0].toString();
     setSelectedRow(rowId);
     props.onRowSelected(rowId);
-  } else if (!selectedRow && props.ensureSelected && props.rows.length > 0) {
+  } else if (
+    !props.selectedRow &&
+    props.ensureSelected &&
+    props.rows.length > 0
+  ) {
     const rowId = props.rows[0].cells[0].toString();
     setSelectedRow(rowId);
     props.onRowSelected(rowId);
@@ -78,6 +84,10 @@ export function ResultsTable(props: {
         .querySelectorAll(`[data-colid="${thisColId}"]`)
         .forEach((elem) => elem.classList.add("qs-resultsTable-dragEnter"));
     }
+  }
+
+  function setSelectedRow(rowId: string) {
+    props.setSelectedRow(rowId);
   }
 
   function onDragOver(ev: DragEvent) {
@@ -194,9 +204,9 @@ export function ResultsTable(props: {
   }
 
   function rowClicked(rowId: string) {
-    if (selectedRow === rowId && props.ensureSelected) return;
+    if (props.selectedRow === rowId && props.ensureSelected) return;
 
-    const newSelectedRow = selectedRow === rowId ? "" : rowId;
+    const newSelectedRow = props.selectedRow === rowId ? "" : rowId;
     setSelectedRow(newSelectedRow);
     props.onRowSelected(newSelectedRow);
   }
@@ -247,7 +257,7 @@ export function ResultsTable(props: {
     e.stopPropagation();
     // Clear out any menus or selections for the row if needed
     setShowRowMenu("");
-    if (selectedRow === rowId) {
+    if (props.selectedRow === rowId) {
       setSelectedRow("");
       props.onRowSelected("");
     }
@@ -352,7 +362,7 @@ export function ResultsTable(props: {
               onClick={() => rowClicked(rowId)}
               data-rowid={rowId}
               class={
-                rowId === selectedRow
+                rowId === props.selectedRow
                   ? "qs-resultsTable-sortedTableSelectedRow"
                   : undefined
               }
