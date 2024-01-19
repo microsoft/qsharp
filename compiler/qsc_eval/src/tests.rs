@@ -28,7 +28,7 @@ pub(super) fn eval_expr(
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
-    let mut env = Env::with_empty_scope();
+    let mut env = Env::default();
     state.push_expr(expr);
     let StepResult::Return(value) =
         state.eval(globals, &mut env, sim, out, &[], StepAction::Continue)?

@@ -170,45 +170,46 @@ impl Display for Spec {
     }
 }
 
-/// Evaluates the given expr with the given context.
-/// # Errors
-/// Returns the first error encountered during execution.
-/// # Panics
-/// On internal error where no result is returned.
-pub fn eval_expr(
-    state: &mut State,
-    expr: ExprId,
-    globals: &impl PackageStoreLookup,
-    env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    out: &mut impl Receiver,
-) -> Result<Value, (Error, Vec<Frame>)> {
-    state.push_expr(expr);
-    let res = state.eval(globals, env, sim, out, &[], StepAction::Continue)?;
-    let StepResult::Return(value) = res else {
-        panic!("eval_expr should always return a value");
-    };
-    Ok(value)
+/// An id either representing a statement or an expression to be evaluated.
+#[derive(Clone, Copy)]
+pub enum EvalId {
+    Expr(ExprId),
+    Stmt(StmtId),
 }
 
-/// Evaluates the given stmt with the given context.
+impl From<ExprId> for EvalId {
+    fn from(expr: ExprId) -> Self {
+        Self::Expr(expr)
+    }
+}
+
+impl From<StmtId> for EvalId {
+    fn from(stmt: StmtId) -> Self {
+        Self::Stmt(stmt)
+    }
+}
+
+/// Evaluates the given code with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
 /// # Panics
 /// On internal error where no result is returned.
-pub fn eval_stmt(
-    stmt: StmtId,
+pub fn eval(
+    package: PackageId,
+    id: EvalId,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    package: PackageId,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
     let mut state = State::new(package);
-    state.push_stmt(stmt);
+    match id {
+        EvalId::Expr(expr) => state.push_expr(expr),
+        EvalId::Stmt(stmt) => state.push_stmt(stmt),
+    }
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
-        panic!("eval_stmt should always return a value");
+        panic!("eval should always return a value");
     };
     Ok(value)
 }
@@ -307,7 +308,6 @@ impl Range {
     }
 }
 
-#[derive(Default)]
 pub struct Env(Vec<Scope>);
 
 impl Env {
@@ -383,9 +383,9 @@ struct Scope {
     frame_id: usize,
 }
 
-impl Env {
+impl Default for Env {
     #[must_use]
-    pub fn with_empty_scope() -> Self {
+    fn default() -> Self {
         Self(vec![Scope::default()])
     }
 }

@@ -29,10 +29,9 @@ use qsc_data_structures::span::Span;
 use qsc_eval::{
     backend::{Backend, SparseSim},
     debug::{map_fir_package_to_hir, map_hir_package_to_fir},
-    eval_expr, eval_stmt,
     output::Receiver,
     val::{self},
-    Env, State, VariableInfo,
+    Env, EvalId, State, VariableInfo,
 };
 use qsc_fir::fir::{self, Global, PackageStoreLookup};
 use qsc_fir::{
@@ -138,7 +137,7 @@ impl Interpreter {
             capabilities,
             fir_store,
             lowerer,
-            env: Env::with_empty_scope(),
+            env: Env::default(),
             sim: SparseSim::new(),
             package: map_hir_package_to_fir(package_id),
             source_package: map_hir_package_to_fir(source_package_id),
@@ -150,22 +149,15 @@ impl Interpreter {
     /// Returns a vector of errors if evaluating the entry point fails.
     pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
-        eval_expr(
-            &mut State::new(self.source_package),
-            expr,
+        eval(
+            self.source_package,
+            expr.into(),
+            self.compiler.package_store(),
             &self.fir_store,
-            &mut Env::with_empty_scope(),
+            &mut Env::default(),
             &mut self.sim,
             receiver,
         )
-        .map_err(|(error, call_stack)| {
-            eval_error(
-                self.compiler.package_store(),
-                &self.fir_store,
-                call_stack,
-                error,
-            )
-        })
     }
 
     /// Executes the entry expression until the end of execution, using the given simulator backend
@@ -176,22 +168,15 @@ impl Interpreter {
         receiver: &mut impl Receiver,
     ) -> Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
-        eval_expr(
-            &mut State::new(self.source_package),
-            expr,
+        eval(
+            self.source_package,
+            expr.into(),
+            self.compiler.package_store(),
             &self.fir_store,
-            &mut Env::with_empty_scope(),
+            &mut Env::default(),
             sim,
             receiver,
         )
-        .map_err(|(error, call_stack)| {
-            eval_error(
-                self.compiler.package_store(),
-                &self.fir_store,
-                call_stack,
-                error,
-            )
-        })
     }
 
     fn get_entry_expr(&self) -> Result<ExprId, Vec<Error>> {
@@ -234,24 +219,15 @@ impl Interpreter {
         let mut result = Value::unit();
 
         for stmt_id in stmts {
-            match eval_stmt(
-                stmt_id,
+            result = eval(
+                self.package,
+                stmt_id.into(),
+                self.compiler.package_store(),
                 &self.fir_store,
                 &mut self.env,
                 &mut self.sim,
-                self.package,
                 receiver,
-            ) {
-                Ok(value) => result = value,
-                Err((error, call_stack)) => {
-                    return Err(eval_error(
-                        self.compiler.package_store(),
-                        &self.fir_store,
-                        call_stack,
-                        error,
-                    ))
-                }
-            }
+            )?;
         }
 
         Ok(result)
@@ -298,31 +274,15 @@ impl Interpreter {
     ) -> Result<InterpretResult, Vec<Error>> {
         let stmt_id = self.compile_expr_to_stmt(expr)?;
 
-        Ok(self.run_internal(sim, receiver, stmt_id))
-    }
-
-    fn run_internal(
-        &mut self,
-        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-        receiver: &mut impl Receiver,
-        stmt_id: StmtId,
-    ) -> InterpretResult {
-        match eval_stmt(
-            stmt_id,
-            &self.fir_store,
-            &mut Env::with_empty_scope(),
-            sim,
+        Ok(eval(
             self.package,
+            stmt_id.into(),
+            self.compiler.package_store(),
+            &self.fir_store,
+            &mut Env::default(),
+            sim,
             receiver,
-        ) {
-            Ok(value) => Ok(value),
-            Err((error, call_stack)) => Err(eval_error(
-                self.compiler.package_store(),
-                &self.fir_store,
-                call_stack,
-                error,
-            )),
-        }
+        ))
     }
 
     fn compile_expr_to_stmt(&mut self, expr: &str) -> Result<StmtId, Vec<Error>> {
@@ -509,6 +469,20 @@ impl Debugger {
             .get(map_fir_package_to_hir(self.interpreter.source_package))
             .expect("Could not load package")
     }
+}
+
+/// Wrapper function for `qsc_eval::eval` that handles error conversion.
+fn eval(
+    package: PackageId,
+    id: EvalId,
+    package_store: &PackageStore,
+    fir_store: &fir::PackageStore,
+    env: &mut Env,
+    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    receiver: &mut impl Receiver,
+) -> InterpretResult {
+    qsc_eval::eval(package, id, fir_store, env, sim, receiver)
+        .map_err(|(error, call_stack)| eval_error(package_store, fir_store, call_stack, error))
 }
 
 /// Represents a stack frame for debugging.
