@@ -153,26 +153,25 @@ impl Lowerer {
     }
 
     fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
+        fn is_instrinsic(spec_body: &SpecBody) -> bool {
+            match spec_body {
+                SpecBody::Gen(spec_gen) => matches!(spec_gen, SpecGen::Intrinsic),
+                SpecBody::Impl(_, _) => false,
+            }
+        }
+
         let id = self.lower_id(decl.id);
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let input = self.lower_pat(&decl.input);
-
         let generics = lower_generics(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
-
-        fn is_instrinsic(spec_body: &SpecBody) -> bool {
-            match spec_body {
-                SpecBody::Gen(spec_gen) => matches!(spec_gen, SpecGen::Intrinsic),
-                _ => false,
-            }
-        }
-
         let implementation = if is_instrinsic(&decl.body.body) {
-            if decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some() {
-                panic!("intrinsic callables do not have specializations");
-            }
+            assert!(
+                !(decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some()),
+                "intrinsic callables should not have specializations"
+            );
             CallableImplementation::Intrinsic(self.lower_id(decl.body.id), decl.body.span)
         } else {
             let body = self.lower_spec_decl(&decl.body);
