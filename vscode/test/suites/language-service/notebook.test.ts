@@ -3,16 +3,20 @@
 
 import * as vscode from "vscode";
 import { assert } from "chai";
+import { activateExtension } from "../extensionUtils";
 
-suite("Q# Notebook Tests", () => {
+suite("Q# Notebook Tests", function suite() {
   const workspaceFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
   assert(workspaceFolder, "Expecting an open folder");
 
   const workspaceFolderUri = workspaceFolder.uri;
 
+  this.beforeAll(async () => {
+    await activateExtension();
+  });
+
   test("Cell language is set to Q#", async () => {
-    await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
       vscode.Uri.joinPath(workspaceFolderUri, "test-no-lang-metadata.ipynb"),
     );
@@ -56,7 +60,6 @@ suite("Q# Notebook Tests", () => {
   });
 
   test("Diagnostics", async () => {
-    await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
       vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
     );
@@ -72,7 +75,6 @@ suite("Q# Notebook Tests", () => {
   });
 
   test("Definition", async () => {
-    await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
       vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
     );
@@ -95,9 +97,3 @@ suite("Q# Notebook Tests", () => {
     assert.equal(location.range.start.character, 10);
   });
 });
-
-async function activate() {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const ext = vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev")!;
-  await ext.activate();
-}
