@@ -2,7 +2,7 @@
 /// Quantum Dynamics
 ///
 /// # Description
-/// This example demonstrates quantum dynamics in a style tailed for
+/// This example demonstrates quantum dynamics in a style tailored for
 /// resource estimation. The sample is specifically the simulation
 /// of an Ising model Hamiltonian on an NxN 2D lattice using a
 /// fourth-order Trotter Suzuki product formula, assuming
