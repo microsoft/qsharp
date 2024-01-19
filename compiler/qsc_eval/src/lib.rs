@@ -209,7 +209,7 @@ pub fn eval(
     }
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
-        panic!("eval_expr should always return a value");
+        panic!("eval should always return a value");
     };
     Ok(value)
 }
