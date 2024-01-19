@@ -5,15 +5,14 @@ use crate::data_structures::{
     derive_callable_input_elements, derive_callable_input_params,
     initialize_callable_variables_map, CallableInputElement, CallableInputElementKind, InputParam,
 };
-use crate::fir_extensions::CallableDeclExtension;
 use crate::{
     ApplicationsTable, CallableComputeProperties, ComputeProperties, ComputePropertiesLookup,
     ItemComputeProperties, PackageStoreComputeProperties, PatComputeProperties, QuantumSource,
 };
 use qsc_fir::{
     fir::{
-        CallableDecl, CallableKind, Global, PackageId, PackageStore, PackageStoreLookup,
-        StoreItemId, StoreStmtId,
+        CallableDecl, CallableImpl, CallableKind, Global, PackageId, PackageStore,
+        PackageStoreLookup, StoreItemId, StoreStmtId,
     },
     ty::{Prim, Ty},
 };
@@ -73,22 +72,21 @@ fn analyze_callable(
 
     // Analyze the callable depending on its type.
     let input_params = derive_callable_input_params(input_elements.iter());
-    if callable.is_intrinsic() {
-        analyze_intrinsic_callable_compute_properties(
+    match callable.implementation {
+        CallableImpl::Intrinsic => analyze_intrinsic_callable_compute_properties(
             id,
             callable,
             input_params.iter(),
             package_store,
             package_store_compute_properties,
-        );
-    } else {
-        analyze_non_intrinsic_callable_compute_properties(
+        ),
+        CallableImpl::Spec(_) => analyze_non_intrinsic_callable_compute_properties(
             id,
             callable,
             input_params.iter(),
             package_store,
             package_store_compute_properties,
-        );
+        ),
     }
 }
 
@@ -200,7 +198,7 @@ fn create_intrinsic_callable_compute_properties<'a>(
     callable: &CallableDecl,
     input_params: impl Iterator<Item = &'a InputParam>,
 ) -> CallableComputeProperties {
-    assert!(callable.is_intrinsic());
+    assert!(matches!(callable.implementation, CallableImpl::Intrinsic));
     match callable.kind {
         CallableKind::Function => {
             create_intrinsic_function_compute_properties(callable, input_params)
@@ -234,7 +232,7 @@ fn create_intrinsic_function_compute_properties<'a>(
         // For intrinsic functions, we assume any parameter can contribute to the output so if any parameter is dynamic,
         // the output of the function is dynamic. Therefore, this function becomes a quantum source for all dynamic
         // params if its output is non-unit.
-        let quantum_source = if callable.is_output_unit() {
+        let quantum_source = if callable.output == Ty::UNIT {
             None
         } else {
             Some(QuantumSource::Intrinsic)
@@ -266,8 +264,9 @@ fn create_instrinsic_operation_compute_properties<'a>(
     assert!(matches!(callable.kind, CallableKind::Operation));
 
     // For intrinsic operations, they inherently do not require any runtime capabilities and they are a quantum source
-    // if their output is non-unit.
-    let quantum_source = if callable.is_output_unit() {
+    // if their output is nont qubit or unit.
+    let quantum_source = if callable.output == Ty::Prim(Prim::Qubit) || callable.output == Ty::UNIT
+    {
         None
     } else {
         Some(QuantumSource::Intrinsic)
