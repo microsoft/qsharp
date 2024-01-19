@@ -229,7 +229,7 @@ fn create_intrinsic_function_compute_properties<'a>(
         // on the parameter type.
         let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
 
-        // For intrinsic functions, we assume any parameter can contribute to the output so if any parameter is dynamic,
+        // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
         // the output of the function is dynamic. Therefore, this function becomes a quantum source for all dynamic
         // params if its output is non-unit.
         let quantum_source = if callable.output == Ty::UNIT {
@@ -264,7 +264,7 @@ fn create_instrinsic_operation_compute_properties<'a>(
     assert!(matches!(callable.kind, CallableKind::Operation));
 
     // For intrinsic operations, they inherently do not require any runtime capabilities and they are a quantum source
-    // if their output is nont qubit or unit.
+    // if their output is not qubit nor unit.
     let quantum_source = if callable.output == Ty::Prim(Prim::Qubit) || callable.output == Ty::UNIT
     {
         None
@@ -282,6 +282,15 @@ fn create_instrinsic_operation_compute_properties<'a>(
         // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
         // on the parameter type.
         let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
+
+        // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
+        // dynamic the output of the operation is dynamic. Therefore, this operation becomes a quantum source for all
+        // dynamic params if its output is non-unit.
+        let quantum_source = if callable.output == Ty::UNIT {
+            None
+        } else {
+            Some(QuantumSource::Intrinsic)
+        };
         let param_compute_properties = ComputeProperties {
             runtime_capabilities: param_runtime_capabilities,
             quantum_source,

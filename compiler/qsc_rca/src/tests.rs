@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::test_utils::write_fir_store_to_files;
-use crate::Analyzer;
+use crate::test_utils::{write_fir_store_to_files, PackageStoreSearch};
+use crate::{Analyzer, ComputePropertiesLookup};
 use qsc::incremental::Compiler;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::PackageStore;
@@ -10,7 +10,7 @@ use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 
 #[test]
-fn core_library_analysis_is_correct() {
+fn core_library_intrinsics_analysis_is_correct() {
     let compiler = Compiler::new(
         false,
         SourceMap::default(),
@@ -27,5 +27,9 @@ fn core_library_analysis_is_correct() {
         );
     }
     write_fir_store_to_files(&fir_store);
-    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+    let analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+    let callable_id = fir_store
+        .find_callable_id_by_name("__quantum__rt__qubit_allocate")
+        .expect("callable should exist");
+    let _callable_compute_properties = analyzer.compute_properties.get_item(callable_id);
 }
