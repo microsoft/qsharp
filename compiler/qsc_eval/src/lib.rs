@@ -24,8 +24,8 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::span::Span;
 use qsc_fir::fir::{
-    self, BinOp, BlockId, ExprId, ExprKind, Field, Functor, Global, Lit, LocalItemId, Mutability,
-    NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, SpecBody, SpecGen,
+    self, BinOp, BlockId, CallableImplementation, ExprId, ExprKind, Field, Functor, Global, Lit,
+    LocalItemId, Mutability, NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res,
     StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
@@ -1087,35 +1087,33 @@ impl State {
         let spec = spec_from_functor_app(functor);
         self.push_frame(callee_id, functor);
         self.push_scope(env);
-        let block_body = &match spec {
-            Spec::Body => Some(&callee.body),
-            Spec::Adj => callee.adj.as_ref(),
-            Spec::Ctl => callee.ctl.as_ref(),
-            Spec::CtlAdj => callee.ctl_adj.as_ref(),
-        }
-        .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?
-        .body;
-        match block_body {
-            SpecBody::Impl(input, body_block) => {
-                self.bind_args_for_spec(
-                    env,
-                    globals,
-                    callee.input,
-                    *input,
-                    arg,
-                    functor.controlled,
-                    fixed_args,
-                );
-                self.push_block(env, globals, *body_block);
-                Ok(())
-            }
-            SpecBody::Gen(SpecGen::Intrinsic) => {
+        match &callee.implementation {
+            CallableImplementation::Intrinsic(_, _) => {
                 let name = &callee.name.name;
                 let val = intrinsic::call(name, callee_span, arg, arg_span, sim, out)?;
                 self.push_val(val);
                 Ok(())
             }
-            SpecBody::Gen(_) => Err(Error::MissingSpec(spec.to_string(), callee_span)),
+            CallableImplementation::Specialized(specialized_implementation) => {
+                let spec_decl = match spec {
+                    Spec::Body => Some(&specialized_implementation.body),
+                    Spec::Adj => specialized_implementation.adj.as_ref(),
+                    Spec::Ctl => specialized_implementation.ctl.as_ref(),
+                    Spec::CtlAdj => specialized_implementation.ctl_adj.as_ref(),
+                }
+                .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?;
+                self.bind_args_for_spec(
+                    env,
+                    globals,
+                    callee.input,
+                    spec_decl.input,
+                    arg,
+                    functor.controlled,
+                    fixed_args,
+                );
+                self.push_block(env, globals, spec_decl.block);
+                Ok(())
+            }
         }
     }
 

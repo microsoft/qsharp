@@ -3,12 +3,12 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::assigner::Assigner;
-use qsc_fir::fir::{Block, Expr, Pat, Stmt};
+use qsc_fir::fir::{Block, CallableImplementation, Expr, Pat, SpecializedImplementation, Stmt};
 use qsc_fir::{
     fir::{self, BlockId, ExprId, LocalItemId, PatId, StmtId},
     ty::{Arrow, InferFunctorId, ParamId, Ty},
 };
-use qsc_hir::hir;
+use qsc_hir::hir::{self, SpecBody, SpecGen};
 use std::{clone::Clone, rc::Rc};
 
 pub struct Lowerer {
@@ -161,10 +161,32 @@ impl Lowerer {
         let generics = lower_generics(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
-        let body = self.lower_spec_decl(&decl.body);
-        let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
-        let ctl = decl.ctl.as_ref().map(|f| self.lower_spec_decl(f));
-        let ctl_adj = decl.ctl_adj.as_ref().map(|f| self.lower_spec_decl(f));
+
+        fn is_instrinsic(spec_body: &SpecBody) -> bool {
+            match spec_body {
+                SpecBody::Gen(spec_gen) => matches!(spec_gen, SpecGen::Intrinsic),
+                _ => false,
+            }
+        }
+
+        let implementation = if is_instrinsic(&decl.body.body) {
+            if decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some() {
+                panic!("intrinsic callables do not have specializations");
+            }
+            CallableImplementation::Intrinsic(self.lower_id(decl.body.id), decl.body.span)
+        } else {
+            let body = self.lower_spec_decl(&decl.body);
+            let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
+            let ctl = decl.ctl.as_ref().map(|f| self.lower_spec_decl(f));
+            let ctl_adj = decl.ctl_adj.as_ref().map(|f| self.lower_spec_decl(f));
+            let specialized_implementation = SpecializedImplementation {
+                body,
+                adj,
+                ctl,
+                ctl_adj,
+            };
+            CallableImplementation::Specialized(specialized_implementation)
+        };
 
         fir::CallableDecl {
             id,
@@ -175,30 +197,23 @@ impl Lowerer {
             input,
             output,
             functors,
-            body,
-            adj,
-            ctl,
-            ctl_adj,
+            implementation,
         }
     }
 
     fn lower_spec_decl(&mut self, decl: &hir::SpecDecl) -> fir::SpecDecl {
+        let (controls, block) = if let SpecBody::Impl(pat, block) = &decl.body {
+            let pat_id = pat.as_ref().map(|p| self.lower_spec_decl_pat(p));
+            let block_id = self.lower_block(block);
+            (pat_id, block_id)
+        } else {
+            panic!("if a SpecDecl is some, then it must be an implementation");
+        };
         fir::SpecDecl {
             id: self.lower_id(decl.id),
             span: decl.span,
-            body: match &decl.body {
-                hir::SpecBody::Gen(gen) => fir::SpecBody::Gen(match gen {
-                    hir::SpecGen::Auto => fir::SpecGen::Auto,
-                    hir::SpecGen::Distribute => fir::SpecGen::Distribute,
-                    hir::SpecGen::Intrinsic => fir::SpecGen::Intrinsic,
-                    hir::SpecGen::Invert => fir::SpecGen::Invert,
-                    hir::SpecGen::Slf => fir::SpecGen::Slf,
-                }),
-                hir::SpecBody::Impl(input, block) => fir::SpecBody::Impl(
-                    input.as_ref().map(|i| self.lower_spec_decl_pat(i)),
-                    self.lower_block(block),
-                ),
-            },
+            block,
+            input: controls,
         }
     }
 

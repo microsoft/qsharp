@@ -718,14 +718,8 @@ pub struct CallableDecl {
     pub output: Ty,
     /// The functors supported by the callable.
     pub functors: FunctorSetValue,
-    /// The callable body.
-    pub body: SpecDecl,
-    /// The adjoint specialization.
-    pub adj: Option<SpecDecl>,
-    /// The controlled specialization.
-    pub ctl: Option<SpecDecl>,
-    /// The controlled adjoint specialization.
-    pub ctl_adj: Option<SpecDecl>,
+    /// The callable implementation.
+    pub implementation: CallableImplementation,
 }
 
 impl CallableDecl {
@@ -765,40 +759,28 @@ impl Display for CallableDecl {
         write!(indent, "\ninput: {}", self.input)?;
         write!(indent, "\noutput: {}", self.output)?;
         write!(indent, "\nfunctors: {}", self.functors)?;
-        write!(indent, "\nbody: {}", self.body)?;
-        match &self.adj {
-            Some(spec) => write!(indent, "\nadj: {spec}")?,
-            None => write!(indent, "\nadj: <none>")?,
-        }
-        match &self.ctl {
-            Some(spec) => write!(indent, "\nctl: {spec}")?,
-            None => write!(indent, "\nctl: <none>")?,
-        }
-        match &self.ctl_adj {
-            Some(spec) => write!(indent, "\nctl-adj: {spec}")?,
-            None => write!(indent, "\nctl-adj: <none>")?,
-        }
+        write!(indent, "\nimplementation: {}", self.implementation)?;
         Ok(())
     }
 }
 
-/// The kinds of callable implementations.
+/// A callable implementations.
 #[derive(Clone, Debug, PartialEq)]
-pub enum CallableImplKind {
+pub enum CallableImplementation {
     /// An intrinsic callable implementation.
     Intrinsic(NodeId, Span),
     /// A specialized callable implementation.
-    Specialized(CallableSpecImpl),
+    Specialized(SpecializedImplementation),
 }
 
-impl Display for CallableImplKind {
+impl Display for CallableImplementation {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            CallableImplKind::Intrinsic(node_id, span) => {
+            CallableImplementation::Intrinsic(node_id, span) => {
                 write!(indent, "Instrinsic {node_id} {span}")?;
             }
-            CallableImplKind::Specialized(spec_impl) => {
+            CallableImplementation::Specialized(spec_impl) => {
                 write!(indent, "Specialized:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{spec_impl}")?;
@@ -809,10 +791,10 @@ impl Display for CallableImplKind {
     }
 }
 
-/// A callable specialized implementation.
+/// A specialized implementation.
 #[derive(Clone, Debug, PartialEq)]
-pub struct CallableSpecImpl {
-    /// The callable body.
+pub struct SpecializedImplementation {
+    /// The body implementation.
     pub body: SpecDecl,
     /// The adjoint specialization.
     pub adj: Option<SpecDecl>,
@@ -822,10 +804,10 @@ pub struct CallableSpecImpl {
     pub ctl_adj: Option<SpecDecl>,
 }
 
-impl Display for CallableSpecImpl {
+impl Display for SpecializedImplementation {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "CallableSpecDecl:",)?;
+        write!(indent, "SpecializedImplementation:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nbody: {}", self.body)?;
         match &self.adj {
@@ -851,40 +833,19 @@ pub struct SpecDecl {
     pub id: NodeId,
     /// The span.
     pub span: Span,
-    /// The body of the specialization.
-    pub body: SpecBody,
+    /// The block that implements the specialization.
+    pub block: BlockId,
+    /// The input of the specialization.
+    pub input: Option<PatId>,
 }
 
 impl Display for SpecDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "SpecDecl {} {}: {}", self.id, self.span, self.body)
-    }
-}
-
-/// The body of a specialization.
-#[derive(Clone, Debug, PartialEq)]
-pub enum SpecBody {
-    /// The strategy to use to automatically generate the specialization.
-    Gen(SpecGen),
-    /// A manual implementation of the specialization.
-    Impl(Option<PatId>, BlockId),
-}
-
-impl Display for SpecBody {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        match self {
-            SpecBody::Gen(sg) => write!(indent, "Gen: {sg:?}")?,
-            SpecBody::Impl(p, b) => {
-                write!(indent, "Impl:")?;
-                indent = set_indentation(indent, 1);
-                if let Some(p) = p {
-                    write!(indent, "\n{p}")?;
-                }
-                write!(indent, "\n{b}")?;
-            }
-        }
-        Ok(())
+        write!(
+            f,
+            "SpecDecl {} {}: {:?} {}",
+            self.id, self.span, self.input, self.block
+        )
     }
 }
 
@@ -1665,22 +1626,6 @@ impl Display for Functor {
             Functor::Ctl => f.write_str("Ctl"),
         }
     }
-}
-
-/// A strategy for generating a specialization.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum SpecGen {
-    /// Choose a strategy automatically.
-    Auto,
-    /// Distributes controlled qubits.
-    Distribute,
-    /// A specialization implementation is not generated, but is instead left as an opaque
-    /// declaration.
-    Intrinsic,
-    /// Inverts the order of operations.
-    Invert,
-    /// Uses the body specialization without modification.
-    Slf,
 }
 
 /// A unary operator.
