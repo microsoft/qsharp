@@ -209,7 +209,7 @@ jobs:
 
   status-check:
     name: Status Check
-    needs: [format, clippy, web-check, build, integration-tests, runBenchmark]
+    needs: [format, clippy, web-check, build, integration-tests, runBenchmark, runMemoryProfile]
     runs-on: ubuntu-latest
     if: failure()
     steps:
