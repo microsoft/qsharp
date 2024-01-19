@@ -167,7 +167,7 @@ impl Lowerer {
         let generics = lower_generics(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
-        let implementation = if is_instrinsic(&decl.body.body) {
+        let implementation = if decl.body.body == SpecBody::Gen(SpecGen::Intrinsic) {
             assert!(
                 !(decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some()),
                 "intrinsic callables should not have specializations"
