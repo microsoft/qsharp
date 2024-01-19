@@ -244,7 +244,7 @@ impl Lowerer {
                 self.lower_expr(expr),
             ),
             hir::StmtKind::Qubit(_, _, _, _) => {
-                panic!("qubit statements should have been elimiated by passes");
+                panic!("qubit statements should have been eliminated by passes");
             }
             hir::StmtKind::Semi(expr) => fir::StmtKind::Semi(self.lower_expr(expr)),
         };
