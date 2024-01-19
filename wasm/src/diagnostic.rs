@@ -3,7 +3,7 @@
 
 use crate::serializable_type;
 use miette::{Diagnostic, LabeledSpan, Severity};
-use qsc::{self, error::WithSource, interpret::stateful, SourceName};
+use qsc::{self, error::WithSource, interpret, SourceName};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -52,16 +52,13 @@ impl VSDiagnostic {
     }
 
     /// Creates a [VSDiagnostic] from an interpreter error. See `VSDiagnostic::new()` for details.
-    pub(crate) fn from_interpret_error(
-        source_name: &str,
-        err: &qsc::interpret::stateful::Error,
-    ) -> Self {
+    pub(crate) fn from_interpret_error(source_name: &str, err: &interpret::Error) -> Self {
         let labels = match err {
-            stateful::Error::Compile(e) => error_labels(e),
-            stateful::Error::Pass(e) => error_labels(e),
-            stateful::Error::Eval(e) => error_labels(e.error()),
-            stateful::Error::NoEntryPoint => Vec::new(),
-            stateful::Error::UnsupportedRuntimeCapabilities => Vec::new(),
+            interpret::Error::Compile(e) => error_labels(e),
+            interpret::Error::Pass(e) => error_labels(e),
+            interpret::Error::Eval(e) => error_labels(e.error()),
+            interpret::Error::NoEntryPoint => Vec::new(),
+            interpret::Error::UnsupportedRuntimeCapabilities => Vec::new(),
         };
 
         Self::new(labels, source_name, err)

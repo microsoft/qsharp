@@ -2,14 +2,17 @@
 // Licensed under the MIT License.
 
 import { useRef, useState } from "preact/hooks";
-import { type ReData } from "./reTable.js";
 
-type CellValue = string | number | { value: string; sortBy: number };
+export type CellValue = string | number | { value: string; sortBy: number };
+export type Row = {
+  color: string;
+  cells: CellValue[];
+};
 
 // Note: column 0 is expected to be unique amongst all rows
 export function ResultsTable(props: {
   columnNames: string[];
-  data: ReData[];
+  rows: Row[];
   initialColumns: number[];
   ensureSelected: boolean;
   onRowSelected(rowId: string): void;
@@ -24,20 +27,18 @@ export function ResultsTable(props: {
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [showRowMenu, setShowRowMenu] = useState("");
 
-  const rows = props.data.map(ReDataToRow);
-
   // Find the first row that is new in the current sort order
-  const newest = getSortedRows(rows).find(
-    (row) => (row[row.length - 1] as string) === "New",
+  const newest = getSortedRows(props.rows).find(
+    (row) => (row.cells[row.cells.length - 1] as string) === "New",
   );
 
   // Select the first of the newest rows, otherwise preserve the existing selection
   if (newest && props.ensureSelected) {
-    const rowId = newest[0].toString();
+    const rowId = newest.cells[0].toString();
     setSelectedRow(rowId);
     props.onRowSelected(rowId);
-  } else if (!selectedRow && props.ensureSelected && rows.length > 0) {
-    const rowId = rows[0][0].toString();
+  } else if (!selectedRow && props.ensureSelected && props.rows.length > 0) {
+    const rowId = props.rows[0].cells[0].toString();
     setSelectedRow(rowId);
     props.onRowSelected(rowId);
   }
@@ -156,7 +157,7 @@ export function ResultsTable(props: {
     }
   }
 
-  function getSortedRows(rows: CellValue[][]) {
+  function getSortedRows(rows: Row[]) {
     if (!sortColumn) return rows;
 
     const colIdx = sortColumn.columnId;
@@ -164,8 +165,8 @@ export function ResultsTable(props: {
 
     const sortedRows = [...rows];
     sortedRows.sort((a, b) => {
-      const aVal = a[colIdx];
-      const bVal = b[colIdx];
+      const aVal = a.cells[colIdx];
+      const bVal = b.cells[colIdx];
       if (typeof aVal === "string" && typeof bVal === "string") {
         return ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       } else if (typeof aVal === "number" && typeof bVal === "number") {
@@ -344,8 +345,8 @@ export function ResultsTable(props: {
         </tr>
       </thead>
       <tbody>
-        {getSortedRows(rows).map((row) => {
-          const rowId = row[0].toString();
+        {getSortedRows(props.rows).map((row) => {
+          const rowId = row.cells[0].toString();
           return (
             <tr
               onClick={() => rowClicked(rowId)}
@@ -364,7 +365,7 @@ export function ResultsTable(props: {
                   <svg width="16" height="16" style="position: relative;">
                     <path
                       stroke-width="1.5"
-                      stroke="gray"
+                      stroke={row.color}
                       stroke-linecap="round"
                       d="M4,5 h8 M4,8 h8 M4,11 h8"
                     />
@@ -386,7 +387,9 @@ export function ResultsTable(props: {
               </td>
               {showColumns.map((idx) => {
                 return (
-                  <td data-colid={idx.toString()}>{getCellStr(row[idx])}</td>
+                  <td data-colid={idx.toString()}>
+                    {getCellStr(row.cells[idx])}
+                  </td>
                 );
               })}
             </tr>
@@ -395,26 +398,4 @@ export function ResultsTable(props: {
       </tbody>
     </table>
   );
-}
-
-function ReDataToRow(data: ReData): CellValue[] {
-  return [
-    data.jobParams.runName,
-    data.jobParams.qubitParams.name,
-    data.jobParams.qecScheme.name,
-    data.jobParams.errorBudget,
-    data.physicalCounts.breakdown.algorithmicLogicalQubits,
-    data.physicalCounts.breakdown.algorithmicLogicalDepth,
-    data.logicalQubit.codeDistance,
-    data.physicalCounts.breakdown.numTstates,
-    data.physicalCounts.breakdown.numTfactories,
-    data.physicalCountsFormatted.physicalQubitsForTfactoriesPercentage,
-    {
-      value: data.physicalCountsFormatted.runtime,
-      sortBy: data.physicalCounts.runtime,
-    },
-    data.physicalCounts.rqops,
-    data.physicalCounts.physicalQubits,
-    data.new ? "New" : "Cached",
-  ];
 }

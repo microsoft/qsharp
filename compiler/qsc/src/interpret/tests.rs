@@ -4,7 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 mod given_interpreter {
-    use crate::interpret::stateful::{Error, InterpretResult, Interpreter};
+    use crate::interpret::{Error, InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
     use qsc_eval::{output::CursorReceiver, val::Value};
@@ -32,10 +32,7 @@ mod given_interpreter {
 
     fn entry(
         interpreter: &mut Interpreter,
-    ) -> (
-        Result<Value, Vec<crate::interpret::stateful::Error>>,
-        String,
-    ) {
+    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.eval_entry(&mut receiver), receiver.dump())
@@ -1060,7 +1057,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output_eval_entry(
-        result: &Result<Value, Vec<crate::interpret::stateful::Error>>,
+        result: &Result<Value, Vec<crate::interpret::Error>>,
         output: &str,
         expected_output: &str,
     ) {

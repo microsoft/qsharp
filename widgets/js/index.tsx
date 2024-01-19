@@ -2,7 +2,13 @@
 // Licensed under the MIT License.
 
 import { render as prender } from "preact";
-import { ReTable, SpaceChart, Histogram } from "qsharp-lang/ux";
+import {
+  ReTable,
+  SpaceChart,
+  Histogram,
+  CreateSingleEstimateResult,
+  EstimatesOverview,
+} from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -20,6 +26,7 @@ export function mdRenderer(input: string) {
 
 // Param types for AnyWidget render functions
 import type { AnyModel } from "@anywidget/types";
+
 type RenderArgs = {
   model: AnyModel;
   el: HTMLElement;
@@ -31,6 +38,9 @@ export function render({ model, el }: RenderArgs) {
   switch (componentType) {
     case "SpaceChart":
       renderChart({ model, el });
+      break;
+    case "EstimatesOverview":
+      renderEstimatesOverview({ model, el });
       break;
     case "EstimateDetails":
       renderTable({ model, el });
@@ -46,24 +56,66 @@ export function render({ model, el }: RenderArgs) {
 function renderTable({ model, el }: RenderArgs) {
   const onChange = () => {
     const estimates = model.get("estimates");
+    const index = model.get("index");
+    const singleEstimateResult = CreateSingleEstimateResult(estimates, index);
     prender(
-      <ReTable estimatesData={estimates} mdRenderer={mdRenderer}></ReTable>,
+      <ReTable
+        estimatesData={singleEstimateResult}
+        mdRenderer={mdRenderer}
+      ></ReTable>,
       el,
     );
   };
 
   onChange();
   model.on("change:estimates", onChange);
+  model.on("change:index", onChange);
 }
 
 function renderChart({ model, el }: RenderArgs) {
   const onChange = () => {
     const estimates = model.get("estimates");
-    prender(<SpaceChart estimatesData={estimates}></SpaceChart>, el);
+    const index = model.get("index");
+    const singleEstimateResult = CreateSingleEstimateResult(estimates, index);
+    prender(<SpaceChart estimatesData={singleEstimateResult}></SpaceChart>, el);
   };
 
   onChange();
   model.on("change:estimates", onChange);
+  model.on("change:index", onChange);
+}
+
+function renderEstimatesOverview({ model, el }: RenderArgs) {
+  const onChange = () => {
+    const results = model.get("estimates");
+    const colors = model.get("colors");
+    const runNames = model.get("runNames");
+
+    const estimates = [];
+    if (results[0] == null) {
+      estimates.push(results);
+    } else {
+      for (const estimate of Object.values(results)) {
+        estimates.push(estimate);
+      }
+    }
+
+    prender(
+      <EstimatesOverview
+        estimatesData={estimates}
+        runNames={runNames}
+        colors={colors}
+        isSimplifiedView={true}
+        onRowDeleted={() => undefined}
+        setEstimate={() => undefined}
+      ></EstimatesOverview>,
+      el,
+    );
+  };
+
+  onChange();
+  model.on("change:estimates", onChange);
+  model.on("change:colors", onChange);
 }
 
 function renderHistogram({ model, el }: RenderArgs) {

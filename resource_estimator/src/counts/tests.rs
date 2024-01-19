@@ -8,7 +8,7 @@ use std::convert::Into;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc::{
-    interpret::{stateful::Interpreter, GenericReceiver},
+    interpret::{GenericReceiver, Interpreter},
     target::Profile,
     PackageType, SourceMap,
 };
