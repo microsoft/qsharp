@@ -885,8 +885,6 @@ pub enum StmtKind {
     Item(LocalItemId),
     /// A let or mutable binding: `let a = b;` or `mutable x = b;`.
     Local(Mutability, PatId, ExprId),
-    /// A use or borrow qubit allocation: `use a = b;` or `borrow a = b;`.
-    Qubit(QubitSource, PatId, QubitInit, Option<BlockId>),
     /// An expression with a trailing semicolon.
     Semi(ExprId),
 }
@@ -902,15 +900,6 @@ impl Display for StmtKind {
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{lhs}")?;
                 write!(indent, "\n{rhs}")?;
-            }
-            StmtKind::Qubit(s, lhs, rhs, block) => {
-                write!(indent, "Qubit ({s:?})")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{lhs}")?;
-                write!(indent, "\n{rhs}")?;
-                if let Some(b) = block {
-                    write!(indent, "\n{b}")?;
-                }
             }
             StmtKind::Semi(e) => write!(indent, "Semi: {e}")?,
         }

@@ -99,11 +99,6 @@ pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, id: StmtId) {
             vis.visit_pat(*pat);
             vis.visit_expr(*value);
         }
-        StmtKind::Qubit(_, pat, init, block) => {
-            vis.visit_pat(*pat);
-            vis.visit_qubit_init(init);
-            block.iter().for_each(|b| vis.visit_block(*b));
-        }
     }
 }
 
