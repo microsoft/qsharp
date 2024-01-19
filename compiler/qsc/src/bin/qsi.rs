@@ -8,7 +8,7 @@ use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::interpret::stateful::{self, InterpretResult, Interpreter};
+use qsc::interpret::{self, InterpretResult, Interpreter};
 use qsc_eval::{
     output::{self, Receiver},
     val::Value,
@@ -194,7 +194,7 @@ fn print_interpret_result(result: InterpretResult) {
     }
 }
 
-fn print_exec_result(result: Result<Value, Vec<stateful::Error>>) -> ExitCode {
+fn print_exec_result(result: Result<Value, Vec<interpret::Error>>) -> ExitCode {
     match result {
         Ok(value) => {
             println!("{value}");
