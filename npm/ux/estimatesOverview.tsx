@@ -18,6 +18,7 @@ import {
   PlotItem,
   ScatterChart,
   ScatterSeries,
+  SelectPoint,
 } from "./scatterChart.js";
 
 const columnNames = [
@@ -46,7 +47,7 @@ const xAxis: Axis = {
 
 const yAxis: Axis = {
   isTime: false,
-  label: "Physical Qubits",
+  label: "Physical qubits",
 };
 
 function reDataToRow(input: ReData, color: string): Row {
@@ -140,6 +141,8 @@ export function EstimatesOverview(props: {
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
     const data = props.estimatesData[seriesIndex];
     props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
+    // const rowId = props.estimatesData[seriesIndex].jobParams.runName;
+    // onRowSelected(rowId);
   }
 
   function onRowSelected(rowId: string) {
@@ -149,13 +152,16 @@ export function EstimatesOverview(props: {
     if (!rowId) {
       props.setEstimate(null);
     } else {
-      const estimateFound =
-        props.estimatesData.find((data) => data.jobParams.runName === rowId) ||
-        null;
-      if (estimateFound == null) {
+      const index = props.estimatesData.findIndex(
+        (data) => data.jobParams.runName === rowId,
+      );
+
+      if (index == -1) {
         props.setEstimate(null);
       } else {
+        const estimateFound = props.estimatesData[index];
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
+        SelectPoint(index, 0);
       }
     }
 

@@ -40,6 +40,30 @@ function hideTooltipIfNotClicked() {
   }
 }
 
+function deselectPoint() {
+  const chart = document.getElementById(`scatterChart`);
+  if (chart) {
+    if (chart.getAttribute("selectedPoint")) {
+      const point = document.getElementById(
+        chart.getAttribute("selectedPoint") as string,
+      );
+      if (point) {
+        point.classList.remove("qs-scatterChart-point-selected");
+      }
+    }
+  }
+}
+
+export function SelectPoint(seriesIndex: number, pointIndex: number) {
+  deselectPoint();
+  const point = document.getElementById(`point-${seriesIndex}-${pointIndex}`);
+  const chart = document.getElementById(`scatterChart`);
+  if (point && chart) {
+    point.classList.add("qs-scatterChart-point-selected");
+    chart.setAttribute("selectedPoint", point.id);
+  }
+}
+
 export function ScatterChart(props: {
   data: ScatterSeries[];
   xAxis: Axis;
@@ -147,8 +171,6 @@ export function ScatterChart(props: {
     text: string,
     x: number,
     y: number,
-    seriesIndex: number,
-    pointIndex: number,
     clicked: boolean = false,
   ) {
     const tooltip = document.getElementById("tooltip");
@@ -179,7 +201,6 @@ export function ScatterChart(props: {
       tooltip.setAttribute("visibility", "visible");
       tooltip.setAttribute("clicked", clicked.toString());
     }
-    props.onPointSelected(seriesIndex, pointIndex);
   }
 
   return (
@@ -307,19 +328,15 @@ export function ScatterChart(props: {
                   cy={y}
                   class="qs-scatterChart-point"
                   stroke={data.color}
-                  onMouseOver={() =>
-                    drawTooltip(
-                      item.label,
-                      x,
-                      y,
-                      seriesIndex,
-                      pointIndex,
-                      false,
-                    )
-                  }
-                  onClick={() =>
-                    drawTooltip(item.label, x, y, seriesIndex, pointIndex, true)
-                  }
+                  onMouseOver={() => {
+                    drawTooltip(item.label, x, y, false);
+                    deselectPoint();
+                  }}
+                  onClick={() => {
+                    drawTooltip(item.label, x, y, true);
+                    SelectPoint(seriesIndex, pointIndex);
+                    props.onPointSelected(seriesIndex, pointIndex);
+                  }}
                   onMouseOut={() => hideTooltipIfNotClicked()}
                 />
               );
