@@ -75,6 +75,11 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        is_pr:
+          - ${{ github.event_name == 'pull_request' }}
+        exclude:
+          - os: macos-latest
+            is_pr: true
 
     runs-on: ${{matrix.os}}
 
@@ -105,11 +110,15 @@ jobs:
 
   integration-tests:
     name: Integration tests
-    if: ${{ ! github.event.pull_request }}
     timeout-minutes: 15
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
+        is_pr:
+          - ${{ github.event_name == 'pull_request' }}
+        exclude:
+          - os: macos-latest
+            is_pr: true
 
     runs-on: ${{matrix.os}}
 
@@ -193,3 +202,13 @@ jobs:
               console.log("no change in memory usage detected by benchmark");
             }
         if: ${{ github.base_ref != null }}
+
+  status-check:
+    name: Status Check
+    needs: [format, clippy, web-check, build, integration-tests, runBenchmark]
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - run: |
+          echo "::error Build failed"
+          exit 1
