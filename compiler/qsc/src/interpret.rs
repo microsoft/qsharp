@@ -7,7 +7,7 @@ mod debug;
 mod tests;
 
 #[cfg(test)]
-mod stepping_tests;
+mod debugger_tests;
 
 pub use qsc_eval::{
     debug::Frame,
