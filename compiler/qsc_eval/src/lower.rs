@@ -165,7 +165,7 @@ impl Lowerer {
                 !(decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some()),
                 "intrinsic callables should not have specializations"
             );
-            CallableImpl::Intrinsic(self.lower_id(decl.body.id), decl.body.span)
+            CallableImpl::Intrinsic
         } else {
             let body = self.lower_spec_decl(&decl.body);
             let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));

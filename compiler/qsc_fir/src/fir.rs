@@ -768,7 +768,7 @@ impl Display for CallableDecl {
 #[derive(Clone, Debug, PartialEq)]
 pub enum CallableImpl {
     /// An intrinsic callable implementation.
-    Intrinsic(NodeId, Span),
+    Intrinsic,
     /// A specialized callable implementation.
     Spec(SpecImpl),
 }
@@ -777,8 +777,8 @@ impl Display for CallableImpl {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            CallableImpl::Intrinsic(node_id, span) => {
-                write!(indent, "Instrinsic {node_id} {span}")?;
+            CallableImpl::Intrinsic => {
+                write!(indent, "Instrinsic")?;
             }
             CallableImpl::Spec(spec_impl) => {
                 write!(indent, "Spec:")?;

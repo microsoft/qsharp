@@ -1088,7 +1088,7 @@ impl State {
         self.push_frame(callee_id, functor);
         self.push_scope(env);
         match &callee.implementation {
-            CallableImpl::Intrinsic(_, _) => {
+            CallableImpl::Intrinsic => {
                 let name = &callee.name.name;
                 let val = intrinsic::call(name, callee_span, arg, arg_span, sim, out)?;
                 self.push_val(val);

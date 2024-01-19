@@ -80,7 +80,7 @@ pub fn walk_callable_decl<'a>(vis: &mut impl MutVisitor<'a>, decl: &'a mut Calla
 
 pub fn walk_callable_impl<'a>(vis: &mut impl MutVisitor<'a>, callable_impl: &'a mut CallableImpl) {
     match callable_impl {
-        CallableImpl::Intrinsic(_, _) => {}
+        CallableImpl::Intrinsic => {}
         CallableImpl::Spec(spec_impl) => {
             vis.visit_spec_impl(spec_impl);
         }
