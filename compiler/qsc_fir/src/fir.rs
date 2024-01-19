@@ -719,7 +719,7 @@ pub struct CallableDecl {
     /// The functors supported by the callable.
     pub functors: FunctorSetValue,
     /// The callable implementation.
-    pub implementation: CallableImplementation,
+    pub implementation: CallableImpl,
 }
 
 impl CallableDecl {
@@ -766,22 +766,22 @@ impl Display for CallableDecl {
 
 /// A callable implementations.
 #[derive(Clone, Debug, PartialEq)]
-pub enum CallableImplementation {
+pub enum CallableImpl {
     /// An intrinsic callable implementation.
     Intrinsic(NodeId, Span),
     /// A specialized callable implementation.
-    Specialized(SpecializedImplementation),
+    Spec(SpecImpl),
 }
 
-impl Display for CallableImplementation {
+impl Display for CallableImpl {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            CallableImplementation::Intrinsic(node_id, span) => {
+            CallableImpl::Intrinsic(node_id, span) => {
                 write!(indent, "Instrinsic {node_id} {span}")?;
             }
-            CallableImplementation::Specialized(spec_impl) => {
-                write!(indent, "Specialized:")?;
+            CallableImpl::Spec(spec_impl) => {
+                write!(indent, "Spec:")?;
                 indent = set_indentation(indent, 1);
                 write!(indent, "\n{spec_impl}")?;
             }
@@ -793,7 +793,7 @@ impl Display for CallableImplementation {
 
 /// A specialized implementation.
 #[derive(Clone, Debug, PartialEq)]
-pub struct SpecializedImplementation {
+pub struct SpecImpl {
     /// The body implementation.
     pub body: SpecDecl,
     /// The adjoint specialization.
@@ -804,10 +804,10 @@ pub struct SpecializedImplementation {
     pub ctl_adj: Option<SpecDecl>,
 }
 
-impl Display for SpecializedImplementation {
+impl Display for SpecImpl {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "SpecializedImplementation:",)?;
+        write!(indent, "SpecImpl:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nbody: {}", self.body)?;
         match &self.adj {

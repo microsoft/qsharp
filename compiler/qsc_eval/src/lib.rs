@@ -24,9 +24,9 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::span::Span;
 use qsc_fir::fir::{
-    self, BinOp, BlockId, CallableImplementation, ExprId, ExprKind, Field, Functor, Global, Lit,
-    LocalItemId, Mutability, NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res,
-    StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
+    self, BinOp, BlockId, CallableImpl, ExprId, ExprKind, Field, Functor, Global, Lit, LocalItemId,
+    Mutability, NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
+    StmtKind, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
 use rustc_hash::FxHashMap;
@@ -1088,13 +1088,13 @@ impl State {
         self.push_frame(callee_id, functor);
         self.push_scope(env);
         match &callee.implementation {
-            CallableImplementation::Intrinsic(_, _) => {
+            CallableImpl::Intrinsic(_, _) => {
                 let name = &callee.name.name;
                 let val = intrinsic::call(name, callee_span, arg, arg_span, sim, out)?;
                 self.push_val(val);
                 Ok(())
             }
-            CallableImplementation::Specialized(specialized_implementation) => {
+            CallableImpl::Spec(specialized_implementation) => {
                 let spec_decl = match spec {
                     Spec::Body => Some(&specialized_implementation.body),
                     Spec::Adj => specialized_implementation.adj.as_ref(),

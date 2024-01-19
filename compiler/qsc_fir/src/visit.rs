@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::fir::{
-    Block, BlockId, CallableDecl, CallableImplementation, Expr, ExprId, ExprKind, Ident, Item,
-    ItemKind, Package, Pat, PatId, PatKind, QubitInit, QubitInitKind, SpecDecl,
-    SpecializedImplementation, Stmt, StmtId, StmtKind, StringComponent,
+    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
+    Package, Pat, PatId, PatKind, QubitInit, QubitInitKind, SpecDecl, SpecImpl, Stmt, StmtId,
+    StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -20,15 +20,12 @@ pub trait Visitor<'a>: Sized {
         walk_callable_decl(self, decl);
     }
 
-    fn visit_callable_implementation(&mut self, implementation: &'a CallableImplementation) {
-        walk_callable_implementation(self, implementation);
+    fn visit_callable_impl(&mut self, callable_impl: &'a CallableImpl) {
+        walk_callable_impl(self, callable_impl);
     }
 
-    fn visit_specialized_implementation(
-        &mut self,
-        specialized_implementation: &'a SpecializedImplementation,
-    ) {
-        walk_specialized_implementation(self, specialized_implementation);
+    fn visit_spec_impl(&mut self, spec_impl: &'a SpecImpl) {
+        walk_spec_impl(self, spec_impl);
     }
 
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
@@ -78,35 +75,29 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
 pub fn walk_callable_decl<'a>(vis: &mut impl Visitor<'a>, decl: &'a CallableDecl) {
     vis.visit_ident(&decl.name);
     vis.visit_pat(decl.input);
-    vis.visit_callable_implementation(&decl.implementation);
+    vis.visit_callable_impl(&decl.implementation);
 }
 
-pub fn walk_callable_implementation<'a>(
-    vis: &mut impl Visitor<'a>,
-    implementation: &'a CallableImplementation,
-) {
-    match implementation {
-        CallableImplementation::Intrinsic(_, _) => {}
-        CallableImplementation::Specialized(specialized_implementation) => {
-            vis.visit_specialized_implementation(specialized_implementation);
+pub fn walk_callable_impl<'a>(vis: &mut impl Visitor<'a>, callable_impl: &'a CallableImpl) {
+    match callable_impl {
+        CallableImpl::Intrinsic(_, _) => {}
+        CallableImpl::Spec(spec_impl) => {
+            vis.visit_spec_impl(spec_impl);
         }
     };
 }
 
-pub fn walk_specialized_implementation<'a>(
-    vis: &mut impl Visitor<'a>,
-    specialized_implementation: &'a SpecializedImplementation,
-) {
-    vis.visit_spec_decl(&specialized_implementation.body);
-    specialized_implementation
+pub fn walk_spec_impl<'a>(vis: &mut impl Visitor<'a>, spec_impl: &'a SpecImpl) {
+    vis.visit_spec_decl(&spec_impl.body);
+    spec_impl
         .adj
         .iter()
         .for_each(|spec| vis.visit_spec_decl(spec));
-    specialized_implementation
+    spec_impl
         .ctl
         .iter()
         .for_each(|spec| vis.visit_spec_decl(spec));
-    specialized_implementation
+    spec_impl
         .ctl_adj
         .iter()
         .for_each(|spec| vis.visit_spec_decl(spec));
