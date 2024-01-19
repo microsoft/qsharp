@@ -4,9 +4,8 @@
 use std::str::FromStr;
 
 use qsc::fir::StmtId;
-use qsc::interpret::stateful::Debugger;
-use qsc::interpret::{stateful, StepAction, StepResult};
-use qsc::{fmt_complex, target::Profile};
+use qsc::interpret::{Debugger, Error, StepAction, StepResult};
+use qsc::{fmt_complex, target::Profile, PackageType, SourceMap};
 
 use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
@@ -139,7 +138,7 @@ impl DebugService {
         event_cb: F,
         bps: &[StmtId],
         step: StepAction,
-    ) -> Result<StepResult, Vec<stateful::Error>>
+    ) -> Result<StepResult, Vec<Error>>
     where
         F: Fn(&str),
     {
@@ -218,7 +217,7 @@ impl DebugService {
     }
 }
 
-fn render_errors(errors: Vec<qsc::interpret::stateful::Error>) -> String {
+fn render_errors(errors: Vec<Error>) -> String {
     let mut msg = String::new();
     for error in errors {
         let error_string = render_error(error);
@@ -227,7 +226,7 @@ fn render_errors(errors: Vec<qsc::interpret::stateful::Error>) -> String {
     msg
 }
 
-fn render_error(error: qsc::interpret::stateful::Error) -> String {
+fn render_error(error: Error) -> String {
     format!("{:?}\n", miette::Report::new(error))
 }
 

@@ -9,10 +9,7 @@ pub use estimates::estimate_physical_resources_from_json;
 use counts::LogicalCounter;
 use estimates::estimate_physical_resources;
 use miette::Diagnostic;
-use qsc::interpret::{
-    stateful::{self, Interpreter},
-    GenericReceiver,
-};
+use qsc::interpret::{self, GenericReceiver, Interpreter};
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -29,7 +26,7 @@ pub struct LogicalResources {
 #[error(transparent)]
 #[diagnostic(transparent)]
 pub enum Error {
-    Interpreter(stateful::Error),
+    Interpreter(interpret::Error),
     Estimation(estimates::Error),
 }
 

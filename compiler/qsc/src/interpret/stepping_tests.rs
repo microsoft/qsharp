@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::interpret::stateful::Debugger;
+use crate::interpret::Debugger;
 use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
 use qsc_fir::fir::StmtId;
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -37,30 +37,21 @@ fn expect_bp(debugger: &mut Debugger, ids: &[StmtId], expected_id: StmtId) {
 fn step_in(
     debugger: &mut Debugger,
     breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     step(debugger, breakpoints, qsc_eval::StepAction::In)
 }
 
 fn step_next(
     debugger: &mut Debugger,
     breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     step(debugger, breakpoints, qsc_eval::StepAction::Next)
 }
 
 fn step_out(
     debugger: &mut Debugger,
     breakpoints: &[StmtId],
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     step(debugger, breakpoints, qsc_eval::StepAction::Out)
 }
 
@@ -68,10 +59,7 @@ fn step(
     debugger: &mut Debugger,
     breakpoints: &[StmtId],
     step: StepAction,
-) -> (
-    Result<StepResult, Vec<crate::interpret::stateful::Error>>,
-    String,
-) {
+) -> (Result<StepResult, Vec<crate::interpret::Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     (
@@ -136,7 +124,7 @@ mod given_debugger {
         use super::*;
 
         #[test]
-        fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
             debugger.set_entry()?;
@@ -155,7 +143,7 @@ mod given_debugger {
         }
 
         #[test]
-        fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
             debugger.set_entry()?;
@@ -170,7 +158,7 @@ mod given_debugger {
         }
 
         #[test]
-        fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
             debugger.set_entry()?;
@@ -192,7 +180,7 @@ mod given_debugger {
         }
 
         #[test]
-        fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::stateful::Error>> {
+        fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
             debugger.set_entry()?;

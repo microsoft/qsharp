@@ -19,6 +19,7 @@
 				"esbenp.prettier-vscode",
 				"ms-python.python",
 				"ms-python.black-formatter",
+				"ms-toolsai.jupyter",
 				"rust-lang.rust-analyzer",
 				"vadimcn.vscode-lldb",
 				"swellaby.workspace-config-plus"

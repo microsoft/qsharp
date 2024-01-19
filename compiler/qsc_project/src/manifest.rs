@@ -46,9 +46,14 @@ impl Manifest {
     /// a manifest file exists but is the wrong format.
     /// Returns `Ok(None)` if there is no file matching the manifest file
     /// name.
-    pub fn load() -> std::result::Result<Option<ManifestDescriptor>, Error> {
-        let current_dir = current_dir()?;
-        Self::load_from_path(current_dir)
+    pub fn load(
+        manifest_path: Option<PathBuf>,
+    ) -> std::result::Result<Option<ManifestDescriptor>, Error> {
+        let dir = match manifest_path {
+            Some(path) => path,
+            None => current_dir()?,
+        };
+        Self::load_from_path(dir)
     }
 
     /// Given a [PathBuf], traverse [PathBuf::ancestors] until a Manifest is found.
@@ -56,6 +61,16 @@ impl Manifest {
     /// Returns an error if a manifest is found, but is not parsable into the
     /// expected format.
     pub fn load_from_path(path: PathBuf) -> std::result::Result<Option<ManifestDescriptor>, Error> {
+        // if the given path points to a file, change it to point to the parent folder.
+        // This lets consumers pass in either the path directly to the manifest file, or the path
+        // to the folder containing the manifest file.
+        let path = if path.is_file() {
+            let mut path = path;
+            path.pop();
+            path
+        } else {
+            path
+        };
         let ancestors = path.ancestors();
         for ancestor in ancestors {
             let listing = ancestor.read_dir()?;

@@ -8,11 +8,7 @@
 mod tests;
 
 use qsc::{
-    interpret::{
-        output::Receiver,
-        stateful::{self, Interpreter},
-        Value,
-    },
+    interpret::{output::Receiver, Error, Interpreter, Value},
     target::Profile,
     PackageType, SourceContents, SourceMap, SourceName,
 };
@@ -31,7 +27,7 @@ pub const EXERCISE_ENTRY: &str = "Kata.Verification.CheckSolution()";
 pub fn check_solution(
     exercise_sources: Vec<(SourceName, SourceContents)>,
     receiver: &mut impl Receiver,
-) -> Result<bool, Vec<stateful::Error>> {
+) -> Result<bool, Vec<Error>> {
     let source_map = SourceMap::new(exercise_sources, Some(EXERCISE_ENTRY.into()));
     let mut interpreter: Interpreter = Interpreter::new(
         true,

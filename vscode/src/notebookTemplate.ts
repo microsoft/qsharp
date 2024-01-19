@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 import * as vscode from "vscode";
 
 // The VS Code notebook representation does not exactly match the ipynb JSON structure,
