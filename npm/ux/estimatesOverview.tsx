@@ -149,6 +149,7 @@ export function EstimatesOverview(props: {
   }
 
   function onRowSelected(rowId: string) {
+    setSelectedRow(rowId);
     // On any selection, clear the "new" flag on all rows. This ensures that
     // new rows do not steal focus from the user selected row.
     props.estimatesData.forEach((data) => (data.new = false));
@@ -185,10 +186,9 @@ export function EstimatesOverview(props: {
           )}
           initialColumns={initialColumns}
           ensureSelected={true}
-          onRowSelected={onRowSelected}
           onRowDeleted={props.onRowDeleted}
           selectedRow={selectedRow}
-          setSelectedRow={setSelectedRow}
+          setSelectedRow={onRowSelected}
         />
         <ScatterChart
           xAxis={xAxis}
@@ -215,9 +215,8 @@ export function EstimatesOverview(props: {
           )}
           initialColumns={initialColumns}
           selectedRow={selectedRow}
-          setSelectedRow={setSelectedRow}
+          setSelectedRow={onRowSelected}
           ensureSelected={true}
-          onRowSelected={onRowSelected}
           onRowDeleted={props.onRowDeleted}
         />
       </details>

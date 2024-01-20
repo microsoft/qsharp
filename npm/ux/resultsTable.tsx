@@ -15,7 +15,6 @@ export function ResultsTable(props: {
   rows: Row[];
   initialColumns: number[];
   ensureSelected: boolean;
-  onRowSelected(rowId: string): void;
   onRowDeleted(rowId: string): void;
   selectedRow: string | null; // type selected to confirm with the useState pattern on the parent component
   setSelectedRow(rowId: string): void;
@@ -38,7 +37,6 @@ export function ResultsTable(props: {
   if (newest && props.ensureSelected) {
     const rowId = newest.cells[0].toString();
     setSelectedRow(rowId);
-    props.onRowSelected(rowId);
   } else if (
     !props.selectedRow &&
     props.ensureSelected &&
@@ -46,7 +44,6 @@ export function ResultsTable(props: {
   ) {
     const rowId = props.rows[0].cells[0].toString();
     setSelectedRow(rowId);
-    props.onRowSelected(rowId);
   }
 
   // Use to track the column being dragged
@@ -208,7 +205,6 @@ export function ResultsTable(props: {
 
     const newSelectedRow = props.selectedRow === rowId ? "" : rowId;
     setSelectedRow(newSelectedRow);
-    props.onRowSelected(newSelectedRow);
   }
 
   function onClickRowMenu(ev: MouseEvent, rowid: string) {
@@ -259,7 +255,6 @@ export function ResultsTable(props: {
     setShowRowMenu("");
     if (props.selectedRow === rowId) {
       setSelectedRow("");
-      props.onRowSelected("");
     }
     props.onRowDeleted(rowId);
   }
