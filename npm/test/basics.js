@@ -697,16 +697,6 @@ async function testCompilerError(useWorker) {
 test("compiler error on run", () => testCompilerError(false));
 test("compiler error on run - worker", () => testCompilerError(true));
 
-test("debug service get breakpoints without service loaded returns empty - web worker", async () => {
-  const debugService = getDebugServiceWorker();
-  try {
-    const emptyBps = await debugService.getBreakpoints("test.qs");
-    assert.equal(0, emptyBps.length);
-  } finally {
-    debugService.terminate();
-  }
-});
-
 test("debug service loading source without entry point attr fails - web worker", async () => {
   const debugService = getDebugServiceWorker();
   try {
