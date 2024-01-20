@@ -247,7 +247,8 @@ def estimate(
 
 def set_quantum_seed(seed: Optional[int]) -> None:
     """
-    Sets the seed for the quantum random number generator used for measurements.
+    Sets the seed for the random number generator used for quantum measurements.
+    This applies to all Q# code executed, compiled, or estimated.
 
     :param seed: The seed to use for the quantum random number generator.
         If None, the seed will be generated from entropy.
@@ -256,8 +257,9 @@ def set_quantum_seed(seed: Optional[int]) -> None:
 
 def set_classical_seed(seed: Optional[int]) -> None:
     """
-    Sets the seed for the classical random number generator used for standard
-    library random number operations.
+    Sets the seed for the random number generator used for standard
+    library classical random number operations.
+    This applies to all Q# code executed, compiled, or estimated.
 
     :param seed: The seed to use for the classical random number generator.
         If None, the seed will be generated from entropy.
