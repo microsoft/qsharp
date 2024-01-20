@@ -29,8 +29,10 @@ use qsc_fir::fir::{
     StmtKind, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
+use rand::{rngs::StdRng, SeedableRng};
 use rustc_hash::FxHashMap;
 use std::{
+    cell::RefCell,
     collections::hash_map::Entry,
     fmt::{self, Display, Formatter, Write},
     iter,
@@ -196,13 +198,14 @@ impl From<StmtId> for EvalId {
 /// On internal error where no result is returned.
 pub fn eval(
     package: PackageId,
+    seed: Option<u64>,
     id: EvalId,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package);
+    let mut state = State::new(package, seed);
     match id {
         EvalId::Expr(expr) => state.push_expr(expr),
         EvalId::Stmt(stmt) => state.push_stmt(stmt),
@@ -430,17 +433,23 @@ pub struct State {
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
+    rng: RefCell<StdRng>,
 }
 
 impl State {
     #[must_use]
-    pub fn new(package: PackageId) -> Self {
+    pub fn new(package: PackageId, classical_seed: Option<u64>) -> Self {
+        let rng = match classical_seed {
+            Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
+            None => RefCell::new(StdRng::from_entropy()),
+        };
         Self {
             stack: Vec::new(),
             vals: Vec::new(),
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
+            rng,
         }
     }
 
@@ -1089,7 +1098,15 @@ impl State {
         match &callee.implementation {
             CallableImpl::Intrinsic => {
                 let name = &callee.name.name;
-                let val = intrinsic::call(name, callee_span, arg, arg_span, sim, out)?;
+                let val = intrinsic::call(
+                    name,
+                    callee_span,
+                    arg,
+                    arg_span,
+                    sim,
+                    &mut self.rng.borrow_mut(),
+                    out,
+                )?;
                 self.push_val(val);
                 Ok(())
             }
