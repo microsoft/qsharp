@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::fir::{
-    Block, BlockId, CallableDecl, Expr, ExprId, ExprKind, Ident, Item, ItemKind, Package, Pat,
-    PatId, PatKind, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtId, StmtKind,
-    StringComponent,
+    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
+    Package, Pat, PatId, PatKind, QubitInit, QubitInitKind, SpecDecl, SpecImpl, Stmt, StmtId,
+    StmtKind, StringComponent,
 };
 
 pub trait MutVisitor<'a>: Sized {
@@ -18,6 +18,14 @@ pub trait MutVisitor<'a>: Sized {
 
     fn visit_callable_decl(&mut self, decl: &'a mut CallableDecl) {
         walk_callable_decl(self, decl);
+    }
+
+    fn visit_callable_impl(&mut self, callable_impl: &'a mut CallableImpl) {
+        walk_callable_impl(self, callable_impl);
+    }
+
+    fn visit_spec_impl(&mut self, spec_impl: &'a mut SpecImpl) {
+        walk_spec_impl(self, spec_impl);
     }
 
     fn visit_spec_decl(&mut self, decl: &'a mut SpecDecl) {
@@ -61,32 +69,43 @@ pub fn walk_item<'a>(vis: &mut impl MutVisitor<'a>, item: &'a mut Item) {
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
-    }
+    };
 }
 
 pub fn walk_callable_decl<'a>(vis: &mut impl MutVisitor<'a>, decl: &'a mut CallableDecl) {
     vis.visit_ident(&mut decl.name);
     vis.visit_pat(decl.input);
-    vis.visit_spec_decl(&mut decl.body);
-    decl.adj
+    vis.visit_callable_impl(&mut decl.implementation);
+}
+
+pub fn walk_callable_impl<'a>(vis: &mut impl MutVisitor<'a>, callable_impl: &'a mut CallableImpl) {
+    match callable_impl {
+        CallableImpl::Intrinsic => {}
+        CallableImpl::Spec(spec_impl) => {
+            vis.visit_spec_impl(spec_impl);
+        }
+    }
+}
+
+pub fn walk_spec_impl<'a>(vis: &mut impl MutVisitor<'a>, spec_impl: &'a mut SpecImpl) {
+    vis.visit_spec_decl(&mut spec_impl.body);
+    spec_impl
+        .adj
         .iter_mut()
         .for_each(|spec| vis.visit_spec_decl(spec));
-    decl.ctl
+    spec_impl
+        .ctl
         .iter_mut()
         .for_each(|spec| vis.visit_spec_decl(spec));
-    decl.ctl_adj
+    spec_impl
+        .ctl_adj
         .iter_mut()
         .for_each(|spec| vis.visit_spec_decl(spec));
 }
 
 pub fn walk_spec_decl<'a>(vis: &mut impl MutVisitor<'a>, decl: &'a mut SpecDecl) {
-    match &mut decl.body {
-        SpecBody::Gen(_) => {}
-        SpecBody::Impl(pat, block) => {
-            pat.iter().for_each(|pat| vis.visit_pat(*pat));
-            vis.visit_block(*block);
-        }
-    }
+    decl.input.iter().for_each(|pat| vis.visit_pat(*pat));
+    vis.visit_block(decl.block);
 }
 
 pub fn walk_block<'a>(vis: &mut impl MutVisitor<'a>, block: BlockId) {
@@ -102,11 +121,6 @@ pub fn walk_stmt<'a>(vis: &mut impl MutVisitor<'a>, id: StmtId) {
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(*pat);
             vis.visit_expr(*value);
-        }
-        StmtKind::Qubit(_, pat, init, block) => {
-            vis.visit_pat(*pat);
-            vis.visit_qubit_init(init);
-            block.iter().for_each(|b| vis.visit_block(*b));
         }
     }
 }

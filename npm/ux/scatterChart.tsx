@@ -31,12 +31,76 @@ export function HideTooltip() {
   }
 }
 
+function drawTooltip(target: SVGCircleElement, clicked: boolean = false) {
+  const xAttr = target.getAttribute("cx");
+  const x = xAttr ? parseInt(xAttr) : 0;
+  const yAttr = target.getAttribute("cy");
+  const y = yAttr ? parseInt(yAttr) : -0;
+  const text = target.getAttribute("data-label");
+  const tooltipTextLeftPadding = 5;
+  const tooltipRectanglePaddingHeight = 10;
+  const tooltipTextPaddingHeight = 25;
+  const tooltip = document.getElementById("tooltip");
+  const tooltipRect = document.getElementById("tooltipRect");
+  const tooltipText = document.getElementById(
+    "tooltipText",
+  ) as unknown as SVGTextElement;
+
+  if (tooltipText) {
+    tooltipText.setAttribute("x", (x + tooltipTextLeftPadding).toString());
+    tooltipText.setAttribute("y", (y + tooltipTextPaddingHeight).toString());
+    tooltipText.textContent = text;
+  }
+  if (tooltipRect && tooltipText) {
+    const box = tooltipText.getBBox();
+    const textWidth = box.width;
+    tooltipRect.setAttribute(
+      "width",
+      (textWidth + 2 * tooltipTextLeftPadding).toString(),
+    );
+    tooltipRect.setAttribute("x", x.toString());
+    tooltipRect.setAttribute(
+      "y",
+      (y + tooltipRectanglePaddingHeight).toString(),
+    );
+  }
+  if (tooltip) {
+    tooltip.setAttribute("visibility", "visible");
+    tooltip.setAttribute("clicked", clicked.toString());
+  }
+}
+
 function hideTooltipIfNotClicked() {
   const tooltip = document.getElementById("tooltip");
   if (tooltip) {
     if (tooltip.getAttribute("clicked") === "false") {
       tooltip.setAttribute("visibility", "hidden");
     }
+  }
+}
+
+function deselectPoint() {
+  const chart = document.getElementById(`scatterChart`);
+  if (chart) {
+    if (chart.getAttribute("selectedPoint")) {
+      const point = document.getElementById(
+        chart.getAttribute("selectedPoint") as string,
+      );
+      if (point) {
+        point.classList.remove("qs-scatterChart-point-selected");
+      }
+    }
+  }
+}
+
+export function SelectPoint(seriesIndex: number, pointIndex: number) {
+  deselectPoint();
+  const point = document.getElementById(`point-${seriesIndex}-${pointIndex}`);
+  const chart = document.getElementById(`scatterChart`);
+  if (point && chart) {
+    point.classList.add("qs-scatterChart-point-selected");
+    chart.setAttribute("selectedPoint", point.id);
+    drawTooltip(point as unknown as SVGCircleElement, true);
   }
 }
 
@@ -110,8 +174,9 @@ export function ScatterChart(props: {
   const yAxisTickCaptionMaxWidth = 100;
   const axisTickLength = 5;
   const axisLineWidth = 1;
-  const xMargin =
+  const xLeftMargin =
     yAxisTitleWidth + yAxisTickCaptionMaxWidth + axisTickLength + axisLineWidth;
+  const xRightMargin = 100; // to show tooltips on the right hand side. If we can move tooltips dynamicslly, we can get rid of this.
 
   const axisTitleHeight = 20;
   const xAxisTickCaptionMaxHeight = 16;
@@ -121,13 +186,13 @@ export function ScatterChart(props: {
     axisTickLength +
     axisLineWidth;
 
-  const svgWidth = 844;
+  const svgWidth = 960;
   const svgViewBoxWidthPadding = 50;
   const svgHeight = 480;
   const svgViewBoxHeightPadding = 10;
-  const svgXMin = -xMargin;
+  const svgXMin = -xLeftMargin;
 
-  const plotAreaWidth = svgWidth - xMargin;
+  const plotAreaWidth = svgWidth - xLeftMargin - xRightMargin;
   const plotAreaHeight = svgHeight - yMargin;
 
   const viewBox = `${svgXMin - svgViewBoxWidthPadding} ${
@@ -136,51 +201,8 @@ export function ScatterChart(props: {
     svgHeight + svgViewBoxHeightPadding
   }`;
 
-  const tooltipTextLeftPadding = 5;
-  const tooltipRectanglePaddingHeight = 10;
-  const tooltipTextPaddingHeight = 25;
-
   const yAxisTextPaddingFromTicks = 5;
   const yAxisTextYPadding = 6;
-
-  function drawTooltip(
-    text: string,
-    x: number,
-    y: number,
-    seriesIndex: number,
-    pointIndex: number,
-    clicked: boolean = false,
-  ) {
-    const tooltip = document.getElementById("tooltip");
-    const tooltipRect = document.getElementById("tooltipRect");
-    const tooltipText = document.getElementById(
-      "tooltipText",
-    ) as unknown as SVGTextElement;
-
-    if (tooltipText) {
-      tooltipText.setAttribute("x", (x + tooltipTextLeftPadding).toString());
-      tooltipText.setAttribute("y", (y + tooltipTextPaddingHeight).toString());
-      tooltipText.textContent = text;
-    }
-    if (tooltipRect && tooltipText) {
-      const box = tooltipText.getBBox();
-      const textWidth = box.width;
-      tooltipRect.setAttribute(
-        "width",
-        (textWidth + 2 * tooltipTextLeftPadding).toString(),
-      );
-      tooltipRect.setAttribute("x", x.toString());
-      tooltipRect.setAttribute(
-        "y",
-        (y + tooltipRectanglePaddingHeight).toString(),
-      );
-    }
-    if (tooltip) {
-      tooltip.setAttribute("visibility", "visible");
-      tooltip.setAttribute("clicked", clicked.toString());
-    }
-    props.onPointSelected(seriesIndex, pointIndex);
-  }
 
   return (
     <div style="display: flex; flex-wrap: wrap; margin-top: 8px;">
@@ -272,7 +294,7 @@ export function ScatterChart(props: {
           </text>
 
           <text
-            x={xMargin - axisTitleHeight}
+            x={xLeftMargin - axisTitleHeight}
             y={plotAreaHeight / 2}
             class="qs-scatterChart-y-axisTitle"
           >
@@ -281,7 +303,7 @@ export function ScatterChart(props: {
 
           <text
             class="qs-scatterChart-watermark"
-            x={xMargin - axisTitleHeight}
+            x={xLeftMargin - axisTitleHeight}
             y={-svgHeight + yMargin}
           >
             Created with Azure Quantum Resource Estimator
@@ -305,21 +327,17 @@ export function ScatterChart(props: {
                   id={`point-${seriesIndex}-${pointIndex}`}
                   cx={x}
                   cy={y}
+                  data-label={item.label}
                   class="qs-scatterChart-point"
                   stroke={data.color}
-                  onMouseOver={() =>
-                    drawTooltip(
-                      item.label,
-                      x,
-                      y,
-                      seriesIndex,
-                      pointIndex,
-                      false,
-                    )
-                  }
-                  onClick={() =>
-                    drawTooltip(item.label, x, y, seriesIndex, pointIndex, true)
-                  }
+                  onMouseOver={(e) => {
+                    drawTooltip(e.currentTarget, false);
+                    deselectPoint();
+                  }}
+                  onClick={() => {
+                    SelectPoint(seriesIndex, pointIndex);
+                    props.onPointSelected(seriesIndex, pointIndex);
+                  }}
                   onMouseOut={() => hideTooltipIfNotClicked()}
                 />
               );

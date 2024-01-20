@@ -641,9 +641,11 @@ html {
   stroke-width: 4px;
 }
 
+.qs-scatterChart-point-selected,
 .qs-scatterChart-point:hover {
-  r: 3px;
-  stroke-width: 6px;
+  r: 6px;
+  stroke-width: 3px;
+  fill: white;
 }
 
 .qs-scatterChart-watermark {

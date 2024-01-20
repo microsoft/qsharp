@@ -8,7 +8,7 @@ use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use qsc::interpret::stateful::{self, InterpretResult, Interpreter};
+use qsc::interpret::{self, InterpretResult, Interpreter};
 use qsc_eval::{
     output::{self, Receiver},
     val::Value,
@@ -43,6 +43,10 @@ struct Cli {
     /// Exit after loading the files or running the given file(s)/entry on the command line.
     #[arg(long)]
     exec: bool,
+
+    /// Path to a Q# manifest for a project
+    #[arg(short, long)]
+    qsharp_json: Option<PathBuf>,
 }
 
 struct TerminalReceiver;
@@ -78,7 +82,7 @@ fn main() -> miette::Result<ExitCode> {
 
     if sources.is_empty() {
         let fs = StdFs;
-        let manifest = Manifest::load()?;
+        let manifest = Manifest::load(cli.qsharp_json)?;
         if let Some(manifest) = manifest {
             let project = fs.load_project(&manifest)?;
             let mut project_sources = project.sources;
@@ -194,7 +198,7 @@ fn print_interpret_result(result: InterpretResult) {
     }
 }
 
-fn print_exec_result(result: Result<Value, Vec<stateful::Error>>) -> ExitCode {
+fn print_exec_result(result: Result<Value, Vec<interpret::Error>>) -> ExitCode {
     match result {
         Ok(value) => {
             println!("{value}");

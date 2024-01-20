@@ -4,6 +4,7 @@
 // A component including the results table and the scatter chart together.
 // The results table is also a legend for the scatter chart.
 
+import { useState } from "preact/hooks";
 import { ColorMap } from "./colormap.js";
 import {
   CreateSingleEstimateResult,
@@ -18,6 +19,7 @@ import {
   PlotItem,
   ScatterChart,
   ScatterSeries,
+  SelectPoint,
 } from "./scatterChart.js";
 
 const columnNames = [
@@ -46,7 +48,7 @@ const xAxis: Axis = {
 
 const yAxis: Axis = {
   isTime: false,
-  label: "Physical Qubits",
+  label: "Physical qubits",
 };
 
 function reDataToRow(input: ReData, color: string): Row {
@@ -123,6 +125,8 @@ export function EstimatesOverview(props: {
   onRowDeleted: (rowId: string) => void;
   setEstimate: (estimate: SingleEstimateResult | null) => void;
 }) {
+  const [selectedRow, setSelectedRow] = useState<string | null>(null);
+
   props.estimatesData.forEach((item, idx) => {
     if (
       props.runNames != null &&
@@ -140,26 +144,31 @@ export function EstimatesOverview(props: {
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
     const data = props.estimatesData[seriesIndex];
     props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
+    const rowId = props.estimatesData[seriesIndex].jobParams.runName;
+    setSelectedRow(rowId);
   }
 
   function onRowSelected(rowId: string) {
+    setSelectedRow(rowId);
     // On any selection, clear the "new" flag on all rows. This ensures that
     // new rows do not steal focus from the user selected row.
     props.estimatesData.forEach((data) => (data.new = false));
+    HideTooltip();
     if (!rowId) {
       props.setEstimate(null);
     } else {
-      const estimateFound =
-        props.estimatesData.find((data) => data.jobParams.runName === rowId) ||
-        null;
-      if (estimateFound == null) {
+      const index = props.estimatesData.findIndex(
+        (data) => data.jobParams.runName === rowId,
+      );
+
+      if (index == -1) {
         props.setEstimate(null);
       } else {
+        const estimateFound = props.estimatesData[index];
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
+        SelectPoint(index, 0);
       }
     }
-
-    HideTooltip();
   }
 
   const colormap =
@@ -177,8 +186,9 @@ export function EstimatesOverview(props: {
           )}
           initialColumns={initialColumns}
           ensureSelected={true}
-          onRowSelected={onRowSelected}
           onRowDeleted={props.onRowDeleted}
+          selectedRow={selectedRow}
+          setSelectedRow={onRowSelected}
         />
         <ScatterChart
           xAxis={xAxis}
@@ -204,8 +214,9 @@ export function EstimatesOverview(props: {
             reDataToRow(dataItem, colormap[index]),
           )}
           initialColumns={initialColumns}
+          selectedRow={selectedRow}
+          setSelectedRow={onRowSelected}
           ensureSelected={true}
-          onRowSelected={onRowSelected}
           onRowDeleted={props.onRowDeleted}
         />
       </details>

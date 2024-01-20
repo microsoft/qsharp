@@ -19,8 +19,9 @@ use pyo3::{
 use qsc::{
     fir,
     interpret::{
+        self,
         output::{Error, Receiver},
-        stateful, Value,
+        Value,
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
@@ -63,7 +64,7 @@ pub(crate) enum TargetProfile {
 
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
-    pub(crate) interpreter: stateful::Interpreter,
+    pub(crate) interpreter: interpret::Interpreter,
 }
 
 pub(crate) struct PyManifestDescriptor(ManifestDescriptor);
@@ -125,7 +126,7 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        match stateful::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
+        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -150,6 +151,16 @@ impl Interpreter {
             Ok(value) => Ok(ValueWrapper(value).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
+    }
+
+    /// Sets the quantum seed for the interpreter.
+    fn set_quantum_seed(&mut self, seed: Option<u64>) {
+        self.interpreter.set_quantum_seed(seed);
+    }
+
+    /// Sets the classical seed for the interpreter.
+    fn set_classical_seed(&mut self, seed: Option<u64>) {
+        self.interpreter.set_classical_seed(seed);
     }
 
     /// Dumps the quantum state of the interpreter.
@@ -229,7 +240,7 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(errors: Vec<stateful::Error>) -> String {
+fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
         .map(|e| {
@@ -249,8 +260,8 @@ fn format_errors(errors: Vec<stateful::Error>) -> String {
 }
 
 /// Additional help text for an error specific to the Python module
-fn python_help(error: &stateful::Error) -> Option<String> {
-    if matches!(error, stateful::Error::UnsupportedRuntimeCapabilities) {
+fn python_help(error: &interpret::Error) -> Option<String> {
+    if matches!(error, interpret::Error::UnsupportedRuntimeCapabilities) {
         Some("Unsupported target profile. Initialize Q# by running `qsharp.init(target_profile=qsharp.TargetProfile.Base)` before performing code generation.".into())
     } else {
         None
@@ -499,7 +510,7 @@ impl IntoPyErr for Report {
     }
 }
 
-impl IntoPyErr for Vec<stateful::Error> {
+impl IntoPyErr for Vec<interpret::Error> {
     fn into_py_err(self) -> PyErr {
         let mut message = String::new();
         for error in self {
