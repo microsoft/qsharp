@@ -78,6 +78,21 @@ def test_dump_machine() -> None:
     assert len(state_dump) == 1
     assert state_dump[3] == (1.0, 0.0)
 
+def test_dump_operation() -> None:
+    qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
+    res = qsharp.dump_operation("qs => ()", 1)
+    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(1.0, 0.0)]]
+    res = qsharp.dump_operation("qs => H(qs[0])", 1)
+    assert res == [[complex(0.707107, 0.0), complex(0.707107, 0.0)],
+                   [complex(0.707107, 0.0), complex(-0.707107, 0.0)]]
+    qsharp.eval("operation ApplySWAP(qs : Qubit[]) : Unit { SWAP(qs[0], qs[1]); }")
+    res = qsharp.dump_operation("ApplySWAP", 2)
+    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)]]
+
 
 def test_compile_qir_input_data() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Base)
