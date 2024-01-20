@@ -153,6 +153,16 @@ impl Interpreter {
         }
     }
 
+    /// Sets the quantum seed for the interpreter.
+    fn set_quantum_seed(&mut self, seed: Option<u64>) {
+        self.interpreter.set_quantum_seed(seed);
+    }
+
+    /// Sets the classical seed for the interpreter.
+    fn set_classical_seed(&mut self, seed: Option<u64>) {
+        self.interpreter.set_classical_seed(seed);
+    }
+
     /// Dumps the quantum state of the interpreter.
     /// Returns a tuple of (amplitudes, num_qubits), where amplitudes is a dictionary from integer indices to
     /// pairs of real and imaginary amplitudes.
