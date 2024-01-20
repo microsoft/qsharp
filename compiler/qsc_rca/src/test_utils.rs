@@ -3,7 +3,9 @@
 
 use crate::{ComputePropertiesLookup, PackageStoreComputeProperties};
 use expect_test::Expect;
+use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
+use qsc_frontend::compile::PackageStore as HirPackageStore;
 use std::{fs::File, io::Write};
 
 pub trait PackageStoreSearch {
@@ -41,17 +43,29 @@ impl PackageSearch for Package {
 }
 
 pub fn check_callable_compute_properties(
-    package_store: &impl PackageStoreSearch,
+    fir_package_store: &impl PackageStoreSearch,
     package_store_compute_properties: &PackageStoreComputeProperties,
     callable_name: &str,
     expect: &Expect,
 ) {
-    let callable_id = package_store
+    let callable_id = fir_package_store
         .find_callable_id_by_name(callable_name)
         .expect("callable should exist");
 
     let callable_compute_properties = package_store_compute_properties.get_item(callable_id);
     expect.assert_eq(&callable_compute_properties.to_string());
+}
+
+pub fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore {
+    let mut lowerer = Lowerer::new();
+    let mut fir_store = PackageStore::new();
+    for (id, unit) in hir_package_store {
+        fir_store.insert(
+            map_hir_package_to_fir(id),
+            lowerer.lower_package(&unit.package),
+        );
+    }
+    fir_store
 }
 
 // TODO (cesarzc): for debugging purposes only, remove later.
