@@ -337,14 +337,33 @@ impl MutVisitor for Offsetter {
     }
 }
 
+#[must_use]
 pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
     capabilities: RuntimeCapabilityFlags,
 ) -> CompileUnit {
-    let (mut ast_package, parse_errors) = parse_all(&sources);
+    let (ast_package, parse_errors) = parse_all(&sources);
+    compile_ast(
+        store,
+        dependencies,
+        sources,
+        capabilities,
+        ast_package,
+        parse_errors,
+    )
+}
 
+#[allow(clippy::module_name_repetitions)]
+pub fn compile_ast(
+    store: &PackageStore,
+    dependencies: &[PackageId],
+    sources: SourceMap,
+    capabilities: RuntimeCapabilityFlags,
+    mut ast_package: qsc_ast::ast::Package,
+    parse_errors: Vec<qsc_parse::Error>,
+) -> CompileUnit {
     let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
     let dropped_names = cond_compile.into_names();
@@ -434,7 +453,8 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
     unit
 }
 
-fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
+#[must_use]
+pub fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {
