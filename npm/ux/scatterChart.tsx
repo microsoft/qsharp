@@ -334,7 +334,7 @@ export function ScatterChart(props: {
                     drawTooltip(e.currentTarget, false);
                     deselectPoint();
                   }}
-                  onClick={(e) => {
+                  onClick={() => {
                     SelectPoint(seriesIndex, pointIndex);
                     props.onPointSelected(seriesIndex, pointIndex);
                   }}
