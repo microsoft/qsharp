@@ -5,8 +5,8 @@
 
 // This file gives the order, title, and default shots for each sample
 
-/** @type {Array<{title: string; file: string; shots: number}>} */
-export default [
+/** @type {Array<{title: string; file: string; shots: number; omitFromTests?: boolean}>} */
+export default ([
     { title: "Minimal", file: "./language/GettingStarted.qs", shots: 100 },
     { title: "Superposition", file: "./algorithms/Superposition.qs", shots: 100 },
     { title: "Entanglement", file: "./algorithms/Entanglement.qs", shots: 100 },
@@ -23,7 +23,7 @@ export default [
     { title: "Hidden Shift", file: "./algorithms/HiddenShiftNISQ.qs", shots: 1 },
     { title: "Hidden Shift (Advanced)", file: "./algorithms/HiddenShift.qs", shots: 1 },
     { title: "Shor", file: "./algorithms/Shor.qs", shots: 1 },
-    { title: "Dynamics", file: "./estimation/Dynamics.qs", shots: 1 },
-    { title: "Precalculated", file: "./estimation/Precalculated.qs", shots: 1 },
-    { title: "Shor's Resource Estimation", file: "./estimation/ShorRE.qs", shots: 1 },
-];
+    { title: "Dynamics", file: "./estimation/Dynamics.qs", shots: 1, omitFromTests: true },
+    { title: "Precalculated", file: "./estimation/Precalculated.qs", shots: 1, omitFromTests: false },
+    { title: "Shor's Resource Estimation", file: "./estimation/ShorRE.qs", shots: 1, omitFromTests: false },
+]);

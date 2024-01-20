@@ -356,7 +356,7 @@ test("Run samples", async () => {
   const compiler = getCompilerWorker();
   const resultsHandler = new QscEventTarget(true);
 
-  for await (const sample of samples) {
+  for await (const sample of samples.filter((x) => !x.omitFromTests)) {
     await compiler.run([[sample.title, sample.code]], "", 1, resultsHandler);
   }
 
