@@ -152,6 +152,7 @@ export function EstimatesOverview(props: {
     // On any selection, clear the "new" flag on all rows. This ensures that
     // new rows do not steal focus from the user selected row.
     props.estimatesData.forEach((data) => (data.new = false));
+    HideTooltip();
     if (!rowId) {
       props.setEstimate(null);
     } else {
@@ -167,8 +168,6 @@ export function EstimatesOverview(props: {
         SelectPoint(index, 0);
       }
     }
-
-    HideTooltip();
   }
 
   const colormap =
