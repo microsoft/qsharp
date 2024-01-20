@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::PackageStoreComputeProperties;
+use crate::{ComputePropertiesLookup, PackageStoreComputeProperties};
+use expect_test::Expect;
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use std::{fs::File, io::Write};
 
@@ -37,6 +38,20 @@ impl PackageSearch for Package {
 
         None
     }
+}
+
+pub fn check_callable_compute_properties(
+    package_store: &impl PackageStoreSearch,
+    package_store_compute_properties: &PackageStoreComputeProperties,
+    callable_name: &str,
+    expect: &Expect,
+) {
+    let callable_id = package_store
+        .find_callable_id_by_name(callable_name)
+        .expect("callable should exist");
+
+    let callable_compute_properties = package_store_compute_properties.get_item(callable_id);
+    expect.assert_eq(&callable_compute_properties.to_string());
 }
 
 // TODO (cesarzc): for debugging purposes only, remove later.

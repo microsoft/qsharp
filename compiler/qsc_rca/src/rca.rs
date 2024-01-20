@@ -319,7 +319,7 @@ fn derive_runtime_capabilities_from_type(ty: &Ty) -> RuntimeCapabilityFlags {
             Prim::Double => RuntimeCapabilityFlags::FloatingPointComputations,
             Prim::Int => RuntimeCapabilityFlags::IntegerComputations,
             Prim::Pauli => RuntimeCapabilityFlags::IntegerComputations,
-            Prim::Qubit => RuntimeCapabilityFlags::empty(),
+            Prim::Qubit => RuntimeCapabilityFlags::HigherLevelConstructs,
             Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
                 RuntimeCapabilityFlags::IntegerComputations
             }

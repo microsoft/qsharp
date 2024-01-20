@@ -1051,6 +1051,7 @@ dependencies = [
 name = "qsc_rca"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
  "indenter",
  "qsc",
  "qsc_data_structures",
