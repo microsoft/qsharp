@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use async_trait::async_trait;
 use js_sys::JsString;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};

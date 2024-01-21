@@ -4,7 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 mod given_interpreter {
-    use crate::interpret::stateful::{Error, InterpretResult, Interpreter};
+    use crate::interpret::{Error, InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
     use qsc_eval::{output::CursorReceiver, val::Value};
@@ -32,10 +32,7 @@ mod given_interpreter {
 
     fn entry(
         interpreter: &mut Interpreter,
-    ) -> (
-        Result<Value, Vec<crate::interpret::stateful::Error>>,
-        String,
-    ) {
+    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.eval_entry(&mut receiver), receiver.dump())
@@ -1060,7 +1057,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output_eval_entry(
-        result: &Result<Value, Vec<crate::interpret::stateful::Error>>,
+        result: &Result<Value, Vec<crate::interpret::Error>>,
         output: &str,
         expected_output: &str,
     ) {
@@ -1130,6 +1127,7 @@ mod given_interpreter {
         use std::sync::Arc;
 
         use super::*;
+        use crate::interpret::Debugger;
         use expect_test::expect;
         use indoc::indoc;
         use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -1226,6 +1224,7 @@ mod given_interpreter {
                     r#"
             namespace Test2 {
                 open Test;
+                @EntryPoint()
                 operation Main() : String {
                     Hello();
                     Hello()
@@ -1236,16 +1235,11 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
-            let interpreter = Interpreter::new(
-                true,
-                sources,
-                PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
-            )
-            .expect("interpreter should be created");
-            let bps = interpreter.get_breakpoints("a.qs");
+            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())
+                .expect("debugger should be created");
+            let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());
-            let bps = interpreter.get_breakpoints("b.qs");
+            let bps = debugger.get_breakpoints("b.qs");
             assert_eq!(2, bps.len());
         }
 

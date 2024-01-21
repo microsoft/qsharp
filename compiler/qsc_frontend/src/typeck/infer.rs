@@ -897,7 +897,7 @@ fn check_has_field(
             }],
             Vec::new(),
         ),
-        (Err(()), Ty::Udt(_, Res::Item(id))) => {
+        (_, Ty::Udt(_, Res::Item(id))) => {
             match udts.get(id).and_then(|udt| udt.field_ty_by_name(&name)) {
                 Some(ty) => (
                     vec![Constraint::Eq {

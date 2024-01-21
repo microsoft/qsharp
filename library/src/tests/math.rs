@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::test_expression;
+use super::test_expression;
 use core::f64::consts::E;
 use num_bigint::BigInt;
 use qsc::interpret::Value;

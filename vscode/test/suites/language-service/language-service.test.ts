@@ -3,14 +3,19 @@
 
 import * as vscode from "vscode";
 import { assert } from "chai";
+import { activateExtension } from "../extensionUtils";
 
-suite("Q# Language Service Tests", () => {
+suite("Q# Language Service Tests", function suite() {
   const workspaceFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
   assert(workspaceFolder, "Expecting an open folder");
 
   const workspaceFolderUri = workspaceFolder.uri;
   const docUri = vscode.Uri.joinPath(workspaceFolderUri, "test.qs");
+
+  this.beforeAll(async () => {
+    await activateExtension();
+  });
 
   test("Q# language is registered", async () => {
     const doc = await vscode.workspace.openTextDocument(docUri);
@@ -22,7 +27,6 @@ suite("Q# Language Service Tests", () => {
   });
 
   test("Completions", async () => {
-    await activate();
     const actualCompletionList = (await vscode.commands.executeCommand(
       "vscode.executeCompletionItemProvider",
       docUri,
@@ -36,7 +40,6 @@ suite("Q# Language Service Tests", () => {
   });
 
   test("Definition", async () => {
-    await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
@@ -57,8 +60,6 @@ suite("Q# Language Service Tests", () => {
   });
 
   test("Diagnostics", async () => {
-    await activate();
-
     const actualDiagnostics = vscode.languages.getDiagnostics(docUri);
     assert.lengthOf(actualDiagnostics, 1);
 
@@ -67,7 +68,6 @@ suite("Q# Language Service Tests", () => {
   });
 
   test("Hover", async () => {
-    await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
@@ -88,7 +88,6 @@ suite("Q# Language Service Tests", () => {
   });
 
   test("Signature Help", async () => {
-    await activate();
     const doc = await vscode.workspace.openTextDocument(docUri);
     const text = doc.getText(
       new vscode.Range(new vscode.Position(4, 16), new vscode.Position(4, 19)),
@@ -109,9 +108,3 @@ suite("Q# Language Service Tests", () => {
     );
   });
 });
-
-async function activate() {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const ext = vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev")!;
-  await ext.activate();
-}

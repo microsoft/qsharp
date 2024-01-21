@@ -4,9 +4,8 @@
 use std::str::FromStr;
 
 use qsc::fir::StmtId;
-use qsc::interpret::stateful::Interpreter;
-use qsc::interpret::{stateful, StepAction, StepResult};
-use qsc::{fmt_complex, target::Profile, PackageType, SourceMap};
+use qsc::interpret::{Debugger, Error, StepAction, StepResult};
+use qsc::{fmt_complex, target::Profile};
 
 use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
@@ -14,23 +13,16 @@ use serde_json::json;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+#[derive(Default)]
 pub struct DebugService {
-    interpreter: Interpreter,
+    debugger: Option<Debugger>,
 }
 
 #[wasm_bindgen]
 impl DebugService {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self {
-            interpreter: Interpreter::new(
-                false,
-                SourceMap::default(),
-                PackageType::Lib,
-                Profile::Unrestricted.into(),
-            )
-            .expect("Couldn't create interpreter"),
-        }
+        Self::default()
     }
 
     pub fn load_source(
@@ -42,10 +34,10 @@ impl DebugService {
         let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
-        match Interpreter::new(true, source_map, PackageType::Exe, target.into()) {
-            Ok(interpreter) => {
-                self.interpreter = interpreter;
-                match self.interpreter.set_entry() {
+        match Debugger::new(source_map, target.into()) {
+            Ok(debugger) => {
+                self.debugger = Some(debugger);
+                match self.debugger_mut().set_entry() {
                     Ok(()) => "".to_string(),
                     Err(e) => render_errors(e),
                 }
@@ -55,7 +47,7 @@ impl DebugService {
     }
 
     pub fn capture_quantum_state(&mut self) -> IQuantumStateList {
-        let state = self.interpreter.capture_quantum_state();
+        let state = self.debugger_mut().capture_quantum_state();
         let entries = state
             .0
             .iter()
@@ -69,7 +61,7 @@ impl DebugService {
     }
 
     pub fn get_stack_frames(&self) -> IStackFrameList {
-        let frames = self.interpreter.get_stack_frames();
+        let frames = self.debugger().get_stack_frames();
 
         StackFrameList {
             frames: frames
@@ -146,12 +138,12 @@ impl DebugService {
         event_cb: F,
         bps: &[StmtId],
         step: StepAction,
-    ) -> Result<StepResult, Vec<stateful::Error>>
+    ) -> Result<StepResult, Vec<Error>>
     where
         F: Fn(&str),
     {
         let mut out = CallbackReceiver { event_cb };
-        let result = self.interpreter.eval_step(&mut out, bps, step);
+        let result = self.debugger_mut().eval_step(&mut out, bps, step);
         let mut success = true;
 
         let msg: Option<serde_json::Value> = match &result {
@@ -184,7 +176,7 @@ impl DebugService {
     }
 
     pub fn get_breakpoints(&self, path: &str) -> IBreakpointSpanList {
-        let bps = self.interpreter.get_breakpoints(path);
+        let bps = self.debugger().get_breakpoints(path);
 
         BreakpointSpanList {
             spans: bps
@@ -200,7 +192,7 @@ impl DebugService {
     }
 
     pub fn get_locals(&self) -> IVariableList {
-        let locals = self.interpreter.get_locals();
+        let locals = self.debugger().get_locals();
         let variables: Vec<_> = locals
             .into_iter()
             .map(|local| Variable {
@@ -211,15 +203,21 @@ impl DebugService {
             .collect();
         VariableList { variables }.into()
     }
-}
 
-impl Default for DebugService {
-    fn default() -> Self {
-        Self::new()
+    fn debugger(&self) -> &Debugger {
+        self.debugger
+            .as_ref()
+            .expect("debugger should be initialized")
+    }
+
+    fn debugger_mut(&mut self) -> &mut Debugger {
+        self.debugger
+            .as_mut()
+            .expect("debugger should be initialized")
     }
 }
 
-fn render_errors(errors: Vec<qsc::interpret::stateful::Error>) -> String {
+fn render_errors(errors: Vec<Error>) -> String {
     let mut msg = String::new();
     for error in errors {
         let error_string = render_error(error);
@@ -228,7 +226,7 @@ fn render_errors(errors: Vec<qsc::interpret::stateful::Error>) -> String {
     msg
 }
 
-fn render_error(error: qsc::interpret::stateful::Error) -> String {
+fn render_error(error: Error) -> String {
     format!("{:?}\n", miette::Report::new(error))
 }
 

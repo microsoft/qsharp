@@ -39,9 +39,9 @@ use thiserror::Error;
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct RuntimeCapabilityFlags: u32 {
-        const ConditionalForwardBranching = 0b0000_0001;
+        const ForwardBranching = 0b0000_0001;
         const IntegerComputations = 0b0000_0010;
-        const FloatingPointComputation = 0b0000_0100;
+        const FloatingPointComputations = 0b0000_0100;
         const BackwardsBranching = 0b0000_1000;
         const HigherLevelConstructs = 0b0001_0000;
     }
@@ -405,19 +405,11 @@ pub fn core() -> CompileUnit {
         next_id: PackageId::CORE,
     };
 
-    let sources = SourceMap::new(
-        [
-            (
-                "core/core.qs".into(),
-                include_str!("../../../library/core/core.qs").into(),
-            ),
-            (
-                "core/qir.qs".into(),
-                include_str!("../../../library/core/qir.qs").into(),
-            ),
-        ],
-        None,
-    );
+    let core: Vec<(SourceName, SourceContents)> = library::CORE_LIB
+        .iter()
+        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .collect();
+    let sources = SourceMap::new(core, None);
 
     let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::empty());
     assert_no_errors(&unit.sources, &mut unit.errors);
@@ -431,71 +423,11 @@ pub fn core() -> CompileUnit {
 /// Panics if the standard library does not compile without errors.
 #[must_use]
 pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
-    let sources = SourceMap::new(
-        [
-            (
-                "arrays.qs".into(),
-                include_str!("../../../library/std/arrays.qs").into(),
-            ),
-            (
-                "canon.qs".into(),
-                include_str!("../../../library/std/canon.qs").into(),
-            ),
-            (
-                "convert.qs".into(),
-                include_str!("../../../library/std/convert.qs").into(),
-            ),
-            (
-                "core.qs".into(),
-                include_str!("../../../library/std/core.qs").into(),
-            ),
-            (
-                "diagnostics.qs".into(),
-                include_str!("../../../library/std/diagnostics.qs").into(),
-            ),
-            (
-                "internal.qs".into(),
-                include_str!("../../../library/std/internal.qs").into(),
-            ),
-            (
-                "intrinsic.qs".into(),
-                include_str!("../../../library/std/intrinsic.qs").into(),
-            ),
-            (
-                "math.qs".into(),
-                include_str!("../../../library/std/math.qs").into(),
-            ),
-            (
-                "measurement.qs".into(),
-                include_str!("../../../library/std/measurement.qs").into(),
-            ),
-            (
-                "qir.qs".into(),
-                include_str!("../../../library/std/qir.qs").into(),
-            ),
-            (
-                "random.qs".into(),
-                include_str!("../../../library/std/random.qs").into(),
-            ),
-            (
-                "unstable_arithmetic.qs".into(),
-                include_str!("../../../library/std/unstable_arithmetic.qs").into(),
-            ),
-            (
-                "unstable_arithmetic_internal.qs".into(),
-                include_str!("../../../library/std/unstable_arithmetic_internal.qs").into(),
-            ),
-            (
-                "unstable_table_lookup.qs".into(),
-                include_str!("../../../library/std/unstable_table_lookup.qs").into(),
-            ),
-            (
-                "re.qs".into(),
-                include_str!("../../../library/std/re.qs").into(),
-            ),
-        ],
-        None,
-    );
+    let std: Vec<(SourceName, SourceContents)> = library::STD_LIB
+        .iter()
+        .map(|(name, contents)| ((*name).into(), (*contents).into()))
+        .collect();
+    let sources = SourceMap::new(std, None);
 
     let mut unit = compile(store, &[PackageId::CORE], sources, capabilities);
     assert_no_errors(&unit.sources, &mut unit.errors);

@@ -51,6 +51,10 @@ struct Cli {
     /// Q# source files to compile, or `-` to read from stdin.
     #[arg()]
     sources: Vec<PathBuf>,
+
+    /// Path to a Q# manifest for a project
+    #[arg(short, long)]
+    qsharp_json: Option<PathBuf>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -83,7 +87,7 @@ fn main() -> miette::Result<ExitCode> {
 
     if sources.is_empty() {
         let fs = StdFs;
-        let manifest = Manifest::load()?;
+        let manifest = Manifest::load(cli.qsharp_json)?;
         if let Some(manifest) = manifest {
             let project = fs.load_project(&manifest)?;
             let mut project_sources = project.sources;

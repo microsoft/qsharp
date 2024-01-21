@@ -615,3 +615,40 @@ html {
   fill: var(--vscode-icon-foreground, gray);
   animation: codicon-spin 1.5s steps(45) infinite;
 }
+
+.qs-scatterChart {
+  font-size: 14px;
+}
+
+.qs-scatterChart-x-axisTitle,
+.qs-scatterChart-y-axisTitle {
+  text-anchor: middle;
+  font-size: 16px;
+  fill: var(--main-color);
+}
+
+.qs-scatterChart-y-axisTitle {
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+}
+
+.qs-scatterChart-line {
+  stroke: var(--border-color);
+}
+
+.qs-scatterChart-point {
+  r: 2px;
+  stroke-width: 4px;
+}
+
+.qs-scatterChart-point-selected,
+.qs-scatterChart-point:hover {
+  r: 6px;
+  stroke-width: 3px;
+  fill: white;
+}
+
+.qs-scatterChart-watermark {
+  font-size: 16px;
+  fill: var(--main-color);
+}

@@ -12,7 +12,7 @@ use crate::{
     Error,
 };
 use num_bigint::BigInt;
-use rand::Rng;
+use rand::{rngs::StdRng, Rng};
 use std::array;
 
 #[allow(clippy::too_many_lines)]
@@ -22,6 +22,7 @@ pub(crate) fn call(
     arg: Value,
     arg_span: PackageSpan,
     sim: &mut dyn Backend<ResultType = impl Into<val::Result>>,
+    rng: &mut StdRng,
     out: &mut dyn Receiver,
 ) -> Result<Value, Error> {
     match name {
@@ -66,7 +67,7 @@ pub(crate) fn call(
             if lo > hi {
                 Err(Error::EmptyRange(arg_span))
             } else {
-                Ok(Value::Int(rand::thread_rng().gen_range(lo..=hi)))
+                Ok(Value::Int(rng.gen_range(lo..=hi)))
             }
         }
         "DrawRandomDouble" => {
@@ -76,7 +77,7 @@ pub(crate) fn call(
             if lo > hi {
                 Err(Error::EmptyRange(arg_span))
             } else {
-                Ok(Value::Double(rand::thread_rng().gen_range(lo..=hi)))
+                Ok(Value::Double(rng.gen_range(lo..=hi)))
             }
         }
         #[allow(clippy::cast_possible_truncation)]
