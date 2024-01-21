@@ -56,6 +56,20 @@ pub fn check_callable_compute_properties(
     expect.assert_eq(&callable_compute_properties.to_string());
 }
 
+pub fn create_fir_package_store(
+    lowerer: &mut Lowerer,
+    hir_package_store: &HirPackageStore,
+) -> PackageStore {
+    let mut fir_store = PackageStore::new();
+    for (id, unit) in hir_package_store {
+        fir_store.insert(
+            map_hir_package_to_fir(id),
+            lowerer.lower_package(&unit.package),
+        );
+    }
+    fir_store
+}
+
 pub fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore {
     let mut lowerer = Lowerer::new();
     let mut fir_store = PackageStore::new();

@@ -2,13 +2,13 @@
 // Licensed under the MIT License.
 
 use crate::test_utils::{
-    check_callable_compute_properties, lower_hir_package_store, write_compute_properties_to_files,
-    write_fir_store_to_files,
+    check_callable_compute_properties, create_fir_package_store, lower_hir_package_store,
+    write_compute_properties_to_files, write_fir_store_to_files,
 };
 use crate::Analyzer;
 use expect_test::expect;
 use qsc::incremental::Compiler;
-use qsc_eval::debug::map_hir_package_to_fir;
+use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 
@@ -1154,19 +1154,30 @@ fn std_re_intrisics_analysis_is_correct() {
     );
 }
 
-#[ignore = "work in progress"]
+#[ignore = "work in progress"] // TODO (cesarzc): remove to work on it from the command line.
 #[test]
 fn static_qubit_allocation_analysis_is_correct() {
-    let compiler = Compiler::new(
+    let mut compiler = Compiler::new(
         true,
         SourceMap::default(),
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
     )
     .expect("should be able to create a new compiler");
-    let fir_store = lower_hir_package_store(compiler.package_store());
-    write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
+    let mut lowerer = Lowerer::new();
+    let mut fir_store = create_fir_package_store(&mut lowerer, compiler.package_store());
     let analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+    let increment = compiler
+        .compile_fragments_fail_fast("rca-test", "use q = Qubit();")
+        .expect("code should compile");
+    let package_id = map_hir_package_to_fir(compiler.package_id());
+    let fir_package = fir_store.get_mut(package_id).expect("package should exist");
+    lowerer.lower_and_update_package(fir_package, &increment.hir);
+    compiler.update(increment);
+    write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
+
+    // TODO (cesarzc): need to update analyzer APIs (add update) to continue writing this test.
+
     write_compute_properties_to_files(analyzer.get_package_store_compute_properties());
     // TODO (cesarzc): for debugging purposes only.
 }
