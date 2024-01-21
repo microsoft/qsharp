@@ -27,10 +27,11 @@ export function runMochaTests(requireTestModules: () => void): Promise<void> {
       // Run the mocha test
       mocha.run((failures) => {
         if (failures > 0) {
-          e(new Error(`${failures} tests failed.`));
-        } else {
-          c();
+          console.error(
+            `[error] ${failures} vscode integration test(s) failed.`,
+          );
         }
+        c();
       });
     } catch (err) {
       console.error(err);

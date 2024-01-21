@@ -89,6 +89,22 @@ class Interpreter:
         :returns resources: The estimated resources.
         """
         ...
+    def set_quantum_seed(self, seed: Optional[int]) -> None:
+        """
+        Sets the seed for the quantum random number generator.
+
+        :param seed: The seed to use for the quantum random number generator. If None,
+            the seed will be generated from entropy.
+        """
+        ...
+    def set_classical_seed(self, seed: Optional[int]) -> None:
+        """
+        Sets the seed for the classical random number generator.
+
+        :param seed: The seed to use for the classical random number generator. If None,
+            the seed will be generated from entropy.
+        """
+        ...
     def dump_machine(self) -> StateDump:
         """
         Returns the sparse state vector of the simulator as a StateDump object.

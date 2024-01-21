@@ -10,10 +10,10 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
     debug::{map_hir_package_to_fir, Frame},
-    eval_expr,
+    eval,
     output::GenericReceiver,
     val::Value,
-    Env, Error, State,
+    Env, Error,
 };
 use qsc_fir::fir;
 use qsc_frontend::compile::PackageStore;
@@ -46,11 +46,12 @@ pub fn generate_qir(
     let mut sim = BaseProfSim::default();
     let mut stdout = std::io::sink();
     let mut out = GenericReceiver::new(&mut stdout);
-    let result = eval_expr(
-        &mut State::new(package),
-        entry_expr,
+    let result = eval(
+        package,
+        None,
+        entry_expr.into(),
         &fir_store,
-        &mut Env::with_empty_scope(),
+        &mut Env::default(),
         &mut sim,
         &mut out,
     );
