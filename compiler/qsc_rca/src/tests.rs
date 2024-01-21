@@ -60,33 +60,7 @@ fn qubit_allocation_intrinsics_analysis_is_correct() {
     );
 }
 
-#[ignore = "Work In Progress"]
-#[test]
-fn qubit_array_allocation_intrinsics_analysis_is_correct() {
-    let compiler = Compiler::new(
-        false,
-        SourceMap::default(),
-        PackageType::Lib,
-        RuntimeCapabilityFlags::all(),
-    )
-    .expect("should be able to create a new compiler");
-    let fir_store = lower_hir_package_store(compiler.package_store());
-    let analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
-    check_callable_compute_properties(
-        &fir_store,
-        &analyzer.compute_properties,
-        "AllocateQubitArray",
-        &expect![r#""#],
-    );
-    check_callable_compute_properties(
-        &fir_store,
-        &analyzer.compute_properties,
-        "ReleaseQubitArray",
-        &expect![r#""#],
-    );
-}
-
-#[ignore = "Work In Progress"]
+#[ignore = "work in progress"]
 #[test]
 fn core_lib_functions_analysis_is_correct() {
     let compiler = Compiler::new(
@@ -1079,9 +1053,7 @@ fn std_re_intrisics_analysis_is_correct() {
     )
     .expect("should be able to create a new compiler");
     let fir_store = lower_hir_package_store(compiler.package_store());
-    write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
     let analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
-    write_compute_properties_to_files(analyzer.get_package_store_compute_properties()); // TODO (cesarzc): for debugging purposes only.
     check_callable_compute_properties(
         &fir_store,
         &analyzer.compute_properties,
@@ -1180,4 +1152,721 @@ fn std_re_intrisics_analysis_is_correct() {
                 ctl-adj: <none>"#
         ],
     );
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_qubit_allocation_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
+    let analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+    write_compute_properties_to_files(analyzer.get_package_store_compute_properties());
+    // TODO (cesarzc): for debugging purposes only.
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_qubit_allocation_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_qubit_array_allocation_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_qubit_array_allocation_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_results_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_results_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_results_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_bools_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_bools_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_bools_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_integers_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_integers_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_integers_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_paulis_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_paulis_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_paulis_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_ranges_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_ranges_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_ranges_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_doubles_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_doubles_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_doubles_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_big_integers_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_big_integers_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_big_integers_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_strings_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_strings_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_strings_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_arrays_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_arrays_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_arrays_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_tuples_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_tuples_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_tuples_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_udts_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_udts_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_udts_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn static_arrows_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn dynamic_arrows_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn mixed_arrows_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn functions_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn function_calls_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn operations_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn operation_calls_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn closure_functions_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn closure_function_calls_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn closure_operations_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn closure_operation_calls_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn ifs_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn loops_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
+}
+
+#[ignore = "work in progress"]
+#[test]
+fn generics_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let fir_store = lower_hir_package_store(compiler.package_store());
+    let _analyzer = Analyzer::new(&fir_store, map_hir_package_to_fir(compiler.package_id()));
 }
