@@ -191,9 +191,17 @@ impl Interpreter {
         );
 
         let mut dump = StateReceiver::default();
+
+        let factor =
+            std::f64::consts::SQRT_2.powi(num_qubits.try_into().map_err(|_| {
+                PyException::new_err("too many qubits specified in dump_operation")
+            })?);
         match self.interpreter.run(&mut dump, &code) {
             Ok(Ok(_)) => Ok(StateDump(DisplayableState(
-                dump.state.into_iter().collect::<FxHashMap<_, _>>(),
+                dump.state
+                    .into_iter()
+                    .map(|(k, v)| (k, factor * v))
+                    .collect::<FxHashMap<_, _>>(),
                 dump.qubit_count,
             ))),
             Ok(Err(errors)) | Err(errors) => Err(QSharpError::new_err(format_errors(errors))),

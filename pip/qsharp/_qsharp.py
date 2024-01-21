@@ -4,7 +4,6 @@
 from ._native import Interpreter, TargetProfile, StateDump, QSharpError, Output
 from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
-from math import sqrt
 import json
 
 _interpreter = None
@@ -286,7 +285,6 @@ def dump_operation(operation: str, num_qubits: int) -> List[List[complex]]:
     """
     state = get_interpreter().dump_operation(operation, num_qubits).get_dict()
     num_entries = pow(2, num_qubits)
-    factor = sqrt(num_entries)
     ndigits = 6
     matrix = []
     for i in range(num_entries):
@@ -296,5 +294,5 @@ def dump_operation(operation: str, num_qubits: int) -> List[List[complex]]:
             if entry is None:
                 matrix[i] += [complex(0, 0)]
             else:
-                matrix[i] += [complex(round(factor * entry[0], ndigits), round(factor * entry[1], ndigits))]
+                matrix[i] += [complex(round(entry[0], ndigits), round(entry[1], ndigits))]
     return matrix
