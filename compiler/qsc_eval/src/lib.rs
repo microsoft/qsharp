@@ -24,13 +24,15 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::span::Span;
 use qsc_fir::fir::{
-    self, BinOp, BlockId, ExprId, ExprKind, Field, Functor, Global, Lit, LocalItemId, Mutability,
-    NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, SpecBody, SpecGen,
-    StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
+    self, BinOp, BlockId, CallableImpl, ExprId, ExprKind, Field, Functor, Global, Lit, LocalItemId,
+    Mutability, NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
+    StmtKind, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
+use rand::{rngs::StdRng, SeedableRng};
 use rustc_hash::FxHashMap;
 use std::{
+    cell::RefCell,
     collections::hash_map::Entry,
     fmt::{self, Display, Formatter, Write},
     iter,
@@ -170,45 +172,47 @@ impl Display for Spec {
     }
 }
 
-/// Evaluates the given expr with the given context.
-/// # Errors
-/// Returns the first error encountered during execution.
-/// # Panics
-/// On internal error where no result is returned.
-pub fn eval_expr(
-    state: &mut State,
-    expr: ExprId,
-    globals: &impl PackageStoreLookup,
-    env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    out: &mut impl Receiver,
-) -> Result<Value, (Error, Vec<Frame>)> {
-    state.push_expr(expr);
-    let res = state.eval(globals, env, sim, out, &[], StepAction::Continue)?;
-    let StepResult::Return(value) = res else {
-        panic!("eval_expr should always return a value");
-    };
-    Ok(value)
+/// An id either representing a statement or an expression to be evaluated.
+#[derive(Clone, Copy)]
+pub enum EvalId {
+    Expr(ExprId),
+    Stmt(StmtId),
 }
 
-/// Evaluates the given stmt with the given context.
+impl From<ExprId> for EvalId {
+    fn from(expr: ExprId) -> Self {
+        Self::Expr(expr)
+    }
+}
+
+impl From<StmtId> for EvalId {
+    fn from(stmt: StmtId) -> Self {
+        Self::Stmt(stmt)
+    }
+}
+
+/// Evaluates the given code with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
 /// # Panics
 /// On internal error where no result is returned.
-pub fn eval_stmt(
-    stmt: StmtId,
+pub fn eval(
+    package: PackageId,
+    seed: Option<u64>,
+    id: EvalId,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    package: PackageId,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package);
-    state.push_stmt(stmt);
+    let mut state = State::new(package, seed);
+    match id {
+        EvalId::Expr(expr) => state.push_expr(expr),
+        EvalId::Stmt(stmt) => state.push_stmt(stmt),
+    }
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
-        panic!("eval_stmt should always return a value");
+        panic!("eval should always return a value");
     };
     Ok(value)
 }
@@ -307,7 +311,6 @@ impl Range {
     }
 }
 
-#[derive(Default)]
 pub struct Env(Vec<Scope>);
 
 impl Env {
@@ -383,9 +386,9 @@ struct Scope {
     frame_id: usize,
 }
 
-impl Env {
+impl Default for Env {
     #[must_use]
-    pub fn with_empty_scope() -> Self {
+    fn default() -> Self {
         Self(vec![Scope::default()])
     }
 }
@@ -430,17 +433,23 @@ pub struct State {
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
+    rng: RefCell<StdRng>,
 }
 
 impl State {
     #[must_use]
-    pub fn new(package: PackageId) -> Self {
+    pub fn new(package: PackageId, classical_seed: Option<u64>) -> Self {
+        let rng = match classical_seed {
+            Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
+            None => RefCell::new(StdRng::from_entropy()),
+        };
         Self {
             stack: Vec::new(),
             vals: Vec::new(),
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
+            rng,
         }
     }
 
@@ -1086,35 +1095,41 @@ impl State {
         let spec = spec_from_functor_app(functor);
         self.push_frame(callee_id, functor);
         self.push_scope(env);
-        let block_body = &match spec {
-            Spec::Body => Some(&callee.body),
-            Spec::Adj => callee.adj.as_ref(),
-            Spec::Ctl => callee.ctl.as_ref(),
-            Spec::CtlAdj => callee.ctl_adj.as_ref(),
-        }
-        .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?
-        .body;
-        match block_body {
-            SpecBody::Impl(input, body_block) => {
+        match &callee.implementation {
+            CallableImpl::Intrinsic => {
+                let name = &callee.name.name;
+                let val = intrinsic::call(
+                    name,
+                    callee_span,
+                    arg,
+                    arg_span,
+                    sim,
+                    &mut self.rng.borrow_mut(),
+                    out,
+                )?;
+                self.push_val(val);
+                Ok(())
+            }
+            CallableImpl::Spec(specialized_implementation) => {
+                let spec_decl = match spec {
+                    Spec::Body => Some(&specialized_implementation.body),
+                    Spec::Adj => specialized_implementation.adj.as_ref(),
+                    Spec::Ctl => specialized_implementation.ctl.as_ref(),
+                    Spec::CtlAdj => specialized_implementation.ctl_adj.as_ref(),
+                }
+                .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?;
                 self.bind_args_for_spec(
                     env,
                     globals,
                     callee.input,
-                    *input,
+                    spec_decl.input,
                     arg,
                     functor.controlled,
                     fixed_args,
                 );
-                self.push_block(env, globals, *body_block);
+                self.push_block(env, globals, spec_decl.block);
                 Ok(())
             }
-            SpecBody::Gen(SpecGen::Intrinsic) => {
-                let name = &callee.name.name;
-                let val = intrinsic::call(name, callee_span, arg, arg_span, sim, out)?;
-                self.push_val(val);
-                Ok(())
-            }
-            SpecBody::Gen(_) => Err(Error::MissingSpec(spec.to_string(), callee_span)),
         }
     }
 

@@ -4,6 +4,7 @@
 use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
+use rand::RngCore;
 
 use crate::val::Value;
 
@@ -42,6 +43,8 @@ pub trait Backend {
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
         None
     }
+
+    fn set_seed(&mut self, _seed: Option<u64>) {}
 }
 
 /// Default backend used when targeting sparse simulation.
@@ -201,6 +204,13 @@ impl Backend for SparseSim {
             | "BeginRepeatEstimatesInternal"
             | "EndRepeatEstimatesInternal" => Some(Ok(Value::unit())),
             _ => None,
+        }
+    }
+
+    fn set_seed(&mut self, seed: Option<u64>) {
+        match seed {
+            Some(seed) => self.sim.set_rng_seed(seed),
+            None => self.sim.set_rng_seed(rand::thread_rng().next_u64()),
         }
     }
 }
