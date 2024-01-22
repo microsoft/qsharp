@@ -41,6 +41,9 @@ mod given_interpreter {
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
+        use num_bigint::BigUint;
+        use num_complex::Complex;
+        use qsc_eval::output::fmt_complex;
         use qsc_frontend::compile::RuntimeCapabilityFlags;
 
         use super::*;
@@ -542,6 +545,56 @@ mod given_interpreter {
                 "#},
             );
             is_only_value(&result, &output, &Value::unit());
+        }
+
+        fn state_entry_as_string(state: &(BigUint, Complex<f64>)) -> String {
+            let (i, c) = state;
+            format!("{}: {}", i, fmt_complex(c))
+        }
+
+        #[test]
+        fn identity_output_for_dump_operation_empty_program() {
+            let mut interpreter = get_interpreter();
+            let res = interpreter
+                .dump_operation("qs => {}", 2)
+                .expect("operation expression should compile")
+                .0;
+
+            assert_eq!(res.len(), 4);
+            expect!["0: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[0]));
+            expect!["5: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[1]));
+            expect!["10: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[2]));
+            expect!["15: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[3]));
+        }
+
+        #[test]
+        fn cnot_output_for_dump_operation_cnot_program() {
+            let mut interpreter = get_interpreter();
+            let res = interpreter
+                .dump_operation("qs => { CNOT(qs[0], qs[1]) }", 2)
+                .expect("operation expression should compile")
+                .0;
+
+            assert_eq!(res.len(), 4);
+            expect!["0: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[0]));
+            expect!["7: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[1]));
+            expect!["10: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[2]));
+            expect!["13: 1.0000+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[3]));
+        }
+
+        #[test]
+        fn hadamard_output_for_dump_operation_h_program() {
+            let mut interpreter = get_interpreter();
+            let res = interpreter
+                .dump_operation("qs => { H(qs[0]) }", 1)
+                .expect("operation expression should compile")
+                .0;
+
+            assert_eq!(res.len(), 4);
+            expect!["0: 0.7071+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[0]));
+            expect!["1: 0.7071+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[1]));
+            expect!["2: 0.7071+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[2]));
+            expect!["3: −0.7071+0.0000𝑖"].assert_eq(&state_entry_as_string(&res[3]));
         }
 
         #[test]

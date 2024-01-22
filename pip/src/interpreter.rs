@@ -176,36 +176,14 @@ impl Interpreter {
 
     /// Dumps the quantum state corresponding to the application of a given operation.
     fn dump_operation(&mut self, operation: &str, num_qubits: u64) -> PyResult<StateDump> {
-        let code = format!(
-            r#"{{
-            let op : (Qubit[] => Unit) = {operation};
-            use (targets, extra) = (Qubit[{num_qubits}], Qubit[{num_qubits}]);
-            for i in 0..{num_qubits}-1 {{
-                H(targets[i]);
-                CNOT(targets[i], extra[i]);
-            }}
-            (op)(targets);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
-            ResetAll(targets + extra);
-        }}"#
-        );
-
-        let mut dump = StateReceiver::default();
-
-        let factor =
-            std::f64::consts::SQRT_2.powi(num_qubits.try_into().map_err(|_| {
-                PyException::new_err("too many qubits specified in dump_operation")
-            })?);
-        match self.interpreter.run(&mut dump, &code) {
-            Ok(Ok(_)) => Ok(StateDump(DisplayableState(
-                dump.state
-                    .into_iter()
-                    .map(|(k, v)| (k, factor * v))
-                    .collect::<FxHashMap<_, _>>(),
-                dump.qubit_count,
-            ))),
-            Ok(Err(errors)) | Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
-        }
+        let (state, qubit_count) = self
+            .interpreter
+            .dump_operation(operation, num_qubits)
+            .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
+        Ok(StateDump(DisplayableState(
+            state.into_iter().collect::<FxHashMap<_, _>>(),
+            qubit_count,
+        )))
     }
 
     fn run(
@@ -256,28 +234,6 @@ impl Interpreter {
                     .join("\n"),
             )),
         }
-    }
-}
-
-#[derive(Default)]
-struct StateReceiver {
-    state: Vec<(BigUint, Complex64)>,
-    qubit_count: usize,
-}
-
-impl Receiver for StateReceiver {
-    fn state(
-        &mut self,
-        state: Vec<(BigUint, Complex64)>,
-        qubit_count: usize,
-    ) -> core::result::Result<(), Error> {
-        self.state = state;
-        self.qubit_count = qubit_count;
-        Ok(())
-    }
-
-    fn message(&mut self, _msg: &str) -> core::result::Result<(), Error> {
-        Ok(())
     }
 }
 
