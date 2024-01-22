@@ -4,7 +4,7 @@
 use crate::compile::{self, compile, core, std};
 use miette::Diagnostic;
 use qsc_frontend::{
-    compile::{OpenPackageStore, PackageStore, RuntimeCapabilityFlags, SourceMap},
+    compile::{CompileUnit, OpenPackageStore, PackageStore, RuntimeCapabilityFlags, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -35,6 +35,7 @@ impl Compiler {
     pub fn new(
         include_std: bool,
         sources: SourceMap,
+        source_dependencies: Vec<CompileUnit>,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
     ) -> Result<Self, Errors> {
@@ -44,6 +45,10 @@ impl Compiler {
         if include_std {
             let std = std(&store, capabilities);
             let id = store.insert(std);
+            dependencies.push(id);
+        }
+        for unit in source_dependencies {
+            let id = store.insert(unit);
             dependencies.push(id);
         }
 
