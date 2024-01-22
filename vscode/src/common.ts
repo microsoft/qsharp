@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { TextDocument, Uri, workspace } from "vscode";
+import { TextDocument, Uri, Range, Location } from "vscode";
+import { ILocation, IRange } from "qsharp-lang";
 
 export const qsharpLanguageId = "qsharp";
 
@@ -32,30 +33,15 @@ export function basename(path: string): string | undefined {
   return path.replace(/\/+$/, "").split("/").pop();
 }
 
-/**
- * Loads a Q# document or notebook cell.
- *
- * This does *not* open a visible document in the editor.
- *
- * Will throw if the document cannot be opened.
- * This utility is indented to be used to map offsets to line/column
- * positions. If/when the compiler returns line/column positions
- * directly, we can skip this async and fallible step of loading
- * the document just to map offsets. See: https://github.com/microsoft/qsharp/issues/851
- */
-export async function loadDocument(uri: Uri) {
-  const uriString = uri.toString();
-  // Search both text documents and notebook cell documents
-  const doc = workspace.textDocuments
-    .concat(
-      workspace.notebookDocuments.flatMap((doc) =>
-        doc
-          .getCells()
-          .filter((cell) => isQsharpDocument(cell.document))
-          .map((cell) => cell.document),
-      ),
-    )
-    .find((doc) => doc.uri.toString() === uriString);
+export function toVscodeRange(range: IRange): Range {
+  return new Range(
+    range.start.line,
+    range.start.character,
+    range.end.line,
+    range.end.character,
+  );
+}
 
-  return doc || (await workspace.openTextDocument(uri));
+export function toVscodeLocation(location: ILocation): any {
+  return new Location(Uri.parse(location.source), toVscodeRange(location.span));
 }

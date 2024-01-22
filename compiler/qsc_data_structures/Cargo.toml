@@ -11,5 +11,8 @@ repository.workspace = true
 [dependencies]
 miette = { workspace = true }
 
+[dev-dependencies]
+expect-test = { workspace = true }
+
 [lib]
 doctest = false

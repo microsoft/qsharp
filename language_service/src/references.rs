@@ -9,22 +9,26 @@ use std::rc::Rc;
 use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
-use crate::qsc_utils::protocol_location;
+use crate::qsc_utils::into_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
 use qsc::hir::ty::Ty;
 use qsc::hir::Res;
+use qsc::line_column::{Encoding, Position};
 use qsc::{ast, hir, resolve, Span};
 
 pub(crate) fn get_references(
     compilation: &Compilation,
     source_name: &str,
-    offset: u32,
+    position: Position,
+    position_encoding: Encoding,
     include_declaration: bool,
 ) -> Vec<Location> {
-    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let offset =
+        compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut references_finder = ReferencesFinder {
+        position_encoding,
         compilation,
         include_declaration,
         references: vec![],
@@ -37,6 +41,7 @@ pub(crate) fn get_references(
 }
 
 struct ReferencesFinder<'a> {
+    position_encoding: Encoding,
     compilation: &'a Compilation,
     include_declaration: bool,
     references: Vec<Location>,
@@ -50,8 +55,12 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::CallableDecl,
     ) {
         if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(name.id) {
-            self.references =
-                find_item_locations(item_id, self.compilation, self.include_declaration);
+            self.references = find_item_locations(
+                self.position_encoding,
+                item_id,
+                self.compilation,
+                self.include_declaration,
+            );
         }
     }
 
@@ -63,7 +72,12 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Package,
         _: &'a hir::CallableDecl,
     ) {
-        self.references = find_item_locations(item_id, self.compilation, self.include_declaration);
+        self.references = find_item_locations(
+            self.position_encoding,
+            item_id,
+            self.compilation,
+            self.include_declaration,
+        );
     }
 
     fn at_type_param_def(
@@ -73,8 +87,13 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         param_id: hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references =
-                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration);
+            self.references = find_ty_param_locations(
+                self.position_encoding,
+                param_id,
+                curr,
+                self.compilation,
+                self.include_declaration,
+            );
         }
     }
 
@@ -86,15 +105,24 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references =
-                find_ty_param_locations(param_id, curr, self.compilation, self.include_declaration);
+            self.references = find_ty_param_locations(
+                self.position_encoding,
+                param_id,
+                curr,
+                self.compilation,
+                self.include_declaration,
+            );
         }
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
         if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(type_name.id) {
-            self.references =
-                find_item_locations(item_id, self.compilation, self.include_declaration);
+            self.references = find_item_locations(
+                self.position_encoding,
+                item_id,
+                self.compilation,
+                self.include_declaration,
+            );
         }
     }
 
@@ -106,7 +134,12 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        self.references = find_item_locations(item_id, self.compilation, self.include_declaration);
+        self.references = find_item_locations(
+            self.position_encoding,
+            item_id,
+            self.compilation,
+            self.include_declaration,
+        );
     }
 
     fn at_field_def(
@@ -117,6 +150,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     ) {
         if let Some(ty_item_id) = context.current_udt_id {
             self.references = find_field_locations(
+                self.position_encoding,
                 ty_item_id,
                 field_name.name.clone(),
                 self.compilation,
@@ -133,6 +167,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::ty::UdtField,
     ) {
         self.references = find_field_locations(
+            self.position_encoding,
             item_id,
             field_ref.name.clone(),
             self.compilation,
@@ -147,8 +182,13 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Pat,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references =
-                find_local_locations(ident.id, curr, self.compilation, self.include_declaration);
+            self.references = find_local_locations(
+                self.position_encoding,
+                ident.id,
+                curr,
+                self.compilation,
+                self.include_declaration,
+            );
         }
     }
 
@@ -161,6 +201,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
     ) {
         if let Some(curr) = context.current_callable {
             self.references = find_local_locations(
+                self.position_encoding,
                 definition.id,
                 curr,
                 self.compilation,
@@ -171,6 +212,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
 }
 
 pub(crate) fn find_item_locations(
+    position_encoding: Encoding,
     item_id: &hir::ItemId,
     compilation: &Compilation,
     include_declaration: bool,
@@ -183,7 +225,8 @@ pub(crate) fn find_item_locations(
             hir::ItemKind::Callable(decl) => decl.name.span,
             hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
         };
-        locations.push(protocol_location(
+        locations.push(into_location(
+            position_encoding,
             compilation,
             def_span,
             resolved_item_id
@@ -199,17 +242,20 @@ pub(crate) fn find_item_locations(
     };
 
     find_refs.visit_package(&compilation.user_unit().ast.package);
-    locations.extend(
-        find_refs
-            .locations
-            .drain(..)
-            .map(|l| protocol_location(compilation, l, compilation.user_package_id)),
-    );
+    locations.extend(find_refs.locations.drain(..).map(|l| {
+        into_location(
+            position_encoding,
+            compilation,
+            l,
+            compilation.user_package_id,
+        )
+    }));
 
     locations
 }
 
 pub(crate) fn find_field_locations(
+    position_encoding: Encoding,
     ty_item_id: &hir::ItemId,
     field_name: Rc<str>,
     compilation: &Compilation,
@@ -227,7 +273,8 @@ pub(crate) fn find_field_locations(
             let def_span = ty_field
                 .name_span
                 .expect("field found via name should have a name");
-            locations.push(protocol_location(
+            locations.push(into_location(
+                position_encoding,
                 compilation,
                 def_span,
                 resolved_ty_item_id
@@ -247,17 +294,20 @@ pub(crate) fn find_field_locations(
     };
 
     find_refs.visit_package(&compilation.user_unit().ast.package);
-    locations.extend(
-        find_refs
-            .locations
-            .drain(..)
-            .map(|l| protocol_location(compilation, l, compilation.user_package_id)),
-    );
+    locations.extend(find_refs.locations.drain(..).map(|l| {
+        into_location(
+            position_encoding,
+            compilation,
+            l,
+            compilation.user_package_id,
+        )
+    }));
 
     locations
 }
 
 pub(crate) fn find_local_locations(
+    position_encoding: Encoding,
     node_id: ast::NodeId,
     callable: &ast::CallableDecl,
     compilation: &Compilation,
@@ -273,11 +323,19 @@ pub(crate) fn find_local_locations(
     find_refs
         .locations
         .into_iter()
-        .map(|l| protocol_location(compilation, l, compilation.user_package_id))
+        .map(|l| {
+            into_location(
+                position_encoding,
+                compilation,
+                l,
+                compilation.user_package_id,
+            )
+        })
         .collect()
 }
 
 pub(crate) fn find_ty_param_locations(
+    position_encoding: Encoding,
     param_id: hir::ty::ParamId,
     callable: &ast::CallableDecl,
     compilation: &Compilation,
@@ -293,7 +351,14 @@ pub(crate) fn find_ty_param_locations(
     find_refs
         .locations
         .into_iter()
-        .map(|l| protocol_location(compilation, l, compilation.user_package_id))
+        .map(|l| {
+            into_location(
+                position_encoding,
+                compilation,
+                l,
+                compilation.user_package_id,
+            )
+        })
         .collect()
 }
 

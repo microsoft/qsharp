@@ -37,7 +37,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
     const start = performance.now();
     const completions = await this.languageService.getCompletions(
       document.uri.toString(),
-      document.offsetAt(position),
+      position,
     );
     const end = performance.now();
     sendTelemetryEvent(
@@ -73,8 +73,11 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       item.additionalTextEdits = c.additionalTextEdits?.map((edit) => {
         return new vscode.TextEdit(
           new vscode.Range(
-            document.positionAt(edit.range.start),
-            document.positionAt(edit.range.end),
+            new vscode.Position(
+              edit.range.start.line,
+              edit.range.start.character,
+            ),
+            new vscode.Position(edit.range.end.line, edit.range.end.character),
           ),
           edit.newText,
         );

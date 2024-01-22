@@ -8,8 +8,9 @@ use crate::compilation::Compilation;
 use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
-use crate::qsc_utils::protocol_span;
+use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
+use qsc::line_column::{Encoding, Position};
 use qsc::{ast, hir};
 use std::fmt::Display;
 use std::rc::Rc;
@@ -17,12 +18,15 @@ use std::rc::Rc;
 pub(crate) fn get_hover(
     compilation: &Compilation,
     source_name: &str,
-    offset: u32,
+    position: Position,
+    position_encoding: Encoding,
 ) -> Option<Hover> {
-    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let offset =
+        compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut hover_visitor = HoverGenerator {
+        position_encoding,
         compilation,
         hover: None,
         display: CodeDisplay { compilation },
@@ -40,6 +44,7 @@ enum LocalKind {
     Local,
 }
 struct HoverGenerator<'a> {
+    position_encoding: Encoding,
     hover: Option<Hover>,
     display: CodeDisplay<'a>,
     compilation: &'a Compilation,
@@ -59,7 +64,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(name.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                name.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -86,7 +95,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
 
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                path.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -111,7 +124,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(def_name.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                def_name.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -137,7 +154,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(reference.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                reference.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -145,7 +166,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.ident_ty_def(type_name, def));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(type_name.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                type_name.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -161,7 +186,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
 
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                path.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -174,7 +203,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.ident_ty(field_name, ty));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(field_name.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                field_name.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -188,7 +221,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         let contents = markdown_fenced_block(self.display.name_ty_id(&field_ref.name, *expr_id));
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(field_ref.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                field_ref.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -220,7 +257,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(ident.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                ident.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 
@@ -254,7 +295,11 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
         );
         self.hover = Some(Hover {
             contents,
-            span: protocol_span(path.span, &self.compilation.user_unit().sources),
+            span: into_range(
+                self.position_encoding,
+                path.span,
+                &self.compilation.user_unit().sources,
+            ),
         });
     }
 }

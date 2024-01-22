@@ -4,15 +4,16 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::get_signature_help;
-use crate::test_utils::compile_with_fake_stdlib_and_markers;
+use crate::{test_utils::compile_with_fake_stdlib_and_markers, Encoding};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 
 /// Asserts that the signature help given at the cursor position matches the expected signature help.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn check(source_with_markers: &str, expect: &Expect) {
-    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_markers);
-    let actual = get_signature_help(&compilation, "<source>", cursor_offset)
+    let (compilation, cursor_position, _) =
+        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_signature_help(&compilation, "<source>", cursor_position, Encoding::Utf8)
         .expect("Expected a signature help.");
     expect.assert_debug_eq(&actual);
 }
@@ -37,31 +38,31 @@ fn first_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 46,
-                                },
+                                label: (
+                                    13,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
+                                label: (
+                                    35,
+                                    45,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -94,31 +95,31 @@ fn mid_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 46,
-                                },
+                                label: (
+                                    13,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
+                                label: (
+                                    35,
+                                    45,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -151,31 +152,31 @@ fn second_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 46,
-                                },
+                                label: (
+                                    13,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
+                                label: (
+                                    35,
+                                    45,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -208,31 +209,31 @@ fn last_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 46,
-                                },
+                                label: (
+                                    13,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
+                                label: (
+                                    35,
+                                    45,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -265,31 +266,31 @@ fn insert_second_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 46,
-                                },
+                                label: (
+                                    13,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
+                                label: (
+                                    35,
+                                    45,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -322,31 +323,31 @@ fn revisit_second_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 46,
-                                },
+                                label: (
+                                    13,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 35,
-                                    end: 45,
-                                },
+                                label: (
+                                    35,
+                                    45,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -380,24 +381,24 @@ fn nested_call_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 34,
-                                },
+                                label: (
+                                    13,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -431,24 +432,24 @@ fn nested_call_second_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 34,
-                                },
+                                label: (
+                                    13,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 33,
-                                },
+                                label: (
+                                    23,
+                                    33,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -481,31 +482,31 @@ fn tuple_argument() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 53,
-                                },
+                                label: (
+                                    13,
+                                    53,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 40,
-                                },
+                                label: (
+                                    23,
+                                    40,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 42,
-                                    end: 52,
-                                },
+                                label: (
+                                    42,
+                                    52,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -538,31 +539,31 @@ fn tuple_argument_first_item() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 53,
-                                },
+                                label: (
+                                    13,
+                                    53,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 40,
-                                },
+                                label: (
+                                    23,
+                                    40,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 42,
-                                    end: 52,
-                                },
+                                label: (
+                                    42,
+                                    52,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -595,31 +596,31 @@ fn tuple_argument_last_item() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 53,
-                                },
+                                label: (
+                                    13,
+                                    53,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 40,
-                                },
+                                label: (
+                                    23,
+                                    40,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 42,
-                                    end: 52,
-                                },
+                                label: (
+                                    42,
+                                    52,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -652,31 +653,31 @@ fn tuple_argument_after_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 53,
-                                },
+                                label: (
+                                    13,
+                                    53,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 40,
-                                },
+                                label: (
+                                    23,
+                                    40,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 42,
-                                    end: 52,
-                                },
+                                label: (
+                                    42,
+                                    52,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -709,45 +710,45 @@ fn arguments_in_nested_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -780,45 +781,45 @@ fn first_inner_argument_in_nested_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -851,45 +852,45 @@ fn second_inner_argument_in_nested_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -922,45 +923,45 @@ fn argument_after_nested_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -993,45 +994,45 @@ fn argument_end_of_nested_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1064,45 +1065,45 @@ fn argument_nested_tuple_after_last() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1135,45 +1136,45 @@ fn nested_tuple_mismatch_after() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1206,45 +1207,45 @@ fn nested_tuple_mismatch_mid() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1277,45 +1278,45 @@ fn nested_tuple_mismatch_before() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1348,52 +1349,52 @@ fn nested_tuple_not_enough_end() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 67,
-                                },
+                                label: (
+                                    13,
+                                    67,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 56,
-                                },
+                                label: (
+                                    23,
+                                    56,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 48,
-                                    end: 55,
-                                },
+                                label: (
+                                    48,
+                                    55,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 58,
-                                    end: 66,
-                                },
+                                label: (
+                                    58,
+                                    66,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1426,52 +1427,52 @@ fn nested_tuple_not_enough_after() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 67,
-                                },
+                                label: (
+                                    13,
+                                    67,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 56,
-                                },
+                                label: (
+                                    23,
+                                    56,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 48,
-                                    end: 55,
-                                },
+                                label: (
+                                    48,
+                                    55,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 58,
-                                    end: 66,
-                                },
+                                label: (
+                                    58,
+                                    66,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1504,45 +1505,45 @@ fn nested_tuple_not_enough_single_end() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1575,45 +1576,45 @@ fn nested_tuple_not_enough_single_after() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1646,45 +1647,45 @@ fn nested_tuple_not_enough_empty_end() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1717,45 +1718,45 @@ fn nested_tuple_not_enough_empty_after() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 58,
-                                },
+                                label: (
+                                    13,
+                                    58,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 47,
-                                },
+                                label: (
+                                    23,
+                                    47,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 34,
-                                },
+                                label: (
+                                    24,
+                                    34,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 36,
-                                    end: 46,
-                                },
+                                label: (
+                                    36,
+                                    46,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 49,
-                                    end: 57,
-                                },
+                                label: (
+                                    49,
+                                    57,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1788,31 +1789,31 @@ fn nested_empty_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 36,
-                                },
+                                label: (
+                                    13,
+                                    36,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 25,
-                                },
+                                label: (
+                                    23,
+                                    25,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 27,
-                                    end: 35,
-                                },
+                                label: (
+                                    27,
+                                    35,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1845,31 +1846,31 @@ fn nested_empty_tuple_mid() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 36,
-                                },
+                                label: (
+                                    13,
+                                    36,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 25,
-                                },
+                                label: (
+                                    23,
+                                    25,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 27,
-                                    end: 35,
-                                },
+                                label: (
+                                    27,
+                                    35,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1902,31 +1903,31 @@ fn nested_empty_tuple_end() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 36,
-                                },
+                                label: (
+                                    13,
+                                    36,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 25,
-                                },
+                                label: (
+                                    23,
+                                    25,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 27,
-                                    end: 35,
-                                },
+                                label: (
+                                    27,
+                                    35,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -1959,31 +1960,31 @@ fn nested_empty_tuple_after() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 36,
-                                },
+                                label: (
+                                    13,
+                                    36,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 25,
-                                },
+                                label: (
+                                    23,
+                                    25,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 27,
-                                    end: 35,
-                                },
+                                label: (
+                                    27,
+                                    35,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2016,66 +2017,66 @@ fn multi_nested_tuple() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 71,
-                                },
+                                label: (
+                                    13,
+                                    71,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 61,
-                                },
+                                label: (
+                                    23,
+                                    61,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 31,
-                                },
+                                label: (
+                                    24,
+                                    31,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 33,
-                                    end: 51,
-                                },
+                                label: (
+                                    33,
+                                    51,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 34,
-                                    end: 41,
-                                },
+                                label: (
+                                    34,
+                                    41,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 43,
-                                    end: 50,
-                                },
+                                label: (
+                                    43,
+                                    50,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 53,
-                                    end: 60,
-                                },
+                                label: (
+                                    53,
+                                    60,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 63,
-                                    end: 70,
-                                },
+                                label: (
+                                    63,
+                                    70,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2126,76 +2127,76 @@ fn documentation_test() {
                         ),
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 71,
-                                },
+                                label: (
+                                    13,
+                                    71,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: Some(
                                     "This is the parameter `a`.",
                                 ),
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 23,
-                                    end: 61,
-                                },
+                                label: (
+                                    23,
+                                    61,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 24,
-                                    end: 31,
-                                },
+                                label: (
+                                    24,
+                                    31,
+                                ),
                                 documentation: Some(
                                     "This is the parameter `b`.",
                                 ),
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 33,
-                                    end: 51,
-                                },
+                                label: (
+                                    33,
+                                    51,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 34,
-                                    end: 41,
-                                },
+                                label: (
+                                    34,
+                                    41,
+                                ),
                                 documentation: Some(
                                     "This is the parameter `c`.",
                                 ),
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 43,
-                                    end: 50,
-                                },
+                                label: (
+                                    43,
+                                    50,
+                                ),
                                 documentation: Some(
                                     "This is the parameter `d`.",
                                 ),
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 53,
-                                    end: 60,
-                                },
+                                label: (
+                                    53,
+                                    60,
+                                ),
                                 documentation: Some(
                                     "This is the parameter `e`.",
                                 ),
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 63,
-                                    end: 70,
-                                },
+                                label: (
+                                    63,
+                                    70,
+                                ),
                                 documentation: Some(
                                     "This is the parameter `f`.",
                                 ),
@@ -2230,17 +2231,17 @@ fn single_parameter_end() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 22,
-                                },
+                                label: (
+                                    13,
+                                    22,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2273,17 +2274,17 @@ fn single_parameter_after() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 22,
-                                },
+                                label: (
+                                    13,
+                                    22,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2316,17 +2317,17 @@ fn single_parameter_before() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 13,
-                                    end: 22,
-                                },
+                                label: (
+                                    13,
+                                    22,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 14,
-                                    end: 21,
-                                },
+                                label: (
+                                    14,
+                                    21,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2360,31 +2361,31 @@ fn indirect_local_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 16,
-                                },
+                                label: (
+                                    1,
+                                    16,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 5,
-                                },
+                                label: (
+                                    2,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 7,
-                                    end: 10,
-                                },
+                                label: (
+                                    7,
+                                    10,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 12,
-                                    end: 15,
-                                },
+                                label: (
+                                    12,
+                                    15,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2418,31 +2419,31 @@ fn indirect_array_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 16,
-                                },
+                                label: (
+                                    1,
+                                    16,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 5,
-                                },
+                                label: (
+                                    2,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 7,
-                                    end: 10,
-                                },
+                                label: (
+                                    7,
+                                    10,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 12,
-                                    end: 15,
-                                },
+                                label: (
+                                    12,
+                                    15,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2475,31 +2476,31 @@ fn indirect_block_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 16,
-                                },
+                                label: (
+                                    1,
+                                    16,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 5,
-                                },
+                                label: (
+                                    2,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 7,
-                                    end: 10,
-                                },
+                                label: (
+                                    7,
+                                    10,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 12,
-                                    end: 15,
-                                },
+                                label: (
+                                    12,
+                                    15,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2532,31 +2533,31 @@ fn indirect_unresolved_lambda_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 10,
-                                },
+                                label: (
+                                    1,
+                                    10,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 3,
-                                },
+                                label: (
+                                    2,
+                                    3,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 5,
-                                    end: 6,
-                                },
+                                label: (
+                                    5,
+                                    6,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 8,
-                                    end: 9,
-                                },
+                                label: (
+                                    8,
+                                    9,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2589,31 +2590,31 @@ fn indirect_partially_resolved_lambda_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 12,
-                                },
+                                label: (
+                                    1,
+                                    12,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 5,
-                                },
+                                label: (
+                                    2,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 7,
-                                    end: 8,
-                                },
+                                label: (
+                                    7,
+                                    8,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 10,
-                                    end: 11,
-                                },
+                                label: (
+                                    10,
+                                    11,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2647,31 +2648,31 @@ fn indirect_resolved_lambda_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 16,
-                                },
+                                label: (
+                                    1,
+                                    16,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 5,
-                                },
+                                label: (
+                                    2,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 7,
-                                    end: 10,
-                                },
+                                label: (
+                                    7,
+                                    10,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 12,
-                                    end: 15,
-                                },
+                                label: (
+                                    12,
+                                    15,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2704,45 +2705,45 @@ fn controlled_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 27,
-                                },
+                                label: (
+                                    1,
+                                    27,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 9,
-                                },
+                                label: (
+                                    2,
+                                    9,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 11,
-                                    end: 26,
-                                },
+                                label: (
+                                    11,
+                                    26,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 12,
-                                    end: 15,
-                                },
+                                label: (
+                                    12,
+                                    15,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 17,
-                                    end: 20,
-                                },
+                                label: (
+                                    17,
+                                    20,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 22,
-                                    end: 25,
-                                },
+                                label: (
+                                    22,
+                                    25,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2775,59 +2776,59 @@ fn double_controlled_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 38,
-                                },
+                                label: (
+                                    1,
+                                    38,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 9,
-                                },
+                                label: (
+                                    2,
+                                    9,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 11,
-                                    end: 37,
-                                },
+                                label: (
+                                    11,
+                                    37,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 12,
-                                    end: 19,
-                                },
+                                label: (
+                                    12,
+                                    19,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 21,
-                                    end: 36,
-                                },
+                                label: (
+                                    21,
+                                    36,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 22,
-                                    end: 25,
-                                },
+                                label: (
+                                    22,
+                                    25,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 27,
-                                    end: 30,
-                                },
+                                label: (
+                                    27,
+                                    30,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 32,
-                                    end: 35,
-                                },
+                                label: (
+                                    32,
+                                    35,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2861,24 +2862,24 @@ fn partial_application_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 11,
-                                },
+                                label: (
+                                    1,
+                                    11,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 5,
-                                },
+                                label: (
+                                    2,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 7,
-                                    end: 10,
-                                },
+                                label: (
+                                    7,
+                                    10,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2911,10 +2912,10 @@ fn indirect_no_params_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 5,
-                                },
+                                label: (
+                                    1,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2947,17 +2948,17 @@ fn indirect_single_param_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 4,
-                                },
+                                label: (
+                                    1,
+                                    4,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 4,
-                                },
+                                label: (
+                                    1,
+                                    4,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -2990,24 +2991,24 @@ fn udt_constructor_call() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 14,
-                                },
+                                label: (
+                                    1,
+                                    14,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 2,
-                                    end: 5,
-                                },
+                                label: (
+                                    2,
+                                    5,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 7,
-                                    end: 13,
-                                },
+                                label: (
+                                    7,
+                                    13,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -3039,17 +3040,17 @@ fn std_callable_with_udt() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 17,
-                                    end: 30,
-                                },
+                                label: (
+                                    17,
+                                    30,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 18,
-                                    end: 29,
-                                },
+                                label: (
+                                    18,
+                                    29,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -3082,17 +3083,17 @@ fn indirect_callable_with_std_udt_args() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 4,
-                                },
+                                label: (
+                                    1,
+                                    4,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 4,
-                                },
+                                label: (
+                                    1,
+                                    4,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -3125,17 +3126,17 @@ fn indirect_callable_with_std_udt() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 4,
-                                },
+                                label: (
+                                    1,
+                                    4,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 1,
-                                    end: 4,
-                                },
+                                label: (
+                                    1,
+                                    4,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -3161,33 +3162,33 @@ fn indirect_callable_with_std_udt_with_params() {
     }
     "#,
         &expect![[r#"
-    SignatureHelp {
-        signatures: [
-            SignatureInformation {
-                label: "(Udt -> Udt)",
-                documentation: None,
-                parameters: [
-                    ParameterInformation {
-                        label: Span {
-                            start: 1,
-                            end: 4,
-                        },
+            SignatureHelp {
+                signatures: [
+                    SignatureInformation {
+                        label: "(Udt -> Udt)",
                         documentation: None,
-                    },
-                    ParameterInformation {
-                        label: Span {
-                            start: 1,
-                            end: 4,
-                        },
-                        documentation: None,
+                        parameters: [
+                            ParameterInformation {
+                                label: (
+                                    1,
+                                    4,
+                                ),
+                                documentation: None,
+                            },
+                            ParameterInformation {
+                                label: (
+                                    1,
+                                    4,
+                                ),
+                                documentation: None,
+                            },
+                        ],
                     },
                 ],
-            },
-        ],
-        active_signature: 0,
-        active_parameter: 1,
-    }
-"#]],
+                active_signature: 0,
+                active_parameter: 1,
+            }
+        "#]],
     );
 }
 
@@ -3211,24 +3212,24 @@ fn call_with_type_param() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 21,
-                                    end: 37,
-                                },
+                                label: (
+                                    21,
+                                    37,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 22,
-                                    end: 28,
-                                },
+                                label: (
+                                    22,
+                                    28,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 30,
-                                    end: 36,
-                                },
+                                label: (
+                                    30,
+                                    36,
+                                ),
                                 documentation: None,
                             },
                         ],
@@ -3260,17 +3261,17 @@ fn std_callable_with_type_params() {
                         documentation: None,
                         parameters: [
                             ParameterInformation {
-                                label: Span {
-                                    start: 31,
-                                    end: 39,
-                                },
+                                label: (
+                                    31,
+                                    39,
+                                ),
                                 documentation: None,
                             },
                             ParameterInformation {
-                                label: Span {
-                                    start: 32,
-                                    end: 38,
-                                },
+                                label: (
+                                    32,
+                                    38,
+                                ),
                                 documentation: None,
                             },
                         ],

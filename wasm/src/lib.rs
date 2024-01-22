@@ -27,6 +27,7 @@ use wasm_bindgen::prelude::*;
 mod debug_service;
 mod diagnostic;
 mod language_service;
+mod line_column;
 mod logging;
 mod project_system;
 mod serializable_type;
