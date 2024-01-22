@@ -3,9 +3,11 @@
 
 use std::rc::Rc;
 
+use crate::estimates::stages::physical_estimation::ErrorCorrection;
+
 use super::super::{
     constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},
-    modeling::{LogicalQubit, PhysicalQubit, Protocol},
+    modeling::{LogicalQubit, PhysicalQubit},
     stages::tfactory::{
         TFactory, TFactoryBuildStatus, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
     },
@@ -202,14 +204,14 @@ impl ToString for Point4D<TFactory> {
     }
 }
 
-pub(crate) fn find_nondominated_tfactories(
-    ftp: &Protocol,
+pub(crate) fn find_nondominated_tfactories<E: ErrorCorrection>(
+    ftp: &E,
     qubit: &Rc<PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
 ) -> Vec<TFactory> {
-    let points = find_nondominated_population::<Point2D<TFactory>>(
+    let points = find_nondominated_population::<Point2D<TFactory>, _>(
         ftp,
         qubit,
         distillation_unit_templates,
@@ -224,8 +226,8 @@ pub(crate) fn find_nondominated_tfactories(
         .collect()
 }
 
-fn find_nondominated_population<P>(
-    ftp: &Protocol,
+fn find_nondominated_population<P, E: ErrorCorrection>(
+    ftp: &E,
     qubit: &Rc<PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,

@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::modeling::GateBasedPhysicalQubit;
+use crate::estimates::{
+    modeling::GateBasedPhysicalQubit, stages::physical_estimation::ErrorCorrection,
+};
 
 use super::{
     super::super::{
@@ -350,7 +352,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> super::super::super::Resu
 }
 
 fn prepare_chemistry_estimation_with_expected_majorana(
-) -> PhysicalResourceEstimation<LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e4());
 
@@ -519,7 +521,7 @@ pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> 
 }
 
 fn prepare_factorization_estimation_with_optimistic_majorana(
-) -> PhysicalResourceEstimation<LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
@@ -650,7 +652,7 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate(
 }
 
 fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
-) -> PhysicalResourceEstimation<LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
     let ftp = Protocol::surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::qubit_gate_us_e3());
 
@@ -746,7 +748,7 @@ fn build_frontier_test() {
 }
 
 fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
-) -> PhysicalResourceEstimation<LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let ftp = Protocol::floquet_code();
 
@@ -833,11 +835,8 @@ fn code_distance_tests() {
                     budget_logical / (logical_qubits * num_cycles) as f64;
 
                 let qubit = params.qubit_params().clone();
-                let numerator =
-                    2.0 * (ftp.crossing_prefactor() / required_logical_qubit_error_rate).ln();
-                let denominator =
-                    (ftp.error_correction_threshold() / qubit.clifford_error_rate()).ln();
-                let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
+                let code_distance =
+                    ftp.compute_code_distance(&qubit, required_logical_qubit_error_rate);
 
                 assert!(code_distance <= ftp.max_code_distance());
             }

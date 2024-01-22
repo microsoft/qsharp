@@ -4,9 +4,11 @@
 #[cfg(test)]
 mod tests;
 
+use crate::estimates::stages::physical_estimation::ErrorCorrection;
+
 use super::{
     super::{error::InvalidInput::InvalidFaultToleranceProtocol, Result},
-    PhysicalQubit, Protocol,
+    PhysicalQubit,
 };
 use serde::Serialize;
 use std::{fmt::Debug, rc::Rc};
@@ -29,7 +31,11 @@ pub struct LogicalQubit {
 }
 
 impl LogicalQubit {
-    pub fn new(ftp: &Protocol, code_distance: u64, qubit: Rc<PhysicalQubit>) -> Result<Self> {
+    pub fn new<E: ErrorCorrection>(
+        ftp: &E,
+        code_distance: u64,
+        qubit: Rc<PhysicalQubit>,
+    ) -> Result<Self> {
         if ftp.instruction_set() != qubit.instruction_set() {
             return Err(InvalidFaultToleranceProtocol.into());
         }
