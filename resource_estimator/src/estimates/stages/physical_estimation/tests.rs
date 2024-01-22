@@ -2,7 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::estimates::{
-    modeling::GateBasedPhysicalQubit, stages::physical_estimation::ErrorCorrection,
+    modeling::{GateBasedPhysicalQubit, TPhysicalQubit},
+    stages::physical_estimation::ErrorCorrection,
 };
 
 use super::{
@@ -117,7 +118,9 @@ fn hubbard_overhead_and_partitioning(
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<L: Overhead + Clone>(result: &PhysicalResourceEstimationResult<L>) {
+fn validate_result_invariants<P: TPhysicalQubit, L: Overhead + Clone>(
+    result: &PhysicalResourceEstimationResult<P, L>,
+) {
     assert_eq!(
         result.physical_qubits(),
         result.physical_qubits_for_tfactories() + result.physical_qubits_for_algorithm()

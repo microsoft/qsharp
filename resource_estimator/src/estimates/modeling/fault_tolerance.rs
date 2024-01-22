@@ -27,7 +27,7 @@ use super::{
         },
         Error, Result,
     },
-    PhysicalInstructionSet, PhysicalQubit,
+    PhysicalInstructionSet, PhysicalQubit, TPhysicalQubit,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -462,6 +462,8 @@ impl Protocol {
 }
 
 impl ErrorCorrection for Protocol {
+    type PhysicalQubit = PhysicalQubit;
+
     /// Returns the supported qubit gate type for this protocol.
     fn instruction_set(&self) -> PhysicalInstructionSet {
         self.instruction_set
