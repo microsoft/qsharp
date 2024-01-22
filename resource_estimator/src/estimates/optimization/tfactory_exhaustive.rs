@@ -3,9 +3,11 @@
 
 use std::rc::Rc;
 
+use crate::estimates::{modeling::TPhysicalQubit, stages::physical_estimation::ErrorCorrection};
+
 use super::super::{
     constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},
-    modeling::{LogicalQubit, PhysicalQubit, Protocol},
+    modeling::LogicalQubit,
     stages::tfactory::{
         TFactory, TFactoryBuildStatus, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
     },
@@ -202,14 +204,17 @@ impl ToString for Point4D<TFactory> {
     }
 }
 
-pub(crate) fn find_nondominated_tfactories(
-    ftp: &Protocol,
-    qubit: &Rc<PhysicalQubit>,
+pub(crate) fn find_nondominated_tfactories<E: ErrorCorrection>(
+    ftp: &E,
+    qubit: &Rc<E::PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
-) -> Vec<TFactory> {
-    let points = find_nondominated_population::<Point2D<TFactory>>(
+) -> Vec<TFactory>
+where
+    E::PhysicalQubit: TPhysicalQubit,
+{
+    let points = find_nondominated_population::<Point2D<TFactory>, _>(
         ftp,
         qubit,
         distillation_unit_templates,
@@ -224,15 +229,16 @@ pub(crate) fn find_nondominated_tfactories(
         .collect()
 }
 
-fn find_nondominated_population<P>(
-    ftp: &Protocol,
-    qubit: &Rc<PhysicalQubit>,
+fn find_nondominated_population<P, E: ErrorCorrection>(
+    ftp: &E,
+    qubit: &Rc<E::PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
 ) -> Population<P>
 where
     P: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
+    E::PhysicalQubit: TPhysicalQubit,
 {
     let min_code_distance = 1;
     let distances: Vec<_> = (min_code_distance..=max_code_distance).step_by(2).collect();
@@ -256,8 +262,12 @@ where
             .map(Rc::new);
     }
 
-    let distillation_units_map =
-        DistillationUnitsMap::create(qubit, &qubits, distances, distillation_unit_templates);
+    let distillation_units_map = DistillationUnitsMap::create(
+        qubit.as_ref(),
+        &qubits,
+        distances,
+        distillation_unit_templates,
+    );
 
     let mut searcher = TFactoryExhaustiveSearch::<P>::new(output_t_error_rate);
 

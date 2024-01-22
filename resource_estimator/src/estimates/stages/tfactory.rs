@@ -10,18 +10,20 @@ use std::{collections::BTreeMap, vec};
 use probability::{distribution::Inverse, prelude::Binomial};
 use serde::{ser::SerializeMap, Serialize};
 
+use crate::estimates::modeling::TPhysicalQubit;
+
 use super::super::{
     compiled_expression::CompiledExpression,
     error::IO::{self, CannotParseJSON},
-    modeling::{LogicalQubit, PhysicalQubit},
+    modeling::LogicalQubit,
 };
 
-pub enum TFactoryQubit<'a> {
-    Logical(&'a LogicalQubit),
-    Physical(&'a PhysicalQubit),
+pub enum TFactoryQubit<'a, P: TPhysicalQubit> {
+    Logical(&'a LogicalQubit<P>),
+    Physical(&'a P),
 }
 
-impl<'a> TFactoryQubit<'a> {
+impl<'a, P: TPhysicalQubit> TFactoryQubit<'a, P> {
     pub fn physical_qubits(&self) -> u64 {
         match self {
             Self::Logical(qubit) => qubit.physical_qubits(),
@@ -309,9 +311,9 @@ impl<'a> fmt::Debug for TFactoryDistillationUnit<'a> {
 }
 
 impl<'a> TFactoryDistillationUnit<'a> {
-    pub fn by_template(
+    pub fn by_template<P: TPhysicalQubit>(
         template: &'a TFactoryDistillationUnitTemplate,
-        qubit: &TFactoryQubit,
+        qubit: &TFactoryQubit<P>,
     ) -> Self {
         let code_distance = qubit.code_distance();
 
@@ -614,7 +616,7 @@ impl TFactory {
         TFactoryBuildStatus::Success
     }
 
-    pub fn default(logical_qubit: &LogicalQubit) -> Self {
+    pub fn default<P: TPhysicalQubit>(logical_qubit: &LogicalQubit<P>) -> Self {
         let tfactory_qubit = TFactoryQubit::Logical(logical_qubit);
         let template = TFactoryDistillationUnitTemplate::create_trivial_distillation_unit_1_to_1();
         let unit = TFactoryDistillationUnit::by_template(&template, &tfactory_qubit);

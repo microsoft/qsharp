@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::estimates::modeling::{PhysicalQubit, TPhysicalQubit};
+
 use super::{
     super::{
         modeling::{ErrorBudget, LogicalQubit},
@@ -26,7 +28,7 @@ pub struct Success {
     #[serde(skip_serializing_if = "Option::is_none")]
     physical_counts_formatted: Option<FormattedPhysicalResourceCounts>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    logical_qubit: Option<LogicalQubit>,
+    logical_qubit: Option<LogicalQubit<PhysicalQubit>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tfactory: Option<TFactory>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -41,7 +43,7 @@ impl Success {
     pub fn new<L: Overhead + Clone>(
         logical_resources: LogicalResourceCounts,
         job_params: JobParams,
-        result: PhysicalResourceEstimationResult<L>,
+        result: PhysicalResourceEstimationResult<PhysicalQubit, L>,
     ) -> Self {
         let counts = create_physical_resource_counts(&result);
 
@@ -69,7 +71,7 @@ impl Success {
     pub fn new_from_multiple<L: Overhead + Clone>(
         logical_resources: LogicalResourceCounts,
         job_params: JobParams,
-        mut results: Vec<PhysicalResourceEstimationResult<L>>,
+        mut results: Vec<PhysicalResourceEstimationResult<PhysicalQubit, L>>,
     ) -> Self {
         let mut report_data: Option<Report> = None;
 
@@ -110,7 +112,7 @@ impl Success {
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct FrontierEntry {
-    pub logical_qubit: LogicalQubit,
+    pub logical_qubit: LogicalQubit<PhysicalQubit>,
     pub tfactory: Option<TFactory>,
     pub error_budget: ErrorBudget,
     pub physical_counts: PhysicalResourceCounts,
@@ -120,7 +122,7 @@ pub struct FrontierEntry {
 fn create_frontier_entry<L: Overhead + Clone>(
     logical_resources: &LogicalResourceCounts,
     job_params: &JobParams,
-    result: PhysicalResourceEstimationResult<L>,
+    result: PhysicalResourceEstimationResult<PhysicalQubit, L>,
     create_report: bool,
 ) -> (FrontierEntry, Option<Report>) {
     let physical_counts = create_physical_resource_counts(&result);
@@ -154,7 +156,7 @@ fn create_frontier_entry<L: Overhead + Clone>(
 }
 
 fn create_physical_resource_counts<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<L>,
+    result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
 ) -> PhysicalResourceCounts {
     let breakdown = create_physical_resource_counts_breakdown(result);
 
@@ -167,7 +169,7 @@ fn create_physical_resource_counts<L: Overhead + Clone>(
 }
 
 fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<L>,
+    result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()

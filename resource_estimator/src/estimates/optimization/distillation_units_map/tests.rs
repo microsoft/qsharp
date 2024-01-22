@@ -56,7 +56,7 @@ fn create_default_map<'a>(
             .map(Rc::new);
     }
 
-    DistillationUnitsMap::create(&qubit, &qubits, distances, templates)
+    DistillationUnitsMap::create(qubit.as_ref(), &qubits, distances, templates)
 }
 
 fn create_and_test(
