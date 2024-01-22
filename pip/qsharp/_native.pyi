@@ -114,7 +114,7 @@ class Interpreter:
         ...
     def dump_operation(self, operation: str, num_qubits: int) -> StateDump:
         """
-        Returns the sparse state vector of the simulator describing the affect of
+        Returns the sparse state vector of the simulator describing the effect of
         the given operation on the specified number of qubits. Internally, twice
         this number of qubits are needed to perform the analysis.
 
