@@ -84,6 +84,7 @@ impl Compilation {
         let mut compiler = Compiler::new(
             true,
             SourceMap::default(),
+            vec![],
             PackageType::Lib,
             target_profile.into(),
         )
