@@ -113,6 +113,14 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
 }
 
 impl PackageStoreComputeProperties {
+    pub fn get(&self, id: PackageId) -> Option<&PackageComputeProperties> {
+        self.0.get(id)
+    }
+
+    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut PackageComputeProperties> {
+        self.0.get_mut(id)
+    }
+
     pub fn insert_block(&mut self, id: StoreBlockId, value: CallableElementComputeProperties) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -148,24 +156,38 @@ impl PackageStoreComputeProperties {
             .insert(id.expr, value);
     }
 
-    pub fn get(&self, id: PackageId) -> Option<&PackageComputeProperties> {
-        self.0.get(id)
-    }
-
-    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut PackageComputeProperties> {
-        self.0.get_mut(id)
-    }
-
     pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {
         self.0.iter()
     }
 
-    pub fn with_empty_packages(fir_store: &PackageStore) -> Self {
-        let mut package_store_compute_props = IndexMap::new();
-        for (id, _) in fir_store.iter() {
-            package_store_compute_props.insert(id, PackageComputeProperties::default());
+    /// Creates a structure that contains compute properties for a package store.
+    /// Note: this is a computationally intensive operation.
+    pub fn new(package_store: &PackageStore) -> Self {
+        // Create package store compute properties with empty properties for each package.
+        let mut package_store_compute_properties = IndexMap::new();
+        for (id, _) in package_store.iter() {
+            package_store_compute_properties.insert(id, PackageComputeProperties::default());
         }
-        Self(package_store_compute_props)
+        let mut package_store_compute_properties = Self(package_store_compute_properties);
+
+        // Analyze each package in the store.
+        for (package_id, _) in package_store.iter() {
+            analyze_package(
+                package_id,
+                package_store,
+                &mut package_store_compute_properties,
+            );
+        }
+        package_store_compute_properties
+    }
+
+    /// Updates the compute properties of the specified package using the contents of the passed package store.
+    /// Note: this operation only updates the compute properties of a specific package, but it does not update the
+    /// compute properties of other packages that depend on the package being reanalyzed.
+    pub fn reanalyze_package(&mut self, id: PackageId, package_store: &PackageStore) {
+        let package = self.get_mut(id).expect("package should exist");
+        package.clear();
+        analyze_package(id, package_store, self);
     }
 }
 
@@ -423,34 +445,6 @@ impl Display for QuantumSource {
         match &self {
             QuantumSource::Intrinsic => write!(f, "Intrinsic",),
             QuantumSource::Expr(expr_id) => write!(f, "Expr: {}", expr_id),
-        }
-    }
-}
-
-/// The runtime capabilities analyzer.
-#[derive(Debug)]
-pub struct Analyzer {
-    /// The compute properties of the package store.
-    compute_properties: PackageStoreComputeProperties,
-    /// The ID of the opened package.
-    _open_package_id: PackageId,
-}
-
-impl Analyzer {
-    pub fn get_package_store_compute_properties(&self) -> &PackageStoreComputeProperties {
-        &self.compute_properties
-    }
-
-    pub fn new(fir_store: &PackageStore, open_package_id: PackageId) -> Self {
-        let mut compute_properties = PackageStoreComputeProperties::with_empty_packages(fir_store);
-
-        // Analyze each package in the store.
-        for (package_id, _) in fir_store.iter() {
-            analyze_package(package_id, fir_store, &mut compute_properties);
-        }
-        Self {
-            compute_properties,
-            _open_package_id: open_package_id,
         }
     }
 }
