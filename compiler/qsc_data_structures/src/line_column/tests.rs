@@ -129,6 +129,32 @@ fn newline_at_end() {
 }
 
 #[test]
+fn windows_crlf_line_breaks() {
+    let contents = "line1\r\nline2\r\n";
+    check_all_offsets(
+        contents,
+        &expect![[r"
+        byte | utf-8 | utf-16 | char
+           0 |  0, 0 |  0, 0  | 'l'
+           1 |  0, 1 |  0, 1  | 'i'
+           2 |  0, 2 |  0, 2  | 'n'
+           3 |  0, 3 |  0, 3  | 'e'
+           4 |  0, 4 |  0, 4  | '1'
+           5 |  0, 5 |  0, 5  | '\r'
+           6 |  0, 6 |  0, 6  | '\n'
+           7 |  1, 0 |  1, 0  | 'l'
+           8 |  1, 1 |  1, 1  | 'i'
+           9 |  1, 2 |  1, 2  | 'n'
+          10 |  1, 3 |  1, 3  | 'e'
+          11 |  1, 4 |  1, 4  | '2'
+          12 |  1, 5 |  1, 5  | '\r'
+          13 |  1, 6 |  1, 6  | '\n'
+          14 |  2, 0 |  2, 0  | <eof>
+    "]],
+    );
+}
+
+#[test]
 fn utf_8_multibyte() {
     // utf-8 encoding has multi-unit characters, utf-16 doesn't
     // string       | ççç
