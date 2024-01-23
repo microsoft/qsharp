@@ -73,10 +73,10 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
     out_str += "DumpMachine:\n\n";
     const headerRow = `${basis.header} | ${amplitude.header} | ${probability.header} | ${phase.header}`;
     out_str += ` ${headerRow}\n`;
-    out_str += " ".padEnd(headerRow.length, "-") + "\n";
+    out_str += " ".padEnd(headerRow.length, "-") + "--\n";
     for (let i = 0; i < basis.values.length; i++) {
       // The special characters skew the visual alignment of the columns, just add extra spaces to correct for that
-      out_str += ` ${basis.values[i]}  | ${amplitude.values[i]}  | ${probability.values[i]} | ${phase.values[i]}\n`;
+      out_str += ` ${basis.values[i]}  |  ${amplitude.values[i]} | ${probability.values[i]} | ${phase.values[i]}\n`;
     }
 
     out(out_str);
