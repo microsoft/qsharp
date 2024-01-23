@@ -590,25 +590,25 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
         };
     }
 
-    fn get_block(&mut self, id: BlockId) -> &'a Block {
+    fn get_block(&self, id: BlockId) -> &'a Block {
         self.package
             .blocks
             .get(id)
             .expect("couldn't find block in FIR")
     }
 
-    fn get_expr(&mut self, id: ExprId) -> &'a Expr {
+    fn get_expr(&self, id: ExprId) -> &'a Expr {
         self.package
             .exprs
             .get(id)
             .expect("couldn't find expr in FIR")
     }
 
-    fn get_pat(&mut self, id: PatId) -> &'a Pat {
+    fn get_pat(&self, id: PatId) -> &'a Pat {
         self.package.pats.get(id).expect("couldn't find pat in FIR")
     }
 
-    fn get_stmt(&mut self, id: StmtId) -> &'a Stmt {
+    fn get_stmt(&self, id: StmtId) -> &'a Stmt {
         self.package
             .stmts
             .get(id)
