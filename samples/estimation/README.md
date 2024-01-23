@@ -9,3 +9,6 @@ This folder contains samples that show how to use the Azure Quantum Resource Est
 * [estimation-hardcoded-circuit.ipynb](./estimation-hardcoded-circuit.ipynb) (Python+Q# Jupyter notebook): Resource estimation for a hardcoded Q# circuit.
 * [estimation-random-circuit.ipynb](./estimation-random-circuit.ipynb) (Python+Q# Jupyter notebook): Resource estimation for a randomly generated Q# circuit.
 * [df-chemistry](./df-chemistry/) (Python+Q# project): Resource estimation for double-factorized chemistry algorithm.
+* [estimation-ising-2D.ipynb](./estimation-ising-2D.ipynb) (Python+Q# Jupyter notebook): Resource estimation for simulating a 2D Ising Model Hamiltonian
+* [estimation-heisenberg-2D.ipynb](./estimation-heisenberg-2D.ipynb) (Python+Q# Jupyter notebook): Resource estimation for simulating a 2D Heisenberg Model Hamiltonian
+* [estimation-hubbard-2D.ipynb](./estimation-hubbard-2D.ipynb) (Python+Q# Jupyter notebook): Resource estimation for simulating a 2D Hubbard Model Hamiltonian
