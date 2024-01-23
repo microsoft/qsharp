@@ -73,9 +73,6 @@ pub enum Error {
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
     UnsupportedRuntimeCapabilities,
-    #[error("too many qubits specified")]
-    #[diagnostic(code("Qsc.Interpret.TooManyQubits"))]
-    TooManyQubits,
 }
 
 /// A Q# interpreter.
@@ -113,8 +110,6 @@ pub struct Interpreter {
 
 #[allow(clippy::module_name_repetitions)]
 pub type InterpretResult = Result<Value, Vec<Error>>;
-
-pub type StateDump = (Vec<(BigUint, Complex<f64>)>, usize);
 
 impl Interpreter {
     /// Creates a new incremental compiler, compiling the passed in sources.
@@ -271,47 +266,8 @@ impl Interpreter {
     }
 
     /// Gets the current quantum state of the simulator.
-    pub fn get_quantum_state(&mut self) -> StateDump {
+    pub fn get_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
         self.sim.capture_quantum_state()
-    }
-
-    /// Dumps the quantum state corresponding to the application of a given operation.
-    pub fn dump_operation(
-        &mut self,
-        operation: &str,
-        num_qubits: u64,
-    ) -> Result<StateDump, Vec<Error>> {
-        let code = format!(
-            r#"{{
-            let op : (Qubit[] => Unit) = {operation};
-            use (targets, extra) = (Qubit[{num_qubits}], Qubit[{num_qubits}]);
-            for i in 0..{num_qubits}-1 {{
-                H(targets[i]);
-                CNOT(targets[i], extra[i]);
-            }}
-            (op)(targets);
-            Microsoft.Quantum.Diagnostics.DumpMachine();
-            ResetAll(targets + extra);
-        }}"#
-        );
-
-        let mut dump = StateReceiver::default();
-
-        let factor = std::f64::consts::SQRT_2.powi(
-            num_qubits
-                .try_into()
-                .map_err(|_| vec![Error::TooManyQubits])?,
-        );
-        match self.run(&mut dump, &code) {
-            Ok(Ok(_)) => Ok((
-                dump.state
-                    .into_iter()
-                    .map(|(k, v)| (k, factor * v))
-                    .collect::<Vec<_>>(),
-                dump.qubit_count,
-            )),
-            Ok(Err(errors)) | Err(errors) => Err(errors),
-        }
     }
 
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
@@ -387,28 +343,6 @@ impl Interpreter {
         let label = format!("line_{}", self.lines);
         self.lines += 1;
         label
-    }
-}
-
-#[derive(Default)]
-struct StateReceiver {
-    state: Vec<(BigUint, Complex<f64>)>,
-    qubit_count: usize,
-}
-
-impl Receiver for StateReceiver {
-    fn state(
-        &mut self,
-        state: Vec<(BigUint, Complex<f64>)>,
-        qubit_count: usize,
-    ) -> Result<(), output::Error> {
-        self.state = state;
-        self.qubit_count = qubit_count;
-        Ok(())
-    }
-
-    fn message(&mut self, _msg: &str) -> Result<(), output::Error> {
-        Ok(())
     }
 }
 

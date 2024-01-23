@@ -112,18 +112,6 @@ class Interpreter:
         :returns: The state of the simulator.
         """
         ...
-    def dump_operation(self, operation: str, num_qubits: int) -> StateDump:
-        """
-        Returns the sparse state vector of the simulator describing the effect of
-        the given operation on the specified number of qubits. Internally, twice
-        this number of qubits are needed to perform the analysis.
-
-        :param operation: The operation to run.
-        :param num_qubits: The number of qubits needed to execute the operation.
-
-        :returns: The state of the simulator after the given operation.
-        """
-        ...
 
 class Result(Enum):
     """
@@ -152,6 +140,7 @@ class Output:
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...
+    def state_dump(self) -> Optional[StateDump]: ...
 
 class StateDump:
     """

@@ -57,9 +57,8 @@ impl VSDiagnostic {
             interpret::Error::Compile(e) => error_labels(e),
             interpret::Error::Pass(e) => error_labels(e),
             interpret::Error::Eval(e) => error_labels(e.error()),
-            interpret::Error::NoEntryPoint
-            | interpret::Error::UnsupportedRuntimeCapabilities
-            | interpret::Error::TooManyQubits => Vec::new(),
+            interpret::Error::NoEntryPoint => Vec::new(),
+            interpret::Error::UnsupportedRuntimeCapabilities => Vec::new(),
         };
 
         Self::new(labels, source_name, err)

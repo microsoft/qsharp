@@ -174,18 +174,6 @@ impl Interpreter {
         ))
     }
 
-    /// Dumps the quantum state corresponding to the application of a given operation.
-    fn dump_operation(&mut self, operation: &str, num_qubits: u64) -> PyResult<StateDump> {
-        let (state, qubit_count) = self
-            .interpreter
-            .dump_operation(operation, num_qubits)
-            .map_err(|errors| QSharpError::new_err(format_errors(errors)))?;
-        Ok(StateDump(DisplayableState(
-            state.into_iter().collect::<FxHashMap<_, _>>(),
-            qubit_count,
-        )))
-    }
-
     fn run(
         &mut self,
         py: Python,
@@ -302,6 +290,13 @@ impl Output {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_html(),
             DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
+        }
+    }
+
+    fn state_dump(&self) -> Option<StateDump> {
+        match &self.0 {
+            DisplayableOutput::State(state) => Some(StateDump(state.clone())),
+            DisplayableOutput::Message(_) => None,
         }
     }
 }
