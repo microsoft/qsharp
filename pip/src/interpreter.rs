@@ -292,6 +292,13 @@ impl Output {
             DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
         }
     }
+
+    fn state_dump(&self) -> Option<StateDump> {
+        match &self.0 {
+            DisplayableOutput::State(state) => Some(StateDump(state.clone())),
+            DisplayableOutput::Message(_) => None,
+        }
+    }
 }
 
 #[pyclass(unsendable)]
