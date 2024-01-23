@@ -3,6 +3,7 @@
 
 //! Runtime Capabilities Analysis (RCA)...
 
+mod cycle_detection;
 mod data_structures;
 mod rca;
 #[cfg(test)]
