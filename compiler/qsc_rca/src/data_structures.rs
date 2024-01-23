@@ -6,7 +6,7 @@ use qsc_fir::{
     fir::{CallableDecl, NodeId, Pat, PatId, PatKind},
     ty::Ty,
 };
-use rustc_hash::FxHashMap;
+use std::ops;
 
 /// A callable input element.
 #[derive(Debug)]
@@ -69,6 +69,20 @@ pub fn derive_callable_input_elements(
 #[derive(Clone, Copy, Debug)]
 pub struct InputParamIndex(usize);
 
+impl ops::Add<usize> for InputParamIndex {
+    type Output = InputParamIndex;
+
+    fn add(self, rhs: usize) -> InputParamIndex {
+        InputParamIndex(self.0 + rhs)
+    }
+}
+
+impl From<usize> for InputParamIndex {
+    fn from(value: usize) -> Self {
+        InputParamIndex(value)
+    }
+}
+
 /// An input parameter node.
 #[derive(Debug)]
 pub struct InputParam {
@@ -111,7 +125,7 @@ pub fn derive_callable_input_params<'a>(
 }
 
 /// A represenation of a variable within a callable.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CallableVariable {
     pub node: NodeId,
     pub pat: PatId,
@@ -120,30 +134,9 @@ pub struct CallableVariable {
 }
 
 /// Kinds of callable variables.
-#[derive(Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum CallableVariableKind {
     #[allow(dead_code)] // TODO (ceasarzc): Remove.
     Local,
     InputParam(InputParamIndex),
-}
-
-/// Creates a hash map of node IDs to callable variables.
-pub fn initialize_callable_variables_map<'a>(
-    input_params: impl Iterator<Item = &'a InputParam>,
-) -> FxHashMap<NodeId, CallableVariable> {
-    let mut variable_map = FxHashMap::<NodeId, CallableVariable>::default();
-    for param in input_params {
-        if let Some(node) = param.node {
-            variable_map.insert(
-                node,
-                CallableVariable {
-                    node,
-                    pat: param.pat,
-                    ty: param.ty.clone(),
-                    kind: CallableVariableKind::InputParam(param.index),
-                },
-            );
-        }
-    }
-    variable_map
 }

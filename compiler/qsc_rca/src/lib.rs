@@ -364,6 +364,8 @@ pub enum CallableElementComputeProperties {
     ApplicationDependent(ApplicationsTable),
     /// An application independent element.
     ApplicationIndependent(ComputeProperties),
+    /// An invalid element compute properties. TODO (cesarzc): remove once implementation is complete.
+    Invalid,
 }
 
 impl Display for CallableElementComputeProperties {
@@ -375,12 +377,13 @@ impl Display for CallableElementComputeProperties {
             CallableElementComputeProperties::ApplicationIndependent(compute_properties) => {
                 write!(f, "ApplicationIndependent: {}", compute_properties)
             }
+            CallableElementComputeProperties::Invalid => write!(f, "Invalid"),
         }
     }
 }
 
 /// The compute properties associated to an application table.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ApplicationsTable {
     /// The inherent compute properties of all applications.
     pub inherent_properties: ComputeProperties,
@@ -405,12 +408,21 @@ impl Display for ApplicationsTable {
 }
 
 /// The tracked compute properties.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ComputeProperties {
     /// The runtime capabilities.
     pub runtime_capabilities: RuntimeCapabilityFlags,
     /// The quantum source, if any.
     pub quantum_source: Option<QuantumSource>,
+}
+
+impl Default for ComputeProperties {
+    fn default() -> Self {
+        Self {
+            runtime_capabilities: RuntimeCapabilityFlags::empty(),
+            quantum_source: None,
+        }
+    }
 }
 
 impl Display for ComputeProperties {

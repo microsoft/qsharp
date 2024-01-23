@@ -1,22 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::data_structures::{
-    derive_callable_input_elements, derive_callable_input_params,
-    initialize_callable_variables_map, CallableInputElement, CallableInputElementKind, InputParam,
-};
 use crate::{
-    ApplicationsTable, CallableComputeProperties, ComputeProperties, ComputePropertiesLookup,
-    ItemComputeProperties, PackageStoreComputeProperties, PatComputeProperties, QuantumSource,
+    data_structures::{
+        derive_callable_input_elements, derive_callable_input_params, CallableInputElement,
+        CallableInputElementKind, CallableVariable, CallableVariableKind, InputParam,
+        InputParamIndex,
+    },
+    CallableElementComputeProperties,
+    {
+        ApplicationsTable, CallableComputeProperties, ComputeProperties, ComputePropertiesLookup,
+        ItemComputeProperties, PackageStoreComputeProperties, PatComputeProperties, QuantumSource,
+    },
 };
+use qsc_data_structures::index_map::IndexMap;
+use qsc_fir::fir::{Pat, PatId, PatKind, StoreBlockId};
 use qsc_fir::{
     fir::{
-        CallableDecl, CallableImpl, CallableKind, Global, PackageId, PackageStore,
-        PackageStoreLookup, StoreItemId, StoreStmtId,
+        CallableDecl, CallableImpl, CallableKind, Global, NodeId, PackageId, PackageStore,
+        PackageStoreLookup, SpecDecl, StoreItemId, StoreStmtId,
     },
     ty::{Prim, Ty},
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
+use rustc_hash::FxHashMap;
 
 pub fn analyze_package(
     id: PackageId,
@@ -47,6 +54,23 @@ pub fn analyze_package(
             package_store_compute_properties,
         );
     }
+}
+
+fn analyze_block(
+    id: StoreBlockId,
+    input_map: &FxHashMap<NodeId, CallableVariable>,
+    package_store: &PackageStore,
+    package_store_compute_properties: &mut PackageStoreComputeProperties,
+) {
+    // This function is only called when a block has not already been analyzed.
+    if package_store_compute_properties.find_block(id).is_some() {
+        panic!("block is already analyzed");
+    }
+
+    let _variables_map = input_map.clone();
+    let _block = package_store.get_block(id);
+    // TODO (cesarzc): implement properly.
+    package_store_compute_properties.insert_block(id, CallableElementComputeProperties::Invalid);
 }
 
 fn analyze_callable(
@@ -166,18 +190,67 @@ fn analyze_item(
 
 fn analyze_non_intrinsic_callable_compute_properties<'a>(
     id: StoreItemId,
-    _callable: &CallableDecl,
+    callable: &CallableDecl,
     input_params: impl Iterator<Item = &'a InputParam>,
-    _package_store: &PackageStore,
+    package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) {
     // This function is only called when a callable has not already been analyzed.
     if package_store_compute_properties.find_item(id).is_some() {
         panic!("callable is already analyzed");
     }
+    let input_map = create_callable_input_map(input_params);
 
-    let _var_map = initialize_callable_variables_map(input_params);
-    // TODO (cesarzc): Implement.
+    // Analyze each one of the specializations.
+    let CallableImpl::Spec(implementation) = &callable.implementation else {
+        panic!("callable is assumed to have a specialized implementation");
+    };
+
+    let body = create_specialization_applications_table(
+        id,
+        &implementation.body,
+        &input_map,
+        package_store,
+        package_store_compute_properties,
+    );
+    let adj = implementation.adj.as_ref().map(|specialization| {
+        create_specialization_applications_table(
+            id,
+            specialization,
+            &input_map,
+            package_store,
+            package_store_compute_properties,
+        )
+    });
+    let ctl = implementation.ctl.as_ref().map(|specialization| {
+        create_specialization_applications_table(
+            id,
+            specialization,
+            &input_map,
+            package_store,
+            package_store_compute_properties,
+        )
+    });
+    let ctl_adj = implementation.ctl_adj.as_ref().map(|specialization| {
+        create_specialization_applications_table(
+            id,
+            specialization,
+            &input_map,
+            package_store,
+            package_store_compute_properties,
+        )
+    });
+
+    let callable_compute_properties = CallableComputeProperties {
+        body,
+        adj,
+        ctl,
+        ctl_adj,
+    };
+    package_store_compute_properties.insert_item(
+        id,
+        ItemComputeProperties::Callable(callable_compute_properties),
+    );
 }
 
 fn analyze_statement(
@@ -192,6 +265,26 @@ fn analyze_statement(
 
     let _stmt = package_store.get_stmt(id);
     // TODO (cesarzc): Implement.
+}
+
+pub fn create_callable_input_map<'a>(
+    input_params: impl Iterator<Item = &'a InputParam>,
+) -> FxHashMap<NodeId, CallableVariable> {
+    let mut variable_map = FxHashMap::<NodeId, CallableVariable>::default();
+    for param in input_params {
+        if let Some(node) = param.node {
+            variable_map.insert(
+                node,
+                CallableVariable {
+                    node,
+                    pat: param.pat,
+                    ty: param.ty.clone(),
+                    kind: CallableVariableKind::InputParam(param.index),
+                },
+            );
+        }
+    }
+    variable_map
 }
 
 fn create_intrinsic_callable_compute_properties<'a>(
@@ -308,6 +401,86 @@ fn create_instrinsic_operation_compute_properties<'a>(
         adj: None,
         ctl: None,
         ctl_adj: None,
+    }
+}
+
+fn create_specialization_applications_table(
+    callable_id: StoreItemId,
+    specialization: &SpecDecl,
+    callable_input_map: &FxHashMap<NodeId, CallableVariable>,
+    package_store: &PackageStore,
+    package_store_compute_properties: &mut PackageStoreComputeProperties,
+) -> ApplicationsTable {
+    let package_patterns = &package_store
+        .get(callable_id.package)
+        .expect("package should exist")
+        .pats;
+    let input_map =
+        create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
+    let block_id = (callable_id.package, specialization.block).into();
+    analyze_block(
+        block_id,
+        &input_map,
+        package_store,
+        package_store_compute_properties,
+    );
+    let block_compute_properties = package_store_compute_properties.get_block(block_id);
+    match block_compute_properties {
+        CallableElementComputeProperties::ApplicationDependent(applications_table) => {
+            applications_table.clone()
+        }
+        CallableElementComputeProperties::ApplicationIndependent(compute_properties) => {
+            let inherent_properties = compute_properties.clone();
+            let dynamic_params_properties = vec![ComputeProperties::default(); input_map.len()];
+            ApplicationsTable {
+                inherent_properties,
+                dynamic_params_properties,
+            }
+        }
+        // TODO (cesarzc): remove this case.
+        CallableElementComputeProperties::Invalid => ApplicationsTable {
+            inherent_properties: ComputeProperties::default(),
+            dynamic_params_properties: Vec::new(),
+        },
+    }
+}
+
+fn create_specialization_input_map(
+    callable_input_map: &FxHashMap<NodeId, CallableVariable>,
+    specialization_input: Option<PatId>,
+    package_patterns: &IndexMap<PatId, Pat>,
+) -> FxHashMap<NodeId, CallableVariable> {
+    if let Some(spec_input_pat_id) = specialization_input {
+        let spec_input_pat = package_patterns
+            .get(spec_input_pat_id)
+            .expect("specialization input pattern should exist");
+        let PatKind::Bind(ident) = &spec_input_pat.kind else {
+            panic!("a specialization input is expected to be an identifier");
+        };
+        let spec_input_variable = CallableVariable {
+            node: ident.id,
+            pat: spec_input_pat_id,
+            ty: spec_input_pat.ty.clone(),
+            kind: CallableVariableKind::InputParam(InputParamIndex::from(0)),
+        };
+        let mut input_map = FxHashMap::<NodeId, CallableVariable>::default();
+        input_map.insert(spec_input_variable.node, spec_input_variable);
+        for (node_id, variable) in callable_input_map {
+            let CallableVariableKind::InputParam(input_param_idx) = variable.kind else {
+                panic!("all callable input variables should be of the input parameter kind");
+            };
+            let new_variable = CallableVariable {
+                node: variable.node,
+                pat: variable.pat,
+                ty: variable.ty.clone(),
+                kind: CallableVariableKind::InputParam(input_param_idx + 1),
+            };
+            input_map.insert(*node_id, new_variable);
+        }
+
+        input_map
+    } else {
+        callable_input_map.clone()
     }
 }
 
