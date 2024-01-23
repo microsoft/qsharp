@@ -9,8 +9,9 @@ use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::Visitor;
+use qsc::hir::PackageId;
 use qsc::line_column::{Encoding, Position};
-use qsc::{ast, hir};
+use qsc::{ast, hir, Span};
 
 pub(crate) fn get_definition(
     compilation: &Compilation,
@@ -47,12 +48,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
-            name.span,
-            self.compilation.user_package_id,
-        ));
+        self.definition = Some(self.location(name.span, self.compilation.user_package_id));
     }
 
     fn at_callable_ref(
@@ -63,9 +59,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &'a hir::Package,
         decl: &'a hir::CallableDecl,
     ) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
+        self.definition = Some(self.location(
             decl.name.span,
             item_id.package.expect("package id should be resolved"),
         ));
@@ -77,12 +71,7 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         def_name: &'a ast::Ident,
         _: hir::ty::ParamId,
     ) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
-            def_name.span,
-            self.compilation.user_package_id,
-        ));
+        self.definition = Some(self.location(def_name.span, self.compilation.user_package_id));
     }
 
     fn at_type_param_ref(
@@ -92,21 +81,11 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: hir::ty::ParamId,
         definition: &'a ast::Ident,
     ) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
-            definition.span,
-            self.compilation.user_package_id,
-        ));
+        self.definition = Some(self.location(definition.span, self.compilation.user_package_id));
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
-            type_name.span,
-            self.compilation.user_package_id,
-        ));
+        self.definition = Some(self.location(type_name.span, self.compilation.user_package_id));
     }
 
     fn at_new_type_ref(
@@ -117,21 +96,14 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         type_name: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
+        self.definition = Some(self.location(
             type_name.span,
             item_id.package.expect("package id should be resolved"),
         ));
     }
 
     fn at_field_def(&mut self, _: &LocatorContext<'a>, field_name: &'a ast::Ident, _: &'a ast::Ty) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
-            field_name.span,
-            self.compilation.user_package_id,
-        ));
+        self.definition = Some(self.location(field_name.span, self.compilation.user_package_id));
     }
 
     fn at_field_ref(
@@ -144,21 +116,14 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         let span = field_def
             .name_span
             .expect("field found via name should have a name");
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
+        self.definition = Some(self.location(
             span,
             item_id.package.expect("package id should be resolved"),
         ));
     }
 
     fn at_local_def(&mut self, _: &LocatorContext<'a>, ident: &'a ast::Ident, _: &'a ast::Pat) {
-        self.definition = Some(into_location(
-            self.position_encoding,
-            self.compilation,
-            ident.span,
-            self.compilation.user_package_id,
-        ));
+        self.definition = Some(self.location(ident.span, self.compilation.user_package_id));
     }
 
     fn at_local_ref(
@@ -168,11 +133,17 @@ impl<'a> Handler<'a> for DefinitionFinder<'a> {
         _: &'a ast::NodeId,
         definition: &'a ast::Ident,
     ) {
-        self.definition = Some(into_location(
+        self.definition = Some(self.location(definition.span, self.compilation.user_package_id));
+    }
+}
+
+impl DefinitionFinder<'_> {
+    fn location(&self, location: Span, package_id: PackageId) -> Location {
+        into_location(
             self.position_encoding,
             self.compilation,
-            definition.span,
-            self.compilation.user_package_id,
-        ));
+            location,
+            package_id,
+        )
     }
 }

@@ -12,7 +12,7 @@ use crate::protocol::Location;
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
 use qsc::hir::ty::Ty;
-use qsc::hir::Res;
+use qsc::hir::{PackageId, Res};
 use qsc::line_column::{Encoding, Position};
 use qsc::{ast, hir, resolve, Span};
 
@@ -27,40 +27,39 @@ pub(crate) fn get_references(
         compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
 
-    let mut references_finder = ReferencesFinder {
-        position_encoding,
-        compilation,
-        include_declaration,
+    let mut name_handler = NameHandler {
+        reference_finder: ReferenceFinder::new(position_encoding, compilation, include_declaration),
         references: vec![],
     };
 
-    let mut locator = Locator::new(&mut references_finder, offset, compilation);
+    let mut locator = Locator::new(&mut name_handler, offset, compilation);
     locator.visit_package(user_ast_package);
 
-    references_finder.references
+    name_handler.references
 }
 
-struct ReferencesFinder<'a> {
+pub(crate) struct ReferenceFinder<'a> {
     position_encoding: Encoding,
     compilation: &'a Compilation,
     include_declaration: bool,
+}
+
+struct NameHandler<'a> {
+    reference_finder: ReferenceFinder<'a>,
     references: Vec<Location>,
 }
 
-impl<'a> Handler<'a> for ReferencesFinder<'a> {
+impl<'a> Handler<'a> for NameHandler<'a> {
     fn at_callable_def(
         &mut self,
         _: &LocatorContext<'a>,
         name: &'a ast::Ident,
         _: &'a ast::CallableDecl,
     ) {
-        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(name.id) {
-            self.references = find_item_locations(
-                self.position_encoding,
-                item_id,
-                self.compilation,
-                self.include_declaration,
-            );
+        if let Some(resolve::Res::Item(item_id, _)) =
+            self.reference_finder.compilation.get_res(name.id)
+        {
+            self.references = self.reference_finder.for_item(item_id);
         }
     }
 
@@ -72,12 +71,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Package,
         _: &'a hir::CallableDecl,
     ) {
-        self.references = find_item_locations(
-            self.position_encoding,
-            item_id,
-            self.compilation,
-            self.include_declaration,
-        );
+        self.references = self.reference_finder.for_item(item_id);
     }
 
     fn at_type_param_def(
@@ -87,13 +81,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         param_id: hir::ty::ParamId,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references = find_ty_param_locations(
-                self.position_encoding,
-                param_id,
-                curr,
-                self.compilation,
-                self.include_declaration,
-            );
+            self.references = self.reference_finder.for_ty_param(param_id, curr);
         }
     }
 
@@ -105,24 +93,15 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references = find_ty_param_locations(
-                self.position_encoding,
-                param_id,
-                curr,
-                self.compilation,
-                self.include_declaration,
-            );
+            self.references = self.reference_finder.for_ty_param(param_id, curr);
         }
     }
 
     fn at_new_type_def(&mut self, type_name: &'a ast::Ident, _: &'a ast::TyDef) {
-        if let Some(resolve::Res::Item(item_id, _)) = self.compilation.get_res(type_name.id) {
-            self.references = find_item_locations(
-                self.position_encoding,
-                item_id,
-                self.compilation,
-                self.include_declaration,
-            );
+        if let Some(resolve::Res::Item(item_id, _)) =
+            self.reference_finder.compilation.get_res(type_name.id)
+        {
+            self.references = self.reference_finder.for_item(item_id);
         }
     }
 
@@ -134,12 +113,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a hir::Ident,
         _: &'a hir::ty::Udt,
     ) {
-        self.references = find_item_locations(
-            self.position_encoding,
-            item_id,
-            self.compilation,
-            self.include_declaration,
-        );
+        self.references = self.reference_finder.for_item(item_id);
     }
 
     fn at_field_def(
@@ -149,13 +123,9 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Ty,
     ) {
         if let Some(ty_item_id) = context.current_udt_id {
-            self.references = find_field_locations(
-                self.position_encoding,
-                ty_item_id,
-                field_name.name.clone(),
-                self.compilation,
-                self.include_declaration,
-            );
+            self.references = self
+                .reference_finder
+                .for_field(ty_item_id, field_name.name.clone());
         }
     }
 
@@ -166,13 +136,9 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         item_id: &'_ hir::ItemId,
         _: &'a hir::ty::UdtField,
     ) {
-        self.references = find_field_locations(
-            self.position_encoding,
-            item_id,
-            field_ref.name.clone(),
-            self.compilation,
-            self.include_declaration,
-        );
+        self.references = self
+            .reference_finder
+            .for_field(item_id, field_ref.name.clone());
     }
 
     fn at_local_def(
@@ -182,13 +148,7 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         _: &'a ast::Pat,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references = find_local_locations(
-                self.position_encoding,
-                ident.id,
-                curr,
-                self.compilation,
-                self.include_declaration,
-            );
+            self.references = self.reference_finder.for_local(ident.id, curr);
         }
     }
 
@@ -200,166 +160,149 @@ impl<'a> Handler<'a> for ReferencesFinder<'a> {
         definition: &'a ast::Ident,
     ) {
         if let Some(curr) = context.current_callable {
-            self.references = find_local_locations(
-                self.position_encoding,
-                definition.id,
-                curr,
-                self.compilation,
-                self.include_declaration,
+            self.references = self.reference_finder.for_local(definition.id, curr);
+        }
+    }
+}
+
+impl<'a> ReferenceFinder<'a> {
+    pub fn new(
+        position_encoding: Encoding,
+        compilation: &'a Compilation,
+        include_declaration: bool,
+    ) -> Self {
+        Self {
+            position_encoding,
+            compilation,
+            include_declaration,
+        }
+    }
+
+    pub fn for_item(&self, item_id: &hir::ItemId) -> Vec<Location> {
+        let mut locations = vec![];
+
+        let (def, _, resolved_item_id) = self
+            .compilation
+            .resolve_item_relative_to_user_package(item_id);
+        if self.include_declaration {
+            let def_span = match &def.kind {
+                hir::ItemKind::Callable(decl) => decl.name.span,
+                hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
+            };
+            locations.push(
+                self.location(
+                    def_span,
+                    resolved_item_id
+                        .package
+                        .expect("package id should have been resolved"),
+                ),
             );
         }
-    }
-}
 
-pub(crate) fn find_item_locations(
-    position_encoding: Encoding,
-    item_id: &hir::ItemId,
-    compilation: &Compilation,
-    include_declaration: bool,
-) -> Vec<Location> {
-    let mut locations = vec![];
-
-    let (def, _, resolved_item_id) = compilation.resolve_item_relative_to_user_package(item_id);
-    if include_declaration {
-        let def_span = match &def.kind {
-            hir::ItemKind::Callable(decl) => decl.name.span,
-            hir::ItemKind::Namespace(name, _) | hir::ItemKind::Ty(name, _) => name.span,
+        let mut find_refs = FindItemRefs {
+            item_id: &resolved_item_id,
+            compilation: self.compilation,
+            locations: vec![],
         };
-        locations.push(into_location(
-            position_encoding,
-            compilation,
-            def_span,
-            resolved_item_id
-                .package
-                .expect("package id should have been resolved"),
-        ));
+
+        find_refs.visit_package(&self.compilation.user_unit().ast.package);
+        locations.extend(
+            find_refs
+                .locations
+                .drain(..)
+                .map(|l| self.location(l, self.compilation.user_package_id)),
+        );
+
+        locations
     }
 
-    let mut find_refs = FindItemRefs {
-        item_id: &resolved_item_id,
-        compilation,
-        locations: vec![],
-    };
+    pub fn for_field(&self, ty_item_id: &hir::ItemId, field_name: Rc<str>) -> Vec<Location> {
+        let mut locations = vec![];
 
-    find_refs.visit_package(&compilation.user_unit().ast.package);
-    locations.extend(find_refs.locations.drain(..).map(|l| {
-        into_location(
-            position_encoding,
-            compilation,
-            l,
-            compilation.user_package_id,
-        )
-    }));
-
-    locations
-}
-
-pub(crate) fn find_field_locations(
-    position_encoding: Encoding,
-    ty_item_id: &hir::ItemId,
-    field_name: Rc<str>,
-    compilation: &Compilation,
-    include_declaration: bool,
-) -> Vec<Location> {
-    let mut locations = vec![];
-
-    let (ty_def, _, resolved_ty_item_id) =
-        compilation.resolve_item_relative_to_user_package(ty_item_id);
-    if include_declaration {
-        if let hir::ItemKind::Ty(_, udt) = &ty_def.kind {
-            let ty_field = udt
-                .find_field_by_name(&field_name)
-                .expect("field name should exist");
-            let def_span = ty_field
-                .name_span
-                .expect("field found via name should have a name");
-            locations.push(into_location(
-                position_encoding,
-                compilation,
-                def_span,
-                resolved_ty_item_id
-                    .package
-                    .expect("package id should have been resolved"),
-            ));
-        } else {
-            panic!("item id resolved to non-type: {ty_item_id}");
+        let (ty_def, _, resolved_ty_item_id) = self
+            .compilation
+            .resolve_item_relative_to_user_package(ty_item_id);
+        if self.include_declaration {
+            if let hir::ItemKind::Ty(_, udt) = &ty_def.kind {
+                let ty_field = udt
+                    .find_field_by_name(&field_name)
+                    .expect("field name should exist");
+                let def_span = ty_field
+                    .name_span
+                    .expect("field found via name should have a name");
+                locations.push(
+                    self.location(
+                        def_span,
+                        resolved_ty_item_id
+                            .package
+                            .expect("package id should have been resolved"),
+                    ),
+                );
+            } else {
+                panic!("item id resolved to non-type: {ty_item_id}");
+            }
         }
+
+        let mut find_refs = FindFieldRefs {
+            ty_item_id: &resolved_ty_item_id,
+            field_name,
+            compilation: self.compilation,
+            locations: vec![],
+        };
+
+        find_refs.visit_package(&self.compilation.user_unit().ast.package);
+        locations.extend(
+            find_refs
+                .locations
+                .drain(..)
+                .map(|l| self.location(l, self.compilation.user_package_id)),
+        );
+
+        locations
     }
 
-    let mut find_refs = FindFieldRefs {
-        ty_item_id: &resolved_ty_item_id,
-        field_name,
-        compilation,
-        locations: vec![],
-    };
+    pub fn for_local(&self, node_id: ast::NodeId, callable: &ast::CallableDecl) -> Vec<Location> {
+        let mut find_refs = FindLocalLocations {
+            node_id,
+            compilation: self.compilation,
+            include_declaration: self.include_declaration,
+            locations: vec![],
+        };
+        find_refs.visit_callable_decl(callable);
+        find_refs
+            .locations
+            .into_iter()
+            .map(|l| self.location(l, self.compilation.user_package_id))
+            .collect()
+    }
 
-    find_refs.visit_package(&compilation.user_unit().ast.package);
-    locations.extend(find_refs.locations.drain(..).map(|l| {
+    pub fn for_ty_param(
+        &self,
+        param_id: hir::ty::ParamId,
+        callable: &ast::CallableDecl,
+    ) -> Vec<Location> {
+        let mut find_refs = FindTyParamLocations {
+            param_id,
+            compilation: self.compilation,
+            include_declaration: self.include_declaration,
+            locations: vec![],
+        };
+        find_refs.visit_callable_decl(callable);
+        find_refs
+            .locations
+            .into_iter()
+            .map(|l| self.location(l, self.compilation.user_package_id))
+            .collect()
+    }
+
+    fn location(&self, location: Span, package_id: PackageId) -> Location {
         into_location(
-            position_encoding,
-            compilation,
-            l,
-            compilation.user_package_id,
+            self.position_encoding,
+            self.compilation,
+            location,
+            package_id,
         )
-    }));
-
-    locations
-}
-
-pub(crate) fn find_local_locations(
-    position_encoding: Encoding,
-    node_id: ast::NodeId,
-    callable: &ast::CallableDecl,
-    compilation: &Compilation,
-    include_declaration: bool,
-) -> Vec<Location> {
-    let mut find_refs = FindLocalLocations {
-        node_id,
-        compilation,
-        include_declaration,
-        locations: vec![],
-    };
-    find_refs.visit_callable_decl(callable);
-    find_refs
-        .locations
-        .into_iter()
-        .map(|l| {
-            into_location(
-                position_encoding,
-                compilation,
-                l,
-                compilation.user_package_id,
-            )
-        })
-        .collect()
-}
-
-pub(crate) fn find_ty_param_locations(
-    position_encoding: Encoding,
-    param_id: hir::ty::ParamId,
-    callable: &ast::CallableDecl,
-    compilation: &Compilation,
-    include_declaration: bool,
-) -> Vec<Location> {
-    let mut find_refs = FindTyParamLocations {
-        param_id,
-        compilation,
-        include_declaration,
-        locations: vec![],
-    };
-    find_refs.visit_callable_decl(callable);
-    find_refs
-        .locations
-        .into_iter()
-        .map(|l| {
-            into_location(
-                position_encoding,
-                compilation,
-                l,
-                compilation.user_package_id,
-            )
-        })
-        .collect()
+    }
 }
 
 struct FindItemRefs<'a> {

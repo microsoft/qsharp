@@ -8,9 +8,7 @@ use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
 use crate::qsc_utils::into_range;
-use crate::references::{
-    find_field_locations, find_item_locations, find_local_locations, find_ty_param_locations,
-};
+use crate::references::ReferenceFinder;
 use qsc::ast::visit::Visitor;
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, resolve, Span};
@@ -68,7 +66,7 @@ fn remove_leading_quote_from_type_param_name(name: &str) -> String {
 }
 
 struct Rename<'a> {
-    position_encoding: Encoding,
+    reference_finder: ReferenceFinder<'a>,
     compilation: &'a Compilation,
     locations: Vec<Location>,
     is_prepare: bool,
@@ -78,7 +76,7 @@ struct Rename<'a> {
 impl<'a> Rename<'a> {
     fn new(position_encoding: Encoding, compilation: &'a Compilation, is_prepare: bool) -> Self {
         Self {
-            position_encoding,
+            reference_finder: ReferenceFinder::new(position_encoding, compilation, true),
             compilation,
             locations: vec![],
             is_prepare,
@@ -93,8 +91,7 @@ impl<'a> Rename<'a> {
             if self.is_prepare {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
-                self.locations =
-                    find_item_locations(self.position_encoding, item_id, self.compilation, true);
+                self.locations = self.reference_finder.for_item(item_id);
             }
         }
     }
@@ -106,13 +103,9 @@ impl<'a> Rename<'a> {
             if self.is_prepare {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
-                self.locations = find_field_locations(
-                    self.position_encoding,
-                    item_id,
-                    ast_name.name.clone(),
-                    self.compilation,
-                    true,
-                );
+                self.locations = self
+                    .reference_finder
+                    .for_field(item_id, ast_name.name.clone());
             }
         }
     }
@@ -128,22 +121,18 @@ impl<'a> Rename<'a> {
             let updated_name = remove_leading_quote_from_type_param_name(&ast_name.name);
             self.prepare = Some((updated_span, updated_name));
         } else {
-            self.locations = find_ty_param_locations(
-                self.position_encoding,
-                param_id,
-                current_callable,
-                self.compilation,
-                true,
-            )
-            .into_iter()
-            .map(|l| {
-                assert!(!l.span.empty(), "Type parameter name is empty");
-                Location {
-                    span: type_param_ident_range(l.span),
-                    ..l
-                }
-            })
-            .collect();
+            self.locations = self
+                .reference_finder
+                .for_ty_param(param_id, current_callable)
+                .into_iter()
+                .map(|l| {
+                    assert!(!l.span.empty(), "Type parameter name is empty");
+                    Location {
+                        span: type_param_ident_range(l.span),
+                        ..l
+                    }
+                })
+                .collect();
         }
     }
 
@@ -156,13 +145,7 @@ impl<'a> Rename<'a> {
         if self.is_prepare {
             self.prepare = Some((ast_name.span, ast_name.name.to_string()));
         } else {
-            self.locations = find_local_locations(
-                self.position_encoding,
-                node_id,
-                current_callable,
-                self.compilation,
-                true,
-            );
+            self.locations = self.reference_finder.for_local(node_id, current_callable);
         }
     }
 }
