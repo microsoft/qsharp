@@ -4,7 +4,6 @@
 from ._native import Interpreter, TargetProfile, StateDump, QSharpError, Output
 from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
-import math
 import json
 
 _interpreter = None
