@@ -20,6 +20,7 @@ const result = samples.map((sample) => {
     title: sample.title,
     shots: sample.shots,
     code: sampleText,
+    omitFromTests: sample.omitFromTests,
   };
 });
 
