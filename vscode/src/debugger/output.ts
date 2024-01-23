@@ -20,25 +20,65 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
       return `${r}${i}`;
     }
 
-    function probability(real: number, imag: number) {
-      return real * real + imag * imag;
+    function formatProbabilityPercent(real: number, imag: number) {
+      const probabilityPercent = (real * real + imag * imag) * 100;
+      return `${probabilityPercent.toFixed(4)}%`;
+    }
+
+    function formatPhase(real: number, imag: number) {
+      const phase = Math.atan2(imag, real);
+      return phase.toFixed(4);
+    }
+
+    function column(header: string, values: string[]) {
+      // The length of the longest value, or the header length, whichever is longer
+      const columnWidth = values.reduce((max, value) => {
+        if (value.length > max) {
+          return value.length;
+        }
+        return max;
+      }, header.length);
+      // Left-align the header, right-align the values
+      return {
+        header: header.padEnd(columnWidth),
+        values: values.map((v) => v.padStart(columnWidth)),
+      };
     }
 
     const dump = evt.detail;
+    const basisStates = Object.keys(dump);
+    const rows = basisStates.map((basis) => {
+      const [real, imag] = dump[basis];
+      const amplitude = formatComplex(real, imag);
+      const probability = formatProbabilityPercent(real, imag);
+      const phase = formatPhase(real, imag);
+      return { amplitude, probability, phase };
+    });
+
+    const basis = column("Basis", basisStates);
+    const amplitude = column(
+      "Amplitude",
+      rows.map((r) => r.amplitude),
+    );
+    const probability = column(
+      "Probability",
+      rows.map((r) => r.probability),
+    );
+    const phase = column(
+      "Phase",
+      rows.map((r) => r.phase),
+    );
+
     let out_str = "\n";
     out_str += "DumpMachine:\n\n";
-    out_str += "  Basis | Amplitude     | Probability   | Phase\n";
-    out_str += "  ---------------------------------------------\n";
-    Object.keys(dump).map((basis) => {
-      const [real, imag] = dump[basis];
-      const complex = formatComplex(real, imag);
-      const probabilityPercent = probability(real, imag) * 100;
-      const phase = Math.atan2(imag, real);
+    const headerRow = `${basis.header} | ${amplitude.header} | ${probability.header} | ${phase.header}`;
+    out_str += ` ${headerRow}\n`;
+    out_str += " ".padEnd(headerRow.length, "-") + "\n";
+    for (let i = 0; i < basis.values.length; i++) {
+      // The special characters skew the visual alignment of the columns, just add extra spaces to correct for that
+      out_str += ` ${basis.values[i]}  | ${amplitude.values[i]}  | ${probability.values[i]} | ${phase.values[i]}\n`;
+    }
 
-      out_str += `  ${basis}  | ${complex} | ${probabilityPercent.toFixed(
-        4,
-      )}%     | ${phase.toFixed(4)}\n`;
-    });
     out(out_str);
   });
 
