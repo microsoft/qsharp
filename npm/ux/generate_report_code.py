@@ -52,7 +52,7 @@ path_map = {
     "logicalQubit/logicalCyclesPerSecond": "numberFormatF64.format(result.physicalCounts.breakdown.clockFrequency)",
     "logicalQubit/logicalCycleTime": "numberFormat.format(result.logicalQubit.logicalCycleTime)",
     "logicalQubit/physicalQubits": "numberFormat.format(result.logicalQubit.physicalQubits)",
-    "physicalCounts/breakdown/algorithmicLogicalDepth": "numberFormat.format(result.physicalCountsFormatted.algorithmicLogicalDepth)",
+    "physicalCounts/breakdown/algorithmicLogicalDepth": "numberFormat.format(result.physicalCounts.breakdown.algorithmicLogicalDepth)",
     "physicalCounts/breakdown/algorithmicLogicalQubits": "numberFormat.format(result.physicalCounts.breakdown.algorithmicLogicalQubits)",
     "physicalCounts/breakdown/cliffordErrorRate": "result.physicalCounts.breakdown.cliffordErrorRate",
     "physicalCounts/breakdown/logicalDepth": "numberFormat.format(result.physicalCounts.breakdown.logicalDepth)",
