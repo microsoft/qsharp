@@ -10,6 +10,7 @@ mod convert;
 mod diagnostics;
 mod math;
 mod measurement;
+mod state_preparation;
 mod table_lookup;
 
 use indoc::indoc;
