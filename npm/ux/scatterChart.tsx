@@ -75,7 +75,7 @@ function drawTooltip(
 
 function deselectPoint(root: Element) {
   if (root.getAttribute("selectedPoint")) {
-    const point = document.querySelector(
+    const point = root.querySelector(
       ("#" + root.getAttribute("selectedPoint")) as string,
     );
     if (point) {
