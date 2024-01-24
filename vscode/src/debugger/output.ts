@@ -30,53 +30,29 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
       return phase.toFixed(4);
     }
 
-    function column(header: string, values: string[]) {
-      // The length of the longest value, or the header length, whichever is longer
-      const columnWidth = values.reduce((max, value) => {
-        if (value.length > max) {
-          return value.length;
-        }
-        return max;
-      }, header.length);
-      // Left-align the header, right-align the values
-      return {
-        header: header.padEnd(columnWidth),
-        values: values.map((v) => v.padStart(columnWidth)),
-      };
-    }
-
     const dump = evt.detail;
     const basisStates = Object.keys(dump);
-    const rows = basisStates.map((basis) => {
-      const [real, imag] = dump[basis];
-      const amplitude = formatComplex(real, imag);
-      const probability = formatProbabilityPercent(real, imag);
-      const phase = formatPhase(real, imag);
-      return { amplitude, probability, phase };
-    });
-
-    const basis = column("Basis", basisStates);
-    const amplitude = column(
-      "Amplitude",
-      rows.map((r) => r.amplitude),
+    const basisColumnWidth = Math.max(
+      basisStates[0]?.length ?? 0,
+      "Basis".length,
     );
-    const probability = column(
-      "Probability",
-      rows.map((r) => r.probability),
-    );
-    const phase = column(
-      "Phase",
-      rows.map((r) => r.phase),
-    );
+    const basis = "Basis".padEnd(basisColumnWidth);
 
     let out_str = "\n";
     out_str += "DumpMachine:\n\n";
-    const headerRow = `${basis.header} | ${amplitude.header} | ${probability.header} | ${phase.header}`;
-    out_str += ` ${headerRow}\n`;
-    out_str += " ".padEnd(headerRow.length, "-") + "--\n";
-    for (let i = 0; i < basis.values.length; i++) {
-      // The special characters skew the visual alignment of the columns, just add extra spaces to correct for that
-      out_str += ` ${basis.values[i]}  |  ${amplitude.values[i]} | ${probability.values[i]} | ${phase.values[i]}\n`;
+    out_str += ` ${basis} | Amplitude      | Probability | Phase\n`;
+    out_str +=
+      " ".padEnd(basisColumnWidth, "-") +
+      "-------------------------------------------\n";
+
+    for (const row of basisStates) {
+      const [real, imag] = dump[row];
+      const basis = row.padStart(basisColumnWidth);
+      const amplitude = formatComplex(real, imag).padStart(16);
+      const probability = formatProbabilityPercent(real, imag).padStart(11);
+      const phase = formatPhase(real, imag).padStart(8);
+
+      out_str += ` ${basis} | ${amplitude} | ${probability} | ${phase}\n`;
     }
 
     out(out_str);
