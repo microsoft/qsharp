@@ -3,9 +3,10 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{CallableDecl, NodeId, Pat, PatId, PatKind},
+    fir::{CallableDecl, ExprId, NodeId, Pat, PatId, PatKind},
     ty::Ty,
 };
+use rustc_hash::FxHashMap;
 use std::ops;
 
 /// A callable input element.
@@ -136,7 +137,27 @@ pub struct CallableVariable {
 /// Kinds of callable variables.
 #[derive(Clone, Debug, Copy)]
 pub enum CallableVariableKind {
-    #[allow(dead_code)] // TODO (ceasarzc): Remove.
-    Local,
+    Local(ExprId),
     InputParam(InputParamIndex),
+}
+
+/// Creates a map of a input parameters.
+pub fn derive_callable_input_map<'a>(
+    input_params: impl Iterator<Item = &'a InputParam>,
+) -> FxHashMap<NodeId, CallableVariable> {
+    let mut variable_map = FxHashMap::<NodeId, CallableVariable>::default();
+    for param in input_params {
+        if let Some(node) = param.node {
+            variable_map.insert(
+                node,
+                CallableVariable {
+                    node,
+                    pat: param.pat,
+                    ty: param.ty.clone(),
+                    kind: CallableVariableKind::InputParam(param.index),
+                },
+            );
+        }
+    }
+    variable_map
 }

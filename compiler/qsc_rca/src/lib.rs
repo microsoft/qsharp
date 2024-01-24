@@ -173,6 +173,8 @@ impl PackageStoreComputeProperties {
 
         // Analyze each package in the store.
         for (package_id, _) in package_store.iter() {
+            // N.B. It is assumed than when a package is analyzed, all the callables in other package that it depends
+            // on have already been analyzed.
             analyze_package(
                 package_id,
                 package_store,

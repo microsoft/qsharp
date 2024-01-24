@@ -1151,7 +1151,7 @@ fn std_re_intrisics_analysis_is_correct() {
     );
 }
 
-#[ignore = "work in progress"] // TODO (cesarzc): remove to work on it from the command line.
+//#[ignore = "work in progress"] // TODO (cesarzc): remove to work on it from the command line.
 #[test]
 fn static_qubit_allocation_analysis_is_correct() {
     let mut compiler = Compiler::new(
@@ -1163,15 +1163,27 @@ fn static_qubit_allocation_analysis_is_correct() {
     .expect("should be able to create a new compiler");
     let mut lowerer = Lowerer::new();
     let mut fir_store = create_fir_package_store(&mut lowerer, compiler.package_store());
-    let compute_properties = PackageStoreComputeProperties::new(&fir_store);
+    write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
+    let mut compute_properties = PackageStoreComputeProperties::new(&fir_store);
     let increment = compiler
-        .compile_fragments_fail_fast("rca-test", "use q = Qubit();")
+        .compile_fragments_fail_fast(
+            "rca-test",
+            r#"
+            operation Foo() : Unit {
+                Bar();
+            }
+            operation Bar() : Unit {
+                Foo();
+            }
+            use q = Qubit();"#,
+        )
         .expect("code should compile");
     let package_id = map_hir_package_to_fir(compiler.package_id());
     let fir_package = fir_store.get_mut(package_id).expect("package should exist");
     lowerer.lower_and_update_package(fir_package, &increment.hir);
     compiler.update(increment);
     write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
+    compute_properties.reanalyze_package(package_id, &fir_store);
 
     // TODO (cesarzc): need to update analyzer APIs (add update) to continue writing this test.
 

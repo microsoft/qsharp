@@ -2,10 +2,11 @@
 // Licensed under the MIT License.
 
 use crate::{
+    cycle_detection::detect_callables_with_cycles,
     data_structures::{
-        derive_callable_input_elements, derive_callable_input_params, CallableInputElement,
-        CallableInputElementKind, CallableVariable, CallableVariableKind, InputParam,
-        InputParamIndex,
+        derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
+        CallableInputElement, CallableInputElementKind, CallableVariable, CallableVariableKind,
+        InputParam, InputParamIndex,
     },
     CallableElementComputeProperties,
     {
@@ -37,7 +38,12 @@ pub fn analyze_package(
     package_compute_properties.clear();
     let package = package_store.get(id).expect("package should exist");
 
-    // Analyze all items in the package.
+    // Analyze all callables that have cycles.
+    // TODO (cesarzc): implement.
+    let callables_with_cycles = detect_callables_with_cycles(id, package);
+    println!("{callables_with_cycles:?}");
+
+    // Analyze the remaining items in the package.
     for (item_id, _) in &package.items {
         analyze_item(
             (id, item_id).into(),
@@ -199,7 +205,7 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
     if package_store_compute_properties.find_item(id).is_some() {
         panic!("callable is already analyzed");
     }
-    let input_map = create_callable_input_map(input_params);
+    let input_map = derive_callable_input_map(input_params);
 
     // Analyze each one of the specializations.
     let CallableImpl::Spec(implementation) = &callable.implementation else {
@@ -265,26 +271,6 @@ fn analyze_statement(
 
     let _stmt = package_store.get_stmt(id);
     // TODO (cesarzc): Implement.
-}
-
-pub fn create_callable_input_map<'a>(
-    input_params: impl Iterator<Item = &'a InputParam>,
-) -> FxHashMap<NodeId, CallableVariable> {
-    let mut variable_map = FxHashMap::<NodeId, CallableVariable>::default();
-    for param in input_params {
-        if let Some(node) = param.node {
-            variable_map.insert(
-                node,
-                CallableVariable {
-                    node,
-                    pat: param.pat,
-                    ty: param.ty.clone(),
-                    kind: CallableVariableKind::InputParam(param.index),
-                },
-            );
-        }
-    }
-    variable_map
 }
 
 fn create_intrinsic_callable_compute_properties<'a>(
