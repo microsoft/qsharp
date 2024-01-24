@@ -32,6 +32,7 @@ parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly f
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
 parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
+parser.add_argument("--notebooks", action="store_true", help="Run Jupyter notebook samples")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -81,6 +82,7 @@ build_all = (
     and not args.widgets
     and not args.wasm
     and not args.samples
+    and not args.notebooks
     and not args.npm
     and not args.play
     and not args.vscode
@@ -91,6 +93,7 @@ build_pip = build_all or args.pip
 build_widgets = build_all or args.widgets
 build_wasm = build_all or args.wasm
 build_samples = build_all or args.samples
+build_notebooks = build_all or args.notebooks
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
@@ -214,7 +217,7 @@ if build_pip:
         # if on mac, add the arch flags for universal binary
         pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
-    pip_build_args = [
+    pip_install_args = [
         python_bin,
         "-m",
         "pip",
@@ -223,7 +226,7 @@ if build_pip:
         wheels_dir,
         pip_src,
     ]
-    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
+    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src, env=pip_env)
 
     if run_tests:
         print("Running tests for the pip package")
@@ -341,6 +344,88 @@ if build_samples:
         subprocess.run((cargo_args + ["--", "--qsharp-json", project]), check=True, text=True, cwd=root_dir)
     step_end()
 
+if build_notebooks:
+    step_start("Running notebook samples")
+    # Find all notebooks in the samples directory. Skip the basic sample and the azure submission sample, since those won't run
+    # nicely in automation.
+    notebook_files = [os.path.join(dp, f) for dp, _, filenames in os.walk(samples_src) for f in filenames if f.endswith(".ipynb")
+                      and not (f.startswith("sample.") or f.startswith("azure_submission."))]
+    # Check if in a virtual environment
+    if (
+        os.environ.get("VIRTUAL_ENV") is None
+        and os.environ.get("CONDA_PREFIX") is None
+        and os.environ.get("CI") is None
+    ):
+        print("Not in a virtual python environment")
+
+        venv_dir = os.path.join(samples_src, ".venv")
+        # Create virtual environment under repo root
+        if not os.path.exists(venv_dir):
+            print(f"Creating a virtual environment under {venv_dir}")
+            venv.main([venv_dir])
+
+        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
+        python_bin = os.path.join(venv_dir, "bin", "python")
+        if not os.path.exists(python_bin):
+            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
+        print(f"Using python from {python_bin}")
+    else:
+        # Already in a virtual environment, use current Python
+        python_bin = sys.executable
+
+    # copy the process env vars
+    pip_env: dict[str, str] = os.environ.copy()
+
+    # Install the qsharp package
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "-e",
+        pip_src,
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src, env=pip_env)
+
+    # Install the widgets package
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "-e",
+        widgets_src,
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
+
+    # Install other dependencies
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "ipykernel",
+        "nbconvert",
+        "pandas",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
+
+    for notebook in notebook_files:
+        step_start(f"Running {notebook}")
+        subprocess.run([python_bin,
+                        "-m",
+                        "nbconvert",
+                        "--to",
+                        "notebook",
+                        "--stdout",
+                        "--ExecutePreprocessor.timeout=60",
+                        "--execute",
+                        notebook],
+                        check=True, text=True, cwd=root_dir, env=pip_env)
+        step_end()
+
+    step_end()
+
 if build_npm:
     step_start("Building the npm package")
     # Copy the wasm build files over for web and node targets
@@ -407,7 +492,7 @@ if build_jupyterlab:
         # Already in a virtual environment, use current Python
         python_bin = sys.executable
 
-    pip_build_args = [
+    pip_install_args = [
         python_bin,
         "-m",
         "pip",
@@ -416,7 +501,7 @@ if build_jupyterlab:
         wheels_dir,
         jupyterlab_src,
     ]
-    subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
+    subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
     step_end()
 
 if args.integration_tests:
