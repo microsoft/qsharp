@@ -606,23 +606,11 @@ export class QscDebugSession extends LoggingDebugSession {
         };
       });
 
-    // We should probably ensure we don't return duplicate
-    // spans from the debugger, but for now we'll just filter them out
-    const uniqOffsets: {
-      range: vscode.Range;
-      isLineBreakpoint: boolean;
-      uiLine: number;
-    }[] = [];
-    for (const bpOffset of desiredBpOffsets) {
-      if (uniqOffsets.findIndex((u) => u.range.isEqual(bpOffset.range)) == -1) {
-        uniqOffsets.push(bpOffset);
-      }
-    }
     // Now that we have the mapped breakpoint span, get the actual breakpoints
     // with corresponding ids from the debugger
     const bps = [];
 
-    for (const bpOffset of uniqOffsets) {
+    for (const bpOffset of desiredBpOffsets) {
       const lo = bpOffset.range.start;
       const isLineBreakpoint = bpOffset.isLineBreakpoint;
       const uiLine = bpOffset.uiLine;
@@ -636,14 +624,11 @@ export class QscDebugSession extends LoggingDebugSession {
       // is within the range of the location.
       for (const location of matchingLocations) {
         if (isLineBreakpoint) {
-          //
           bps.push(location.breakpoint);
-          break;
         } else {
           // column bp just has end of selection or cursor location in lo
           if (location.range.contains(lo)) {
             bps.push(location.breakpoint);
-            break;
           }
         }
       }

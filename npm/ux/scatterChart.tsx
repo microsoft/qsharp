@@ -176,7 +176,7 @@ export function ScatterChart(props: {
   const axisLineWidth = 1;
   const xLeftMargin =
     yAxisTitleWidth + yAxisTickCaptionMaxWidth + axisTickLength + axisLineWidth;
-  const xRightMargin = 100; // to show tooltips on the right hand side. If we can move tooltips dynamicslly, we can get rid of this.
+  const xRightMargin = 160; // to show tooltips on the right hand side. If we can move tooltips dynamically, we can get rid of this.
 
   const axisTitleHeight = 20;
   const xAxisTickCaptionMaxHeight = 16;
