@@ -11,3 +11,4 @@ This folder contains samples that show how to use the Azure Quantum Resource Est
 * [estimation-ising-2D.ipynb](./estimation-ising-2D.ipynb) (Python+Q# Jupyter notebook): Resource estimation for simulating a 2D Ising Model Hamiltonian
 * [estimation-heisenberg-2D.ipynb](./estimation-heisenberg-2D.ipynb) (Python+Q# Jupyter notebook): Resource estimation for simulating a 2D Heisenberg Model Hamiltonian
 * [estimation-hubbard-2D.ipynb](./estimation-hubbard-2D.ipynb) (Python+Q# Jupyter notebook): Resource estimation for simulating a 2D Hubbard Model Hamiltonian
+* [Dynamics.qs](./Dynamics.qs): Resource estimation for a quantum dynamics application.
