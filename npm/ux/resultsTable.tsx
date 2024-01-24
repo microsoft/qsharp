@@ -17,7 +17,7 @@ export function ResultsTable(props: {
   ensureSelected: boolean;
   onRowDeleted(rowId: string): void;
   selectedRow: string | null; // type selected to confirm with the useState pattern on the parent component
-  setSelectedRow(rowId: string): void;
+  onRowSelected(rowId: string, ev?: Event): void;
 }) {
   const [showColumns, setShowColumns] = useState(props.initialColumns);
   const [sortColumn, setSortColumn] = useState<{
@@ -36,14 +36,14 @@ export function ResultsTable(props: {
   // Select the first of the newest rows, otherwise preserve the existing selection
   if (newest && props.ensureSelected) {
     const rowId = newest.cells[0].toString();
-    setSelectedRow(rowId);
+    onRowSelected(rowId, undefined);
   } else if (
     !props.selectedRow &&
     props.ensureSelected &&
     props.rows.length > 0
   ) {
     const rowId = props.rows[0].cells[0].toString();
-    setSelectedRow(rowId);
+    onRowSelected(rowId, undefined);
   }
 
   // Use to track the column being dragged
@@ -83,8 +83,8 @@ export function ResultsTable(props: {
     }
   }
 
-  function setSelectedRow(rowId: string) {
-    props.setSelectedRow(rowId);
+  function onRowSelected(rowId: string, ev?: Event) {
+    props.onRowSelected(rowId, ev);
   }
 
   function onDragOver(ev: DragEvent) {
@@ -200,11 +200,11 @@ export function ResultsTable(props: {
     }
   }
 
-  function rowClicked(rowId: string) {
+  function onRowClicked(rowId: string, ev: Event) {
     if (props.selectedRow === rowId && props.ensureSelected) return;
 
     const newSelectedRow = props.selectedRow === rowId ? "" : rowId;
-    setSelectedRow(newSelectedRow);
+    onRowSelected(newSelectedRow, ev);
   }
 
   function onClickRowMenu(ev: MouseEvent, rowid: string) {
@@ -254,7 +254,7 @@ export function ResultsTable(props: {
     // Clear out any menus or selections for the row if needed
     setShowRowMenu("");
     if (props.selectedRow === rowId) {
-      setSelectedRow("");
+      onRowSelected("", e);
     }
     props.onRowDeleted(rowId);
   }
@@ -354,7 +354,7 @@ export function ResultsTable(props: {
           const rowId = row.cells[0].toString();
           return (
             <tr
-              onClick={() => rowClicked(rowId)}
+              onClick={(e) => onRowClicked(rowId, e)}
               data-rowid={rowId}
               class={
                 rowId === props.selectedRow

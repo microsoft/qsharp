@@ -632,23 +632,52 @@ html {
   transform: rotate(180deg);
 }
 
-.qs-scatterChart-line {
-  stroke: var(--border-color);
-}
-
 .qs-scatterChart-point {
   r: 2px;
   stroke-width: 4px;
 }
 
-.qs-scatterChart-point-selected,
-.qs-scatterChart-point:hover {
+.qs-scatterChart-point-selected {
   r: 6px;
   stroke-width: 3px;
   fill: white;
 }
 
+.qs-scatterChart-point:hover {
+  r: 4px;
+  stroke-width: 4px;
+  fill: white;
+}
+
 .qs-scatterChart-watermark {
   font-size: 16px;
+  fill: var(--main-color);
+}
+
+.qs-scatterChart-tooltip-text {
+  text-anchor: left;
+  fill: black;
+}
+
+.qs-scatterChart-tooltip-rect {
+  fill: white;
+  stroke: black;
+  stroke-width: 1px;
+  height: 22px;
+}
+
+.qs-scatterChart-line,
+.qs-scatterChart-axis,
+.qs-scatterChart-tick-line {
+  stroke: var(--border-color);
+}
+
+.qs-scatterChart-x-tick-text {
+  text-anchor: middle;
+  fill: var(--main-color);
+}
+
+.qs-scatterChart-y-tick-text {
+  text-anchor: end;
   fill: var(--main-color);
 }

@@ -21,6 +21,7 @@ import {
   ScatterSeries,
   SelectPoint,
 } from "./scatterChart.js";
+import { findParentByClassName } from "./utils.js";
 
 const columnNames = [
   "Run name",
@@ -148,12 +149,16 @@ export function EstimatesOverview(props: {
     setSelectedRow(rowId);
   }
 
-  function onRowSelected(rowId: string) {
+  function onRowSelected(rowId: string, ev?: Event) {
     setSelectedRow(rowId);
     // On any selection, clear the "new" flag on all rows. This ensures that
     // new rows do not steal focus from the user selected row.
     props.estimatesData.forEach((data) => (data.new = false));
-    HideTooltip();
+
+    const root = ev ? findRoot(ev) : undefined;
+    if (root) {
+      HideTooltip(root);
+    }
     if (!rowId) {
       props.setEstimate(null);
     } else {
@@ -166,9 +171,15 @@ export function EstimatesOverview(props: {
       } else {
         const estimateFound = props.estimatesData[index];
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
-        SelectPoint(index, 0);
+        if (root) {
+          SelectPoint(index, 0, root);
+        }
       }
     }
+  }
+
+  function findRoot(ev: Event): Element | undefined {
+    return findParentByClassName(ev, "qs-estimatesOverview");
   }
 
   const colormap =
@@ -179,60 +190,64 @@ export function EstimatesOverview(props: {
   if (props.isSimplifiedView) {
     return (
       <>
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          ensureSelected={true}
-          onRowDeleted={props.onRowDeleted}
-          selectedRow={selectedRow}
-          setSelectedRow={onRowSelected}
-        />
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-        />
+        <g class="qs-estimatesOverview">
+          <ResultsTable
+            columnNames={columnNames}
+            rows={props.estimatesData.map((dataItem, index) =>
+              reDataToRow(dataItem, colormap[index]),
+            )}
+            initialColumns={initialColumns}
+            ensureSelected={true}
+            onRowDeleted={props.onRowDeleted}
+            selectedRow={selectedRow}
+            onRowSelected={onRowSelected}
+          />
+          <ScatterChart
+            xAxis={xAxis}
+            yAxis={yAxis}
+            data={props.estimatesData.map((dataItem, index) =>
+              reDataToRowScatter(dataItem, colormap[index]),
+            )}
+            onPointSelected={onPointSelected}
+          />
+        </g>
       </>
     );
   }
 
   return (
     <>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Results
-        </summary>
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          selectedRow={selectedRow}
-          setSelectedRow={onRowSelected}
-          ensureSelected={true}
-          onRowDeleted={props.onRowDeleted}
-        />
-      </details>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Space-time diagram
-        </summary>
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-        />
-      </details>
+      <g class="qs-estimatesOverview">
+        <details open>
+          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+            Results
+          </summary>
+          <ResultsTable
+            columnNames={columnNames}
+            rows={props.estimatesData.map((dataItem, index) =>
+              reDataToRow(dataItem, colormap[index]),
+            )}
+            initialColumns={initialColumns}
+            selectedRow={selectedRow}
+            onRowSelected={onRowSelected}
+            ensureSelected={true}
+            onRowDeleted={props.onRowDeleted}
+          />
+        </details>
+        <details open>
+          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+            Space-time diagram
+          </summary>
+          <ScatterChart
+            xAxis={xAxis}
+            yAxis={yAxis}
+            data={props.estimatesData.map((dataItem, index) =>
+              reDataToRowScatter(dataItem, colormap[index]),
+            )}
+            onPointSelected={onPointSelected}
+          />
+        </details>
+      </g>
     </>
   );
 }
