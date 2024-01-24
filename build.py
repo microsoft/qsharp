@@ -217,7 +217,7 @@ if build_pip:
         # if on mac, add the arch flags for universal binary
         pip_env["ARCHFLAGS"] = "-arch x86_64 -arch arm64"
 
-    pip_install_args = [
+    pip_build_args = [
         python_bin,
         "-m",
         "pip",
@@ -226,7 +226,7 @@ if build_pip:
         wheels_dir,
         pip_src,
     ]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src, env=pip_env)
+    subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
 
     if run_tests:
         print("Running tests for the pip package")
@@ -492,7 +492,7 @@ if build_jupyterlab:
         # Already in a virtual environment, use current Python
         python_bin = sys.executable
 
-    pip_install_args = [
+    pip_build_args = [
         python_bin,
         "-m",
         "pip",
@@ -501,7 +501,7 @@ if build_jupyterlab:
         wheels_dir,
         jupyterlab_src,
     ]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=jupyterlab_src)
+    subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
     step_end()
 
 if args.integration_tests:
