@@ -4,7 +4,7 @@
 use super::test_expression_with_lib;
 use qsc::interpret::Value;
 
-// Tests for Microsoft.Quantum.TableLookup namespace
+// Tests for Microsoft.Quantum.StatePreparation namespace
 
 const STATE_PREPARATION_TEST_LIB: &str = include_str!("resources/state_preparation.qs");
 

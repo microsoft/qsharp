@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         coefficients : ComplexPolar[],
         qubits : Qubit[]
     ) : Unit is Adj + Ctl {
-        let op = (CompileApproximateArbitraryStatePreparation(tolerance, coefficients, Length(qubits)));
+        let op = CompileApproximateArbitraryStatePreparation(tolerance, coefficients, Length(qubits));
         op(qubits);
     }
 
@@ -194,8 +194,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         (rngControl : Range, idxTarget : Int),
         register : Qubit[]
     ) : Unit is Adj + Ctl {
-        let actualControl = register[rngControl];
-        ApproximatelyMultiplexPauli(tolerance, disentangling, axis, actualControl, register[idxTarget]);
+        ApproximatelyMultiplexPauli(tolerance, disentangling, axis, register[rngControl], register[idxTarget]);
     }
 
     /// # Summary
@@ -239,79 +238,32 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # See Also
     /// - Microsoft.Quantum.Canon.MultiplexPauli
-    operation ApproximatelyMultiplexPauli(
+    internal operation ApproximatelyMultiplexPauli(
         tolerance : Double,
         coefficients : Double[],
         pauli : Pauli,
         control : Qubit[],
         target : Qubit) : Unit is Adj + Ctl {
         if pauli == PauliZ {
-            let op = ApproximatelyMultiplexZ(tolerance, coefficients, control, _);
-            op(target);
+            ApproximatelyMultiplexZ(tolerance, coefficients, control, target);
         } elif pauli == PauliX {
-            let op = ApproximatelyMultiplexPauli(tolerance, coefficients, PauliZ, control, _);
-            ApplyWithCA(H, op, target);
+            within {
+                H(target);
+            } apply {
+                ApproximatelyMultiplexPauli(tolerance, coefficients, PauliZ, control, target);
+            }
         } elif pauli == PauliY {
-            let op = ApproximatelyMultiplexPauli(tolerance, coefficients, PauliX, control, _);
-            ApplyWithCA(Adjoint S, op, target);
+            within {
+                Adjoint S(target);
+            } apply {
+                ApproximatelyMultiplexPauli(tolerance, coefficients, PauliX, control, target);
+            }
         } elif pauli == PauliI {
             ApproximatelyApplyDiagonalUnitary(tolerance, coefficients, control);
         } else {
             fail $"MultiplexPauli failed. Invalid pauli {pauli}.";
         }
     }
-
-    /// # Summary
-    /// Given two operations, applies one as conjugated with the other.
-    ///
-    /// # Description
-    /// Given two operations, respectively described by unitary operators $U$
-    /// and $V$, applies them in the sequence $U^{\dagger} V U$. That is,
-    /// this operation implements the unitary operator given by $V$ conjugated
-    /// with $U$.
-    ///
-    /// # Input
-    /// ## outerOperation
-    /// The operation $U$ that should be used to conjugate $V$. Note that the
-    /// outer operation $U$ needs to be adjointable, but does not
-    /// need to be controllable.
-    /// ## innerOperation
-    /// The operation $V$ being conjugated.
-    /// ## target
-    /// The input to be provided to the outer and inner operations.
-    ///
-    /// # Type Parameters
-    /// ## 'T
-    /// The target on which each of the inner and outer operations act.
-    ///
-    /// # Remarks
-    /// The outer operation is always assumed to be adjointable, but does not
-    /// need to be controllable in order for the combined operation to be
-    /// controllable.
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Canon.ApplyWith
-    /// - Microsoft.Quantum.Canon.ApplyWithA
-    /// - Microsoft.Quantum.Canon.ApplyWithC
-    operation ApplyWithCA<'T>(outerOperation : ('T => Unit is Adj), innerOperation : ('T => Unit is Adj + Ctl), target : 'T) : Unit {
-        // TODO: Remove this.
-        body (...) {
-            outerOperation(target);
-            innerOperation(target);
-            Adjoint outerOperation(target);
-        }
-
-        adjoint auto;
-
-        controlled (controlRegister, ...) {
-            outerOperation(target);
-            Controlled innerOperation(controlRegister, target);
-            Adjoint outerOperation(target);
-        }
-
-        controlled adjoint auto;
-    }
-
 
     /// # Summary
     /// Implementation step of arbitrary state preparation procedure.
@@ -347,7 +299,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # Output
     /// A tuple containing `(ComplexPolar(r, t), phi, theta)`.
-    function BlochSphereCoordinates (a0 : ComplexPolar, a1 : ComplexPolar) : (ComplexPolar, Double, Double) {
+    internal function BlochSphereCoordinates (a0 : ComplexPolar, a1 : ComplexPolar) : (ComplexPolar, Double, Double) {
         let abs0 = AbsComplexPolar(a0);
         let abs1 = AbsComplexPolar(a1);
         let arg0 = ArgComplexPolar(a0);
@@ -398,7 +350,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # See Also
     /// - Microsoft.Quantum.Canon.ApplyDiagonalUnitary
-    operation ApproximatelyApplyDiagonalUnitary(tolerance : Double, coefficients : Double[], qubits : Qubit[])
+    internal operation ApproximatelyApplyDiagonalUnitary(tolerance : Double, coefficients : Double[], qubits : Qubit[])
     : Unit is Adj + Ctl {
         if IsEmpty(qubits) {
             fail "operation ApplyDiagonalUnitary -- Number of qubits must be greater than 0.";
@@ -463,7 +415,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # See Also
     /// - Microsoft.Quantum.Canon.MultiplexZ
-    operation ApproximatelyMultiplexZ(
+    internal operation ApproximatelyMultiplexZ(
         tolerance : Double,
         coefficients : Double[],
         control : Qubit[],
@@ -546,27 +498,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         angle : Double, idxTarget : Int, register : Qubit[]
     ) : Unit is Adj + Ctl {
         Exp([PauliI], angle, [register[idxTarget]]);
-    }
-
-    /// # Summary
-    /// Returns true if and only if input range is empty.
-    ///
-    /// # Input
-    /// ## rng
-    /// Any range
-    ///
-    /// # Output
-    /// True, if and only if `rng` is empty
-    ///
-    /// # Remark
-    /// This function needs to check at most one range index
-    /// to determine whether the range is empty.
-    function IsRangeEmpty(rng : Range) : Bool {
-        // TODO: Consider moving and making public
-        for idx in rng {
-            return false;
-        }
-        return true;
     }
 
 }

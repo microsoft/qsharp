@@ -7,6 +7,7 @@ mod arithmetic;
 mod arrays;
 mod canon;
 mod convert;
+mod core;
 mod diagnostics;
 mod math;
 mod measurement;
