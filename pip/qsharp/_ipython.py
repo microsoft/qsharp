@@ -20,6 +20,7 @@ def register_magic():
             return get_interpreter().interpret(cell, callback)
         except QSharpError as e:
             display(Pretty(str(e)))
+            raise QSharpCellError()
 
 
 def enable_classic_notebook_codemirror_mode():
@@ -44,3 +45,16 @@ def enable_classic_notebook_codemirror_mode():
 
     # This will run the JavaScript in the context of the frontend.
     display(JavaScriptWithPlainTextFallback(js_to_inject))
+
+
+class QSharpCellError(BaseException):
+    """
+    Error raised when a %%qsharp cell fails.
+    """
+
+    def _render_traceback_(self):
+        # We want to specifically override the traceback so that
+        # this error is not shown in the notebook cell output. We will
+        # always dump the Q# error directly from the interpreter,
+        # so the Python error information is unnecessary and distracting.
+        return [" "]
