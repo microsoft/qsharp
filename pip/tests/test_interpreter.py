@@ -34,7 +34,7 @@ def test_dump_output() -> None:
     def callback(output):
         nonlocal called
         called = True
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+        assert output.__repr__() == "STATE:\n|10⟩: 1.0000+0.0000𝑖"
 
     called = False
     value = e.interpret(
@@ -72,7 +72,7 @@ def test_dump_machine() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
 
     def callback(output):
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+        assert output.__repr__() == "STATE:\n|10⟩: 1.0000+0.0000𝑖"
 
     value = e.interpret(
         """

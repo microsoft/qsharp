@@ -38,6 +38,9 @@ pub fn fmt_basis_state_label(id: &BigUint, qubit_count: usize) -> String {
     // This will generate a bit string that shows the qubits in the order
     // of allocation, left to right.
     format!("{:0>qubit_count$}", id.to_str_radix(2))
+        .chars()
+        .rev()
+        .collect::<String>()
 }
 
 pub trait Receiver {
