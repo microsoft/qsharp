@@ -17,7 +17,7 @@ namespace QuantumDynamics {
 
 
     @EntryPoint()
-    operation RunTrotteriztion() : Unit {
+    operation Main() : Unit {
         // n : Int, m : Int, t: Double, u : Double, tstep : Double
         
         let n = 30;
