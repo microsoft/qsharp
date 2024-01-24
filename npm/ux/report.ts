@@ -39,7 +39,7 @@ export function CreateReport(result: SingleEstimateResult): ReportData {
     explanation: `This is a runtime estimate for the execution time of the algorithm. In general, the execution time corresponds to the duration of one logical cycle (${numberFormat.format(
       result.logicalQubit.logicalCycleTime,
     )} nanosecs) multiplied by the ${numberFormat.format(
-      result.physicalCountsFormatted.algorithmicLogicalDepth,
+      result.physicalCounts.breakdown.algorithmicLogicalDepth,
     )} logical cycles to run the algorithm. If however the duration of a single T factory (here: ${numberFormat.format(
       result.tfactory == null ? 0 : result.tfactory.runtime,
     )} nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory.`,
@@ -108,7 +108,7 @@ export function CreateReport(result: SingleEstimateResult): ReportData {
     label: "Logical depth",
     description: `Number of logical cycles performed`,
     explanation: `This number is usually equal to the logical depth of the algorithm, which is ${numberFormat.format(
-      result.physicalCountsFormatted.algorithmicLogicalDepth,
+      result.physicalCounts.breakdown.algorithmicLogicalDepth,
     )}. However, in the case in which a single T factory is slower than the execution time of the algorithm, we adjust the logical cycle depth to exceed the T factory's execution time.`,
   });
   entries.push({
@@ -553,7 +553,7 @@ export function CreateReport(result: SingleEstimateResult): ReportData {
   entries.push({
     path: "physicalCountsFormatted/logicalDepthFactor",
     label: "Logical depth factor",
-    description: `Factor, the initial number of logical cycles is multiplied by`,
+    description: `Factor the initial number of logical cycles is multiplied by`,
     explanation: `This is the factor takes into account a potential overhead to the initial number of logical cycles.`,
   });
   entries.push({

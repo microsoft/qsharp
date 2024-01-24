@@ -54,10 +54,10 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn get_block(&mut self, id: BlockId) -> &'a Block;
-    fn get_expr(&mut self, id: ExprId) -> &'a Expr;
-    fn get_pat(&mut self, id: PatId) -> &'a Pat;
-    fn get_stmt(&mut self, id: StmtId) -> &'a Stmt;
+    fn get_block(&self, id: BlockId) -> &'a Block;
+    fn get_expr(&self, id: ExprId) -> &'a Expr;
+    fn get_pat(&self, id: PatId) -> &'a Pat;
+    fn get_stmt(&self, id: StmtId) -> &'a Stmt;
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {

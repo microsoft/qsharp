@@ -39,7 +39,7 @@ const columnNames = [
   "Physical qubits",
 ];
 
-const initialColumns = [0, 1, 2, 3, 4, 10, 11, 12];
+const initialColumns = [0, 2, 3, 10, 11, 12];
 
 const xAxis: Axis = {
   isTime: true,
@@ -89,7 +89,7 @@ function frontierEntryToPlotEntry(entry: FrontierEntry): PlotItem {
     y: entry.physicalCounts.physicalQubits,
     label:
       entry.physicalCountsFormatted.runtime +
-      " " +
+      ", physical qubits: " +
       entry.physicalCountsFormatted.physicalQubits,
   };
 }
@@ -104,7 +104,7 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
           y: data.physicalCounts.physicalQubits,
           label:
             data.physicalCountsFormatted.runtime +
-            " " +
+            ", physical qubits: " +
             data.physicalCountsFormatted.physicalQubits,
         },
       ],
@@ -222,7 +222,7 @@ export function EstimatesOverview(props: {
       </details>
       <details open>
         <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Qubit-time diagram
+          Space-time diagram
         </summary>
         <ScatterChart
           xAxis={xAxis}
