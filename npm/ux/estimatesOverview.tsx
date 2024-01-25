@@ -21,7 +21,6 @@ import {
   ScatterSeries,
   SelectPoint,
 } from "./scatterChart.js";
-import { findParentByClassName } from "./utils.js";
 
 const columnNames = [
   "Run name",
@@ -155,7 +154,7 @@ export function EstimatesOverview(props: {
     // new rows do not steal focus from the user selected row.
     props.estimatesData.forEach((data) => (data.new = false));
 
-    const root = ev ? findRoot(ev) : undefined;
+    const root = findRoot(ev);
     if (root) {
       HideTooltip(root);
     }
@@ -178,8 +177,12 @@ export function EstimatesOverview(props: {
     }
   }
 
-  function findRoot(ev: Event): Element | undefined {
-    return findParentByClassName(ev, "qs-estimatesOverview");
+  function findRoot(ev?: Event): Element | undefined {
+    return (
+      (ev?.currentTarget as Element | undefined)?.closest(
+        "#qs-estimatesOverview",
+      ) ?? undefined
+    );
   }
 
   const colormap =
@@ -190,7 +193,7 @@ export function EstimatesOverview(props: {
   if (props.isSimplifiedView) {
     return (
       <>
-        <g class="qs-estimatesOverview">
+        <g id="qs-estimatesOverview">
           <ResultsTable
             columnNames={columnNames}
             rows={props.estimatesData.map((dataItem, index) =>
@@ -217,7 +220,7 @@ export function EstimatesOverview(props: {
 
   return (
     <>
-      <g class="qs-estimatesOverview">
+      <g id="qs-estimatesOverview">
         <details open>
           <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
             Results
