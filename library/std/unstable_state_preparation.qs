@@ -111,6 +111,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         coefficients : ComplexPolar[],
         qubits : Qubit[]
     ) : Unit is Adj + Ctl {
+
         let nQubits = Length(qubits);
         // pad coefficients at tail length to a power of 2.
         let coefficientsPadded = Padded(-2 ^ nQubits, ComplexPolar(0.0, 0.0), coefficients);
@@ -131,6 +132,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         idxTarget : Int,
         register: Qubit[]
     ) : Unit is Adj + Ctl {
+
         // For each 2D block, compute disentangling single-qubit rotation parameters
         let (disentanglingY, disentanglingZ, newCoefficients) = StatePreparationSBMComputeCoefficients(coefficients);
         if (AnyOutsideToleranceD(tolerance, disentanglingZ)) {
@@ -199,6 +201,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         pauli : Pauli,
         control : Qubit[],
         target : Qubit) : Unit is Adj + Ctl {
+
         if pauli == PauliZ {
             ApproximatelyMultiplexZ(tolerance, coefficients, control, target);
         } elif pauli == PauliX {
@@ -222,16 +225,18 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
     /// # Summary
     /// Implementation step of arbitrary state preparation procedure.
-    internal function StatePreparationSBMComputeCoefficients(coefficients : ComplexPolar[]) : (Double[], Double[], ComplexPolar[]) {
-        mutable disentanglingZ = [0.0, size = Length(coefficients) / 2];
-        mutable disentanglingY = [0.0, size = Length(coefficients) / 2];
-        mutable newCoefficients = [ComplexPolar(0.0, 0.0), size = Length(coefficients) / 2];
+    internal function StatePreparationSBMComputeCoefficients(
+        coefficients : ComplexPolar[]) : (Double[], Double[], ComplexPolar[]) {
+
+        mutable disentanglingZ = [];
+        mutable disentanglingY = [];
+        mutable newCoefficients = [];
 
         for idxCoeff in 0 .. 2 .. Length(coefficients) - 1 {
             let (rt, phi, theta) = BlochSphereCoordinates(coefficients[idxCoeff], coefficients[idxCoeff + 1]);
-            set disentanglingZ w/= idxCoeff / 2 <- 0.5 * phi;
-            set disentanglingY w/= idxCoeff / 2 <- 0.5 * theta;
-            set newCoefficients w/= idxCoeff / 2 <- rt;
+            set disentanglingZ += [0.5 * phi];
+            set disentanglingY += [0.5 * theta];
+            set newCoefficients += [rt];
         }
 
         return (disentanglingY, disentanglingZ, newCoefficients);
@@ -252,7 +257,10 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # Output
     /// A tuple containing `(ComplexPolar(r, t), phi, theta)`.
-    internal function BlochSphereCoordinates (a0 : ComplexPolar, a1 : ComplexPolar) : (ComplexPolar, Double, Double) {
+    internal function BlochSphereCoordinates (
+        a0 : ComplexPolar,
+        a1 : ComplexPolar) : (ComplexPolar, Double, Double) {
+
         let abs0 = AbsComplexPolar(a0);
         let abs1 = AbsComplexPolar(a1);
         let arg0 = ArgComplexPolar(a0);
@@ -300,8 +308,11 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// - Synthesis of Quantum Logic Circuits
     ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
     ///   https://arxiv.org/abs/quant-ph/0406176
-    internal operation ApproximatelyApplyDiagonalUnitary(tolerance : Double, coefficients : Double[], qubits : Qubit[])
-    : Unit is Adj + Ctl {
+    internal operation ApproximatelyApplyDiagonalUnitary(
+        tolerance : Double,
+        coefficients : Double[],
+        qubits : Qubit[]) : Unit is Adj + Ctl {
+            
         if IsEmpty(qubits) {
             fail "operation ApplyDiagonalUnitary -- Number of qubits must be greater than 0.";
         }
@@ -410,12 +421,12 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// Implementation step of multiply-controlled Z rotations.
     internal function MultiplexZCoefficients(coefficients : Double[]) : (Double[], Double[]) {
         let newCoefficientsLength = Length(coefficients) / 2;
-        mutable coefficients0 = [0.0, size = newCoefficientsLength];
-        mutable coefficients1 = [0.0, size = newCoefficientsLength];
+        mutable coefficients0 = [];
+        mutable coefficients1 = [];
 
         for idxCoeff in 0 .. newCoefficientsLength - 1 {
-            set coefficients0 w/= idxCoeff <- 0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength]);
-            set coefficients1 w/= idxCoeff <- 0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength]);
+            set coefficients0 += [0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])];
+            set coefficients1 += [0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])];
         }
 
         return (coefficients0, coefficients1);
