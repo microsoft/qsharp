@@ -7,6 +7,7 @@ use qsc::{
     compile::{self, Error},
     hir::{self, PackageId},
     incremental::Compiler,
+    line_column::{Encoding, Position},
     resolve,
     target::Profile,
     CompileUnit, PackageStore, PackageType, SourceMap,
@@ -119,12 +120,13 @@ impl Compilation {
             .expect("expected to find user package")
     }
 
-    /// Maps a source-relative offset from the user package
-    /// to a package (`SourceMap`)-relative offset.
-    pub(crate) fn source_offset_to_package_offset(
+    /// Maps a source position from the user package
+    /// to a package (`SourceMap`) offset.
+    pub(crate) fn source_position_to_package_offset(
         &self,
         source_name: &str,
-        mut offset: u32,
+        source_position: Position,
+        position_encoding: Encoding,
     ) -> u32 {
         let unit = self.user_unit();
 
@@ -132,6 +134,9 @@ impl Compilation {
             .sources
             .find_by_name(source_name)
             .expect("source should exist in the user source map");
+
+        let mut offset =
+            source_position.to_utf8_byte_offset(position_encoding, source.contents.as_ref());
 
         let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
         if offset > len {

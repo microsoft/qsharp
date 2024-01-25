@@ -3,16 +3,19 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::{protocol::DiagnosticUpdate, JSFileEntry, LanguageService, UpdateWorker};
+use crate::{protocol::DiagnosticUpdate, Encoding, JSFileEntry, LanguageService, UpdateWorker};
 use expect_test::{expect, Expect};
-use qsc::compile::{self, ErrorKind};
+use qsc::{
+    compile::{self, ErrorKind},
+    line_column::Position,
+};
 use qsc_project::{EntryType, Manifest, ManifestDescriptor};
 use std::{cell::RefCell, future::ready, sync::Arc};
 
 #[tokio::test]
 async fn single_document() {
     let received_errors = RefCell::new(Vec::new());
-    let mut ls = LanguageService::default();
+    let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &received_errors);
 
     ls.update_document("foo.qs", 1, "namespace Foo { }");
@@ -59,7 +62,7 @@ async fn single_document() {
 #[allow(clippy::too_many_lines)]
 async fn single_document_update() {
     let received_errors = RefCell::new(Vec::new());
-    let mut ls = LanguageService::default();
+    let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &received_errors);
 
     ls.update_document("foo.qs", 1, "namespace Foo { }");
@@ -144,7 +147,7 @@ async fn single_document_update() {
 #[allow(clippy::too_many_lines)]
 async fn document_in_project() {
     let received_errors = RefCell::new(Vec::new());
-    let mut ls = LanguageService::default();
+    let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &received_errors);
 
     ls.update_document("this_file.qs", 1, "namespace Foo { }");
@@ -206,7 +209,7 @@ async fn document_in_project() {
 #[tokio::test]
 async fn completions_requested_before_document_load() {
     let errors = RefCell::new(Vec::new());
-    let mut ls = LanguageService::default();
+    let mut ls = LanguageService::new(Encoding::Utf8);
     let _worker = create_update_worker(&mut ls, &errors);
 
     ls.update_document(
@@ -219,13 +222,22 @@ async fn completions_requested_before_document_load() {
     // a document hasn't fully loaded
 
     // this should be empty, because the doc hasn't loaded
-    assert!(ls.get_completions("foo.qs", 76).items.is_empty());
+    assert!(ls
+        .get_completions(
+            "foo.qs",
+            Position {
+                line: 0,
+                column: 76
+            }
+        )
+        .items
+        .is_empty());
 }
 
 #[tokio::test]
 async fn completions_requested_after_document_load() {
     let errors = RefCell::new(Vec::new());
-    let mut ls = LanguageService::default();
+    let mut ls = LanguageService::new(Encoding::Utf8);
     let mut worker = create_update_worker(&mut ls, &errors);
 
     // this test is a contrast to `completions_requested_before_document_load`
@@ -239,7 +251,18 @@ async fn completions_requested_after_document_load() {
     worker.apply_pending().await;
 
     // this should be empty, because the doc hasn't loaded
-    assert_eq!(ls.get_completions("foo.qs", 76).items.len(), 13);
+    assert_eq!(
+        ls.get_completions(
+            "foo.qs",
+            Position {
+                line: 0,
+                column: 76
+            }
+        )
+        .items
+        .len(),
+        13
+    );
 }
 
 fn check_errors_and_compilation(

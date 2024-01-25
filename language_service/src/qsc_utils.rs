@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{compilation::Compilation, protocol};
+use crate::{
+    compilation::Compilation,
+    protocol::{self},
+};
+use qsc::line_column::{Encoding, Range};
 use qsc::{ast, hir::PackageId, SourceMap, Span};
 
 pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
@@ -14,7 +18,7 @@ pub(crate) fn span_touches(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset <= span.hi
 }
 
-pub(crate) fn protocol_span(span: Span, source_map: &SourceMap) -> protocol::Span {
+pub(crate) fn into_range(encoding: Encoding, span: Span, source_map: &SourceMap) -> Range {
     let lo_source = source_map
         .find_by_offset(span.lo)
         .expect("source should exist for offset");
@@ -25,25 +29,25 @@ pub(crate) fn protocol_span(span: Span, source_map: &SourceMap) -> protocol::Spa
 
     // Note that lo and hi offsets must always come from the same source.
     assert!(
-        lo_source.name == hi_source.name,
+        lo_source.offset == hi_source.offset,
         "span start and end must come from the same source"
     );
-    protocol::Span {
-        start: span.lo - lo_source.offset,
-        end: span.hi - hi_source.offset,
-    }
+
+    Range::from_span(encoding, &lo_source.contents, &(span - lo_source.offset))
 }
 
-pub(crate) fn protocol_location(
+pub(crate) fn into_location(
+    position_encoding: Encoding,
     compilation: &Compilation,
     location: Span,
     package_id: PackageId,
 ) -> protocol::Location {
-    let source = compilation
+    let source_map = &compilation
         .package_store
         .get(package_id)
         .expect("package id must exist in store")
-        .sources
+        .sources;
+    let source = source_map
         .find_by_offset(location.lo)
         .expect("source should exist for offset");
     let source_name = if package_id == compilation.user_package_id {
@@ -56,10 +60,11 @@ pub(crate) fn protocol_location(
 
     protocol::Location {
         source: source_name,
-        span: protocol::Span {
-            start: location.lo - source.offset,
-            end: location.hi - source.offset,
-        },
+        span: Range::from_span(
+            position_encoding,
+            &source.contents,
+            &(location - source.offset),
+        ),
     }
 }
 

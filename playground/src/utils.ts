@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { IPosition, IRange } from "qsharp-lang";
+
 // Utility functions to convert source code to and from base64.
 //
 // The btoa function expects a string of bytes (i.e. in the range x00 - xFF), however
@@ -78,4 +80,21 @@ export async function compressedBase64ToCode(base64: string) {
   const decoder = new TextDecoder();
   const code = decoder.decode(decompressedBuff);
   return code;
+}
+
+export function monacoPositionToLsPosition(
+  position: monaco.Position,
+): IPosition {
+  // Monaco uses 1-based indices while the language service (LSP) uses 0-based
+  return { line: position.lineNumber - 1, character: position.column - 1 };
+}
+
+export function lsRangeToMonacoRange(range: IRange): monaco.IRange {
+  // Monaco uses 1-based indices while the language service (LSP) uses 0-based
+  return new monaco.Range(
+    range.start.line + 1,
+    range.start.character + 1,
+    range.end.line + 1,
+    range.end.character + 1,
+  );
 }

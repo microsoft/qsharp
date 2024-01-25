@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { type VSDiagnostic } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
-import { VSDiagnostic, mapDiagnostics } from "../vsdiagnostic.js";
 import { IServiceProxy, ServiceState } from "../worker-proxy.js";
 import { eventStringToMsg } from "./common.js";
 import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
@@ -63,7 +63,7 @@ export class Compiler implements ICompiler {
     languageService.stop_background_work();
     await work;
     languageService.free();
-    return mapDiagnostics(diags, code);
+    return diags;
   }
 
   async getQir(sources: [string, string][]): Promise<string> {

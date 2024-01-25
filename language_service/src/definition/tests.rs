@@ -11,15 +11,17 @@ use crate::{
     test_utils::{
         compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
     },
+    Encoding,
 };
 
 /// Asserts that the definition given at the cursor position matches the expected range.
 /// The cursor position is indicated by a `↘` marker in the source text.
 /// The expected definition range is indicated by `◉` markers in the source text.
 fn assert_definition(source_with_markers: &str) {
-    let (compilation, cursor_offset, target_spans) =
+    let (compilation, cursor_position, target_spans) =
         compile_with_fake_stdlib_and_markers(source_with_markers);
-    let actual_definition = get_definition(&compilation, "<source>", cursor_offset);
+    let actual_definition =
+        get_definition(&compilation, "<source>", cursor_position, Encoding::Utf8);
     let expected_definition = if target_spans.is_empty() {
         None
     } else {
@@ -32,9 +34,9 @@ fn assert_definition(source_with_markers: &str) {
 }
 
 fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
-    let (compilation, cell_uri, offset, target_spans) =
+    let (compilation, cell_uri, position, target_spans) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
-    let actual_definition = get_definition(&compilation, &cell_uri, offset);
+    let actual_definition = get_definition(&compilation, &cell_uri, position, Encoding::Utf8);
     let expected_definition = if target_spans.is_empty() {
         None
     } else {
@@ -47,8 +49,10 @@ fn assert_definition_notebook(cells_with_markers: &[(&str, &str)]) {
 }
 
 fn check(source_with_markers: &str, expect: &Expect) {
-    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_markers);
-    let actual_definition = get_definition(&compilation, "<source>", cursor_offset);
+    let (compilation, cursor_position, _) =
+        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual_definition =
+        get_definition(&compilation, "<source>", cursor_position, Encoding::Utf8);
     expect.assert_debug_eq(&actual_definition);
 }
 
@@ -298,9 +302,15 @@ fn std_call() {
             Some(
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Span {
-                        start: 49,
-                        end: 53,
+                    span: Range {
+                        start: Position {
+                            line: 1,
+                            column: 26,
+                        },
+                        end: Position {
+                            line: 1,
+                            column: 30,
+                        },
                     },
                 },
             )
@@ -400,9 +410,15 @@ fn std_udt() {
             Some(
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Span {
-                        start: 211,
-                        end: 214,
+                    span: Range {
+                        start: Position {
+                            line: 4,
+                            column: 24,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 27,
+                        },
                     },
                 },
             )
@@ -426,9 +442,15 @@ fn std_udt_udt_field() {
             Some(
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Span {
-                        start: 218,
-                        end: 219,
+                    span: Range {
+                        start: Position {
+                            line: 4,
+                            column: 31,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 32,
+                        },
                     },
                 },
             )

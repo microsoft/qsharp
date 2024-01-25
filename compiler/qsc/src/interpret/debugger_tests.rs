@@ -4,6 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use crate::interpret::Debugger;
+use crate::line_column::Encoding;
 use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
 use qsc_fir::fir::StmtId;
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -126,7 +127,8 @@ mod given_debugger {
         #[test]
         fn in_one_level_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            let mut debugger =
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8)?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -145,7 +147,8 @@ mod given_debugger {
         #[test]
         fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            let mut debugger =
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8)?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -160,7 +163,8 @@ mod given_debugger {
         #[test]
         fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            let mut debugger =
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8)?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -182,7 +186,8 @@ mod given_debugger {
         #[test]
         fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
-            let mut debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())?;
+            let mut debugger =
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8)?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
