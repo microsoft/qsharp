@@ -9,12 +9,12 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
     /// # Summary
     /// Given a set of coefficients and a little-endian encoded quantum register,
-    /// prepares an state on that register described by the given coefficients.
+    /// prepares a state on that register described by the given coefficients.
     ///
     /// # Description
     /// This operation prepares an arbitrary quantum
-    /// state $\ket{\psi}$ with coefficients $\alpha_j\ge 0$ from
-    /// the $n$-qubit computational basis state $\ket{0...0}$.
+    /// state |𝜓⟩ with coefficients 𝑎ⱼ from
+    /// the n-qubit computational basis state |0...0⟩.
     ///
     /// The action of U on the all-zeros state is given by
     /// $$
@@ -25,20 +25,19 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # Input
     /// ## coefficients
-    /// Array of up to $2^n$ real coefficients. The $j$th coefficient
-    /// indexes the number state $\ket{j}$ encoded in little-endian format.
+    /// Array of up to 2ⁿ real coefficients. The j-th coefficient
+    /// indexes the number state |j⟩ encoded in little-endian format.
     ///
     /// ## qubits
     /// Qubit register encoding number states in little-endian format. This is
-    /// expected to be initialized in the computational basis state
-    /// $\ket{0...0}$.
+    /// expected to be initialized in the computational basis state |0...0⟩.
     ///
     /// # Remarks
-    /// `coefficients` will be padded with
-    /// elements $\alpha_j = 0.0$ if fewer than $2^n$ are specified.
+    /// `coefficients` will be normalized and padded with
+    /// elements 𝑎ⱼ = 0.0 if fewer than 2ⁿ are specified.
     ///
     /// # Example
-    /// The following snippet prepares the quantum state $\ket{\psi}=\sqrt{1/8}\ket{0}+\sqrt{7/8}\ket{2}$
+    /// The following snippet prepares the quantum state |𝜓⟩=√(1/8)|0⟩+√(7/8)|2⟩
     /// in the qubit register `qubitsLE`.
     /// ```qsharp
     /// let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
@@ -53,7 +52,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///   https://arxiv.org/abs/quant-ph/0406176
     ///
     /// # See Also
-    /// - Microsoft.Quantum.Preparation.ApproximatelyPrepareArbitraryState
+    /// - Microsoft.Quantum.Unstable.StatePreparation.ApproximatelyPreparePureStateCP
     operation PreparePureStateD(coefficients : Double[], qubits : Qubit[]) : Unit is Adj + Ctl {
         let coefficientsAsComplexPolar = Mapped(a -> ComplexAsComplexPolar(Complex(a, 0.0)), coefficients);
         ApproximatelyPreparePureStateCP(0.0, coefficientsAsComplexPolar, qubits);
@@ -61,15 +60,15 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
     /// # Summary
     /// Given a set of coefficients and a little-endian encoded quantum register,
-    /// prepares an state on that register described by the given coefficients,
+    /// prepares a state on that register described by the given coefficients,
     /// up to a given approximation tolerance.
     ///
     /// # Description
     /// This operation prepares an arbitrary quantum
-    /// state $\ket{\psi}$ with complex coefficients $r_j e^{i t_j}$ from
-    /// the $n$-qubit computational basis state $\ket{0 \cdots 0}$.
+    /// state |𝜓⟩ with complex coefficients rⱼ·𝒆^(𝒊·tⱼ) from
+    /// the n-qubit computational basis state |0...0⟩.
     /// In particular, the action of this operation can be simulated by the
-    /// a unitary transformation $U$ which acts on the all-zeros state as
+    /// a unitary transformation U which acts on the all-zeros state as
     ///
     /// $$
     /// \begin{align}
@@ -88,19 +87,19 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// The approximation tolerance to be used when preparing the given state.
     ///
     /// ## coefficients
-    /// Array of up to $2^n$ complex coefficients represented by their
-    /// absolute value and phase $(r_j, t_j)$. The $j$th coefficient
-    /// indexes the number state $\ket{j}$ encoded in little-endian format.
+    /// Array of up to 2ⁿ complex coefficients represented by their
+    /// absolute value and phase (rⱼ, tⱼ). The j-th coefficient
+    /// indexes the number state |j⟩ encoded in little-endian format.
     ///
     /// ## qubits
     /// Qubit register encoding number states in little-endian format. This is
     /// expected to be initialized in the computational basis state
-    /// $\ket{0...0}$.
+    /// |0...0⟩.
     ///
     /// # Remarks
-    /// Negative input coefficients $r_j < 0$ will be treated as though
-    /// positive with value $|r_j|$. `coefficients` will be padded with
-    /// elements $(r_j, t_j) = (0.0, 0.0)$ if fewer than $2^n$ are
+    /// Negative input coefficients rⱼ < 0 will be treated as though
+    /// positive with value |rⱼ|. `coefficients` will be padded with
+    /// elements (rⱼ, tⱼ) = (0.0, 0.0) if fewer than 2ⁿ are
     /// specified.
     ///
     /// # References
@@ -112,89 +111,48 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         coefficients : ComplexPolar[],
         qubits : Qubit[]
     ) : Unit is Adj + Ctl {
-        let op = CompileApproximateArbitraryStatePreparation(tolerance, coefficients, Length(qubits));
-        op(qubits);
-    }
-
-    internal function CompileApproximateArbitraryStatePreparation(
-        tolerance : Double,
-        coefficients : ComplexPolar[],
-        nQubits : Int
-    ) : (Qubit[] => Unit is Adj + Ctl) {
+        let nQubits = Length(qubits);
         // pad coefficients at tail length to a power of 2.
         let coefficientsPadded = Padded(-2 ^ nQubits, ComplexPolar(0.0, 0.0), coefficients);
         let idxTarget = 0;
-        let rngControl =
-            // Determine what controls to apply to `op`.
-            nQubits > 1
-            ? (1 .. (nQubits - 1))
-            | (1..0);
-        let plan = ApproximatelyUnprepareArbitraryStatePlan(
-            tolerance, coefficientsPadded, (rngControl, idxTarget)
+        // Determine what controls to apply
+        let rngControl = nQubits > 1 ? (1 .. (nQubits - 1)) | (1..0);
+        Adjoint ApproximatelyUnprepareArbitraryState(
+            tolerance, coefficientsPadded, rngControl, idxTarget, qubits
         );
-        let unprepare = BoundCA(plan);
-        return Adjoint unprepare;
     }
-
-    // TODO: Remove this.
-    function BoundCA<'T> (operations : ('T => Unit is Adj + Ctl)[]) : ('T => Unit is Adj + Ctl) {
-        return ApplyBoundCA(operations, _);
-    }
-    // TODO: Remove this.
-    internal operation ApplyBoundCA<'T> (operations : ('T => Unit is Adj + Ctl)[], target : 'T)
-    : Unit is Adj + Ctl {
-        for op in operations {
-            op(target);
-        }
-    }
-
 
     /// # Summary
     /// Implementation step of arbitrary state preparation procedure.
-    ///
-    /// # See Also
-    /// - PrepareArbitraryState
-    /// - Microsoft.Quantum.Canon.MultiplexPauli
-    internal function ApproximatelyUnprepareArbitraryStatePlan(
-        tolerance : Double, coefficients : ComplexPolar[],
-        (rngControl : Range, idxTarget : Int)
-    )
-    : (Qubit[] => Unit is Adj + Ctl)[] {
-        mutable plan = [];
-
+    internal operation ApproximatelyUnprepareArbitraryState(
+        tolerance : Double,
+        coefficients : ComplexPolar[],
+        rngControl : Range,
+        idxTarget : Int,
+        register: Qubit[]
+    ) : Unit is Adj + Ctl {
         // For each 2D block, compute disentangling single-qubit rotation parameters
         let (disentanglingY, disentanglingZ, newCoefficients) = StatePreparationSBMComputeCoefficients(coefficients);
         if (AnyOutsideToleranceD(tolerance, disentanglingZ)) {
-            set plan += [ApplyMultiplexStep(tolerance, disentanglingZ, PauliZ, (rngControl, idxTarget), _)];
+            ApproximatelyMultiplexPauli(tolerance, disentanglingZ, PauliZ, register[rngControl], register[idxTarget]);
+
         }
         if (AnyOutsideToleranceD(tolerance, disentanglingY)) {
-            set plan += [ApplyMultiplexStep(tolerance, disentanglingY, PauliY, (rngControl, idxTarget), _)];
+            ApproximatelyMultiplexPauli(tolerance, disentanglingY, PauliY, register[rngControl], register[idxTarget]);
         }
-
         // target is now in |0> state up to the phase given by arg of newCoefficients.
 
         // Continue recursion while there are control qubits.
         if (IsRangeEmpty(rngControl)) {
             let (abs, arg) = newCoefficients[0]!;
             if (AbsD(arg) > tolerance) {
-                set plan += [ApplyGlobalRotationStep(-1.0 * arg, idxTarget, _)];
+                Exp([PauliI], -1.0 * arg, [register[idxTarget]]);
             }
         } elif (AnyOutsideToleranceCP(tolerance, newCoefficients)) {
             let newControl = (RangeStart(rngControl) + 1)..RangeStep(rngControl)..RangeEnd(rngControl);
             let newTarget = RangeStart(rngControl);
-            set plan += ApproximatelyUnprepareArbitraryStatePlan(tolerance, newCoefficients, (newControl, newTarget));
+            ApproximatelyUnprepareArbitraryState(tolerance, newCoefficients, newControl, newTarget, register);
         }
-
-        return plan;
-    }
-
-
-    internal operation ApplyMultiplexStep(
-        tolerance : Double, disentangling : Double[], axis : Pauli,
-        (rngControl : Range, idxTarget : Int),
-        register : Qubit[]
-    ) : Unit is Adj + Ctl {
-        ApproximatelyMultiplexPauli(tolerance, disentangling, axis, register[rngControl], register[idxTarget]);
     }
 
     /// # Summary
@@ -235,9 +193,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// # Remarks
     /// `coefficients` will be padded with elements $\theta_j = 0.0$ if
     /// fewer than $2^n$ are specified.
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Canon.MultiplexPauli
     internal operation ApproximatelyMultiplexPauli(
         tolerance : Double,
         coefficients : Double[],
@@ -267,8 +222,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
     /// # Summary
     /// Implementation step of arbitrary state preparation procedure.
-    /// # See Also
-    /// - Microsoft.Quantum.Preparation.PrepareArbitraryState
     internal function StatePreparationSBMComputeCoefficients(coefficients : ComplexPolar[]) : (Double[], Double[], ComplexPolar[]) {
         mutable disentanglingZ = [0.0, size = Length(coefficients) / 2];
         mutable disentanglingY = [0.0, size = Length(coefficients) / 2];
@@ -347,9 +300,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// - Synthesis of Quantum Logic Circuits
     ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
     ///   https://arxiv.org/abs/quant-ph/0406176
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Canon.ApplyDiagonalUnitary
     internal operation ApproximatelyApplyDiagonalUnitary(tolerance : Double, coefficients : Double[], qubits : Qubit[])
     : Unit is Adj + Ctl {
         if IsEmpty(qubits) {
@@ -412,9 +362,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// - Synthesis of Quantum Logic Circuits
     ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
     ///   https://arxiv.org/abs/quant-ph/0406176
-    ///
-    /// # See Also
-    /// - Microsoft.Quantum.Canon.MultiplexZ
     internal operation ApproximatelyMultiplexZ(
         tolerance : Double,
         coefficients : Double[],
@@ -461,8 +408,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
     /// # Summary
     /// Implementation step of multiply-controlled Z rotations.
-    /// # See Also
-    /// - Microsoft.Quantum.Canon.MultiplexZ
     internal function MultiplexZCoefficients(coefficients : Double[]) : (Double[], Double[]) {
         let newCoefficientsLength = Length(coefficients) / 2;
         mutable coefficients0 = [0.0, size = newCoefficientsLength];
@@ -478,7 +423,10 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
     internal function AnyOutsideToleranceD(tolerance : Double, coefficients : Double[]) : Bool {
         for coefficient in coefficients {
-            if AbsD(coefficient) >= tolerance { // TODO: Why is this >= and not > ???
+            // NOTE: This function is not used in a recursion termination condition
+            // only to determine if the multiplex step needs to be applied.
+            // For tolerance 0.0 it is always applied due to >= comparison.
+            if AbsD(coefficient) >= tolerance {
                 return true;
             }
         }
@@ -492,12 +440,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
             }
         }
         return false;
-    }
-
-    internal operation ApplyGlobalRotationStep(
-        angle : Double, idxTarget : Int, register : Qubit[]
-    ) : Unit is Adj + Ctl {
-        Exp([PauliI], angle, [register[idxTarget]]);
     }
 
 }
