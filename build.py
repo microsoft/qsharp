@@ -405,6 +405,7 @@ if build_notebooks:
                         "notebook",
                         "--stdout",
                         "--ExecutePreprocessor.timeout=60",
+                        "--sanitize-html",
                         "--execute",
                         notebook],
                         check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
