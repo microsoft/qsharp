@@ -411,7 +411,9 @@ if build_notebooks:
     subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
 
     for notebook in notebook_files:
-        subprocess.run([python_bin,
+        print(f"Running {notebook}")
+        # Run the notebook process, capturing stdout and only displaying it if there is an error
+        result = subprocess.run([python_bin,
                         "-m",
                         "nbconvert",
                         "--to",
@@ -420,7 +422,10 @@ if build_notebooks:
                         "--ExecutePreprocessor.timeout=60",
                         "--execute",
                         notebook],
-                        check=True, text=True, cwd=root_dir, env=pip_env)
+                        check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if result.returncode != 0:
+            print(result.stdout)
+            raise Exception(f"Error running {notebook}")
 
     step_end()
 
