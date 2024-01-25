@@ -411,7 +411,6 @@ if build_notebooks:
     subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
 
     for notebook in notebook_files:
-        step_start(f"Running {notebook}")
         subprocess.run([python_bin,
                         "-m",
                         "nbconvert",
@@ -422,7 +421,6 @@ if build_notebooks:
                         "--execute",
                         notebook],
                         check=True, text=True, cwd=root_dir, env=pip_env)
-        step_end()
 
     step_end()
 
