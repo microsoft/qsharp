@@ -408,7 +408,7 @@ if build_notebooks:
                         "--sanitize-html",
                         "--execute",
                         notebook],
-                        check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
         if result.returncode != 0:
             print(result.stdout)
             raise Exception(f"Error running {notebook}")
