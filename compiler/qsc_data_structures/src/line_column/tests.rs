@@ -161,7 +161,7 @@ fn utf_8_multibyte() {
     // chars        | ç        ç        ç
     // code points  | e7       e7       e7
     // utf-8 units  | c3a7     c3a7     c3a7
-    // utf-16 units | e7       e7       e7
+    // utf-16 units | 00e7     00e7     00e7
     let contents = "ççç\nççç";
     check_all_offsets(
         contents,
@@ -228,7 +228,7 @@ fn grapheme_clusters() {
     // chars        | 𝑓                 (        𝑥                 ⃗        )                 ≔                 Σ        ᵢ                 𝑥                 ᵢ                 𝑟                 ᵢ
     // code points  | 1d453             28       1d465             20d7     29       20       2254     20       3a3      1d62     20       1d465             1d62     20       1d45f             1d62
     // utf-8 units  | f09d9193          28       f09d91a5          e28397   29       20       e28994   20       cea3     e1b5a2   20       f09d91a5          e1b5a2   20       f09d919f          e1b5a2
-    // utf-16 units | d835     dc53     28       d835     dc65     20d7     29       20       2254     20       3a3      1d62     20       d835     dc65     1d62     20       d835     dc5f     1d62
+    // utf-16 units | d835     dc53     0028     d835     dc65     20d7     0029     0020     2254     0020     03a3     1d62     0020     d835     dc65     1d62     0020     d835     dc5f     1d62
 
     let contents = "𝑓(𝑥⃗) ≔ Σᵢ 𝑥ᵢ 𝑟ᵢ";
     check_all_offsets(

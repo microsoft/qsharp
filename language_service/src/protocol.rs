@@ -77,10 +77,12 @@ impl Eq for CompletionItem {}
 use std::hash::{Hash, Hasher};
 
 impl Hash for CompletionItem {
-    // use only label and kind for hashing
     fn hash<H: Hasher>(&self, state: &mut H) {
+        // use only user-visible fields for hashing to
+        // dedup items that look exactly the same.
         self.label.hash(state);
         self.kind.hash(state);
+        self.detail.hash(state);
     }
 }
 

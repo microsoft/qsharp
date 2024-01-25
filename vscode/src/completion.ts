@@ -5,6 +5,7 @@ import { ILanguageService, samples } from "qsharp-lang";
 import * as vscode from "vscode";
 import { CompletionItem } from "vscode";
 import { EventType, sendTelemetryEvent } from "./telemetry";
+import { toVscodeRange } from "./common";
 
 export function createCompletionItemProvider(
   languageService: ILanguageService,
@@ -71,16 +72,7 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
       item.sortText = c.sortText;
       item.detail = c.detail;
       item.additionalTextEdits = c.additionalTextEdits?.map((edit) => {
-        return new vscode.TextEdit(
-          new vscode.Range(
-            new vscode.Position(
-              edit.range.start.line,
-              edit.range.start.character,
-            ),
-            new vscode.Position(edit.range.end.line, edit.range.end.character),
-          ),
-          edit.newText,
-        );
+        return new vscode.TextEdit(toVscodeRange(edit.range), edit.newText);
       });
       return item;
     });

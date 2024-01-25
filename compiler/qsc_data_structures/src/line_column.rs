@@ -13,11 +13,24 @@ pub struct Position {
     pub line: u32,
     /// Column offset.
     /// When created using [`Encoding::Utf8`], this is the byte offset.
-    /// When created using [`Encoding::Utf16`], this is the code unit offset.
+    /// When created using [`Encoding::Utf16`], this is the code unit (word) offset.
     pub column: u32,
 }
 
 /// The encoding to use when creating a [`Position`] from a source string and offset.
+///
+/// For reference, when **indexing directly** into a string:
+///     Rust uses UTF-8 byte offsets (only available through conversion into a byte array)
+///     JavaScript uses UTF-16 code unit offsets
+///     Python uses character offsets
+///
+/// Additionally, all these languages provide alternate ways of iterating over
+/// strings, which sometimes use code units and sometimes use characters,
+/// confusing our understanding of what "nth character" means.
+///
+/// Therefore it's important to be aware of exactly how this column offset will be treated
+/// by the code that's using it. e.g. in LSP (language server protocol) and
+/// DAP (debug adapter protocol) it's explicitly defined to use UTF-16 code units.
 #[derive(Clone, Copy, PartialEq, Debug, Eq, Hash)]
 pub enum Encoding {
     Utf8,
@@ -125,16 +138,20 @@ fn positions_from_utf8_byte_offsets<const N: usize>(
     sorted_utf8_byte_offsets: [u32; N],
 ) -> [Position; N] {
     // The below example contains characters that are encoded
-    // with more utf-8 code units (bytes) than utf-16 code units, to demonstrate
-    // how code unit offset will differ depending on the chosen encoding.
+    // with different numbers of code units in utf-8 and utf-16,
+    // to demonstrate how code unit offset will differ depending
+    // on the chosen encoding. Characters can be encoded with:
+    //  One code unit (byte) in utf-8, one code unit (word) in utf-16
+    //  Multiple code units in utf-8, one code unit in utf-16
+    //  Multiple code units in utf-8, surrogate pair in utf-16
 
-    // chars                    | 𝑓                 (        𝑥                 ⃗        )     <eof>
-    // unicode code point       | 1d453             28       1d465             20d7     29
-    // utf-8 units (bytes)      | f09d9193          28       f09d91a5          e28397   29
-    // utf-16 units             | d835     dc53     28       d835     dc65     20d7     29
-    // char offset              | 0                 1        2                 3        4
-    // utf-8 byte offset        | 0                 4        5                 9        12
-    // utf-16 code unit offset  | 0                 2        3                 5        6
+    // chars                    | 𝑓                 (        𝑥                 ⃗        )       Σ     <eof>
+    // unicode code point       | 1d453             28       1d465             20d7     29     3a3
+    // utf-8 units (bytes)      | f09d9193          28       f09d91a5          e28397   29     cea3
+    // utf-16 units             | d835     dc53     0028     d835     dc65     20d7     0029   03a3
+    // char offset              | 0                 1        2                 3        4      5     6
+    // utf-8 byte offset        | 0                 4        5                 9        12     13    15
+    // utf-16 code unit offset  | 0                 2        3                 5        6      7     8
 
     let mut positions = [Position { line: 0, column: 0 }; N];
     let mut i = 0;
