@@ -64,6 +64,7 @@ fn qubit_allocation_intrinsics_analysis_is_correct() {
 
 #[ignore = "work in progress"]
 #[test]
+// TODO (cesarzc): separate each check function call into its own test case using cached compute properties.
 fn core_lib_functions_analysis_is_correct() {
     let compiler = Compiler::new(
         false,
@@ -1151,9 +1152,11 @@ fn std_re_intrisics_analysis_is_correct() {
     );
 }
 
-//#[ignore = "work in progress"] // TODO (cesarzc): remove to work on it from the command line.
+//#[ignore = "work in progress"]
 #[test]
-fn static_qubit_allocation_analysis_is_correct() {
+fn callables_with_cycles_analysis_is_correct() {
+    // Create the initial compute properties structure that contains the properties of the core library, the standard
+    // library and the initial sources.
     let mut compiler = Compiler::new(
         true,
         SourceMap::default(),
@@ -1163,8 +1166,9 @@ fn static_qubit_allocation_analysis_is_correct() {
     .expect("should be able to create a new compiler");
     let mut lowerer = Lowerer::new();
     let mut fir_store = create_fir_package_store(&mut lowerer, compiler.package_store());
-    write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
     let mut compute_properties = PackageStoreComputeProperties::new(&fir_store);
+
+    // Compile the test case of interest and re-analyze the package that contains it.
     let increment = compiler
         .compile_fragments_fail_fast(
             "rca-test",
@@ -1184,11 +1188,24 @@ fn static_qubit_allocation_analysis_is_correct() {
     compiler.update(increment);
     write_fir_store_to_files(&fir_store); // TODO (cesarzc): for debugging purposes only.
     compute_properties.reanalyze_package(package_id, &fir_store);
+    write_compute_properties_to_files(&compute_properties); // TODO (cesarzc): for debugging purposes only.
 
-    // TODO (cesarzc): need to update analyzer APIs (add update) to continue writing this test.
+    // Check that the analysis is correct.
+}
 
-    write_compute_properties_to_files(&compute_properties);
-    // TODO (cesarzc): for debugging purposes only.
+#[ignore = "work in progress"]
+#[test]
+fn static_qubit_allocation_analysis_is_correct() {
+    let compiler = Compiler::new(
+        true,
+        SourceMap::default(),
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    )
+    .expect("should be able to create a new compiler");
+    let mut lowerer = Lowerer::new();
+    let fir_store = create_fir_package_store(&mut lowerer, compiler.package_store());
+    let mut _compute_properties = PackageStoreComputeProperties::new(&fir_store);
 }
 
 #[ignore = "work in progress"]
