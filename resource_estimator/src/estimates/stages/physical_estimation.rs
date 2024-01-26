@@ -11,12 +11,13 @@ use super::{
             MaxPhysicalQubitsTooSmall, NoSolutionFoundForMaxTFactories, NoTFactoriesFound,
         },
         modeling::{ErrorBudget, LogicalQubit},
-        optimization::{find_nondominated_tfactories, Point2D, Population},
+        optimization::{Point2D, Population},
         Result,
     },
     layout::Overhead,
-    tfactory::{TFactory, TFactoryDistillationUnitTemplate},
+    tfactory::TFactory,
 };
+use std::{cmp::Ordering, rc::Rc};
 
 pub trait TPhysicalQubit {
     fn t_gate_error_rate(&self) -> f64;
@@ -35,9 +36,21 @@ pub trait ErrorCorrection<PhysicalQubit: TPhysicalQubit> {
         -> u64;
 }
 
-use std::{cmp::Ordering, rc::Rc};
+pub trait FactoryBuilder<E: ErrorCorrection<P>, P: TPhysicalQubit> {
+    fn find_factories(
+        &self,
+        ftp: &E,
+        qubit: &Rc<P>,
+        output_t_error_rate: f64,
+        max_code_distance: u64,
+    ) -> Vec<TFactory>;
+}
 
-pub struct PhysicalResourceEstimationResult<P: TPhysicalQubit, L: Overhead + Clone> {
+pub struct PhysicalResourceEstimationResult<
+    E: ErrorCorrection<P>,
+    P: TPhysicalQubit,
+    L: Overhead + Clone,
+> {
     logical_qubit: LogicalQubit<P>,
     num_cycles: u64,
     tfactory: Option<TFactory>,
@@ -52,11 +65,14 @@ pub struct PhysicalResourceEstimationResult<P: TPhysicalQubit, L: Overhead + Clo
     rqops: u64,
     layout_overhead: L,
     error_budget: ErrorBudget,
+    _marker: std::marker::PhantomData<E>,
 }
 
-impl<P: TPhysicalQubit, L: Overhead + Clone> PhysicalResourceEstimationResult<P, L> {
+impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
+    PhysicalResourceEstimationResult<E, P, L>
+{
     pub fn new(
-        estimation: &PhysicalResourceEstimation<impl ErrorCorrection<P>, P, L>,
+        estimation: &PhysicalResourceEstimation<E, P, impl FactoryBuilder<E, P>, L>,
         logical_qubit: LogicalQubit<P>,
         num_cycles: u64,
         tfactory: Option<TFactory>,
@@ -113,6 +129,7 @@ impl<P: TPhysicalQubit, L: Overhead + Clone> PhysicalResourceEstimationResult<P,
             rqops,
             layout_overhead: estimation.layout_overhead().clone(),
             error_budget: estimation.error_budget().clone(),
+            _marker: std::marker::PhantomData,
         }
     }
 
@@ -193,10 +210,16 @@ impl<P: TPhysicalQubit, L: Overhead + Clone> PhysicalResourceEstimationResult<P,
     }
 }
 
-pub struct PhysicalResourceEstimation<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead> {
+pub struct PhysicalResourceEstimation<
+    E: ErrorCorrection<P>,
+    P: TPhysicalQubit,
+    Builder: FactoryBuilder<E, P>,
+    L: Overhead,
+> {
     // required parameters
     ftp: E,
     qubit: Rc<P>,
+    factory_builder: Builder,
     layout_overhead: L,
     error_budget: ErrorBudget,
     // optional constraint parameters
@@ -204,25 +227,32 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection<P>, P: TPhysicalQubit, 
     max_t_factories: Option<u64>,
     max_duration: Option<u64>,
     max_physical_qubits: Option<u64>,
-    // distillation unit parameters
-    distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
 }
 
-impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
-    PhysicalResourceEstimation<E, P, L>
+impl<
+        E: ErrorCorrection<P>,
+        P: TPhysicalQubit,
+        Builder: FactoryBuilder<E, P>,
+        L: Overhead + Clone,
+    > PhysicalResourceEstimation<E, P, Builder, L>
 {
-    pub fn new(ftp: E, qubit: Rc<P>, layout_overhead: L, error_budget: ErrorBudget) -> Self {
+    pub fn new(
+        ftp: E,
+        qubit: Rc<P>,
+        factory_builder: Builder,
+        layout_overhead: L,
+        error_budget: ErrorBudget,
+    ) -> Self {
         Self {
             ftp,
             qubit,
+            factory_builder,
             layout_overhead,
             error_budget,
             logical_depth_factor: None,
             max_t_factories: None,
             max_duration: None,
             max_physical_qubits: None,
-            distillation_unit_templates:
-                TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
         }
     }
 
@@ -247,14 +277,11 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
         self.max_physical_qubits = Some(max_physical_qubits);
     }
 
-    pub fn set_distillation_unit_templates(
-        &mut self,
-        distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
-    ) {
-        self.distillation_unit_templates = distillation_unit_templates;
+    pub fn factory_builder_mut(&mut self) -> &mut Builder {
+        &mut self.factory_builder
     }
 
-    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<P, L>> {
+    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
         match (self.max_duration, self.max_physical_qubits) {
             (None, None) => self.estimate_without_restrictions(),
             (None, Some(max_physical_qubits)) => {
@@ -266,7 +293,7 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn build_frontier(&self) -> Result<Vec<PhysicalResourceEstimationResult<P, L>>> {
+    pub fn build_frontier(&self) -> Result<Vec<PhysicalResourceEstimationResult<E, P, L>>> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -314,7 +341,7 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
         }
 
         let mut best_estimation_results =
-            Population::<Point2D<PhysicalResourceEstimationResult<P, L>>>::new();
+            Population::<Point2D<PhysicalResourceEstimationResult<E, P, L>>>::new();
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -342,10 +369,9 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
             // This ensures that the first code distance is always tried.
             // After that, the last code distance governs the reuse of T-factory.
             if last_code_distance > code_distance {
-                last_tfactories = find_nondominated_tfactories(
+                last_tfactories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
-                    &self.distillation_unit_templates,
                     required_logical_tstate_error_rate,
                     code_distance,
                 );
@@ -418,7 +444,7 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
             .collect())
     }
 
-    fn estimate_without_restrictions(&self) -> Result<PhysicalResourceEstimationResult<P, L>> {
+    fn estimate_without_restrictions(&self) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
         let mut num_cycles = self.compute_num_cycles()?;
 
         let mut loaded_tfactories_at_least_once = false;
@@ -479,10 +505,9 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
                     .num_tstates(num_ts_per_rotation.unwrap_or_default())
                     as f64);
 
-            let factories = find_nondominated_tfactories(
+            let factories = self.factory_builder.find_factories(
                 &self.ftp,
                 &self.qubit,
-                &self.distillation_unit_templates,
                 required_logical_tstate_error_rate,
                 logical_qubit.code_distance(),
             );
@@ -567,7 +592,7 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
     fn estimate_with_max_duration(
         &self,
         max_duration_in_nanoseconds: u64,
-    ) -> Result<PhysicalResourceEstimationResult<P, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -619,7 +644,7 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
             return Err(MaxDurationTooSmall.into());
         }
 
-        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<P, L>> = None;
+        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<E, P, L>> = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -655,10 +680,9 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
             // This ensures that the first code distance is always tried.
             // After that, the last code distance governs the reuse of T-factory.
             if last_code_distance > code_distance {
-                last_tfactories = find_nondominated_tfactories(
+                last_tfactories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
-                    &self.distillation_unit_templates,
                     required_logical_tstate_error_rate,
                     code_distance,
                 );
@@ -723,7 +747,7 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
     fn estimate_with_max_num_qubits(
         &self,
         max_num_qubits: u64,
-    ) -> Result<PhysicalResourceEstimationResult<P, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
         let min_num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -774,7 +798,7 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
             return Err(MaxPhysicalQubitsTooSmall.into());
         }
 
-        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<P, L>> = None;
+        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<E, P, L>> = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -808,10 +832,9 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
             // This ensures that the first code distance is always tried.
             // After that, the last code distance governs the reuse of T-factory.
             if last_code_distance > code_distance {
-                last_tfactories = find_nondominated_tfactories(
+                last_tfactories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
-                    &self.distillation_unit_templates,
                     required_logical_tstate_error_rate,
                     code_distance,
                 );

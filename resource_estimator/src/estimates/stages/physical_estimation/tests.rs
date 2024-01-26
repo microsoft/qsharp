@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::estimates::{
-    modeling::GateBasedPhysicalQubit, stages::physical_estimation::ErrorCorrection,
+    modeling::GateBasedPhysicalQubit,
+    optimization::TFactoryBuilder,
+    stages::physical_estimation::{ErrorCorrection, FactoryBuilder},
 };
 
 use super::{
@@ -13,8 +15,7 @@ use super::{
             IO,
         },
         modeling::{ErrorBudget, PhysicalQubit, Protocol},
-        optimization::find_nondominated_tfactories,
-        stages::tfactory::{TFactory, TFactoryDistillationUnitTemplate},
+        stages::tfactory::TFactory,
         Error,
     },
     Overhead, PhysicalResourceEstimation, PhysicalResourceEstimationResult, TPhysicalQubit,
@@ -68,7 +69,13 @@ pub fn test_no_tstates() {
     let partitioning = ErrorBudget::new(1e-3, 0.0, 0.0);
     let layout_overhead = TestLayoutOverhead::new(12, 0, 0);
 
-    let estimation = PhysicalResourceEstimation::new(ftp, qubit, layout_overhead, partitioning);
+    let estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        layout_overhead,
+        partitioning,
+    );
 
     assert!(estimation.estimate().is_err());
 }
@@ -81,7 +88,13 @@ pub fn single_tstate() -> super::super::super::Result<()> {
     let partitioning = ErrorBudget::new(0.5e-4, 0.5e-4, 0.0);
     let layout_overhead = TestLayoutOverhead::new(4, 1, 1);
 
-    let estimation = PhysicalResourceEstimation::new(ftp, qubit, layout_overhead, partitioning);
+    let estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        layout_overhead,
+        partitioning,
+    );
 
     estimation.estimate()?;
 
@@ -99,7 +112,13 @@ pub fn perfect_tstate() -> super::super::super::Result<()> {
     let partitioning = ErrorBudget::new(0.5e-4, 0.5e-4, 0.0);
     let layout_overhead = TestLayoutOverhead::new(4, 1, 1);
 
-    let estimation = PhysicalResourceEstimation::new(ftp, qubit, layout_overhead, partitioning);
+    let estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        layout_overhead,
+        partitioning,
+    );
 
     estimation.estimate()?;
 
@@ -117,8 +136,8 @@ fn hubbard_overhead_and_partitioning(
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<P: TPhysicalQubit, L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<P, L>,
+fn validate_result_invariants<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>(
+    result: &PhysicalResourceEstimationResult<E, P, L>,
 ) {
     assert_eq!(
         result.physical_qubits(),
@@ -153,8 +172,13 @@ pub fn test_hubbard_e2e() -> super::super::super::Result<()> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::default());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
-    let estimation =
-        PhysicalResourceEstimation::new(ftp, qubit.clone(), layout_overhead, partitioning);
+    let estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit.clone(),
+        TFactoryBuilder::default(),
+        layout_overhead,
+        partitioning,
+    );
 
     let result = estimation.estimate()?;
 
@@ -191,10 +215,9 @@ pub fn test_hubbard_e2e() -> super::super::super::Result<()> {
     let output_t_error_rate = result
         .required_logical_tstate_error_rate()
         .expect("required_logical_tstate_error_rate should be valid");
-    let tfactories = find_nondominated_tfactories(
+    let tfactories = TFactoryBuilder::default().find_factories(
         &same_ftp,
         &qubit,
-        &TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
         output_t_error_rate,
         same_ftp.max_code_distance(),
     );
@@ -235,8 +258,13 @@ pub fn test_hubbard_e2e_measurement_based() -> super::super::super::Result<()> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
-    let estimation =
-        PhysicalResourceEstimation::new(ftp, qubit.clone(), layout_overhead, partitioning);
+    let estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit.clone(),
+        TFactoryBuilder::default(),
+        layout_overhead,
+        partitioning,
+    );
 
     let result = estimation.estimate()?;
 
@@ -271,10 +299,9 @@ pub fn test_hubbard_e2e_measurement_based() -> super::super::super::Result<()> {
         .required_logical_tstate_error_rate()
         .expect("required_logical_tstate_error_rate should be valid");
     let same_ftp = Protocol::floquet_code();
-    let tfactories = find_nondominated_tfactories(
+    let tfactories = TFactoryBuilder::default().find_factories(
         &same_ftp,
         &qubit,
-        &TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
         output_t_error_rate,
         same_ftp.max_code_distance(),
     );
@@ -314,7 +341,13 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> super::super::super::Result
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
-    let estimation = PhysicalResourceEstimation::new(ftp, qubit, layout_overhead, partitioning);
+    let estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        layout_overhead,
+        partitioning,
+    );
 
     let max_duration_in_nanoseconds1: u64 = 50_000_000_u64;
     let max_duration_in_nanoseconds2: u64 = 500_000_000_u64;
@@ -336,7 +369,13 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> super::super::super::Resu
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
-    let estimation = PhysicalResourceEstimation::new(ftp, qubit, layout_overhead, partitioning);
+    let estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        layout_overhead,
+        partitioning,
+    );
 
     let max_num_qubits1: u64 = 11000;
     let max_num_qubits2: u64 = 20000;
@@ -354,7 +393,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> super::super::super::Resu
 }
 
 fn prepare_chemistry_estimation_with_expected_majorana(
-) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, TFactoryBuilder, LogicalResourceCounts> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e4());
 
@@ -373,7 +412,7 @@ fn prepare_chemistry_estimation_with_expected_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, counts, partitioning)
+    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
 }
 
 #[test]
@@ -523,7 +562,7 @@ pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> 
 }
 
 fn prepare_factorization_estimation_with_optimistic_majorana(
-) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, TFactoryBuilder, LogicalResourceCounts> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
@@ -542,7 +581,7 @@ fn prepare_factorization_estimation_with_optimistic_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, counts, partitioning)
+    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
 }
 
 #[test]
@@ -654,7 +693,7 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate(
 }
 
 fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
-) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, TFactoryBuilder, LogicalResourceCounts> {
     let ftp = Protocol::surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::qubit_gate_us_e3());
 
@@ -673,7 +712,7 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, counts, partitioning)
+    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
 }
 
 #[test]
@@ -750,7 +789,7 @@ fn build_frontier_test() {
 }
 
 fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
-) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, TFactoryBuilder, LogicalResourceCounts> {
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let ftp = Protocol::floquet_code();
 
@@ -769,7 +808,7 @@ fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, counts, partitioning)
+    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
 }
 
 #[test]

@@ -3,7 +3,10 @@
 
 use std::rc::Rc;
 
-use crate::estimates::stages::physical_estimation::{ErrorCorrection, TPhysicalQubit};
+use crate::estimates::{
+    modeling::{PhysicalQubit, Protocol},
+    stages::physical_estimation::{FactoryBuilder, TPhysicalQubit},
+};
 
 use super::super::{
     constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},
@@ -204,14 +207,14 @@ impl ToString for Point4D<TFactory> {
     }
 }
 
-pub(crate) fn find_nondominated_tfactories<E: ErrorCorrection<P>, P: TPhysicalQubit>(
-    ftp: &E,
-    qubit: &Rc<P>,
+pub(crate) fn find_nondominated_tfactories(
+    ftp: &Protocol,
+    qubit: &Rc<PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
 ) -> Vec<TFactory> {
-    let points = find_nondominated_population::<Point2D<TFactory>, _, _>(
+    let points = find_nondominated_population::<Point2D<TFactory>>(
         ftp,
         qubit,
         distillation_unit_templates,
@@ -226,25 +229,25 @@ pub(crate) fn find_nondominated_tfactories<E: ErrorCorrection<P>, P: TPhysicalQu
         .collect()
 }
 
-fn find_nondominated_population<Pnt, E: ErrorCorrection<P>, P: TPhysicalQubit>(
-    ftp: &E,
-    qubit: &Rc<P>,
+fn find_nondominated_population<P>(
+    ftp: &Protocol,
+    qubit: &Rc<PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
-) -> Population<Pnt>
+) -> Population<P>
 where
-    Pnt: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
+    P: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
 {
     let min_code_distance = 1;
     let distances: Vec<_> = (min_code_distance..=max_code_distance).step_by(2).collect();
 
     if output_t_error_rate > qubit.t_gate_error_rate() {
-        let mut population = Population::<Pnt>::new();
+        let mut population = Population::<P>::new();
 
         if let Ok(logical_qubit) = LogicalQubit::new(ftp, max_code_distance, qubit.clone()) {
             let factory = TFactory::default(&logical_qubit);
-            let point = Pnt::from(factory);
+            let point = P::from(factory);
             population.push(point);
         }
 
@@ -265,13 +268,13 @@ where
         distillation_unit_templates,
     );
 
-    let mut searcher = TFactoryExhaustiveSearch::<Pnt>::new(output_t_error_rate);
+    let mut searcher = TFactoryExhaustiveSearch::<P>::new(output_t_error_rate);
 
     for num_rounds in 1..=MAX_DISTILLATION_ROUNDS {
         process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
     }
 
-    if searcher.frontier_factories.items().is_empty() || Pnt::ITERATE_MAX_NUM_ROUNDS {
+    if searcher.frontier_factories.items().is_empty() || P::ITERATE_MAX_NUM_ROUNDS {
         for num_rounds in MAX_DISTILLATION_ROUNDS + 1..=MAX_EXTRA_DISTILLATION_ROUNDS {
             process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
         }
@@ -329,6 +332,46 @@ fn process_for_specifications_combination<P>(
             &result,
             &mut checker_for_full_iteration,
         );
+    }
+}
+
+pub struct TFactoryBuilder {
+    distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
+}
+
+impl TFactoryBuilder {
+    pub fn set_distillation_unit_templates(
+        &mut self,
+        distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
+    ) {
+        self.distillation_unit_templates = distillation_unit_templates;
+    }
+}
+
+impl Default for TFactoryBuilder {
+    fn default() -> Self {
+        Self {
+            distillation_unit_templates:
+                TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
+        }
+    }
+}
+
+impl FactoryBuilder<Protocol, PhysicalQubit> for TFactoryBuilder {
+    fn find_factories(
+        &self,
+        ftp: &Protocol,
+        qubit: &Rc<PhysicalQubit>,
+        output_t_error_rate: f64,
+        max_code_distance: u64,
+    ) -> Vec<TFactory> {
+        find_nondominated_tfactories(
+            ftp,
+            qubit,
+            &self.distillation_unit_templates,
+            output_t_error_rate,
+            max_code_distance,
+        )
     }
 }
 
