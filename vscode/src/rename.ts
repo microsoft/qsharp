@@ -3,7 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
-import { loadDocument } from "./common";
+import { toVscodeRange } from "./common";
 
 export function createRenameProvider(languageService: ILanguageService) {
   return new QSharpRenameProvider(languageService);
@@ -21,7 +21,7 @@ class QSharpRenameProvider implements vscode.RenameProvider {
   ) {
     const rename = await this.languageService.getRename(
       document.uri.toString(),
-      document.offsetAt(position),
+      position,
       newName,
     );
     if (!rename) return null;
@@ -30,16 +30,9 @@ class QSharpRenameProvider implements vscode.RenameProvider {
 
     for (const [source, edits] of rename.changes) {
       const uri = vscode.Uri.parse(source, true);
-      const targetDocument = await loadDocument(uri);
 
       const vsEdits = edits.map((edit) => {
-        return new vscode.TextEdit(
-          new vscode.Range(
-            targetDocument.positionAt(edit.range.start),
-            targetDocument.positionAt(edit.range.end),
-          ),
-          edit.newText,
-        );
+        return new vscode.TextEdit(toVscodeRange(edit.range), edit.newText);
       });
       workspaceEdit.set(uri, vsEdits);
     }
@@ -55,14 +48,11 @@ class QSharpRenameProvider implements vscode.RenameProvider {
   ) {
     const prepareRename = await this.languageService.prepareRename(
       document.uri.toString(),
-      document.offsetAt(position),
+      position,
     );
     if (prepareRename) {
       return {
-        range: new vscode.Range(
-          document.positionAt(prepareRename.range.start),
-          document.positionAt(prepareRename.range.end),
-        ),
+        range: toVscodeRange(prepareRename.range),
         placeholder: prepareRename.newText,
       };
     } else {

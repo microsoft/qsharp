@@ -10,6 +10,7 @@ use qsc::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase};
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
+#[derive(Clone)]
 pub struct DisplayableState(pub FxHashMap<BigUint, Complex64>, pub usize);
 
 impl DisplayableState {

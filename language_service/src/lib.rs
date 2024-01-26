@@ -30,12 +30,15 @@ use protocol::{
     CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
+use qsc::line_column::{Encoding, Position, Range};
 use qsc_project::JSFileEntry;
 use state::{CompilationState, CompilationStateUpdater};
 use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc};
 
-#[derive(Default)]
 pub struct LanguageService {
+    /// All [`Position`]s and [`Range`]s will be mapped using this encoding.
+    /// In LSP the equivalent would be the `positionEncoding` server capability.
+    position_encoding: Encoding,
     /// The compilation state. This state is protected by a `RefCell` so that
     /// read and update operations can share it. Update operations should take
     /// care never leave `CompilationState` in an inconsistent state during an
@@ -46,6 +49,15 @@ pub struct LanguageService {
 }
 
 impl LanguageService {
+    #[must_use]
+    pub fn new(position_encoding: Encoding) -> Self {
+        Self {
+            position_encoding,
+            state: Rc::default(),
+            state_updater: Option::default(),
+        }
+    }
+
     /// Creates an `UpdateWorker`. An update worker will read messages posted
     /// to the update channel and apply them, sequentially, to the compilation state.
     ///
@@ -167,14 +179,19 @@ impl LanguageService {
 
     /// LSP: textDocument/completion
     #[must_use]
-    pub fn get_completions(&self, uri: &str, offset: u32) -> CompletionList {
-        self.document_op(completion::get_completions, "get_completions", uri, offset)
+    pub fn get_completions(&self, uri: &str, position: Position) -> CompletionList {
+        self.document_op(
+            completion::get_completions,
+            "get_completions",
+            uri,
+            position,
+        )
     }
 
     /// LSP: textDocument/definition
     #[must_use]
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<Location> {
-        self.document_op(definition::get_definition, "get_definition", uri, offset)
+    pub fn get_definition(&self, uri: &str, position: Position) -> Option<Location> {
+        self.document_op(definition::get_definition, "get_definition", uri, position)
     }
 
     /// LSP: textDocument/references
@@ -182,46 +199,52 @@ impl LanguageService {
     pub fn get_references(
         &self,
         uri: &str,
-        offset: u32,
+        position: Position,
         include_declaration: bool,
     ) -> Vec<Location> {
         self.document_op(
-            |compilation, uri, offset| {
-                references::get_references(compilation, uri, offset, include_declaration)
+            |position_encoding, compilation, uri, position| {
+                references::get_references(
+                    position_encoding,
+                    compilation,
+                    uri,
+                    position,
+                    include_declaration,
+                )
             },
             "get_references",
             uri,
-            offset,
+            position,
         )
     }
 
     /// LSP: textDocument/hover
     #[must_use]
-    pub fn get_hover(&self, uri: &str, offset: u32) -> Option<Hover> {
-        self.document_op(hover::get_hover, "get_hover", uri, offset)
+    pub fn get_hover(&self, uri: &str, position: Position) -> Option<Hover> {
+        self.document_op(hover::get_hover, "get_hover", uri, position)
     }
 
     /// LSP textDocument/signatureHelp
     #[must_use]
-    pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<SignatureHelp> {
+    pub fn get_signature_help(&self, uri: &str, position: Position) -> Option<SignatureHelp> {
         self.document_op(
             signature_help::get_signature_help,
             "get_signature_help",
             uri,
-            offset,
+            position,
         )
     }
 
     /// LSP: textDocument/rename
     #[must_use]
-    pub fn get_rename(&self, uri: &str, offset: u32) -> Vec<Location> {
-        self.document_op(rename::get_rename, "get_rename", uri, offset)
+    pub fn get_rename(&self, uri: &str, position: Position) -> Vec<Location> {
+        self.document_op(rename::get_rename, "get_rename", uri, position)
     }
 
     /// LSP: textDocument/prepareRename
     #[must_use]
-    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<(protocol::Span, String)> {
-        self.document_op(rename::prepare_rename, "prepare_rename", uri, offset)
+    pub fn prepare_rename(&self, uri: &str, position: Position) -> Option<(Range, String)> {
+        self.document_op(rename::prepare_rename, "prepare_rename", uri, position)
     }
 
     /// Executes an operation that takes a document uri and offset, using the current compilation for that document.
@@ -230,19 +253,19 @@ impl LanguageService {
     ///
     /// If there are outstanding updates to the compilation in the update message queue,
     /// this method will still just return the current compilation state.
-    fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, offset: u32) -> T
+    fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, position: Position) -> T
     where
-        F: Fn(&Compilation, &str, u32) -> T,
+        F: Fn(&Compilation, &str, Position, Encoding) -> T,
         T: Debug + Default,
     {
-        trace!("{op_name}: uri: {uri}, offset: {offset}");
+        trace!("{op_name}: uri: {uri}, position: {position:?}");
 
         // Borrow must succeed here. If it doesn't succeed, a writer
         // (i.e. [`state::CompilationStateUpdater`]) must be holding a mutable reference across
         // an `await` point. Which it shouldn't be doing.
         let compilation_state = self.state.borrow();
         if let Some(compilation) = compilation_state.get_compilation(uri) {
-            let res = op(compilation, uri, offset);
+            let res = op(compilation, uri, position, self.position_encoding);
             trace!("{op_name} result: {res:?}");
             res
         } else {

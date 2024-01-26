@@ -19,7 +19,7 @@ class QSharpSignatureHelpProvider implements vscode.SignatureHelpProvider {
   ) {
     const sigHelpLs = await this.languageService.getSignatureHelp(
       document.uri.toString(),
-      document.offsetAt(position),
+      position,
     );
     if (!sigHelpLs) return null;
 
@@ -33,10 +33,7 @@ class QSharpSignatureHelpProvider implements vscode.SignatureHelpProvider {
         const documentation = param.documentation
           ? new vscode.MarkdownString(param.documentation)
           : undefined;
-        return new vscode.ParameterInformation(
-          [param.label.start, param.label.end],
-          documentation,
-        );
+        return new vscode.ParameterInformation(param.label, documentation);
       });
       return info;
     });
