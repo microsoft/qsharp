@@ -8,7 +8,7 @@ mod tests;
 
 use serde::Serialize;
 
-use crate::estimates::modeling::{PhysicalQubit, TPhysicalQubit};
+use crate::estimates::{modeling::PhysicalQubit, stages::physical_estimation::TPhysicalQubit};
 
 use super::{
     super::{

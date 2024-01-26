@@ -3,7 +3,7 @@
 
 use std::rc::Rc;
 
-use crate::estimates::{modeling::TPhysicalQubit, stages::physical_estimation::ErrorCorrection};
+use crate::estimates::stages::physical_estimation::{ErrorCorrection, TPhysicalQubit};
 
 use super::super::{
     constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},

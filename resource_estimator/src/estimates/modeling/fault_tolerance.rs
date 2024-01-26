@@ -7,7 +7,7 @@ mod tests;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::estimates::stages::physical_estimation::ErrorCorrection;
+use crate::estimates::stages::physical_estimation::{ErrorCorrection, TPhysicalQubit};
 
 use super::{
     super::{
@@ -27,7 +27,7 @@ use super::{
         },
         Error, Result,
     },
-    PhysicalInstructionSet, PhysicalQubit, TPhysicalQubit,
+    PhysicalInstructionSet, PhysicalQubit,
 };
 
 #[derive(Debug, Serialize, Deserialize)]

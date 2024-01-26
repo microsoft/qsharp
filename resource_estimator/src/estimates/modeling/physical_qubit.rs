@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests;
 
+use crate::estimates::stages::physical_estimation::TPhysicalQubit;
+
 use super::super::{
     constants::{
         INSTRUCTION_SET, ONE_QUBIT_GATE_ERROR_RATE, ONE_QUBIT_GATE_TIME,
@@ -12,14 +14,6 @@ use super::super::{
     serialization::{f64_nan, time},
 };
 use serde::{de::Error, Deserialize, Serialize};
-
-pub trait TPhysicalQubit {
-    fn instruction_set(&self) -> PhysicalInstructionSet;
-    fn t_gate_error_rate(&self) -> f64;
-    fn one_qubit_measurement_time(&self) -> u64;
-    fn clifford_error_rate(&self) -> f64;
-    fn readout_error_rate(&self) -> f64;
-}
 
 impl TPhysicalQubit for PhysicalQubit {
     fn instruction_set(&self) -> super::PhysicalInstructionSet {

@@ -8,7 +8,7 @@ use std::cmp::max;
 
 use std::rc::Rc;
 
-use crate::estimates::modeling::TPhysicalQubit;
+use crate::estimates::stages::physical_estimation::TPhysicalQubit;
 
 use super::super::modeling::LogicalQubit;
 

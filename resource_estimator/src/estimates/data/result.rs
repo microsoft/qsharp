@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::modeling::{PhysicalQubit, TPhysicalQubit};
+use crate::estimates::{modeling::PhysicalQubit, stages::physical_estimation::TPhysicalQubit};
 
 use super::{
     super::{

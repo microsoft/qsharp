@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::estimates::modeling::{PhysicalInstructionSet, TPhysicalQubit};
+use crate::estimates::modeling::PhysicalInstructionSet;
 
 use super::{
     super::{
@@ -19,6 +19,14 @@ use super::{
     layout::Overhead,
     tfactory::{TFactory, TFactoryDistillationUnitTemplate},
 };
+
+pub trait TPhysicalQubit {
+    fn instruction_set(&self) -> PhysicalInstructionSet;
+    fn t_gate_error_rate(&self) -> f64;
+    fn one_qubit_measurement_time(&self) -> u64;
+    fn clifford_error_rate(&self) -> f64;
+    fn readout_error_rate(&self) -> f64;
+}
 
 pub trait ErrorCorrection {
     type PhysicalQubit;

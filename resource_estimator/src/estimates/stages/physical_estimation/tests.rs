@@ -2,8 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::estimates::{
-    modeling::{GateBasedPhysicalQubit, TPhysicalQubit},
-    stages::physical_estimation::ErrorCorrection,
+    modeling::GateBasedPhysicalQubit, stages::physical_estimation::ErrorCorrection,
 };
 
 use super::{
@@ -18,7 +17,7 @@ use super::{
         stages::tfactory::{TFactory, TFactoryDistillationUnitTemplate},
         Error,
     },
-    Overhead, PhysicalResourceEstimation, PhysicalResourceEstimationResult,
+    Overhead, PhysicalResourceEstimation, PhysicalResourceEstimationResult, TPhysicalQubit,
 };
 use std::rc::Rc;
 

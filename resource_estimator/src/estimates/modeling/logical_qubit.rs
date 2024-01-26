@@ -4,12 +4,9 @@
 #[cfg(test)]
 mod tests;
 
-use crate::estimates::stages::physical_estimation::ErrorCorrection;
+use crate::estimates::stages::physical_estimation::{ErrorCorrection, TPhysicalQubit};
 
-use super::{
-    super::{error::InvalidInput::InvalidFaultToleranceProtocol, Result},
-    TPhysicalQubit,
-};
+use super::super::{error::InvalidInput::InvalidFaultToleranceProtocol, Result};
 use serde::Serialize;
 use std::{fmt::Debug, rc::Rc};
 

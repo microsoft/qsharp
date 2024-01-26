@@ -10,12 +10,13 @@ use std::{collections::BTreeMap, vec};
 use probability::{distribution::Inverse, prelude::Binomial};
 use serde::{ser::SerializeMap, Serialize};
 
-use crate::estimates::modeling::TPhysicalQubit;
-
-use super::super::{
-    compiled_expression::CompiledExpression,
-    error::IO::{self, CannotParseJSON},
-    modeling::LogicalQubit,
+use super::{
+    super::{
+        compiled_expression::CompiledExpression,
+        error::IO::{self, CannotParseJSON},
+        modeling::LogicalQubit,
+    },
+    physical_estimation::TPhysicalQubit,
 };
 
 pub enum TFactoryQubit<'a, P: TPhysicalQubit> {
