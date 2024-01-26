@@ -452,9 +452,7 @@ impl Protocol {
     }
 }
 
-impl ErrorCorrection for Protocol {
-    type PhysicalQubit = PhysicalQubit;
-
+impl ErrorCorrection<PhysicalQubit> for Protocol {
     fn max_code_distance(&self) -> u64 {
         self.max_code_distance
     }

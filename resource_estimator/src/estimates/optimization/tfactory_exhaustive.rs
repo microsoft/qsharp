@@ -204,17 +204,14 @@ impl ToString for Point4D<TFactory> {
     }
 }
 
-pub(crate) fn find_nondominated_tfactories<E: ErrorCorrection>(
+pub(crate) fn find_nondominated_tfactories<E: ErrorCorrection<P>, P: TPhysicalQubit>(
     ftp: &E,
-    qubit: &Rc<E::PhysicalQubit>,
+    qubit: &Rc<P>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
-) -> Vec<TFactory>
-where
-    E::PhysicalQubit: TPhysicalQubit,
-{
-    let points = find_nondominated_population::<Point2D<TFactory>, _>(
+) -> Vec<TFactory> {
+    let points = find_nondominated_population::<Point2D<TFactory>, _, _>(
         ftp,
         qubit,
         distillation_unit_templates,
@@ -229,26 +226,25 @@ where
         .collect()
 }
 
-fn find_nondominated_population<P, E: ErrorCorrection>(
+fn find_nondominated_population<Pnt, E: ErrorCorrection<P>, P: TPhysicalQubit>(
     ftp: &E,
-    qubit: &Rc<E::PhysicalQubit>,
+    qubit: &Rc<P>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
-) -> Population<P>
+) -> Population<Pnt>
 where
-    P: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
-    E::PhysicalQubit: TPhysicalQubit,
+    Pnt: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
 {
     let min_code_distance = 1;
     let distances: Vec<_> = (min_code_distance..=max_code_distance).step_by(2).collect();
 
     if output_t_error_rate > qubit.t_gate_error_rate() {
-        let mut population = Population::<P>::new();
+        let mut population = Population::<Pnt>::new();
 
         if let Ok(logical_qubit) = LogicalQubit::new(ftp, max_code_distance, qubit.clone()) {
             let factory = TFactory::default(&logical_qubit);
-            let point = P::from(factory);
+            let point = Pnt::from(factory);
             population.push(point);
         }
 
@@ -269,13 +265,13 @@ where
         distillation_unit_templates,
     );
 
-    let mut searcher = TFactoryExhaustiveSearch::<P>::new(output_t_error_rate);
+    let mut searcher = TFactoryExhaustiveSearch::<Pnt>::new(output_t_error_rate);
 
     for num_rounds in 1..=MAX_DISTILLATION_ROUNDS {
         process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
     }
 
-    if searcher.frontier_factories.items().is_empty() || P::ITERATE_MAX_NUM_ROUNDS {
+    if searcher.frontier_factories.items().is_empty() || Pnt::ITERATE_MAX_NUM_ROUNDS {
         for num_rounds in MAX_DISTILLATION_ROUNDS + 1..=MAX_EXTRA_DISTILLATION_ROUNDS {
             process_for_num_rounds(&mut searcher, &distillation_units_map, num_rounds);
         }

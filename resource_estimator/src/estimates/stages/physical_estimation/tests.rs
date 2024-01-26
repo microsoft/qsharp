@@ -354,7 +354,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> super::super::super::Resu
 }
 
 fn prepare_chemistry_estimation_with_expected_majorana(
-) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e4());
 
@@ -523,7 +523,7 @@ pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> 
 }
 
 fn prepare_factorization_estimation_with_optimistic_majorana(
-) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
 
@@ -654,7 +654,7 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate(
 }
 
 fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
-) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
     let ftp = Protocol::surface_code_gate_based();
     let qubit = Rc::new(PhysicalQubit::qubit_gate_us_e3());
 
@@ -750,7 +750,7 @@ fn build_frontier_test() {
 }
 
 fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
-) -> PhysicalResourceEstimation<Protocol, LogicalResourceCounts> {
+) -> PhysicalResourceEstimation<Protocol, PhysicalQubit, LogicalResourceCounts> {
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let ftp = Protocol::floquet_code();
 

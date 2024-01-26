@@ -28,11 +28,7 @@ pub struct LogicalQubit<P: TPhysicalQubit> {
 }
 
 impl<P: TPhysicalQubit> LogicalQubit<P> {
-    pub fn new(
-        ftp: &impl ErrorCorrection<PhysicalQubit = P>,
-        code_distance: u64,
-        qubit: Rc<P>,
-    ) -> Result<Self> {
+    pub fn new(ftp: &impl ErrorCorrection<P>, code_distance: u64, qubit: Rc<P>) -> Result<Self> {
         // safe to convert here because we check for negative values before
         #[allow(clippy::cast_sign_loss)]
         let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)? as u64;

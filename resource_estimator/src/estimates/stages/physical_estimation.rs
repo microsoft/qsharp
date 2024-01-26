@@ -25,22 +25,14 @@ pub trait TPhysicalQubit {
     fn readout_error_rate(&self) -> f64;
 }
 
-pub trait ErrorCorrection {
-    type PhysicalQubit;
-
+pub trait ErrorCorrection<PhysicalQubit: TPhysicalQubit> {
     fn max_code_distance(&self) -> u64;
     fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<i64>;
-    fn logical_cycle_time(&self, qubit: &Self::PhysicalQubit, code_distance: u64) -> Result<u64>;
-    fn logical_failure_probability(
-        &self,
-        qubit: &Self::PhysicalQubit,
-        code_distance: u64,
-    ) -> Result<f64>;
-    fn compute_code_distance(
-        &self,
-        qubit: &Self::PhysicalQubit,
-        required_logical_error_rate: f64,
-    ) -> u64;
+    fn logical_cycle_time(&self, qubit: &PhysicalQubit, code_distance: u64) -> Result<u64>;
+    fn logical_failure_probability(&self, qubit: &PhysicalQubit, code_distance: u64)
+        -> Result<f64>;
+    fn compute_code_distance(&self, qubit: &PhysicalQubit, required_logical_error_rate: f64)
+        -> u64;
 }
 
 use std::{cmp::Ordering, rc::Rc};
@@ -64,7 +56,7 @@ pub struct PhysicalResourceEstimationResult<P: TPhysicalQubit, L: Overhead + Clo
 
 impl<P: TPhysicalQubit, L: Overhead + Clone> PhysicalResourceEstimationResult<P, L> {
     pub fn new(
-        estimation: &PhysicalResourceEstimation<impl ErrorCorrection<PhysicalQubit = P>, L>,
+        estimation: &PhysicalResourceEstimation<impl ErrorCorrection<P>, P, L>,
         logical_qubit: LogicalQubit<P>,
         num_cycles: u64,
         tfactory: Option<TFactory>,
@@ -201,10 +193,10 @@ impl<P: TPhysicalQubit, L: Overhead + Clone> PhysicalResourceEstimationResult<P,
     }
 }
 
-pub struct PhysicalResourceEstimation<E: ErrorCorrection, L: Overhead> {
+pub struct PhysicalResourceEstimation<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead> {
     // required parameters
     ftp: E,
-    qubit: Rc<E::PhysicalQubit>,
+    qubit: Rc<P>,
     layout_overhead: L,
     error_budget: ErrorBudget,
     // optional constraint parameters
@@ -216,16 +208,10 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, L: Overhead> {
     distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
 }
 
-impl<E: ErrorCorrection, L: Overhead + Clone> PhysicalResourceEstimation<E, L>
-where
-    E::PhysicalQubit: TPhysicalQubit,
+impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
+    PhysicalResourceEstimation<E, P, L>
 {
-    pub fn new(
-        ftp: E,
-        qubit: Rc<E::PhysicalQubit>,
-        layout_overhead: L,
-        error_budget: ErrorBudget,
-    ) -> Self {
+    pub fn new(ftp: E, qubit: Rc<P>, layout_overhead: L, error_budget: ErrorBudget) -> Self {
         Self {
             ftp,
             qubit,
@@ -268,7 +254,7 @@ where
         self.distillation_unit_templates = distillation_unit_templates;
     }
 
-    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<E::PhysicalQubit, L>> {
+    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<P, L>> {
         match (self.max_duration, self.max_physical_qubits) {
             (None, None) => self.estimate_without_restrictions(),
             (None, Some(max_physical_qubits)) => {
@@ -280,9 +266,7 @@ where
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn build_frontier(
-        &self,
-    ) -> Result<Vec<PhysicalResourceEstimationResult<E::PhysicalQubit, L>>> {
+    pub fn build_frontier(&self) -> Result<Vec<PhysicalResourceEstimationResult<P, L>>> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -330,7 +314,7 @@ where
         }
 
         let mut best_estimation_results =
-            Population::<Point2D<PhysicalResourceEstimationResult<E::PhysicalQubit, L>>>::new();
+            Population::<Point2D<PhysicalResourceEstimationResult<P, L>>>::new();
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -434,9 +418,7 @@ where
             .collect())
     }
 
-    fn estimate_without_restrictions(
-        &self,
-    ) -> Result<PhysicalResourceEstimationResult<E::PhysicalQubit, L>> {
+    fn estimate_without_restrictions(&self) -> Result<PhysicalResourceEstimationResult<P, L>> {
         let mut num_cycles = self.compute_num_cycles()?;
 
         let mut loaded_tfactories_at_least_once = false;
@@ -550,7 +532,7 @@ where
     fn try_pick_tfactory_for_code_distance_and_max_tfactories(
         &self,
         factories: &[TFactory],
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
         num_cycles: u64,
         max_allowed_num_cycles_for_code_distance: u64,
     ) -> Option<(TFactory, u64, u64)> {
@@ -585,7 +567,7 @@ where
     fn estimate_with_max_duration(
         &self,
         max_duration_in_nanoseconds: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E::PhysicalQubit, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<P, L>> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -637,9 +619,7 @@ where
             return Err(MaxDurationTooSmall.into());
         }
 
-        let mut best_estimation_result: Option<
-            PhysicalResourceEstimationResult<E::PhysicalQubit, L>,
-        > = None;
+        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<P, L>> = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -743,7 +723,7 @@ where
     fn estimate_with_max_num_qubits(
         &self,
         max_num_qubits: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E::PhysicalQubit, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<P, L>> {
         let min_num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -794,9 +774,7 @@ where
             return Err(MaxPhysicalQubitsTooSmall.into());
         }
 
-        let mut best_estimation_result: Option<
-            PhysicalResourceEstimationResult<E::PhysicalQubit, L>,
-        > = None;
+        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<P, L>> = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -898,7 +876,7 @@ where
         &self,
         num_tfactories: u64,
         tfactory: &TFactory,
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
     ) -> u64 {
         let tstates_per_run = num_tfactories * tfactory.output_t_count();
 
@@ -931,7 +909,7 @@ where
 
     fn is_max_t_factories_constraint_satisfied(
         &self,
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
         tfactory: &TFactory,
         num_cycles: u64,
     ) -> bool {
@@ -948,7 +926,7 @@ where
     fn try_pick_tfactory_below_or_equal_max_duration_under_max_t_factories(
         &self,
         factories: &[TFactory],
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
         num_cycles: u64,
     ) -> Option<TFactory> {
         let algorithm_duration = num_cycles * (logical_qubit.logical_cycle_time());
@@ -973,7 +951,7 @@ where
     fn try_find_tfactory_for_code_distance_duration_and_max_t_factories(
         &self,
         factories: &[TFactory],
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
         max_allowed_num_cycles_for_code_distance: u64,
     ) -> Option<(TFactory, u64)> {
         if let Some(max_tfactories) = self.max_t_factories {
@@ -995,7 +973,7 @@ where
     fn try_pick_tfactory_with_num_cycles_and_max_tfactories(
         &self,
         factories: &[TFactory],
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
         max_allowed_num_cycles_for_code_distance: u64,
         max_tfactories: u64,
     ) -> Option<(TFactory, u64)> {
@@ -1035,7 +1013,7 @@ where
 
     fn try_pick_tfactory_with_num_cycles(
         factories: &[TFactory],
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
         max_allowed_num_cycles_for_code_distance: u64,
     ) -> Option<(TFactory, u64)> {
         factories
@@ -1104,7 +1082,7 @@ where
     // that provide this number
     fn num_tfactories(
         &self,
-        logical_qubit: &LogicalQubit<E::PhysicalQubit>,
+        logical_qubit: &LogicalQubit<P>,
         tfactory: &TFactory,
         num_cycles: u64,
     ) -> u64 {
