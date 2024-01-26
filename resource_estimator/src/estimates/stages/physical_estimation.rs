@@ -46,11 +46,7 @@ pub trait FactoryBuilder<E: ErrorCorrection<P>, P: TPhysicalQubit> {
     ) -> Vec<TFactory>;
 }
 
-pub struct PhysicalResourceEstimationResult<
-    E: ErrorCorrection<P>,
-    P: TPhysicalQubit,
-    L: Overhead + Clone,
-> {
+pub struct PhysicalResourceEstimationResult<P: TPhysicalQubit, L: Overhead + Clone> {
     logical_qubit: LogicalQubit<P>,
     num_cycles: u64,
     tfactory: Option<TFactory>,
@@ -65,13 +61,10 @@ pub struct PhysicalResourceEstimationResult<
     rqops: u64,
     layout_overhead: L,
     error_budget: ErrorBudget,
-    _marker: std::marker::PhantomData<E>,
 }
 
-impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
-    PhysicalResourceEstimationResult<E, P, L>
-{
-    pub fn new(
+impl<P: TPhysicalQubit, L: Overhead + Clone> PhysicalResourceEstimationResult<P, L> {
+    pub fn new<E: ErrorCorrection<P>>(
         estimation: &PhysicalResourceEstimation<E, P, impl FactoryBuilder<E, P>, L>,
         logical_qubit: LogicalQubit<P>,
         num_cycles: u64,
@@ -129,7 +122,6 @@ impl<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>
             rqops,
             layout_overhead: estimation.layout_overhead().clone(),
             error_budget: estimation.error_budget().clone(),
-            _marker: std::marker::PhantomData,
         }
     }
 
@@ -281,7 +273,7 @@ impl<
         &mut self.factory_builder
     }
 
-    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
+    pub fn estimate(&self) -> Result<PhysicalResourceEstimationResult<P, L>> {
         match (self.max_duration, self.max_physical_qubits) {
             (None, None) => self.estimate_without_restrictions(),
             (None, Some(max_physical_qubits)) => {
@@ -293,7 +285,7 @@ impl<
     }
 
     #[allow(clippy::too_many_lines)]
-    pub fn build_frontier(&self) -> Result<Vec<PhysicalResourceEstimationResult<E, P, L>>> {
+    pub fn build_frontier(&self) -> Result<Vec<PhysicalResourceEstimationResult<P, L>>> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -341,7 +333,7 @@ impl<
         }
 
         let mut best_estimation_results =
-            Population::<Point2D<PhysicalResourceEstimationResult<E, P, L>>>::new();
+            Population::<Point2D<PhysicalResourceEstimationResult<P, L>>>::new();
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -444,7 +436,7 @@ impl<
             .collect())
     }
 
-    fn estimate_without_restrictions(&self) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
+    fn estimate_without_restrictions(&self) -> Result<PhysicalResourceEstimationResult<P, L>> {
         let mut num_cycles = self.compute_num_cycles()?;
 
         let mut loaded_tfactories_at_least_once = false;
@@ -592,7 +584,7 @@ impl<
     fn estimate_with_max_duration(
         &self,
         max_duration_in_nanoseconds: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<P, L>> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -644,7 +636,7 @@ impl<
             return Err(MaxDurationTooSmall.into());
         }
 
-        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<E, P, L>> = None;
+        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<P, L>> = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();
@@ -747,7 +739,7 @@ impl<
     fn estimate_with_max_num_qubits(
         &self,
         max_num_qubits: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E, P, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<P, L>> {
         let min_num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -798,7 +790,7 @@ impl<
             return Err(MaxPhysicalQubitsTooSmall.into());
         }
 
-        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<E, P, L>> = None;
+        let mut best_estimation_result: Option<PhysicalResourceEstimationResult<P, L>> = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
         let mut last_tfactories: Vec<TFactory> = Vec::new();

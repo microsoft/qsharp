@@ -12,7 +12,7 @@ use crate::estimates::{modeling::PhysicalQubit, stages::physical_estimation::TPh
 
 use super::{
     super::{
-        modeling::{PhysicalInstructionSet, Protocol},
+        modeling::PhysicalInstructionSet,
         stages::{
             layout::Overhead, physical_estimation::PhysicalResourceEstimationResult,
             tfactory::TFactory,
@@ -34,7 +34,7 @@ impl Report {
     pub fn new<L: Overhead + Clone>(
         logical_counts: &LogicalResourceCounts,
         job_params: &JobParams,
-        result: &PhysicalResourceEstimationResult<Protocol, PhysicalQubit, L>,
+        result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
         formatted_counts: &FormattedPhysicalResourceCounts,
     ) -> Self {
         // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH resource_estimator/scripts/generate_report_code.py from docs/output_data.md
@@ -359,7 +359,7 @@ pub struct FormattedPhysicalResourceCounts {
 impl FormattedPhysicalResourceCounts {
     #[allow(clippy::too_many_lines, clippy::cast_lossless)]
     pub fn new<L: Overhead + Clone>(
-        result: &PhysicalResourceEstimationResult<Protocol, PhysicalQubit, L>,
+        result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
         logical_resources: &LogicalResourceCounts,
         job_params: &JobParams,
     ) -> Self {

@@ -136,8 +136,8 @@ fn hubbard_overhead_and_partitioning(
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<E: ErrorCorrection<P>, P: TPhysicalQubit, L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<E, P, L>,
+fn validate_result_invariants<P: TPhysicalQubit, L: Overhead + Clone>(
+    result: &PhysicalResourceEstimationResult<P, L>,
 ) {
     assert_eq!(
         result.physical_qubits(),
