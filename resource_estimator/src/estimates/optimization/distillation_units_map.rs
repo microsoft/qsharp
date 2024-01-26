@@ -8,7 +8,7 @@ use std::cmp::max;
 
 use std::rc::Rc;
 
-use crate::estimates::stages::physical_estimation::TPhysicalQubit;
+use crate::estimates::modeling::PhysicalQubit;
 
 use super::super::modeling::LogicalQubit;
 
@@ -30,9 +30,9 @@ pub struct DistillationUnitsMap<'a> {
 }
 
 impl<'a> DistillationUnitsMap<'a> {
-    pub fn create<P: TPhysicalQubit>(
-        qubit: &P,
-        qubits: &[Option<Rc<LogicalQubit<P>>>],
+    pub fn create(
+        qubit: &PhysicalQubit,
+        qubits: &[Option<Rc<LogicalQubit<PhysicalQubit>>>],
         distances: Vec<u64>,
         distillation_unit_templates: &'a [TFactoryDistillationUnitTemplate],
     ) -> Self {
