@@ -14,10 +14,34 @@ pub struct CompilationContext {
     pub compiler: Compiler,
     pub fir_store: PackageStore,
     pub compute_properties: PackageStoreComputeProperties,
+    lowerer: Lowerer,
 }
 
 impl CompilationContext {
     pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn update(&mut self, source: &str) {
+        let increment = self
+            .compiler
+            .compile_fragments_fail_fast("rca-test", source)
+            .expect("code should compile");
+        let package_id = map_hir_package_to_fir(self.compiler.package_id());
+        let fir_package = self
+            .fir_store
+            .get_mut(package_id)
+            .expect("package should exist");
+        self.lowerer
+            .lower_and_update_package(fir_package, &increment.hir);
+        self.compiler.update(increment);
+        self.compute_properties
+            .reanalyze_package(package_id, &self.fir_store);
+    }
+}
+
+impl Default for CompilationContext {
+    fn default() -> Self {
         let compiler = Compiler::new(
             true,
             SourceMap::default(),
@@ -25,13 +49,14 @@ impl CompilationContext {
             RuntimeCapabilityFlags::all(),
         )
         .expect("should be able to create a new compiler");
-        // TODO (cesarzc): use lowerer.
-        let fir_store = lower_hir_package_store(compiler.package_store());
+        let mut lowerer = Lowerer::new();
+        let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
         let compute_properties = PackageStoreComputeProperties::new(&fir_store);
         Self {
             compiler,
             fir_store,
             compute_properties,
+            lowerer,
         }
     }
 }
@@ -84,22 +109,10 @@ pub fn check_callable_compute_properties(
     expect.assert_eq(&callable_compute_properties.to_string());
 }
 
-pub fn create_fir_package_store(
+fn lower_hir_package_store(
     lowerer: &mut Lowerer,
     hir_package_store: &HirPackageStore,
 ) -> PackageStore {
-    let mut fir_store = PackageStore::new();
-    for (id, unit) in hir_package_store {
-        fir_store.insert(
-            map_hir_package_to_fir(id),
-            lowerer.lower_package(&unit.package),
-        );
-    }
-    fir_store
-}
-
-pub fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore {
-    let mut lowerer = Lowerer::new();
     let mut fir_store = PackageStore::new();
     for (id, unit) in hir_package_store {
         fir_store.insert(

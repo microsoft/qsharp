@@ -40,8 +40,8 @@ pub fn analyze_package(
 
     // Analyze all callables that have cycles.
     // TODO (cesarzc): implement.
-    let callables_with_cycles = detect_callables_with_cycles(id, package);
-    println!("{callables_with_cycles:?}");
+    let _callables_with_cycles = detect_callables_with_cycles(id, package);
+    //println!("{callables_with_cycles:?}");
 
     // Analyze the remaining items in the package.
     for (item_id, _) in &package.items {
