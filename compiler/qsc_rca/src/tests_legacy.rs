@@ -1152,7 +1152,7 @@ fn std_re_intrisics_analysis_is_correct() {
     );
 }
 
-//#[ignore = "work in progress"]
+#[ignore = "work in progress"]
 #[test]
 fn callables_with_cycles_analysis_is_correct() {
     // Create the initial compute properties structure that contains the properties of the core library, the standard

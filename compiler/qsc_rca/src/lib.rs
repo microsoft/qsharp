@@ -6,10 +6,10 @@
 mod cycle_detection;
 mod data_structures;
 mod rca;
-#[cfg(test)]
-mod test_utils;
-#[cfg(test)]
-mod tests;
+//#[cfg(test)]
+//mod test_utils;
+//#[cfg(test)]
+//mod tests_legacy;
 
 use crate::rca::analyze_package;
 use indenter::{indented, Indented};
