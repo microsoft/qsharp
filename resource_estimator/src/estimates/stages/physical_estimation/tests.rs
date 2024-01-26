@@ -4,7 +4,7 @@
 use crate::estimates::{
     modeling::GateBasedPhysicalQubit,
     optimization::TFactoryBuilder,
-    stages::physical_estimation::{ErrorCorrection, FactoryBuilder},
+    stages::physical_estimation::{ErrorCorrection, Factory, FactoryBuilder},
 };
 
 use super::{
@@ -18,7 +18,7 @@ use super::{
         stages::tfactory::TFactory,
         Error,
     },
-    Overhead, PhysicalResourceEstimation, PhysicalResourceEstimationResult, TPhysicalQubit,
+    Overhead, PhysicalResourceEstimation, PhysicalResourceEstimationResult,
 };
 use std::rc::Rc;
 
@@ -136,8 +136,8 @@ fn hubbard_overhead_and_partitioning(
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<P: TPhysicalQubit, L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<P, L>,
+fn validate_result_invariants<L: Overhead + Clone>(
+    result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
 ) {
     assert_eq!(
         result.physical_qubits(),

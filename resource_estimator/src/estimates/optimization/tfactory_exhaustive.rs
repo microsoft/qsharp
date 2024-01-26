@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::estimates::{
     modeling::{PhysicalQubit, Protocol},
-    stages::physical_estimation::{FactoryBuilder, TPhysicalQubit},
+    stages::physical_estimation::{Factory, FactoryBuilder, TPhysicalQubit},
 };
 
 use super::super::{
@@ -358,13 +358,15 @@ impl Default for TFactoryBuilder {
 }
 
 impl FactoryBuilder<Protocol, PhysicalQubit> for TFactoryBuilder {
+    type Factory = TFactory;
+
     fn find_factories(
         &self,
         ftp: &Protocol,
         qubit: &Rc<PhysicalQubit>,
         output_t_error_rate: f64,
         max_code_distance: u64,
-    ) -> Vec<TFactory> {
+    ) -> Vec<Self::Factory> {
         find_nondominated_tfactories(
             ftp,
             qubit,

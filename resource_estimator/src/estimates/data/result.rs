@@ -43,7 +43,7 @@ impl Success {
     pub fn new<L: Overhead + Clone>(
         logical_resources: LogicalResourceCounts,
         job_params: JobParams,
-        result: PhysicalResourceEstimationResult<PhysicalQubit, L>,
+        result: PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
     ) -> Self {
         let counts = create_physical_resource_counts(&result);
 
@@ -71,7 +71,7 @@ impl Success {
     pub fn new_from_multiple<L: Overhead + Clone>(
         logical_resources: LogicalResourceCounts,
         job_params: JobParams,
-        mut results: Vec<PhysicalResourceEstimationResult<PhysicalQubit, L>>,
+        mut results: Vec<PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>>,
     ) -> Self {
         let mut report_data: Option<Report> = None;
 
@@ -122,7 +122,7 @@ pub struct FrontierEntry {
 fn create_frontier_entry<L: Overhead + Clone>(
     logical_resources: &LogicalResourceCounts,
     job_params: &JobParams,
-    result: PhysicalResourceEstimationResult<PhysicalQubit, L>,
+    result: PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
     create_report: bool,
 ) -> (FrontierEntry, Option<Report>) {
     let physical_counts = create_physical_resource_counts(&result);
@@ -156,7 +156,7 @@ fn create_frontier_entry<L: Overhead + Clone>(
 }
 
 fn create_physical_resource_counts<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
+    result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
 ) -> PhysicalResourceCounts {
     let breakdown = create_physical_resource_counts_breakdown(result);
 
@@ -169,7 +169,7 @@ fn create_physical_resource_counts<L: Overhead + Clone>(
 }
 
 fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
+    result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()

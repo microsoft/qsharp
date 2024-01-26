@@ -8,7 +8,10 @@ mod tests;
 
 use serde::Serialize;
 
-use crate::estimates::{modeling::PhysicalQubit, stages::physical_estimation::TPhysicalQubit};
+use crate::estimates::{
+    modeling::PhysicalQubit, stages::physical_estimation::Factory,
+    stages::physical_estimation::TPhysicalQubit,
+};
 
 use super::{
     super::{
@@ -34,7 +37,7 @@ impl Report {
     pub fn new<L: Overhead + Clone>(
         logical_counts: &LogicalResourceCounts,
         job_params: &JobParams,
-        result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
+        result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
         formatted_counts: &FormattedPhysicalResourceCounts,
     ) -> Self {
         // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH resource_estimator/scripts/generate_report_code.py from docs/output_data.md
@@ -359,7 +362,7 @@ pub struct FormattedPhysicalResourceCounts {
 impl FormattedPhysicalResourceCounts {
     #[allow(clippy::too_many_lines, clippy::cast_lossless)]
     pub fn new<L: Overhead + Clone>(
-        result: &PhysicalResourceEstimationResult<PhysicalQubit, L>,
+        result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
         logical_resources: &LogicalResourceCounts,
         job_params: &JobParams,
     ) -> Self {

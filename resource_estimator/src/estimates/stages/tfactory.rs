@@ -16,7 +16,7 @@ use super::{
         error::IO::{self, CannotParseJSON},
         modeling::LogicalQubit,
     },
-    physical_estimation::TPhysicalQubit,
+    physical_estimation::{Factory, TPhysicalQubit},
 };
 
 pub enum TFactoryQubit<'a, P: TPhysicalQubit> {
@@ -652,14 +652,6 @@ impl TFactory {
         self.rounds.iter().map(|round| round.num_units).collect()
     }
 
-    /// Code distances per round
-    pub fn code_distance_per_round(&self) -> Vec<u64> {
-        self.rounds
-            .iter()
-            .map(|round| round.code_distance)
-            .collect()
-    }
-
     /// Physical qubits per round
     pub fn physical_qubits_per_round(&self) -> Vec<u64> {
         self.rounds
@@ -722,21 +714,6 @@ impl TFactory {
         TFactoryBuildStatus::Success
     }
 
-    pub fn physical_qubits(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::physical_qubits)
-            .max()
-            .unwrap_or(0)
-    }
-
-    pub fn duration(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::duration)
-            .sum()
-    }
-
     #[allow(dead_code)]
     pub fn input_t_error_rate(&self) -> f64 {
         // Even when there are no units `input_t_error_rate_before_each_round`
@@ -754,7 +731,36 @@ impl TFactory {
             .map_or(0, |round| round.num_input_ts * round.num_units())
     }
 
-    pub fn output_t_count(&self) -> u64 {
+    pub fn normalized_qubits(&self) -> f64 {
+        (self.physical_qubits() as f64) / (self.output_t_count() as f64)
+    }
+}
+
+impl Factory for TFactory {
+    /// Code distances per round
+    fn code_distance_per_round(&self) -> Vec<u64> {
+        self.rounds
+            .iter()
+            .map(|round| round.code_distance)
+            .collect()
+    }
+
+    fn physical_qubits(&self) -> u64 {
+        self.rounds
+            .iter()
+            .map(TFactoryDistillationRound::physical_qubits)
+            .max()
+            .unwrap_or(0)
+    }
+
+    fn duration(&self) -> u64 {
+        self.rounds
+            .iter()
+            .map(TFactoryDistillationRound::duration)
+            .sum()
+    }
+
+    fn output_t_count(&self) -> u64 {
         let last_round = self
             .rounds
             .last()
@@ -765,12 +771,8 @@ impl TFactory {
         last_round.compute_num_output_ts(failure_probability)
     }
 
-    pub fn normalized_volume(&self) -> f64 {
+    fn normalized_volume(&self) -> f64 {
         ((self.physical_qubits() * self.duration()) as f64) / (self.output_t_count() as f64)
-    }
-
-    pub fn normalized_qubits(&self) -> f64 {
-        (self.physical_qubits() as f64) / (self.output_t_count() as f64)
     }
 }
 
