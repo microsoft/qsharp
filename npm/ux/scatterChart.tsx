@@ -254,7 +254,6 @@ export function ScatterChart(props: {
     <div style="display: flex; flex-wrap: wrap; margin-top: 8px;">
       <div class="chart-container">
         <svg
-          class="qs-scatterChart-svg"
           id="scatterChart"
           ref={scatterChartContainerRef}
           viewBox={viewBox}
