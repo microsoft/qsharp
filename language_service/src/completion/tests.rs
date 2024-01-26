@@ -12,12 +12,15 @@ use crate::{
         compile_notebook_with_fake_stdlib_and_markers,
         compile_project_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
     },
+    Encoding,
 };
 use indoc::indoc;
 
 fn check(source_with_cursor: &str, completions_to_check: &[&str], expect: &Expect) {
-    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_cursor);
-    let actual_completions = get_completions(&compilation, "<source>", cursor_offset);
+    let (compilation, cursor_position, _) =
+        compile_with_fake_stdlib_and_markers(source_with_cursor);
+    let actual_completions =
+        get_completions(&compilation, "<source>", cursor_position, Encoding::Utf8);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
         .iter()
         .map(|comp| {
@@ -36,9 +39,10 @@ fn check_project(
     completions_to_check: &[&str],
     expect: &Expect,
 ) {
-    let (compilation, cursor_uri, cursor_offset, _) =
+    let (compilation, cursor_uri, cursor_position, _) =
         compile_project_with_fake_stdlib_and_markers(sources_with_markers);
-    let actual_completions = get_completions(&compilation, &cursor_uri, cursor_offset);
+    let actual_completions =
+        get_completions(&compilation, &cursor_uri, cursor_position, Encoding::Utf8);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
         .iter()
         .map(|comp| {
@@ -58,9 +62,10 @@ fn check_notebook(
     completions_to_check: &[&str],
     expect: &Expect,
 ) {
-    let (compilation, cell_uri, offset, _) =
+    let (compilation, cell_uri, cursor_position, _) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
-    let actual_completions = get_completions(&compilation, &cell_uri, offset);
+    let actual_completions =
+        get_completions(&compilation, &cell_uri, cursor_position, Encoding::Utf8);
     let checked_completions: Vec<Option<&CompletionItem>> = completions_to_check
         .iter()
         .map(|comp| {
@@ -147,9 +152,15 @@ fn ignore_unstable_callable() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 38,
-                                        end: 38,
+                                    Range {
+                                        start: Position {
+                                            line: 2,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 2,
+                                            column: 12,
+                                        },
                                     },
                                     "open FakeStdLib;\n            ",
                                 ),
@@ -193,9 +204,15 @@ fn ignore_internal_callable() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 38,
-                                        end: 38,
+                                    Range {
+                                        start: Position {
+                                            line: 2,
+                                            column: 12,
+                                        },
+                                        end: Position {
+                                            line: 2,
+                                            column: 12,
+                                        },
                                     },
                                     "open FakeStdLib;\n            ",
                                 ),
@@ -292,6 +309,7 @@ fn in_block_contains_std_functions_from_open_namespace() {
     );
 }
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn in_block_contains_std_functions() {
     check(
@@ -317,9 +335,15 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 21,
-                                        end: 21,
+                                    Range {
+                                        start: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
+                                        end: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -340,9 +364,15 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 21,
-                                        end: 21,
+                                    Range {
+                                        start: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
+                                        end: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -363,9 +393,15 @@ fn in_block_contains_std_functions() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 21,
-                                        end: 21,
+                                    Range {
+                                        start: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
+                                        end: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -531,9 +567,15 @@ fn in_block_from_other_namespace() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 21,
-                                        end: 21,
+                                    Range {
+                                        start: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
+                                        end: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
                                     },
                                     "open Other;\n    ",
                                 ),
@@ -577,9 +619,15 @@ fn auto_open_multiple_files() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 16,
-                                        end: 16,
+                                    Range {
+                                        start: Position {
+                                            line: 0,
+                                            column: 16,
+                                        },
+                                        end: Position {
+                                            line: 0,
+                                            column: 16,
+                                        },
                                     },
                                     "open Foo;\n ",
                                 ),
@@ -750,9 +798,15 @@ fn stdlib_udt() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 21,
-                                        end: 21,
+                                    Range {
+                                        start: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
+                                        end: Position {
+                                            line: 1,
+                                            column: 4,
+                                        },
                                     },
                                     "open FakeStdLib;\n    ",
                                 ),
@@ -823,9 +877,15 @@ fn notebook_top_level() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 0,
-                                        end: 0,
+                                    Range {
+                                        start: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
+                                        end: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
                                     },
                                     "open FakeStdLib;\n",
                                 ),
@@ -863,9 +923,15 @@ fn notebook_top_level_global() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 0,
-                                        end: 0,
+                                    Range {
+                                        start: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
+                                        end: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
                                     },
                                     "open FakeStdLib;\n",
                                 ),
@@ -936,9 +1002,15 @@ fn notebook_block() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 0,
-                                        end: 0,
+                                    Range {
+                                        start: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
+                                        end: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
                                     },
                                     "open FakeStdLib;\n",
                                 ),
@@ -985,9 +1057,15 @@ fn notebook_auto_open_start_of_cell_empty() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 0,
-                                        end: 0,
+                                    Range {
+                                        start: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
+                                        end: Position {
+                                            line: 0,
+                                            column: 0,
+                                        },
                                     },
                                     "open FakeStdLib;\n",
                                 ),
@@ -1023,9 +1101,15 @@ fn notebook_auto_open_start_of_cell() {
                         additional_text_edits: Some(
                             [
                                 (
-                                    Span {
-                                        start: 3,
-                                        end: 3,
+                                    Range {
+                                        start: Position {
+                                            line: 0,
+                                            column: 3,
+                                        },
+                                        end: Position {
+                                            line: 0,
+                                            column: 3,
+                                        },
                                     },
                                     "open FakeStdLib;\n   ",
                                 ),

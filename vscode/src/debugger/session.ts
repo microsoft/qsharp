@@ -21,11 +21,14 @@ import {
   Handles,
   Scope,
 } from "@vscode/debugadapter";
-
-import { FileAccessor, basename, isQsharpDocument } from "../common";
+import {
+  FileAccessor,
+  basename,
+  isQsharpDocument,
+  toVscodeRange,
+} from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
-  IBreakpointSpan,
   IDebugServiceWorker,
   log,
   StepResultId,
@@ -53,27 +56,12 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Represents file local information about a breakpoint location. The values
-// can't be calculated without a file, so they are stored here after
-// initialization.
-interface IFileBreakpointLocation {
-  startOffset: number;
-  endOffset: number;
-  startPos: vscode.Position;
-  endPos: vscode.Position;
-  bpLocation: DebugProtocol.BreakpointLocation;
-}
-
-// All offsets are utf16 units/characters. The debugger offsets are utf8
-// units/bytes, but they've been converted to utf16 units/characters so that any
-// time we are in JS we can use consistent encoding offsets.
-// The debugger location stores the offsets for the start & end of the span
-// The file location stores the offsets as seen by the TextDocument for the file
-// ui/breakpoint location stores the utf16 offsets as seen by vscode (line/col are 1 based)
 interface IBreakpointLocationData {
-  debuggerLocation: IBreakpointSpan;
-  fileLocation: IFileBreakpointLocation;
+  /** The range as seen by the TextDocument for the file (0-based line/column) */
+  range: vscode.Range;
+  /** The range as seen by the DAP client (1-based line/column) */
   uiLocation: DebugProtocol.BreakpointLocation;
+  /** Contains range as seen by the DAP client (1-based line/column) */
   breakpoint: DebugProtocol.Breakpoint;
 }
 
@@ -118,34 +106,21 @@ export class QscDebugSession extends LoggingDebugSession {
     for (const [path, _contents] of this.sources) {
       if (failureMessage == "") {
         const locations = await this.debugService.getBreakpoints(path);
-        const file = await this.fileAccessor.openPath(path);
         log.trace(`init breakpointLocations: %O`, locations);
         const mapped = locations.map((location) => {
-          const startPos = file.positionAt(location.lo);
-          const endPos = file.positionAt(location.hi);
-          const bpLocation: DebugProtocol.BreakpointLocation = {
-            line: startPos.line,
-            column: startPos.character,
-            endLine: endPos.line,
-            endColumn: endPos.character,
-          };
-          const fileLocation = {
-            startOffset: file.offsetAt(startPos),
-            endOffset: file.offsetAt(endPos),
-            startPos: startPos,
-            endPos: endPos,
-            bpLocation: bpLocation,
-          };
           const uiLocation: DebugProtocol.BreakpointLocation = {
-            line: this.convertDebuggerLineToClient(startPos.line),
-            column: this.convertDebuggerColumnToClient(startPos.character),
-            endLine: this.convertDebuggerLineToClient(endPos.line),
-            endColumn: this.convertDebuggerColumnToClient(endPos.character),
+            line: this.convertDebuggerLineToClient(location.range.start.line),
+            column: this.convertDebuggerColumnToClient(
+              location.range.start.character,
+            ),
+            endLine: this.convertDebuggerLineToClient(location.range.end.line),
+            endColumn: this.convertDebuggerColumnToClient(
+              location.range.end.character,
+            ),
           };
           return {
-            debuggerLocation: location,
-            fileLocation: fileLocation,
-            uiLocation: uiLocation,
+            range: toVscodeRange(location.range),
+            uiLocation,
             breakpoint: this.createBreakpoint(location.id, uiLocation),
           } as IBreakpointLocationData;
         });
@@ -535,17 +510,12 @@ export class QscDebugSession extends LoggingDebugSession {
       : lineRange.end.character;
 
     // We've translated the request's range into a full implied range,
-    // calculate the start and end positions as offsets which can be used to
-    // isolate statements.
-    const startPos = new vscode.Position(startLine, startCol);
-    const endPos = new vscode.Position(endLine, endCol);
-    const startOffset = file.offsetAt(startPos);
-    const endOffset = file.offsetAt(endPos);
+    // which can be used to isolate statements.
+    const requestRange = new vscode.Range(startLine, startCol, endLine, endCol);
 
     log.trace(
       `breakpointLocationsRequest: ${startLine}:${startCol} - ${endLine}:${endCol}`,
     );
-    log.trace(`breakpointLocationsRequest: ${startOffset} - ${endOffset}`);
 
     // Now that we have the mapped breakpoint span, get the potential
     // breakpoints from the debugger
@@ -558,9 +528,8 @@ export class QscDebugSession extends LoggingDebugSession {
         .get(file.uri.toString())
         ?.filter((bp) =>
           isLineBreakpoint
-            ? bp.uiLocation.line == args.line
-            : startOffset <= bp.fileLocation.startOffset &&
-              bp.fileLocation.startOffset <= endOffset,
+            ? bp.range.start.line == requestRange.start.line
+            : requestRange.contains(bp.range.start),
         ) ?? [];
 
     log.trace(`breakpointLocationsRequest: candidates %O`, bps);
@@ -611,13 +580,11 @@ export class QscDebugSession extends LoggingDebugSession {
     );
     const locations = this.breakpointLocations.get(file.uri.toString()) ?? [];
     log.trace(`setBreakPointsRequest: got locations %O`, locations);
-    // convert the request line/column to file offset for debugger
-    const desiredBpOffsets: [
-      lo: number,
-      hi: number,
-      isLineBreakpoint: boolean,
-      uiLine: number,
-    ][] = (args.breakpoints ?? [])
+    const desiredBpOffsets: {
+      range: vscode.Range;
+      isLineBreakpoint: boolean;
+      uiLine: number;
+    }[] = (args.breakpoints ?? [])
       .filter(
         (sourceBreakpoint) =>
           this.convertClientLineToDebugger(sourceBreakpoint.line) <
@@ -631,42 +598,22 @@ export class QscDebugSession extends LoggingDebugSession {
           ? this.convertClientColumnToDebugger(sourceBreakpoint.column)
           : lineRange.start.character;
         const startPos = new vscode.Position(line, startCol);
-        const startOffset = file.offsetAt(startPos);
-        const endOffset = file.offsetAt(lineRange.end);
 
-        return [
-          startOffset,
-          endOffset,
+        return {
+          range: new vscode.Range(startPos, lineRange.end),
           isLineBreakpoint,
-          sourceBreakpoint.line,
-        ];
+          uiLine: sourceBreakpoint.line,
+        };
       });
 
-    // We should probably ensure we don't return duplicate
-    // spans from the debugger, but for now we'll just filter them out
-    const uniqOffsets: [
-      lo: number,
-      hi: number,
-      isLineBreakpoint: boolean,
-      uiLine: number,
-    ][] = [];
-    for (const bpOffset of desiredBpOffsets) {
-      if (
-        uniqOffsets.findIndex(
-          (u) => u[0] == bpOffset[0] && u[1] == bpOffset[1],
-        ) == -1
-      ) {
-        uniqOffsets.push(bpOffset);
-      }
-    }
     // Now that we have the mapped breakpoint span, get the actual breakpoints
     // with corresponding ids from the debugger
     const bps = [];
 
-    for (const bpOffset of uniqOffsets) {
-      const lo = bpOffset[0];
-      const isLineBreakpoint = bpOffset[2];
-      const uiLine = bpOffset[3];
+    for (const bpOffset of desiredBpOffsets) {
+      const lo = bpOffset.range.start;
+      const isLineBreakpoint = bpOffset.isLineBreakpoint;
+      const uiLine = bpOffset.uiLine;
       // we can quickly filter out any breakpoints that are outside of the
       // desired line
       const matchingLocations = locations.filter((location) => {
@@ -677,17 +624,11 @@ export class QscDebugSession extends LoggingDebugSession {
       // is within the range of the location.
       for (const location of matchingLocations) {
         if (isLineBreakpoint) {
-          //
           bps.push(location.breakpoint);
-          break;
         } else {
           // column bp just has end of selection or cursor location in lo
-          if (
-            location.fileLocation.startOffset <= lo &&
-            lo <= location.fileLocation.endOffset
-          ) {
+          if (location.range.contains(lo)) {
             bps.push(location.breakpoint);
-            break;
           }
         }
       }
@@ -738,8 +679,6 @@ export class QscDebugSession extends LoggingDebugSession {
             });
           if (file) {
             log.trace(`frames: file %O`, file);
-            const start_pos = file.positionAt(f.lo);
-            const end_pos = file.positionAt(f.hi);
             const sf: DebugProtocol.StackFrame = new StackFrame(
               id,
               f.name,
@@ -750,12 +689,12 @@ export class QscDebugSession extends LoggingDebugSession {
                 undefined,
                 "qsharp-adapter-data",
               ),
-              this.convertDebuggerLineToClient(start_pos.line),
-              this.convertDebuggerColumnToClient(start_pos.character),
+              this.convertDebuggerLineToClient(f.range.start.line),
+              this.convertDebuggerColumnToClient(f.range.start.character),
             );
-            sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
+            sf.endLine = this.convertDebuggerLineToClient(f.range.end.line);
             sf.endColumn = this.convertDebuggerColumnToClient(
-              end_pos.character,
+              f.range.end.character,
             );
             return sf;
           } else {
@@ -769,9 +708,6 @@ export class QscDebugSession extends LoggingDebugSession {
                 scheme: qsharpLibraryUriScheme,
                 path: f.path,
               });
-              const file = await this.fileAccessor.openUri(uri);
-              const start_pos = file.positionAt(f.lo);
-              const end_pos = file.positionAt(f.hi);
               const source = new Source(
                 basename(f.path) ?? f.path,
                 uri.toString(),
@@ -783,12 +719,12 @@ export class QscDebugSession extends LoggingDebugSession {
                 id,
                 f.name,
                 source as Source,
-                this.convertDebuggerLineToClient(start_pos.line),
-                this.convertDebuggerColumnToClient(start_pos.character),
+                this.convertDebuggerLineToClient(f.range.start.line),
+                this.convertDebuggerColumnToClient(f.range.start.character),
               );
-              sf.endLine = this.convertDebuggerLineToClient(end_pos.line);
+              sf.endLine = this.convertDebuggerLineToClient(f.range.end.line);
               sf.endColumn = this.convertDebuggerColumnToClient(
-                end_pos.character,
+                f.range.end.character,
               );
 
               return sf as DebugProtocol.StackFrame;

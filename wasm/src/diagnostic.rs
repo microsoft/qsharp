@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::serializable_type;
+use crate::{
+    line_column::{Location, Range},
+    serializable_type,
+};
 use miette::{Diagnostic, LabeledSpan, Severity};
-use qsc::{self, error::WithSource, interpret, SourceName};
+use qsc::{self, error::WithSource, interpret, SourceName, Span};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
@@ -11,8 +14,7 @@ use wasm_bindgen::prelude::*;
 serializable_type! {
     VSDiagnostic,
     {
-        pub start_pos: u32,
-        pub end_pos: u32,
+        pub range: Range,
         pub message: String,
         pub severity: String,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -21,8 +23,7 @@ serializable_type! {
         pub related: Vec<Related>
     },
     r#"export interface VSDiagnostic {
-        start_pos: number;
-        end_pos: number;
+        range: IRange,
         message: string;
         severity: "error" | "warning" | "info"
         code?: string;
@@ -33,15 +34,11 @@ serializable_type! {
 serializable_type! {
     Related,
     {
-        pub source: String,
-        pub start_pos: u32,
-        pub end_pos: u32,
+        pub location: Location,
         pub message: String,
     },
     r#"export interface IRelatedInformation {
-        source: string;
-        start_pos: number;
-        end_pos: number;
+        location: ILocation,
         message: string;
     }"#
 }
@@ -94,24 +91,30 @@ impl VSDiagnostic {
     {
         let mut labels = labels.into_iter().peekable();
 
-        let default = (0, 1);
-        let (start_pos, end_pos) = labels
+        let default = qsc::line_column::Range {
+            start: qsc::line_column::Position { line: 0, column: 0 },
+            end: qsc::line_column::Position { line: 0, column: 1 },
+        };
+        let range = labels
             .peek()
             .filter(|l| l.source_name.as_ref() == source_name)
-            .map_or(default, |l| (l.start, l.end));
+            .map_or(default, |l| l.range);
 
         let related: Vec<Related> = labels
-            .filter_map(|label| match label.message {
-                Some(message) => Some(Related {
-                    // Here, the stdlib/core files could be mapped to
-                    // "qsharp-library-source" uris to allow for navigation
-                    // in VS Code, but currently only the file path is returned.
-                    source: label.source_name.to_string(),
-                    start_pos: label.start,
-                    end_pos: label.end,
-                    message,
-                }),
-                None => None,
+            .filter_map(|label| {
+                match label.message {
+                    Some(message) => Some(Related {
+                        // Here, the stdlib/core files could be mapped to
+                        // "qsharp-library-source" uris to allow for navigation
+                        // in VS Code, but currently only the file path is returned.
+                        location: Location {
+                            source: label.source_name.to_string(),
+                            span: label.range.into(),
+                        },
+                        message,
+                    }),
+                    None => None,
+                }
             })
             .collect();
 
@@ -130,8 +133,7 @@ impl VSDiagnostic {
         let code = err.code().map(|c| c.to_string());
 
         Self {
-            start_pos,
-            end_pos,
+            range: range.into(),
             severity: (match err.severity().unwrap_or(Severity::Error) {
                 Severity::Error => "error",
                 Severity::Warning => "warning",
@@ -147,8 +149,7 @@ impl VSDiagnostic {
 
 struct Label {
     pub source_name: SourceName,
-    pub start: u32,
-    pub end: u32,
+    pub range: qsc::line_column::Range,
     pub message: Option<String>,
 }
 
@@ -170,11 +171,18 @@ where
     let (source, span) = e.resolve_span(labeled_span.inner());
     let start = u32::try_from(span.offset()).expect("offset should fit in u32");
     let len = u32::try_from(span.len()).expect("length should fit in u32");
+    let range = qsc::line_column::Range::from_span(
+        qsc::line_column::Encoding::Utf16,
+        &source.contents,
+        &Span {
+            lo: start,
+            hi: start + len,
+        },
+    );
 
     Label {
         source_name: source.name.clone(),
-        start,
-        end: start + len,
+        range,
         message: labeled_span.label().map(ToString::to_string),
     }
 }
