@@ -32,7 +32,6 @@ parser.add_argument("--wasm", action="store_true", help="Build the WebAssembly f
 parser.add_argument("--npm", action="store_true", help="Build the npm package")
 parser.add_argument("--play", action="store_true", help="Build the web playground")
 parser.add_argument("--samples", action="store_true", help="Compile the Q# samples")
-parser.add_argument("--notebooks", action="store_true", help="Run Jupyter notebook samples")
 parser.add_argument("--vscode", action="store_true", help="Build the VS Code extension")
 parser.add_argument(
     "--jupyterlab", action="store_true", help="Build the JupyterLab extension"
@@ -82,7 +81,6 @@ build_all = (
     and not args.widgets
     and not args.wasm
     and not args.samples
-    and not args.notebooks
     and not args.npm
     and not args.play
     and not args.vscode
@@ -93,7 +91,6 @@ build_pip = build_all or args.pip
 build_widgets = build_all or args.widgets
 build_wasm = build_all or args.wasm
 build_samples = build_all or args.samples
-build_notebooks = build_all or args.notebooks
 build_npm = build_all or args.npm
 build_play = build_all or args.play
 build_vscode = build_all or args.vscode
@@ -350,71 +347,6 @@ if build_samples:
         subprocess.run((cargo_args + ["--", "--qsharp-json", project]), check=True, text=True, cwd=root_dir)
     step_end()
 
-if build_notebooks:
-    step_start("Running notebook samples")
-    # Find all notebooks in the samples directory. Skip the basic sample and the azure submission sample, since those won't run
-    # nicely in automation.
-    notebook_files = [os.path.join(dp, f) for dp, _, filenames in os.walk(samples_src) for f in filenames if f.endswith(".ipynb")
-                      and not (f.startswith("sample.") or f.startswith("azure_submission."))]
-    python_bin = use_python_env(samples_src)
-
-    # copy the process env vars
-    pip_env: dict[str, str] = os.environ.copy()
-
-    # Install the qsharp package
-    pip_install_args = [
-        python_bin,
-        "-m",
-        "pip",
-        "install",
-        "-e",
-        pip_src,
-    ]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src, env=pip_env)
-
-    # Install the widgets package
-    pip_install_args = [
-        python_bin,
-        "-m",
-        "pip",
-        "install",
-        "-e",
-        widgets_src,
-    ]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
-
-    # Install other dependencies
-    pip_install_args = [
-        python_bin,
-        "-m",
-        "pip",
-        "install",
-        "ipykernel",
-        "nbconvert",
-        "pandas",
-    ]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
-
-    for notebook in notebook_files:
-        print(f"Running {notebook}")
-        # Run the notebook process, capturing stdout and only displaying it if there is an error
-        result = subprocess.run([python_bin,
-                        "-m",
-                        "nbconvert",
-                        "--to",
-                        "notebook",
-                        "--stdout",
-                        "--ExecutePreprocessor.timeout=60",
-                        "--sanitize-html",
-                        "--execute",
-                        notebook],
-                        check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
-        if result.returncode != 0:
-            print(result.stdout)
-            raise Exception(f"Error running {notebook}")
-
-    step_end()
-
 if build_npm:
     step_start("Building the npm package")
     # Copy the wasm build files over for web and node targets
@@ -454,6 +386,12 @@ if build_vscode:
     vscode_args = [npm_cmd, "run", "build"]
     subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
     step_end()
+    if args.integration_tests:
+        step_start("Running the VS Code integration tests")
+        vscode_args = [npm_cmd, "test"]
+        subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+        step_end()
+
 
 if build_jupyterlab:
     step_start("Building the JupyterLab extension")
@@ -472,8 +410,81 @@ if build_jupyterlab:
     subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
     step_end()
 
-if args.integration_tests:
-    step_start("Running the VS Code integration tests")
-    vscode_args = [npm_cmd, "test"]
-    subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+if build_pip and build_widgets and args.integration_tests:
+    step_start("Running notebook samples integration tests")
+    # Find all notebooks in the samples directory. Skip the basic sample and the azure submission sample, since those won't run
+    # nicely in automation.
+    notebook_files = [os.path.join(dp, f) for dp, _, filenames in os.walk(samples_src) for f in filenames if f.endswith(".ipynb")
+                    and not (f.startswith("sample.") or f.startswith("azure_submission."))]
+    python_bin = use_python_env(samples_src)
+
+    # copy the process env vars
+    pip_env: dict[str, str] = os.environ.copy()
+
+    # Install the qsharp package
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-index",
+        "--find-links=" + wheels_dir,
+        f"qsharp",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
+
+    # Install the widgets package once to pull dependencies, then again with --no-index to install from the wheel
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--find-links=" + wheels_dir,
+        f"qsharp-widgets",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-index",
+        "--find-links=" + wheels_dir,
+        f"qsharp-widgets",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
+
+    # Install other dependencies
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "ipykernel",
+        "nbconvert",
+        "pandas",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
+
+    for notebook in notebook_files:
+        print(f"Running {notebook}")
+        # Run the notebook process, capturing stdout and only displaying it if there is an error
+        result = subprocess.run([python_bin,
+                        "-m",
+                        "nbconvert",
+                        "--to",
+                        "notebook",
+                        "--stdout",
+                        "--ExecutePreprocessor.timeout=60",
+                        "--sanitize-html",
+                        "--execute",
+                        notebook],
+                        check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+        if result.returncode != 0:
+            print(result.stdout)
+            raise Exception(f"Error running {notebook}")
+
     step_end()
