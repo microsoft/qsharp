@@ -4,8 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use crate::estimates::modeling::PhysicalInstructionSet;
-
 use super::{
     super::{
         error::InvalidInput::{
@@ -21,7 +19,6 @@ use super::{
 };
 
 pub trait TPhysicalQubit {
-    fn instruction_set(&self) -> PhysicalInstructionSet;
     fn t_gate_error_rate(&self) -> f64;
     fn one_qubit_measurement_time(&self) -> u64;
     fn clifford_error_rate(&self) -> f64;
@@ -31,7 +28,6 @@ pub trait TPhysicalQubit {
 pub trait ErrorCorrection {
     type PhysicalQubit;
 
-    fn instruction_set(&self) -> PhysicalInstructionSet;
     fn max_code_distance(&self) -> u64;
     fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<i64>;
     fn logical_cycle_time(&self, qubit: &Self::PhysicalQubit, code_distance: u64) -> Result<u64>;

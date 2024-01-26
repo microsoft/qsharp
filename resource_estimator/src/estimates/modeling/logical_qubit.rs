@@ -6,7 +6,7 @@ mod tests;
 
 use crate::estimates::stages::physical_estimation::{ErrorCorrection, TPhysicalQubit};
 
-use super::super::{error::InvalidInput::InvalidFaultToleranceProtocol, Result};
+use super::super::Result;
 use serde::Serialize;
 use std::{fmt::Debug, rc::Rc};
 
@@ -33,10 +33,6 @@ impl<P: TPhysicalQubit> LogicalQubit<P> {
         code_distance: u64,
         qubit: Rc<P>,
     ) -> Result<Self> {
-        if ftp.instruction_set() != qubit.instruction_set() {
-            return Err(InvalidFaultToleranceProtocol.into());
-        }
-
         // safe to convert here because we check for negative values before
         #[allow(clippy::cast_sign_loss)]
         let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)? as u64;

@@ -16,13 +16,6 @@ use super::super::{
 use serde::{de::Error, Deserialize, Serialize};
 
 impl TPhysicalQubit for PhysicalQubit {
-    fn instruction_set(&self) -> super::PhysicalInstructionSet {
-        match self {
-            Self::GateBased(_) => super::PhysicalInstructionSet::GateBased,
-            Self::Majorana(_) => super::PhysicalInstructionSet::Majorana,
-        }
-    }
-
     fn t_gate_error_rate(&self) -> f64 {
         match self {
             Self::GateBased(gate_based) => gate_based.t_gate_error_rate,
@@ -112,6 +105,15 @@ fn check_required_fields(fields: &[(bool, &str)]) -> Result<(), serde_json::erro
 pub enum PhysicalQubit {
     GateBased(GateBasedPhysicalQubit),
     Majorana(MajoranaQubit),
+}
+
+impl PhysicalQubit {
+    pub fn instruction_set(&self) -> super::PhysicalInstructionSet {
+        match self {
+            Self::GateBased(_) => super::PhysicalInstructionSet::GateBased,
+            Self::Majorana(_) => super::PhysicalInstructionSet::Majorana,
+        }
+    }
 }
 
 #[allow(clippy::module_name_repetitions)]
