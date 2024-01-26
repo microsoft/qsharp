@@ -6,9 +6,8 @@
 const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
-import { Histogram, type ReData } from "qsharp-lang/ux";
+import { EstimatesPanel, Histogram, type ReData } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
-import { RePage } from "./rePage";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
@@ -154,11 +153,13 @@ function App({ state }: { state: State }) {
       );
     case "estimates":
       return (
-        <RePage
+        <EstimatesPanel
           calculating={state.estimatesData.calculating}
           estimatesData={state.estimatesData.estimates}
           renderer={markdownRenderer}
           onRowDeleted={onRowDeleted}
+          colors={[]}
+          runNames={[]}
         />
       );
     case "help":
