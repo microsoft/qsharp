@@ -39,7 +39,7 @@ const columnNames = [
   "Physical qubits",
 ];
 
-const initialColumns = [0, 2, 3, 10, 11, 12];
+const initialColumns = [0, 10, 13, 11, 12];
 
 const xAxis: Axis = {
   isTime: true,
@@ -117,6 +117,58 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
   };
 }
 
+function createRunNames(estimatesData: ReData[]): string[] {
+  const fields: string[][] = [];
+
+  estimatesData.forEach(() => {
+    fields.push([]);
+  });
+
+  // Could be multiple runs, e.g. against different algorithms.
+  addIfDifferent(fields, estimatesData, (data) => data.jobParams.sharedRunName);
+
+  addIfDifferent(
+    fields,
+    estimatesData,
+    (data) => data.jobParams.qubitParams.name,
+  );
+
+  addIfDifferent(
+    fields,
+    estimatesData,
+    (data) => data.jobParams.qecScheme.name,
+  );
+
+  addIfDifferent(fields, estimatesData, (data) =>
+    String(data.jobParams.errorBudget),
+  );
+
+  const proposedRunNames = fields.map((field) => field.join(", "));
+  if (new Set(proposedRunNames).size != proposedRunNames.length) {
+    // If there are duplicates, add the run index to the name.
+    return proposedRunNames.map(
+      (runName, index) => runName + " (" + index + ")",
+    );
+  }
+
+  return proposedRunNames;
+}
+
+function addIfDifferent(
+  fields: string[][],
+  estimatesData: ReData[],
+  fieldMethod: (data: ReData) => string,
+): void {
+  const arr = estimatesData.map(fieldMethod);
+
+  const set = new Set(arr);
+  if (set.size > 1) {
+    arr.forEach((field, index) => {
+      fields[index].push(field);
+    });
+  }
+}
+
 export function EstimatesOverview(props: {
   estimatesData: ReData[];
   colors: string[] | null;
@@ -127,18 +179,22 @@ export function EstimatesOverview(props: {
 }) {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
+  const runNameRenderingError =
+    props.runNames != null &&
+    props.runNames.length > 0 &&
+    props.runNames.length != props.estimatesData.length
+      ? "Warning: The number of runNames does not match the number of estimates. Ignoring provided runNames."
+      : "";
+
+  const runNames =
+    props.runNames != null &&
+    props.runNames.length == props.estimatesData.length
+      ? props.runNames
+      : createRunNames(props.estimatesData);
+
   props.estimatesData.forEach((item, idx) => {
-    if (
-      props.runNames != null &&
-      props.runNames.length == props.estimatesData.length
-    ) {
-      item.jobParams.runName = props.runNames[idx];
-    } else {
-      if (item.jobParams.runName == null) {
-        // Start indexing with 0 to match with the original object indexing.
-        item.jobParams.runName = `(${idx})`;
-      }
-    }
+    // Start indexing with 0 to match with the original object indexing.
+    item.jobParams.runName = runNames[idx];
   });
 
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
@@ -148,12 +204,16 @@ export function EstimatesOverview(props: {
     setSelectedRow(rowId);
   }
 
-  function onRowSelected(rowId: string) {
+  function onRowSelected(rowId: string, ev?: Event) {
     setSelectedRow(rowId);
     // On any selection, clear the "new" flag on all rows. This ensures that
     // new rows do not steal focus from the user selected row.
     props.estimatesData.forEach((data) => (data.new = false));
-    HideTooltip();
+
+    const root = findRoot(ev);
+    if (root) {
+      HideTooltip(root);
+    }
     if (!rowId) {
       props.setEstimate(null);
     } else {
@@ -166,10 +226,27 @@ export function EstimatesOverview(props: {
       } else {
         const estimateFound = props.estimatesData[index];
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
-        SelectPoint(index, 0);
+        if (root) {
+          SelectPoint(index, 0, root);
+        }
       }
     }
   }
+
+  function findRoot(ev?: Event): Element | undefined {
+    return (
+      (ev?.currentTarget as Element | undefined)?.closest(
+        ".qs-estimatesOverview",
+      ) ?? undefined
+    );
+  }
+
+  const colorRenderingError =
+    props.colors != null &&
+    props.colors.length > 0 &&
+    props.colors.length != props.estimatesData.length
+      ? "Warning: The number of colors does not match the number of estimates. Ignoring provided colors."
+      : "";
 
   const colormap =
     props.colors != null && props.colors.length == props.estimatesData.length
@@ -178,17 +255,24 @@ export function EstimatesOverview(props: {
 
   if (props.isSimplifiedView) {
     return (
-      <>
+      <div className="qs-estimatesOverview">
+        {runNameRenderingError != "" && (
+          <div class="qs-estimatesOverview-error">{runNameRenderingError}</div>
+        )}
+        {colorRenderingError != "" && (
+          <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
+        )}
         <ResultsTable
           columnNames={columnNames}
           rows={props.estimatesData.map((dataItem, index) =>
             reDataToRow(dataItem, colormap[index]),
           )}
           initialColumns={initialColumns}
-          ensureSelected={true}
+          // should be able to deselect rows for making screenshots
+          ensureSelected={false}
           onRowDeleted={props.onRowDeleted}
           selectedRow={selectedRow}
-          setSelectedRow={onRowSelected}
+          onRowSelected={onRowSelected}
         />
         <ScatterChart
           xAxis={xAxis}
@@ -198,12 +282,18 @@ export function EstimatesOverview(props: {
           )}
           onPointSelected={onPointSelected}
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="qs-estimatesOverview">
+      {runNameRenderingError != "" && (
+        <div class="qs-estimatesOverview-error">{runNameRenderingError}</div>
+      )}
+      {colorRenderingError != "" && (
+        <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
+      )}
       <details open>
         <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
           Results
@@ -215,8 +305,9 @@ export function EstimatesOverview(props: {
           )}
           initialColumns={initialColumns}
           selectedRow={selectedRow}
-          setSelectedRow={onRowSelected}
-          ensureSelected={true}
+          onRowSelected={onRowSelected}
+          // should be able to deselect rows for making screenshots
+          ensureSelected={false}
           onRowDeleted={props.onRowDeleted}
         />
       </details>
@@ -233,6 +324,6 @@ export function EstimatesOverview(props: {
           onPointSelected={onPointSelected}
         />
       </details>
-    </>
+    </div>
   );
 }

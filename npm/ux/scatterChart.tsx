@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { CreateIntegerTicks, CreateTimeTicks, Tick } from "../src/ux/ticks.js";
+import { useEffect, useRef } from "preact/hooks";
 
 export type ScatterSeries = {
   color: string;
@@ -24,14 +25,21 @@ type Range = {
   max: number;
 };
 
-export function HideTooltip() {
-  const tooltip = document.getElementById("tooltip");
-  if (tooltip) {
-    tooltip.setAttribute("visibility", "hidden");
-  }
+export function HideTooltip(root: Element) {
+  // could be called extenally with a root out of the chart.
+  const chart =
+    root.id == "scatterChart" ? root : root.querySelector("#scatterChart");
+
+  chart
+    ?.querySelector("#tooltip-selected")
+    ?.setAttribute("visibility", "hidden");
 }
 
-function drawTooltip(target: SVGCircleElement, clicked: boolean = false) {
+function drawTooltip(
+  target: SVGCircleElement,
+  root: Element,
+  clicked: boolean = false,
+) {
   const xAttr = target.getAttribute("cx");
   const x = xAttr ? parseInt(xAttr) : 0;
   const yAttr = target.getAttribute("cy");
@@ -40,10 +48,11 @@ function drawTooltip(target: SVGCircleElement, clicked: boolean = false) {
   const tooltipTextLeftPadding = 5;
   const tooltipRectanglePaddingHeight = 10;
   const tooltipTextPaddingHeight = 25;
-  const tooltip = document.getElementById("tooltip");
-  const tooltipRect = document.getElementById("tooltipRect");
-  const tooltipText = document.getElementById(
-    "tooltipText",
+  const tooltipId = clicked ? "#tooltip-selected" : "#tooltip-hover";
+  const tooltip = root.querySelector(tooltipId);
+  const tooltipRect = tooltip?.querySelector("#tooltipRect");
+  const tooltipText = tooltip?.querySelector(
+    "#tooltipText",
   ) as unknown as SVGTextElement;
 
   if (tooltipText) {
@@ -70,37 +79,34 @@ function drawTooltip(target: SVGCircleElement, clicked: boolean = false) {
   }
 }
 
-function hideTooltipIfNotClicked() {
-  const tooltip = document.getElementById("tooltip");
-  if (tooltip) {
-    if (tooltip.getAttribute("clicked") === "false") {
-      tooltip.setAttribute("visibility", "hidden");
+function deselectPoint(root: Element) {
+  if (root.getAttribute("selectedPoint")) {
+    const point = root.querySelector(
+      ("#" + root.getAttribute("selectedPoint")) as string,
+    );
+    if (point) {
+      point.classList.remove("qs-scatterChart-point-selected");
     }
   }
 }
 
-function deselectPoint() {
-  const chart = document.getElementById(`scatterChart`);
-  if (chart) {
-    if (chart.getAttribute("selectedPoint")) {
-      const point = document.getElementById(
-        chart.getAttribute("selectedPoint") as string,
-      );
-      if (point) {
-        point.classList.remove("qs-scatterChart-point-selected");
-      }
-    }
+export function SelectPoint(
+  seriesIndex: number,
+  pointIndex: number,
+  root: Element,
+) {
+  // could be called extenally with a root out of the chart.
+  const chart =
+    root.id == "scatterChart" ? root : root.querySelector("#scatterChart");
+  if (chart == null) {
+    return;
   }
-}
-
-export function SelectPoint(seriesIndex: number, pointIndex: number) {
-  deselectPoint();
-  const point = document.getElementById(`point-${seriesIndex}-${pointIndex}`);
-  const chart = document.getElementById(`scatterChart`);
-  if (point && chart) {
+  deselectPoint(chart);
+  const point = chart.querySelector(`#point-${seriesIndex}-${pointIndex}`);
+  if (point) {
     point.classList.add("qs-scatterChart-point-selected");
     chart.setAttribute("selectedPoint", point.id);
-    drawTooltip(point as unknown as SVGCircleElement, true);
+    drawTooltip(point as unknown as SVGCircleElement, root, true);
   }
 }
 
@@ -202,46 +208,91 @@ export function ScatterChart(props: {
   }`;
 
   const yAxisTextPaddingFromTicks = 5;
-  const yAxisTextYPadding = 6;
+  const yAxisTextYPadding = 4;
+
+  function trySetAttribute(element: Element, attribute: string, value: string) {
+    if (element.getAttribute(attribute) !== value) {
+      element.setAttribute(attribute, value);
+    }
+  }
+
+  function hideHoverTooltip() {
+    const tooltip = chart?.querySelector("#tooltip-hover");
+
+    if (tooltip) {
+      if (tooltip.getAttribute("clicked") === "false") {
+        tooltip.setAttribute("visibility", "hidden");
+      }
+    }
+  }
+
+  const scatterChartContainerRef = useRef<SVGSVGElement | null>(null);
+  let chart: Element | null = null;
+
+  function updateCoordinates() {
+    if (!chart) {
+      return;
+    }
+
+    chart.querySelectorAll("[x-data-value]").forEach((element) => {
+      const value = Number(element.getAttribute("x-data-value"));
+      const x = coordinateToSvgLogarithmic(value, rangeX, plotAreaWidth);
+      const padding = element.getAttribute("x-data-padding");
+      const value_with_padding = (x + Number(padding)).toString();
+      trySetAttribute(element, "x", value_with_padding);
+      trySetAttribute(element, "x1", value_with_padding);
+      trySetAttribute(element, "x2", value_with_padding);
+      trySetAttribute(element, "cx", value_with_padding);
+    });
+
+    chart.querySelectorAll("[y-data-value]").forEach((element) => {
+      const value = Number(element.getAttribute("y-data-value"));
+      const y = -coordinateToSvgLogarithmic(value, rangeY, plotAreaHeight);
+      const padding = element.getAttribute("y-data-padding");
+      const value_with_padding = (y + Number(padding)).toString();
+      trySetAttribute(element, "y", value_with_padding);
+      trySetAttribute(element, "y1", value_with_padding);
+      trySetAttribute(element, "y2", value_with_padding);
+      trySetAttribute(element, "cy", value_with_padding);
+    });
+  }
+
+  useEffect(() => {
+    chart = scatterChartContainerRef.current as Element | null;
+    updateCoordinates();
+  });
 
   return (
     <div style="display: flex; flex-wrap: wrap; margin-top: 8px;">
       <div class="chart-container">
         <svg
+          id="scatterChart"
+          ref={scatterChartContainerRef}
+          viewBox={viewBox}
           width={svgWidth}
           height={svgHeight}
-          viewBox={viewBox}
-          id="scatterChart"
         >
           <line
-            id="xAxis"
+            class="qs-scatterChart-axis"
             x1="0"
             y1="0"
             x2={plotAreaWidth}
             y2="0"
-            stroke="var(--border-color)"
           />
 
           {xTicks.map((tick) => {
-            const x = coordinateToSvgLogarithmic(
-              tick.value,
-              rangeX,
-              plotAreaWidth,
-            );
             return (
               <g>
                 <line
-                  x1={x}
                   y1="1"
-                  x2={x}
                   y2={axisTickLength}
-                  stroke="var(--border-color)"
+                  x-data-value={tick.value}
+                  class="qs-scatterChart-tick-line"
                 />
                 <text
-                  x={x}
                   y={axisTickLength + xAxisTickCaptionMaxHeight}
-                  text-anchor="middle"
-                  fill="var(--main-color)"
+                  x-data-value={tick.value}
+                  class="qs-scatterChart-x-tick-text"
                 >
                   {tick.label}
                 </text>
@@ -250,7 +301,7 @@ export function ScatterChart(props: {
           })}
 
           <line
-            id="yAxis"
+            class="qs-scatterChart-axis"
             x1="0"
             y1="0"
             x2="0"
@@ -259,25 +310,19 @@ export function ScatterChart(props: {
           />
 
           {yTicks.map((tick) => {
-            const y = -coordinateToSvgLogarithmic(
-              tick.value,
-              rangeY,
-              plotAreaHeight,
-            );
             return (
               <g>
                 <line
                   x1="0"
-                  y1={y}
                   x2={-axisTickLength}
-                  y2={y}
-                  stroke="var(--border-color)"
+                  y-data-value={tick.value}
+                  class="qs-scatterChart-tick-line"
                 />
                 <text
                   x={-axisTickLength - yAxisTextPaddingFromTicks}
-                  y={y + yAxisTextYPadding}
-                  text-anchor="end"
-                  fill="var(--main-color)"
+                  y-data-value={tick.value}
+                  class="qs-scatterChart-y-tick-text"
+                  y-data-padding={yAxisTextYPadding}
                 >
                   {tick.label}
                 </text>
@@ -308,59 +353,44 @@ export function ScatterChart(props: {
           >
             Created with Azure Quantum Resource Estimator
           </text>
+          <g>
+            {data.map((data, seriesIndex) => {
+              return data.items.map((item, pointIndex) => {
+                return (
+                  <circle
+                    id={`point-${seriesIndex}-${pointIndex}`}
+                    data-label={item.label}
+                    class="qs-scatterChart-point"
+                    x-data-value={item.x}
+                    y-data-value={item.y}
+                    stroke={data.color}
+                    onMouseOver={(e) => {
+                      const circle = e.currentTarget;
 
-          {data.map((data, seriesIndex) => {
-            return data.items.map((item, pointIndex) => {
-              const x = coordinateToSvgLogarithmic(
-                item.x,
-                rangeX,
-                plotAreaWidth,
-              );
-
-              const y = -coordinateToSvgLogarithmic(
-                item.y,
-                rangeY,
-                plotAreaHeight,
-              );
-              return (
-                <circle
-                  id={`point-${seriesIndex}-${pointIndex}`}
-                  cx={x}
-                  cy={y}
-                  data-label={item.label}
-                  class="qs-scatterChart-point"
-                  stroke={data.color}
-                  onMouseOver={(e) => {
-                    drawTooltip(e.currentTarget, false);
-                    deselectPoint();
-                  }}
-                  onClick={() => {
-                    SelectPoint(seriesIndex, pointIndex);
-                    props.onPointSelected(seriesIndex, pointIndex);
-                  }}
-                  onMouseOut={() => hideTooltipIfNotClicked()}
-                />
-              );
-            });
-          })}
-          <g id="tooltip" visibility="hidden">
-            <rect
-              id="tooltipRect"
-              x="100"
-              y="-100"
-              width="200"
-              height="22"
-              fill="white"
-              stroke="black"
-              stroke-width="1"
-            />
-            <text
-              id="tooltipText"
-              x="105"
-              y="115"
-              text-anchor="left"
-              fill="black"
-            ></text>
+                      if (chart) {
+                        drawTooltip(circle, chart, false);
+                      }
+                      circle?.parentNode?.appendChild(circle); // move the hovered cicrle up on the rendering stack
+                    }}
+                    onClick={() => {
+                      if (chart) {
+                        SelectPoint(seriesIndex, pointIndex, chart);
+                      }
+                      props.onPointSelected(seriesIndex, pointIndex);
+                    }}
+                    onMouseOut={() => hideHoverTooltip()}
+                  />
+                );
+              });
+            })}
+          </g>
+          <g id="tooltip-selected" visibility="hidden">
+            <rect id="tooltipRect" class="qs-scatterChart-tooltip-rect" />
+            <text id="tooltipText" class="qs-scatterChart-tooltip-text" />
+          </g>
+          <g id="tooltip-hover" visibility="hidden">
+            <rect id="tooltipRect" class="qs-scatterChart-tooltip-rect" />
+            <text id="tooltipText" class="qs-scatterChart-tooltip-text" />
           </g>
         </svg>
       </div>
