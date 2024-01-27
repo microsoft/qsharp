@@ -14,7 +14,7 @@ For the first qubit, we'll start by applying the **H** gate, getting the state $
 
 $$ \begin{bmatrix} 1 & 0 \\\ 0 & i \end{bmatrix} \cdot \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 1 \end{bmatrix} = \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ i \end{bmatrix}$$
 
-If we recall that $i = e^{i\pi/2}$, we can write the final state of the second qubit as:
+If we recall that $i = e^{i\pi/2}$, we can write the final state of the first qubit as:
 $$ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ e^{i\pi/2} \end{bmatrix} $$
 
 For the second qubit. we'll apply the **H** gate, followed by the **T** gate, with the following result:
