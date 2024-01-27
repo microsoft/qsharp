@@ -35,28 +35,34 @@ pub trait FactoryBuilder<E: ErrorCorrection> {
         &self,
         ftp: &E,
         qubit: &Rc<E::Qubit>,
-        output_t_error_rate: f64,
+        output_error_rate: f64,
         max_code_distance: u64,
     ) -> Vec<Self::Factory>;
 }
 
 pub trait Factory {
-    fn code_distance_per_round(&self) -> Vec<u64>;
     fn physical_qubits(&self) -> u64;
     fn duration(&self) -> u64;
-    fn output_t_count(&self) -> u64;
-    fn normalized_volume(&self) -> f64;
+    /// The number of magic states produced by the factory
+    fn num_output_states(&self) -> u64;
+    fn normalized_volume(&self) -> f64 {
+        ((self.physical_qubits() * self.duration()) as f64) / (self.num_output_states() as f64)
+    }
+    /// The code distance of a factory; if multiple code distances are used
+    /// (e.g., due to multiple rounds or multiple distances in a logical patch),
+    /// the maximum is returned.
+    fn max_code_distance(&self) -> u64;
 }
 
 pub struct PhysicalResourceEstimationResult<P, F: Factory, L: Overhead + Clone> {
     logical_qubit: LogicalQubit<P>,
     num_cycles: u64,
-    tfactory: Option<F>,
-    num_tfactories: u64,
+    factory: Option<F>,
+    num_factories: u64,
     required_logical_qubit_error_rate: f64,
-    required_logical_tstate_error_rate: Option<f64>,
-    num_tfactory_runs: u64,
-    physical_qubits_for_tfactories: u64,
+    required_logical_magic_state_error_rate: Option<f64>,
+    num_factory_runs: u64,
+    physical_qubits_for_factories: u64,
     physical_qubits_for_algorithm: u64,
     physical_qubits: u64,
     runtime: u64,
@@ -70,21 +76,21 @@ impl<P, F: Factory + Clone, L: Overhead + Clone> PhysicalResourceEstimationResul
         estimation: &PhysicalResourceEstimation<E, impl FactoryBuilder<E, Factory = F>, L>,
         logical_qubit: LogicalQubit<P>,
         num_cycles: u64,
-        tfactory: Option<F>,
-        num_tfactories: u64,
+        factory: Option<F>,
+        num_factories: u64,
         required_logical_qubit_error_rate: f64,
-        required_logical_tstate_error_rate: Option<f64>,
+        required_logical_magic_state_error_rate: Option<f64>,
     ) -> Self {
         // Compute statistics for single T-factory
-        let t_states_per_run = tfactory
+        let t_states_per_run = factory
             .as_ref()
-            .map_or(0, |tfactory| num_tfactories * tfactory.output_t_count());
+            .map_or(0, |factory| num_factories * factory.num_output_states());
 
         let num_ts_per_rotation = estimation
             .layout_overhead()
             .num_ts_per_rotation(estimation.error_budget().rotations());
 
-        let num_tfactory_runs = if t_states_per_run == 0 {
+        let num_factory_runs = if t_states_per_run == 0 {
             0
         } else {
             ((estimation
@@ -93,14 +99,14 @@ impl<P, F: Factory + Clone, L: Overhead + Clone> PhysicalResourceEstimationResul
                 / t_states_per_run as f64)
                 .ceil() as u64
         };
-        let physical_qubits_for_single_tfactory = tfactory.as_ref().map_or(0, F::physical_qubits);
+        let physical_qubits_for_single_tfactory = factory.as_ref().map_or(0, F::physical_qubits);
 
         // Compute statistics for all T-factories and total overhead
-        let physical_qubits_for_tfactories = num_tfactories * physical_qubits_for_single_tfactory;
+        let physical_qubits_for_factories = num_factories * physical_qubits_for_single_tfactory;
         let physical_qubits_for_algorithm =
             estimation.layout_overhead.logical_qubits() * logical_qubit.physical_qubits();
 
-        let physical_qubits = physical_qubits_for_algorithm + physical_qubits_for_tfactories;
+        let physical_qubits = physical_qubits_for_algorithm + physical_qubits_for_factories;
 
         let runtime = (logical_qubit.logical_cycle_time()) * num_cycles;
 
@@ -111,12 +117,12 @@ impl<P, F: Factory + Clone, L: Overhead + Clone> PhysicalResourceEstimationResul
         Self {
             logical_qubit,
             num_cycles,
-            tfactory,
-            num_tfactories,
+            factory,
+            num_factories,
             required_logical_qubit_error_rate,
-            required_logical_tstate_error_rate,
-            num_tfactory_runs,
-            physical_qubits_for_tfactories,
+            required_logical_magic_state_error_rate,
+            num_factory_runs,
+            physical_qubits_for_factories,
             physical_qubits_for_algorithm,
             physical_qubits,
             runtime,
@@ -131,35 +137,35 @@ impl<P, F: Factory + Clone, L: Overhead + Clone> PhysicalResourceEstimationResul
     }
 
     pub fn take(self) -> (LogicalQubit<P>, Option<F>, ErrorBudget) {
-        (self.logical_qubit, self.tfactory, self.error_budget)
+        (self.logical_qubit, self.factory, self.error_budget)
     }
 
     pub fn num_cycles(&self) -> u64 {
         self.num_cycles
     }
 
-    pub fn tfactory(&self) -> Option<&F> {
-        self.tfactory.as_ref()
+    pub fn factory(&self) -> Option<&F> {
+        self.factory.as_ref()
     }
 
-    pub fn num_tfactories(&self) -> u64 {
-        self.num_tfactories
+    pub fn num_factories(&self) -> u64 {
+        self.num_factories
     }
 
     pub fn required_logical_qubit_error_rate(&self) -> f64 {
         self.required_logical_qubit_error_rate
     }
 
-    pub fn required_logical_tstate_error_rate(&self) -> Option<f64> {
-        self.required_logical_tstate_error_rate
+    pub fn required_logical_magic_state_error_rate(&self) -> Option<f64> {
+        self.required_logical_magic_state_error_rate
     }
 
-    pub fn num_tfactory_runs(&self) -> u64 {
-        self.num_tfactory_runs
+    pub fn num_factory_runs(&self) -> u64 {
+        self.num_factory_runs
     }
 
-    pub fn physical_qubits_for_tfactories(&self) -> u64 {
-        self.physical_qubits_for_tfactories
+    pub fn physical_qubits_for_factories(&self) -> u64 {
+        self.physical_qubits_for_factories
     }
 
     pub fn physical_qubits_for_algorithm(&self) -> u64 {
@@ -194,7 +200,7 @@ impl<P, F: Factory + Clone, L: Overhead + Clone> PhysicalResourceEstimationResul
         )
     }
 
-    pub fn num_tstates(&self) -> u64 {
+    pub fn num_magic_states(&self) -> u64 {
         self.layout_overhead.num_tstates(
             self.layout_overhead
                 .num_ts_per_rotation(self.error_budget.rotations())
@@ -215,7 +221,7 @@ where
     error_budget: ErrorBudget,
     // optional constraint parameters
     logical_depth_factor: Option<f64>,
-    max_t_factories: Option<u64>,
+    max_factories: Option<u64>,
     max_duration: Option<u64>,
     max_physical_qubits: Option<u64>,
 }
@@ -239,7 +245,7 @@ where
             layout_overhead,
             error_budget,
             logical_depth_factor: None,
-            max_t_factories: None,
+            max_factories: None,
             max_duration: None,
             max_physical_qubits: None,
         }
@@ -256,8 +262,8 @@ where
     pub fn set_logical_depth_factor(&mut self, logical_depth_factor: f64) {
         self.logical_depth_factor = Some(logical_depth_factor);
     }
-    pub fn set_max_t_factories(&mut self, max_t_factories: u64) {
-        self.max_t_factories = Some(max_t_factories);
+    pub fn set_max_factories(&mut self, max_factories: u64) {
+        self.max_factories = Some(max_factories);
     }
     pub fn set_max_duration(&mut self, max_duration: u64) {
         self.max_duration = Some(max_duration);
@@ -414,7 +420,7 @@ where
 
                     let value1 = result.runtime() as f64;
                     let value2 = result.physical_qubits();
-                    let num_t_factory_runs = result.num_tfactory_runs();
+                    let num_t_factory_runs = result.num_factory_runs();
                     let point = Point2D::new(result, value1, value2);
                     best_estimation_results.push(point);
 
@@ -465,7 +471,7 @@ where
                     return Err(NoTFactoriesFound.into());
                 }
 
-                if self.max_t_factories.is_some() {
+                if self.max_factories.is_some() {
                     return Err(NoSolutionFoundForMaxTFactories.into());
                 }
 
@@ -713,7 +719,7 @@ where
                 let num_cycles =
                     num_cycles_required_for_tstates.max(num_cycles_required_by_layout_overhead);
 
-                if let Some(max_tfactories) = self.max_t_factories {
+                if let Some(max_tfactories) = self.max_factories {
                     if num_tfactories > max_tfactories {
                         continue;
                     }
@@ -867,7 +873,7 @@ where
                     continue;
                 }
 
-                if let Some(max_tfactories) = self.max_t_factories {
+                if let Some(max_tfactories) = self.max_factories {
                     if num_tfactories > max_tfactories {
                         continue;
                     }
@@ -901,7 +907,7 @@ where
         tfactory: &Builder::Factory,
         logical_qubit: &LogicalQubit<E::Qubit>,
     ) -> u64 {
-        let tstates_per_run = num_tfactories * tfactory.output_t_count();
+        let tstates_per_run = num_tfactories * tfactory.num_output_states();
 
         let num_ts_per_rotation = self
             .layout_overhead
@@ -938,7 +944,7 @@ where
     ) -> bool {
         let num_tfactories = self.num_tfactories(logical_qubit, tfactory, num_cycles);
 
-        if let Some(max_tfactories) = self.max_t_factories {
+        if let Some(max_tfactories) = self.max_factories {
             if max_tfactories < num_tfactories {
                 return false;
             }
@@ -977,7 +983,7 @@ where
         logical_qubit: &LogicalQubit<E::Qubit>,
         max_allowed_num_cycles_for_code_distance: u64,
     ) -> Option<(Builder::Factory, u64)> {
-        if let Some(max_tfactories) = self.max_t_factories {
+        if let Some(max_tfactories) = self.max_factories {
             return self.try_pick_tfactory_with_num_cycles_and_max_tfactories(
                 factories,
                 logical_qubit,
@@ -1003,7 +1009,7 @@ where
         factories
             .iter()
             .map(|factory| {
-                let tstates_per_run = max_tfactories * factory.output_t_count();
+                let tstates_per_run = max_tfactories * factory.num_output_states();
                 let num_ts_per_rotation = self
                     .layout_overhead
                     .num_ts_per_rotation(self.error_budget.rotations());
@@ -1057,7 +1063,7 @@ where
     fn find_highest_code_distance(factories: &[Builder::Factory]) -> u64 {
         factories
             .iter()
-            .filter_map(|p| p.code_distance_per_round().last().copied())
+            .map(|p| p.max_code_distance())
             .max()
             .unwrap_or(0)
     }
@@ -1117,7 +1123,7 @@ where
                 .num_tstates(num_ts_per_rotation.unwrap_or_default()),
         );
         let duration_big = u128::from(tfactory.duration());
-        let output_t_count_big = u128::from(tfactory.output_t_count());
+        let output_t_count_big = u128::from(tfactory.num_output_states());
         let logical_cycle_time_big = u128::from(logical_qubit.logical_cycle_time());
         let num_cycles_big = u128::from(num_cycles);
 

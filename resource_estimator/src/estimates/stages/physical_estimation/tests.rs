@@ -141,15 +141,15 @@ fn validate_result_invariants<L: Overhead + Clone>(
 ) {
     assert_eq!(
         result.physical_qubits(),
-        result.physical_qubits_for_tfactories() + result.physical_qubits_for_algorithm()
+        result.physical_qubits_for_factories() + result.physical_qubits_for_algorithm()
     );
     assert_eq!(
-        result.physical_qubits_for_tfactories(),
+        result.physical_qubits_for_factories(),
         result
-            .tfactory()
+            .factory()
             .expect("tfactory should be valid")
             .physical_qubits()
-            * result.num_tfactories()
+            * result.num_factories()
     );
 
     assert!(
@@ -158,10 +158,10 @@ fn validate_result_invariants<L: Overhead + Clone>(
 
     assert!(
         (result
-            .tfactory()
+            .factory()
             .expect("tfactory should be valid")
             .duration()
-            * result.num_tfactory_runs())
+            * result.num_factory_runs())
             <= result.runtime()
     );
 }
@@ -183,16 +183,16 @@ pub fn test_hubbard_e2e() -> super::super::super::Result<()> {
     let result = estimation.estimate()?;
 
     let logical_qubit = result.logical_qubit();
-    let tfactory = result.tfactory().expect("tfactory should be valid");
+    let tfactory = result.factory().expect("tfactory should be valid");
 
     assert_eq!(logical_qubit.code_distance(), 17);
     assert_eq!(logical_qubit.logical_cycle_time(), 6800);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 72);
     assert_eq!(result.algorithmic_logical_depth(), 22623);
-    assert_eq!(result.num_tfactories(), 14);
-    assert_eq!(result.num_tfactory_runs(), 1667);
-    assert_eq!(result.physical_qubits_for_tfactories(), 252_000);
+    assert_eq!(result.num_factories(), 14);
+    assert_eq!(result.num_factory_runs(), 1667);
+    assert_eq!(result.physical_qubits_for_factories(), 252_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 41616);
     assert_eq!(result.physical_qubits(), 293_616);
     assert_eq!(result.runtime(), 153_836_400);
@@ -213,7 +213,7 @@ pub fn test_hubbard_e2e() -> super::super::super::Result<()> {
 
     let same_ftp = Protocol::default();
     let output_t_error_rate = result
-        .required_logical_tstate_error_rate()
+        .required_logical_magic_state_error_rate()
         .expect("required_logical_tstate_error_rate should be valid");
     let tfactories = TFactoryBuilder::default().find_factories(
         &same_ftp,
@@ -269,15 +269,15 @@ pub fn test_hubbard_e2e_measurement_based() -> super::super::super::Result<()> {
     let result = estimation.estimate()?;
 
     let logical_qubit = result.logical_qubit();
-    let tfactory = result.tfactory().expect("tfactory should be valid");
+    let tfactory = result.factory().expect("tfactory should be valid");
 
     assert_eq!(logical_qubit.code_distance(), 5);
     assert_eq!(logical_qubit.logical_cycle_time(), 1500);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 72);
     assert_eq!(result.algorithmic_logical_depth(), 22623);
-    assert_eq!(result.num_tfactories(), 10);
-    assert_eq!(result.physical_qubits_for_tfactories(), 10400);
+    assert_eq!(result.num_factories(), 10);
+    assert_eq!(result.physical_qubits_for_factories(), 10400);
     assert_eq!(result.physical_qubits_for_algorithm(), 9504);
     assert_eq!(result.physical_qubits(), 19904);
     assert_eq!(result.runtime(), 33_934_500);
@@ -296,7 +296,7 @@ pub fn test_hubbard_e2e_measurement_based() -> super::super::super::Result<()> {
     validate_result_invariants(&result);
 
     let output_t_error_rate = result
-        .required_logical_tstate_error_rate()
+        .required_logical_magic_state_error_rate()
         .expect("required_logical_tstate_error_rate should be valid");
     let same_ftp = Protocol::floquet_code();
     let tfactories = TFactoryBuilder::default().find_factories(
@@ -451,7 +451,7 @@ pub fn test_chemistry_based_max_duration() -> super::super::super::Result<()> {
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
 
     let logical_qubit = result.logical_qubit();
-    let tfactory = result.tfactory().expect("tfactory should be valid");
+    let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
     assert!(result.runtime() <= max_duration_in_nanoseconds);
@@ -461,8 +461,8 @@ pub fn test_chemistry_based_max_duration() -> super::super::super::Result<()> {
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
     assert_eq!(result.algorithmic_logical_depth(), 411_211_118_594_u64);
-    assert_eq!(result.num_tfactories(), 2);
-    assert_eq!(result.physical_qubits_for_tfactories(), 572_000);
+    assert_eq!(result.num_factories(), 2);
+    assert_eq!(result.physical_qubits_for_factories(), 572_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
 
@@ -484,15 +484,15 @@ pub fn test_chemistry_based_max_duration() -> super::super::super::Result<()> {
 
     assert_eq!(
         result.physical_qubits(),
-        result.physical_qubits_for_tfactories() + result.physical_qubits_for_algorithm()
+        result.physical_qubits_for_factories() + result.physical_qubits_for_algorithm()
     );
     assert_eq!(
-        result.physical_qubits_for_tfactories(),
+        result.physical_qubits_for_factories(),
         result
-            .tfactory()
+            .factory()
             .expect("tfactory should be valid")
             .physical_qubits()
-            * result.num_tfactories()
+            * result.num_factories()
     );
 
     assert!(
@@ -511,7 +511,7 @@ pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> 
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
 
     let logical_qubit = result.logical_qubit();
-    let tfactory = result.tfactory().expect("tfactory should be valid");
+    let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
     assert!(result.physical_qubits() <= max_num_qubits);
@@ -521,8 +521,8 @@ pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> 
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
     assert_eq!(result.algorithmic_logical_depth(), 411_211_118_594_u64);
-    assert_eq!(result.num_tfactories(), 2);
-    assert_eq!(result.physical_qubits_for_tfactories(), 572_000);
+    assert_eq!(result.num_factories(), 2);
+    assert_eq!(result.physical_qubits_for_factories(), 572_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
     assert_eq!(result.runtime(), 22_371_634_030_834_500_u64);
@@ -543,15 +543,15 @@ pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> 
 
     assert_eq!(
         result.physical_qubits(),
-        result.physical_qubits_for_tfactories() + result.physical_qubits_for_algorithm()
+        result.physical_qubits_for_factories() + result.physical_qubits_for_algorithm()
     );
     assert_eq!(
-        result.physical_qubits_for_tfactories(),
+        result.physical_qubits_for_factories(),
         result
-            .tfactory()
+            .factory()
             .expect("tfactory should be valid")
             .physical_qubits()
-            * result.num_tfactories()
+            * result.num_factories()
     );
 
     assert!(
@@ -614,13 +614,13 @@ pub fn test_factorization_2048_max_duration_matches_regular_estimate(
     );
 
     assert_eq!(
-        result_no_max_duration.num_tfactories(),
-        result.num_tfactories()
+        result_no_max_duration.num_factories(),
+        result.num_factories()
     );
 
     assert_eq!(
-        result_no_max_duration.physical_qubits_for_tfactories(),
-        result.physical_qubits_for_tfactories()
+        result_no_max_duration.physical_qubits_for_factories(),
+        result.physical_qubits_for_factories()
     );
 
     assert_eq!(
@@ -668,13 +668,13 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate(
     );
 
     assert_eq!(
-        result_no_max_num_qubits.num_tfactories(),
-        result.num_tfactories()
+        result_no_max_num_qubits.num_factories(),
+        result.num_factories()
     );
 
     assert_eq!(
-        result_no_max_num_qubits.physical_qubits_for_tfactories(),
-        result.physical_qubits_for_tfactories()
+        result_no_max_num_qubits.physical_qubits_for_factories(),
+        result.physical_qubits_for_factories()
     );
 
     assert_eq!(
@@ -727,7 +727,7 @@ fn build_frontier_test() {
     for i in 0..points.len() - 1 {
         assert!(points[i].runtime() <= points[i + 1].runtime());
         assert!(points[i].physical_qubits() >= points[i + 1].physical_qubits());
-        assert!(points[i].num_tfactories() >= points[i + 1].num_tfactories());
+        assert!(points[i].num_factories() >= points[i + 1].num_factories());
         assert!(
             points[i].logical_qubit().code_distance()
                 <= points[i + 1].logical_qubit().code_distance()
@@ -741,8 +741,8 @@ fn build_frontier_test() {
         shortest_runtime_result.physical_qubits()
     );
     assert_eq!(
-        points[0].num_tfactories(),
-        shortest_runtime_result.num_tfactories()
+        points[0].num_factories(),
+        shortest_runtime_result.num_factories()
     );
     assert_eq!(
         points[0].logical_qubit().code_distance(),
@@ -825,29 +825,29 @@ fn build_frontier_bit_flip_code_test() {
     assert_eq!(points[0].runtime(), shortest_runtime_result.runtime());
     assert_eq!(
         points[0]
-            .tfactory()
+            .factory()
             .expect("point should have valid tfactory value")
             .duration(),
         shortest_runtime_result
-            .tfactory()
+            .factory()
             .expect("shortest result should have valid tfactory value")
             .duration()
     );
 
     assert_eq!(
         points[0]
-            .tfactory()
+            .factory()
             .expect("point should have valid tfactory value")
             .physical_qubits(),
         shortest_runtime_result
-            .tfactory()
+            .factory()
             .expect("shortest result should have valid tfactory value")
             .physical_qubits()
     );
 
     assert_eq!(
-        points[0].num_tfactories(),
-        shortest_runtime_result.num_tfactories()
+        points[0].num_factories(),
+        shortest_runtime_result.num_factories()
     );
 
     assert_eq!(
@@ -855,8 +855,8 @@ fn build_frontier_bit_flip_code_test() {
         shortest_runtime_result.physical_qubits()
     );
     assert_eq!(
-        points[0].num_tfactories(),
-        shortest_runtime_result.num_tfactories()
+        points[0].num_factories(),
+        shortest_runtime_result.num_factories()
     );
 }
 

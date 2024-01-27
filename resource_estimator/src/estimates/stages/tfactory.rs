@@ -734,19 +734,19 @@ impl TFactory {
     }
 
     pub fn normalized_qubits(&self) -> f64 {
-        (self.physical_qubits() as f64) / (self.output_t_count() as f64)
+        (self.physical_qubits() as f64) / (self.num_output_states() as f64)
     }
-}
 
-impl Factory for TFactory {
     /// Code distances per round
-    fn code_distance_per_round(&self) -> Vec<u64> {
+    pub fn code_distance_per_round(&self) -> Vec<u64> {
         self.rounds
             .iter()
             .map(|round| round.code_distance)
             .collect()
     }
+}
 
+impl Factory for TFactory {
     fn physical_qubits(&self) -> u64 {
         self.rounds
             .iter()
@@ -762,7 +762,7 @@ impl Factory for TFactory {
             .sum()
     }
 
-    fn output_t_count(&self) -> u64 {
+    fn num_output_states(&self) -> u64 {
         let last_round = self
             .rounds
             .last()
@@ -773,8 +773,8 @@ impl Factory for TFactory {
         last_round.compute_num_output_ts(failure_probability)
     }
 
-    fn normalized_volume(&self) -> f64 {
-        ((self.physical_qubits() * self.duration()) as f64) / (self.output_t_count() as f64)
+    fn max_code_distance(&self) -> u64 {
+        self.code_distance_per_round().last().copied().unwrap_or(0)
     }
 }
 
@@ -787,7 +787,7 @@ impl Serialize for TFactory {
 
         map.serialize_entry("physicalQubits", &self.physical_qubits())?;
         map.serialize_entry("runtime", &self.duration())?;
-        map.serialize_entry("numTstates", &self.output_t_count())?;
+        map.serialize_entry("numTstates", &self.num_output_states())?;
         map.serialize_entry("numInputTstates", &self.input_t_count())?;
         map.serialize_entry("numRounds", &self.num_rounds())?;
         map.serialize_entry("numUnitsPerRound", &self.num_units_per_round())?;

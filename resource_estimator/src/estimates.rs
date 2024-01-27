@@ -93,7 +93,7 @@ fn estimate_single(
         estimation.set_logical_depth_factor(logical_depth_factor);
     }
     if let Some(max_t_factories) = job_params.constraints().max_t_factories {
-        estimation.set_max_t_factories(max_t_factories);
+        estimation.set_max_factories(max_t_factories);
     }
     if let Some(max_duration) = job_params.constraints().max_duration {
         estimation.set_max_duration(max_duration);

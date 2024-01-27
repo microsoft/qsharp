@@ -184,12 +184,12 @@ fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
         num_tstates: result
             .layout_overhead()
             .num_tstates(num_ts_per_rotation.unwrap_or_default()),
-        num_tfactories: result.num_tfactories(),
-        num_tfactory_runs: result.num_tfactory_runs(),
-        physical_qubits_for_tfactories: result.physical_qubits_for_tfactories(),
+        num_tfactories: result.num_factories(),
+        num_tfactory_runs: result.num_factory_runs(),
+        physical_qubits_for_tfactories: result.physical_qubits_for_factories(),
         physical_qubits_for_algorithm: result.physical_qubits_for_algorithm(),
         required_logical_qubit_error_rate: result.required_logical_qubit_error_rate(),
-        required_logical_tstate_error_rate: result.required_logical_tstate_error_rate(),
+        required_logical_tstate_error_rate: result.required_logical_magic_state_error_rate(),
         num_ts_per_rotation,
         clifford_error_rate: result
             .logical_qubit()
