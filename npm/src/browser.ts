@@ -249,3 +249,5 @@ export type {
 } from "../lib/web/qsc_wasm.js";
 export { type IStructStepResult, StepResultId } from "../lib/web/qsc_wasm.js";
 export { type LanguageServiceEvent } from "./language-service/language-service.js";
+
+export * as utils from "./utils.js";

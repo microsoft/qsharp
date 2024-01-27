@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { CreateIntegerTicks, CreateTimeTicks, Tick } from "../src/ux/ticks.js";
+// import { CreateIntegerTicks, CreateTimeTicks, Tick } from "qsharp-lang/utils";
+import { utils } from "../dist/browser.js";
 import { useEffect, useRef } from "preact/hooks";
 
 export type ScatterSeries = {
@@ -153,11 +154,11 @@ export function ScatterChart(props: {
     max: maxY * rangeCoefficient,
   };
 
-  function createAxisTicks(range: Range, isTime: boolean): Tick[] {
+  function createAxisTicks(range: Range, isTime: boolean): utils.Tick[] {
     if (isTime) {
-      return CreateTimeTicks(range.min, range.max);
+      return utils.CreateTimeTicks(range.min, range.max);
     } else {
-      return CreateIntegerTicks(range.min, range.max);
+      return utils.CreateIntegerTicks(range.min, range.max);
     }
   }
 
