@@ -15,48 +15,7 @@ use super::super::{
 };
 use serde::{de::Error, Deserialize, Serialize};
 
-impl TPhysicalQubit for PhysicalQubit {
-    fn t_gate_error_rate(&self) -> f64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based.t_gate_error_rate,
-            Self::Majorana(majorana) => majorana.t_gate_error_rate,
-        }
-    }
-
-    fn one_qubit_measurement_time(&self) -> u64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based
-                .one_qubit_measurement_time
-                .expect("measurement time should be set"),
-            Self::Majorana(majorana) => majorana
-                .one_qubit_measurement_time
-                .expect("measurement time should"),
-        }
-    }
-
-    fn clifford_error_rate(&self) -> f64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based
-                .one_qubit_gate_error_rate
-                .max(gate_based.two_qubit_gate_error_rate)
-                .max(gate_based.idle_error_rate),
-            Self::Majorana(majorana) => majorana
-                .idle_error_rate
-                .max(majorana.one_qubit_measurement_error_rate.process())
-                .max(majorana.two_qubit_joint_measurement_error_rate.process()),
-        }
-    }
-
-    fn readout_error_rate(&self) -> f64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based.one_qubit_measurement_error_rate,
-            Self::Majorana(majorana) => majorana
-                .one_qubit_measurement_error_rate
-                .readout()
-                .max(majorana.two_qubit_joint_measurement_error_rate.readout()),
-        }
-    }
-}
+impl TPhysicalQubit for PhysicalQubit {}
 
 /// Physical qubit classification.
 ///
@@ -112,6 +71,47 @@ impl PhysicalQubit {
         match self {
             Self::GateBased(_) => super::PhysicalInstructionSet::GateBased,
             Self::Majorana(_) => super::PhysicalInstructionSet::Majorana,
+        }
+    }
+
+    pub fn t_gate_error_rate(&self) -> f64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based.t_gate_error_rate,
+            Self::Majorana(majorana) => majorana.t_gate_error_rate,
+        }
+    }
+
+    pub fn one_qubit_measurement_time(&self) -> u64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based
+                .one_qubit_measurement_time
+                .expect("measurement time should be set"),
+            Self::Majorana(majorana) => majorana
+                .one_qubit_measurement_time
+                .expect("measurement time should"),
+        }
+    }
+
+    pub fn clifford_error_rate(&self) -> f64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based
+                .one_qubit_gate_error_rate
+                .max(gate_based.two_qubit_gate_error_rate)
+                .max(gate_based.idle_error_rate),
+            Self::Majorana(majorana) => majorana
+                .idle_error_rate
+                .max(majorana.one_qubit_measurement_error_rate.process())
+                .max(majorana.two_qubit_joint_measurement_error_rate.process()),
+        }
+    }
+
+    pub fn readout_error_rate(&self) -> f64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based.one_qubit_measurement_error_rate,
+            Self::Majorana(majorana) => majorana
+                .one_qubit_measurement_error_rate
+                .readout()
+                .max(majorana.two_qubit_joint_measurement_error_rate.readout()),
         }
     }
 }

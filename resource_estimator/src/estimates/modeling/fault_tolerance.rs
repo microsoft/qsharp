@@ -7,7 +7,7 @@ mod tests;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::estimates::stages::physical_estimation::{ErrorCorrection, TPhysicalQubit};
+use crate::estimates::stages::physical_estimation::ErrorCorrection;
 
 use super::{
     super::{

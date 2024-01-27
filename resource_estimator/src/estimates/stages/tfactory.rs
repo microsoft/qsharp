@@ -18,7 +18,7 @@ use super::{
         error::IO::{self, CannotParseJSON},
         modeling::LogicalQubit,
     },
-    physical_estimation::{Factory, TPhysicalQubit},
+    physical_estimation::Factory,
 };
 
 pub enum TFactoryQubit<'a> {

@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::estimates::{
     modeling::{PhysicalQubit, Protocol},
-    stages::physical_estimation::{Factory, FactoryBuilder, TPhysicalQubit},
+    stages::physical_estimation::{Factory, FactoryBuilder},
 };
 
 use super::super::{

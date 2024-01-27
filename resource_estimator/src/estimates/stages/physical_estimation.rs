@@ -18,12 +18,7 @@ use super::{
 };
 use std::{cmp::Ordering, rc::Rc};
 
-pub trait TPhysicalQubit {
-    fn t_gate_error_rate(&self) -> f64;
-    fn one_qubit_measurement_time(&self) -> u64;
-    fn clifford_error_rate(&self) -> f64;
-    fn readout_error_rate(&self) -> f64;
-}
+pub trait TPhysicalQubit {}
 
 pub trait ErrorCorrection<PhysicalQubit: TPhysicalQubit> {
     fn max_code_distance(&self) -> u64;
