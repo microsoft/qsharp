@@ -4,119 +4,176 @@
 /// # Description
 /// This example demonstrates quantum dynamics in a style tailored for
 /// resource estimation. The sample is specifically the simulation
-/// of an Ising model Hamiltonian on an NxN 2D lattice using a
+/// of an Ising model Hamiltonian on an N1xN2 2D lattice using a
 /// fourth-order Trotter Suzuki product formula, assuming
 /// a 2D qubit architecture with nearest-neighbor connectivity.
 /// The is an example of a program that is not amenable to simulating
 /// classically, but can be run through resource estimation to determine
 /// what size of quantum system would be needed to solve the problem.
 namespace QuantumDynamics {
+
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Arrays;
+
 
     @EntryPoint()
     operation Main() : Unit {
-        let N = 10;
+        // n : Int, m : Int, t: Double, u : Double, tstep : Double
+        
+        let n = 30;
+        let m = 30;
+
         let J = 1.0;
         let g = 1.0;
-        let totTime = 20.0;
-        let dt = 0.25;
-        let eps = 0.010;
 
-        IsingModel2DSim(N, J, g, totTime, dt, eps);
+        let totTime = 30.0;
+        let dt = 0.9;
+
+        IsingModel2DSim(n, m, J, g, totTime, dt);
     }
 
-    function GetQubitIndex(row : Int, col : Int, n : Int) : Int {
-        return row % 2 == 0             // if row is even,
-            ? col + n * row             // move from left to right,
-            | (n - 1 - col) + n * row;  // otherwise from right to left.
-    }
+    /// # Summary
+    /// The function below creates a sequence containing the rotation angles that will be applied with the two operators used in the expansion of the Trotter-Suzuki formula.
+    /// # Input
+    /// ## p (Double) : Constant used for fourth-order formulas
+    /// 
+    /// ## dt (Double) : Time-step used to compute rotation angles
+    /// 
+    /// ## J (Double) : coefficient for 2-qubit interactions
+    /// 
+    /// ## g (Double) : coefficient for transverse field
+    ///
+    /// # Output
+    /// ## values (Double[]) : The list of rotation angles to be applies in sequence with the corresponding operators
+    ///
+    function SetAngleSequence(p : Double, dt : Double, J : Double, g : Double) : Double[] {
 
-    function SetSequences(len : Int, p : Double, dt : Double, J : Double, g : Double) : (Double[], Double[]) {
-        // create two arrays of size `len`
-        mutable seqA = [0.0, size=len];
-        mutable seqB = [0.0, size=len];
+        let len1 = 3;
+        let len2 = 3;
+        let valLength = 2*len1+len2+1;
+        mutable values = [0.0, size=valLength];
 
-        // pre-compute values according to exponents
-        let values = [
-            -J * p * dt,
-            g * p * dt,
-            -J * p * dt,
-            g * p * dt,
-            -J * (1.0 - 3.0 * p) * dt / 2.0,
-            g * (1.0 - 4.0 * p) * dt,
-            -J * (1.0 - 3.0 * p) * dt / 2.0,
-            g * p * dt,
-            -J * p * dt,
-            g * p * dt
-        ];
+        let val1 = J*p*dt;
+        let val2 = -g*p*dt;
+        let val3 = J*(1.0 - 3.0*p)*dt/2.0;
+        let val4 = g*(1.0 - 4.0*p)*dt/2.0;
 
-        // assign first and last value of `seqA`
-        set seqA w/= 0 <- -J * p * dt / 2.0;
-        set seqA w/= len - 1 <- -J * p * dt / 2.0;
-
-        // assign other values to `seqA` or `seqB`
-        // in an alternating way
-        for i in 1..len - 2 {
-            if i % 2 == 0 {
-                set seqA w/= i <- values[i % 10];
+        for i in 0..len1 {
+            
+            if (i % 2 == 0) {
+                set values w/= i <- val1;
             }
             else {
-                set seqB w/= i <- values[i % 10];
+                set values w/= i <- val2;
+            }
+
+        }
+
+        for i in len1+1..len1+len2 {
+            if (i % 2 == 0) {
+                set values w/= i <- val3;
+            }
+            else {
+                set values w/= i <- val4;
             }
         }
 
-        return (seqA, seqB);
+        for i in len1+len2+1..valLength-1 {
+            if (i % 2 == 0) {
+                set values w/= i <- val1;
+            }
+            else {
+                set values w/= i <- val2;
+            }
+        }
+        return values;
     }
 
-    operation ApplyAllX(qs : Qubit[], theta : Double) : Unit {
+    /// # Summary
+    /// Applies e^-iX(theta) on all qubits in the 2D lattice as part of simulating the transverse field in the Ising model
+    /// # Input
+    /// ## n (Int) : Lattice size for an n x n lattice
+    /// 
+    /// ## qArr (Qubit[][]) : Array of qubits representing the lattice
+    /// 
+    /// ## theta (Double) : The angle/time-step for which the unitary simulation is done.
+    /// 
+    operation ApplyAllX(n : Int, qArr : Qubit[][], theta : Double) : Unit {
         // This applies `Rx` with an angle of `2.0 * theta` to all qubits in `qs`
         // using partial application
-        ApplyToEach(Rx(2.0 * theta, _), qs);
+        for row in 0..n-1 {
+            ApplyToEach(Rx(2.0 * theta, _), qArr[row]);
+        }
     }
 
-    operation ApplyDoubleZ(n : Int, qs : Qubit[], theta : Double, dir : Bool, grp : Bool) : Unit {
-        let start = grp ? 0 | 1;    // Choose either odd or even indices based on group number
+    /// # Summary
+    /// Applies e^-iP(theta) where P = Z o Z as part of the repulsion terms.
+    /// # Input
+    /// ## n, m (Int, Int) : Lattice sizes for an n x m lattice
+    /// 
+    /// ## qArr (Qubit[]) : Array of qubits representing the lattice
+    /// 
+    /// ## theta (Double) : The angle/time-step for which unitary simulation is done.
+    /// 
+    /// ## dir (Bool) : Direction is true for vertical direction.
+    ///
+    /// ## grp (Bool) : Group is true for odd starting indices
+    ///
+    operation ApplyDoubleZ(n : Int, m : Int, qArr : Qubit[][], theta : Double, dir : Bool, grp : Bool) : Unit {
+        let start = grp ? 1 | 0;    // Choose either odd or even indices based on group number
+        let P_op = [PauliZ, PauliZ];
+        let c_end = dir ? m-1 | m-2;
+        let r_end = dir ? m-2 | m-1;
 
-        for i in 0..n - 1 {
-            for j in start..2..n - 2 {    // Iterate through even or odd `j`s based on `grp`
-                // rows and cols are interchanged depending on direction
-                let (row, col) = dir ? (i, j) | (j, i);
+        for row in 0..r_end {
+            for col in start..2..c_end {    // Iterate through even or odd columns based on `grp`
 
-                // Choose first qubit based on row and col
-                let ind1 = GetQubitIndex(row, col, n);
-                // Choose second qubit in column if direction is horizontal and next qubit in row if direction is vertical
-                let ind2 = dir ? GetQubitIndex(row, col + 1, n) | GetQubitIndex(row + 1, col, n);
+                let row2 = dir ? row+1 | row;
+                let col2 = dir ? col | col+1;
 
-                within {
-                    CNOT(qs[ind1], qs[ind2]);
-                } apply {
-                    Rz(2.0 * theta, qs[ind2]);
-                }
+                Exp(P_op, theta, [qArr[row][col], qArr[row2][col2]]);
             }
         }
     }
 
-    operation IsingModel2DSim(N : Int, J : Double, g : Double, totTime : Double, dt : Double, eps : Double) : Unit {
-        use qs = Qubit[N * N];
-        let len = Length(qs);
+    /// # Summary
+    /// The main function that takes in various parameters and calls the operations needed to simulate fourth order Trotterizatiuon of the Ising Hamiltonian for a given time-step
+    /// # Input
+    /// ## N1, N2 (Int, Int) : Lattice sizes for an N1 x N2 lattice
+    /// 
+    /// ## J (Double) : coefficient for 2-qubit interactions
+    /// 
+    /// ## g (Double) : coefficient for transverse field
+    ///
+    /// ## totTime (Double) : The total time-step for which unitary simulation is done.
+    ///
+    /// ## dt (Double) : The time the simulation is done for each timestep
+    ///
+    operation IsingModel2DSim(N1 : Int, N2 : Int, J : Double, g : Double, totTime : Double, dt : Double) : Unit {
+        
+        use qs = Qubit[N1*N2];
+        let qubitArray = Chunks(N2, qs); // qubits are re-arranged to be in an N1 x N2 array
 
-        let p = 1.0 / (4.0 - (4.0 ^ (1.0 / 3.0)));
+        let p = 1.0 / (4.0 - 4.0^(1.0 / 3.0));
         let t = Ceiling(totTime / dt);
 
         let seqLen = 10 * t + 1;
 
-        let (seqA, seqB) = SetSequences(seqLen, p, dt, J, g);
+        let angSeq = SetAngleSequence(p, dt, J, g);
 
         for i in 0..seqLen - 1 {
+            let theta = (i==0 or i==seqLen-1) ? J*p*dt/2.0 | angSeq[i%10];
+
             // for even indexes
             if i % 2 == 0 {
-                ApplyAllX(qs, seqA[i]);
+                ApplyAllX(N1, qubitArray, theta);
             } else {
                 // iterate through all possible combinations for `dir` and `grp`.
                 for (dir, grp) in [(true, true), (true, false), (false, true), (false, false)] {
-                    ApplyDoubleZ(N, qs, seqB[i], dir, grp);
+                    ApplyDoubleZ(N1, N2, qubitArray, theta, dir, grp);
                 }
             }
         }
     }
+
 }
