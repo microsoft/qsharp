@@ -39,7 +39,7 @@ const columnNames = [
   "Physical qubits",
 ];
 
-const initialColumns = [0, 2, 3, 10, 11, 12];
+const initialColumns = [0, 10, 13, 11, 12];
 
 const xAxis: Axis = {
   isTime: true,
@@ -117,6 +117,58 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
   };
 }
 
+function createRunNames(estimatesData: ReData[]): string[] {
+  const fields: string[][] = [];
+
+  estimatesData.forEach(() => {
+    fields.push([]);
+  });
+
+  // Could be multiple runs, e.g. against different algorithms.
+  addIfDifferent(fields, estimatesData, (data) => data.jobParams.sharedRunName);
+
+  addIfDifferent(
+    fields,
+    estimatesData,
+    (data) => data.jobParams.qubitParams.name,
+  );
+
+  addIfDifferent(
+    fields,
+    estimatesData,
+    (data) => data.jobParams.qecScheme.name,
+  );
+
+  addIfDifferent(fields, estimatesData, (data) =>
+    String(data.jobParams.errorBudget),
+  );
+
+  const proposedRunNames = fields.map((field) => field.join(", "));
+  if (new Set(proposedRunNames).size != proposedRunNames.length) {
+    // If there are duplicates, add the run index to the name.
+    return proposedRunNames.map(
+      (runName, index) => runName + " (" + index + ")",
+    );
+  }
+
+  return proposedRunNames;
+}
+
+function addIfDifferent(
+  fields: string[][],
+  estimatesData: ReData[],
+  fieldMethod: (data: ReData) => string,
+): void {
+  const arr = estimatesData.map(fieldMethod);
+
+  const set = new Set(arr);
+  if (set.size > 1) {
+    arr.forEach((field, index) => {
+      fields[index].push(field);
+    });
+  }
+}
+
 export function EstimatesOverview(props: {
   estimatesData: ReData[];
   colors: string[] | null;
@@ -134,18 +186,15 @@ export function EstimatesOverview(props: {
       ? "Warning: The number of runNames does not match the number of estimates. Ignoring provided runNames."
       : "";
 
+  const runNames =
+    props.runNames != null &&
+    props.runNames.length == props.estimatesData.length
+      ? props.runNames
+      : createRunNames(props.estimatesData);
+
   props.estimatesData.forEach((item, idx) => {
-    if (
-      props.runNames != null &&
-      props.runNames.length == props.estimatesData.length
-    ) {
-      item.jobParams.runName = props.runNames[idx];
-    } else {
-      if (item.jobParams.runName == null) {
-        // Start indexing with 0 to match with the original object indexing.
-        item.jobParams.runName = `(${idx})`;
-      }
-    }
+    // Start indexing with 0 to match with the original object indexing.
+    item.jobParams.runName = runNames[idx];
   });
 
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
