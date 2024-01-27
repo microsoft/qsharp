@@ -127,6 +127,13 @@ export function EstimatesOverview(props: {
 }) {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
 
+  const runNameRenderingError =
+    props.runNames != null &&
+    props.runNames.length > 0 &&
+    props.runNames.length != props.estimatesData.length
+      ? "Warning: The number of runNames does not match the number of estimates. Ignoring provided runNames."
+      : "";
+
   props.estimatesData.forEach((item, idx) => {
     if (
       props.runNames != null &&
@@ -185,6 +192,13 @@ export function EstimatesOverview(props: {
     );
   }
 
+  const colorRenderingError =
+    props.colors != null &&
+    props.colors.length > 0 &&
+    props.colors.length != props.estimatesData.length
+      ? "Warning: The number of colors does not match the number of estimates. Ignoring provided colors."
+      : "";
+
   const colormap =
     props.colors != null && props.colors.length == props.estimatesData.length
       ? props.colors
@@ -193,6 +207,12 @@ export function EstimatesOverview(props: {
   if (props.isSimplifiedView) {
     return (
       <div className="qs-estimatesOverview">
+        {runNameRenderingError != "" && (
+          <div class="qs-estimatesOverview-error">{runNameRenderingError}</div>
+        )}
+        {colorRenderingError != "" && (
+          <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
+        )}
         <ResultsTable
           columnNames={columnNames}
           rows={props.estimatesData.map((dataItem, index) =>
@@ -219,6 +239,12 @@ export function EstimatesOverview(props: {
 
   return (
     <div className="qs-estimatesOverview">
+      {runNameRenderingError != "" && (
+        <div class="qs-estimatesOverview-error">{runNameRenderingError}</div>
+      )}
+      {colorRenderingError != "" && (
+        <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
+      )}
       <details open>
         <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
           Results

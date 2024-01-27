@@ -681,3 +681,7 @@ html {
   text-anchor: end;
   fill: var(--main-color);
 }
+
+.qs-estimatesOverview-error {
+  color: red;
+}
