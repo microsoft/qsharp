@@ -26,7 +26,13 @@ type Range = {
 };
 
 export function HideTooltip(root: Element) {
-  root.querySelector("#tooltip-selected")?.setAttribute("visibility", "hidden");
+  // could be called extenally with a root out of the chart.
+  const chart =
+    root.id == "scatterChart" ? root : root.querySelector("#scatterChart");
+
+  chart
+    ?.querySelector("#tooltip-selected")
+    ?.setAttribute("visibility", "hidden");
 }
 
 function drawTooltip(
@@ -89,11 +95,17 @@ export function SelectPoint(
   pointIndex: number,
   root: Element,
 ) {
-  deselectPoint(root);
-  const point = root.querySelector(`#point-${seriesIndex}-${pointIndex}`);
+  // could be called extenally with a root out of the chart.
+  const chart =
+    root.id == "scatterChart" ? root : root.querySelector("#scatterChart");
+  if (chart == null) {
+    return;
+  }
+  deselectPoint(chart);
+  const point = chart.querySelector(`#point-${seriesIndex}-${pointIndex}`);
   if (point) {
     point.classList.add("qs-scatterChart-point-selected");
-    root.setAttribute("selectedPoint", point.id);
+    chart.setAttribute("selectedPoint", point.id);
     drawTooltip(point as unknown as SVGCircleElement, root, true);
   }
 }
@@ -261,7 +273,6 @@ export function ScatterChart(props: {
           height={svgHeight}
         >
           <line
-            id="xAxis"
             class="qs-scatterChart-axis"
             x1="0"
             y1="0"
@@ -290,7 +301,6 @@ export function ScatterChart(props: {
           })}
 
           <line
-            id="yAxis"
             class="qs-scatterChart-axis"
             x1="0"
             y1="0"

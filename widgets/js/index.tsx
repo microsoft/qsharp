@@ -126,6 +126,7 @@ function renderEstimatesOverview({ model, el }: RenderArgs) {
   onChange();
   model.on("change:estimates", onChange);
   model.on("change:colors", onChange);
+  model.on("change:runNames", onChange);
 }
 
 function renderEstimatesPanel({ model, el }: RenderArgs) {
@@ -164,6 +165,7 @@ function renderEstimatesPanel({ model, el }: RenderArgs) {
   onChange();
   model.on("change:estimates", onChange);
   model.on("change:colors", onChange);
+  model.on("change:runNames", onChange);
 }
 
 function createOnRowDeleted(

@@ -180,7 +180,7 @@ export function EstimatesOverview(props: {
   function findRoot(ev?: Event): Element | undefined {
     return (
       (ev?.currentTarget as Element | undefined)?.closest(
-        "#qs-estimatesOverview",
+        ".qs-estimatesOverview",
       ) ?? undefined
     );
   }
@@ -192,65 +192,63 @@ export function EstimatesOverview(props: {
 
   if (props.isSimplifiedView) {
     return (
-      <>
-        <g id="qs-estimatesOverview">
-          <ResultsTable
-            columnNames={columnNames}
-            rows={props.estimatesData.map((dataItem, index) =>
-              reDataToRow(dataItem, colormap[index]),
-            )}
-            initialColumns={initialColumns}
-            ensureSelected={true}
-            onRowDeleted={props.onRowDeleted}
-            selectedRow={selectedRow}
-            onRowSelected={onRowSelected}
-          />
-          <ScatterChart
-            xAxis={xAxis}
-            yAxis={yAxis}
-            data={props.estimatesData.map((dataItem, index) =>
-              reDataToRowScatter(dataItem, colormap[index]),
-            )}
-            onPointSelected={onPointSelected}
-          />
-        </g>
-      </>
+      <div className="qs-estimatesOverview">
+        <ResultsTable
+          columnNames={columnNames}
+          rows={props.estimatesData.map((dataItem, index) =>
+            reDataToRow(dataItem, colormap[index]),
+          )}
+          initialColumns={initialColumns}
+          // should be able to deselect rows for making screenshots
+          ensureSelected={false}
+          onRowDeleted={props.onRowDeleted}
+          selectedRow={selectedRow}
+          onRowSelected={onRowSelected}
+        />
+        <ScatterChart
+          xAxis={xAxis}
+          yAxis={yAxis}
+          data={props.estimatesData.map((dataItem, index) =>
+            reDataToRowScatter(dataItem, colormap[index]),
+          )}
+          onPointSelected={onPointSelected}
+        />
+      </div>
     );
   }
 
   return (
-    <>
-      <g id="qs-estimatesOverview">
-        <details open>
-          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-            Results
-          </summary>
-          <ResultsTable
-            columnNames={columnNames}
-            rows={props.estimatesData.map((dataItem, index) =>
-              reDataToRow(dataItem, colormap[index]),
-            )}
-            initialColumns={initialColumns}
-            selectedRow={selectedRow}
-            onRowSelected={onRowSelected}
-            ensureSelected={true}
-            onRowDeleted={props.onRowDeleted}
-          />
-        </details>
-        <details open>
-          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-            Space-time diagram
-          </summary>
-          <ScatterChart
-            xAxis={xAxis}
-            yAxis={yAxis}
-            data={props.estimatesData.map((dataItem, index) =>
-              reDataToRowScatter(dataItem, colormap[index]),
-            )}
-            onPointSelected={onPointSelected}
-          />
-        </details>
-      </g>
-    </>
+    <div className="qs-estimatesOverview">
+      <details open>
+        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+          Results
+        </summary>
+        <ResultsTable
+          columnNames={columnNames}
+          rows={props.estimatesData.map((dataItem, index) =>
+            reDataToRow(dataItem, colormap[index]),
+          )}
+          initialColumns={initialColumns}
+          selectedRow={selectedRow}
+          onRowSelected={onRowSelected}
+          // should be able to deselect rows for making screenshots
+          ensureSelected={false}
+          onRowDeleted={props.onRowDeleted}
+        />
+      </details>
+      <details open>
+        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+          Space-time diagram
+        </summary>
+        <ScatterChart
+          xAxis={xAxis}
+          yAxis={yAxis}
+          data={props.estimatesData.map((dataItem, index) =>
+            reDataToRowScatter(dataItem, colormap[index]),
+          )}
+          onPointSelected={onPointSelected}
+        />
+      </details>
+    </div>
   );
 }
