@@ -35,7 +35,12 @@ def dump_operation(operation: str, num_qubits: int) -> List[List[complex]]:
     for i in range(num_entries):
         matrix += [[]]
         for j in range(num_entries):
-            entry = state.get(i * num_entries + j)
+            # detemine the index of the entry in the state vector, which is
+            # the reverse of the binary representation of the index into the matrix,
+            # padded by twice the number of requested qubits.
+            index = i * num_entries + j
+            index = int(format(index, f'0{2 * num_qubits}b')[::-1], 2)
+            entry = state.get(index)
             if entry is None:
                 matrix[i] += [complex(0, 0)]
             else:
