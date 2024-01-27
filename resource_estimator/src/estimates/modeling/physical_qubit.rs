@@ -4,8 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use crate::estimates::stages::physical_estimation::TPhysicalQubit;
-
 use super::super::{
     constants::{
         INSTRUCTION_SET, ONE_QUBIT_GATE_ERROR_RATE, ONE_QUBIT_GATE_TIME,
@@ -14,8 +12,6 @@ use super::super::{
     serialization::{f64_nan, time},
 };
 use serde::{de::Error, Deserialize, Serialize};
-
-impl TPhysicalQubit for PhysicalQubit {}
 
 /// Physical qubit classification.
 ///

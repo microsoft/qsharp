@@ -357,7 +357,7 @@ impl Default for TFactoryBuilder {
     }
 }
 
-impl FactoryBuilder<Protocol, PhysicalQubit> for TFactoryBuilder {
+impl FactoryBuilder<Protocol> for TFactoryBuilder {
     type Factory = TFactory;
 
     fn find_factories(

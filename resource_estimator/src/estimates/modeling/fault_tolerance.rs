@@ -452,7 +452,9 @@ impl Protocol {
     }
 }
 
-impl ErrorCorrection<PhysicalQubit> for Protocol {
+impl ErrorCorrection for Protocol {
+    type Qubit = PhysicalQubit;
+
     fn max_code_distance(&self) -> u64 {
         self.max_code_distance
     }
@@ -477,7 +479,7 @@ impl ErrorCorrection<PhysicalQubit> for Protocol {
     /// extraction time, is based on physical operation times specified in the
     /// qubit and usually some factor based on the choice of stabilizer
     /// extraction circuit.
-    fn logical_cycle_time(&self, qubit: &PhysicalQubit, code_distance: u64) -> Result<u64> {
+    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64> {
         let mut context = Self::create_evaluation_context(Some(qubit), code_distance);
 
         let result = self.logical_cycle_time.evaluate(&mut context)?;
@@ -493,11 +495,7 @@ impl ErrorCorrection<PhysicalQubit> for Protocol {
     ///
     /// Computes the logical failure probability based on a physical error rate
     /// and a code distance
-    fn logical_failure_probability(
-        &self,
-        qubit: &PhysicalQubit,
-        code_distance: u64,
-    ) -> Result<f64> {
+    fn logical_failure_probability(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<f64> {
         let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
 
         if physical_error_rate > self.error_correction_threshold() {
@@ -517,7 +515,7 @@ impl ErrorCorrection<PhysicalQubit> for Protocol {
     // Compute code distance d (Equation (E2) in paper)
     fn compute_code_distance(
         &self,
-        qubit: &PhysicalQubit,
+        qubit: &Self::Qubit,
         required_logical_qubit_error_rate: f64,
     ) -> u64 {
         let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());

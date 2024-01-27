@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use crate::estimates::stages::physical_estimation::{ErrorCorrection, TPhysicalQubit};
+use crate::estimates::stages::physical_estimation::ErrorCorrection;
 
 use super::super::Result;
 use serde::Serialize;
@@ -18,7 +18,7 @@ use std::{fmt::Debug, rc::Rc};
 /// code distance is computed.
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct LogicalQubit<P: TPhysicalQubit> {
+pub struct LogicalQubit<P> {
     #[serde(skip_serializing)]
     physical_qubit: Rc<P>,
     code_distance: u64,
@@ -27,8 +27,12 @@ pub struct LogicalQubit<P: TPhysicalQubit> {
     logical_error_rate: f64,
 }
 
-impl<P: TPhysicalQubit> LogicalQubit<P> {
-    pub fn new(ftp: &impl ErrorCorrection<P>, code_distance: u64, qubit: Rc<P>) -> Result<Self> {
+impl<P> LogicalQubit<P> {
+    pub fn new(
+        ftp: &impl ErrorCorrection<Qubit = P>,
+        code_distance: u64,
+        qubit: Rc<P>,
+    ) -> Result<Self> {
         // safe to convert here because we check for negative values before
         #[allow(clippy::cast_sign_loss)]
         let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)? as u64;
@@ -75,7 +79,7 @@ impl<P: TPhysicalQubit> LogicalQubit<P> {
     }
 }
 
-impl<P: TPhysicalQubit> Debug for LogicalQubit<P> {
+impl<P> Debug for LogicalQubit<P> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "LQubit(d={})", self.code_distance())
     }
