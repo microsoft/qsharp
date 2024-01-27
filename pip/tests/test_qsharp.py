@@ -72,7 +72,7 @@ def test_dump_machine() -> None:
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
-    assert state_dump[1] == (1.0, 0.0)
+    assert state_dump[2] == (1.0, 0.0)
     qsharp.eval("X(q2);")
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
