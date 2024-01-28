@@ -4,7 +4,6 @@
 // A component including the results table and the scatter chart together.
 // The results table is also a legend for the scatter chart.
 
-import { createElement } from "preact";
 import { useState } from "preact/hooks";
 import { ColorMap } from "./colormap.js";
 import {
@@ -237,15 +236,35 @@ export function EstimatesOverview(props: {
       ? props.colors
       : ColorMap(props.estimatesData.length);
 
-  const showDetails = !props.isSimplifiedView;
+  function getResultTable() {
+    return (
+      <ResultsTable
+        columnNames={columnNames}
+        rows={props.estimatesData.map((dataItem, index) =>
+          reDataToRow(dataItem, colormap[index]),
+        )}
+        initialColumns={initialColumns}
+        selectedRow={selectedRow}
+        onRowSelected={onRowSelected}
+        // should be able to deselect rows for making screenshots
+        ensureSelected={false}
+        onRowDeleted={props.onRowDeleted}
+      />
+    );
+  }
 
-  function Wrapper(props: { summaryNode: any; children: any }) {
-    return showDetails
-      ? createElement("details", { open: true }, [
-          props.summaryNode,
-          props.children,
-        ])
-      : props.children;
+  function getScatterChart() {
+    return (
+      <ScatterChart
+        xAxis={xAxis}
+        yAxis={yAxis}
+        data={props.estimatesData.map((dataItem, index) =>
+          reDataToRowScatter(dataItem, colormap[index]),
+        )}
+        onPointSelected={onPointSelected}
+        selectedPoint={selectedPoint}
+      />
+    );
   }
 
   return (
@@ -256,43 +275,27 @@ export function EstimatesOverview(props: {
       {colorRenderingError != "" && (
         <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
       )}
-      <Wrapper
-        summaryNode={
-          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-            Results
-          </summary>
-        }
-      >
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          selectedRow={selectedRow}
-          onRowSelected={onRowSelected}
-          // should be able to deselect rows for making screenshots
-          ensureSelected={false}
-          onRowDeleted={props.onRowDeleted}
-        />
-      </Wrapper>
-      <Wrapper
-        summaryNode={
-          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-            Space-time diagram
-          </summary>
-        }
-      >
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-          selectedPoint={selectedPoint}
-        />
-      </Wrapper>
+      {!props.isSimplifiedView ? (
+        <>
+          <details open>
+            <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+              Results
+            </summary>
+            {getResultTable()}
+          </details>
+          <details open>
+            <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+              Space-time diagram
+            </summary>
+            {getScatterChart()}
+          </details>
+        </>
+      ) : (
+        <>
+          {getResultTable()}
+          {getScatterChart()}
+        </>
+      )}
     </div>
   );
 }
