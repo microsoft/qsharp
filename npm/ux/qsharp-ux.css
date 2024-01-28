@@ -654,16 +654,13 @@ html {
   fill: var(--main-color);
 }
 
-.qs-scatterChart-tooltip-text {
-  text-anchor: left;
-  fill: black;
-}
-
-.qs-scatterChart-tooltip-rect {
-  fill: white;
-  stroke: black;
-  stroke-width: 1px;
-  height: 22px;
+.qs-chart-popup {
+  position: absolute;
+  visibility: hidden;
+  background: white;
+  color: black;
+  border: gray 1px solid;
+  padding: 4px;
 }
 
 .qs-scatterChart-line,

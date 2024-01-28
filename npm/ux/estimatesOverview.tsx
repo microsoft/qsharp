@@ -13,14 +13,7 @@ import {
   SingleEstimateResult,
 } from "./data.js";
 import { ResultsTable, Row } from "./resultsTable.js";
-import {
-  Axis,
-  HideTooltip,
-  PlotItem,
-  ScatterChart,
-  ScatterSeries,
-  SelectPoint,
-} from "./scatterChart.js";
+import { Axis, PlotItem, ScatterChart, ScatterSeries } from "./scatterChart.js";
 
 const columnNames = [
   "Run name",
@@ -211,9 +204,7 @@ export function EstimatesOverview(props: {
     props.estimatesData.forEach((data) => (data.new = false));
 
     const root = findRoot(ev);
-    if (root) {
-      HideTooltip(root);
-    }
+
     if (!rowId) {
       props.setEstimate(null);
     } else {
@@ -227,7 +218,7 @@ export function EstimatesOverview(props: {
         const estimateFound = props.estimatesData[index];
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
         if (root) {
-          SelectPoint(index, 0, root);
+          //SelectPoint(index, 0, root);
         }
       }
     }
