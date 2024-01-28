@@ -197,6 +197,12 @@ export function EstimatesOverview(props: {
   });
 
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
+    if (seriesIndex < 0) {
+      // Point was deselected
+      onRowSelected("");
+      return;
+    }
+
     const data = props.estimatesData[seriesIndex];
     props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
     const rowId = props.estimatesData[seriesIndex].jobParams.runName;

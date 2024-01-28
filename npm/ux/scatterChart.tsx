@@ -119,8 +119,13 @@ export function ScatterChart(props: {
         break;
       case "click":
         {
-          const index = JSON.parse(target.getAttribute("data-index")!);
-          props.onPointSelected(index[0], index[1]);
+          if (target.classList.contains("qs-scatterChart-point-selected")) {
+            // Clicked on the already selected point, so delete the point/row
+            props.onPointSelected(-1, 0);
+          } else {
+            const index = JSON.parse(target.getAttribute("data-index")!);
+            props.onPointSelected(index[0], index[1]);
+          }
         }
         break;
       default:
