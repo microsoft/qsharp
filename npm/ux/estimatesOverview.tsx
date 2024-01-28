@@ -4,6 +4,7 @@
 // A component including the results table and the scatter chart together.
 // The results table is also a legend for the scatter chart.
 
+import { createElement } from "preact";
 import { useState } from "preact/hooks";
 import { ColorMap } from "./colormap.js";
 import {
@@ -236,38 +237,15 @@ export function EstimatesOverview(props: {
       ? props.colors
       : ColorMap(props.estimatesData.length);
 
-  if (props.isSimplifiedView) {
-    return (
-      <div className="qs-estimatesOverview">
-        {runNameRenderingError != "" && (
-          <div class="qs-estimatesOverview-error">{runNameRenderingError}</div>
-        )}
-        {colorRenderingError != "" && (
-          <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
-        )}
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          // should be able to deselect rows for making screenshots
-          ensureSelected={false}
-          onRowDeleted={props.onRowDeleted}
-          selectedRow={selectedRow}
-          onRowSelected={onRowSelected}
-        />
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-          selectedPoint={selectedPoint}
-        />
-      </div>
-    );
+  const showDetails = !props.isSimplifiedView;
+
+  function Wrapper(props: { summaryNode: any; children: any }) {
+    return showDetails
+      ? createElement("details", { open: true }, [
+          props.summaryNode,
+          props.children,
+        ])
+      : props.children;
   }
 
   return (
@@ -278,10 +256,13 @@ export function EstimatesOverview(props: {
       {colorRenderingError != "" && (
         <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
       )}
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Results
-        </summary>
+      <Wrapper
+        summaryNode={
+          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+            Results
+          </summary>
+        }
+      >
         <ResultsTable
           columnNames={columnNames}
           rows={props.estimatesData.map((dataItem, index) =>
@@ -294,11 +275,14 @@ export function EstimatesOverview(props: {
           ensureSelected={false}
           onRowDeleted={props.onRowDeleted}
         />
-      </details>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Space-time diagram
-        </summary>
+      </Wrapper>
+      <Wrapper
+        summaryNode={
+          <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+            Space-time diagram
+          </summary>
+        }
+      >
         <ScatterChart
           xAxis={xAxis}
           yAxis={yAxis}
@@ -308,7 +292,7 @@ export function EstimatesOverview(props: {
           onPointSelected={onPointSelected}
           selectedPoint={selectedPoint}
         />
-      </details>
+      </Wrapper>
     </div>
   );
 }

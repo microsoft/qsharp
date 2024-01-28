@@ -141,6 +141,7 @@ export function ScatterChart(props: {
   return (
     <div style="position: relative">
       <svg
+        style="margin-top: 12px"
         viewBox={viewBox}
         width={svgWidth}
         height={svgHeight}
