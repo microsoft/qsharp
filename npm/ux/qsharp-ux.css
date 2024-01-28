@@ -529,6 +529,7 @@ html {
 .qs-resultsTable-sortedTable {
   border-collapse: collapse;
   margin: 12px 0px;
+  outline: none;
 }
 
 .qs-resultsTable-sortedTable th,

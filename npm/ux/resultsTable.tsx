@@ -16,8 +16,8 @@ export function ResultsTable(props: {
   initialColumns: number[];
   ensureSelected: boolean;
   onRowDeleted(rowId: string): void;
-  selectedRow: string | null; // type selected to confirm with the useState pattern on the parent component
-  onRowSelected(rowId: string, ev?: Event): void;
+  selectedRow: string | null;
+  onRowSelected(rowId: string): void;
 }) {
   const [showColumns, setShowColumns] = useState(props.initialColumns);
   const [sortColumn, setSortColumn] = useState<{
@@ -36,14 +36,14 @@ export function ResultsTable(props: {
   // Select the first of the newest rows, otherwise preserve the existing selection
   if (newest && props.ensureSelected) {
     const rowId = newest.cells[0].toString();
-    onRowSelected(rowId, undefined);
+    onRowSelected(rowId);
   } else if (
     !props.selectedRow &&
     props.ensureSelected &&
     props.rows.length > 0
   ) {
     const rowId = props.rows[0].cells[0].toString();
-    onRowSelected(rowId, undefined);
+    onRowSelected(rowId);
   }
 
   // Use to track the column being dragged
@@ -83,8 +83,8 @@ export function ResultsTable(props: {
     }
   }
 
-  function onRowSelected(rowId: string, ev?: Event) {
-    props.onRowSelected(rowId, ev);
+  function onRowSelected(rowId: string) {
+    props.onRowSelected(rowId);
   }
 
   function onDragOver(ev: DragEvent) {
@@ -200,11 +200,11 @@ export function ResultsTable(props: {
     }
   }
 
-  function onRowClicked(rowId: string, ev: Event) {
+  function onRowClicked(rowId: string) {
     if (props.selectedRow === rowId && props.ensureSelected) return;
 
     const newSelectedRow = props.selectedRow === rowId ? "" : rowId;
-    onRowSelected(newSelectedRow, ev);
+    onRowSelected(newSelectedRow);
   }
 
   function onClickRowMenu(ev: MouseEvent, rowid: string) {
@@ -254,13 +254,42 @@ export function ResultsTable(props: {
     // Clear out any menus or selections for the row if needed
     setShowRowMenu("");
     if (props.selectedRow === rowId) {
-      onRowSelected("", e);
+      onRowSelected("");
     }
     props.onRowDeleted(rowId);
   }
 
+  function onKeyDown(ev: KeyboardEvent) {
+    if (!props.selectedRow) return;
+    const sortedRowNames = getSortedRows(props.rows).map((row) =>
+      row.cells[0].toString(),
+    );
+    const currIndex = sortedRowNames.indexOf(props.selectedRow);
+
+    switch (ev.code) {
+      case "ArrowDown":
+        if (currIndex < sortedRowNames.length - 1) {
+          ev.preventDefault();
+          props.onRowSelected(sortedRowNames[currIndex + 1]);
+        }
+        break;
+      case "ArrowUp":
+        if (currIndex > 0) {
+          ev.preventDefault();
+          props.onRowSelected(sortedRowNames[currIndex - 1]);
+        }
+        break;
+      default:
+      // Not of interest
+    }
+  }
+
   return (
-    <table class="qs-resultsTable-sortedTable">
+    <table
+      class="qs-resultsTable-sortedTable"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+    >
       <thead>
         <tr>
           <th>
@@ -354,7 +383,7 @@ export function ResultsTable(props: {
           const rowId = row.cells[0].toString();
           return (
             <tr
-              onClick={(e) => onRowClicked(rowId, e)}
+              onClick={() => onRowClicked(rowId)}
               data-rowid={rowId}
               class={
                 rowId === props.selectedRow
