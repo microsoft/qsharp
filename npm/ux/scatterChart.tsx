@@ -185,6 +185,7 @@ export function ScatterChart(props: {
                 x1="0"
                 x2={-axisTickLength}
                 y1={toLogY(tick.value)}
+                y2={toLogY(tick.value)}
                 class="qs-scatterChart-tick-line"
               />
               <text
