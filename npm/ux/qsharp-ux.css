@@ -651,13 +651,27 @@ html {
   fill: var(--main-color);
 }
 
-.qs-chart-popup {
+.qs-scatterChart-tooltip,
+.qs-scatterChart-selectedInfo {
   position: absolute;
   visibility: hidden;
-  background: white;
-  color: black;
-  border: gray 1px solid;
+  background: var(--main-background);
+  color: var(--main-color);
+  border: var(--border-color) 1px solid;
   padding: 4px;
+}
+
+/* This rule adds the little triange pointer at the top */
+.qs-scatterChart-tooltip::after,
+.qs-scatterChart-selectedInfo::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent var(--border-color) transparent;
 }
 
 .qs-scatterChart-axis,

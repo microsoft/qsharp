@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { useRef, useEffect } from "preact/hooks";
 import { utils } from "../dist/browser.js";
 
 export type ScatterSeries = {
@@ -31,6 +32,8 @@ export function ScatterChart(props: {
   onPointSelected(seriesIndex: number, pointIndex: number): void;
   selectedPoint?: [number, number];
 }) {
+  const selectedTooltipDiv = useRef<HTMLDivElement>(null);
+
   const { rangeX, rangeY } = utils.getRanges(props.data, 2 /* coefficient */);
 
   function createAxisTicks(range: Range, isTime: boolean): utils.Tick[] {
@@ -89,6 +92,23 @@ export function ScatterChart(props: {
   const yAxisTextPaddingFromTicks = 5;
   const yAxisTextYPadding = 4;
 
+  function renderTooltip(
+    topDiv: HTMLDivElement,
+    point: SVGCircleElement,
+    tooltip: HTMLDivElement,
+  ) {
+    const label = point.getAttribute("data-label");
+    tooltip.textContent = label;
+    const halfWidth = tooltip.offsetWidth / 2;
+    const pointRect = point.getBoundingClientRect();
+    const centerY = (pointRect.top + pointRect.bottom) / 2;
+    const centerX = (pointRect.left + pointRect.right) / 2;
+    const divRect = topDiv.getBoundingClientRect();
+    tooltip.style.left = `${centerX - divRect.left - halfWidth}px`;
+    tooltip.style.top = `${centerY - divRect.top + 12}px`;
+    tooltip.style.visibility = "visible";
+  }
+
   function onPointMouseEvent(ev: MouseEvent, eventType: string) {
     // Ensure we have a point as the target
     if (!(ev.target instanceof SVGCircleElement)) return;
@@ -97,21 +117,14 @@ export function ScatterChart(props: {
 
     // Get the div enclosing the chart, and the popup child of it.
     const topDiv = target.closest("div") as HTMLDivElement;
-    const popup = topDiv.querySelector(".qs-chart-popup") as HTMLDivElement;
+    const popup = topDiv.querySelector(
+      ".qs-scatterChart-tooltip",
+    ) as HTMLDivElement;
 
     switch (eventType) {
       case "over":
         {
-          const label = target.getAttribute("data-label");
-          popup.textContent = label;
-          const halfWidth = popup.offsetWidth / 2;
-          const pointRect = target.getBoundingClientRect();
-          const centerY = (pointRect.top + pointRect.bottom) / 2;
-          const centerX = (pointRect.left + pointRect.right) / 2;
-          const divRect = topDiv.getBoundingClientRect();
-          popup.style.left = `${centerX - divRect.left - halfWidth}px`;
-          popup.style.top = `${centerY - divRect.top + 12}px`;
-          popup.style.visibility = "visible";
+          renderTooltip(topDiv, target, popup);
         }
         break;
       case "out":
@@ -140,6 +153,22 @@ export function ScatterChart(props: {
     return { ...item, color: series.color };
   }
   const selectedPoint = getSelectedPointData();
+
+  // Need to render first to get the element layout to position the tooltip
+  useEffect(() => {
+    if (!selectedTooltipDiv.current) return;
+    if (!props.selectedPoint) {
+      selectedTooltipDiv.current.style.visibility = "hidden";
+    } else {
+      // Locate the selected point and put the tooltip under it
+      const topDiv = selectedTooltipDiv.current.parentElement as HTMLDivElement;
+      const selectedPoint = topDiv?.querySelector(
+        ".qs-scatterChart-point-selected",
+      ) as SVGCircleElement;
+      if (!selectedPoint) return;
+      renderTooltip(topDiv, selectedPoint, selectedTooltipDiv.current);
+    }
+  });
 
   // The mouse events (over, out, and click) bubble, so put the hanlders on the
   // SVG element and check the target element in the handler.
@@ -264,7 +293,8 @@ export function ScatterChart(props: {
           ) : null
         }
       </svg>
-      <div class="qs-chart-popup"></div>
+      <div class="qs-scatterChart-selectedInfo" ref={selectedTooltipDiv}></div>
+      <div class="qs-scatterChart-tooltip"></div>
     </div>
   );
 }
