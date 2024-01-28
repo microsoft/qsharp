@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { useRef, useEffect } from "preact/hooks";
-import { utils } from "../dist/browser.js";
+import * as utils from "../src/utils";
 
 export type ScatterSeries = {
   color: string;

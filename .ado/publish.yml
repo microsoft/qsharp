@@ -124,7 +124,7 @@ jobs:
     displayName: Install Prereqs and set version
 
   - script: |
-      python ./build.py --npm --jupyterlab --widgets --no-check
+      python ./build.py --jupyterlab --widgets --no-check
     displayName: Build JupyterLab Package
 
   - script: |

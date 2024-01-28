@@ -278,6 +278,23 @@ if build_pip:
             print("Could not import PyQIR, skipping tests")
     step_end()
 
+if build_widgets:
+    step_start("Building the Python widgets")
+
+    widgets_build_args = [
+        sys.executable,
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "--wheel-dir",
+        wheels_dir,
+        widgets_src,
+    ]
+    subprocess.run(widgets_build_args, check=True, text=True, cwd=widgets_src)
+
+    step_end()
+
 if build_wasm:
     step_start("Building the wasm crate")
     # wasm-pack can't build for web and node in the same build, so need to run twice.
@@ -300,14 +317,8 @@ if build_wasm:
 
 if build_samples:
     step_start("Building qsharp samples")
-    project_directories = [
-        dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]
-    ]
-    single_file_directories = [
-        candidate
-        for candidate in os.walk(samples_src)
-        if all([not proj_dir[0] in candidate[0] for proj_dir in project_directories])
-    ]
+    project_directories = [dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]]
+    single_file_directories = [candidate for candidate in os.walk(samples_src) if all([not proj_dir[0] in candidate[0] for proj_dir in project_directories])]
 
     files = [
         os.path.join(dp, f)
@@ -315,7 +326,7 @@ if build_samples:
         for f in filenames
         if os.path.splitext(f)[1] == ".qs"
     ]
-    projects = [
+    projects =  [
         os.path.join(dp, f)
         for dp, _, filenames in project_directories
         for f in filenames
@@ -327,12 +338,7 @@ if build_samples:
     for file in files:
         subprocess.run((cargo_args + ["--", file]), check=True, text=True, cwd=root_dir)
     for project in projects:
-        subprocess.run(
-            (cargo_args + ["--", "--qsharp-json", project]),
-            check=True,
-            text=True,
-            cwd=root_dir,
-        )
+        subprocess.run((cargo_args + ["--", "--qsharp-json", project]), check=True, text=True, cwd=root_dir)
     step_end()
 
 if build_npm:
@@ -361,23 +367,6 @@ if build_npm:
         print("Running tests for the npm package")
         npm_test_args = ["node", "--test"]
         subprocess.run(npm_test_args, check=True, text=True, cwd=npm_src)
-    step_end()
-
-if build_widgets:
-    step_start("Building the Python widgets")
-
-    widgets_build_args = [
-        sys.executable,
-        "-m",
-        "pip",
-        "wheel",
-        "--no-deps",
-        "--wheel-dir",
-        wheels_dir,
-        widgets_src,
-    ]
-    subprocess.run(widgets_build_args, check=True, text=True, cwd=widgets_src)
-
     step_end()
 
 if build_play:
