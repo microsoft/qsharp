@@ -29,6 +29,7 @@ export function ScatterChart(props: {
   xAxis: Axis;
   yAxis: Axis;
   onPointSelected(seriesIndex: number, pointIndex: number): void;
+  selectedPoint?: [number, number];
 }) {
   const { rangeX, rangeY } = utils.getRanges(props.data, 2 /* coefficient */);
 
@@ -81,11 +82,9 @@ export function ScatterChart(props: {
   const plotAreaWidth = svgWidth - xLeftMargin - xRightMargin;
   const plotAreaHeight = svgHeight - yMargin;
 
-  const viewBox = `${svgXMin - svgViewBoxWidthPadding} ${
-    -plotAreaHeight - svgViewBoxHeightPadding
-  } ${svgWidth + svgViewBoxWidthPadding} ${
-    svgHeight + svgViewBoxHeightPadding
-  }`;
+  const viewBox = `${svgXMin} ${-plotAreaHeight - svgViewBoxHeightPadding} ${
+    svgWidth + svgViewBoxWidthPadding
+  } ${svgHeight + svgViewBoxHeightPadding}`;
 
   const yAxisTextPaddingFromTicks = 5;
   const yAxisTextYPadding = 4;
@@ -106,10 +105,12 @@ export function ScatterChart(props: {
           const label = target.getAttribute("data-label");
           popup.textContent = label;
           const halfWidth = popup.offsetWidth / 2;
-          const divRect = topDiv.getBoundingClientRect();
           const pointRect = target.getBoundingClientRect();
-          popup.style.left = `${pointRect.left - divRect.left - halfWidth}px`;
-          popup.style.top = `${pointRect.top - divRect.top + 10}px`;
+          const centerY = (pointRect.top + pointRect.bottom) / 2;
+          const centerX = (pointRect.left + pointRect.right) / 2;
+          const divRect = topDiv.getBoundingClientRect();
+          popup.style.left = `${centerX - divRect.left - halfWidth}px`;
+          popup.style.top = `${centerY - divRect.top + 12}px`;
           popup.style.visibility = "visible";
         }
         break;
@@ -127,12 +128,19 @@ export function ScatterChart(props: {
     }
   }
 
+  function getSelectedPointData() {
+    if (!props.selectedPoint) return null;
+    const series = props.data[props.selectedPoint[0]];
+    const item = series.items[props.selectedPoint[1]];
+    return { ...item, color: series.color };
+  }
+  const selectedPoint = getSelectedPointData();
+
   // The mouse events (over, out, and click) bubble, so put the hanlders on the
   // SVG element and check the target element in the handler.
   return (
     <div style="position: relative">
       <svg
-        id="scatterChart"
         viewBox={viewBox}
         width={svgWidth}
         height={svgHeight}
@@ -150,7 +158,7 @@ export function ScatterChart(props: {
 
         {xTicks.map((tick) => {
           return (
-            <g>
+            <>
               <line
                 y1="1"
                 y2={axisTickLength}
@@ -165,7 +173,7 @@ export function ScatterChart(props: {
               >
                 {tick.label}
               </text>
-            </g>
+            </>
           );
         })}
 
@@ -175,12 +183,11 @@ export function ScatterChart(props: {
           y1="0"
           x2="0"
           y2={-svgHeight}
-          stroke="var(--border-color)"
         />
 
         {yTicks.map((tick) => {
           return (
-            <g>
+            <>
               <line
                 x1="0"
                 x2={-axisTickLength}
@@ -195,7 +202,7 @@ export function ScatterChart(props: {
               >
                 {tick.label}
               </text>
-            </g>
+            </>
           );
         })}
 
@@ -229,7 +236,7 @@ export function ScatterChart(props: {
                 <circle
                   data-index={JSON.stringify([seriesIdx, plotIdx])}
                   data-label={plot.label}
-                  class="qs-scatterChart-point"
+                  class="qs-scatterChart-point qs-scatterChart-hover"
                   cx={toLogX(plot.x)}
                   cy={toLogY(plot.y)}
                   stroke={series.color}
@@ -238,6 +245,18 @@ export function ScatterChart(props: {
             });
           })}
         </g>
+        {
+          // Render the selected point last, so it's always on top of the others
+          selectedPoint ? (
+            <circle
+              class="qs-scatterChart-point qs-scatterChart-point-selected"
+              data-label={selectedPoint.label}
+              cx={toLogX(selectedPoint.x)}
+              cy={toLogY(selectedPoint.y)}
+              stroke={selectedPoint.color}
+            />
+          ) : null
+        }
       </svg>
       <div class="qs-chart-popup"></div>
     </div>

@@ -171,6 +171,7 @@ export function EstimatesOverview(props: {
   setEstimate: (estimate: SingleEstimateResult | null) => void;
 }) {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<[number, number]>();
 
   const runNameRenderingError =
     props.runNames != null &&
@@ -195,18 +196,18 @@ export function EstimatesOverview(props: {
     props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
     const rowId = props.estimatesData[seriesIndex].jobParams.runName;
     setSelectedRow(rowId);
+    setSelectedPoint([seriesIndex, pointIndex]);
   }
 
-  function onRowSelected(rowId: string, ev?: Event) {
+  function onRowSelected(rowId: string) {
     setSelectedRow(rowId);
     // On any selection, clear the "new" flag on all rows. This ensures that
     // new rows do not steal focus from the user selected row.
     props.estimatesData.forEach((data) => (data.new = false));
 
-    const root = findRoot(ev);
-
     if (!rowId) {
       props.setEstimate(null);
+      setSelectedPoint(undefined);
     } else {
       const index = props.estimatesData.findIndex(
         (data) => data.jobParams.runName === rowId,
@@ -214,22 +215,13 @@ export function EstimatesOverview(props: {
 
       if (index == -1) {
         props.setEstimate(null);
+        setSelectedPoint(undefined);
       } else {
         const estimateFound = props.estimatesData[index];
+        setSelectedPoint([index, 0]);
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
-        if (root) {
-          //SelectPoint(index, 0, root);
-        }
       }
     }
-  }
-
-  function findRoot(ev?: Event): Element | undefined {
-    return (
-      (ev?.currentTarget as Element | undefined)?.closest(
-        ".qs-estimatesOverview",
-      ) ?? undefined
-    );
   }
 
   const colorRenderingError =
@@ -272,6 +264,7 @@ export function EstimatesOverview(props: {
             reDataToRowScatter(dataItem, colormap[index]),
           )}
           onPointSelected={onPointSelected}
+          selectedPoint={selectedPoint}
         />
       </div>
     );
@@ -313,6 +306,7 @@ export function EstimatesOverview(props: {
             reDataToRowScatter(dataItem, colormap[index]),
           )}
           onPointSelected={onPointSelected}
+          selectedPoint={selectedPoint}
         />
       </details>
     </div>

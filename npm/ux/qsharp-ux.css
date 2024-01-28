@@ -633,14 +633,14 @@ html {
   stroke-width: 4px;
 }
 
-.qs-scatterChart-point-selected {
-  r: 6px;
-  stroke-width: 3px;
+.qs-scatterChart-hover:hover {
+  r: 4px;
+  stroke-width: 4px;
   fill: white;
 }
 
-.qs-scatterChart-point:hover {
-  r: 4px;
+.qs-scatterChart-point-selected {
+  r: 8px;
   stroke-width: 4px;
   fill: white;
 }
