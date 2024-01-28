@@ -10,7 +10,6 @@ export type ReData = {
   tfactory: any;
   errorBudget: any;
   logicalCounts: any;
-  new: boolean;
   frontierEntries: FrontierEntry[];
 };
 
@@ -23,7 +22,6 @@ export type SingleEstimateResult = {
   tfactory: any;
   errorBudget: any;
   logicalCounts: any;
-  new: boolean;
 };
 
 export type FrontierEntry = {
@@ -62,7 +60,6 @@ export function CreateSingleEstimateResult(
       tfactory: entry.tfactory,
       errorBudget: entry.errorBudget,
       logicalCounts: input.logicalCounts,
-      new: input.new,
     };
   }
 }

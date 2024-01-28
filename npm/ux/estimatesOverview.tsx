@@ -70,7 +70,6 @@ function reDataToRow(input: ReData, color: string): Row {
       },
       data.physicalCounts.rqops,
       data.physicalCounts.physicalQubits,
-      data.new ? "New" : "Cached",
     ],
     color: color,
   };
@@ -212,10 +211,6 @@ export function EstimatesOverview(props: {
 
   function onRowSelected(rowId: string) {
     setSelectedRow(rowId);
-    // On any selection, clear the "new" flag on all rows. This ensures that
-    // new rows do not steal focus from the user selected row.
-    props.estimatesData.forEach((data) => (data.new = false));
-
     if (!rowId) {
       props.setEstimate(null);
       setSelectedPoint(undefined);
@@ -257,8 +252,6 @@ export function EstimatesOverview(props: {
         initialColumns={initialColumns}
         selectedRow={selectedRow}
         onRowSelected={onRowSelected}
-        // should be able to deselect rows for making screenshots
-        ensureSelected={false}
         onRowDeleted={props.onRowDeleted}
       />
     );

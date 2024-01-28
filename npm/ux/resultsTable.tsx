@@ -14,7 +14,6 @@ export function ResultsTable(props: {
   columnNames: string[];
   rows: Row[];
   initialColumns: number[];
-  ensureSelected: boolean;
   onRowDeleted(rowId: string): void;
   selectedRow: string | null;
   onRowSelected(rowId: string): void;
@@ -27,24 +26,6 @@ export function ResultsTable(props: {
 
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [showRowMenu, setShowRowMenu] = useState("");
-
-  // Find the first row that is new in the current sort order
-  const newest = getSortedRows(props.rows).find(
-    (row) => (row.cells[row.cells.length - 1] as string) === "New",
-  );
-
-  // Select the first of the newest rows, otherwise preserve the existing selection
-  if (newest && props.ensureSelected) {
-    const rowId = newest.cells[0].toString();
-    onRowSelected(rowId);
-  } else if (
-    !props.selectedRow &&
-    props.ensureSelected &&
-    props.rows.length > 0
-  ) {
-    const rowId = props.rows[0].cells[0].toString();
-    onRowSelected(rowId);
-  }
 
   // Use to track the column being dragged
   const draggingCol = useRef("");
@@ -201,8 +182,6 @@ export function ResultsTable(props: {
   }
 
   function onRowClicked(rowId: string) {
-    if (props.selectedRow === rowId && props.ensureSelected) return;
-
     const newSelectedRow = props.selectedRow === rowId ? "" : rowId;
     onRowSelected(newSelectedRow);
   }
