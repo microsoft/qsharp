@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { useRef, useState } from "preact/hooks";
+import { useRef, useState, useEffect } from "preact/hooks";
 
 export type CellValue = string | number | { value: string; sortBy: number };
 export type Row = {
@@ -29,6 +29,7 @@ export function ResultsTable(props: {
 
   // Use to track the column being dragged
   const draggingCol = useRef("");
+  const columnMenu = useRef<HTMLDivElement>(null);
 
   /*
   Note: Drag and drop events can occur faster than preact reconciles state.
@@ -263,6 +264,15 @@ export function ResultsTable(props: {
     }
   }
 
+  useEffect(() => {
+    // Post rendering, if the column menu is displayed, then ensure it
+    // has focus so that clicking anywhere outside of it caused the blur
+    // event that closes it.
+    if (showColumnMenu && columnMenu.current) {
+      columnMenu.current.focus();
+    }
+  });
+
   return (
     <table
       class="qs-resultsTable-sortedTable"
@@ -297,6 +307,9 @@ export function ResultsTable(props: {
                 />
               </svg>
               <div
+                tabIndex={0}
+                ref={columnMenu}
+                onBlur={() => setShowColumnMenu(false)}
                 class={
                   showColumnMenu
                     ? "qs-resultsTable-columnMenu qs-resultsTable-showColumnMenu"
