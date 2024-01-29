@@ -118,8 +118,10 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         let idxTarget = 0;
         // Determine what controls to apply
         let rngControl = nQubits > 1 ? (1 .. (nQubits - 1)) | (1..0);
+        // Note we use the reversed qubits array to get the endianness ordering that we expect
+        // when corresponding qubit state to state vector index.
         Adjoint ApproximatelyUnprepareArbitraryState(
-            tolerance, coefficientsPadded, rngControl, idxTarget, qubits
+            tolerance, coefficientsPadded, rngControl, idxTarget, Reversed(qubits)
         );
     }
 
@@ -312,7 +314,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         tolerance : Double,
         coefficients : Double[],
         qubits : Qubit[]) : Unit is Adj + Ctl {
-            
+
         if IsEmpty(qubits) {
             fail "operation ApplyDiagonalUnitary -- Number of qubits must be greater than 0.";
         }
