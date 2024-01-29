@@ -38,8 +38,6 @@ The state of a qubit is represented by a complex vector of size 2:
 $$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$$
 
 Here $\alpha$ and $\beta$ are complex numbers. $\alpha$ represents how "close" the qubit is to state $0$, and $\beta$ represents how "close" the qubit is to state $1$. This vector is normalized: $|\alpha|^2 + |\beta|^2 = 1$.
-α and β are known as the probability amplitudes of states 0 and 1, respectively.
-
 $\alpha$ and $\beta$ are known as the probability amplitudes of states $0$ and $1$, respectively.
 
 ## Basis States
