@@ -282,7 +282,11 @@ export function ResultsTable(props: {
       <thead>
         <tr>
           <th>
-            <div style="position: relative">
+            <div
+              style="position: relative"
+              tabIndex={0}
+              onBlur={() => setShowColumnMenu(false)}
+            >
               <svg
                 width="16"
                 height="16"
@@ -307,9 +311,7 @@ export function ResultsTable(props: {
                 />
               </svg>
               <div
-                tabIndex={0}
                 ref={columnMenu}
-                onBlur={() => setShowColumnMenu(false)}
                 class={
                   showColumnMenu
                     ? "qs-resultsTable-columnMenu qs-resultsTable-showColumnMenu"
