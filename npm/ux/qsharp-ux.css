@@ -28,7 +28,10 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
 /* TODO: Use the qs- prefixes and apply consistently */
 :root {
   --heading-background: #262679;
-  --main-background: var(--vscode-editor-background, #ececf0);
+  --main-background: var(
+    --vscode-editor-background,
+    var(--jp-layout-color0, #ececf0)
+  );
   --main-color: var(
     --vscode-editor-foreground,
     var(--jp-widgets-color, #202020)
@@ -553,7 +556,7 @@ html {
 }
 
 .qs-resultsTable-sortedTableSelectedRow td {
-  background: var(--vscode-button-background);
+  background: var(--vscode-button-background, var(--jp-border-color1));
   color: var(--vscode-button-foreground);
   font-weight: 600;
 }
