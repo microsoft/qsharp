@@ -19,6 +19,14 @@ pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
+    #[serde(default)]
+    pub features: Vec<LanguageFeature>
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(rename_all="kebab-case")]
+pub enum LanguageFeature {
+
 }
 
 /// Describes the contents and location of a Q# manifest file.
