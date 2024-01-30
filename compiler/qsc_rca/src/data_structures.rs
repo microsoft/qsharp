@@ -3,11 +3,11 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{CallableDecl, ExprId, NodeId, Pat, PatId, PatKind},
+    fir::{CallableDecl, ExprId, LocalItemId, NodeId, Pat, PatId, PatKind},
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
-use std::ops;
+use std::{cmp::Ordering, ops};
 
 /// A callable input element.
 #[derive(Debug)]
@@ -67,7 +67,7 @@ pub fn derive_callable_input_elements(
 }
 
 /// The index corresponding to an input parameter node.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct InputParamIndex(usize);
 
 impl ops::Add<usize> for InputParamIndex {
@@ -126,7 +126,7 @@ pub fn derive_callable_input_params<'a>(
 }
 
 /// A represenation of a variable within a callable.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CallableVariable {
     pub node: NodeId,
     pub pat: PatId,
@@ -134,8 +134,29 @@ pub struct CallableVariable {
     pub kind: CallableVariableKind,
 }
 
+impl Ord for CallableVariable {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match &self.kind {
+            CallableVariableKind::InputParam(self_index) => match &other.kind {
+                CallableVariableKind::InputParam(other_index) => self_index.0.cmp(&other_index.0),
+                CallableVariableKind::Local(_) => Ordering::Less,
+            },
+            CallableVariableKind::Local(_) => match &other.kind {
+                CallableVariableKind::InputParam(_) => Ordering::Greater,
+                CallableVariableKind::Local(_) => self.node.cmp(&other.node),
+            },
+        }
+    }
+}
+
+impl PartialOrd for CallableVariable {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 /// Kinds of callable variables.
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, Eq, PartialEq)]
 pub enum CallableVariableKind {
     Local(ExprId),
     InputParam(InputParamIndex),
@@ -160,4 +181,18 @@ pub fn derive_callable_input_map<'a>(
         }
     }
     variable_map
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct CallableSpecializationId {
+    pub callable: LocalItemId,
+    pub functor_application: FunctorApplication,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct FunctorApplication {
+    pub adjoint: bool,
+    // N.B. For the purposes of RCA, we only care about the controlled functor being applied, but not the number of
+    // times it was applied.
+    pub controlled: bool,
 }

@@ -3,7 +3,7 @@
 
 use crate::data_structures::{
     derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
-    CallableVariable, CallableVariableKind,
+    CallableSpecializationId, CallableVariable, CallableVariableKind, FunctorApplication,
 };
 
 use qsc_fir::{
@@ -14,21 +14,78 @@ use qsc_fir::{
     },
     visit::Visitor,
 };
+
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct FunctorApplication {
-    pub adjoint: bool,
-    // N.B. For the purposes of cycle detection, we only care about the controlled functor being applied, but not the
-    // number of times it was applied.
-    pub controlled: bool,
+/// A callable that contains cycles in at least one of their specializations.
+pub struct CycledCallable {
+    // TODO (cesarzc): rename to CycledCallableInfo.
+    // TODO (cesarzc): make ID a StoreItemId.
+    pub id: LocalItemId,
+    pub body: bool,
+    pub adj: Option<bool>,
+    pub ctl: Option<bool>,
+    pub ctl_adj: Option<bool>,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct CallableSpecializationId {
-    callable: LocalItemId,
-    functor_application: FunctorApplication,
+impl CycledCallable {
+    pub fn new(item: &Item, specialization: &CallableSpecializationId) -> Self {
+        // No entry for the callable exists, so create insert it.
+        let ItemKind::Callable(callable) = &item.kind else {
+            panic!("item should be callable");
+        };
+        let CallableImpl::Spec(spec_impl) = &callable.implementation else {
+            panic!("callable should have specialized implementation");
+        };
+
+        // Values for a cycled callable depending on what specializations exist for the callable.
+        let functor_application = specialization.functor_application;
+        let body = !functor_application.adjoint && !functor_application.controlled;
+        let adj = if spec_impl.adj.is_some() {
+            Some(functor_application.adjoint && !functor_application.controlled)
+        } else {
+            None
+        };
+        let ctl = if spec_impl.ctl.is_some() {
+            Some(!functor_application.adjoint && functor_application.controlled)
+        } else {
+            None
+        };
+        let ctl_adj = if spec_impl.ctl_adj.is_some() {
+            Some(functor_application.adjoint && functor_application.controlled)
+        } else {
+            None
+        };
+        Self {
+            id: specialization.callable,
+            body,
+            adj,
+            ctl,
+            ctl_adj,
+        }
+    }
+
+    pub fn update(&mut self, functor_application: &FunctorApplication) {
+        if !functor_application.adjoint && !functor_application.controlled {
+            self.body = true;
+        } else if functor_application.adjoint && !functor_application.controlled {
+            let Some(adj) = &mut self.adj else {
+                panic!("adj cycle value was expected to be some");
+            };
+            *adj = true;
+        } else if !functor_application.adjoint && functor_application.controlled {
+            let Some(ctl) = &mut self.ctl else {
+                panic!("ctl cycle value was expected to be some");
+            };
+            *ctl = true;
+        } else if functor_application.adjoint && functor_application.controlled {
+            let Some(ctl_adj) = &mut self.ctl_adj else {
+                panic!("ctl_adj cycle value was expected to be some");
+            };
+            *ctl_adj = true;
+        }
+    }
 }
 
 #[derive(Default)]
@@ -63,7 +120,7 @@ struct CycleDetector<'a> {
     package: &'a Package,
     stack: CallStack,
     node_maps: FxHashMap<CallableSpecializationId, FxHashMap<NodeId, CallableVariable>>,
-    callables_with_cycles: FxHashSet<CallableSpecializationId>,
+    specializations_with_cycles: FxHashSet<CallableSpecializationId>,
 }
 
 impl<'a> CycleDetector<'a> {
@@ -73,16 +130,16 @@ impl<'a> CycleDetector<'a> {
             package,
             stack: CallStack::default(),
             node_maps: FxHashMap::default(),
-            callables_with_cycles: FxHashSet::<CallableSpecializationId>::default(),
+            specializations_with_cycles: FxHashSet::<CallableSpecializationId>::default(),
         }
     }
 
-    fn detect_callables_with_cycles(&mut self) {
+    fn detect_specializations_with_cycles(&mut self) {
         self.visit_package(self.package);
     }
 
     fn get_callables_with_cycles(&self) -> &FxHashSet<CallableSpecializationId> {
-        &self.callables_with_cycles
+        &self.specializations_with_cycles
     }
 
     fn map_pat_to_expr(&mut self, pat_id: PatId, expr_id: ExprId) {
@@ -241,7 +298,7 @@ impl<'a> CycleDetector<'a> {
     ) {
         // If the specialization is already in the stack, it means the callable has a cycle.
         if self.stack.contains(&callable_specialization_id) {
-            self.callables_with_cycles
+            self.specializations_with_cycles
                 .insert(callable_specialization_id);
             return;
         }
@@ -412,8 +469,25 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
 pub fn detect_callables_with_cycles(
     package_id: PackageId,
     package: &Package,
-) -> FxHashSet<CallableSpecializationId> {
+) -> Vec<CycledCallable> {
+    // First, detect the specializations that have cycles.
     let mut cycle_detector = CycleDetector::new(package_id, package);
-    cycle_detector.detect_callables_with_cycles();
-    cycle_detector.get_callables_with_cycles().clone()
+    cycle_detector.detect_specializations_with_cycles();
+    let specializations_with_cycles = cycle_detector.get_callables_with_cycles();
+
+    // Now, group the specializations that have cycles by callable.
+    let mut callables_with_cycles = FxHashMap::<LocalItemId, CycledCallable>::default();
+    for specialization in specializations_with_cycles {
+        callables_with_cycles
+            .entry(specialization.callable)
+            .and_modify(|cycled_callable| {
+                cycled_callable.update(&specialization.functor_application)
+            })
+            .or_insert({
+                let item = package.get_item(specialization.callable);
+                CycledCallable::new(item, specialization)
+            });
+    }
+
+    callables_with_cycles.drain().map(|(_, v)| v).collect()
 }

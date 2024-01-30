@@ -451,6 +451,8 @@ impl Display for ComputeProperties {
 pub enum QuantumSource {
     /// An intrinsic quantum source.
     Intrinsic,
+    /// An assumed quantum source.
+    Assumed,
     /// A quantum source that comes from another expression.
     Expr(ExprId),
 }
@@ -459,6 +461,7 @@ impl Display for QuantumSource {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self {
             QuantumSource::Intrinsic => write!(f, "Intrinsic",),
+            QuantumSource::Assumed => write!(f, "Assumed",),
             QuantumSource::Expr(expr_id) => write!(f, "Expr: {}", expr_id),
         }
     }

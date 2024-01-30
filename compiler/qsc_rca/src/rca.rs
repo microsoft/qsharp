@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    cycle_detection::detect_callables_with_cycles,
+    cycle_detection::{detect_callables_with_cycles, CycledCallable},
     data_structures::{
         derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
         CallableInputElement, CallableInputElementKind, CallableVariable, CallableVariableKind,
@@ -38,10 +38,19 @@ pub fn analyze_package(
     package_compute_properties.clear();
     let package = package_store.get(id).expect("package should exist");
 
-    // Analyze all callables that have cycles.
-    // TODO (cesarzc): implement.
-    let _callables_with_cycles = detect_callables_with_cycles(id, package);
-    //println!("{callables_with_cycles:?}");
+    // First, analyze all callables that have cycles. We need to do this because callables with cycles make the main
+    // runtime capabilities analysis (RCA) algorithm loop forever. If we have use a heuristic to analyze the compute
+    // properties of callables with cycles, then the RCA algorithm can use those properties safely without getting stuck
+    // in a infinite loop.
+    let callables_with_cycles = detect_callables_with_cycles(id, package);
+    for cycled_callable in callables_with_cycles {
+        analyze_callable_with_cycles(
+            (id, cycled_callable.id).into(),
+            &cycled_callable,
+            package_store,
+            package_store_compute_properties,
+        )
+    }
 
     // Analyze the remaining items in the package.
     for (item_id, _) in &package.items {
@@ -152,6 +161,56 @@ fn analyze_callable_input_elements<'a>(
     }
 }
 
+fn analyze_callable_with_cycles(
+    id: StoreItemId,
+    cycled_callable: &CycledCallable,
+    package_store: &PackageStore,
+    package_store_compute_properties: &mut PackageStoreComputeProperties,
+) {
+    // This function is only called when a callable has not already been analyzed.
+    if package_store_compute_properties.find_item(id).is_some() {
+        panic!("callable is already analyzed");
+    }
+
+    let Some(Global::Callable(callable)) = package_store.get_global(id) else {
+        panic!("item should be a callable")
+    };
+
+    // First, set the compute properties of all the patterns that are part of the callable input.
+    let input_elements = derive_callable_input_elements(
+        callable,
+        &package_store
+            .get(id.package)
+            .expect("package should exist")
+            .pats,
+    );
+    analyze_callable_input_elements(id, input_elements.iter(), package_store_compute_properties);
+
+    // Create compute properties differently depending on whether it is a function or an operation.
+    let input_params = derive_callable_input_params(input_elements.iter());
+    let callable_compute_properties = match &callable.kind {
+        CallableKind::Function => create_cycled_function_compute_properties(
+            callable,
+            cycled_callable,
+            input_params.iter(),
+        ),
+        CallableKind::Operation => create_cycled_operation_compute_properties(
+            id,
+            callable,
+            cycled_callable,
+            input_params.iter(),
+            package_store,
+            package_store_compute_properties,
+        ),
+    };
+
+    // Finally, insert the callable compute properties.
+    package_store_compute_properties.insert_item(
+        id,
+        ItemComputeProperties::Callable(callable_compute_properties),
+    );
+}
+
 fn analyze_intrinsic_callable_compute_properties<'a>(
     id: StoreItemId,
     callable: &CallableDecl,
@@ -205,13 +264,14 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
     if package_store_compute_properties.find_item(id).is_some() {
         panic!("callable is already analyzed");
     }
-    let input_map = derive_callable_input_map(input_params);
 
-    // Analyze each one of the specializations.
+    // This function is not meant for instrinsics.
     let CallableImpl::Spec(implementation) = &callable.implementation else {
         panic!("callable is assumed to have a specialized implementation");
     };
 
+    // Analyze each one of the specializations.
+    let input_map = derive_callable_input_map(input_params);
     let body = create_specialization_applications_table(
         id,
         &implementation.body,
@@ -271,6 +331,182 @@ fn analyze_statement(
 
     let _stmt = package_store.get_stmt(id);
     // TODO (cesarzc): Implement.
+}
+
+fn create_cycled_function_compute_properties<'a>(
+    callable: &CallableDecl,
+    cycled_callable: &CycledCallable,
+    input_params: impl Iterator<Item = &'a InputParam>,
+) -> CallableComputeProperties {
+    // This function is not meant for intrinsics.
+    let CallableImpl::Spec(spec_impl) = &callable.implementation else {
+        panic!("a non-intrinsic callable is expected");
+    };
+
+    // The only specialization that functions have is the body.
+    assert!(spec_impl.adj.is_none() && spec_impl.ctl.is_none() && spec_impl.ctl_adj.is_none());
+    assert!(spec_impl.body.input.is_none());
+    assert!(
+        cycled_callable.adj.is_none()
+            && cycled_callable.ctl.is_none()
+            && cycled_callable.ctl_adj.is_none()
+    );
+    assert!(cycled_callable.body);
+
+    // Since functions are classically pure, they inherently do not require any capabilities nor represent a quantum
+    // source.
+    let inherent_properties = ComputeProperties {
+        runtime_capabilities: RuntimeCapabilityFlags::empty(),
+        quantum_source: None,
+    };
+
+    // If any parameter is dynamic, then we assume a function with cycles is a quantum source if its output type is
+    // non-unit.
+    let quantum_source = if callable.output == Ty::UNIT {
+        None
+    } else {
+        Some(QuantumSource::Assumed)
+    };
+
+    // Create compute properties for each dynamic parameter.
+    let mut dynamic_params_properties = Vec::new();
+    for _ in input_params {
+        // Since convert functions can be used on dynamic parameters, we assume that all capabilities are required for any
+        // dynamic parameter.
+        let compute_properties = ComputeProperties {
+            runtime_capabilities: RuntimeCapabilityFlags::all(),
+            quantum_source,
+        };
+        dynamic_params_properties.push(compute_properties);
+    }
+
+    let body = ApplicationsTable {
+        inherent_properties,
+        dynamic_params_properties,
+    };
+
+    // Create the callable compute properties.
+    CallableComputeProperties {
+        body,
+        adj: None,
+        ctl: None,
+        ctl_adj: None,
+    }
+}
+
+fn create_cycled_operation_compute_properties<'a>(
+    callable_id: StoreItemId,
+    callable: &CallableDecl,
+    cycled_callable: &CycledCallable,
+    input_params: impl Iterator<Item = &'a InputParam>,
+    package_store: &PackageStore,
+    package_store_compute_properties: &mut PackageStoreComputeProperties,
+) -> CallableComputeProperties {
+    // This function is not meant for intrinsics.
+    let CallableImpl::Spec(spec_impl) = &callable.implementation else {
+        panic!("a non-intrinsic callable is expected");
+    };
+
+    // Create the compute properties for each one of the specializations.
+    // When a specialization has call cycles, assume its properties. Otherwise, create the specialization applications
+    // table the same way that for any other specialization.
+    let input_map = derive_callable_input_map(input_params);
+    let mut create_specialization_applications_table_internal = |specialization, is_spec_cycled| {
+        if is_spec_cycled {
+            create_cycled_operation_specialization_applications_table(
+                callable_id,
+                specialization,
+                &input_map,
+                &callable.output,
+                package_store,
+            )
+        } else {
+            create_specialization_applications_table(
+                callable_id,
+                &specialization,
+                &input_map,
+                package_store,
+                package_store_compute_properties,
+            )
+        }
+    };
+    let body =
+        create_specialization_applications_table_internal(&spec_impl.body, cycled_callable.body);
+    let adj = spec_impl.adj.as_ref().map(|specialization| {
+        create_specialization_applications_table_internal(
+            specialization,
+            cycled_callable.adj.expect("is_adj_cycled should be some"),
+        )
+    });
+    let ctl = spec_impl.ctl.as_ref().map(|specialization| {
+        create_specialization_applications_table_internal(
+            specialization,
+            cycled_callable.ctl.expect("is_ctl_cycled should be some"),
+        )
+    });
+    let ctl_adj = spec_impl.ctl_adj.as_ref().map(|specialization| {
+        create_specialization_applications_table_internal(
+            specialization,
+            cycled_callable
+                .ctl_adj
+                .expect("is_ctl_adj_cycled should be some"),
+        )
+    });
+
+    // Create the callable compute properties.
+    CallableComputeProperties {
+        body,
+        adj,
+        ctl,
+        ctl_adj,
+    }
+}
+
+fn create_cycled_operation_specialization_applications_table(
+    callable_id: StoreItemId,
+    specialization: &SpecDecl,
+    callable_input_map: &FxHashMap<NodeId, CallableVariable>,
+    output_type: &Ty,
+    package_store: &PackageStore,
+) -> ApplicationsTable {
+    // We expand the input map for controlled specializations, which have its own additional input (the control qubit
+    // register).
+    let package_patterns = &package_store
+        .get(callable_id.package)
+        .expect("package should exist")
+        .pats;
+    let mut input_map =
+        create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
+
+    // Since operations can allocate and measure qubits freely, we assume it requires all capabilities and that they are
+    // a quantum source for all non-unit outputs. These will be both the inherent compute properties and the compute
+    // properties for all dynamic parameters.
+    let quantum_source = if *output_type == Ty::UNIT {
+        None
+    } else {
+        Some(QuantumSource::Assumed)
+    };
+    let compute_properties = ComputeProperties {
+        runtime_capabilities: RuntimeCapabilityFlags::all(),
+        quantum_source,
+    };
+
+    // Create compute properties for each dynamic parameter, which are the same than the inherent properties.
+    let mut dynamic_params_properties = Vec::new();
+    input_map
+        .drain()
+        .map(|(_, callable_variable)| callable_variable)
+        .for_each(|callable_variable| {
+            let CallableVariableKind::InputParam(_) = callable_variable.kind else {
+                panic!("all callable variables should be input parameters at this point")
+            };
+            dynamic_params_properties.push(compute_properties.clone())
+        });
+
+    ApplicationsTable {
+        inherent_properties: compute_properties,
+        dynamic_params_properties,
+    }
 }
 
 fn create_intrinsic_callable_compute_properties<'a>(
@@ -397,12 +633,16 @@ fn create_specialization_applications_table(
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) -> ApplicationsTable {
+    // We expand the input map for controlled specializations, which have its own additional input (the control qubit
+    // register).
     let package_patterns = &package_store
         .get(callable_id.package)
         .expect("package should exist")
         .pats;
     let input_map =
         create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
+
+    // Then we analyze the block.
     let block_id = (callable_id.package, specialization.block).into();
     analyze_block(
         block_id,
@@ -410,6 +650,9 @@ fn create_specialization_applications_table(
         package_store,
         package_store_compute_properties,
     );
+
+    // Finally, we get the compute properties of the analyzed block and use it to create the application table of the
+    // specialization.
     let block_compute_properties = package_store_compute_properties.get_block(block_id);
     match block_compute_properties {
         CallableElementComputeProperties::ApplicationDependent(applications_table) => {
@@ -437,6 +680,8 @@ fn create_specialization_input_map(
     package_patterns: &IndexMap<PatId, Pat>,
 ) -> FxHashMap<NodeId, CallableVariable> {
     if let Some(spec_input_pat_id) = specialization_input {
+        // If the specialization has its own input, as it is the case for controlled specializations, create a new map
+        // with the specialization input as the first parameter..
         let spec_input_pat = package_patterns
             .get(spec_input_pat_id)
             .expect("specialization input pattern should exist");
@@ -459,6 +704,8 @@ fn create_specialization_input_map(
                 node: variable.node,
                 pat: variable.pat,
                 ty: variable.ty.clone(),
+                // The input param index increases because now the specialization input has the index zero, so we must
+                // move the index of all the other parameters by one.
                 kind: CallableVariableKind::InputParam(input_param_idx + 1),
             };
             input_map.insert(*node_id, new_variable);
@@ -466,6 +713,8 @@ fn create_specialization_input_map(
 
         input_map
     } else {
+        // If the specialization does not have its own input, as it is the case for body and adjoint specializations,
+        // the input map for the specialization is the same as then one for the callable.
         callable_input_map.clone()
     }
 }
