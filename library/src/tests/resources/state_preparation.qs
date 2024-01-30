@@ -51,9 +51,9 @@ namespace Test {
 
     operation PrepareComplex(qs : Qubit[]) : Unit is Adj {
         H(qs[0]);
-        T(qs[0]);
+        S(qs[0]);
         H(qs[1]);
-        S(qs[1]);
+        T(qs[1]);
     }
 
     operation TestPrepareComplex(): Unit {
