@@ -281,7 +281,7 @@ fn dump_machine_endianness() {
         }"},
         &expect![[r#"
             STATE:
-            |0010⟩: 1+0i
+            |0100⟩: 1+0i
         "#]],
     );
 }
@@ -1045,7 +1045,7 @@ fn qubit_nested_bind_not_released() {
         }"},
         &expect![[r#"
             STATE:
-            |10⟩: 1+0i
+            |01⟩: 1+0i
         "#]],
     );
 }

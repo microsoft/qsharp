@@ -24,7 +24,7 @@ export function StateTable(props: { dump: Dump }) {
           <th>
             Basis State
             <br />
-            (|𝜓ₙ…𝜓₁⟩)
+            (|𝜓₁…𝜓ₙ⟩)
           </th>
           <th>Amplitude</th>
           <th>Measurement Probability</th>

@@ -28,7 +28,10 @@ modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for 
 /* TODO: Use the qs- prefixes and apply consistently */
 :root {
   --heading-background: #262679;
-  --main-background: var(--vscode-editor-background, #ececf0);
+  --main-background: var(
+    --vscode-editor-background,
+    var(--jp-layout-color0, #ececf0)
+  );
   --main-color: var(
     --vscode-editor-foreground,
     var(--jp-widgets-color, #202020)
@@ -529,6 +532,7 @@ html {
 .qs-resultsTable-sortedTable {
   border-collapse: collapse;
   margin: 12px 0px;
+  outline: none;
 }
 
 .qs-resultsTable-sortedTable th,
@@ -548,11 +552,11 @@ html {
 }
 
 .qs-resultsTable-sortedTable tbody tr:hover {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--vscode-list-hoverBackground, var(--js-layout-color2));
 }
 
 .qs-resultsTable-sortedTableSelectedRow td {
-  background: var(--vscode-button-background);
+  background: var(--vscode-button-background, var(--jp-layout-color3));
   color: var(--vscode-button-foreground);
   font-weight: 600;
 }
@@ -565,7 +569,7 @@ html {
 .qs-resultsTable-showColumnMenu {
   display: block;
   position: absolute;
-  background-color: var(--vscode-menu-background);
+  background-color: var(--vscode-menu-background, var(--main-background));
   border: 1px solid #8888;
   padding: 4px;
   z-index: 100;
@@ -574,7 +578,7 @@ html {
 
 .qs-resultsTable-menuItem {
   cursor: pointer;
-  background-color: var(--vscode-list-hoverBackground);
+  background-color: var(--vscode-list-hoverBackground, var(--jp-layout-color1));
   padding: 4px;
   margin: 2px;
   font-size: 14px;
@@ -582,7 +586,7 @@ html {
 }
 
 .qs-resultsTable-menuItem:hover {
-  background-color: var(--vscode-menu-border);
+  background-color: var(--vscode-menu-border, var(--jp-layout-color2));
 }
 
 .qs-resultsTable-columnSelected {
@@ -590,8 +594,8 @@ html {
   padding: 4px;
   font-weight: 400;
   font-size: 14px;
-  background-color: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
+  background-color: var(--vscode-button-background, var(--jp-brand-color1));
+  color: var(--vscode-button-foreground, var(--jp-ui-inverse-font-color0));
   margin: 2px;
   border-radius: 3px;
 }
@@ -616,10 +620,6 @@ html {
   animation: codicon-spin 1.5s steps(45) infinite;
 }
 
-.qs-scatterChart {
-  font-size: 14px;
-}
-
 .qs-scatterChart-x-axisTitle,
 .qs-scatterChart-y-axisTitle {
   text-anchor: middle;
@@ -632,23 +632,66 @@ html {
   transform: rotate(180deg);
 }
 
-.qs-scatterChart-line {
-  stroke: var(--border-color);
-}
-
 .qs-scatterChart-point {
   r: 2px;
   stroke-width: 4px;
 }
 
-.qs-scatterChart-point-selected,
-.qs-scatterChart-point:hover {
-  r: 6px;
-  stroke-width: 3px;
+.qs-scatterChart-hover:hover {
+  r: 4px;
+  stroke-width: 4px;
+  fill: white;
+}
+
+.qs-scatterChart-point-selected {
+  r: 8px;
+  stroke-width: 4px;
   fill: white;
 }
 
 .qs-scatterChart-watermark {
   font-size: 16px;
   fill: var(--main-color);
+}
+
+.qs-scatterChart-tooltip,
+.qs-scatterChart-selectedInfo {
+  position: absolute;
+  visibility: hidden;
+  background: var(--main-background);
+  color: var(--main-color);
+  border: var(--border-color) 1px solid;
+  padding: 4px;
+}
+
+/* This rule adds the little triange pointer at the top */
+.qs-scatterChart-tooltip::after,
+.qs-scatterChart-selectedInfo::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent var(--border-color) transparent;
+}
+
+.qs-scatterChart-axis,
+.qs-scatterChart-tick-line {
+  stroke: var(--border-color);
+}
+
+.qs-scatterChart-x-tick-text {
+  text-anchor: middle;
+  fill: var(--main-color);
+}
+
+.qs-scatterChart-y-tick-text {
+  text-anchor: end;
+  fill: var(--main-color);
+}
+
+.qs-estimatesOverview-error {
+  color: red;
 }
