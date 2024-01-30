@@ -6,6 +6,9 @@ use crate::{
     protocol::{Span, TextEdit},
 };
 
+use qsc::Formatter;
+use qsc::RawTokenKind;
+
 pub(crate) fn get_format_changes(
     compilation: &Compilation,
     source_name: &str,
@@ -21,12 +24,16 @@ pub(crate) fn get_format_changes(
 
     let mut edits = vec![];
 
+    let mut formatter = Formatter::new(&contents);
+
+    for token in formatter.tokens.iter() {}
+
     // This is a dummy format rule
     if !contents.starts_with("42") {
         edits.push(TextEdit {
             contents: "42\n".to_string(),
             span: Span { start: 0, end: 0 },
-        })
+        });
     }
 
     edits

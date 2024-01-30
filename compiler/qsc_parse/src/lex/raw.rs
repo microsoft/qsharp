@@ -25,15 +25,15 @@ use std::{
 
 /// A raw token.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct Token {
+pub struct Token {
     /// The token kind.
-    pub(super) kind: TokenKind,
+    pub kind: TokenKind,
     /// The byte offset of the token starting character.
-    pub(super) offset: u32,
+    pub offset: u32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum TokenKind {
+pub enum TokenKind {
     Comment(CommentKind),
     Ident,
     Number(Number),
@@ -168,13 +168,13 @@ pub(crate) enum CommentKind {
 }
 
 #[derive(Clone)]
-pub(super) struct Lexer<'a> {
+pub struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
     interpolation: u8,
 }
 
 impl<'a> Lexer<'a> {
-    pub(super) fn new(input: &'a str) -> Self {
+    pub fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
             interpolation: 0,

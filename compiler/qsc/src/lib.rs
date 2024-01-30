@@ -10,6 +10,9 @@ pub mod incremental;
 pub mod interpret;
 pub mod target;
 
+pub use qsc_frontend::formatter::Formatter;
+pub use qsc_frontend::RawTokenKind;
+
 pub use qsc_frontend::compile::{
     CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
 };
