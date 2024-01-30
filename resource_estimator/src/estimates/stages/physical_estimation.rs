@@ -22,7 +22,7 @@ pub trait ErrorCorrection {
     type Qubit;
 
     fn max_code_distance(&self) -> u64;
-    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<i64>;
+    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64>;
     fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64>;
     fn logical_failure_probability(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<f64>;
     fn compute_code_distance(&self, qubit: &Self::Qubit, required_logical_error_rate: f64) -> u64;

@@ -34,8 +34,7 @@ impl<P> LogicalQubit<P> {
         qubit: Rc<P>,
     ) -> Result<Self> {
         // safe to convert here because we check for negative values before
-        #[allow(clippy::cast_sign_loss)]
-        let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)? as u64;
+        let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)?;
         let logical_cycle_time = ftp.logical_cycle_time(&qubit, code_distance)?;
         let logical_error_rate = ftp.logical_failure_probability(&qubit, code_distance)?;
 
