@@ -15,7 +15,7 @@ import {
   VSDiagnostic,
   log,
 } from "qsharp-lang";
-import { codeToCompressedBase64 } from "./utils.js";
+import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
 import { ActiveTab } from "./main.js";
 
 type ErrCollection = {
@@ -23,10 +23,7 @@ type ErrCollection = {
   shotDiags: VSDiagnostic[];
 };
 
-function VSDiagsToMarkers(
-  errors: VSDiagnostic[],
-  srcModel: monaco.editor.ITextModel,
-): monaco.editor.IMarkerData[] {
+function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
   return errors.map((err) => {
     let severity = monaco.MarkerSeverity.Error;
     switch (err.severity) {
@@ -41,25 +38,16 @@ function VSDiagsToMarkers(
         break;
     }
 
-    const startPos = srcModel.getPositionAt(err.start_pos);
-    const endPos = srcModel.getPositionAt(err.end_pos);
     const marker: monaco.editor.IMarkerData = {
+      ...lsRangeToMonacoRange(err.range),
       severity,
       message: err.message,
-      startLineNumber: startPos.lineNumber,
-      startColumn: startPos.column,
-      endLineNumber: endPos.lineNumber,
-      endColumn: endPos.column,
       relatedInformation: err.related?.map((r) => {
-        const startPos = srcModel.getPositionAt(r.start_pos);
-        const endPos = srcModel.getPositionAt(r.end_pos);
+        const range = lsRangeToMonacoRange(r.location.span);
         return {
-          resource: monaco.Uri.parse(r.source),
+          resource: monaco.Uri.parse(r.location.source),
           message: r.message,
-          startLineNumber: startPos.lineNumber,
-          startColumn: startPos.column,
-          endLineNumber: endPos.lineNumber,
-          endColumn: endPos.column,
+          ...range,
         };
       }),
     };
@@ -113,7 +101,7 @@ export function Editor(props: {
       ...errMarks.current.shotDiags,
     ];
 
-    const markers = VSDiagsToMarkers(errs, model);
+    const markers = VSDiagsToMarkers(errs);
     monaco.editor.setModelMarkers(model, "qsharp", markers);
 
     const errList = markers.map((err) => ({

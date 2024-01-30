@@ -4,9 +4,9 @@ $$ \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\\ 0 \
 The goal state, factored as a tensor product, looks like this (remember that $e^{3i\pi/4} = e^{i\pi/4} e^{i\pi/2}$):
 
 $$
-\frac{1}{2}\begin{bmatrix} 1 \\\ e^{i\pi/2} \\\ e^{i\pi/4} \\\ e^{3i\pi/4} \end{bmatrix} =
-\frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ e^{i\pi/4} \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\\ e^{i\pi/2} \end{bmatrix} =
-\frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/4}|1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/2}|1\rangle\big) $$
+\frac{1}{2}\begin{bmatrix} 1 \\\ e^{i\pi/4} \\\ e^{i\pi/2} \\\ e^{3i\pi/4} \end{bmatrix} =
+\frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ e^{i\pi/2} \end{bmatrix} \otimes \frac{1}{\sqrt2}\begin{bmatrix} 1 \\\ e^{i\pi/4} \end{bmatrix} =
+\frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/2}|1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle + e^{i\pi/4}|1\rangle\big) $$
 
 We will again need to adjust the states of both qubits independently.
 

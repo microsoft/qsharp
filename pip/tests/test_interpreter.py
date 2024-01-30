@@ -34,7 +34,7 @@ def test_dump_output() -> None:
     def callback(output):
         nonlocal called
         called = True
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+        assert output.__repr__() == "STATE:\n|10⟩: 1.0000+0.0000𝑖"
 
     called = False
     value = e.interpret(
@@ -72,7 +72,7 @@ def test_dump_machine() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
 
     def callback(output):
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+        assert output.__repr__() == "STATE:\n|10⟩: 1.0000+0.0000𝑖"
 
     value = e.interpret(
         """
@@ -86,11 +86,11 @@ def test_dump_machine() -> None:
     state_dump = e.dump_machine()
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
-    assert state_dump[1][0] == 1.0
-    assert state_dump[1][1] == 0.0
+    assert state_dump[2][0] == 1.0
+    assert state_dump[2][1] == 0.0
     state_dict = state_dump.get_dict()
-    assert state_dict[1][0] == 1.0
-    assert state_dict[1][1] == 0.0
+    assert state_dict[2][0] == 1.0
+    assert state_dict[2][1] == 0.0
 
 
 def test_error() -> None:

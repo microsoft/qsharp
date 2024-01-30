@@ -7,9 +7,10 @@ mod tests;
 use crate::compilation::{Compilation, CompilationKind, Lookup};
 use crate::display::CodeDisplay;
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
-use crate::qsc_utils::{protocol_span, span_contains};
+use crate::qsc_utils::{into_range, span_contains};
 use qsc::ast::visit::{self, Visitor};
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
+use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
@@ -23,9 +24,11 @@ const PRELUDE: [&str; 3] = [
 pub(crate) fn get_completions(
     compilation: &Compilation,
     source_name: &str,
-    offset: u32,
+    position: Position,
+    position_encoding: Encoding,
 ) -> CompletionList {
-    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let offset =
+        compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
 
     // Determine context for the offset
@@ -51,6 +54,14 @@ pub(crate) fn get_completions(
         // character (i.e. at the top of the cell)
         CompilationKind::Notebook => Some(get_first_non_whitespace_in_source(compilation, offset)),
     };
+
+    let insert_open_range = insert_open_at.map(|o| {
+        into_range(
+            position_encoding,
+            qsc::Span { lo: o, hi: o },
+            &compilation.user_unit().sources,
+        )
+    });
 
     let indent = match insert_open_at {
         Some(start) => get_indent(compilation, start),
@@ -79,7 +90,7 @@ pub(crate) fn get_completions(
             builder.push_globals(
                 compilation,
                 &context_finder.opens,
-                insert_open_at,
+                insert_open_range,
                 &context_finder.current_namespace_name,
                 &indent,
             );
@@ -98,7 +109,7 @@ pub(crate) fn get_completions(
             builder.push_globals(
                 compilation,
                 &context_finder.opens,
-                insert_open_at,
+                insert_open_range,
                 &context_finder.current_namespace_name,
                 &indent,
             );
@@ -124,7 +135,7 @@ pub(crate) fn get_completions(
                 builder.push_globals(
                     compilation,
                     &context_finder.opens,
-                    insert_open_at,
+                    insert_open_range,
                     &context_finder.current_namespace_name,
                     &indent,
                 );
@@ -252,7 +263,7 @@ impl CompletionListBuilder {
         &mut self,
         compilation: &Compilation,
         opens: &[(Rc<str>, Option<Rc<str>>)],
-        insert_open_at: Option<u32>,
+        insert_open_range: Option<Range>,
         current_namespace_name: &Option<Rc<str>>,
         indent: &String,
     ) {
@@ -276,7 +287,7 @@ impl CompletionListBuilder {
                 compilation,
                 *package_id,
                 opens,
-                insert_open_at,
+                insert_open_range,
                 current_namespace_name.clone(),
                 indent,
             ));
@@ -374,7 +385,7 @@ impl CompletionListBuilder {
         compilation: &'a Compilation,
         package_id: PackageId,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
-        insert_open_at: Option<u32>,
+        insert_open_at: Option<Range>,
         current_namespace_name: Option<Rc<str>>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
@@ -439,13 +450,7 @@ impl CompletionListBuilder {
                                             None => match insert_open_at {
                                                 Some(start) => {
                                                     additional_edits.push((
-                                                        protocol_span(
-                                                            qsc::Span {
-                                                                lo: start,
-                                                                hi: start,
-                                                            },
-                                                            &compilation.user_unit().sources,
-                                                        ),
+                                                        start,
                                                         format!(
                                                             "open {};{}",
                                                             namespace.name.clone(),

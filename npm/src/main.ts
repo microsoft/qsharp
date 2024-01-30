@@ -145,3 +145,5 @@ export function getLanguageServiceWorker(): ILanguageServiceWorker {
 
   return proxy;
 }
+
+export * as utils from "./utils.js";

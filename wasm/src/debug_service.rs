@@ -5,8 +5,10 @@ use std::str::FromStr;
 
 use qsc::fir::StmtId;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
+use qsc::line_column::Encoding;
 use qsc::{fmt_complex, target::Profile};
 
+use crate::line_column::Range;
 use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -34,7 +36,7 @@ impl DebugService {
         let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
-        match Debugger::new(source_map, target.into()) {
+        match Debugger::new(source_map, target.into(), Encoding::Utf16) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 match self.debugger_mut().set_entry() {
@@ -69,8 +71,7 @@ impl DebugService {
                 .map(|s| StackFrame {
                     name: format!("{} {}", s.name, s.functor),
                     path: s.path.clone(),
-                    lo: s.lo,
-                    hi: s.hi,
+                    range: s.range.into(),
                 })
                 .collect(),
         }
@@ -183,8 +184,7 @@ impl DebugService {
                 .iter()
                 .map(|s| BreakpointSpan {
                     id: s.id,
-                    lo: s.lo,
-                    hi: s.hi,
+                    range: s.range.into(),
                 })
                 .collect(),
         }
@@ -302,13 +302,11 @@ serializable_type! {
     BreakpointSpan,
     {
         pub id: u32,
-        pub lo: u32,
-        pub hi: u32,
+        pub range: Range
     },
     r#"export interface IBreakpointSpan {
         id: number;
-        lo: number;
-        hi: number;
+        range: IRange;
     }"#
 }
 
@@ -329,14 +327,12 @@ serializable_type! {
     {
         pub name: String,
         pub path: String,
-        pub lo: u32,
-        pub hi: u32,
+        pub range: Range
     },
     r#"export interface IStackFrame {
         name: string;
         path: string;
-        lo: number;
-        hi: number;
+        range: IRange;
     }"#
 }
 

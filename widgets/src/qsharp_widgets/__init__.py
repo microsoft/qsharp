@@ -62,6 +62,33 @@ class EstimatesOverview(anywidget.AnyWidget):
         self.runNames = [] if runNames is None else runNames
 
 
+class EstimatesPanel(anywidget.AnyWidget):
+    _esm = pathlib.Path(__file__).parent / "static" / "index.js"
+    _css = pathlib.Path(__file__).parent / "static" / "index.css"
+
+    comp = traitlets.Unicode("EstimatesPanel").tag(sync=True)
+    estimates = traitlets.Dict().tag(sync=True)
+    colors = traitlets.List().tag(sync=True)
+    runNames = traitlets.List().tag(sync=True)
+
+    def __init__(self, estimates, colors=None, runNames=None):
+        """
+        This function generates the whole estimates panel with the summary results table, ther space-time chart, the space chart and the details report.
+
+        Parameters:
+        - estimates: data for all the tables and diagrams.
+        - colors (optional): the list of colors which could be provided in the hex form or by name. If the length of the list does not match the number of the estimates, the colors parameter will be ignored and replaced with defaults.
+        - runNames (optional): the list of the run names. If the length of the list does not match the number of the estimates, the runNames parameter will be ignored and replaced with defaults.
+
+        Returns:
+        None
+        """
+        super().__init__()
+        self.estimates = estimates
+        self.colors = [] if colors is None else colors
+        self.runNames = [] if runNames is None else runNames
+
+
 class EstimateDetails(anywidget.AnyWidget):
     _esm = pathlib.Path(__file__).parent / "static" / "index.js"
     _css = pathlib.Path(__file__).parent / "static" / "index.css"
