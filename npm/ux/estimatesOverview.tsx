@@ -13,14 +13,7 @@ import {
   SingleEstimateResult,
 } from "./data.js";
 import { ResultsTable, Row } from "./resultsTable.js";
-import {
-  Axis,
-  HideTooltip,
-  PlotItem,
-  ScatterChart,
-  ScatterSeries,
-  SelectPoint,
-} from "./scatterChart.js";
+import { Axis, PlotItem, ScatterChart, ScatterSeries } from "./scatterChart.js";
 
 const columnNames = [
   "Run name",
@@ -77,7 +70,6 @@ function reDataToRow(input: ReData, color: string): Row {
       },
       data.physicalCounts.rqops,
       data.physicalCounts.physicalQubits,
-      data.new ? "New" : "Cached",
     ],
     color: color,
   };
@@ -118,6 +110,11 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
 }
 
 function createRunNames(estimatesData: ReData[]): string[] {
+  // If there's only 1 entry, use the shared run name
+  if (estimatesData.length === 1) {
+    return [estimatesData[0].jobParams.sharedRunName];
+  }
+
   const fields: string[][] = [];
 
   estimatesData.forEach(() => {
@@ -178,6 +175,7 @@ export function EstimatesOverview(props: {
   setEstimate: (estimate: SingleEstimateResult | null) => void;
 }) {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<[number, number]>();
 
   const runNameRenderingError =
     props.runNames != null &&
@@ -198,24 +196,24 @@ export function EstimatesOverview(props: {
   });
 
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
+    if (seriesIndex < 0) {
+      // Point was deselected
+      onRowSelected("");
+      return;
+    }
+
     const data = props.estimatesData[seriesIndex];
     props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
     const rowId = props.estimatesData[seriesIndex].jobParams.runName;
     setSelectedRow(rowId);
+    setSelectedPoint([seriesIndex, pointIndex]);
   }
 
-  function onRowSelected(rowId: string, ev?: Event) {
+  function onRowSelected(rowId: string) {
     setSelectedRow(rowId);
-    // On any selection, clear the "new" flag on all rows. This ensures that
-    // new rows do not steal focus from the user selected row.
-    props.estimatesData.forEach((data) => (data.new = false));
-
-    const root = findRoot(ev);
-    if (root) {
-      HideTooltip(root);
-    }
     if (!rowId) {
       props.setEstimate(null);
+      setSelectedPoint(undefined);
     } else {
       const index = props.estimatesData.findIndex(
         (data) => data.jobParams.runName === rowId,
@@ -223,22 +221,13 @@ export function EstimatesOverview(props: {
 
       if (index == -1) {
         props.setEstimate(null);
+        setSelectedPoint(undefined);
       } else {
         const estimateFound = props.estimatesData[index];
+        setSelectedPoint([index, 0]);
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
-        if (root) {
-          SelectPoint(index, 0, root);
-        }
       }
     }
-  }
-
-  function findRoot(ev?: Event): Element | undefined {
-    return (
-      (ev?.currentTarget as Element | undefined)?.closest(
-        ".qs-estimatesOverview",
-      ) ?? undefined
-    );
   }
 
   const colorRenderingError =
@@ -253,36 +242,32 @@ export function EstimatesOverview(props: {
       ? props.colors
       : ColorMap(props.estimatesData.length);
 
-  if (props.isSimplifiedView) {
+  function getResultTable() {
     return (
-      <div className="qs-estimatesOverview">
-        {runNameRenderingError != "" && (
-          <div class="qs-estimatesOverview-error">{runNameRenderingError}</div>
+      <ResultsTable
+        columnNames={columnNames}
+        rows={props.estimatesData.map((dataItem, index) =>
+          reDataToRow(dataItem, colormap[index]),
         )}
-        {colorRenderingError != "" && (
-          <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
+        initialColumns={initialColumns}
+        selectedRow={selectedRow}
+        onRowSelected={onRowSelected}
+        onRowDeleted={props.onRowDeleted}
+      />
+    );
+  }
+
+  function getScatterChart() {
+    return (
+      <ScatterChart
+        xAxis={xAxis}
+        yAxis={yAxis}
+        data={props.estimatesData.map((dataItem, index) =>
+          reDataToRowScatter(dataItem, colormap[index]),
         )}
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          // should be able to deselect rows for making screenshots
-          ensureSelected={false}
-          onRowDeleted={props.onRowDeleted}
-          selectedRow={selectedRow}
-          onRowSelected={onRowSelected}
-        />
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-        />
-      </div>
+        onPointSelected={onPointSelected}
+        selectedPoint={selectedPoint}
+      />
     );
   }
 
@@ -294,36 +279,27 @@ export function EstimatesOverview(props: {
       {colorRenderingError != "" && (
         <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
       )}
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Results
-        </summary>
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          selectedRow={selectedRow}
-          onRowSelected={onRowSelected}
-          // should be able to deselect rows for making screenshots
-          ensureSelected={false}
-          onRowDeleted={props.onRowDeleted}
-        />
-      </details>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Space-time diagram
-        </summary>
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-        />
-      </details>
+      {!props.isSimplifiedView ? (
+        <>
+          <details open>
+            <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+              Results
+            </summary>
+            {getResultTable()}
+          </details>
+          <details open>
+            <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+              Space-time diagram
+            </summary>
+            {getScatterChart()}
+          </details>
+        </>
+      ) : (
+        <>
+          {getResultTable()}
+          {getScatterChart()}
+        </>
+      )}
     </div>
   );
 }
