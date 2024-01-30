@@ -27,7 +27,7 @@ use super::{
         },
         Error, Result,
     },
-    PhysicalInstructionSet, PhysicalQubit, TPhysicalQubit,
+    PhysicalInstructionSet, PhysicalQubit,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,7 +78,6 @@ impl Default for ProtocolSpecification {
 /// in formulas for `physical_qubits_per_logical_qubit`.
 #[derive(Debug)]
 pub struct Protocol {
-    instruction_set: PhysicalInstructionSet,
     error_correction_threshold: f64,
     crossing_prefactor: f64,
     logical_cycle_time_expr: String,
@@ -173,7 +172,6 @@ impl Protocol {
                 PhysicalInstructionSet::Majorana => Ok((Self::floquet_code(), true)),
             }
         } else {
-            let instruction_set = qubit.instruction_set();
             let error_correction_threshold = model.error_correction_threshold.ok_or_else(|| {
                 CannotParseJSON(serde::de::Error::missing_field("errorCorrectionThreshold"))
             })?;
@@ -209,7 +207,6 @@ impl Protocol {
 
             Ok((
                 Self {
-                    instruction_set,
                     error_correction_threshold,
                     crossing_prefactor,
                     logical_cycle_time_expr,
@@ -281,7 +278,6 @@ impl Protocol {
     /// physical_qubits_per_logical_qubit: "2 * codeDistance * codeDistance"
     /// ```
     pub(crate) fn surface_code_gate_based() -> Self {
-        let instruction_set = PhysicalInstructionSet::GateBased;
         // [arXiv:1208.0928, Eq. (13)]
         // [arXiv:1009.3686, Figs. 6-7]
         let error_correction_threshold = 0.01;
@@ -302,7 +298,6 @@ impl Protocol {
             .expect("could not parse expressions");
 
         Self {
-            instruction_set,
             error_correction_threshold,
             crossing_prefactor,
             logical_cycle_time_expr,
@@ -325,7 +320,6 @@ impl Protocol {
     /// physical_qubits_per_logical_qubit: "2 * codeDistance * codeDistance"
     /// ```
     pub(crate) fn surface_code_measurement_based() -> Self {
-        let instruction_set = PhysicalInstructionSet::Majorana;
         // [arXiv:2007.00307, Eq. (1)]
         let error_correction_threshold = 0.0015;
         let crossing_prefactor = 0.08;
@@ -342,7 +336,6 @@ impl Protocol {
             .expect("could not parse expressions");
 
         Self {
-            instruction_set,
             error_correction_threshold,
             crossing_prefactor,
             logical_cycle_time_expr,
@@ -365,7 +358,6 @@ impl Protocol {
     /// physical_qubits_per_logical_qubit: "4 * codeDistance * codeDistance + 8 * (codeDistance - 1)"
     /// ```
     pub(crate) fn floquet_code() -> Self {
-        let instruction_set = PhysicalInstructionSet::Majorana;
         let error_correction_threshold = 0.01;
         let crossing_prefactor = 0.07;
         let logical_cycle_time_expr = format!("3 * {ONE_QUBIT_MEASUREMENT_TIME} * codeDistance");
@@ -381,7 +373,6 @@ impl Protocol {
             .expect("could not parse expressions");
 
         Self {
-            instruction_set,
             error_correction_threshold,
             crossing_prefactor,
             logical_cycle_time_expr,
@@ -462,12 +453,7 @@ impl Protocol {
 }
 
 impl ErrorCorrection for Protocol {
-    type PhysicalQubit = PhysicalQubit;
-
-    /// Returns the supported qubit gate type for this protocol.
-    fn instruction_set(&self) -> PhysicalInstructionSet {
-        self.instruction_set
-    }
+    type Qubit = PhysicalQubit;
 
     fn max_code_distance(&self) -> u64 {
         self.max_code_distance
@@ -493,7 +479,7 @@ impl ErrorCorrection for Protocol {
     /// extraction time, is based on physical operation times specified in the
     /// qubit and usually some factor based on the choice of stabilizer
     /// extraction circuit.
-    fn logical_cycle_time(&self, qubit: &PhysicalQubit, code_distance: u64) -> Result<u64> {
+    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64> {
         let mut context = Self::create_evaluation_context(Some(qubit), code_distance);
 
         let result = self.logical_cycle_time.evaluate(&mut context)?;
@@ -509,11 +495,7 @@ impl ErrorCorrection for Protocol {
     ///
     /// Computes the logical failure probability based on a physical error rate
     /// and a code distance
-    fn logical_failure_probability(
-        &self,
-        qubit: &PhysicalQubit,
-        code_distance: u64,
-    ) -> Result<f64> {
+    fn logical_failure_probability(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<f64> {
         let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
 
         if physical_error_rate > self.error_correction_threshold() {
@@ -533,7 +515,7 @@ impl ErrorCorrection for Protocol {
     // Compute code distance d (Equation (E2) in paper)
     fn compute_code_distance(
         &self,
-        qubit: &PhysicalQubit,
+        qubit: &Self::Qubit,
         required_logical_qubit_error_rate: f64,
     ) -> u64 {
         let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());

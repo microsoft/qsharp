@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::stages::physical_estimation::ErrorCorrection;
+use crate::estimates::stages::physical_estimation::{ErrorCorrection, Factory};
 
 use super::{
     super::super::{
@@ -136,7 +136,7 @@ fn required_logical_tstate_error_too_high() {
     let output_t_error_rate = 1e-1;
     let max_code_distance = 19;
 
-    let population = find_nondominated_population::<Point2D<TFactory>, _>(
+    let population = find_nondominated_population::<Point2D<TFactory>>(
         &ftp,
         &qubit,
         &distillation_unit_templates,

@@ -10,20 +10,23 @@ use std::{collections::BTreeMap, vec};
 use probability::{distribution::Inverse, prelude::Binomial};
 use serde::{ser::SerializeMap, Serialize};
 
-use crate::estimates::modeling::TPhysicalQubit;
+use crate::estimates::modeling::PhysicalQubit;
 
-use super::super::{
-    compiled_expression::CompiledExpression,
-    error::IO::{self, CannotParseJSON},
-    modeling::LogicalQubit,
+use super::{
+    super::{
+        compiled_expression::CompiledExpression,
+        error::IO::{self, CannotParseJSON},
+        modeling::LogicalQubit,
+    },
+    physical_estimation::Factory,
 };
 
-pub enum TFactoryQubit<'a, P: TPhysicalQubit> {
-    Logical(&'a LogicalQubit<P>),
-    Physical(&'a P),
+pub enum TFactoryQubit<'a> {
+    Logical(&'a LogicalQubit<PhysicalQubit>),
+    Physical(&'a PhysicalQubit),
 }
 
-impl<'a, P: TPhysicalQubit> TFactoryQubit<'a, P> {
+impl<'a> TFactoryQubit<'a> {
     pub fn physical_qubits(&self) -> u64 {
         match self {
             Self::Logical(qubit) => qubit.physical_qubits(),
@@ -311,9 +314,9 @@ impl<'a> fmt::Debug for TFactoryDistillationUnit<'a> {
 }
 
 impl<'a> TFactoryDistillationUnit<'a> {
-    pub fn by_template<P: TPhysicalQubit>(
+    pub fn by_template(
         template: &'a TFactoryDistillationUnitTemplate,
-        qubit: &TFactoryQubit<P>,
+        qubit: &TFactoryQubit,
     ) -> Self {
         let code_distance = qubit.code_distance();
 
@@ -616,7 +619,7 @@ impl TFactory {
         TFactoryBuildStatus::Success
     }
 
-    pub fn default<P: TPhysicalQubit>(logical_qubit: &LogicalQubit<P>) -> Self {
+    pub fn default(logical_qubit: &LogicalQubit<PhysicalQubit>) -> Self {
         let tfactory_qubit = TFactoryQubit::Logical(logical_qubit);
         let template = TFactoryDistillationUnitTemplate::create_trivial_distillation_unit_1_to_1();
         let unit = TFactoryDistillationUnit::by_template(&template, &tfactory_qubit);
@@ -649,14 +652,6 @@ impl TFactory {
     /// Number of units per distillation round
     pub fn num_units_per_round(&self) -> Vec<u64> {
         self.rounds.iter().map(|round| round.num_units).collect()
-    }
-
-    /// Code distances per round
-    pub fn code_distance_per_round(&self) -> Vec<u64> {
-        self.rounds
-            .iter()
-            .map(|round| round.code_distance)
-            .collect()
     }
 
     /// Physical qubits per round
@@ -721,21 +716,6 @@ impl TFactory {
         TFactoryBuildStatus::Success
     }
 
-    pub fn physical_qubits(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::physical_qubits)
-            .max()
-            .unwrap_or(0)
-    }
-
-    pub fn duration(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::duration)
-            .sum()
-    }
-
     #[allow(dead_code)]
     pub fn input_t_error_rate(&self) -> f64 {
         // Even when there are no units `input_t_error_rate_before_each_round`
@@ -753,7 +733,36 @@ impl TFactory {
             .map_or(0, |round| round.num_input_ts * round.num_units())
     }
 
-    pub fn output_t_count(&self) -> u64 {
+    pub fn normalized_qubits(&self) -> f64 {
+        (self.physical_qubits() as f64) / (self.num_output_states() as f64)
+    }
+
+    /// Code distances per round
+    pub fn code_distance_per_round(&self) -> Vec<u64> {
+        self.rounds
+            .iter()
+            .map(|round| round.code_distance)
+            .collect()
+    }
+}
+
+impl Factory for TFactory {
+    fn physical_qubits(&self) -> u64 {
+        self.rounds
+            .iter()
+            .map(TFactoryDistillationRound::physical_qubits)
+            .max()
+            .unwrap_or(0)
+    }
+
+    fn duration(&self) -> u64 {
+        self.rounds
+            .iter()
+            .map(TFactoryDistillationRound::duration)
+            .sum()
+    }
+
+    fn num_output_states(&self) -> u64 {
         let last_round = self
             .rounds
             .last()
@@ -764,12 +773,8 @@ impl TFactory {
         last_round.compute_num_output_ts(failure_probability)
     }
 
-    pub fn normalized_volume(&self) -> f64 {
-        ((self.physical_qubits() * self.duration()) as f64) / (self.output_t_count() as f64)
-    }
-
-    pub fn normalized_qubits(&self) -> f64 {
-        (self.physical_qubits() as f64) / (self.output_t_count() as f64)
+    fn max_code_distance(&self) -> u64 {
+        self.code_distance_per_round().last().copied().unwrap_or(0)
     }
 }
 
@@ -782,7 +787,7 @@ impl Serialize for TFactory {
 
         map.serialize_entry("physicalQubits", &self.physical_qubits())?;
         map.serialize_entry("runtime", &self.duration())?;
-        map.serialize_entry("numTstates", &self.output_t_count())?;
+        map.serialize_entry("numTstates", &self.num_output_states())?;
         map.serialize_entry("numInputTstates", &self.input_t_count())?;
         map.serialize_entry("numRounds", &self.num_rounds())?;
         map.serialize_entry("numUnitsPerRound", &self.num_units_per_round())?;

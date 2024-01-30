@@ -3,7 +3,10 @@
 
 use std::rc::Rc;
 
-use crate::estimates::{modeling::TPhysicalQubit, stages::physical_estimation::ErrorCorrection};
+use crate::estimates::{
+    modeling::{PhysicalQubit, Protocol},
+    stages::physical_estimation::{Factory, FactoryBuilder},
+};
 
 use super::super::{
     constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},
@@ -204,17 +207,14 @@ impl ToString for Point4D<TFactory> {
     }
 }
 
-pub(crate) fn find_nondominated_tfactories<E: ErrorCorrection>(
-    ftp: &E,
-    qubit: &Rc<E::PhysicalQubit>,
+pub(crate) fn find_nondominated_tfactories(
+    ftp: &Protocol,
+    qubit: &Rc<PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
-) -> Vec<TFactory>
-where
-    E::PhysicalQubit: TPhysicalQubit,
-{
-    let points = find_nondominated_population::<Point2D<TFactory>, _>(
+) -> Vec<TFactory> {
+    let points = find_nondominated_population::<Point2D<TFactory>>(
         ftp,
         qubit,
         distillation_unit_templates,
@@ -229,16 +229,15 @@ where
         .collect()
 }
 
-fn find_nondominated_population<P, E: ErrorCorrection>(
-    ftp: &E,
-    qubit: &Rc<E::PhysicalQubit>,
+fn find_nondominated_population<P>(
+    ftp: &Protocol,
+    qubit: &Rc<PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
 ) -> Population<P>
 where
     P: Point + Ord + ToString + From<TFactory> + TFactoryExhaustiveSearchOptions,
-    E::PhysicalQubit: TPhysicalQubit,
 {
     let min_code_distance = 1;
     let distances: Vec<_> = (min_code_distance..=max_code_distance).step_by(2).collect();
@@ -333,6 +332,48 @@ fn process_for_specifications_combination<P>(
             &result,
             &mut checker_for_full_iteration,
         );
+    }
+}
+
+pub struct TFactoryBuilder {
+    distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
+}
+
+impl TFactoryBuilder {
+    pub fn set_distillation_unit_templates(
+        &mut self,
+        distillation_unit_templates: Vec<TFactoryDistillationUnitTemplate>,
+    ) {
+        self.distillation_unit_templates = distillation_unit_templates;
+    }
+}
+
+impl Default for TFactoryBuilder {
+    fn default() -> Self {
+        Self {
+            distillation_unit_templates:
+                TFactoryDistillationUnitTemplate::default_distillation_unit_templates(),
+        }
+    }
+}
+
+impl FactoryBuilder<Protocol> for TFactoryBuilder {
+    type Factory = TFactory;
+
+    fn find_factories(
+        &self,
+        ftp: &Protocol,
+        qubit: &Rc<PhysicalQubit>,
+        output_t_error_rate: f64,
+        max_code_distance: u64,
+    ) -> Vec<Self::Factory> {
+        find_nondominated_tfactories(
+            ftp,
+            qubit,
+            &self.distillation_unit_templates,
+            output_t_error_rate,
+            max_code_distance,
+        )
     }
 }
 

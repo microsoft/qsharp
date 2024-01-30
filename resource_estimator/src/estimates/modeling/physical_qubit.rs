@@ -13,64 +13,6 @@ use super::super::{
 };
 use serde::{de::Error, Deserialize, Serialize};
 
-pub trait TPhysicalQubit {
-    fn instruction_set(&self) -> PhysicalInstructionSet;
-    fn t_gate_error_rate(&self) -> f64;
-    fn one_qubit_measurement_time(&self) -> u64;
-    fn clifford_error_rate(&self) -> f64;
-    fn readout_error_rate(&self) -> f64;
-}
-
-impl TPhysicalQubit for PhysicalQubit {
-    fn instruction_set(&self) -> super::PhysicalInstructionSet {
-        match self {
-            Self::GateBased(_) => super::PhysicalInstructionSet::GateBased,
-            Self::Majorana(_) => super::PhysicalInstructionSet::Majorana,
-        }
-    }
-
-    fn t_gate_error_rate(&self) -> f64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based.t_gate_error_rate,
-            Self::Majorana(majorana) => majorana.t_gate_error_rate,
-        }
-    }
-
-    fn one_qubit_measurement_time(&self) -> u64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based
-                .one_qubit_measurement_time
-                .expect("measurement time should be set"),
-            Self::Majorana(majorana) => majorana
-                .one_qubit_measurement_time
-                .expect("measurement time should"),
-        }
-    }
-
-    fn clifford_error_rate(&self) -> f64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based
-                .one_qubit_gate_error_rate
-                .max(gate_based.two_qubit_gate_error_rate)
-                .max(gate_based.idle_error_rate),
-            Self::Majorana(majorana) => majorana
-                .idle_error_rate
-                .max(majorana.one_qubit_measurement_error_rate.process())
-                .max(majorana.two_qubit_joint_measurement_error_rate.process()),
-        }
-    }
-
-    fn readout_error_rate(&self) -> f64 {
-        match self {
-            Self::GateBased(gate_based) => gate_based.one_qubit_measurement_error_rate,
-            Self::Majorana(majorana) => majorana
-                .one_qubit_measurement_error_rate
-                .readout()
-                .max(majorana.two_qubit_joint_measurement_error_rate.readout()),
-        }
-    }
-}
-
 /// Physical qubit classification.
 ///
 /// The physical qubit can be either `gate_based` or `Majorana` (use these
@@ -118,6 +60,56 @@ fn check_required_fields(fields: &[(bool, &str)]) -> Result<(), serde_json::erro
 pub enum PhysicalQubit {
     GateBased(GateBasedPhysicalQubit),
     Majorana(MajoranaQubit),
+}
+
+impl PhysicalQubit {
+    pub fn instruction_set(&self) -> super::PhysicalInstructionSet {
+        match self {
+            Self::GateBased(_) => super::PhysicalInstructionSet::GateBased,
+            Self::Majorana(_) => super::PhysicalInstructionSet::Majorana,
+        }
+    }
+
+    pub fn t_gate_error_rate(&self) -> f64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based.t_gate_error_rate,
+            Self::Majorana(majorana) => majorana.t_gate_error_rate,
+        }
+    }
+
+    pub fn one_qubit_measurement_time(&self) -> u64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based
+                .one_qubit_measurement_time
+                .expect("measurement time should be set"),
+            Self::Majorana(majorana) => majorana
+                .one_qubit_measurement_time
+                .expect("measurement time should"),
+        }
+    }
+
+    pub fn clifford_error_rate(&self) -> f64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based
+                .one_qubit_gate_error_rate
+                .max(gate_based.two_qubit_gate_error_rate)
+                .max(gate_based.idle_error_rate),
+            Self::Majorana(majorana) => majorana
+                .idle_error_rate
+                .max(majorana.one_qubit_measurement_error_rate.process())
+                .max(majorana.two_qubit_joint_measurement_error_rate.process()),
+        }
+    }
+
+    pub fn readout_error_rate(&self) -> f64 {
+        match self {
+            Self::GateBased(gate_based) => gate_based.one_qubit_measurement_error_rate,
+            Self::Majorana(majorana) => majorana
+                .one_qubit_measurement_error_rate
+                .readout()
+                .max(majorana.two_qubit_joint_measurement_error_rate.readout()),
+        }
+    }
 }
 
 #[allow(clippy::module_name_repetitions)]

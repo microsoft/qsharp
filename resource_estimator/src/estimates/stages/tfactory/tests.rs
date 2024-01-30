@@ -128,7 +128,7 @@ fn create_pipeline_with_distance(
             pipeline.input_t_error_rate(),
             pipeline.output_t_error_rate(),
             pipeline.input_t_count(),
-            pipeline.output_t_count(),
+            pipeline.num_output_states(),
         ))
     } else {
         None
