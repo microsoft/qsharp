@@ -4,6 +4,7 @@
 use num_bigint::BigUint;
 use num_complex::Complex;
 use quantum_sparse_sim::QuantumSim;
+use rand::RngCore;
 
 use crate::val::Value;
 
@@ -42,6 +43,8 @@ pub trait Backend {
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
         None
     }
+
+    fn set_seed(&mut self, _seed: Option<u64>) {}
 }
 
 /// Default backend used when targeting sparse simulation.
@@ -186,7 +189,23 @@ impl Backend for SparseSim {
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
-        self.sim.get_state()
+        let (state, count) = self.sim.get_state();
+        // Because the simulator returns the state indices with opposite endianness from the
+        // expected one, we need to reverse the bit order of the indices.
+        let mut new_state = state
+            .into_iter()
+            .map(|(idx, val)| {
+                let mut new_idx = BigUint::default();
+                for i in 0..(count as u64) {
+                    if idx.bit((count as u64) - 1 - i) {
+                        new_idx.set_bit(i, true);
+                    }
+                }
+                (new_idx, val)
+            })
+            .collect::<Vec<_>>();
+        new_state.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        (new_state, count)
     }
 
     fn qubit_is_zero(&mut self, q: usize) -> bool {
@@ -201,6 +220,13 @@ impl Backend for SparseSim {
             | "BeginRepeatEstimatesInternal"
             | "EndRepeatEstimatesInternal" => Some(Ok(Value::unit())),
             _ => None,
+        }
+    }
+
+    fn set_seed(&mut self, seed: Option<u64>) {
+        match seed {
+            Some(seed) => self.sim.set_rng_seed(seed),
+            None => self.sim.set_rng_seed(rand::thread_rng().next_u64()),
         }
     }
 }

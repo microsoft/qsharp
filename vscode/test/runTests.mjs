@@ -22,6 +22,11 @@ const waitForDebugger = process.argv.find((arg) =>
   arg.startsWith(attachArgName),
 );
 const verboseArgName = "--verbose";
+/**
+ *  This controls the VS Code and test web server logging level.
+ *  Q# extension logs are usually more relevant for debugging tests.
+ *  To control the Q# extension log level see: suites/extensionUtils.ts
+ */
 const verbose = process.argv.includes(verboseArgName);
 
 try {

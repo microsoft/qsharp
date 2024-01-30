@@ -7,24 +7,29 @@ mod tests;
 use crate::{
     compilation::{Compilation, Lookup},
     display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
-    protocol::{ParameterInformation, SignatureHelp, SignatureInformation, Span},
+    protocol::{ParameterInformation, SignatureHelp, SignatureInformation},
     qsc_utils::{span_contains, span_touches},
+    Encoding,
 };
 use qsc::{
     ast::{
         self,
         visit::{walk_expr, walk_item, Visitor},
     },
-    hir, resolve,
+    hir,
+    line_column::{Position, Range},
+    resolve, Span,
 };
 use std::iter::zip;
 
 pub(crate) fn get_signature_help(
     compilation: &Compilation,
     source_name: &str,
-    offset: u32,
+    position: Position,
+    position_encoding: Encoding,
 ) -> Option<SignatureHelp> {
-    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let offset =
+        compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
 
     let mut finder = SignatureHelpFinder {
@@ -35,6 +40,29 @@ pub(crate) fn get_signature_help(
     };
 
     finder.visit_package(user_ast_package);
+
+    if position_encoding == Encoding::Utf16 {
+        // Fix up parameter offsets to be utf-16 based.
+        if let Some(ref mut sig_help) = finder.signature_help {
+            for sig in &mut sig_help.signatures {
+                for param in &mut sig.parameters {
+                    let range = Range::from_span(
+                        position_encoding,
+                        &sig.label,
+                        &Span {
+                            lo: param.label.0,
+                            hi: param.label.1,
+                        },
+                    );
+                    assert!(
+                        range.start.line == 0 && range.end.line == 0,
+                        "generated signature help should not have line breaks"
+                    );
+                    param.label = (range.start.column, range.end.column);
+                }
+            }
+        }
+    }
 
     finder.signature_help
 }
@@ -156,18 +184,12 @@ impl SignatureHelpFinder<'_> {
 
         let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
         let param = ParameterInformation {
-            label: Span {
-                start: offset + 1,
-                end: offset + len + 1,
-            },
+            label: (offset + 1, offset + len + 1),
             documentation,
         };
 
         let wrapper = ParameterInformation {
-            label: Span {
-                start: offset,
-                end: offset + len + 2,
-            },
+            label: (offset, offset + len + 2),
             documentation: None,
         };
 
@@ -193,20 +215,14 @@ impl SignatureHelpFinder<'_> {
                 let start = *offset;
                 *offset += len;
                 vec![ParameterInformation {
-                    label: Span {
-                        start,
-                        end: *offset,
-                    },
+                    label: (start, *offset),
                     documentation,
                 }]
             }
             hir::PatKind::Tuple(items) => {
                 let len = usize_to_u32(self.display.hir_pat(pat).to_string().len());
                 let mut rtrn = vec![ParameterInformation {
-                    label: Span {
-                        start: *offset,
-                        end: *offset + len,
-                    },
+                    label: (*offset, *offset + len),
                     documentation: None,
                 }];
                 *offset += 1; // for the open parenthesis
@@ -244,7 +260,7 @@ fn params_for_single_type_parameter(offset: u32, ty: &hir::ty::Ty) -> Vec<Parame
     let end = offset + len;
 
     let param = ParameterInformation {
-        label: Span { start, end },
+        label: (start, end),
         documentation: None,
     };
 
@@ -252,7 +268,7 @@ fn params_for_single_type_parameter(offset: u32, ty: &hir::ty::Ty) -> Vec<Parame
     // the generated list of parameter information objects compatible
     // with the argument processing logic.
     let wrapper = ParameterInformation {
-        label: Span { start, end },
+        label: (start, end),
         documentation: None,
     };
 
@@ -263,10 +279,7 @@ fn make_type_param_with_offset(offset: &mut u32, ty: &hir::ty::Ty) -> Vec<Parame
     if let hir::ty::Ty::Tuple(items) = &ty {
         let len = usize_to_u32(ty.display().len());
         let mut rtrn = vec![ParameterInformation {
-            label: Span {
-                start: *offset,
-                end: *offset + len,
-            },
+            label: (*offset, *offset + len),
             documentation: None,
         }];
         *offset += 1; // for the open parenthesis
@@ -286,10 +299,7 @@ fn make_type_param_with_offset(offset: &mut u32, ty: &hir::ty::Ty) -> Vec<Parame
         let start = *offset;
         *offset += len;
         vec![ParameterInformation {
-            label: Span {
-                start,
-                end: *offset,
-            },
+            label: (start, *offset),
             documentation: None,
         }]
     }

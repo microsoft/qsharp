@@ -245,6 +245,26 @@ def estimate(
         json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
     )
 
+def set_quantum_seed(seed: Optional[int]) -> None:
+    """
+    Sets the seed for the random number generator used for quantum measurements.
+    This applies to all Q# code executed, compiled, or estimated.
+
+    :param seed: The seed to use for the quantum random number generator.
+        If None, the seed will be generated from entropy.
+    """
+    get_interpreter().set_quantum_seed(seed)
+
+def set_classical_seed(seed: Optional[int]) -> None:
+    """
+    Sets the seed for the random number generator used for standard
+    library classical random number operations.
+    This applies to all Q# code executed, compiled, or estimated.
+
+    :param seed: The seed to use for the classical random number generator.
+        If None, the seed will be generated from entropy.
+    """
+    get_interpreter().set_classical_seed(seed)
 
 def dump_machine() -> StateDump:
     """

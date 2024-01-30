@@ -8,7 +8,7 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
-import { loadDocument, qsharpLanguageId } from "./common.js";
+import { toVscodeLocation, toVscodeRange, qsharpLanguageId } from "./common.js";
 
 export function startCheckingQSharp(
   languageService: ILanguageService,
@@ -40,18 +40,6 @@ function startLanguageServiceDiagnostics(
       return;
     }
 
-    let document: vscode.TextDocument | undefined = undefined;
-    if (diagnostics.diagnostics.length > 0) {
-      // We need the document here to be able to map offsets to line/column positions.
-      // The document may not be available if this event is to clear diagnostics
-      // for an already-closed document from the problems list.
-      document = await loadDocument(vscode.Uri.parse(diagnostics.uri));
-    }
-
-    const getPosition = (offset: number) => {
-      return document!.positionAt(offset);
-    };
-
     diagCollection.set(
       uri,
       diagnostics.diagnostics.map((d) => {
@@ -68,7 +56,7 @@ function startLanguageServiceDiagnostics(
             break;
         }
         const vscodeDiagnostic = new vscode.Diagnostic(
-          new vscode.Range(getPosition(d.start_pos), getPosition(d.end_pos)),
+          toVscodeRange(d.range),
           d.message,
           severity,
         );
@@ -78,13 +66,7 @@ function startLanguageServiceDiagnostics(
         if (d.related) {
           vscodeDiagnostic.relatedInformation = d.related.map((r) => {
             return new vscode.DiagnosticRelatedInformation(
-              new vscode.Location(
-                vscode.Uri.parse(r.source),
-                new vscode.Range(
-                  getPosition(r.start_pos),
-                  getPosition(r.end_pos),
-                ),
-              ),
+              toVscodeLocation(r.location),
               r.message,
             );
           });

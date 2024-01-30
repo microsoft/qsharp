@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { useRef, useState } from "preact/hooks";
+import { useRef, useState, useEffect } from "preact/hooks";
 
 export type CellValue = string | number | { value: string; sortBy: number };
 export type Row = {
@@ -14,37 +14,22 @@ export function ResultsTable(props: {
   columnNames: string[];
   rows: Row[];
   initialColumns: number[];
-  ensureSelected: boolean;
-  onRowSelected(rowId: string): void;
   onRowDeleted(rowId: string): void;
+  selectedRow: string | null;
+  onRowSelected(rowId: string): void;
 }) {
   const [showColumns, setShowColumns] = useState(props.initialColumns);
   const [sortColumn, setSortColumn] = useState<{
     columnId: number;
     ascending: boolean;
   } | null>(null);
-  const [selectedRow, setSelectedRow] = useState<string>("");
+
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [showRowMenu, setShowRowMenu] = useState("");
 
-  // Find the first row that is new in the current sort order
-  const newest = getSortedRows(props.rows).find(
-    (row) => (row.cells[row.cells.length - 1] as string) === "New",
-  );
-
-  // Select the first of the newest rows, otherwise preserve the existing selection
-  if (newest && props.ensureSelected) {
-    const rowId = newest.cells[0].toString();
-    setSelectedRow(rowId);
-    props.onRowSelected(rowId);
-  } else if (!selectedRow && props.ensureSelected && props.rows.length > 0) {
-    const rowId = props.rows[0].cells[0].toString();
-    setSelectedRow(rowId);
-    props.onRowSelected(rowId);
-  }
-
   // Use to track the column being dragged
   const draggingCol = useRef("");
+  const columnMenu = useRef<HTMLDivElement>(null);
 
   /*
   Note: Drag and drop events can occur faster than preact reconciles state.
@@ -78,6 +63,10 @@ export function ResultsTable(props: {
         .querySelectorAll(`[data-colid="${thisColId}"]`)
         .forEach((elem) => elem.classList.add("qs-resultsTable-dragEnter"));
     }
+  }
+
+  function onRowSelected(rowId: string) {
+    props.onRowSelected(rowId);
   }
 
   function onDragOver(ev: DragEvent) {
@@ -193,12 +182,9 @@ export function ResultsTable(props: {
     }
   }
 
-  function rowClicked(rowId: string) {
-    if (selectedRow === rowId && props.ensureSelected) return;
-
-    const newSelectedRow = selectedRow === rowId ? "" : rowId;
-    setSelectedRow(newSelectedRow);
-    props.onRowSelected(newSelectedRow);
+  function onRowClicked(rowId: string) {
+    const newSelectedRow = props.selectedRow === rowId ? "" : rowId;
+    onRowSelected(newSelectedRow);
   }
 
   function onClickRowMenu(ev: MouseEvent, rowid: string) {
@@ -247,19 +233,60 @@ export function ResultsTable(props: {
     e.stopPropagation();
     // Clear out any menus or selections for the row if needed
     setShowRowMenu("");
-    if (selectedRow === rowId) {
-      setSelectedRow("");
-      props.onRowSelected("");
+    if (props.selectedRow === rowId) {
+      onRowSelected("");
     }
     props.onRowDeleted(rowId);
   }
 
+  function onKeyDown(ev: KeyboardEvent) {
+    if (!props.selectedRow) return;
+    const sortedRowNames = getSortedRows(props.rows).map((row) =>
+      row.cells[0].toString(),
+    );
+    const currIndex = sortedRowNames.indexOf(props.selectedRow);
+
+    switch (ev.code) {
+      case "ArrowDown":
+        if (currIndex < sortedRowNames.length - 1) {
+          ev.preventDefault();
+          props.onRowSelected(sortedRowNames[currIndex + 1]);
+        }
+        break;
+      case "ArrowUp":
+        if (currIndex > 0) {
+          ev.preventDefault();
+          props.onRowSelected(sortedRowNames[currIndex - 1]);
+        }
+        break;
+      default:
+      // Not of interest
+    }
+  }
+
+  useEffect(() => {
+    // Post rendering, if the column menu is displayed, then ensure it
+    // has focus so that clicking anywhere outside of it caused the blur
+    // event that closes it.
+    if (showColumnMenu && columnMenu.current) {
+      columnMenu.current.focus();
+    }
+  });
+
   return (
-    <table class="qs-resultsTable-sortedTable">
+    <table
+      class="qs-resultsTable-sortedTable"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+    >
       <thead>
         <tr>
           <th>
-            <div style="position: relative">
+            <div
+              style="position: relative"
+              tabIndex={0}
+              onBlur={() => setShowColumnMenu(false)}
+            >
               <svg
                 width="16"
                 height="16"
@@ -284,6 +311,7 @@ export function ResultsTable(props: {
                 />
               </svg>
               <div
+                ref={columnMenu}
                 class={
                   showColumnMenu
                     ? "qs-resultsTable-columnMenu qs-resultsTable-showColumnMenu"
@@ -349,10 +377,10 @@ export function ResultsTable(props: {
           const rowId = row.cells[0].toString();
           return (
             <tr
-              onClick={() => rowClicked(rowId)}
+              onClick={() => onRowClicked(rowId)}
               data-rowid={rowId}
               class={
-                rowId === selectedRow
+                rowId === props.selectedRow
                   ? "qs-resultsTable-sortedTableSelectedRow"
                   : undefined
               }

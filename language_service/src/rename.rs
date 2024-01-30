@@ -6,39 +6,45 @@ mod tests;
 
 use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
-use crate::protocol::{self, Location};
-use crate::qsc_utils::protocol_span;
-use crate::references::{
-    find_field_locations, find_item_locations, find_local_locations, find_ty_param_locations,
-};
+use crate::protocol::Location;
+use crate::qsc_utils::into_range;
+use crate::references::ReferenceFinder;
 use qsc::ast::visit::Visitor;
+use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, resolve, Span};
 
 pub(crate) fn prepare_rename(
     compilation: &Compilation,
     source_name: &str,
-    offset: u32,
-) -> Option<(protocol::Span, String)> {
-    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    position: Position,
+    position_encoding: Encoding,
+) -> Option<(Range, String)> {
+    let offset =
+        compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
 
-    let mut prepare_rename = Rename::new(compilation, true);
+    let mut prepare_rename = Rename::new(position_encoding, compilation, true);
     let mut locator = Locator::new(&mut prepare_rename, offset, compilation);
     locator.visit_package(user_ast_package);
-    prepare_rename
-        .prepare
-        .map(|p| (protocol_span(p.0, &compilation.user_unit().sources), p.1))
+    prepare_rename.prepare.map(|p| {
+        (
+            into_range(position_encoding, p.0, &compilation.user_unit().sources),
+            p.1,
+        )
+    })
 }
 
 pub(crate) fn get_rename(
     compilation: &Compilation,
     source_name: &str,
-    offset: u32,
+    position: Position,
+    position_encoding: Encoding,
 ) -> Vec<Location> {
-    let offset = compilation.source_offset_to_package_offset(source_name, offset);
+    let offset =
+        compilation.source_position_to_package_offset(source_name, position, position_encoding);
     let user_ast_package = &compilation.user_unit().ast.package;
 
-    let mut rename = Rename::new(compilation, false);
+    let mut rename = Rename::new(position_encoding, compilation, false);
     let mut locator = Locator::new(&mut rename, offset, compilation);
     locator.visit_package(user_ast_package);
     rename.locations
@@ -60,6 +66,7 @@ fn remove_leading_quote_from_type_param_name(name: &str) -> String {
 }
 
 struct Rename<'a> {
+    reference_finder: ReferenceFinder<'a>,
     compilation: &'a Compilation,
     locations: Vec<Location>,
     is_prepare: bool,
@@ -67,8 +74,9 @@ struct Rename<'a> {
 }
 
 impl<'a> Rename<'a> {
-    fn new(compilation: &'a Compilation, is_prepare: bool) -> Self {
+    fn new(position_encoding: Encoding, compilation: &'a Compilation, is_prepare: bool) -> Self {
         Self {
+            reference_finder: ReferenceFinder::new(position_encoding, compilation, true),
             compilation,
             locations: vec![],
             is_prepare,
@@ -83,7 +91,7 @@ impl<'a> Rename<'a> {
             if self.is_prepare {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
-                self.locations = find_item_locations(item_id, self.compilation, true);
+                self.locations = self.reference_finder.for_item(item_id);
             }
         }
     }
@@ -95,8 +103,9 @@ impl<'a> Rename<'a> {
             if self.is_prepare {
                 self.prepare = Some((ast_name.span, ast_name.name.to_string()));
             } else {
-                self.locations =
-                    find_field_locations(item_id, ast_name.name.clone(), self.compilation, true);
+                self.locations = self
+                    .reference_finder
+                    .for_field(item_id, ast_name.name.clone());
             }
         }
     }
@@ -112,23 +121,18 @@ impl<'a> Rename<'a> {
             let updated_name = remove_leading_quote_from_type_param_name(&ast_name.name);
             self.prepare = Some((updated_span, updated_name));
         } else {
-            self.locations =
-                find_ty_param_locations(param_id, current_callable, self.compilation, true)
-                    .into_iter()
-                    .map(|l| {
-                        assert!(
-                            l.span.end - l.span.start > 1,
-                            "Type parameter name is empty"
-                        );
-                        Location {
-                            span: protocol::Span {
-                                start: l.span.start + 1,
-                                ..l.span
-                            },
-                            ..l
-                        }
-                    })
-                    .collect();
+            self.locations = self
+                .reference_finder
+                .for_ty_param(param_id, current_callable)
+                .into_iter()
+                .map(|l| {
+                    assert!(!l.span.empty(), "Type parameter name is empty");
+                    Location {
+                        span: type_param_ident_range(l.span),
+                        ..l
+                    }
+                })
+                .collect();
         }
     }
 
@@ -141,8 +145,7 @@ impl<'a> Rename<'a> {
         if self.is_prepare {
             self.prepare = Some((ast_name.span, ast_name.name.to_string()));
         } else {
-            self.locations =
-                find_local_locations(node_id, current_callable, self.compilation, true);
+            self.locations = self.reference_finder.for_local(node_id, current_callable);
         }
     }
 }
@@ -269,4 +272,10 @@ fn resolve_package(local_package_id: hir::PackageId, item_id: &hir::ItemId) -> h
         item: item_id.item,
         package: item_id.package.or(Some(local_package_id)),
     }
+}
+
+/// Given a range for a type parameter (e.g. `'T`), return a range that excludes the leading single quote.
+pub(crate) fn type_param_ident_range(mut range: Range) -> Range {
+    range.start.column += 1;
+    range
 }

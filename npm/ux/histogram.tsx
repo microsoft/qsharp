@@ -35,7 +35,6 @@ function resultToKet(result: string): string {
     // The result is a simple array of Zero and One
     // The below will return an array of "Zero" or "One" in the order found
     const matches = result.match(/(One|Zero)/g);
-    matches?.reverse();
     let ket = "|";
     matches?.forEach((digit) => (ket += digit == "One" ? "1" : "0"));
     ket += "⟩";

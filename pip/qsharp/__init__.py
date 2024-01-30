@@ -7,6 +7,8 @@ from ._qsharp import (
     run,
     compile,
     estimate,
+    set_quantum_seed,
+    set_classical_seed,
     dump_machine,
 )
 
@@ -27,6 +29,8 @@ __all__ = [
     "init",
     "eval",
     "run",
+    "set_quantum_seed",
+    "set_classical_seed",
     "dump_machine",
     "compile",
     "estimate",

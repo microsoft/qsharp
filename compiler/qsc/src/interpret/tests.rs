@@ -330,7 +330,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "X(q0); X(qs[1]);");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
-            is_unit_with_output(&result, &output, "STATE:\n|0101⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\n|1010⟩: 1+0i");
         }
 
         #[test]
@@ -1127,6 +1127,8 @@ mod given_interpreter {
         use std::sync::Arc;
 
         use super::*;
+        use crate::interpret::Debugger;
+        use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
         use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -1223,6 +1225,7 @@ mod given_interpreter {
                     r#"
             namespace Test2 {
                 open Test;
+                @EntryPoint()
                 operation Main() : String {
                     Hello();
                     Hello()
@@ -1233,16 +1236,11 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
-            let interpreter = Interpreter::new(
-                true,
-                sources,
-                PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
-            )
-            .expect("interpreter should be created");
-            let bps = interpreter.get_breakpoints("a.qs");
+            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8)
+                .expect("debugger should be created");
+            let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());
-            let bps = interpreter.get_breakpoints("b.qs");
+            let bps = debugger.get_breakpoints("b.qs");
             assert_eq!(2, bps.len());
         }
 
