@@ -330,7 +330,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "X(q0); X(qs[1]);");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
-            is_unit_with_output(&result, &output, "STATE:\n|0101⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\n|1010⟩: 1+0i");
         }
 
         #[test]

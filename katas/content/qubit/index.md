@@ -193,7 +193,7 @@ Note that each row has the following format:
 <table>
     <thead>
         <tr>
-            <th>Basis State<br>(|𝜓ₙ…𝜓₁⟩)</th>
+            <th>Basis State<br>(|𝜓₁…𝜓ₙ⟩)</th>
             <th>Amplitude</th>
             <th>Measurement Probability</th>
             <th>Phase</th>
