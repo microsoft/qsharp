@@ -1,7 +1,9 @@
 namespace Test {
+    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Unstable.StatePreparation;
 
 
@@ -106,5 +108,30 @@ namespace Test {
         }
     }
 
+    operation CheckEndianness(attempts: Int, number: Int, qs: Qubit[]): Unit {
+        let n = Length(qs);
+        for attempt in 1..attempts {
+            mutable c = Repeated(0.0, 2^n);
+            set c w/= number <- 1.0;
+            PreparePureStateD(c, qs);
+            let measured = MeasureInteger(Reversed(qs));
+            if number == measured {
+                return ();
+            }
+        }
+        fail "Incorrect endianness in state preparation."
+    }
+
+    operation TestEndianness(): Unit {
+        let n = 4;
+        use qs = Qubit[n];
+        for i in 0..2^n-1 {
+            // Assuming infinite precision we should always get correct state prepared.
+            // However, state may deviate slightly due to using Doubles. So we repeat
+            // several times if we cannot get correct state on the first try.
+            CheckEndianness(10, i, qs);
+            ResetAll(qs);
+        }
+    }
 
 }

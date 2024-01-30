@@ -61,3 +61,12 @@ fn check_preparation_completion() {
         &Value::Tuple(vec![].into()),
     );
 }
+
+#[test]
+fn check_preparation_endianness() {
+    test_expression_with_lib(
+        "Test.TestEndianness()",
+        STATE_PREPARATION_TEST_LIB,
+        &Value::Tuple(vec![].into()),
+    );
+}
