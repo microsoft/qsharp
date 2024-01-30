@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    cycle_detection::{detect_callables_with_cycles, CycledCallable},
+    cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
     data_structures::{
         derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
         CallableInputElement, CallableInputElementKind, CallableVariable, CallableVariableKind,
@@ -52,7 +52,7 @@ pub fn analyze_package(
         )
     }
 
-    // Analyze the remaining items in the package.
+    // Once all callables with cycles have been analyzed, it is safe to continue analyzing all the other items.
     for (item_id, _) in &package.items {
         analyze_item(
             (id, item_id).into(),
@@ -61,7 +61,7 @@ pub fn analyze_package(
         );
     }
 
-    // Analyze all statements in the package.
+    // Finally, analyze the statements in the package. By this point, only top-level statements remain unanalyzed.
     for (stmt_id, _) in &package.stmts {
         analyze_statement(
             (id, stmt_id).into(),
@@ -163,7 +163,7 @@ fn analyze_callable_input_elements<'a>(
 
 fn analyze_callable_with_cycles(
     id: StoreItemId,
-    cycled_callable: &CycledCallable,
+    cycled_callable_info: &CycledCallableInfo,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) {
@@ -191,13 +191,13 @@ fn analyze_callable_with_cycles(
     let callable_compute_properties = match &callable.kind {
         CallableKind::Function => create_cycled_function_compute_properties(
             callable,
-            cycled_callable,
+            cycled_callable_info,
             input_params.iter(),
         ),
         CallableKind::Operation => create_cycled_operation_compute_properties(
             id,
             callable,
-            cycled_callable,
+            cycled_callable_info,
             input_params.iter(),
             package_store,
             package_store_compute_properties,
@@ -335,7 +335,7 @@ fn analyze_statement(
 
 fn create_cycled_function_compute_properties<'a>(
     callable: &CallableDecl,
-    cycled_callable: &CycledCallable,
+    cycled_callable_info: &CycledCallableInfo,
     input_params: impl Iterator<Item = &'a InputParam>,
 ) -> CallableComputeProperties {
     // This function is not meant for intrinsics.
@@ -347,11 +347,11 @@ fn create_cycled_function_compute_properties<'a>(
     assert!(spec_impl.adj.is_none() && spec_impl.ctl.is_none() && spec_impl.ctl_adj.is_none());
     assert!(spec_impl.body.input.is_none());
     assert!(
-        cycled_callable.adj.is_none()
-            && cycled_callable.ctl.is_none()
-            && cycled_callable.ctl_adj.is_none()
+        cycled_callable_info.is_adj_cycled.is_none()
+            && cycled_callable_info.is_ctl_cycled.is_none()
+            && cycled_callable_info.is_ctl_adj_cycled.is_none()
     );
-    assert!(cycled_callable.body);
+    assert!(cycled_callable_info.is_body_cycled);
 
     // Since functions are classically pure, they inherently do not require any capabilities nor represent a quantum
     // source.
@@ -397,7 +397,7 @@ fn create_cycled_function_compute_properties<'a>(
 fn create_cycled_operation_compute_properties<'a>(
     callable_id: StoreItemId,
     callable: &CallableDecl,
-    cycled_callable: &CycledCallable,
+    cycled_callable_info: &CycledCallableInfo,
     input_params: impl Iterator<Item = &'a InputParam>,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
@@ -423,32 +423,38 @@ fn create_cycled_operation_compute_properties<'a>(
         } else {
             create_specialization_applications_table(
                 callable_id,
-                &specialization,
+                specialization,
                 &input_map,
                 package_store,
                 package_store_compute_properties,
             )
         }
     };
-    let body =
-        create_specialization_applications_table_internal(&spec_impl.body, cycled_callable.body);
+    let body = create_specialization_applications_table_internal(
+        &spec_impl.body,
+        cycled_callable_info.is_body_cycled,
+    );
     let adj = spec_impl.adj.as_ref().map(|specialization| {
         create_specialization_applications_table_internal(
             specialization,
-            cycled_callable.adj.expect("is_adj_cycled should be some"),
+            cycled_callable_info
+                .is_adj_cycled
+                .expect("is_adj_cycled should be some"),
         )
     });
     let ctl = spec_impl.ctl.as_ref().map(|specialization| {
         create_specialization_applications_table_internal(
             specialization,
-            cycled_callable.ctl.expect("is_ctl_cycled should be some"),
+            cycled_callable_info
+                .is_ctl_cycled
+                .expect("is_ctl_cycled should be some"),
         )
     });
     let ctl_adj = spec_impl.ctl_adj.as_ref().map(|specialization| {
         create_specialization_applications_table_internal(
             specialization,
-            cycled_callable
-                .ctl_adj
+            cycled_callable_info
+                .is_ctl_adj_cycled
                 .expect("is_ctl_adj_cycled should be some"),
         )
     });

@@ -19,17 +19,17 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
 
 /// A callable that contains cycles in at least one of their specializations.
-pub struct CycledCallable {
-    // TODO (cesarzc): rename to CycledCallableInfo.
-    // TODO (cesarzc): make ID a StoreItemId.
+/// Cycles can only happen within packages, that is why this struct does not have information to globally identify it in
+/// a package store.
+pub struct CycledCallableInfo {
     pub id: LocalItemId,
-    pub body: bool,
-    pub adj: Option<bool>,
-    pub ctl: Option<bool>,
-    pub ctl_adj: Option<bool>,
+    pub is_body_cycled: bool,
+    pub is_adj_cycled: Option<bool>,
+    pub is_ctl_cycled: Option<bool>,
+    pub is_ctl_adj_cycled: Option<bool>,
 }
 
-impl CycledCallable {
+impl CycledCallableInfo {
     pub fn new(item: &Item, specialization: &CallableSpecializationId) -> Self {
         // No entry for the callable exists, so create insert it.
         let ItemKind::Callable(callable) = &item.kind else {
@@ -59,28 +59,28 @@ impl CycledCallable {
         };
         Self {
             id: specialization.callable,
-            body,
-            adj,
-            ctl,
-            ctl_adj,
+            is_body_cycled: body,
+            is_adj_cycled: adj,
+            is_ctl_cycled: ctl,
+            is_ctl_adj_cycled: ctl_adj,
         }
     }
 
     pub fn update(&mut self, functor_application: &FunctorApplication) {
         if !functor_application.adjoint && !functor_application.controlled {
-            self.body = true;
+            self.is_body_cycled = true;
         } else if functor_application.adjoint && !functor_application.controlled {
-            let Some(adj) = &mut self.adj else {
+            let Some(adj) = &mut self.is_adj_cycled else {
                 panic!("adj cycle value was expected to be some");
             };
             *adj = true;
         } else if !functor_application.adjoint && functor_application.controlled {
-            let Some(ctl) = &mut self.ctl else {
+            let Some(ctl) = &mut self.is_ctl_cycled else {
                 panic!("ctl cycle value was expected to be some");
             };
             *ctl = true;
         } else if functor_application.adjoint && functor_application.controlled {
-            let Some(ctl_adj) = &mut self.ctl_adj else {
+            let Some(ctl_adj) = &mut self.is_ctl_adj_cycled else {
                 panic!("ctl_adj cycle value was expected to be some");
             };
             *ctl_adj = true;
@@ -469,14 +469,14 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
 pub fn detect_callables_with_cycles(
     package_id: PackageId,
     package: &Package,
-) -> Vec<CycledCallable> {
+) -> Vec<CycledCallableInfo> {
     // First, detect the specializations that have cycles.
     let mut cycle_detector = CycleDetector::new(package_id, package);
     cycle_detector.detect_specializations_with_cycles();
     let specializations_with_cycles = cycle_detector.get_callables_with_cycles();
 
     // Now, group the specializations that have cycles by callable.
-    let mut callables_with_cycles = FxHashMap::<LocalItemId, CycledCallable>::default();
+    let mut callables_with_cycles = FxHashMap::<LocalItemId, CycledCallableInfo>::default();
     for specialization in specializations_with_cycles {
         callables_with_cycles
             .entry(specialization.callable)
@@ -485,7 +485,7 @@ pub fn detect_callables_with_cycles(
             })
             .or_insert({
                 let item = package.get_item(specialization.callable);
-                CycledCallable::new(item, specialization)
+                CycledCallableInfo::new(item, specialization)
             });
     }
 
