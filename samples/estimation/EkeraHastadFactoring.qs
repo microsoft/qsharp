@@ -1,5 +1,5 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
+/// # Sample
+/// Resource Estimation for Integer Factoring
 ///
 /// # Description
 /// In this sample we concentrate on costing quantum part in the algorithm for
@@ -15,6 +15,10 @@ namespace Microsoft.Quantum.Applications.Cryptography {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Unstable.Arithmetic;
     open Microsoft.Quantum.Unstable.TableLookup;
+
+    // !!! IMPORTANT !!!
+    // When computing resource estimtes from the VS Code plugin directly on this
+    // file, make sure that you set the error budget to 0.333.
 
     @EntryPoint()
     operation EstimateEkeraHastad() : Unit {
