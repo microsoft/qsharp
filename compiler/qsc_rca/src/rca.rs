@@ -8,11 +8,9 @@ use crate::{
         CallableInputElement, CallableInputElementKind, CallableVariable, CallableVariableKind,
         InputParam, InputParamIndex,
     },
-    CallableElementComputeProperties,
-    {
-        ApplicationsTable, CallableComputeProperties, ComputeProperties, ComputePropertiesLookup,
-        DynamismSource, ItemComputeProperties, PackageStoreComputeProperties, PatComputeProperties,
-    },
+    ApplicationsTable, CallableComputeProperties, CallableElementComputeProperties,
+    ComputeProperties, ComputePropertiesLookup, DynamismSource, ItemComputeProperties,
+    PackageStoreComputeProperties, PatComputeProperties, RuntimeFeatureFlags,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{Pat, PatId, PatKind, StoreBlockId};
@@ -23,7 +21,6 @@ use qsc_fir::{
     },
     ty::{Prim, Ty},
 };
-use qsc_frontend::compile::RuntimeCapabilityFlags;
 use rustc_hash::FxHashMap;
 
 pub fn analyze_package(
@@ -353,29 +350,29 @@ fn create_cycled_function_compute_properties<'a>(
     );
     assert!(cycled_callable_info.is_body_cycled);
 
-    // Since functions are classically pure, they inherently do not require any capabilities nor represent a quantum
-    // source.
+    // Since functions are classically pure, they inherently do not use any runtime feature nor represent a source of
+    // dynamism.
     let inherent_properties = ComputeProperties {
-        runtime_capabilities: RuntimeCapabilityFlags::empty(),
+        runtime_features: RuntimeFeatureFlags::empty(),
         dynamism_sources: Vec::new(),
-    };
-
-    // If any parameter is dynamic, then we assume a function with cycles is a a source of dynamism if its output type
-    // is non-unit.
-    let dynamism_sources = if callable.output == Ty::UNIT {
-        Vec::new()
-    } else {
-        vec![DynamismSource::Assumed]
     };
 
     // Create compute properties for each dynamic parameter.
     let mut dynamic_params_properties = Vec::new();
     for _ in input_params {
-        // Since convert functions can be used on dynamic parameters, we assume that all capabilities are required for any
-        // dynamic parameter.
+        // If any parameter is dynamic, then we assume a function with cycles is a a source of dynamism if its output type
+        // is non-unit.
+        let dynamism_sources = if callable.output == Ty::UNIT {
+            Vec::new()
+        } else {
+            vec![DynamismSource::Assumed]
+        };
+
+        // Since convert functions can be called with dynamic parameters, we assume that all capabilities are required
+        // for any dynamic parameter. The `CycledFunctionWithDynamicArg` feature flag encompasses this.
         let compute_properties = ComputeProperties {
-            runtime_capabilities: RuntimeCapabilityFlags::all(),
-            dynamism_sources: dynamism_sources.clone(),
+            runtime_features: RuntimeFeatureFlags::CycledFunctionApplicationUsesDynamicArg,
+            dynamism_sources,
         };
         dynamic_params_properties.push(compute_properties);
     }
@@ -484,16 +481,16 @@ fn create_cycled_operation_specialization_applications_table(
     let mut input_map =
         create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
 
-    // Since operations can allocate and measure qubits freely, we assume it requires all capabilities and that they are
-    // a source of dynamism for all non-unit outputs. These will be both the inherent compute properties and the compute
-    // properties for all dynamic parameters.
+    // Since operations can allocate and measure qubits freely, we assume it requires all capabilities (encompassed by
+    // the `CycledOperationSpecialization` runtime feature) and that they are a source of dynamism if they have a
+    // non-unit output.
     let dynamism_sources = if *output_type == Ty::UNIT {
         Vec::new()
     } else {
         vec![DynamismSource::Assumed]
     };
     let compute_properties = ComputeProperties {
-        runtime_capabilities: RuntimeCapabilityFlags::all(),
+        runtime_features: RuntimeFeatureFlags::CycledOperationSpecializationApplication,
         dynamism_sources,
     };
 
@@ -536,29 +533,34 @@ fn create_intrinsic_function_compute_properties<'a>(
 ) -> CallableComputeProperties {
     assert!(matches!(callable.kind, CallableKind::Function));
 
-    // Functions are purely classical, so no runtime capabilities are needed and cannot be an inherent dynamism source.
+    // Functions are purely classical, so no runtime features are needed and cannot be an inherent dynamism source.
     let inherent_properties = ComputeProperties {
-        runtime_capabilities: RuntimeCapabilityFlags::empty(),
+        runtime_features: RuntimeFeatureFlags::empty(),
         dynamism_sources: Vec::new(),
     };
 
     // Calculate the properties for all parameters.
     let mut dynamic_params_properties = Vec::new();
     for param in input_params {
-        // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
-        // on the parameter type.
-        let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
-
         // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
-        // the output of the function is dynamic. Therefore, this function becomes a source of dynamism for all dynamic
-        // params if its output is non-unit.
-        let dynamism_sources = if callable.output == Ty::UNIT {
-            Vec::new()
+        // the output of the function is dynamic. Therefore, for all dynamic parameters, if the function's output is
+        // non-unit:
+        // - It becomes a source of dynamism.
+        // - The output type contributes to the runtime features used by the function.
+        let (dynamism_sources, mut runtime_features) = if callable.output == Ty::UNIT {
+            (Vec::new(), RuntimeFeatureFlags::empty())
         } else {
-            vec![DynamismSource::Intrinsic]
+            (
+                vec![DynamismSource::Intrinsic],
+                derive_intrinsic_runtime_features_from_type(&callable.output),
+            )
         };
+
+        // When a parameter is binded to a dynamic value, its type contributes to the runtime features used by the
+        // function.
+        runtime_features |= derive_intrinsic_runtime_features_from_type(&param.ty);
         let param_compute_properties = ComputeProperties {
-            runtime_capabilities: param_runtime_capabilities,
+            runtime_features,
             dynamism_sources,
         };
         dynamic_params_properties.push(param_compute_properties);
@@ -583,36 +585,46 @@ fn create_instrinsic_operation_compute_properties<'a>(
 ) -> CallableComputeProperties {
     assert!(matches!(callable.kind, CallableKind::Operation));
 
-    // For intrinsic operations, they inherently do not require any runtime capabilities and they are a source of
-    // dynamism if their output is not qubit nor unit.
+    // Intrinsic operations inherently use runtime features if their output is not `Unit`, `Qubit` or `Result`, and
+    // these runtime features are derived from the output type.
+    let runtime_features = if callable.output == Ty::UNIT
+        || callable.output == Ty::Prim(Prim::Qubit)
+        || callable.output == Ty::Prim(Prim::Result)
+    {
+        RuntimeFeatureFlags::empty()
+    } else {
+        derive_intrinsic_runtime_features_from_type(&callable.output)
+    };
+
+    // Intrinsic are an inherent source of dynamism if their output is not `Unit` or `Qubit`.
     let dynamism_sources =
-        if callable.output == Ty::Prim(Prim::Qubit) || callable.output == Ty::UNIT {
+        if callable.output == Ty::UNIT || callable.output == Ty::Prim(Prim::Qubit) {
             Vec::new()
         } else {
             vec![DynamismSource::Intrinsic]
         };
+
+    // Build the inherent properties.
     let inherent_properties = ComputeProperties {
-        runtime_capabilities: RuntimeCapabilityFlags::empty(),
+        runtime_features,
         dynamism_sources,
     };
 
-    // Calculate the properties for all parameters.
+    // Calculate the properties for all dynamic parameters.
     let mut dynamic_params_properties = Vec::new();
     for param in input_params {
-        // For each parameter, its properties when it is used as a dynamic argument in a particular application depend
-        // on the parameter type.
-        let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
-
         // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
         // dynamic the output of the operation is dynamic. Therefore, this operation becomes a source of dynamism for
-        // all dynamic params if its output is non-unit.
+        // all dynamic params if its output is not `Unit`.
         let dynamism_sources = if callable.output == Ty::UNIT {
             Vec::new()
         } else {
             vec![DynamismSource::Intrinsic]
         };
+
+        // When a parameter is binded to a dynamic value, its runtime features depend on the parameter type.
         let param_compute_properties = ComputeProperties {
-            runtime_capabilities: param_runtime_capabilities,
+            runtime_features: derive_intrinsic_runtime_features_from_type(&param.ty),
             dynamism_sources,
         };
         dynamic_params_properties.push(param_compute_properties);
@@ -724,43 +736,48 @@ fn create_specialization_input_map(
     }
 }
 
-fn derive_runtime_capabilities_from_type(ty: &Ty) -> RuntimeCapabilityFlags {
-    fn derive_runtime_capabilities_from_primitive(prim: &Prim) -> RuntimeCapabilityFlags {
+fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
+    fn intrinsic_runtime_features_from_primitive_type(prim: &Prim) -> RuntimeFeatureFlags {
         match prim {
-            Prim::BigInt => RuntimeCapabilityFlags::HigherLevelConstructs,
-            Prim::Bool => RuntimeCapabilityFlags::ForwardBranching,
-            Prim::Double => RuntimeCapabilityFlags::FloatingPointComputations,
-            Prim::Int => RuntimeCapabilityFlags::IntegerComputations,
-            Prim::Pauli => RuntimeCapabilityFlags::IntegerComputations,
-            Prim::Qubit => RuntimeCapabilityFlags::HigherLevelConstructs,
+            Prim::BigInt => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBigInt,
+            Prim::Bool => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBool,
+            Prim::Double => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicDouble,
+            Prim::Int => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicInt,
+            Prim::Pauli => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicPauli,
+            Prim::Qubit => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicQubit,
             Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
-                RuntimeCapabilityFlags::IntegerComputations
+                RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicRange
             }
-            Prim::Result => RuntimeCapabilityFlags::ForwardBranching,
-            Prim::String => RuntimeCapabilityFlags::HigherLevelConstructs,
+            Prim::Result => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicResult,
+            Prim::String => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicString,
         }
     }
 
-    fn derive_runtime_capabilities_from_tuple(tuple: &Vec<Ty>) -> RuntimeCapabilityFlags {
-        let mut runtime_capabilities = RuntimeCapabilityFlags::empty();
+    fn intrinsic_runtime_features_from_tuple(tuple: &Vec<Ty>) -> RuntimeFeatureFlags {
+        let mut runtime_features = if tuple.is_empty() {
+            RuntimeFeatureFlags::empty()
+        } else {
+            RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicTuple
+        };
         for item_type in tuple {
-            let item_runtime_capabilities = derive_runtime_capabilities_from_type(item_type);
-            runtime_capabilities |= item_runtime_capabilities;
+            runtime_features |= derive_intrinsic_runtime_features_from_type(item_type);
         }
-        runtime_capabilities
+        runtime_features
     }
 
     match ty {
-        // N.B. Derived array runtime capabilities can be more nuanced by taking into account the contained type.
-        Ty::Array(_) => RuntimeCapabilityFlags::HigherLevelConstructs,
-        // N.B. Derived array runtime capabilities can be more nuanced by taking into account the input and output
-        // types.
-        Ty::Arrow(_) => RuntimeCapabilityFlags::HigherLevelConstructs,
-        Ty::Prim(prim) => derive_runtime_capabilities_from_primitive(prim),
-        Ty::Tuple(tuple) => derive_runtime_capabilities_from_tuple(tuple),
-        // N.B. Derived UDT runtime capabilities can be more nuanced by taking into account the type of each UDT
-        // item.
-        Ty::Udt(_) => RuntimeCapabilityFlags::HigherLevelConstructs,
-        _ => panic!("Unexpected type"),
+        Ty::Array(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArray,
+        Ty::Arrow(arrow) => match arrow.kind {
+            CallableKind::Function => {
+                RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowFunction
+            }
+            CallableKind::Operation => {
+                RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowOperation
+            }
+        },
+        Ty::Prim(prim) => intrinsic_runtime_features_from_primitive_type(prim),
+        Ty::Tuple(tuple) => intrinsic_runtime_features_from_tuple(tuple),
+        Ty::Udt(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicUdt,
+        _ => panic!("unexpected type"),
     }
 }

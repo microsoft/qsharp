@@ -385,10 +385,10 @@ impl Display for CallableElementComputeProperties {
 /// The compute properties associated to an application table.
 #[derive(Clone, Debug)]
 pub struct ApplicationsTable {
-    /// The inherent compute properties of all applications.
+    /// The inherent compute properties present in all applications.
+    /// N.B. These are the properties of the callable when all its parameters are binded to static values.
     pub inherent_properties: ComputeProperties,
-    /// The compute properties for each parameter when it corresponds to a dynamic argument in a particular callable
-    /// application.
+    /// The compute properties of a callable application when a parameter is binded to a dynamic value.
     pub dynamic_params_properties: Vec<ComputeProperties>,
 }
 
@@ -407,11 +407,11 @@ impl Display for ApplicationsTable {
     }
 }
 
-/// The tracked compute properties.
+/// The tracked compute properties of a program element.
 #[derive(Clone, Debug)]
 pub struct ComputeProperties {
-    /// The runtime capabilities.
-    pub runtime_capabilities: RuntimeCapabilityFlags,
+    /// The runtime features used by the program element.
+    pub runtime_features: RuntimeFeatureFlags,
     /// The sources of dynamism, if any.
     pub dynamism_sources: Vec<DynamismSource>,
 }
@@ -419,7 +419,7 @@ pub struct ComputeProperties {
 impl Default for ComputeProperties {
     fn default() -> Self {
         Self {
-            runtime_capabilities: RuntimeCapabilityFlags::empty(),
+            runtime_features: RuntimeFeatureFlags::empty(),
             dynamism_sources: Vec::new(),
         }
     }
@@ -430,11 +430,7 @@ impl Display for ComputeProperties {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "ComputeProperties:",)?;
         indent = set_indentation(indent, 1);
-        write!(
-            indent,
-            "\nruntime_capabilities: {:?}",
-            self.runtime_capabilities
-        )?;
+        write!(indent, "\nruntime_features: {:?}", self.runtime_features)?;
         if !self.dynamism_sources.is_empty() {
             write!(indent, "\ndynamism_sources: {:?}", self.dynamism_sources)?;
         }
@@ -444,77 +440,100 @@ impl Display for ComputeProperties {
 }
 
 bitflags! {
+    /// Runtime features represent anything a program can do that is more complex than executing quantum operations on
+    /// statically allocated qubits and using constant arguments.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct ProgramConstructFlags: u128 {
-        const IntrinsicCallableDynamicResultArg = 0b0001;
-        const IntrinsicCallableDynamicBoolArg = 0b0010;
-        const IntrinsicCallableDynamicIntArg = 0b0100;
-        const IntrinsicCallableDynamicPauliArg = 0b1000;
-        const IntrinsicCallableDynamicRangeArg = 0b0001_0000;
-        const IntrinsicCallableDynamicDoubleArg = 0b010_0000;
-        const IntrinsicCallableDynamicQubitArg = 0b0100_0000;
-        const IntrinsicCallableDynamicBigIntArg = 0b1000_0000;
-        const IntrinsicCallableDynamicStringArg = 0b0001_0000_0000;
-        const IntrinsicCallableDynamicArrayArg = 0b0010_0000_0000;
-        const IntrinsicCallableDynamicTupleArg = 0b0100_0000_0000;
-        const IntrinsicCallableDynamicUdtArg = 0b1000_0000_0000;
-        const IntrinsicCallableDynamicFunctionArg = 0b0001_0000_0000_0000;
-        const IntrinsicCallableDynamicOperationArg = 0b0010_0000_0000_0000;
-        const CycledFunctionWithDynamicArg = 0b0100_0000_0000_0000;
-        const CycledOperationSpecialization = 0b1000_0000_0000_0000;
+    pub struct RuntimeFeatureFlags: u64 {
+        /// An intrinsic callable uses a dynamic `Result` argument.
+        const IntrinsicApplicationUsesDynamicResult = 0b0001;
+        /// An intrinsic callable uses a dynamic `Bool` argument.
+        const IntrinsicApplicationUsesDynamicBool = 0b0010;
+        /// An intrinsic callable uses a dynamic `Int` argument.
+        const IntrinsicApplicationUsesDynamicInt = 0b0100;
+        /// An intrinsic callable uses a dynamic `Pauli` argument.
+        const IntrinsicApplicationUsesDynamicPauli = 0b1000;
+        /// An intrinsic callable uses a dynamic `Range` argument.
+        const IntrinsicApplicationUsesDynamicRange = 0b0001_0000;
+        /// An intrinsic callable uses a dynamic `Double` argument.
+        const IntrinsicApplicationUsesDynamicDouble = 0b010_0000;
+        /// An intrinsic callable uses a dynamic `Qubit` argument.
+        const IntrinsicApplicationUsesDynamicQubit = 0b0100_0000;
+        /// An intrinsic callable uses a dynamic `BigInt` argument.
+        const IntrinsicApplicationUsesDynamicBigInt = 0b1000_0000;
+        /// An intrinsic callable uses a dynamic `String` argument.
+        const IntrinsicApplicationUsesDynamicString = 0b0001_0000_0000;
+        /// An intrinsic callable uses a dynamic array argument.
+        const IntrinsicApplicationUsesDynamicArray = 0b0010_0000_0000;
+        /// An intrinsic callable uses a dynamic tuple argument.
+        const IntrinsicApplicationUsesDynamicTuple = 0b0100_0000_0000;
+        /// An intrinsic callable uses a dynamic UDT argument.
+        const IntrinsicApplicationUsesDynamicUdt = 0b1000_0000_0000;
+        /// An intrinsic callable uses a dynamic arrow function argument.
+        const IntrinsicApplicationUsesDynamicArrowFunction = 0b0001_0000_0000_0000;
+        /// An intrinsic callable uses a dynamic arrow operation argument.
+        const IntrinsicApplicationUsesDynamicArrowOperation = 0b0010_0000_0000_0000;
+        /// A function with cycles used with a dynamic argument.
+        const CycledFunctionApplicationUsesDynamicArg = 0b0100_0000_0000_0000;
+        /// An operation specialization with cycles is used.
+        const CycledOperationSpecializationApplication = 0b1000_0000_0000_0000;
     }
 }
 
-impl ProgramConstructFlags {
+impl RuntimeFeatureFlags {
     /// Maps program contructs to runtime capabilities.
     pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
         let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicResultArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicResult) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicBoolArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBool) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicIntArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicInt) {
             runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicPauliArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicPauli) {
             runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicRangeArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicRange) {
             runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicDoubleArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicDouble) {
             runtume_capabilities |= RuntimeCapabilityFlags::FloatingPointComputations;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicQubitArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicQubit) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicBigIntArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBigInt) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicStringArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicString) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicArrayArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArray) {
+            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the contained type.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicTupleArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicTuple) {
+            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the contained types.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicUdtArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicUdt) {
+            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the type of each UDT item.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicFunctionArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowFunction) {
+            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the input and output types.
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicOperationArg) {
+        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowOperation) {
+            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the input and output types.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(ProgramConstructFlags::CycledFunctionWithDynamicArg) {
+        if self.contains(RuntimeFeatureFlags::CycledFunctionApplicationUsesDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(ProgramConstructFlags::CycledOperationSpecialization) {
+        if self.contains(RuntimeFeatureFlags::CycledOperationSpecializationApplication) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         runtume_capabilities
