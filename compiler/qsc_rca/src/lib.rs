@@ -6,12 +6,9 @@
 mod cycle_detection;
 mod data_structures;
 mod rca;
-//#[cfg(test)]
-//mod test_utils;
-//#[cfg(test)]
-//mod tests_legacy;
 
 use crate::rca::analyze_package;
+use bitflags::bitflags;
 use indenter::{indented, Indented};
 use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
@@ -443,6 +440,84 @@ impl Display for ComputeProperties {
         }
 
         Ok(())
+    }
+}
+
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct ProgramConstructFlags: u128 {
+        const IntrinsicCallableDynamicResultArg = 0b0001;
+        const IntrinsicCallableDynamicBoolArg = 0b0010;
+        const IntrinsicCallableDynamicIntArg = 0b0100;
+        const IntrinsicCallableDynamicPauliArg = 0b1000;
+        const IntrinsicCallableDynamicRangeArg = 0b0001_0000;
+        const IntrinsicCallableDynamicDoubleArg = 0b010_0000;
+        const IntrinsicCallableDynamicQubitArg = 0b0100_0000;
+        const IntrinsicCallableDynamicBigIntArg = 0b1000_0000;
+        const IntrinsicCallableDynamicStringArg = 0b0001_0000_0000;
+        const IntrinsicCallableDynamicArrayArg = 0b0010_0000_0000;
+        const IntrinsicCallableDynamicTupleArg = 0b0100_0000_0000;
+        const IntrinsicCallableDynamicUdtArg = 0b1000_0000_0000;
+        const IntrinsicCallableDynamicFunctionArg = 0b0001_0000_0000_0000;
+        const IntrinsicCallableDynamicOperationArg = 0b0010_0000_0000_0000;
+        const CycledFunctionWithDynamicArg = 0b0100_0000_0000_0000;
+        const CycledOperationSpecialization = 0b1000_0000_0000_0000;
+    }
+}
+
+impl ProgramConstructFlags {
+    /// Maps program contructs to runtime capabilities.
+    pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
+        let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicResultArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicBoolArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicIntArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicPauliArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicRangeArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicDoubleArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::FloatingPointComputations;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicQubitArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicBigIntArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicStringArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicArrayArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicTupleArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicUdtArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicFunctionArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(ProgramConstructFlags::IntrinsicCallableDynamicOperationArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(ProgramConstructFlags::CycledFunctionWithDynamicArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(ProgramConstructFlags::CycledOperationSpecialization) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        runtume_capabilities
     }
 }
 

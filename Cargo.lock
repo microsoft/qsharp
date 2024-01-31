@@ -1052,6 +1052,7 @@ dependencies = [
 name = "qsc_rca"
 version = "0.0.0"
 dependencies = [
+ "bitflags 2.4.2",
  "expect-test",
  "indenter",
  "qsc",
