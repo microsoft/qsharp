@@ -72,7 +72,7 @@ def test_dump_machine() -> None:
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
-    assert state_dump[1] == (1.0, 0.0)
+    assert state_dump[2] == (1.0, 0.0)
     qsharp.eval("X(q2);")
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
@@ -87,12 +87,33 @@ def test_dump_operation() -> None:
     res = qsharp.utils.dump_operation("qs => H(qs[0])", 1)
     assert res == [[complex(0.707107, 0.0), complex(0.707107, 0.0)],
                    [complex(0.707107, 0.0), complex(-0.707107, 0.0)]]
+    res = qsharp.utils.dump_operation("qs => CNOT(qs[0], qs[1])", 2)
+    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)]]
+    res = qsharp.utils.dump_operation("qs => CCNOT(qs[0], qs[1], qs[2])", 3)
+    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
+                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)]]
     qsharp.eval("operation ApplySWAP(qs : Qubit[]) : Unit { SWAP(qs[0], qs[1]); }")
     res = qsharp.utils.dump_operation("ApplySWAP", 2)
     assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
                    [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)],
                    [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
                    [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)]]
+    res = qsharp.utils.dump_operation("qs => ()", 8)
+    for i in range(8):
+        for j in range(8):
+            if i == j:
+                assert res[i][j] == complex(1.0, 0.0)
+            else:
+                assert res[i][j] == complex(0.0, 0.0)
 
 
 def test_compile_qir_input_data() -> None:

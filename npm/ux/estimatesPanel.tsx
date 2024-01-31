@@ -2,16 +2,15 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-import {
-  SpaceChart,
-  ReTable,
-  type ReData,
-  EstimatesOverview,
-} from "qsharp-lang/ux";
-import { SingleEstimateResult } from "qsharp-lang/ux/data";
+import { type ReData, SingleEstimateResult } from "./data.js";
+import { EstimatesOverview } from "./estimatesOverview.js";
+import { ReTable } from "./reTable.js";
+import { SpaceChart } from "./spaceChart.js";
 
-export function RePage(props: {
+export function EstimatesPanel(props: {
   estimatesData: ReData[];
+  colors: string[];
+  runNames: string[];
   calculating: boolean;
   renderer: (input: string) => string;
   onRowDeleted: (rowId: string) => void;
@@ -71,8 +70,8 @@ export function RePage(props: {
         isSimplifiedView={false}
         onRowDeleted={props.onRowDeleted}
         setEstimate={setEstimate}
-        runNames={null}
-        colors={null}
+        runNames={props.runNames}
+        colors={props.colors}
       ></EstimatesOverview>
       {!estimate ? null : (
         <>
