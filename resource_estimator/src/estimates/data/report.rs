@@ -508,7 +508,7 @@ impl FormattedPhysicalResourceCounts {
 
         let num_ts_per_rotation = result
             .layout_overhead()
-            .num_ts_per_rotation(result.error_budget().rotations())
+            .num_magic_states_per_rotation(result.error_budget().rotations())
             .map_or_else(|| String::from(no_rotations_msg), format_metric_prefix);
 
         let constraint_not_set_msg = "constraint not set";

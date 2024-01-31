@@ -82,27 +82,28 @@ impl<P, F: Factory + Clone, L: Overhead + Clone> PhysicalResourceEstimationResul
         required_logical_magic_state_error_rate: Option<f64>,
     ) -> Self {
         // Compute statistics for single T-factory
-        let t_states_per_run = factory
+        let magic_states_per_run = factory
             .as_ref()
             .map_or(0, |factory| num_factories * factory.num_output_states());
 
-        let num_ts_per_rotation = estimation
+        let num_magic_states_per_rotation = estimation
             .layout_overhead()
-            .num_ts_per_rotation(estimation.error_budget().rotations());
+            .num_magic_states_per_rotation(estimation.error_budget().rotations());
 
-        let num_factory_runs = if t_states_per_run == 0 {
+        let num_factory_runs = if magic_states_per_run == 0 {
             0
         } else {
             ((estimation
                 .layout_overhead
-                .num_tstates(num_ts_per_rotation.unwrap_or_default()) as f64)
-                / t_states_per_run as f64)
+                .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
+                as f64)
+                / magic_states_per_run as f64)
                 .ceil() as u64
         };
-        let physical_qubits_for_single_tfactory = factory.as_ref().map_or(0, F::physical_qubits);
+        let physical_qubits_for_single_factory = factory.as_ref().map_or(0, F::physical_qubits);
 
         // Compute statistics for all T-factories and total overhead
-        let physical_qubits_for_factories = num_factories * physical_qubits_for_single_tfactory;
+        let physical_qubits_for_factories = num_factories * physical_qubits_for_single_factory;
         let physical_qubits_for_algorithm =
             estimation.layout_overhead.logical_qubits() * logical_qubit.physical_qubits();
 
@@ -195,15 +196,15 @@ impl<P, F: Factory + Clone, L: Overhead + Clone> PhysicalResourceEstimationResul
     pub fn algorithmic_logical_depth(&self) -> u64 {
         self.layout_overhead.logical_depth(
             self.layout_overhead
-                .num_ts_per_rotation(self.error_budget.rotations())
+                .num_magic_states_per_rotation(self.error_budget.rotations())
                 .unwrap_or_default(),
         )
     }
 
     pub fn num_magic_states(&self) -> u64 {
-        self.layout_overhead.num_tstates(
+        self.layout_overhead.num_magic_states(
             self.layout_overhead
-                .num_ts_per_rotation(self.error_budget.rotations())
+                .num_magic_states_per_rotation(self.error_budget.rotations())
                 .unwrap_or_default(),
         )
     }
@@ -298,13 +299,14 @@ where
         // The required T-state error rate is computed by dividing the total
         // error budget for T states by the number of T-states required for the
         // algorithm.
-        let num_ts_per_rotation = self
+        let num_magic_states_per_rotation = self
             .layout_overhead
-            .num_ts_per_rotation(self.error_budget.rotations());
-        let required_logical_tstate_error_rate = self.error_budget.tstates()
+            .num_magic_states_per_rotation(self.error_budget.rotations());
+        let required_logical_magic_state_error_rate = self.error_budget.tstates()
             / self
                 .layout_overhead
-                .num_tstates(num_ts_per_rotation.unwrap_or_default()) as f64;
+                .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
+                as f64;
 
         // Required logical error rate (\eps_{\log} / (Q * C) in the paper)
         let required_logical_qubit_error_rate = self.error_budget.logical()
@@ -322,7 +324,7 @@ where
 
         if self
             .layout_overhead
-            .num_tstates(num_ts_per_rotation.unwrap_or_default())
+            .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
             == 0
         {
             let logical_qubit =
@@ -344,7 +346,7 @@ where
         >::new();
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
-        let mut last_tfactories: Vec<Builder::Factory> = Vec::new();
+        let mut last_factories: Vec<Builder::Factory> = Vec::new();
         let mut last_code_distance = max_code_distance + 1;
 
         for code_distance in (min_code_distance..=max_odd_code_distance).rev().step_by(2) {
@@ -369,25 +371,25 @@ where
             // This ensures that the first code distance is always tried.
             // After that, the last code distance governs the reuse of T-factory.
             if last_code_distance > code_distance {
-                last_tfactories = self.factory_builder.find_factories(
+                last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
-                    required_logical_tstate_error_rate,
+                    required_logical_magic_state_error_rate,
                     code_distance,
                 );
 
-                last_code_distance = Self::find_highest_code_distance(&last_tfactories);
+                last_code_distance = Self::find_highest_code_distance(&last_factories);
             }
 
-            if let Some((tfactory, _)) = Self::try_pick_tfactory_with_num_cycles(
-                &last_tfactories,
+            if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
+                &last_factories,
                 &logical_qubit,
                 max_num_cycles_allowed,
             ) {
                 // Here we compute the number of T-factories required limited by the
                 // maximum number of cycles allowed by the duration constraint (and the error rate).
                 let min_num_tfactories =
-                    self.num_tfactories(&logical_qubit, &tfactory, max_num_cycles_allowed);
+                    self.num_factories(&logical_qubit, &factory, max_num_cycles_allowed);
 
                 let mut num_tfactories = min_num_tfactories;
 
@@ -395,27 +397,27 @@ where
                     // Based on the num_tfactories we compute the number of cycles required
                     // which must be smaller than the maximum number of cycles allowed by the
                     // duration constraint (and the error rate).
-                    let num_cycles_required_for_tstates = self
-                        .compute_num_cycles_required_for_tstates(
+                    let num_cycles_required_for_magic_states = self
+                        .compute_num_cycles_required_for_magic_states(
                             num_tfactories,
-                            &tfactory,
+                            &factory,
                             &logical_qubit,
                         );
 
                     // This num_cycles could be larger than num_cycles_required_by_layout_overhead
                     // but must still not exceed the maximum number of cycles allowed by the
                     // duration constraint (and the error rate).
-                    let num_cycles =
-                        num_cycles_required_for_tstates.max(num_cycles_required_by_layout_overhead);
+                    let num_cycles = num_cycles_required_for_magic_states
+                        .max(num_cycles_required_by_layout_overhead);
 
                     let result = PhysicalResourceEstimationResult::new(
                         self,
                         LogicalQubit::new(&self.ftp, code_distance, self.qubit.clone())?,
                         num_cycles,
-                        Some(tfactory.clone()),
+                        Some(factory.clone()),
                         num_tfactories,
                         required_logical_qubit_error_rate,
-                        Some(required_logical_tstate_error_rate),
+                        Some(required_logical_magic_state_error_rate),
                     );
 
                     let value1 = result.runtime() as f64;
@@ -424,7 +426,8 @@ where
                     let point = Point2D::new(result, value1, value2);
                     best_estimation_results.push(point);
 
-                    if num_cycles_required_for_tstates <= num_cycles_required_by_layout_overhead
+                    if num_cycles_required_for_magic_states
+                        <= num_cycles_required_by_layout_overhead
                         || num_t_factory_runs <= 1
                     {
                         break;
@@ -449,14 +452,14 @@ where
     ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {
         let mut num_cycles = self.compute_num_cycles()?;
 
-        let mut loaded_tfactories_at_least_once = false;
+        let mut loaded_factories_at_least_once = false;
 
         let (
             logical_qubit,
-            tfactory,
-            num_tfactories,
+            factory,
+            num_factories,
             required_logical_qubit_error_rate,
-            required_logical_tstate_error_rate,
+            required_logical_magic_state_error_rate,
         ) = loop {
             // Required logical error rate (\eps_{\log} / (Q * C) in the paper)
             let required_logical_qubit_error_rate = self.error_budget.logical()
@@ -467,7 +470,7 @@ where
                 .compute_code_distance(&self.qubit, required_logical_qubit_error_rate);
 
             if code_distance > self.ftp.max_code_distance() {
-                if !loaded_tfactories_at_least_once {
+                if !loaded_factories_at_least_once {
                     return Err(NoTFactoriesFound.into());
                 }
 
@@ -482,12 +485,12 @@ where
 
             let logical_qubit = LogicalQubit::new(&self.ftp, code_distance, self.qubit.clone())?;
 
-            let num_ts_per_rotation = self
+            let num_magic_states_per_rotation = self
                 .layout_overhead
-                .num_ts_per_rotation(self.error_budget.rotations());
+                .num_magic_states_per_rotation(self.error_budget.rotations());
             if self
                 .layout_overhead
-                .num_tstates(num_ts_per_rotation.unwrap_or_default())
+                .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
                 == 0
             {
                 break (
@@ -501,16 +504,16 @@ where
             // The required T-state error rate is computed by dividing the total
             // error budget for T states by the number of T-states required for the
             // algorithm.
-            let required_logical_tstate_error_rate = self.error_budget.tstates()
+            let required_logical_magic_state_error_rate = self.error_budget.tstates()
                 / (self
                     .layout_overhead
-                    .num_tstates(num_ts_per_rotation.unwrap_or_default())
+                    .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
                     as f64);
 
             let factories = self.factory_builder.find_factories(
                 &self.ftp,
                 &self.qubit,
-                required_logical_tstate_error_rate,
+                required_logical_magic_state_error_rate,
                 logical_qubit.code_distance(),
             );
 
@@ -522,9 +525,9 @@ where
                 .floor() as u64;
 
             if !factories.is_empty() {
-                loaded_tfactories_at_least_once = true;
-                if let Some((tfactory, num_cycles_required, num_tfactories)) = self
-                    .try_pick_tfactory_for_code_distance_and_max_tfactories(
+                loaded_factories_at_least_once = true;
+                if let Some((factory, num_cycles_required, num_factories)) = self
+                    .try_pick_factory_for_code_distance_and_max_factories(
                         &factories,
                         &logical_qubit,
                         num_cycles,
@@ -534,10 +537,10 @@ where
                     num_cycles = num_cycles_required;
                     break (
                         logical_qubit,
-                        Some(tfactory),
-                        num_tfactories,
+                        Some(factory),
+                        num_factories,
                         required_logical_qubit_error_rate,
-                        Some(required_logical_tstate_error_rate),
+                        Some(required_logical_magic_state_error_rate),
                     );
                 }
             }
@@ -549,32 +552,32 @@ where
             self,
             logical_qubit,
             num_cycles,
-            tfactory,
-            num_tfactories,
+            factory,
+            num_factories,
             required_logical_qubit_error_rate,
-            required_logical_tstate_error_rate,
+            required_logical_magic_state_error_rate,
         ))
     }
 
-    fn try_pick_tfactory_for_code_distance_and_max_tfactories(
+    fn try_pick_factory_for_code_distance_and_max_factories(
         &self,
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E::Qubit>,
         num_cycles: u64,
         max_allowed_num_cycles_for_code_distance: u64,
     ) -> Option<(Builder::Factory, u64, u64)> {
-        if let Some(tfactory) = self
-            .try_pick_tfactory_below_or_equal_max_duration_under_max_t_factories(
+        if let Some(factory) = self
+            .try_pick_factory_below_or_equal_max_duration_under_max_factories(
                 factories,
                 logical_qubit,
                 num_cycles,
             )
         {
-            let num_tfactories = self.num_tfactories(logical_qubit, &tfactory, num_cycles);
-            return Some((tfactory, num_cycles, num_tfactories));
+            let num_tfactories = self.num_factories(logical_qubit, &factory, num_cycles);
+            return Some((factory, num_cycles, num_tfactories));
         }
-        if let Some((tfactory, num_cycles_required)) = self
-            .try_find_tfactory_for_code_distance_duration_and_max_t_factories(
+        if let Some((factory, num_cycles_required)) = self
+            .try_find_factory_for_code_distance_duration_and_max_factories(
                 factories,
                 logical_qubit,
                 max_allowed_num_cycles_for_code_distance,
@@ -582,8 +585,8 @@ where
         {
             if num_cycles_required <= max_allowed_num_cycles_for_code_distance {
                 let num_tfactories =
-                    self.num_tfactories(logical_qubit, &tfactory, num_cycles_required);
-                return Some((tfactory, num_cycles_required, num_tfactories));
+                    self.num_factories(logical_qubit, &factory, num_cycles_required);
+                return Some((factory, num_cycles_required, num_tfactories));
             }
         }
 
@@ -600,13 +603,14 @@ where
         // The required T-state error rate is computed by dividing the total
         // error budget for T states by the number of T-states required for the
         // algorithm.
-        let num_ts_per_rotation = self
+        let num_magic_states_per_rotation = self
             .layout_overhead
-            .num_ts_per_rotation(self.error_budget.rotations());
-        let required_logical_tstate_error_rate = self.error_budget.tstates()
+            .num_magic_states_per_rotation(self.error_budget.rotations());
+        let required_logical_magic_state_error_rate = self.error_budget.tstates()
             / (self
                 .layout_overhead
-                .num_tstates(num_ts_per_rotation.unwrap_or_default()) as f64);
+                .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
+                as f64);
 
         // Required logical error rate (\eps_{\log} / (Q * C) in the paper)
         let required_logical_qubit_error_rate = self.error_budget.logical()
@@ -624,7 +628,7 @@ where
 
         if self
             .layout_overhead
-            .num_tstates(num_ts_per_rotation.unwrap_or_default())
+            .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
             == 0
         {
             let logical_qubit =
@@ -651,7 +655,7 @@ where
         > = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
-        let mut last_tfactories: Vec<Builder::Factory> = Vec::new();
+        let mut last_factories: Vec<Builder::Factory> = Vec::new();
         let mut last_code_distance = max_code_distance + 1;
 
         for code_distance in (min_code_distance..=max_odd_code_distance).rev().step_by(2) {
@@ -684,43 +688,44 @@ where
             // This ensures that the first code distance is always tried.
             // After that, the last code distance governs the reuse of T-factory.
             if last_code_distance > code_distance {
-                last_tfactories = self.factory_builder.find_factories(
+                last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
-                    required_logical_tstate_error_rate,
+                    required_logical_magic_state_error_rate,
                     code_distance,
                 );
 
-                last_code_distance = Self::find_highest_code_distance(&last_tfactories);
+                last_code_distance = Self::find_highest_code_distance(&last_factories);
             }
 
-            if let Some((tfactory, _)) = Self::try_pick_tfactory_with_num_cycles(
-                &last_tfactories,
+            if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
+                &last_factories,
                 &logical_qubit,
                 max_num_cycles_allowed,
             ) {
                 // Here we compute the number of T-factories required limited by the
                 // maximum number of cycles allowed by the duration constraint (and the error rate).
-                let num_tfactories =
-                    self.num_tfactories(&logical_qubit, &tfactory, max_num_cycles_allowed);
+                let num_factories =
+                    self.num_factories(&logical_qubit, &factory, max_num_cycles_allowed);
 
                 // Based on the num_tfactories we compute the number of cycles required
                 // which must be smaller than the maximum number of cycles allowed by the
                 // duration constraint (and the error rate).
-                let num_cycles_required_for_tstates = self.compute_num_cycles_required_for_tstates(
-                    num_tfactories,
-                    &tfactory,
-                    &logical_qubit,
-                );
+                let num_cycles_required_for_magic_states = self
+                    .compute_num_cycles_required_for_magic_states(
+                        num_factories,
+                        &factory,
+                        &logical_qubit,
+                    );
 
                 // This num_cycles could be larger than num_cycles_required_by_layout_overhead
                 // but must still not exceed the maximum number of cycles allowed by the
                 // duration constraint (and the error rate).
-                let num_cycles =
-                    num_cycles_required_for_tstates.max(num_cycles_required_by_layout_overhead);
+                let num_cycles = num_cycles_required_for_magic_states
+                    .max(num_cycles_required_by_layout_overhead);
 
                 if let Some(max_tfactories) = self.max_factories {
-                    if num_tfactories > max_tfactories {
+                    if num_factories > max_tfactories {
                         continue;
                     }
                 }
@@ -729,10 +734,10 @@ where
                     self,
                     logical_qubit,
                     num_cycles,
-                    Some(tfactory),
-                    num_tfactories,
+                    Some(factory),
+                    num_factories,
                     required_logical_qubit_error_rate,
-                    Some(required_logical_tstate_error_rate),
+                    Some(required_logical_magic_state_error_rate),
                 );
 
                 if best_estimation_result
@@ -757,13 +762,14 @@ where
         // The required T-state error rate is computed by dividing the total
         // error budget for T states by the number of T-states required for the
         // algorithm.
-        let num_ts_per_rotation = self
+        let num_magic_states_per_rotation = self
             .layout_overhead
-            .num_ts_per_rotation(self.error_budget.rotations());
-        let required_logical_tstate_error_rate = self.error_budget.tstates()
+            .num_magic_states_per_rotation(self.error_budget.rotations());
+        let required_logical_magic_state_error_rate = self.error_budget.tstates()
             / (self
                 .layout_overhead
-                .num_tstates(num_ts_per_rotation.unwrap_or_default()) as f64);
+                .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
+                as f64);
 
         // Required logical error rate (\eps_{\log} / (Q * C) in the paper)
         let required_logical_qubit_error_rate = self.error_budget.logical()
@@ -781,7 +787,7 @@ where
 
         if self
             .layout_overhead
-            .num_tstates(num_ts_per_rotation.unwrap_or_default())
+            .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
             == 0
         {
             let logical_qubit =
@@ -807,7 +813,7 @@ where
         > = None;
 
         let max_odd_code_distance = self.get_max_odd_code_distance();
-        let mut last_tfactories: Vec<Builder::Factory> = Vec::new();
+        let mut last_factories: Vec<Builder::Factory> = Vec::new();
         let mut last_code_distance = max_code_distance + 1;
 
         for code_distance in (min_code_distance..=max_odd_code_distance).rev().step_by(2) {
@@ -818,7 +824,7 @@ where
             if max_num_qubits <= physical_qubits_for_algorithm {
                 continue;
             }
-            let physical_qubits_allowed_for_t_states =
+            let physical_qubits_allowed_for_magic_states =
                 max_num_qubits - physical_qubits_for_algorithm;
 
             let min_allowed_logical_qubit_error_rate = self
@@ -838,43 +844,44 @@ where
             // This ensures that the first code distance is always tried.
             // After that, the last code distance governs the reuse of T-factory.
             if last_code_distance > code_distance {
-                last_tfactories = self.factory_builder.find_factories(
+                last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
-                    required_logical_tstate_error_rate,
+                    required_logical_magic_state_error_rate,
                     code_distance,
                 );
 
-                last_code_distance = Self::find_highest_code_distance(&last_tfactories);
+                last_code_distance = Self::find_highest_code_distance(&last_factories);
             }
 
-            if let Some(tfactory) = Self::try_pick_tfactory_below_or_equal_num_qubits(
-                &last_tfactories,
-                physical_qubits_allowed_for_t_states,
+            if let Some(factory) = Self::try_pick_factory_below_or_equal_num_qubits(
+                &last_factories,
+                physical_qubits_allowed_for_magic_states,
             ) {
                 // need only integer part of num_factories
-                let num_tfactories =
-                    physical_qubits_allowed_for_t_states / tfactory.physical_qubits();
+                let num_factories =
+                    physical_qubits_allowed_for_magic_states / factory.physical_qubits();
 
-                if num_tfactories == 0 {
+                if num_factories == 0 {
                     continue;
                 }
 
-                let num_cycles_required_for_tstates = self.compute_num_cycles_required_for_tstates(
-                    num_tfactories,
-                    &tfactory,
-                    &logical_qubit,
-                );
+                let num_cycles_required_for_magic_states = self
+                    .compute_num_cycles_required_for_magic_states(
+                        num_factories,
+                        &factory,
+                        &logical_qubit,
+                    );
 
-                let num_cycles =
-                    num_cycles_required_for_tstates.max(min_num_cycles_required_by_layout_overhead);
+                let num_cycles = num_cycles_required_for_magic_states
+                    .max(min_num_cycles_required_by_layout_overhead);
 
                 if num_cycles > max_num_cycles_allowed_by_error_rate {
                     continue;
                 }
 
-                if let Some(max_tfactories) = self.max_factories {
-                    if num_tfactories > max_tfactories {
+                if let Some(max_factories) = self.max_factories {
+                    if num_factories > max_factories {
                         continue;
                     }
                 }
@@ -883,10 +890,10 @@ where
                     self,
                     logical_qubit,
                     num_cycles,
-                    Some(tfactory),
-                    num_tfactories,
+                    Some(factory),
+                    num_factories,
                     required_logical_qubit_error_rate,
-                    Some(required_logical_tstate_error_rate),
+                    Some(required_logical_magic_state_error_rate),
                 );
 
                 if best_estimation_result
@@ -901,27 +908,27 @@ where
         best_estimation_result.ok_or_else(|| MaxPhysicalQubitsTooSmall.into())
     }
 
-    fn compute_num_cycles_required_for_tstates(
+    fn compute_num_cycles_required_for_magic_states(
         &self,
-        num_tfactories: u64,
-        tfactory: &Builder::Factory,
+        num_factories: u64,
+        factory: &Builder::Factory,
         logical_qubit: &LogicalQubit<E::Qubit>,
     ) -> u64 {
-        let tstates_per_run = num_tfactories * tfactory.num_output_states();
+        let magic_states_per_run = num_factories * factory.num_output_states();
 
-        let num_ts_per_rotation = self
+        let num_magic_states_per_rotation = self
             .layout_overhead
-            .num_ts_per_rotation(self.error_budget.rotations());
+            .num_magic_states_per_rotation(self.error_budget.rotations());
         let required_runs = self
             .layout_overhead
-            .num_tstates(num_ts_per_rotation.unwrap_or_default())
-            .div_ceil(tstates_per_run);
+            .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
+            .div_ceil(magic_states_per_run);
 
-        let required_duration = required_runs * tfactory.duration();
+        let required_duration = required_runs * factory.duration();
         required_duration.div_ceil(logical_qubit.logical_cycle_time())
     }
 
-    fn try_pick_tfactory_below_or_equal_num_qubits(
+    fn try_pick_factory_below_or_equal_num_qubits(
         factories: &[Builder::Factory],
         max_num_qubits: u64,
     ) -> Option<Builder::Factory> {
@@ -936,23 +943,23 @@ where
             .cloned()
     }
 
-    fn is_max_t_factories_constraint_satisfied(
+    fn is_max_factories_constraint_satisfied(
         &self,
         logical_qubit: &LogicalQubit<E::Qubit>,
-        tfactory: &Builder::Factory,
+        factory: &Builder::Factory,
         num_cycles: u64,
     ) -> bool {
-        let num_tfactories = self.num_tfactories(logical_qubit, tfactory, num_cycles);
+        let num_factories = self.num_factories(logical_qubit, factory, num_cycles);
 
-        if let Some(max_tfactories) = self.max_factories {
-            if max_tfactories < num_tfactories {
+        if let Some(max_factories) = self.max_factories {
+            if max_factories < num_factories {
                 return false;
             }
         }
         true
     }
 
-    fn try_pick_tfactory_below_or_equal_max_duration_under_max_t_factories(
+    fn try_pick_factory_below_or_equal_max_duration_under_max_factories(
         &self,
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E::Qubit>,
@@ -961,11 +968,11 @@ where
         let algorithm_duration = num_cycles * (logical_qubit.logical_cycle_time());
         factories
             .iter()
-            .filter(|&tfactory| {
-                (tfactory.duration()) <= algorithm_duration
-                    && self.is_max_t_factories_constraint_satisfied(
+            .filter(|&factory| {
+                (factory.duration()) <= algorithm_duration
+                    && self.is_max_factories_constraint_satisfied(
                         logical_qubit,
-                        tfactory,
+                        factory,
                         num_cycles,
                     )
             })
@@ -977,29 +984,29 @@ where
             .cloned()
     }
 
-    fn try_find_tfactory_for_code_distance_duration_and_max_t_factories(
+    fn try_find_factory_for_code_distance_duration_and_max_factories(
         &self,
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E::Qubit>,
         max_allowed_num_cycles_for_code_distance: u64,
     ) -> Option<(Builder::Factory, u64)> {
-        if let Some(max_tfactories) = self.max_factories {
-            return self.try_pick_tfactory_with_num_cycles_and_max_tfactories(
+        if let Some(max_factories) = self.max_factories {
+            return self.try_pick_factory_with_num_cycles_and_max_factories(
                 factories,
                 logical_qubit,
                 max_allowed_num_cycles_for_code_distance,
-                max_tfactories,
+                max_factories,
             );
         }
 
-        Self::try_pick_tfactory_with_num_cycles(
+        Self::try_pick_factory_with_num_cycles(
             factories,
             logical_qubit,
             max_allowed_num_cycles_for_code_distance,
         )
     }
 
-    fn try_pick_tfactory_with_num_cycles_and_max_tfactories(
+    fn try_pick_factory_with_num_cycles_and_max_factories(
         &self,
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E::Qubit>,
@@ -1009,15 +1016,15 @@ where
         factories
             .iter()
             .map(|factory| {
-                let tstates_per_run = max_tfactories * factory.num_output_states();
-                let num_ts_per_rotation = self
+                let magic_states_per_run = max_tfactories * factory.num_output_states();
+                let num_magic_states_per_rotation = self
                     .layout_overhead
-                    .num_ts_per_rotation(self.error_budget.rotations());
+                    .num_magic_states_per_rotation(self.error_budget.rotations());
                 let required_runs = ((self
                     .layout_overhead
-                    .num_tstates(num_ts_per_rotation.unwrap_or_default())
+                    .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
                     as f64)
-                    / tstates_per_run as f64)
+                    / magic_states_per_run as f64)
                     .ceil() as u64;
                 let required_duration = required_runs * factory.duration();
                 let num = (required_duration as f64 / logical_qubit.logical_cycle_time() as f64)
@@ -1040,7 +1047,7 @@ where
             })
     }
 
-    fn try_pick_tfactory_with_num_cycles(
+    fn try_pick_factory_with_num_cycles(
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E::Qubit>,
         max_allowed_num_cycles_for_code_distance: u64,
@@ -1080,12 +1087,12 @@ where
     // Possibly adjusts number of cycles C from initial starting point C_min
     fn compute_num_cycles(&self) -> Result<u64> {
         // Start loop with C = C_min
-        let num_ts_per_rotation = self
+        let num_magic_states_per_rotation = self
             .layout_overhead
-            .num_ts_per_rotation(self.error_budget.rotations());
+            .num_magic_states_per_rotation(self.error_budget.rotations());
         let mut num_cycles = self
             .layout_overhead
-            .logical_depth(num_ts_per_rotation.unwrap_or_default());
+            .logical_depth(num_magic_states_per_rotation.unwrap_or_default());
 
         // Perform logical depth scaling if given by constraint
         if let Some(logical_depth_scaling) = self.logical_depth_factor {
@@ -1096,7 +1103,7 @@ where
         // We cannot perform resource estimation when there are neither T-states nor cycles
         if self
             .layout_overhead
-            .num_tstates(num_ts_per_rotation.unwrap_or_default())
+            .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
             == 0
             && num_cycles == 0
         {
@@ -1109,29 +1116,29 @@ where
     // Choose number of T factories to use; we can safely use unwrap on
     // the t_count here because the algorithm only finds T-factories
     // that provide this number
-    fn num_tfactories(
+    fn num_factories(
         &self,
         logical_qubit: &LogicalQubit<E::Qubit>,
-        tfactory: &Builder::Factory,
+        factory: &Builder::Factory,
         num_cycles: u64,
     ) -> u64 {
-        let num_ts_per_rotation = self
+        let num_magic_states_per_rotation = self
             .layout_overhead
-            .num_ts_per_rotation(self.error_budget.rotations());
-        let num_tstates_big = u128::from(
+            .num_magic_states_per_rotation(self.error_budget.rotations());
+        let num_magic_states_big = u128::from(
             self.layout_overhead
-                .num_tstates(num_ts_per_rotation.unwrap_or_default()),
+                .num_magic_states(num_magic_states_per_rotation.unwrap_or_default()),
         );
-        let duration_big = u128::from(tfactory.duration());
-        let output_t_count_big = u128::from(tfactory.num_output_states());
+        let duration_big = u128::from(factory.duration());
+        let output_magic_count_big = u128::from(factory.num_output_states());
         let logical_cycle_time_big = u128::from(logical_qubit.logical_cycle_time());
         let num_cycles_big = u128::from(num_cycles);
 
-        let result = num_tstates_big * duration_big
-            / (output_t_count_big * logical_cycle_time_big * num_cycles_big);
+        let result = num_magic_states_big * duration_big
+            / (output_magic_count_big * logical_cycle_time_big * num_cycles_big);
 
-        let rem = num_tstates_big * duration_big
-            % (output_t_count_big * logical_cycle_time_big * num_cycles_big);
+        let rem = num_magic_states_big * duration_big
+            % (output_magic_count_big * logical_cycle_time_big * num_cycles_big);
 
         // We expect the result to be small enough to fit into a u64.
         let result_u64 = u64::try_from(result).expect("result should fit into u64");

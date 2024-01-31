@@ -173,7 +173,7 @@ fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()
-        .num_ts_per_rotation(result.error_budget().rotations());
+        .num_magic_states_per_rotation(result.error_budget().rotations());
     PhysicalResourceCountsBreakdown {
         algorithmic_logical_qubits: result.layout_overhead().logical_qubits(),
         algorithmic_logical_depth: result
@@ -183,7 +183,7 @@ fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
         clock_frequency: result.logical_qubit().logical_cycles_per_second(),
         num_tstates: result
             .layout_overhead()
-            .num_tstates(num_ts_per_rotation.unwrap_or_default()),
+            .num_magic_states(num_ts_per_rotation.unwrap_or_default()),
         num_tfactories: result.num_factories(),
         num_tfactory_runs: result.num_factory_runs(),
         physical_qubits_for_tfactories: result.physical_qubits_for_factories(),

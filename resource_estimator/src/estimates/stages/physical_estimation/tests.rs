@@ -52,11 +52,11 @@ impl Overhead for TestLayoutOverhead {
         self.logical_depth
     }
 
-    fn num_tstates(&self, _: u64) -> u64 {
+    fn num_magic_states(&self, _: u64) -> u64 {
         self.num_tstates
     }
 
-    fn num_ts_per_rotation(&self, _: f64) -> Option<u64> {
+    fn num_magic_states_per_rotation(&self, _: f64) -> Option<u64> {
         None
     }
 }
