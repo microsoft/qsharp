@@ -434,26 +434,13 @@ if build_pip and build_widgets and args.integration_tests:
     ]
     subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
 
-    # Install the widgets package once to pull dependencies, then again with --no-index to install from the wheel
+    # Install the widgets package from the folder so dependencies are installed properly
     pip_install_args = [
         python_bin,
         "-m",
         "pip",
         "install",
-        "--force-reinstall",
-        "--find-links=" + wheels_dir,
-        f"qsharp-widgets",
-    ]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
-    pip_install_args = [
-        python_bin,
-        "-m",
-        "pip",
-        "install",
-        "--force-reinstall",
-        "--no-index",
-        "--find-links=" + wheels_dir,
-        f"qsharp-widgets",
+        widgets_src,
     ]
     subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
 
