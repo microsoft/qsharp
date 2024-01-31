@@ -11,3 +11,4 @@ export { ReTable } from "./reTable.js";
 export { SpaceChart } from "./spaceChart.js";
 export { ScatterChart } from "./scatterChart.js";
 export { EstimatesOverview } from "./estimatesOverview.js";
+export { EstimatesPanel } from "./estimatesPanel.js";

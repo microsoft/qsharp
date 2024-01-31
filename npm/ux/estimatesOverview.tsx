@@ -13,14 +13,7 @@ import {
   SingleEstimateResult,
 } from "./data.js";
 import { ResultsTable, Row } from "./resultsTable.js";
-import {
-  Axis,
-  HideTooltip,
-  PlotItem,
-  ScatterChart,
-  ScatterSeries,
-  SelectPoint,
-} from "./scatterChart.js";
+import { Axis, PlotItem, ScatterChart, ScatterSeries } from "./scatterChart.js";
 
 const columnNames = [
   "Run name",
@@ -39,7 +32,7 @@ const columnNames = [
   "Physical qubits",
 ];
 
-const initialColumns = [0, 2, 3, 10, 11, 12];
+const initialColumns = [0, 10, 13, 11, 12];
 
 const xAxis: Axis = {
   isTime: true,
@@ -77,7 +70,6 @@ function reDataToRow(input: ReData, color: string): Row {
       },
       data.physicalCounts.rqops,
       data.physicalCounts.physicalQubits,
-      data.new ? "New" : "Cached",
     ],
     color: color,
   };
@@ -117,6 +109,63 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
   };
 }
 
+function createRunNames(estimatesData: ReData[]): string[] {
+  // If there's only 1 entry, use the shared run name
+  if (estimatesData.length === 1) {
+    return [estimatesData[0].jobParams.sharedRunName];
+  }
+
+  const fields: string[][] = [];
+
+  estimatesData.forEach(() => {
+    fields.push([]);
+  });
+
+  // Could be multiple runs, e.g. against different algorithms.
+  addIfDifferent(fields, estimatesData, (data) => data.jobParams.sharedRunName);
+
+  addIfDifferent(
+    fields,
+    estimatesData,
+    (data) => data.jobParams.qubitParams.name,
+  );
+
+  addIfDifferent(
+    fields,
+    estimatesData,
+    (data) => data.jobParams.qecScheme.name,
+  );
+
+  addIfDifferent(fields, estimatesData, (data) =>
+    String(data.jobParams.errorBudget),
+  );
+
+  const proposedRunNames = fields.map((field) => field.join(", "));
+  if (new Set(proposedRunNames).size != proposedRunNames.length) {
+    // If there are duplicates, add the run index to the name.
+    return proposedRunNames.map(
+      (runName, index) => runName + " (" + index + ")",
+    );
+  }
+
+  return proposedRunNames;
+}
+
+function addIfDifferent(
+  fields: string[][],
+  estimatesData: ReData[],
+  fieldMethod: (data: ReData) => string,
+): void {
+  const arr = estimatesData.map(fieldMethod);
+
+  const set = new Set(arr);
+  if (set.size > 1) {
+    arr.forEach((field, index) => {
+      fields[index].push(field);
+    });
+  }
+}
+
 export function EstimatesOverview(props: {
   estimatesData: ReData[];
   colors: string[] | null;
@@ -126,36 +175,45 @@ export function EstimatesOverview(props: {
   setEstimate: (estimate: SingleEstimateResult | null) => void;
 }) {
   const [selectedRow, setSelectedRow] = useState<string | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<[number, number]>();
+
+  const runNameRenderingError =
+    props.runNames != null &&
+    props.runNames.length > 0 &&
+    props.runNames.length != props.estimatesData.length
+      ? "Warning: The number of runNames does not match the number of estimates. Ignoring provided runNames."
+      : "";
+
+  const runNames =
+    props.runNames != null &&
+    props.runNames.length == props.estimatesData.length
+      ? props.runNames
+      : createRunNames(props.estimatesData);
 
   props.estimatesData.forEach((item, idx) => {
-    if (
-      props.runNames != null &&
-      props.runNames.length == props.estimatesData.length
-    ) {
-      item.jobParams.runName = props.runNames[idx];
-    } else {
-      if (item.jobParams.runName == null) {
-        // Start indexing with 0 to match with the original object indexing.
-        item.jobParams.runName = `(${idx})`;
-      }
-    }
+    // Start indexing with 0 to match with the original object indexing.
+    item.jobParams.runName = runNames[idx];
   });
 
   function onPointSelected(seriesIndex: number, pointIndex: number): void {
+    if (seriesIndex < 0) {
+      // Point was deselected
+      onRowSelected("");
+      return;
+    }
+
     const data = props.estimatesData[seriesIndex];
     props.setEstimate(CreateSingleEstimateResult(data, pointIndex));
     const rowId = props.estimatesData[seriesIndex].jobParams.runName;
     setSelectedRow(rowId);
+    setSelectedPoint([seriesIndex, pointIndex]);
   }
 
   function onRowSelected(rowId: string) {
     setSelectedRow(rowId);
-    // On any selection, clear the "new" flag on all rows. This ensures that
-    // new rows do not steal focus from the user selected row.
-    props.estimatesData.forEach((data) => (data.new = false));
-    HideTooltip();
     if (!rowId) {
       props.setEstimate(null);
+      setSelectedPoint(undefined);
     } else {
       const index = props.estimatesData.findIndex(
         (data) => data.jobParams.runName === rowId,
@@ -163,76 +221,85 @@ export function EstimatesOverview(props: {
 
       if (index == -1) {
         props.setEstimate(null);
+        setSelectedPoint(undefined);
       } else {
         const estimateFound = props.estimatesData[index];
+        setSelectedPoint([index, 0]);
         props.setEstimate(CreateSingleEstimateResult(estimateFound, 0));
-        SelectPoint(index, 0);
       }
     }
   }
+
+  const colorRenderingError =
+    props.colors != null &&
+    props.colors.length > 0 &&
+    props.colors.length != props.estimatesData.length
+      ? "Warning: The number of colors does not match the number of estimates. Ignoring provided colors."
+      : "";
 
   const colormap =
     props.colors != null && props.colors.length == props.estimatesData.length
       ? props.colors
       : ColorMap(props.estimatesData.length);
 
-  if (props.isSimplifiedView) {
+  function getResultTable() {
     return (
-      <>
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          ensureSelected={true}
-          onRowDeleted={props.onRowDeleted}
-          selectedRow={selectedRow}
-          setSelectedRow={onRowSelected}
-        />
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-        />
-      </>
+      <ResultsTable
+        columnNames={columnNames}
+        rows={props.estimatesData.map((dataItem, index) =>
+          reDataToRow(dataItem, colormap[index]),
+        )}
+        initialColumns={initialColumns}
+        selectedRow={selectedRow}
+        onRowSelected={onRowSelected}
+        onRowDeleted={props.onRowDeleted}
+      />
+    );
+  }
+
+  function getScatterChart() {
+    return (
+      <ScatterChart
+        xAxis={xAxis}
+        yAxis={yAxis}
+        data={props.estimatesData.map((dataItem, index) =>
+          reDataToRowScatter(dataItem, colormap[index]),
+        )}
+        onPointSelected={onPointSelected}
+        selectedPoint={selectedPoint}
+      />
     );
   }
 
   return (
-    <>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Results
-        </summary>
-        <ResultsTable
-          columnNames={columnNames}
-          rows={props.estimatesData.map((dataItem, index) =>
-            reDataToRow(dataItem, colormap[index]),
-          )}
-          initialColumns={initialColumns}
-          selectedRow={selectedRow}
-          setSelectedRow={onRowSelected}
-          ensureSelected={true}
-          onRowDeleted={props.onRowDeleted}
-        />
-      </details>
-      <details open>
-        <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
-          Space-time diagram
-        </summary>
-        <ScatterChart
-          xAxis={xAxis}
-          yAxis={yAxis}
-          data={props.estimatesData.map((dataItem, index) =>
-            reDataToRowScatter(dataItem, colormap[index]),
-          )}
-          onPointSelected={onPointSelected}
-        />
-      </details>
-    </>
+    <div className="qs-estimatesOverview">
+      {runNameRenderingError != "" && (
+        <div class="qs-estimatesOverview-error">{runNameRenderingError}</div>
+      )}
+      {colorRenderingError != "" && (
+        <div class="qs-estimatesOverview-error">{colorRenderingError}</div>
+      )}
+      {!props.isSimplifiedView ? (
+        <>
+          <details open>
+            <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+              Results
+            </summary>
+            {getResultTable()}
+          </details>
+          <details open>
+            <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
+              Space-time diagram
+            </summary>
+            {getScatterChart()}
+          </details>
+        </>
+      ) : (
+        <>
+          {getResultTable()}
+          {getScatterChart()}
+        </>
+      )}
+    </div>
   );
 }

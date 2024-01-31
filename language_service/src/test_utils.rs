@@ -3,18 +3,19 @@
 
 use std::sync::Arc;
 
-use crate::{
-    compilation::{Compilation, CompilationKind},
-    protocol::Span,
-};
+use crate::compilation::{Compilation, CompilationKind};
 use qsc::{
-    compile, hir::PackageId, incremental::Compiler, target::Profile, PackageStore, PackageType,
-    SourceMap,
+    compile,
+    hir::PackageId,
+    incremental::Compiler,
+    line_column::{Encoding, Position, Range},
+    target::Profile,
+    PackageStore, PackageType, SourceMap, Span,
 };
 
 pub(crate) fn compile_with_fake_stdlib_and_markers(
     source_with_markers: &str,
-) -> (Compilation, u32, Vec<Span>) {
+) -> (Compilation, Position, Vec<Range>) {
     let (compilation, _, cursor_offset, target_spans) =
         compile_project_with_fake_stdlib_and_markers(&[("<source>", source_with_markers)]);
     (
@@ -26,7 +27,7 @@ pub(crate) fn compile_with_fake_stdlib_and_markers(
 
 pub(crate) fn compile_project_with_fake_stdlib_and_markers(
     sources_with_markers: &[(&str, &str)],
-) -> (Compilation, String, u32, Vec<(String, Span)>) {
+) -> (Compilation, String, Position, Vec<(String, Range)>) {
     let (sources, cursor_uri, cursor_offset, target_spans) =
         get_sources_and_markers(sources_with_markers);
 
@@ -57,7 +58,7 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers(
 
 pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
     cells_with_markers: &[(&str, &str)],
-) -> (Compilation, String, u32, Vec<(String, Span)>) {
+) -> (Compilation, String, Position, Vec<(String, Range)>) {
     let (cells, cell_uri, offset, target_spans) = get_sources_and_markers(cells_with_markers);
 
     let compilation =
@@ -159,7 +160,12 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
 #[allow(clippy::type_complexity)]
 fn get_sources_and_markers(
     sources: &[(&str, &str)],
-) -> (Vec<(Arc<str>, Arc<str>)>, String, u32, Vec<(String, Span)>) {
+) -> (
+    Vec<(Arc<str>, Arc<str>)>,
+    String,
+    Position,
+    Vec<(String, Range)>,
+) {
     let (mut cursor_uri, mut cursor_offset, mut target_spans) = (None, None, Vec::new());
     let sources = sources
         .iter()
@@ -171,13 +177,22 @@ fn get_sources_and_markers(
                     "only one cell can have a cursor marker"
                 );
                 assert!(
-                    cursor_offset.replace(cursor_offsets[0]).is_none(),
+                    cursor_offset
+                        .replace(Position::from_utf8_byte_offset(
+                            Encoding::Utf8,
+                            &source,
+                            cursor_offsets[0]
+                        ))
+                        .is_none(),
                     "only one cell can have a cursor marker"
                 );
             }
             if !targets.is_empty() {
                 for span in target_offsets_to_spans(&targets) {
-                    target_spans.push((s.0.to_string(), span));
+                    target_spans.push((
+                        s.0.to_string(),
+                        Range::from_span(Encoding::Utf8, &source, &span),
+                    ));
                 }
             }
             (Arc::from(s.0), Arc::from(source.as_ref()))
@@ -191,8 +206,8 @@ fn get_sources_and_markers(
 }
 
 fn get_source_and_marker_offsets(source_with_markers: &str) -> (String, Vec<u32>, Vec<u32>) {
-    let mut cursor_offsets: Vec<u32> = Vec::new();
-    let mut target_offsets: Vec<u32> = Vec::new();
+    let mut cursor_offsets = Vec::new();
+    let mut target_offsets = Vec::new();
     let mut source = source_with_markers.to_string();
     let markers = &['↘', '◉'];
 
@@ -218,8 +233,8 @@ fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<Span> {
     let mut spans = vec![];
     for i in 0..limit {
         spans.push(Span {
-            start: target_offsets[i * 2],
-            end: target_offsets[i * 2 + 1],
+            lo: target_offsets[i * 2],
+            hi: target_offsets[i * 2 + 1],
         });
     }
     spans

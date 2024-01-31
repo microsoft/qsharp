@@ -330,7 +330,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "X(q0); X(qs[1]);");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "DumpMachine()");
-            is_unit_with_output(&result, &output, "STATE:\n|0101⟩: 1+0i");
+            is_unit_with_output(&result, &output, "STATE:\n|1010⟩: 1+0i");
         }
 
         #[test]
@@ -1128,6 +1128,7 @@ mod given_interpreter {
 
         use super::*;
         use crate::interpret::Debugger;
+        use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
         use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -1235,7 +1236,7 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
-            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all())
+            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8)
                 .expect("debugger should be created");
             let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());

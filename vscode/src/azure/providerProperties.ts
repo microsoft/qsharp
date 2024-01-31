@@ -16,6 +16,7 @@ const targetsThatSupportQir = [
   "quantinuum.qpu.h2-1",
   "rigetti.sim.qvm",
   "rigetti.qpu.ankaa-2",
+  "rigetti.qpu.ankaa-9q-1",
   "rigetti.qpu.aspen-m-3",
   "ionq.qpu-preview",
   "ionq.qpu.aria-1-preview",

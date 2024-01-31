@@ -12,11 +12,11 @@ import {
   getLanguageService,
   getLanguageServiceWorker,
   getDebugServiceWorker,
+  utils,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
 import { getAllKatas, getExerciseSources, getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
-import { CreateIntegerTicks, CreateTimeTicks } from "../dist/ux/ticks.js";
 
 /** @type {import("../dist/log.js").TelemetryEvent[]} */
 const telemetryEvents = [];
@@ -76,8 +76,8 @@ test("one syntax error", async () => {
 
   const diags = await compiler.checkCode("namespace Foo []");
   assert.equal(diags.length, 1);
-  assert.equal(diags[0].start_pos, 14);
-  assert.equal(diags[0].end_pos, 15);
+  assert.deepEqual(diags[0].range.start, { line: 0, character: 14 });
+  assert.deepEqual(diags[0].range.end, { line: 0, character: 15 });
 });
 
 test("error with newlines", async () => {
@@ -87,10 +87,10 @@ test("error with newlines", async () => {
     "namespace input { operation Foo(a) : Unit {} }",
   );
   assert.equal(diags.length, 2);
-  assert.equal(diags[0].start_pos, 32);
-  assert.equal(diags[0].end_pos, 33);
-  assert.equal(diags[1].start_pos, 32);
-  assert.equal(diags[1].end_pos, 33);
+  assert.deepEqual(diags[0].range.start, { line: 0, character: 32 });
+  assert.deepEqual(diags[0].range.end, { line: 0, character: 33 });
+  assert.deepEqual(diags[1].range.start, { line: 0, character: 32 });
+  assert.deepEqual(diags[1].range.end, { line: 0, character: 33 });
   assert.equal(
     diags[1].message,
     "type error: insufficient type information to infer type\n\nhelp: provide a type annotation",
@@ -446,8 +446,8 @@ test("check code", async () => {
 
   const diags = await compiler.checkCode("namespace Foo []");
   assert.equal(diags.length, 1);
-  assert.equal(diags[0].start_pos, 14);
-  assert.equal(diags[0].end_pos, 15);
+  assert.deepEqual(diags[0].range.start, { line: 0, character: 14 });
+  assert.deepEqual(diags[0].range.end, { line: 0, character: 15 });
 });
 
 test("language service diagnostics", async () => {
@@ -493,19 +493,43 @@ test("diagnostics with related spans", async () => {
           "name error: `DumpMachine` could refer to the item in `Microsoft.Quantum.Diagnostics` or `Other`",
         related: [
           {
-            start_pos: 196,
-            end_pos: 207,
             message: "ambiguous name",
+            range: {
+              start: {
+                character: 8,
+                line: 6,
+              },
+              end: {
+                character: 19,
+                line: 6,
+              },
+            },
           },
           {
-            start_pos: 87,
-            end_pos: 116,
             message: "found in this namespace",
+            range: {
+              start: {
+                character: 11,
+                line: 2,
+              },
+              end: {
+                character: 40,
+                line: 2,
+              },
+            },
           },
           {
-            start_pos: 129,
-            end_pos: 134,
             message: "and also in this namespace",
+            range: {
+              start: {
+                character: 11,
+                line: 3,
+              },
+              end: {
+                character: 16,
+                line: 3,
+              },
+            },
           },
         ],
       },
@@ -513,9 +537,8 @@ test("diagnostics with related spans", async () => {
         code: event.detail.diagnostics[0].code,
         message: event.detail.diagnostics[0].message,
         related: event.detail.diagnostics[0].related?.map((r) => ({
-          start_pos: r.start_pos,
+          range: r.location.span,
           message: r.message,
-          end_pos: r.end_pos,
         })),
       },
     );
@@ -1123,7 +1146,7 @@ function getLabels(ticks) {
 function runAndAssertIntegerTicks(min, max, expected) {
   const message = `min: ${min}, max: ${max}`;
   assert.deepStrictEqual(
-    getValues(CreateIntegerTicks(min, max)),
+    getValues(utils.CreateIntegerTicks(min, max)),
     expected,
     message,
   );
@@ -1132,7 +1155,7 @@ function runAndAssertIntegerTicks(min, max, expected) {
 function runAndAssertTimeTicks(min, max, expected) {
   const message = `min: ${min}, max: ${max}`;
   assert.deepStrictEqual(
-    getLabels(CreateTimeTicks(min, max)),
+    getLabels(utils.CreateTimeTicks(min, max)),
     expected,
     message,
   );
