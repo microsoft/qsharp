@@ -74,11 +74,11 @@ jobs:
     name: Build and test
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-14]
         is_pr:
           - ${{ github.event_name == 'pull_request' }}
         exclude:
-          - os: macos-latest
+          - os: macos-14
             is_pr: true
 
     runs-on: ${{matrix.os}}
@@ -95,7 +95,7 @@ jobs:
       - name: Add additional Rust targets
         run: |
           rustup target add aarch64-apple-darwin
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-14'
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -113,11 +113,11 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-14]
         is_pr:
           - ${{ github.event_name == 'pull_request' }}
         exclude:
-          - os: macos-latest
+          - os: macos-14
             is_pr: true
 
     runs-on: ${{matrix.os}}
@@ -134,7 +134,7 @@ jobs:
       - name: Add additional Rust targets
         run: |
           rustup target add aarch64-apple-darwin
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-14'
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
