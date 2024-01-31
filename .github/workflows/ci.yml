@@ -94,7 +94,7 @@ jobs:
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Add additional Rust targets
         run: |
-          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
         if: matrix.os == 'macos-14'
       - uses: actions/setup-python@v4
         with:
@@ -133,7 +133,7 @@ jobs:
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Add additional Rust targets
         run: |
-          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
         if: matrix.os == 'macos-14'
       - uses: actions/setup-python@v4
         with:
