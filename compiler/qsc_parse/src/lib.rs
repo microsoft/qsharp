@@ -17,8 +17,8 @@ mod stmt;
 mod tests;
 mod ty;
 
-pub use lex::RawTokenKind;
 use lex::TokenKind;
+pub use lex::{RawToken, RawTokenKind};
 use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Namespace, TopLevelNode};
 use qsc_data_structures::span::Span;
