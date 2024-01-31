@@ -38,6 +38,10 @@ pub use qsc_data_structures::span::Span;
 
 pub use qsc_passes::{PackageType, PassContext};
 
+pub mod line_column {
+    pub use qsc_data_structures::line_column::{Encoding, Position, Range};
+}
+
 pub use qsc_eval::{
     backend::{Backend, SparseSim},
     output::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase},

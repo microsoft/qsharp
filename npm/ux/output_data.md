@@ -498,7 +498,7 @@ This is the probability in which executing a single T gate may fail.
 
 [//]: # "physicalCountsFormatted/logicalDepthFactor"
 
-_Factor, the initial number of logical cycles is multiplied by_
+_Factor the initial number of logical cycles is multiplied by_
 
 This is the factor takes into account a potential overhead to the initial number of logical cycles.
 

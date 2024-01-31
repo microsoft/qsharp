@@ -235,11 +235,19 @@ export {
   type Question,
 } from "./katas.js";
 export { default as samples } from "./samples.generated.js";
-export { type VSDiagnostic } from "./vsdiagnostic.js";
 export { log, type LogLevel, type TargetProfile };
 export type { ICompilerWorker, ICompiler };
 export type { ILanguageServiceWorker, ILanguageService };
 export type { IDebugServiceWorker, IDebugService };
-export type { IBreakpointSpan, IStackFrame } from "../lib/web/qsc_wasm.js";
+export type {
+  IBreakpointSpan,
+  IStackFrame,
+  IPosition,
+  IRange,
+  ILocation,
+  VSDiagnostic,
+} from "../lib/web/qsc_wasm.js";
 export { type IStructStepResult, StepResultId } from "../lib/web/qsc_wasm.js";
 export { type LanguageServiceEvent } from "./language-service/language-service.js";
+
+export * as utils from "./utils.js";

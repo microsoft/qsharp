@@ -162,3 +162,40 @@ export function CreateTimeTicks(min: number, max: number): Tick[] {
 
   return result;
 }
+
+type SeriesOfPoints = Array<{ items: Array<{ x: number; y: number }> }>;
+
+// Given an array of object, and each of those objects has an 'items' property
+// that is another array of objects with number properties x & y, return a
+// tuple of [minX, maxX, minY, maxY] covering all items given
+export function getMinMaxXYForItems(
+  data: SeriesOfPoints,
+): [number, number, number, number] {
+  return data.reduce(
+    (priorSeriesResult, curr) =>
+      curr.items.reduce(
+        (priorItemResult, curr) => [
+          Math.min(priorItemResult[0], curr.x),
+          Math.max(priorItemResult[1], curr.x),
+          Math.min(priorItemResult[2], curr.y),
+          Math.max(priorItemResult[3], curr.y),
+        ],
+        priorSeriesResult,
+      ),
+    [Number.MAX_VALUE, Number.MIN_VALUE, Number.MAX_VALUE, Number.MIN_VALUE],
+  );
+}
+
+export function getRanges(data: SeriesOfPoints, rangeCoefficient: number) {
+  const [minX, maxX, minY, maxY] = getMinMaxXYForItems(data);
+
+  const rangeX = {
+    min: minX / rangeCoefficient,
+    max: maxX * rangeCoefficient,
+  };
+  const rangeY = {
+    min: minY / rangeCoefficient,
+    max: maxY * rangeCoefficient,
+  };
+  return { rangeX, rangeY };
+}

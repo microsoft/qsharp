@@ -25,7 +25,10 @@ use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::BaseProfSim;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{
+    line_column::{Encoding, Range},
+    span::Span,
+};
 use qsc_eval::{
     backend::{Backend, SparseSim},
     debug::{map_fir_package_to_hir, map_hir_package_to_fir},
@@ -350,6 +353,9 @@ impl Interpreter {
 /// and inspecting state in the interpreter.
 pub struct Debugger {
     interpreter: Interpreter,
+    /// The encoding (utf-8 or utf-16) used for character offsets
+    /// in line/character positions returned by the Interpreter.
+    position_encoding: Encoding,
     /// The current state of the evaluator.
     state: State,
 }
@@ -358,11 +364,13 @@ impl Debugger {
     pub fn new(
         sources: SourceMap,
         capabilities: RuntimeCapabilityFlags,
+        position_encoding: Encoding,
     ) -> Result<Self, Vec<Error>> {
         let interpreter = Interpreter::new(true, sources, PackageType::Exe, capabilities)?;
         let source_package_id = interpreter.source_package;
         Ok(Self {
             interpreter,
+            position_encoding,
             state: State::new(source_package_id, None),
         })
     }
@@ -438,8 +446,11 @@ impl Debugger {
                     name,
                     functor,
                     path,
-                    lo: frame.span.lo - source.offset,
-                    hi: frame.span.hi - source.offset,
+                    range: Range::from_span(
+                        self.position_encoding,
+                        &source.contents,
+                        &(frame.span - source.offset),
+                    ),
                 }
             })
             .collect();
@@ -460,18 +471,24 @@ impl Debugger {
                 .fir_store
                 .get(self.interpreter.source_package)
                 .expect("package should have been lowered");
-            let mut collector = BreakpointCollector::new(&unit.sources, source.offset, package);
+            let mut collector = BreakpointCollector::new(
+                &unit.sources,
+                source.offset,
+                package,
+                self.position_encoding,
+            );
             collector.visit_package(package);
             let mut spans: Vec<_> = collector
                 .statements
                 .iter()
                 .map(|bps| BreakpointSpan {
                     id: bps.id,
-                    lo: bps.lo,
-                    hi: bps.hi,
+                    range: bps.range,
                 })
                 .collect();
-            spans.sort_by_key(|s| s.lo);
+
+            // Sort by start position (line first, column next)
+            spans.sort_by_key(|s| (s.range.start.line, s.range.start.column));
             spans
         } else {
             Vec::new()
@@ -521,20 +538,16 @@ pub struct StackFrame {
     pub functor: String,
     /// The path of the source file.
     pub path: String,
-    /// The start of the call site span in utf8 characters.
-    pub lo: u32,
-    /// The end of the call site span in utf8 characters.
-    pub hi: u32,
+    /// The source range of the call site.
+    pub range: Range,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct BreakpointSpan {
     /// The id of the statement representing the breakpoint location.
     pub id: u32,
-    /// The start of the call site span in utf8 characters.
-    pub lo: u32,
-    /// The end of the call site span in utf8 characters.
-    pub hi: u32,
+    /// The source range of the call site.
+    pub range: Range,
 }
 
 struct BreakpointCollector<'a> {
@@ -542,15 +555,22 @@ struct BreakpointCollector<'a> {
     sources: &'a SourceMap,
     offset: u32,
     package: &'a Package,
+    position_encoding: Encoding,
 }
 
 impl<'a> BreakpointCollector<'a> {
-    fn new(sources: &'a SourceMap, offset: u32, package: &'a Package) -> Self {
+    fn new(
+        sources: &'a SourceMap,
+        offset: u32,
+        package: &'a Package,
+        position_encoding: Encoding,
+    ) -> Self {
         Self {
             statements: FxHashSet::default(),
             sources,
             offset,
             package,
+            position_encoding,
         }
     }
 
@@ -567,8 +587,7 @@ impl<'a> BreakpointCollector<'a> {
             if span != Span::default() {
                 let bps = BreakpointSpan {
                     id: stmt.id.into(),
-                    lo: span.lo,
-                    hi: span.hi,
+                    range: Range::from_span(self.position_encoding, &source.contents, &span),
                 };
                 self.statements.insert(bps);
             }
@@ -590,25 +609,25 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
         };
     }
 
-    fn get_block(&mut self, id: BlockId) -> &'a Block {
+    fn get_block(&self, id: BlockId) -> &'a Block {
         self.package
             .blocks
             .get(id)
             .expect("couldn't find block in FIR")
     }
 
-    fn get_expr(&mut self, id: ExprId) -> &'a Expr {
+    fn get_expr(&self, id: ExprId) -> &'a Expr {
         self.package
             .exprs
             .get(id)
             .expect("couldn't find expr in FIR")
     }
 
-    fn get_pat(&mut self, id: PatId) -> &'a Pat {
+    fn get_pat(&self, id: PatId) -> &'a Pat {
         self.package.pats.get(id).expect("couldn't find pat in FIR")
     }
 
-    fn get_stmt(&mut self, id: StmtId) -> &'a Stmt {
+    fn get_stmt(&self, id: StmtId) -> &'a Stmt {
         self.package
             .stmts
             .get(id)

@@ -6,9 +6,8 @@
 const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
-import { Histogram, type ReData } from "qsharp-lang/ux";
+import { EstimatesPanel, Histogram, type ReData } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
-import { RePage } from "./rePage";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
@@ -84,10 +83,6 @@ function onMessage(event: any) {
         };
         // Copy over any existing estimates
         if ((state as EstimatesState).estimatesData?.estimates) {
-          // Clear the new flag on any existing estimates
-          (state as EstimatesState).estimatesData.estimates.map(
-            (estimate) => (estimate.new = false),
-          );
           newState.estimatesData.estimates.push(
             ...(state as EstimatesState).estimatesData.estimates,
           );
@@ -95,11 +90,8 @@ function onMessage(event: any) {
         // Append any new estimates
         if (message.estimates) {
           if (Array.isArray(message.estimates)) {
-            // Mark all the new estimates
-            message.estimates.map((estimate: ReData) => (estimate.new = true));
             newState.estimatesData.estimates.push(...message.estimates);
           } else {
-            message.estimates.new = true;
             newState.estimatesData.estimates.push(message.estimates);
           }
         }
@@ -154,11 +146,13 @@ function App({ state }: { state: State }) {
       );
     case "estimates":
       return (
-        <RePage
+        <EstimatesPanel
           calculating={state.estimatesData.calculating}
           estimatesData={state.estimatesData.estimates}
           renderer={markdownRenderer}
           onRowDeleted={onRowDeleted}
+          colors={[]}
+          runNames={[]}
         />
       );
     case "help":

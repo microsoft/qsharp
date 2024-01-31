@@ -8,6 +8,8 @@ import {
   Histogram,
   CreateSingleEstimateResult,
   EstimatesOverview,
+  EstimatesPanel,
+  ReData,
 } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
@@ -47,6 +49,9 @@ export function render({ model, el }: RenderArgs) {
       break;
     case "Histogram":
       renderHistogram({ model, el });
+      break;
+    case "EstimatesPanel":
+      renderEstimatesPanel({ model, el });
       break;
     default:
       throw new Error(`Unknown component type ${componentType}`);
@@ -91,7 +96,7 @@ function renderEstimatesOverview({ model, el }: RenderArgs) {
     const colors = model.get("colors");
     const runNames = model.get("runNames");
 
-    const estimates = [];
+    let estimates = [];
     if (results[0] == null) {
       estimates.push(results);
     } else {
@@ -100,13 +105,18 @@ function renderEstimatesOverview({ model, el }: RenderArgs) {
       }
     }
 
+    const onRowDeleted = createOnRowDeleted(estimates, (newEstimates) => {
+      estimates = newEstimates;
+      model.set("estimates", estimates);
+    });
+
     prender(
       <EstimatesOverview
         estimatesData={estimates}
         runNames={runNames}
         colors={colors}
         isSimplifiedView={true}
-        onRowDeleted={() => undefined}
+        onRowDeleted={onRowDeleted}
         setEstimate={() => undefined}
       ></EstimatesOverview>,
       el,
@@ -116,6 +126,66 @@ function renderEstimatesOverview({ model, el }: RenderArgs) {
   onChange();
   model.on("change:estimates", onChange);
   model.on("change:colors", onChange);
+  model.on("change:runNames", onChange);
+}
+
+function renderEstimatesPanel({ model, el }: RenderArgs) {
+  const onChange = () => {
+    const results = model.get("estimates");
+    const colors = model.get("colors");
+    const runNames = model.get("runNames");
+
+    let estimates: ReData[] = [];
+    if (results[0] == null) {
+      estimates.push(results);
+    } else {
+      for (const estimate of Object.values(results)) {
+        estimates.push(estimate as ReData);
+      }
+    }
+
+    const onRowDeleted = createOnRowDeleted(estimates, (newEstimates) => {
+      estimates = newEstimates;
+      model.set("estimates", estimates);
+    });
+
+    prender(
+      <EstimatesPanel
+        estimatesData={estimates}
+        runNames={runNames}
+        colors={colors}
+        renderer={mdRenderer}
+        calculating={false}
+        onRowDeleted={onRowDeleted}
+      ></EstimatesPanel>,
+      el,
+    );
+  };
+
+  onChange();
+  model.on("change:estimates", onChange);
+  model.on("change:colors", onChange);
+  model.on("change:runNames", onChange);
+}
+
+function createOnRowDeleted(
+  estimates: ReData[],
+  setEstimates: (estimates: ReData[]) => void,
+) {
+  return (rowId: string) => {
+    // Clone estimates into a new object
+    const newEstimates = JSON.parse(JSON.stringify(estimates)) as ReData[];
+
+    // Splice out the estimate that was deleted
+    const index = newEstimates.findIndex(
+      (estimate) => estimate.jobParams.runName === rowId,
+    );
+    if (index >= 0) {
+      newEstimates.splice(index, 1);
+    }
+
+    setEstimates(newEstimates);
+  };
 }
 
 function renderHistogram({ model, el }: RenderArgs) {

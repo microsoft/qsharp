@@ -234,10 +234,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         }
 
         (estimates as Array<any>).forEach(
-          (item, idx) =>
-            (item.jobParams.runName = `${runName} (${String.fromCharCode(
-              0x61 + idx,
-            )})`),
+          (item) => (item.jobParams.sharedRunName = runName),
         );
 
         clearTimeout(compilerTimeout);
