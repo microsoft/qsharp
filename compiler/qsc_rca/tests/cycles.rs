@@ -3,7 +3,8 @@
 
 pub mod common;
 
-use common::CompilationContext;
+use common::{check_callable_compute_properties, CompilationContext};
+use expect_test::expect;
 
 #[ignore = "work in progress"]
 #[test]
@@ -14,6 +15,13 @@ fn check_rca_for_function_direct_recursion() {
         function Foo() : Unit {
             Foo();
         }"#,
+    );
+
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![r#""#],
     );
 }
 

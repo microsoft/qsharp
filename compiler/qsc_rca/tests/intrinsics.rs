@@ -63,11 +63,11 @@ fn check_rca_for_quantum_qis_m_body() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_capabilities: RuntimeCapabilityFlags(0x0)
-                        quantum_source: Intrinsic
+                        dynamism_sources: [Intrinsic]
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(HigherLevelConstructs)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -91,7 +91,7 @@ fn check_rca_for_length() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(HigherLevelConstructs)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -112,11 +112,11 @@ fn check_rca_for_quantum_qis_mresetz_body() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_capabilities: RuntimeCapabilityFlags(0x0)
-                        quantum_source: Intrinsic
+                        dynamism_sources: [Intrinsic]
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(HigherLevelConstructs)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -140,7 +140,7 @@ fn check_rca_for_int_as_double() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(IntegerComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -164,7 +164,7 @@ fn check_rca_for_int_as_big_int() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(IntegerComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -206,11 +206,11 @@ fn check_rca_for_check_zero() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_capabilities: RuntimeCapabilityFlags(0x0)
-                        quantum_source: Intrinsic
+                        dynamism_sources: [Intrinsic]
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(HigherLevelConstructs)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -257,7 +257,7 @@ fn check_rca_for_arc_cos() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -281,7 +281,7 @@ fn check_rca_for_arc_sin() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -305,7 +305,7 @@ fn check_rca_for_arc_tan() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -329,10 +329,10 @@ fn check_rca_for_arc_tan_2() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                         [1]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -356,7 +356,7 @@ fn check_rca_for_cos() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -380,7 +380,7 @@ fn check_rca_for_cosh() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -404,7 +404,7 @@ fn check_rca_for_sin() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -428,7 +428,7 @@ fn check_rca_for_sinh() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -452,7 +452,7 @@ fn check_rca_for_tan() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -476,7 +476,7 @@ fn check_rca_for_tanh() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -500,7 +500,7 @@ fn check_rca_for_sqrt() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -524,7 +524,7 @@ fn check_rca_for_log() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -548,7 +548,7 @@ fn check_rca_for_truncate() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1059,14 +1059,14 @@ fn check_rca_for_draw_random_int() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_capabilities: RuntimeCapabilityFlags(0x0)
-                        quantum_source: Intrinsic
+                        dynamism_sources: [Intrinsic]
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(IntegerComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                         [1]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(IntegerComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1087,14 +1087,14 @@ fn check_rca_for_draw_random_double() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_capabilities: RuntimeCapabilityFlags(0x0)
-                        quantum_source: Intrinsic
+                        dynamism_sources: [Intrinsic]
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                         [1]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(FloatingPointComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1118,10 +1118,10 @@ fn check_rca_for_begin_estimate_caching() {
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(HigherLevelConstructs)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                         [1]: ComputeProperties:
                             runtime_capabilities: RuntimeCapabilityFlags(IntegerComputations)
-                            quantum_source: Intrinsic
+                            dynamism_sources: [Intrinsic]
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#

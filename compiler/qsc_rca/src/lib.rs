@@ -415,15 +415,15 @@ impl Display for ApplicationsTable {
 pub struct ComputeProperties {
     /// The runtime capabilities.
     pub runtime_capabilities: RuntimeCapabilityFlags,
-    /// The quantum source, if any.
-    pub quantum_source: Option<QuantumSource>,
+    /// The sources of dynamism, if any.
+    pub dynamism_sources: Vec<DynamismSource>,
 }
 
 impl Default for ComputeProperties {
     fn default() -> Self {
         Self {
             runtime_capabilities: RuntimeCapabilityFlags::empty(),
-            quantum_source: None,
+            dynamism_sources: Vec::new(),
         }
     }
 }
@@ -438,31 +438,31 @@ impl Display for ComputeProperties {
             "\nruntime_capabilities: {:?}",
             self.runtime_capabilities
         )?;
-        if let Some(quantum_source) = self.quantum_source {
-            write!(indent, "\nquantum_source: {quantum_source}")?;
+        if !self.dynamism_sources.is_empty() {
+            write!(indent, "\ndynamism_sources: {:?}", self.dynamism_sources)?;
         }
 
         Ok(())
     }
 }
 
-/// A quantum source.
+/// A source of dynamism.
 #[derive(Clone, Copy, Debug)]
-pub enum QuantumSource {
-    /// An intrinsic quantum source.
+pub enum DynamismSource {
+    /// An intrinsic dynamism source.
     Intrinsic,
-    /// An assumed quantum source.
+    /// An assumed dynamism source.
     Assumed,
-    /// A quantum source that comes from another expression.
+    /// A dynamism source that comes from an expression.
     Expr(ExprId),
 }
 
-impl Display for QuantumSource {
+impl Display for DynamismSource {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self {
-            QuantumSource::Intrinsic => write!(f, "Intrinsic",),
-            QuantumSource::Assumed => write!(f, "Assumed",),
-            QuantumSource::Expr(expr_id) => write!(f, "Expr: {}", expr_id),
+            DynamismSource::Intrinsic => write!(f, "Intrinsic",),
+            DynamismSource::Assumed => write!(f, "Assumed",),
+            DynamismSource::Expr(expr_id) => write!(f, "Expr: {}", expr_id),
         }
     }
 }

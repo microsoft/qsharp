@@ -11,7 +11,7 @@ use crate::{
     CallableElementComputeProperties,
     {
         ApplicationsTable, CallableComputeProperties, ComputeProperties, ComputePropertiesLookup,
-        ItemComputeProperties, PackageStoreComputeProperties, PatComputeProperties, QuantumSource,
+        DynamismSource, ItemComputeProperties, PackageStoreComputeProperties, PatComputeProperties,
     },
 };
 use qsc_data_structures::index_map::IndexMap;
@@ -357,15 +357,15 @@ fn create_cycled_function_compute_properties<'a>(
     // source.
     let inherent_properties = ComputeProperties {
         runtime_capabilities: RuntimeCapabilityFlags::empty(),
-        quantum_source: None,
+        dynamism_sources: Vec::new(),
     };
 
-    // If any parameter is dynamic, then we assume a function with cycles is a quantum source if its output type is
-    // non-unit.
-    let quantum_source = if callable.output == Ty::UNIT {
-        None
+    // If any parameter is dynamic, then we assume a function with cycles is a a source of dynamism if its output type
+    // is non-unit.
+    let dynamism_sources = if callable.output == Ty::UNIT {
+        Vec::new()
     } else {
-        Some(QuantumSource::Assumed)
+        vec![DynamismSource::Assumed]
     };
 
     // Create compute properties for each dynamic parameter.
@@ -375,7 +375,7 @@ fn create_cycled_function_compute_properties<'a>(
         // dynamic parameter.
         let compute_properties = ComputeProperties {
             runtime_capabilities: RuntimeCapabilityFlags::all(),
-            quantum_source,
+            dynamism_sources: dynamism_sources.clone(),
         };
         dynamic_params_properties.push(compute_properties);
     }
@@ -485,16 +485,16 @@ fn create_cycled_operation_specialization_applications_table(
         create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
 
     // Since operations can allocate and measure qubits freely, we assume it requires all capabilities and that they are
-    // a quantum source for all non-unit outputs. These will be both the inherent compute properties and the compute
+    // a source of dynamism for all non-unit outputs. These will be both the inherent compute properties and the compute
     // properties for all dynamic parameters.
-    let quantum_source = if *output_type == Ty::UNIT {
-        None
+    let dynamism_sources = if *output_type == Ty::UNIT {
+        Vec::new()
     } else {
-        Some(QuantumSource::Assumed)
+        vec![DynamismSource::Assumed]
     };
     let compute_properties = ComputeProperties {
         runtime_capabilities: RuntimeCapabilityFlags::all(),
-        quantum_source,
+        dynamism_sources,
     };
 
     // Create compute properties for each dynamic parameter, which are the same than the inherent properties.
@@ -536,11 +536,10 @@ fn create_intrinsic_function_compute_properties<'a>(
 ) -> CallableComputeProperties {
     assert!(matches!(callable.kind, CallableKind::Function));
 
-    // Functions are purely classical, so no runtime capabilities are needed and cannot be an inherent quantum
-    // source.
+    // Functions are purely classical, so no runtime capabilities are needed and cannot be an inherent dynamism source.
     let inherent_properties = ComputeProperties {
         runtime_capabilities: RuntimeCapabilityFlags::empty(),
-        quantum_source: None,
+        dynamism_sources: Vec::new(),
     };
 
     // Calculate the properties for all parameters.
@@ -551,16 +550,16 @@ fn create_intrinsic_function_compute_properties<'a>(
         let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
 
         // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
-        // the output of the function is dynamic. Therefore, this function becomes a quantum source for all dynamic
+        // the output of the function is dynamic. Therefore, this function becomes a source of dynamism for all dynamic
         // params if its output is non-unit.
-        let quantum_source = if callable.output == Ty::UNIT {
-            None
+        let dynamism_sources = if callable.output == Ty::UNIT {
+            Vec::new()
         } else {
-            Some(QuantumSource::Intrinsic)
+            vec![DynamismSource::Intrinsic]
         };
         let param_compute_properties = ComputeProperties {
             runtime_capabilities: param_runtime_capabilities,
-            quantum_source,
+            dynamism_sources,
         };
         dynamic_params_properties.push(param_compute_properties);
     }
@@ -584,17 +583,17 @@ fn create_instrinsic_operation_compute_properties<'a>(
 ) -> CallableComputeProperties {
     assert!(matches!(callable.kind, CallableKind::Operation));
 
-    // For intrinsic operations, they inherently do not require any runtime capabilities and they are a quantum source
-    // if their output is not qubit nor unit.
-    let quantum_source = if callable.output == Ty::Prim(Prim::Qubit) || callable.output == Ty::UNIT
-    {
-        None
-    } else {
-        Some(QuantumSource::Intrinsic)
-    };
+    // For intrinsic operations, they inherently do not require any runtime capabilities and they are a source of
+    // dynamism if their output is not qubit nor unit.
+    let dynamism_sources =
+        if callable.output == Ty::Prim(Prim::Qubit) || callable.output == Ty::UNIT {
+            Vec::new()
+        } else {
+            vec![DynamismSource::Intrinsic]
+        };
     let inherent_properties = ComputeProperties {
         runtime_capabilities: RuntimeCapabilityFlags::empty(),
-        quantum_source,
+        dynamism_sources,
     };
 
     // Calculate the properties for all parameters.
@@ -605,16 +604,16 @@ fn create_instrinsic_operation_compute_properties<'a>(
         let param_runtime_capabilities = derive_runtime_capabilities_from_type(&param.ty);
 
         // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
-        // dynamic the output of the operation is dynamic. Therefore, this operation becomes a quantum source for all
-        // dynamic params if its output is non-unit.
-        let quantum_source = if callable.output == Ty::UNIT {
-            None
+        // dynamic the output of the operation is dynamic. Therefore, this operation becomes a source of dynamism for
+        // all dynamic params if its output is non-unit.
+        let dynamism_sources = if callable.output == Ty::UNIT {
+            Vec::new()
         } else {
-            Some(QuantumSource::Intrinsic)
+            vec![DynamismSource::Intrinsic]
         };
         let param_compute_properties = ComputeProperties {
             runtime_capabilities: param_runtime_capabilities,
-            quantum_source,
+            dynamism_sources,
         };
         dynamic_params_properties.push(param_compute_properties);
     }
