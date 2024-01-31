@@ -10,45 +10,37 @@ namespace Test {
     operation TestPlusState(): Unit {
         use q = Qubit();
         PreparePureStateD([Sqrt(0.5), Sqrt(0.5)], [q]);
+        DumpMachine();
         // Ucompute plus
         H(q);
-        if ( not CheckZero(q) ) {
-            fail "|+> preparation failed.";
-        }
     }
 
     operation TestMinusState(): Unit {
         use q = Qubit();
         PreparePureStateD([Sqrt(0.5), -Sqrt(0.5)], [q]);
+        DumpMachine();
         // Ucompute minus
         H(q);
         X(q);
-        if ( not CheckZero(q) ) {
-            fail "|-> preparation failed.";
-        }
     }
 
     operation TestBellState(): Unit {
         use q = Qubit[2];
         PreparePureStateD([Sqrt(0.5), 0.0, 0.0, Sqrt(0.5)], q);
+        DumpMachine();
         // Ucompute Bell
         CNOT(q[0], q[1]);
         H(q[0]);
-        if ( not CheckAllZero(q) ) {
-            fail "Bell state preparation failed.";
-        }
     }
 
     operation TestCat3State(): Unit {
         use q = Qubit[3];
         PreparePureStateD([Sqrt(0.5), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Sqrt(0.5)], q);
+        DumpMachine();
         // Ucompute Cat
         CNOT(q[0], q[2]);
         CNOT(q[0], q[1]);
         H(q[0]);
-        if ( not CheckAllZero(q) ) {
-            fail "Cat state preparation failed.";
-        }
     }
 
     operation PrepareComplex(qs : Qubit[]) : Unit is Adj {
@@ -65,10 +57,8 @@ namespace Test {
         let c10 = ComplexPolar(0.5, PI()/2.0);
         let c11 = ComplexPolar(0.5, 3.0*PI()/4.0);
         ApproximatelyPreparePureStateCP(0.0, [c00, c01, c10, c11], q);
+        DumpMachine();
         Adjoint PrepareComplex(q);
-        if ( not CheckAllZero(q) ) {
-            fail "Complex state preparation failed.";
-        }
     }
 
     operation TestPreparationCompletion(): Unit {
@@ -97,39 +87,20 @@ namespace Test {
             let N = Ceiling(Log(IntAsDouble(L))/LogOf2() - 0.001);
             use q = Qubit[N];
             PreparePureStateD(coefficients, q);
-            // NOTE: We cannot check that the state is actually correct.
-            if CheckAllZero(q) {
-                fail "Failed to prepare pure state. L={L}, N={N}, coefficients={coefficients}.";
-            }
+            DumpMachine();
             Adjoint PreparePureStateD(coefficients, q);
-            if not CheckAllZero(q) {
-                fail "Failed to prepare and unprepare pure state. L={L}, N={N}, coefficients={coefficients}.";
-            }
         }
-    }
-
-    operation CheckEndianness(attempts: Int, number: Int, qs: Qubit[]): Unit {
-        let n = Length(qs);
-        for attempt in 1..attempts {
-            mutable c = Repeated(0.0, 2^n);
-            set c w/= number <- 1.0;
-            PreparePureStateD(c, qs);
-            let measured = MeasureInteger(Reversed(qs));
-            if number == measured {
-                return ();
-            }
-        }
-        fail "Incorrect endianness in state preparation."
     }
 
     operation TestEndianness(): Unit {
         let n = 4;
         use qs = Qubit[n];
-        for i in 0..2^n-1 {
-            // Assuming infinite precision we should always get correct state prepared.
-            // However, state may deviate slightly due to using Doubles. So we repeat
-            // several times if we cannot get correct state on the first try.
-            CheckEndianness(10, i, qs);
+        let bitsize = 2^n;
+        for i in 0..bitsize-1 {
+            mutable c = Repeated(0.0, bitsize);
+            set c w/= i <- 1.0;
+            PreparePureStateD(c, qs);
+            DumpMachine();
             ResetAll(qs);
         }
     }

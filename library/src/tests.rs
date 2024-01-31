@@ -26,12 +26,12 @@ use qsc::{
 /// Will panic if compilation fails or the result is not the same as expected.
 /// NOTE: Floating point numbers in tuples are compared taking precision into
 /// account so that results of calculations can also be compared.
-pub fn test_expression(expr: &str, expected: &Value) {
-    test_expression_with_lib(expr, "", expected);
+pub fn test_expression(expr: &str, expected: &Value) -> String {
+    test_expression_with_lib(expr, "", expected)
 }
 
-pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) {
-    test_expression_with_lib_and_profile(expr, lib, Profile::Unrestricted, expected);
+pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) -> String {
+    test_expression_with_lib_and_profile(expr, lib, Profile::Unrestricted, expected)
 }
 
 pub fn test_expression_with_lib_and_profile(
@@ -39,7 +39,7 @@ pub fn test_expression_with_lib_and_profile(
     lib: &str,
     profile: Profile,
     expected: &Value,
-) {
+) -> String {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
 
@@ -68,6 +68,8 @@ pub fn test_expression_with_lib_and_profile(
         }
         (&expected, result) => assert_eq!(expected, &result),
     }
+
+    String::from_utf8(stdout).expect("stdout should be valid utf8")
 }
 
 /// # Panics
