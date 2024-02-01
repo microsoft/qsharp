@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::test_expression_with_lib;
 use super::test_expression;
+use super::test_expression_with_lib;
 use expect_test::expect;
 use qsc::interpret::Value;
 
@@ -38,7 +38,8 @@ fn check_minus_state_preparation() {
         STATE:
         |0⟩: 0.0000−0.7071𝑖
         |1⟩: 0.0000+0.7071𝑖
-    "#]].assert_eq(&out);
+    "#]]
+    .assert_eq(&out);
 }
 
 #[test]
@@ -53,7 +54,8 @@ fn check_bell_state_preparation() {
         STATE:
         |00⟩: 0.7071+0.0000𝑖
         |11⟩: 0.7071+0.0000𝑖
-    "#]].assert_eq(&out);
+    "#]]
+    .assert_eq(&out);
 }
 
 #[test]
@@ -68,7 +70,8 @@ fn check_cat_state_preparation() {
         STATE:
         |000⟩: 0.7071+0.0000𝑖
         |111⟩: 0.7071+0.0000𝑖
-    "#]].assert_eq(&out);
+    "#]]
+    .assert_eq(&out);
 }
 
 #[test]
@@ -85,7 +88,8 @@ fn check_complex_preparation() {
         |01⟩: 0.4619−0.1913𝑖
         |10⟩: 0.4619+0.1913𝑖
         |11⟩: 0.1913+0.4619𝑖
-    "#]].assert_eq(&out);
+    "#]]
+    .assert_eq(&out);
 }
 
 #[test]
@@ -181,7 +185,8 @@ fn check_preparation_completion() {
         |011⟩: −0.3083+0.1277𝑖
         |100⟩: 0.2770−0.1147𝑖
         |101⟩: 0.0781−0.0324𝑖
-    "#]].assert_eq(&out);
+    "#]]
+    .assert_eq(&out);
 }
 
 #[test]
@@ -225,7 +230,8 @@ fn check_preparation_endianness() {
         |1110⟩: 1.0000+0.0000𝑖
         STATE:
         |1111⟩: 1.0000+0.0000𝑖
-    "#]].assert_eq(&out);
+    "#]]
+    .assert_eq(&out);
 }
 
 #[test]
@@ -245,5 +251,6 @@ fn check_preparation_doc_sample() {
         STATE:
         |00⟩: 0.3536+0.0000𝑖
         |10⟩: 0.9354+0.0000𝑖
-    "#]].assert_eq(&out);
+    "#]]
+    .assert_eq(&out);
 }
