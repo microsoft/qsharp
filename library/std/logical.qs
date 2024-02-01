@@ -23,6 +23,6 @@ namespace Microsoft.Quantum.Logical {
     /// // result is true
     /// ```
     function Xor(first : Bool, second : Bool) : Bool {
-        (first or second) and ((not first) or (not second))
+        first != second
     }
 }
