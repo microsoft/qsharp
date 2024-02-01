@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use crate::display::increase_header_level;
 use crate::{compilation::Compilation, display::CodeDisplay};
 use qsc::hir::hir::{Item, ItemKind, Package, Visibility};
 use qsc::hir::PackageId;
@@ -42,7 +43,8 @@ fn with_doc(doc: &str, code: impl Display) -> String {
     if doc.is_empty() {
         code.to_string()
     } else {
-        format!("{doc}\n---\n{code}\n")
+        let doc = increase_header_level(doc);
+        format!("# {code}\n\n{doc}\n")
     }
 }
 
@@ -64,7 +66,7 @@ impl<'a> GenDocs<'a> {
                 v.iter()
                     .map(|i| self.item_to_content(i))
                     .collect::<Vec<_>>()
-                    .join("\n---\n\n"),
+                    .join("\n&nbsp;\n\n---\n\n&nbsp;\n\n"),
             )
             .expect("Unable to write file");
         }

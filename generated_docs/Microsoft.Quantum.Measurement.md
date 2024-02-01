@@ -1,111 +1,131 @@
-# Summary
+# operation MeasureAllZ(register : Qubit[]) : Result
+
+## Summary
 Jointly measures a register of qubits in the Pauli Z basis.
 
-# Description
+## Description
 Measures a register of qubits in the `Z ⊗ Z ⊗ ••• ⊗ Z`
 basis, representing the parity of the entire register.
 
-# Input
-## register
+## Input
+### register
 The register to be measured.
 
-# Output
+## Output
 The result of measuring `Z ⊗ Z ⊗ ••• ⊗ Z`.
 
-# Remarks
+## Remarks
 This operation does not reset the measured qubits to the |0⟩ state,
 leaving them in the state that corresponds to the measurement result.
----
-operation MeasureAllZ(register : Qubit[]) : Result
+
+&nbsp;
 
 ---
 
-# Summary
+&nbsp;
+
+# operation MeasureEachZ(register : Qubit[]) : Result[]
+
+## Summary
 Measures each qubit in a given array in the standard basis.
-# Input
-## targets
+## Input
+### targets
 An array of qubits to be measured.
-# Output
+## Output
 An array of measurement results.
 
-# Remarks
+## Remarks
 This operation does not reset the measured qubits to the |0⟩ state,
 leaving them in the state that corresponds to the measurement results.
----
-operation MeasureEachZ(register : Qubit[]) : Result[]
+
+&nbsp;
 
 ---
 
-# Summary
+&nbsp;
+
+# operation MResetEachZ(register : Qubit[]) : Result[]
+
+## Summary
 Measures each qubit in a given array in the Z basis
 and resets them to a fixed initial state.
-# Input
-## targets
+## Input
+### targets
 An array of qubits to be measured.
-# Output
+## Output
 An array of measurement results.
----
-operation MResetEachZ(register : Qubit[]) : Result[]
+
+&nbsp;
 
 ---
 
-# Summary
+&nbsp;
+
+# operation MResetX(target : Qubit) : Result
+
+## Summary
 Measures a single qubit in the X basis,
 and resets it to a fixed initial state
 following the measurement.
 
-# Description
+## Description
 Performs a single-qubit measurement in the X-basis,
 and ensures that the qubit is returned to |0⟩
 following the measurement.
 
-# Input
-## target
+## Input
+### target
 A single qubit to be measured.
 
-# Output
+## Output
 The result of measuring `target` in the Pauli X basis.
----
-operation MResetX(target : Qubit) : Result
+
+&nbsp;
 
 ---
 
-# Summary
+&nbsp;
+
+# operation MResetY(target : Qubit) : Result
+
+## Summary
 Measures a single qubit in the Y basis,
 and resets it to a fixed initial state
 following the measurement.
 
-# Description
+## Description
 Performs a single-qubit measurement in the Y-basis,
 and ensures that the qubit is returned to |0⟩
 following the measurement.
 
-# Input
-## target
+## Input
+### target
 A single qubit to be measured.
 
-# Output
+## Output
 The result of measuring `target` in the Pauli Y basis.
----
-operation MResetY(target : Qubit) : Result
+
+&nbsp;
 
 ---
 
-# Summary
+&nbsp;
+
+# operation MResetZ(target : Qubit) : Result
+
+## Summary
 Measures a single qubit in the Z basis,
 and resets it to a fixed initial state
 following the measurement.
 
-# Description
+## Description
 Performs a single-qubit measurement in the Z-basis,
 and ensures that the qubit is returned to |0⟩
 following the measurement.
 
-# Input
-## target
+## Input
+### target
 A single qubit to be measured.
 
-# Output
+## Output
 The result of measuring `target` in the Pauli Z basis.
----
-operation MResetZ(target : Qubit) : Result
