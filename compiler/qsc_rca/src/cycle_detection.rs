@@ -5,16 +5,14 @@ use crate::data_structures::{
     derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
     CallableSpecializationId, CallableVariable, CallableVariableKind, FunctorApplication,
 };
-
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Functor, Item, ItemId,
         ItemKind, LocalItemId, NodeId, Package, PackageId, PackageLookup, Pat, PatId, PatKind, Res,
-        SpecDecl, Stmt, StmtId, StmtKind, UnOp,
+        SpecDecl, Stmt, StmtId, StmtKind, StringComponent, UnOp,
     },
     visit::Visitor,
 };
-
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
 
@@ -310,6 +308,25 @@ impl<'a> CycleDetector<'a> {
         self.walk_spec_decl(callable_specialization_id, spec_decl);
     }
 
+    fn walk_call_expr(&mut self, callee: ExprId, args: ExprId) {
+        // Visit the arguments expression in case it triggers a call already in the stack.
+        self.visit_expr(args);
+
+        // Visit the callee if it resolves to a concrete callable.
+        if let Some(callable_specialization_id) = self.resolve_callee(callee) {
+            let item = self.package.get_item(callable_specialization_id.callable);
+            match &item.kind {
+                ItemKind::Callable(callable_decl) => {
+                    self.walk_callable_decl(callable_specialization_id, callable_decl)
+                }
+                ItemKind::Namespace(_, _) => panic!("calls to namespaces are invalid"),
+                ItemKind::Ty(_, _) => {
+                    // Ignore "calls" to types.
+                }
+            }
+        }
+    }
+
     fn walk_spec_decl(
         &mut self,
         callable_specialization_id: CallableSpecializationId,
@@ -342,6 +359,11 @@ impl<'a> CycleDetector<'a> {
         self.stack.push(callable_specialization_id);
         self.visit_spec_decl(spec_decl);
         _ = self.stack.pop();
+    }
+
+    fn walk_local_stmt(&mut self, pat_id: PatId, expr_id: ExprId) {
+        self.map_pat_to_expr(pat_id, expr_id);
+        self.visit_expr(expr_id);
     }
 }
 
@@ -377,25 +399,68 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
 
     fn visit_expr(&mut self, expr_id: ExprId) {
         let expr = self.get_expr(expr_id);
-        // We are only interested in call expressions.
-        if let ExprKind::Call(callee, _) = expr.kind {
-            // TODO (cesarzc): if passing any function, it needs to check whether the function being passed is already
-            // in the stack.
-            // Example of this behavior: Microsoft.Quantum.Arrays.Sorted.
-
-            // Visit the callee only if it resolves to a local specialization.
-            if let Some(callable_specialization_id) = self.resolve_callee(callee) {
-                let item = self.package.get_item(callable_specialization_id.callable);
-                match &item.kind {
-                    ItemKind::Callable(callable_decl) => {
-                        self.walk_callable_decl(callable_specialization_id, callable_decl)
-                    }
-                    ItemKind::Namespace(_, _) => panic!("calls to namespaces are invalid"),
-                    ItemKind::Ty(_, _) => {
-                        // Ignore "calls" to types.
+        match &expr.kind {
+            ExprKind::Array(exprs) => exprs.iter().for_each(|e| self.visit_expr(*e)),
+            ExprKind::ArrayRepeat(item, size) => {
+                self.visit_expr(*item);
+                self.visit_expr(*size);
+            }
+            ExprKind::Assign(lhs, rhs)
+            | ExprKind::AssignOp(_, lhs, rhs)
+            | ExprKind::BinOp(_, lhs, rhs) => {
+                self.visit_expr(*lhs);
+                self.visit_expr(*rhs);
+            }
+            ExprKind::AssignField(record, _, replace)
+            | ExprKind::UpdateField(record, _, replace) => {
+                self.visit_expr(*record);
+                self.visit_expr(*replace);
+            }
+            ExprKind::AssignIndex(array, index, replace) => {
+                self.visit_expr(*array);
+                self.visit_expr(*index);
+                self.visit_expr(*replace);
+            }
+            ExprKind::Block(block) => self.visit_block(*block),
+            ExprKind::Call(callee, args) => self.walk_call_expr(*callee, *args),
+            ExprKind::Fail(msg) => self.visit_expr(*msg),
+            ExprKind::Field(record, _) => self.visit_expr(*record),
+            ExprKind::If(cond, body, otherwise) => {
+                self.visit_expr(*cond);
+                self.visit_expr(*body);
+                otherwise.iter().for_each(|e| self.visit_expr(*e));
+            }
+            ExprKind::Index(array, index) => {
+                self.visit_expr(*array);
+                self.visit_expr(*index);
+            }
+            ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
+                self.visit_expr(*expr);
+            }
+            ExprKind::Range(start, step, end) => {
+                start.iter().for_each(|s| self.visit_expr(*s));
+                step.iter().for_each(|s| self.visit_expr(*s));
+                end.iter().for_each(|e| self.visit_expr(*e));
+            }
+            ExprKind::String(components) => {
+                for component in components {
+                    match component {
+                        StringComponent::Expr(expr) => self.visit_expr(*expr),
+                        StringComponent::Lit(_) => {}
                     }
                 }
             }
+            ExprKind::UpdateIndex(e1, e2, e3) => {
+                self.visit_expr(*e1);
+                self.visit_expr(*e2);
+                self.visit_expr(*e3);
+            }
+            ExprKind::Tuple(exprs) => exprs.iter().for_each(|e| self.visit_expr(*e)),
+            ExprKind::While(cond, block) => {
+                self.visit_expr(*cond);
+                self.visit_block(*block);
+            }
+            ExprKind::Closure(_, _) | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_, _) => {}
         }
     }
 
@@ -480,7 +545,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         match &stmt.kind {
             StmtKind::Item(_) => {}
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => self.visit_expr(*expr_id),
-            StmtKind::Local(_, pat_id, expr_id) => self.map_pat_to_expr(*pat_id, *expr_id),
+            StmtKind::Local(_, pat_id, expr_id) => self.walk_local_stmt(*pat_id, *expr_id),
         }
     }
 }
