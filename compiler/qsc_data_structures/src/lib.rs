@@ -7,3 +7,4 @@
 pub mod index_map;
 pub mod line_column;
 pub mod span;
+pub mod language_features;

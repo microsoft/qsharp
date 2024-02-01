@@ -98,7 +98,7 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities);
+    let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities, todo!("add CLI flag"));
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");
 

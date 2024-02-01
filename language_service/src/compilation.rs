@@ -12,6 +12,7 @@ use qsc::{
     target::Profile,
     CompileUnit, PackageStore, PackageType, SourceMap,
 };
+use qsc_data_structures::language_features::LanguageFeatures;
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -64,6 +65,7 @@ impl Compilation {
             source_map,
             package_type,
             target_profile.into(),
+            LanguageFeatures::none()
         );
 
         let package_id = package_store.insert(unit);
@@ -87,6 +89,7 @@ impl Compilation {
             SourceMap::default(),
             PackageType::Lib,
             target_profile.into(),
+            LanguageFeatures::none(),
         )
         .expect("expected incremental compiler creation to succeed");
 

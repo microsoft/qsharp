@@ -85,6 +85,7 @@ fn _get_qir(sources: SourceMap) -> Result<String, String> {
         sources,
         PackageType::Exe,
         Profile::Base.into(),
+        todo!("get language features from manifest or flags")
     );
 
     // Ensure it compiles before trying to add it to the store.
@@ -146,6 +147,7 @@ pub fn get_hir(code: &str) -> String {
             sources,
             PackageType::Exe,
             Profile::Unrestricted.into(),
+            todo!("get language features from wasm")
         );
         unit.package
     });

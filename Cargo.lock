@@ -440,6 +440,7 @@ version = "0.0.0"
 dependencies = [
  "libfuzzer-sys",
  "qsc",
+ "qsc_data_structures",
 ]
 
 [[package]]
@@ -943,6 +944,7 @@ version = "0.0.0"
 dependencies = [
  "expect-test",
  "miette",
+ "serde",
 ]
 
 [[package]]
@@ -1040,6 +1042,7 @@ dependencies = [
  "async-trait",
  "expect-test",
  "miette",
+ "qsc_data_structures",
  "qsc_project",
  "regex-lite",
  "serde",
@@ -1101,6 +1104,7 @@ dependencies = [
  "log",
  "miette",
  "qsc",
+ "qsc_data_structures",
  "qsc_project",
  "regex-lite",
  "rustc-hash",

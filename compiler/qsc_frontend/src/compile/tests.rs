@@ -5,11 +5,11 @@
 
 use crate::compile::RuntimeCapabilityFlags;
 
-use super::{compile, Error, PackageStore, SourceMap};
+use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use qsc_hir::{
     global,
     hir::{
@@ -52,6 +52,15 @@ fn source_span<'a>(sources: &'a SourceMap, error: &Error) -> (&'a str, Span) {
     )
 }
 
+/// runs a compile with the default configuration
+fn default_compile(sources: SourceMap) -> CompileUnit {
+  compile(
+        &PackageStore::new(super::core()),
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(), LanguageFeatures::none())
+}
+
 #[test]
 fn one_file_no_entry() {
     let sources = SourceMap::new(
@@ -67,12 +76,7 @@ fn one_file_no_entry() {
         None,
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit = default_compile(sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = unit.package.entry.as_ref();
@@ -96,12 +100,7 @@ fn one_file_error() {
         None,
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -139,12 +138,7 @@ fn two_files_dependency() {
         None,
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -178,12 +172,7 @@ fn two_files_mutual_dependency() {
         None,
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -215,12 +204,7 @@ fn two_files_error() {
         None,
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -251,12 +235,7 @@ fn entry_call_operation() {
         Some("Foo.A()".into()),
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 
     let entry = &unit.package.entry.expect("package should have entry");
@@ -290,12 +269,7 @@ fn entry_error() {
         Some("Foo.B()".into()),
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
     assert_eq!(
         ("<entry>", Span { lo: 4, hi: 5 }),
         source_span(&unit.sources, &unit.errors[0])
@@ -332,12 +306,7 @@ fn replace_node() {
         None,
     );
 
-    let mut unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let mut unit =  default_compile(sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     Replacer.visit_package(&mut unit.package);
     unit.assigner.visit_package(&mut unit.package);
@@ -419,7 +388,7 @@ fn insert_core_call() {
     );
 
     let store = PackageStore::new(super::core());
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
+    let mut unit =  default_compile(sources);
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
     let mut inserter = Inserter { core: store.core() };
     inserter.visit_package(&mut unit.package);
@@ -465,7 +434,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -483,7 +452,7 @@ fn package_dependency() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
     expect![[r#"
@@ -526,7 +495,7 @@ fn package_dependency_internal_error() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -544,7 +513,7 @@ fn package_dependency_internal_error() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
 
     let errors: Vec<_> = unit2
         .errors
@@ -594,7 +563,7 @@ fn package_dependency_udt() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -612,7 +581,7 @@ fn package_dependency_udt() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
     expect![[r#"
@@ -657,7 +626,7 @@ fn package_dependency_nested_udt() {
         )],
         None,
     );
-    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all());
+    let unit1 = compile(&store, &[], sources1, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
 
@@ -680,7 +649,7 @@ fn package_dependency_nested_udt() {
         )],
         None,
     );
-    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all());
+    let unit2 = compile(&store, &[package1], sources2, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
     expect![[r#"
@@ -754,7 +723,7 @@ fn std_dependency() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all());
+    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -780,7 +749,7 @@ fn std_dependency_base_profile() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::empty());
+    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::empty(), LanguageFeatures::none());
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
 
@@ -802,7 +771,7 @@ fn introduce_prelude_ambiguity() {
         Some("Foo.Main()".into()),
     );
 
-    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all());
+    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     let errors: Vec<Error> = unit.errors;
     assert!(
         errors.len() == 1
@@ -825,12 +794,7 @@ fn entry_parse_error() {
         Some("Foo.B)".into()),
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
 
     assert_eq!(
         unit.errors[0]
@@ -856,12 +820,7 @@ fn two_files_error_eof() {
         None,
     );
 
-    let unit = compile(
-        &PackageStore::new(super::core()),
-        &[],
-        sources,
-        RuntimeCapabilityFlags::all(),
-    );
+    let unit =  default_compile(sources);
     let errors: Vec<_> = unit
         .errors
         .iter()
@@ -895,7 +854,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         None,
     );
     let mut store = PackageStore::new(super::core());
-    let lib = compile(&store, &[], lib_sources, RuntimeCapabilityFlags::all());
+    let lib = compile(&store, &[], lib_sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
     let lib = store.insert(lib);
 
@@ -914,7 +873,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         )],
         None,
     );
-    let unit = compile(&store, &[lib], sources, RuntimeCapabilityFlags::all());
+    let unit = compile(&store, &[lib], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     expect![[r#"
         [
             Error(
@@ -952,7 +911,7 @@ fn unimplemented_attribute_call_within_unit_error() {
         None,
     );
     let store = PackageStore::new(super::core());
-    let unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
+    let unit =  default_compile(sources);
     expect![[r#"
         [
             Error(
@@ -987,7 +946,7 @@ fn unimplemented_attribute_with_non_unit_expr_error() {
         None,
     );
     let store = PackageStore::new(super::core());
-    let unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
+    let unit =  default_compile(sources);
     expect![[r#"
         [
             Error(
@@ -1022,7 +981,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         None,
     );
     let mut store = PackageStore::new(super::core());
-    let lib = compile(&store, &[], lib_sources, RuntimeCapabilityFlags::all());
+    let lib = compile(&store, &[], lib_sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
     let lib = store.insert(lib);
 
@@ -1045,7 +1004,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         )],
         None,
     );
-    let unit = compile(&store, &[lib], sources, RuntimeCapabilityFlags::all());
+    let unit = compile(&store, &[lib], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     expect![[r#"
         []
     "#]]

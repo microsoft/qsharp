@@ -3,6 +3,7 @@
 
 use crate::compile::{self, compile, core, std};
 use miette::Diagnostic;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
     compile::{OpenPackageStore, PackageStore, RuntimeCapabilityFlags, SourceMap},
     error::WithSource,
@@ -37,6 +38,7 @@ impl Compiler {
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
+        opt_in_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
         let core = core();
         let mut store = PackageStore::new(core);
@@ -47,7 +49,7 @@ impl Compiler {
             dependencies.push(id);
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities);
+        let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities, opt_in_features);
         if !errors.is_empty() {
             return Err(errors);
         }

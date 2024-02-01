@@ -16,6 +16,7 @@ use crate::{
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use num_bigint::BigInt;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir;
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
@@ -163,7 +164,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all());
+    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(
         store.core(),

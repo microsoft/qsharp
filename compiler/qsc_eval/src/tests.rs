@@ -11,6 +11,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir;
 use qsc_fir::fir::{ExprId, PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
@@ -58,7 +59,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all());
+    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(
         store.core(),

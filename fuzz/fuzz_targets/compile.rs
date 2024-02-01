@@ -6,6 +6,7 @@
 #[cfg(feature = "do_fuzz")]
 use libfuzzer_sys::fuzz_target;
 use qsc::{hir::PackageId, target::Profile, PackageStore, SourceMap};
+use qsc_data_structures::language_features::LanguageFeatures;
 
 fn compile(data: &[u8]) {
     if let Ok(fuzzed_code) = std::str::from_utf8(data) {
@@ -24,6 +25,7 @@ fn compile(data: &[u8]) {
                 sources,
                 qsc::PackageType::Lib,
                 Profile::Unrestricted.into(),
+                LanguageFeatures::none(),
             );
         });
     }

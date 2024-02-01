@@ -11,6 +11,7 @@ use std::{
 
 use serde::Deserialize;
 use std::{path::PathBuf, sync::Arc};
+use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
@@ -20,14 +21,9 @@ pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
     #[serde(default)]
-    pub features: Vec<LanguageFeature>
+    pub features: LanguageFeatures
 }
 
-#[derive(Deserialize, Clone, Debug)]
-#[serde(rename_all="kebab-case")]
-pub enum LanguageFeature {
-
-}
 
 /// Describes the contents and location of a Q# manifest file.
 #[derive(Debug)]

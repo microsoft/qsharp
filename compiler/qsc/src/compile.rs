@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use miette::{Diagnostic, Report};
+use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceMap},
     error::WithSource,
@@ -27,9 +28,9 @@ pub fn compile(
     sources: SourceMap,
     package_type: PackageType,
     capabilities: RuntimeCapabilityFlags,
-    opt_in_features: Vec<LanguageFeature>
+    opt_in_features: LanguageFeatures
 ) -> (CompileUnit, Vec<Error>) {
-    let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, capabilities);
+    let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, capabilities, opt_in_features);
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
         errors.push(WithSource::from_map(&unit.sources, error.into()));

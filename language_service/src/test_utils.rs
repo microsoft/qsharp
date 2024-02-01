@@ -12,6 +12,7 @@ use qsc::{
     target::Profile,
     PackageStore, PackageType, SourceMap, Span,
 };
+use qsc_data_structures::language_features::LanguageFeatures;
 
 pub(crate) fn compile_with_fake_stdlib_and_markers(
     source_with_markers: &str,
@@ -39,6 +40,7 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers(
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        LanguageFeatures::none(),
     );
 
     let package_id = package_store.insert(unit);
@@ -90,6 +92,7 @@ where
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),
+        LanguageFeatures::none(),
     )
     .expect("expected incremental compiler creation to succeed");
 
@@ -151,6 +154,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),
+        LanguageFeatures::none()
     );
     assert!(std_errors.is_empty());
     let std_package_id = package_store.insert(std_compile_unit);
