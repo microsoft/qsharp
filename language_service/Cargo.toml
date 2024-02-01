@@ -25,5 +25,19 @@ regex-lite = { workspace = true }
 qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
 async-trait = { workspace = true }
 
+# workspace dependencies cannot be optional, so we define it here
+lsp-server = { version = "0.7", optional = true } 
+lsp-types = { version = "0.95", optional = true }
+serde_json = { version = "1.0", optional = true }
+serde = { version = "1.0", optional = true }
+
+
+[features]
+lsp = ["lsp-server", "lsp-types", "serde_json", "serde"]
+
 [lib]
 doctest = false
+
+[[bin]]
+name = "qsharp-lsp"
+required-features = ["lsp"]
