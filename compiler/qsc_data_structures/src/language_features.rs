@@ -17,7 +17,6 @@ pub enum LanguageFeature {
 pub struct LanguageFeatures(BTreeSet<LanguageFeature>);
 pub type LanguageFeatureIncompatibility = miette::ErrReport;
 
-
 impl LanguageFeatures {
     /// Checks that the current set of language features is compatible and well-formed.
     /// Returns a descriptive error message if not.
@@ -58,7 +57,9 @@ impl ValueEnum for LanguageFeature {
 
     fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
         match self {
-            LanguageFeature::V2PreviewSyntax => Some(clap::builder::PossibleValue::new("v2-preview-syntax")),
+            LanguageFeature::V2PreviewSyntax => {
+                Some(clap::builder::PossibleValue::new("v2-preview-syntax"))
+            }
         }
     }
 }

@@ -18,7 +18,12 @@ use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
-    collections::BTreeSet, concat, fs, io::{self, Read}, path::{Path, PathBuf}, process::ExitCode, string::String
+    collections::BTreeSet,
+    concat, fs,
+    io::{self, Read},
+    path::{Path, PathBuf},
+    process::ExitCode,
+    string::String,
 };
 
 #[derive(Debug, Parser)]
@@ -54,8 +59,8 @@ struct Cli {
     qsharp_json: Option<PathBuf>,
 
     /// Language features to compile with
-    #[arg(short, long, default_value = "Vec::new()")]
-    features: Vec<LanguageFeature>
+    #[arg(short, long)]
+    features: Vec<LanguageFeature>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -96,11 +101,10 @@ fn main() -> miette::Result<ExitCode> {
             let mut project_sources = project.sources;
 
             sources.append(&mut project_sources);
-        
+
             features.merge(manifest.manifest.features);
 
             features.check_compatibility()?;
-
         }
     }
 

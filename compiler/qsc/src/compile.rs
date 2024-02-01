@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use miette::{Diagnostic, Report};
-use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceMap},
     error::WithSource,
