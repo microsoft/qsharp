@@ -162,7 +162,7 @@ enum StringKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum CommentKind {
+pub enum CommentKind {
     Normal,
     Doc,
 }
