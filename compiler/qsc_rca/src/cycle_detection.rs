@@ -21,6 +21,7 @@ use std::collections::hash_map::Entry;
 /// A callable that contains cycles in at least one of their specializations.
 /// Cycles can only happen within packages, that is why this struct does not have information to globally identify it in
 /// a package store.
+#[derive(Debug)]
 pub struct CycledCallableInfo {
     pub id: LocalItemId,
     pub is_body_cycled: bool,
@@ -170,6 +171,21 @@ impl<'a> CycleDetector<'a> {
 
     /// Uniquely resolves the callable specialization referenced in a callee expression.
     fn resolve_callee(&self, expr_id: ExprId) -> Option<CallableSpecializationId> {
+        // Resolves a block callee.
+        let resolve_block = |block_id: BlockId| -> Option<CallableSpecializationId> {
+            let block = self.package.get_block(block_id);
+            if let Some(return_stmt_id) = block.stmts.last() {
+                let return_stmt = self.package.get_stmt(*return_stmt_id);
+                if let StmtKind::Expr(return_expr_id) = return_stmt.kind {
+                    self.resolve_callee(return_expr_id)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        };
+
         // Resolves a closure callee.
         let resolve_closure = |local_item_id: LocalItemId| -> Option<CallableSpecializationId> {
             Some(CallableSpecializationId {
@@ -247,6 +263,7 @@ impl<'a> CycleDetector<'a> {
 
         let expr = self.get_expr(expr_id);
         match &expr.kind {
+            ExprKind::Block(block_id) => resolve_block(*block_id),
             ExprKind::Closure(_, local_item_id) => resolve_closure(*local_item_id),
             ExprKind::UnOp(operator, expr_id) => resolve_un_op(operator, *expr_id),
             ExprKind::Var(res, _) => match res {
@@ -254,7 +271,9 @@ impl<'a> CycleDetector<'a> {
                 Res::Local(node_id) => resolve_local(*node_id),
                 Res::Err => panic!("resolution should not be error"),
             },
-            _ => panic!("cannot determine callee from expression"),
+            // N.B. More complex callee expressions might require evaluation so we don't try to resolve them at compile
+            // time.
+            _ => None,
         }
     }
 

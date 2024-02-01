@@ -113,7 +113,6 @@ fn analyze_callable(
             id,
             callable,
             input_params.iter(),
-            package_store,
             package_store_compute_properties,
         ),
         CallableImpl::Spec(_) => analyze_non_intrinsic_callable_compute_properties(
@@ -212,7 +211,6 @@ fn analyze_intrinsic_callable_compute_properties<'a>(
     id: StoreItemId,
     callable: &CallableDecl,
     input_params: impl Iterator<Item = &'a InputParam>,
-    _package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) {
     // This function is only called when a callable has not already been analyzed.
