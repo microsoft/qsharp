@@ -44,11 +44,11 @@ pub(crate) fn get_format_changes(
 fn RemoveTrailingWhitespace(tokens: &[RawToken], contents: &str) -> Vec<TextEdit> {
     let mut edits = vec![];
 
-    let trailing_spaces = Regex::new(r"(?<spaces>[ \t]+)(?<newline>\n|\r\n)").unwrap();
+    let trailing_spaces = Regex::new(r"(?<spaces>[ \t]+)(?<newline>\n|(\r\n))").unwrap();
 
     for i in 0..tokens.len() {
         let curr = &tokens[i];
-        if matches!(curr.kind, RawTokenKind::Whitespace) {
+        if let RawTokenKind::Whitespace = &curr.kind {
             let lo: usize = curr.offset.try_into().unwrap();
             let hi: usize = if i + 1 < tokens.len() {
                 let next = &tokens[i + 1];
@@ -63,7 +63,8 @@ fn RemoveTrailingWhitespace(tokens: &[RawToken], contents: &str) -> Vec<TextEdit
                 let start = curr.offset + TryInto::<u32>::try_into(range.start).unwrap();
                 let end = curr.offset + TryInto::<u32>::try_into(range.end).unwrap();
                 edits.push(TextEdit {
-                    contents: String::new(),
+                    //contents: String::new(),
+                    contents: "!".repeat(length),
                     span: Span { start, end },
                 });
             }
