@@ -8,6 +8,7 @@ mod arrays;
 mod canon;
 mod convert;
 mod diagnostics;
+mod logical;
 mod math;
 mod measurement;
 mod table_lookup;
