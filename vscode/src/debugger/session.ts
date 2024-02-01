@@ -390,25 +390,34 @@ export class QscDebugSession extends LoggingDebugSession {
     // This will be replaced when the interpreter
     // supports shots.
     for (let i = 0; i < args.shots; i++) {
-      const result = await this.debugService.evalContinue(
-        bps,
-        this.eventTarget,
-      );
-      if (result.id != StepResultId.Return) {
-        await this.endSession(`execution didn't run to completion`, -1);
-        return;
-      }
-      this.writeToDebugConsole(`Finished shot ${i + 1} of ${args.shots}`);
-      // Reset the interpreter for the next shot.
-      // The interactive interpreter doesn't do this automatically,
-      // and doesn't know how to deal with shots like the stateless version.
-      await this.init(associationId);
-      if (this.failureMessage != "") {
-        log.info(
-          "compilation failed. sending error response and stopping execution.",
+      const success = await this.debugService
+        .evalContinue(bps, this.eventTarget)
+        .then(
+          async (result) => {
+            if (result.id != StepResultId.Return) {
+              await this.endSession(`execution didn't run to completion`, -1);
+              return false;
+            }
+            this.writeToDebugConsole(`Finished shot ${i + 1} of ${args.shots}`);
+            // Reset the interpreter for the next shot.
+            // The interactive interpreter doesn't do this automatically,
+            // and doesn't know how to deal with shots like the stateless version.
+            await this.init(associationId);
+            if (this.failureMessage != "") {
+              log.info(
+                "compilation failed. sending error response and stopping execution.",
+              );
+              this.writeToDebugConsole(this.failureMessage);
+              await this.endSession(`ending session`, -1);
+            }
+            return true;
+          },
+          async (error) => {
+            await this.endSession(`ending session due to error: ${error}`, 1);
+            return false;
+          },
         );
-        this.writeToDebugConsole(this.failureMessage);
-        await this.endSession(`ending session`, -1);
+      if (!success) {
         return;
       }
     }
