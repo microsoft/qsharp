@@ -59,7 +59,13 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
+    let mut unit = compile(
+        &store,
+        &[std_id],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(
         store.core(),

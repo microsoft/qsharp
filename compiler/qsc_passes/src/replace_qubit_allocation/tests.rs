@@ -11,7 +11,13 @@ use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
+    let mut unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     ReplaceQubitAllocation::new(store.core(), &mut unit.assigner).visit_package(&mut unit.package);
     Validator::default().visit_package(&unit.package);

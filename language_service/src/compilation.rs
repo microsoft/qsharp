@@ -65,7 +65,7 @@ impl Compilation {
             source_map,
             package_type,
             target_profile.into(),
-            LanguageFeatures::none()
+            LanguageFeatures::none(),
         );
 
         let package_id = package_store.insert(unit);

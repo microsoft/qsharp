@@ -26,7 +26,9 @@ use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::BaseProfSim;
 use qsc_data_structures::{
-    language_features::LanguageFeatures, line_column::{Encoding, Range}, span::Span
+    language_features::LanguageFeatures,
+    line_column::{Encoding, Range},
+    span::Span,
 };
 use qsc_eval::{
     backend::{Backend, SparseSim},
@@ -126,8 +128,14 @@ impl Interpreter {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = fir::PackageStore::new();
 
-        let compiler =
-            Compiler::new(std, sources, package_type, capabilities, LanguageFeatures::none()).map_err(into_errors)?;
+        let compiler = Compiler::new(
+            std,
+            sources,
+            package_type,
+            capabilities,
+            LanguageFeatures::none(),
+        )
+        .map_err(into_errors)?;
 
         for (id, unit) in compiler.package_store() {
             fir_store.insert(

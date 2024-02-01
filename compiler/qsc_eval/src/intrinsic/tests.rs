@@ -164,7 +164,13 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
+    let mut unit = compile(
+        &store,
+        &[std_id],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(
         store.core(),

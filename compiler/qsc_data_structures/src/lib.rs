@@ -5,6 +5,6 @@
 #![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 pub mod index_map;
+pub mod language_features;
 pub mod line_column;
 pub mod span;
-pub mod language_features;

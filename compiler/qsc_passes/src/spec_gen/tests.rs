@@ -15,7 +15,13 @@ use crate::spec_gen::generate_specs;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
+    let mut unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = generate_specs(store.core(), &mut unit.package, &mut unit.assigner);

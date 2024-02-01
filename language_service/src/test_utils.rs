@@ -154,7 +154,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),
-        LanguageFeatures::none()
+        LanguageFeatures::none(),
     );
     assert!(std_errors.is_empty());
     let std_package_id = package_store.insert(std_compile_unit);

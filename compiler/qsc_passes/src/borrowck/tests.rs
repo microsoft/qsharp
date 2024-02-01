@@ -14,7 +14,13 @@ use crate::borrowck::Checker;
 fn check(expr: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources: SourceMap = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
-    let unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
+    let unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let mut borrow_check = Checker::default();

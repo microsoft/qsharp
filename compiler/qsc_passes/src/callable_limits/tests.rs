@@ -14,7 +14,13 @@ use crate::callable_limits::CallableLimits;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
+    let unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let mut call_limits = CallableLimits::default();

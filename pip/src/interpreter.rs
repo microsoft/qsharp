@@ -86,7 +86,7 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             manifest: Manifest {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
-                features: todo!()
+                features: todo!(),
             },
             manifest_dir: manifest_dir.into(),
         }))

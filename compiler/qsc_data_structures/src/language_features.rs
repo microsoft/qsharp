@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-use serde::{Deserialize};
+use serde::Deserialize;
 #[derive(Deserialize, Clone, Debug)]
-#[serde(rename_all="kebab-case")]
+#[serde(rename_all = "kebab-case")]
 pub enum LanguageFeature {
     /// This language feature enables experimental syntax that will likely be stabilized in the next major version.
     /// It may include removals of outdated syntax and introductions of new syntax.
@@ -21,7 +21,9 @@ impl LanguageFeatures {
         Ok(())
     }
 
-    pub fn none() -> Self { Self(vec![])  }
+    pub fn none() -> Self {
+        Self(vec![])
+    }
 }
 
 impl Default for LanguageFeatures {

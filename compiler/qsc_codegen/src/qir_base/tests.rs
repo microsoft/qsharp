@@ -31,7 +31,13 @@ fn check(program: &str, expr: Option<&str>, expect: &Expect) {
     let expr_as_arc: Option<Arc<str>> = expr.map(|s| Arc::from(s.to_string()));
     let sources = SourceMap::new([("test".into(), program.into())], expr_as_arc);
 
-    let mut unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::empty(), LanguageFeatures::none());
+    let mut unit = compile(
+        &store,
+        &[std],
+        sources,
+        RuntimeCapabilityFlags::empty(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     assert!(run_default_passes(
         store.core(),

@@ -14,7 +14,13 @@ fn check(expr: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, RuntimeCapabilityFlags::all()));
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
-    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all(), LanguageFeatures::none());
+    let unit = compile(
+        &store,
+        &[std],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::none(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = check_base_profile_compliance(&unit.package);

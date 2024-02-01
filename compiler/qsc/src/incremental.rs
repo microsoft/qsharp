@@ -49,7 +49,14 @@ impl Compiler {
             dependencies.push(id);
         }
 
-        let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities, opt_in_features);
+        let (unit, errors) = compile(
+            &store,
+            &dependencies,
+            sources,
+            package_type,
+            capabilities,
+            opt_in_features,
+        );
         if !errors.is_empty() {
             return Err(errors);
         }

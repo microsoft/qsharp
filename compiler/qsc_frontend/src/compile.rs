@@ -23,7 +23,9 @@ use qsc_ast::{
     visit::Visitor as _,
 };
 use qsc_data_structures::{
-    index_map::{self, IndexMap}, language_features::{LanguageFeature, LanguageFeatures}, span::Span
+    index_map::{self, IndexMap},
+    language_features::{LanguageFeature, LanguageFeatures},
+    span::Span,
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
@@ -341,7 +343,7 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     capabilities: RuntimeCapabilityFlags,
-    opt_in_features: LanguageFeatures
+    opt_in_features: LanguageFeatures,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources);
 
@@ -411,7 +413,13 @@ pub fn core() -> CompileUnit {
         .collect();
     let sources = SourceMap::new(core, None);
 
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::empty(), LanguageFeatures::none());
+    let mut unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::empty(),
+        LanguageFeatures::none(),
+    );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -429,7 +437,13 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
         .collect();
     let sources = SourceMap::new(std, None);
 
-    let mut unit = compile(store, &[PackageId::CORE], sources, capabilities, LanguageFeatures::none());
+    let mut unit = compile(
+        store,
+        &[PackageId::CORE],
+        sources,
+        capabilities,
+        LanguageFeatures::none(),
+    );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
