@@ -9,6 +9,7 @@ use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_codegen::qir_base;
+use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use qsc_frontend::{
     compile::{PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName},
     error::WithSource,
@@ -17,11 +18,7 @@ use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
-    concat, fs,
-    io::{self, Read},
-    path::{Path, PathBuf},
-    process::ExitCode,
-    string::String,
+    collections::BTreeSet, concat, fs, io::{self, Read}, path::{Path, PathBuf}, process::ExitCode, string::String
 };
 
 #[derive(Debug, Parser)]
@@ -55,6 +52,10 @@ struct Cli {
     /// Path to a Q# manifest for a project
     #[arg(short, long)]
     qsharp_json: Option<PathBuf>,
+
+    /// Language features to compile with
+    #[arg(short, long, default_value = "Vec::new()")]
+    features: Vec<LanguageFeature>
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -79,6 +80,8 @@ fn main() -> miette::Result<ExitCode> {
         dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
     }
 
+    let mut features: LanguageFeatures = BTreeSet::from_iter(cli.features.into_iter()).into();
+
     let mut sources = cli
         .sources
         .iter()
@@ -93,6 +96,11 @@ fn main() -> miette::Result<ExitCode> {
             let mut project_sources = project.sources;
 
             sources.append(&mut project_sources);
+        
+            features.merge(manifest.manifest.features);
+
+            features.check_compatibility()?;
+
         }
     }
 
@@ -104,7 +112,7 @@ fn main() -> miette::Result<ExitCode> {
         sources,
         package_type,
         capabilities,
-        todo!("add CLI flag"),
+        features,
     );
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");

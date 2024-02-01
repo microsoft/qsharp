@@ -1,7 +1,11 @@
+use std::collections::{BTreeSet, HashSet};
+
+use clap::ValueEnum;
+use miette::Diagnostic;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 use serde::Deserialize;
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum LanguageFeature {
     /// This language feature enables experimental syntax that will likely be stabilized in the next major version.
@@ -10,8 +14,9 @@ pub enum LanguageFeature {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct LanguageFeatures(Vec<LanguageFeature>);
-pub struct LanguageFeatureIncompatibility(String);
+pub struct LanguageFeatures(BTreeSet<LanguageFeature>);
+pub type LanguageFeatureIncompatibility = miette::ErrReport;
+
 
 impl LanguageFeatures {
     /// Checks that the current set of language features is compatible and well-formed.
@@ -22,12 +27,38 @@ impl LanguageFeatures {
     }
 
     pub fn none() -> Self {
-        Self(vec![])
+        Self(Default::default())
+    }
+
+    pub fn merge(&mut self, other: impl Into<BTreeSet<LanguageFeature>>) {
+        self.0.append(&mut other.into());
+    }
+}
+impl Into<BTreeSet<LanguageFeature>> for LanguageFeatures {
+    fn into(self) -> BTreeSet<LanguageFeature> {
+        self.0
+    }
+}
+impl Into<LanguageFeatures> for BTreeSet<LanguageFeature> {
+    fn into(self) -> LanguageFeatures {
+        LanguageFeatures(self)
     }
 }
 
 impl Default for LanguageFeatures {
     fn default() -> Self {
         Self(Default::default())
+    }
+}
+
+impl ValueEnum for LanguageFeature {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[LanguageFeature::V2PreviewSyntax]
+    }
+
+    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
+        match self {
+            LanguageFeature::V2PreviewSyntax => Some(clap::builder::PossibleValue::new("v2-preview-syntax")),
+        }
     }
 }
