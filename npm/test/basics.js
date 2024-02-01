@@ -12,11 +12,11 @@ import {
   getLanguageService,
   getLanguageServiceWorker,
   getDebugServiceWorker,
+  utils,
 } from "../dist/main.js";
 import { QscEventTarget } from "../dist/compiler/events.js";
 import { getAllKatas, getExerciseSources, getKata } from "../dist/katas.js";
 import samples from "../dist/samples.generated.js";
-import { CreateIntegerTicks, CreateTimeTicks } from "../dist/ux/ticks.js";
 
 /** @type {import("../dist/log.js").TelemetryEvent[]} */
 const telemetryEvents = [];
@@ -1146,7 +1146,7 @@ function getLabels(ticks) {
 function runAndAssertIntegerTicks(min, max, expected) {
   const message = `min: ${min}, max: ${max}`;
   assert.deepStrictEqual(
-    getValues(CreateIntegerTicks(min, max)),
+    getValues(utils.CreateIntegerTicks(min, max)),
     expected,
     message,
   );
@@ -1155,7 +1155,7 @@ function runAndAssertIntegerTicks(min, max, expected) {
 function runAndAssertTimeTicks(min, max, expected) {
   const message = `min: ${min}, max: ${max}`;
   assert.deepStrictEqual(
-    getLabels(CreateTimeTicks(min, max)),
+    getLabels(utils.CreateTimeTicks(min, max)),
     expected,
     message,
   );
