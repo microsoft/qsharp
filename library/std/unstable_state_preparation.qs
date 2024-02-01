@@ -150,7 +150,8 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
             if (AbsD(arg) > tolerance) {
                 Exp([PauliI], -1.0 * arg, [register[idxTarget]]);
             }
-        } elif (AnyOutsideToleranceCP(tolerance, newCoefficients)) {
+        } elif (Any(c -> AbsComplexPolar(c) > tolerance, newCoefficients)) {
+            // Some coefficients are outside tolerance
             let newControl = (RangeStart(rngControl) + 1)..RangeStep(rngControl)..RangeEnd(rngControl);
             let newTarget = RangeStart(rngControl);
             ApproximatelyUnprepareArbitraryState(tolerance, newCoefficients, newControl, newTarget, register);
@@ -433,24 +434,10 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     }
 
     internal function AnyOutsideToleranceD(tolerance : Double, coefficients : Double[]) : Bool {
-        for coefficient in coefficients {
-            // NOTE: This function is not used in a recursion termination condition
-            // only to determine if the multiplex step needs to be applied.
-            // For tolerance 0.0 it is always applied due to >= comparison.
-            if AbsD(coefficient) >= tolerance {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    internal function AnyOutsideToleranceCP(tolerance : Double, coefficients : ComplexPolar[]) : Bool {
-        for coefficient in coefficients {
-            if AbsComplexPolar(coefficient) > tolerance {
-                return true;
-            }
-        }
-        return false;
+        // NOTE: This function is not used as the only recursion termination condition
+        // only to determine if the multiplex step needs to be applied.
+        // For tolerance 0.0 it is always applied due to >= comparison.
+        Any(coefficient -> AbsD(coefficient) >= tolerance, coefficients)
     }
 
 }
