@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use super::test_expression_with_lib;
+use super::test_expression;
 use expect_test::expect;
 use qsc::interpret::Value;
 
@@ -224,5 +225,25 @@ fn check_preparation_endianness() {
         |1110⟩: 1.0000+0.0000𝑖
         STATE:
         |1111⟩: 1.0000+0.0000𝑖
+    "#]].assert_eq(&out);
+}
+
+#[test]
+fn check_preparation_doc_sample() {
+    let out = test_expression(
+        "{
+        open Microsoft.Quantum.Math;
+        let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
+        use qubits = Qubit[2];
+        Microsoft.Quantum.Unstable.StatePreparation.PreparePureStateD(amplitudes, qubits);
+        Microsoft.Quantum.Diagnostics.DumpMachine();
+        ResetAll(qubits); }",
+        &Value::Tuple(vec![].into()),
+    );
+
+    expect![[r#"
+        STATE:
+        |00⟩: 0.3536+0.0000𝑖
+        |10⟩: 0.9354+0.0000𝑖
     "#]].assert_eq(&out);
 }

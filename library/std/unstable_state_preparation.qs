@@ -8,7 +8,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     open Microsoft.Quantum.Math;
 
     /// # Summary
-    /// Given a set of coefficients and a little-endian encoded quantum register,
+    /// Given a set of coefficients and a big-endian quantum register,
     /// prepares a state on that register described by the given coefficients.
     ///
     /// # Description
@@ -26,10 +26,10 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// # Input
     /// ## coefficients
     /// Array of up to 2ⁿ real coefficients. The j-th coefficient
-    /// indexes the number state |j⟩ encoded in little-endian format.
+    /// indexes the number state |j⟩ encoded in big-endian format.
     ///
     /// ## qubits
-    /// Qubit register encoding number states in little-endian format. This is
+    /// Qubit register encoding number states in a big-endian format. This is
     /// expected to be initialized in the computational basis state |0...0⟩.
     ///
     /// # Remarks
@@ -38,12 +38,11 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # Example
     /// The following snippet prepares the quantum state |𝜓⟩=√(1/8)|0⟩+√(7/8)|2⟩
-    /// in the qubit register `qubitsLE`.
+    /// in the qubit register `qubits`.
     /// ```qsharp
     /// let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
     /// use qubits = Qubit[2];
-    /// let qubitsLE = LittleEndian(qubits);
-    /// PreparePureStateD(amplitudes, qubitsLE);
+    /// PreparePureStateD(amplitudes, qubits);
     /// ```
     ///
     /// # References
@@ -59,7 +58,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     }
 
     /// # Summary
-    /// Given a set of coefficients and a little-endian encoded quantum register,
+    /// Given a set of coefficients and a big-endian quantum register,
     /// prepares a state on that register described by the given coefficients,
     /// up to a given approximation tolerance.
     ///
@@ -89,16 +88,15 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// ## coefficients
     /// Array of up to 2ⁿ complex coefficients represented by their
     /// absolute value and phase (rⱼ, tⱼ). The j-th coefficient
-    /// indexes the number state |j⟩ encoded in little-endian format.
+    /// indexes the number state |j⟩ encoded in a big-endian format.
     ///
     /// ## qubits
-    /// Qubit register encoding number states in little-endian format. This is
+    /// Qubit register encoding number states in a big-endian format. This is
     /// expected to be initialized in the computational basis state
     /// |0...0⟩.
     ///
     /// # Remarks
-    /// Negative input coefficients rⱼ < 0 will be treated as though
-    /// positive with value |rⱼ|. `coefficients` will be padded with
+    /// `coefficients` will be padded with
     /// elements (rⱼ, tⱼ) = (0.0, 0.0) if fewer than 2ⁿ are
     /// specified.
     ///
