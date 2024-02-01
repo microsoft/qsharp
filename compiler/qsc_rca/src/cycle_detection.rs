@@ -153,15 +153,20 @@ impl<'a> CycleDetector<'a> {
                 node_map.insert(
                     ident.id,
                     CallableVariable {
-                        node: ident.id,
                         pat: pat_id,
+                        node: ident.id,
                         ty: pat.ty.clone(),
                         kind: CallableVariableKind::Local(expr_id),
                     },
                 );
             }
-            PatKind::Tuple(_) => {
-                // TODO (cesarzc): implement correctly.
+            PatKind::Tuple(pats) => {
+                let expr = self.get_expr(expr_id);
+                if let ExprKind::Tuple(exprs) = &expr.kind {
+                    for (pat_id, expr_id) in pats.iter().zip(exprs.iter()) {
+                        self.map_pat_to_expr(*pat_id, *expr_id);
+                    }
+                }
             }
             PatKind::Discard => {}
         }

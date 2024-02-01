@@ -248,6 +248,38 @@ fn check_rca_for_indirect_chain_function_cycle() {
 }
 
 #[test]
+fn check_rca_for_indirect_tuple_function_cycle() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        function Foo(i: Int) : Int {
+            let (f, _) = (Foo, 0);
+            f(i)
+        }"#,
+    );
+
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(0x0)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: [Assumed]
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
 fn check_rca_for_indirect_closure_function_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
@@ -967,22 +999,243 @@ fn check_rca_for_multi_param_result_out_recursive_function() {
     );
 }
 
-#[ignore = "work in progress"]
 #[test]
-fn check_rca_for_operation_adj_recursion() {
-    let compilation_context = CompilationContext::new();
+fn check_rca_for_operation_body_recursion() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit {
+            Foo(q);
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_operation_body_adj_recursion() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit is Adj {
+            body ... {
+                Adjoint Foo(q);
+            }
+            adjoint ... { 
+                Foo(q);
+            }
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                adj: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_operation_body_ctl_recursion() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit is Ctl {
+            body ... {
+                Controlled Foo([], q);
+            }
+            controlled (_, ...) { 
+                Foo(q);
+            }
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                adj: <none>
+                ctl: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        [1]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[ignore = "work in progress"] // TODO (cesarzc): Needs regular specialization analysis working exhaustively.
+#[test]
+fn check_rca_for_operation_body_adj_ctl_recursion() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit is Adj + Ctl {
+            body ... {
+                Adjoint Foo(q);
+            }
+            adjoint ... { 
+                Controlled Foo([], q);
+            }
+            controlled (_, ...) { 
+                Foo(q);
+            }
+        }"#,
+    );
     write_fir_store_to_files(&compilation_context.fir_store); // TODO (cesarzc): Remove.
     write_compute_properties_to_files(&compilation_context.compute_properties); // TODO (cesarzc): Remove.
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![r#""#],
+    );
 }
 
-#[ignore = "work in progress"]
+#[ignore = "work in progress"] // TODO (cesarzc): Needs regular specialization analysis working exhaustively.
+#[test]
+fn check_rca_for_operation_adj_recursion() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit is Adj {
+            body ... {}
+            adjoint ... { 
+                Adjoint Foo(q);
+            }
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![r#""#],
+    );
+}
+
+#[ignore = "work in progress"] // TODO (cesarzc): Needs regular specialization analysis working exhaustively.
 #[test]
 fn check_rca_for_operation_ctl_recursion() {
-    let mut _compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit is Ctl {
+            body ... {}
+            controlled (cs, ...) { 
+                Controlled Foo(cs, q);
+            }
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![r#""#],
+    );
 }
 
-#[ignore = "work in progress"]
+#[ignore = "work in progress"] // TODO (cesarzc): Needs regular specialization analysis working exhaustively.
 #[test]
-fn check_rca_for_operation_ctl_adj_recursion() {
-    let mut _compilation_context = CompilationContext::new();
+fn check_rca_for_operation_multi_adjoint_functor_recursion() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit is Adj {
+            body ... {
+                Adjoint Adjoint Foo(q);
+            }
+            adjoint ... {}
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![r#""#],
+    );
+}
+
+#[test]
+fn check_rca_for_operation_multi_controlled_functor_recursion() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q: Qubit) : Unit is Ctl {
+            body ... {
+                Controlled Controlled Foo([], ([], q));
+            }
+            controlled (_, ...) { 
+                Foo(q);
+            }
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                adj: <none>
+                ctl: ApplicationsTable:
+                    inherent: ComputeProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                    dynamic_params_properties:
+                        [0]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        [1]: ComputeProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                ctl-adj: <none>"#
+        ],
+    );
 }

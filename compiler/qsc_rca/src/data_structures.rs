@@ -158,8 +158,8 @@ impl PartialOrd for CallableVariable {
 /// Kinds of callable variables.
 #[derive(Clone, Debug, Copy, Eq, PartialEq)]
 pub enum CallableVariableKind {
-    Local(ExprId),
     InputParam(InputParamIndex),
+    Local(ExprId),
 }
 
 /// Creates a map of a input parameters.

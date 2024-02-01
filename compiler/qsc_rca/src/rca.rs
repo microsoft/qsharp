@@ -70,6 +70,7 @@ pub fn analyze_package(
 
 fn analyze_block(
     id: StoreBlockId,
+    _input_params_count: usize,
     input_map: &FxHashMap<NodeId, CallableVariable>,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
@@ -265,12 +266,19 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         panic!("callable is assumed to have a specialized implementation");
     };
 
+    // The number of input params might differ from the size of the input map depending on how many discarded parameters
+    // are there.
+    let (_, callable_input_params_count) = input_params.size_hint();
+    let callable_input_params_count =
+        callable_input_params_count.expect("input params count should be known");
+    let callable_input_map = derive_callable_input_map(input_params);
+
     // Analyze each one of the specializations.
-    let input_map = derive_callable_input_map(input_params);
     let body = create_specialization_applications_table(
         id,
         &implementation.body,
-        &input_map,
+        callable_input_params_count,
+        &callable_input_map,
         package_store,
         package_store_compute_properties,
     );
@@ -278,7 +286,8 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         create_specialization_applications_table(
             id,
             specialization,
-            &input_map,
+            callable_input_params_count,
+            &callable_input_map,
             package_store,
             package_store_compute_properties,
         )
@@ -287,7 +296,8 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         create_specialization_applications_table(
             id,
             specialization,
-            &input_map,
+            callable_input_params_count,
+            &callable_input_map,
             package_store,
             package_store_compute_properties,
         )
@@ -296,7 +306,8 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         create_specialization_applications_table(
             id,
             specialization,
-            &input_map,
+            callable_input_params_count,
+            &callable_input_map,
             package_store,
             package_store_compute_properties,
         )
@@ -402,24 +413,29 @@ fn create_cycled_operation_compute_properties<'a>(
         panic!("a non-intrinsic callable is expected");
     };
 
+    // The number of input params might differ from the size of the input map depending on how many discarded parameters
+    // are there.
+    let (_, callable_input_params_count) = input_params.size_hint();
+    let callable_input_params_count =
+        callable_input_params_count.expect("input params count should be known");
+    let callable_input_map = derive_callable_input_map(input_params);
+
     // Create the compute properties for each one of the specializations.
     // When a specialization has call cycles, assume its properties. Otherwise, create the specialization applications
-    // table the same way that for any other specialization.
-    let input_map = derive_callable_input_map(input_params);
+    // table the same way we would do it for any other specialization.
     let mut create_specialization_applications_table_internal = |specialization, is_spec_cycled| {
         if is_spec_cycled {
             create_cycled_operation_specialization_applications_table(
-                callable_id,
                 specialization,
-                &input_map,
+                callable_input_params_count,
                 &callable.output,
-                package_store,
             )
         } else {
             create_specialization_applications_table(
                 callable_id,
                 specialization,
-                &input_map,
+                callable_input_params_count,
+                &callable_input_map,
                 package_store,
                 package_store_compute_properties,
             )
@@ -464,21 +480,10 @@ fn create_cycled_operation_compute_properties<'a>(
 }
 
 fn create_cycled_operation_specialization_applications_table(
-    callable_id: StoreItemId,
     specialization: &SpecDecl,
-    callable_input_map: &FxHashMap<NodeId, CallableVariable>,
+    callable_input_params_count: usize,
     output_type: &Ty,
-    package_store: &PackageStore,
 ) -> ApplicationsTable {
-    // We expand the input map for controlled specializations, which have its own additional input (the control qubit
-    // register).
-    let package_patterns = &package_store
-        .get(callable_id.package)
-        .expect("package should exist")
-        .pats;
-    let mut input_map =
-        create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
-
     // Since operations can allocate and measure qubits freely, we assume it requires all capabilities (encompassed by
     // the `CycledOperationSpecialization` runtime feature) and that they are a source of dynamism if they have a
     // non-unit output.
@@ -492,18 +497,19 @@ fn create_cycled_operation_specialization_applications_table(
         dynamism_sources,
     };
 
-    // Create compute properties for each dynamic parameter, which are the same than the inherent properties.
+    // Create compute properties for each dynamic parameter. These compute properties are the same than the inherent
+    // properties.
     let mut dynamic_params_properties = Vec::new();
-    input_map
-        .drain()
-        .map(|(_, callable_variable)| callable_variable)
-        .for_each(|callable_variable| {
-            let CallableVariableKind::InputParam(_) = callable_variable.kind else {
-                panic!("all callable variables should be input parameters at this point")
-            };
-            dynamic_params_properties.push(compute_properties.clone())
-        });
+    let specialization_input_params_count = if specialization.input.is_some() {
+        callable_input_params_count + 1
+    } else {
+        callable_input_params_count
+    };
+    for _ in 0..specialization_input_params_count {
+        dynamic_params_properties.push(compute_properties.clone());
+    }
 
+    // Finally, create the applications table.
     ApplicationsTable {
         inherent_properties: compute_properties,
         dynamic_params_properties,
@@ -644,6 +650,7 @@ fn create_instrinsic_operation_compute_properties<'a>(
 fn create_specialization_applications_table(
     callable_id: StoreItemId,
     specialization: &SpecDecl,
+    callable_input_params_count: usize,
     callable_input_map: &FxHashMap<NodeId, CallableVariable>,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
@@ -654,14 +661,23 @@ fn create_specialization_applications_table(
         .get(callable_id.package)
         .expect("package should exist")
         .pats;
-    let input_map =
+
+    // The number of input params for the specialization can be different from the size of the specialization input map
+    // depending on whether the specialization's input was discarded.
+    let specialization_input_params_count = if specialization.input.is_some() {
+        callable_input_params_count + 1
+    } else {
+        callable_input_params_count
+    };
+    let specialization_input_map =
         create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
 
     // Then we analyze the block.
     let block_id = (callable_id.package, specialization.block).into();
     analyze_block(
         block_id,
-        &input_map,
+        specialization_input_params_count,
+        &specialization_input_map,
         package_store,
         package_store_compute_properties,
     );
@@ -675,7 +691,8 @@ fn create_specialization_applications_table(
         }
         CallableElementComputeProperties::ApplicationIndependent(compute_properties) => {
             let inherent_properties = compute_properties.clone();
-            let dynamic_params_properties = vec![ComputeProperties::default(); input_map.len()];
+            let dynamic_params_properties =
+                vec![ComputeProperties::default(); callable_input_params_count];
             ApplicationsTable {
                 inherent_properties,
                 dynamic_params_properties,
@@ -700,17 +717,20 @@ fn create_specialization_input_map(
         let spec_input_pat = package_patterns
             .get(spec_input_pat_id)
             .expect("specialization input pattern should exist");
-        let PatKind::Bind(ident) = &spec_input_pat.kind else {
-            panic!("a specialization input is expected to be an identifier");
-        };
-        let spec_input_variable = CallableVariable {
-            node: ident.id,
-            pat: spec_input_pat_id,
-            ty: spec_input_pat.ty.clone(),
-            kind: CallableVariableKind::InputParam(InputParamIndex::from(0)),
-        };
         let mut input_map = FxHashMap::<NodeId, CallableVariable>::default();
-        input_map.insert(spec_input_variable.node, spec_input_variable);
+
+        // We are only interested in adding the specialization input to the map if it is actually binded to the
+        // specialization.
+        if let PatKind::Bind(ident) = &spec_input_pat.kind {
+            let spec_input_variable = CallableVariable {
+                node: ident.id,
+                pat: spec_input_pat_id,
+                ty: spec_input_pat.ty.clone(),
+                kind: CallableVariableKind::InputParam(InputParamIndex::from(0)),
+            };
+            input_map.insert(spec_input_variable.node, spec_input_variable);
+        };
+
         for (node_id, variable) in callable_input_map {
             let CallableVariableKind::InputParam(input_param_idx) = variable.kind else {
                 panic!("all callable input variables should be of the input parameter kind");
