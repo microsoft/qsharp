@@ -3,8 +3,8 @@
 
 use crate::{
     common::{
-        derive_callable_input_map, derive_callable_input_params, CallableVariable,
-        CallableVariableKind, InputParam, InputParamIndex,
+        derive_callable_input_map, derive_callable_input_params, initalize_locals_map,
+        CallableVariable, CallableVariableKind, InputParam, InputParamIndex, LocalsMap,
     },
     cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
     ApplicationsTable, CallableComputeProperties, CallableElementComputeProperties,
@@ -12,7 +12,7 @@ use crate::{
     PackageStoreComputeProperties, RuntimeFeatureFlags,
 };
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{Pat, PatId, PatKind, StoreBlockId};
+use qsc_fir::fir::{BlockId, ExprId, Pat, PatId, PatKind, StmtId, StoreBlockId};
 use qsc_fir::{
     fir::{
         CallableDecl, CallableImpl, CallableKind, Global, NodeId, PackageId, PackageStore,
@@ -21,6 +21,32 @@ use qsc_fir::{
     ty::{Prim, Ty},
 };
 use rustc_hash::FxHashMap;
+
+/// An instance of a callable application.
+#[derive(Debug, Default)]
+struct ApplicationInstance {
+    pub locals_map: LocalsMap,
+    pub compute_properties: ApplicationInstanceComputeProperties,
+}
+
+impl ApplicationInstance {
+    fn new(input_params: &Vec<InputParam>, dynamic_param_index: InputParamIndex) -> Self {
+        let locals_map = initalize_locals_map(input_params, Some(dynamic_param_index));
+        let compute_properties = ApplicationInstanceComputeProperties::default();
+        Self {
+            locals_map,
+            compute_properties,
+        }
+    }
+}
+
+/// The compute properties of a callable application instance.
+#[derive(Debug, Default)]
+struct ApplicationInstanceComputeProperties {
+    pub blocks: FxHashMap<BlockId, ComputeProperties>,
+    pub stmts: FxHashMap<StmtId, ComputeProperties>,
+    pub exprs: FxHashMap<ExprId, ComputeProperties>,
+}
 
 pub fn analyze_package(
     id: PackageId,

@@ -493,3 +493,10 @@ impl Display for DynamismSource {
         }
     }
 }
+
+/// The kind of compute associated to a program element.
+#[derive(Debug)]
+pub enum ComputeKind {
+    Static,
+    Dynamic,
+}

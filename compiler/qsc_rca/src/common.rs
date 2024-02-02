@@ -9,6 +9,8 @@ use qsc_fir::{
 use rustc_hash::FxHashMap;
 use std::{cmp::Ordering, ops};
 
+use crate::ComputeKind;
+
 /// The index corresponding to an input parameter node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct InputParamIndex(usize);
@@ -69,7 +71,56 @@ pub fn derive_callable_input_params(
     input_params
 }
 
+/// A represenation of a local symbol.
+#[derive(Debug)]
+pub struct Local {
+    pub node: NodeId,
+    pub pat: PatId,
+    pub ty: Ty,
+    pub kind: LocalKind,
+}
+
+/// Kinds of local symbols.
+#[derive(Debug)]
+pub enum LocalKind {
+    InputParam(InputParamIndex, ComputeKind),
+    Local(ExprId),
+}
+
+pub type LocalsMap = FxHashMap<NodeId, Local>;
+
+pub fn initalize_locals_map(
+    input_params: &Vec<InputParam>,
+    dynamic_param_index: Option<InputParamIndex>,
+) -> LocalsMap {
+    let mut locals_map = FxHashMap::<NodeId, Local>::default();
+    for param in input_params {
+        if let Some(node) = param.node {
+            let compute_kind = if let Some(dynamic_param_index) = dynamic_param_index {
+                if param.index == dynamic_param_index {
+                    ComputeKind::Dynamic
+                } else {
+                    ComputeKind::Static
+                }
+            } else {
+                ComputeKind::Static
+            };
+            locals_map.insert(
+                node,
+                Local {
+                    node,
+                    pat: param.pat,
+                    ty: param.ty.clone(),
+                    kind: LocalKind::InputParam(param.index, compute_kind),
+                },
+            );
+        }
+    }
+    locals_map
+}
+
 /// A represenation of a variable within a callable.
+// TODO (cesarzc): Remove.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CallableVariable {
     pub node: NodeId,
@@ -101,13 +152,14 @@ impl PartialOrd for CallableVariable {
 
 /// Kinds of callable variables.
 #[derive(Clone, Debug, Copy, Eq, PartialEq)]
+// TODO (cesarzc): Remove.
 pub enum CallableVariableKind {
     InputParam(InputParamIndex),
     Local(ExprId),
 }
 
 /// Creates a map of a input parameters.
-// TODO (cesarzc): Maybe this function is not needed anymore.
+// TODO (cesarzc): Remove.
 pub fn derive_callable_input_map<'a>(
     input_params: impl Iterator<Item = &'a InputParam>,
 ) -> FxHashMap<NodeId, CallableVariable> {
@@ -126,21 +178,6 @@ pub fn derive_callable_input_map<'a>(
         }
     }
     variable_map
-}
-
-/// The context in which statements and expression run.
-#[derive(Debug, Default)]
-pub struct RuntimeContext {
-    pub input_params: Option<Vec<InputParam>>,
-    pub variable_map: FxHashMap<NodeId, CallableVariable>,
-}
-
-pub fn create_specialization_runtime_context(
-    _callable_specialization_selector: CallableSpecializationSelector,
-    _package_store: &PackageStore,
-) -> RuntimeContext {
-    // TODO (cesarzc): Implement properly.
-    RuntimeContext::default()
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
