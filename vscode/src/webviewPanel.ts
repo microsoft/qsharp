@@ -16,6 +16,7 @@ import {
   WebviewPanel,
   WebviewPanelSerializer,
   window,
+  workspace,
 } from "vscode";
 import { isQsharpDocument } from "./common";
 import { loadProject } from "./projectSystem";
@@ -340,6 +341,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
           };
           sendMessageToPanel("histogram", false, message);
         });
+        await workspace.saveAll(false);
         const sources = await loadProject(editor.document.uri);
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});

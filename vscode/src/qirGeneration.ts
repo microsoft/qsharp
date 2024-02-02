@@ -49,6 +49,7 @@ export async function getQirForActiveWindow(): Promise<string> {
     }
   }
   let sources: [string, string][] = [];
+  await vscode.workspace.saveAll(false);
   try {
     sources = await loadProject(editor.document.uri);
   } catch (e: any) {
