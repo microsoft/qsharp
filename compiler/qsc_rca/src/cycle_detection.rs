@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_map, derive_callable_input_params, CallableSpecializationSelector,
-    CallableVariable, CallableVariableKind, SpecializationSelector,
+    derive_callable_input_params, initalize_locals_map, CallableSpecializationSelector, Local,
+    LocalKind, LocalsMap, SpecializationSelector,
 };
 use qsc_fir::{
     fir::{
@@ -118,7 +118,7 @@ struct CycleDetector<'a> {
     package_id: PackageId,
     package: &'a Package,
     stack: CallStack,
-    node_maps: FxHashMap<CallableSpecializationSelector, FxHashMap<NodeId, CallableVariable>>,
+    specializations_locals: FxHashMap<CallableSpecializationSelector, LocalsMap>,
     specializations_with_cycles: FxHashSet<CallableSpecializationSelector>,
 }
 
@@ -128,7 +128,7 @@ impl<'a> CycleDetector<'a> {
             package_id,
             package,
             stack: CallStack::default(),
-            node_maps: FxHashMap::default(),
+            specializations_locals: FxHashMap::default(),
             specializations_with_cycles: FxHashSet::<CallableSpecializationSelector>::default(),
         }
     }
@@ -146,17 +146,17 @@ impl<'a> CycleDetector<'a> {
         match &pat.kind {
             PatKind::Bind(ident) => {
                 let callable_specialization_id = self.stack.peak();
-                let node_map = self
-                    .node_maps
+                let locals_map = self
+                    .specializations_locals
                     .get_mut(callable_specialization_id)
                     .expect("node map should exist");
-                node_map.insert(
+                locals_map.insert(
                     ident.id,
-                    CallableVariable {
+                    Local {
                         pat: pat_id,
                         node: ident.id,
                         ty: pat.ty.clone(),
-                        kind: CallableVariableKind::Local(expr_id),
+                        kind: LocalKind::Local(expr_id),
                     },
                 );
             }
@@ -254,13 +254,13 @@ impl<'a> CycleDetector<'a> {
         let resolve_local = |node_id: NodeId| -> Option<CallableSpecializationSelector> {
             let callable_specialization_id = self.stack.peak();
             let node_map = self
-                .node_maps
+                .specializations_locals
                 .get(callable_specialization_id)
                 .expect("node map should exist");
             if let Some(callable_variable) = node_map.get(&node_id) {
                 match &callable_variable.kind {
-                    CallableVariableKind::InputParam(_) => None,
-                    CallableVariableKind::Local(expr_id) => self.resolve_callee(*expr_id),
+                    LocalKind::InputParam(_, _) => None,
+                    LocalKind::Local(expr_id) => self.resolve_callee(*expr_id),
                 }
             } else {
                 panic!("cannot determine callee from resolution")
@@ -348,7 +348,10 @@ impl<'a> CycleDetector<'a> {
         }
 
         // If this is the first time we are walking this specialization, create a node map for it.
-        if let Entry::Vacant(entry) = self.node_maps.entry(callable_specialization_id) {
+        if let Entry::Vacant(entry) = self
+            .specializations_locals
+            .entry(callable_specialization_id)
+        {
             let ItemKind::Callable(callable_decl) = &self
                 .package
                 .get_item(callable_specialization_id.callable)
@@ -358,8 +361,8 @@ impl<'a> CycleDetector<'a> {
             };
 
             let input_params = derive_callable_input_params(callable_decl, &self.package.pats);
-            let input_map = derive_callable_input_map(input_params.iter());
-            entry.insert(input_map);
+            let locals_map = initalize_locals_map(&input_params, None);
+            entry.insert(locals_map);
         }
 
         // Push the callable specialization to the stack, visit it and then pop it.

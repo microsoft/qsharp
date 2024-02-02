@@ -3,11 +3,10 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{CallableDecl, ExprId, LocalItemId, NodeId, PackageStore, Pat, PatId, PatKind},
+    fir::{CallableDecl, ExprId, LocalItemId, NodeId, Pat, PatId, PatKind, SpecDecl},
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
-use std::{cmp::Ordering, ops};
 
 use crate::ComputeKind;
 
@@ -15,22 +14,8 @@ use crate::ComputeKind;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct InputParamIndex(usize);
 
-impl ops::Add<usize> for InputParamIndex {
-    type Output = InputParamIndex;
-
-    fn add(self, rhs: usize) -> InputParamIndex {
-        InputParamIndex(self.0 + rhs)
-    }
-}
-
-impl From<usize> for InputParamIndex {
-    fn from(value: usize) -> Self {
-        InputParamIndex(value)
-    }
-}
-
 /// An input parameter node.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InputParam {
     pub index: InputParamIndex,
     pub pat: PatId,
@@ -42,24 +27,24 @@ pub fn derive_callable_input_params(
     callable: &CallableDecl,
     pats: &IndexMap<PatId, Pat>,
 ) -> Vec<InputParam> {
-    let input_elements = derive_callable_input_elements(callable, pats);
+    let input_elements = derive_callable_input_pattern_elements(callable, pats);
     let mut input_params = Vec::new();
     let mut param_index = InputParamIndex(0);
     for element in input_elements {
         let maybe_input_param = match &element.kind {
-            CallableInputElementKind::Discard => Some(InputParam {
+            InputPatternElementKind::Discard => Some(InputParam {
                 index: param_index,
                 pat: element.pat,
                 ty: element.ty.clone(),
                 node: None,
             }),
-            CallableInputElementKind::Node(node_id) => Some(InputParam {
+            InputPatternElementKind::Node(node_id) => Some(InputParam {
                 index: param_index,
                 pat: element.pat,
                 ty: element.ty.clone(),
                 node: Some(*node_id),
             }),
-            CallableInputElementKind::Tuple(_) => None,
+            InputPatternElementKind::Tuple(_) => None,
         };
 
         if let Some(input_param) = maybe_input_param {
@@ -69,6 +54,43 @@ pub fn derive_callable_input_params(
     }
 
     input_params
+}
+
+pub fn derive_specialization_input_params(
+    spec_decl: &SpecDecl,
+    callable_input_params: &Vec<InputParam>,
+    pats: &IndexMap<PatId, Pat>,
+) -> Vec<InputParam> {
+    let spec_input_element = derive_specialization_input_pattern_element(spec_decl, pats);
+    if let Some(spec_input_element) = spec_input_element {
+        // Insert the specialization input parameter at the beginning of the new input parameters vector.
+        let spec_input_param = InputParam {
+            index: InputParamIndex(0),
+            pat: spec_input_element.pat,
+            ty: spec_input_element.ty.clone(),
+            node: match &spec_input_element.kind {
+                InputPatternElementKind::Discard => None,
+                InputPatternElementKind::Node(node_id) => Some(*node_id),
+                InputPatternElementKind::Tuple(_) => {
+                    panic!("specialization inputs are not expected to be tuples")
+                }
+            },
+        };
+        let mut spec_input_params = vec![spec_input_param];
+
+        // Now, insert the callable input parameters shifting the input parameter index.
+        for input_param in callable_input_params {
+            spec_input_params.push(InputParam {
+                index: InputParamIndex(input_param.index.0 + 1),
+                pat: input_param.pat,
+                ty: input_param.ty.clone(),
+                node: input_param.node,
+            })
+        }
+        spec_input_params
+    } else {
+        callable_input_params.clone()
+    }
 }
 
 /// A represenation of a local symbol.
@@ -119,67 +141,6 @@ pub fn initalize_locals_map(
     locals_map
 }
 
-/// A represenation of a variable within a callable.
-// TODO (cesarzc): Remove.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CallableVariable {
-    pub node: NodeId,
-    pub pat: PatId,
-    pub ty: Ty,
-    pub kind: CallableVariableKind,
-}
-
-impl Ord for CallableVariable {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match &self.kind {
-            CallableVariableKind::InputParam(self_index) => match &other.kind {
-                CallableVariableKind::InputParam(other_index) => self_index.0.cmp(&other_index.0),
-                CallableVariableKind::Local(_) => Ordering::Less,
-            },
-            CallableVariableKind::Local(_) => match &other.kind {
-                CallableVariableKind::InputParam(_) => Ordering::Greater,
-                CallableVariableKind::Local(_) => self.node.cmp(&other.node),
-            },
-        }
-    }
-}
-
-impl PartialOrd for CallableVariable {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-/// Kinds of callable variables.
-#[derive(Clone, Debug, Copy, Eq, PartialEq)]
-// TODO (cesarzc): Remove.
-pub enum CallableVariableKind {
-    InputParam(InputParamIndex),
-    Local(ExprId),
-}
-
-/// Creates a map of a input parameters.
-// TODO (cesarzc): Remove.
-pub fn derive_callable_input_map<'a>(
-    input_params: impl Iterator<Item = &'a InputParam>,
-) -> FxHashMap<NodeId, CallableVariable> {
-    let mut variable_map = FxHashMap::<NodeId, CallableVariable>::default();
-    for param in input_params {
-        if let Some(node) = param.node {
-            variable_map.insert(
-                node,
-                CallableVariable {
-                    node,
-                    pat: param.pat,
-                    ty: param.ty.clone(),
-                    kind: CallableVariableKind::InputParam(param.index),
-                },
-            );
-        }
-    }
-    variable_map
-}
-
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub struct CallableSpecializationSelector {
     pub callable: LocalItemId,
@@ -192,45 +153,45 @@ pub struct SpecializationSelector {
     pub controlled: bool,
 }
 
-/// A callable input element.
+/// An element related to an input pattern.
 #[derive(Debug)]
-struct CallableInputElement {
+struct InputPatternElement {
     pub pat: PatId,
     pub ty: Ty,
-    pub kind: CallableInputElementKind,
+    pub kind: InputPatternElementKind,
 }
 
-/// A kind of callable input element.
+/// Kinds of input pattern elements.
 #[derive(Debug)]
-enum CallableInputElementKind {
+enum InputPatternElementKind {
     Discard,
     Node(NodeId),
     Tuple(Vec<PatId>),
 }
 
-/// Creates a vector of flattened callable input elements.
-fn derive_callable_input_elements(
+/// Creates a vector of flattened input pattern elements.
+fn derive_callable_input_pattern_elements(
     callable: &CallableDecl,
     pats: &IndexMap<PatId, Pat>,
-) -> Vec<CallableInputElement> {
+) -> Vec<InputPatternElement> {
     fn create_input_elements(
         pat_id: PatId,
         pats: &IndexMap<PatId, Pat>,
-    ) -> Vec<CallableInputElement> {
+    ) -> Vec<InputPatternElement> {
         let pat = pats.get(pat_id).expect("pattern should exist");
         match &pat.kind {
             PatKind::Bind(ident) => {
-                vec![CallableInputElement {
+                vec![InputPatternElement {
                     pat: pat_id,
                     ty: pat.ty.clone(),
-                    kind: CallableInputElementKind::Node(ident.id),
+                    kind: InputPatternElementKind::Node(ident.id),
                 }]
             }
             PatKind::Tuple(tuple_pats) => {
-                let mut tuple_params = vec![CallableInputElement {
+                let mut tuple_params = vec![InputPatternElement {
                     pat: pat_id,
                     ty: pat.ty.clone(),
-                    kind: CallableInputElementKind::Tuple(tuple_pats.clone()),
+                    kind: InputPatternElementKind::Tuple(tuple_pats.clone()),
                 }];
                 for tuple_item_pat_id in tuple_pats {
                     let mut tuple_item_params = create_input_elements(*tuple_item_pat_id, pats);
@@ -238,13 +199,36 @@ fn derive_callable_input_elements(
                 }
                 tuple_params
             }
-            PatKind::Discard => vec![CallableInputElement {
+            PatKind::Discard => vec![InputPatternElement {
                 pat: pat_id,
                 ty: pat.ty.clone(),
-                kind: CallableInputElementKind::Discard,
+                kind: InputPatternElementKind::Discard,
             }],
         }
     }
 
     create_input_elements(callable.input, pats)
+}
+
+/// Creates an input pattern element if the specialization input is `Some`.
+fn derive_specialization_input_pattern_element(
+    spec_decl: &SpecDecl,
+    pats: &IndexMap<PatId, Pat>,
+) -> Option<InputPatternElement> {
+    spec_decl.input.map(|pat_id| {
+        let pat = pats.get(pat_id).expect("pattern should exist");
+        match &pat.kind {
+            PatKind::Bind(ident) => InputPatternElement {
+                pat: pat_id,
+                ty: pat.ty.clone(),
+                kind: InputPatternElementKind::Node(ident.id),
+            },
+            PatKind::Discard => InputPatternElement {
+                pat: pat_id,
+                ty: pat.ty.clone(),
+                kind: InputPatternElementKind::Discard,
+            },
+            PatKind::Tuple(_) => panic!("specialization inputs are not expected to be tuples"),
+        }
+    })
 }

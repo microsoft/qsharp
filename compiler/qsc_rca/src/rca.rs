@@ -3,16 +3,15 @@
 
 use crate::{
     common::{
-        derive_callable_input_map, derive_callable_input_params, initalize_locals_map,
-        CallableVariable, CallableVariableKind, InputParam, InputParamIndex, LocalsMap,
+        derive_callable_input_params, derive_specialization_input_params, initalize_locals_map,
+        InputParam, InputParamIndex, LocalsMap,
     },
     cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
     ApplicationsTable, CallableComputeProperties, CallableElementComputeProperties,
     ComputeProperties, ComputePropertiesLookup, DynamismSource, ItemComputeProperties,
     PackageStoreComputeProperties, RuntimeFeatureFlags,
 };
-use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{BlockId, ExprId, Pat, PatId, PatKind, StmtId, StoreBlockId};
+use qsc_fir::fir::{BlockId, ExprId, StmtId, StoreBlockId};
 use qsc_fir::{
     fir::{
         CallableDecl, CallableImpl, CallableKind, Global, NodeId, PackageId, PackageStore,
@@ -25,17 +24,21 @@ use rustc_hash::FxHashMap;
 /// An instance of a callable application.
 #[derive(Debug, Default)]
 struct ApplicationInstance {
+    // TODO (cesarzc): document field.
     pub locals_map: LocalsMap,
+    // TODO (cesarzc): document field.
+    pub dynamic_scopes_stack: Vec<ExprId>,
+    // TODO (cesarzc): document field.
     pub compute_properties: ApplicationInstanceComputeProperties,
 }
 
 impl ApplicationInstance {
     fn new(input_params: &Vec<InputParam>, dynamic_param_index: InputParamIndex) -> Self {
         let locals_map = initalize_locals_map(input_params, Some(dynamic_param_index));
-        let compute_properties = ApplicationInstanceComputeProperties::default();
         Self {
             locals_map,
-            compute_properties,
+            dynamic_scopes_stack: Vec::new(),
+            compute_properties: ApplicationInstanceComputeProperties::default(),
         }
     }
 }
@@ -95,8 +98,7 @@ pub fn analyze_package(
 
 fn analyze_block(
     id: StoreBlockId,
-    _input_params_count: usize,
-    input_map: &FxHashMap<NodeId, CallableVariable>,
+    _input_params: &Vec<InputParam>,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) {
@@ -105,7 +107,6 @@ fn analyze_block(
         panic!("block is already analyzed");
     }
 
-    let _variables_map = input_map.clone();
     let _block = package_store.get_block(id);
     // TODO (cesarzc): implement properly.
     package_store_compute_properties.insert_block(id, CallableElementComputeProperties::Invalid);
@@ -134,13 +135,13 @@ fn analyze_callable(
         CallableImpl::Intrinsic => analyze_intrinsic_callable_compute_properties(
             id,
             callable,
-            input_params.iter(),
+            &input_params,
             package_store_compute_properties,
         ),
         CallableImpl::Spec(_) => analyze_non_intrinsic_callable_compute_properties(
             id,
             callable,
-            input_params.iter(),
+            &input_params,
             package_store,
             package_store_compute_properties,
         ),
@@ -174,13 +175,13 @@ fn analyze_callable_with_cycles(
         CallableKind::Function => create_cycled_function_compute_properties(
             callable,
             cycled_callable_info,
-            input_params.iter(),
+            input_params.len(),
         ),
         CallableKind::Operation => create_cycled_operation_compute_properties(
             id,
             callable,
             cycled_callable_info,
-            input_params.iter(),
+            &input_params,
             package_store,
             package_store_compute_properties,
         ),
@@ -193,10 +194,10 @@ fn analyze_callable_with_cycles(
     );
 }
 
-fn analyze_intrinsic_callable_compute_properties<'a>(
+fn analyze_intrinsic_callable_compute_properties(
     id: StoreItemId,
     callable: &CallableDecl,
-    input_params: impl Iterator<Item = &'a InputParam>,
+    input_params: &Vec<InputParam>,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) {
     // This function is only called when a callable has not already been analyzed.
@@ -234,10 +235,10 @@ fn analyze_item(
     }
 }
 
-fn analyze_non_intrinsic_callable_compute_properties<'a>(
+fn analyze_non_intrinsic_callable_compute_properties(
     id: StoreItemId,
     callable: &CallableDecl,
-    input_params: impl Iterator<Item = &'a InputParam>,
+    input_params: &Vec<InputParam>,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) {
@@ -251,19 +252,11 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         panic!("callable is assumed to have a specialized implementation");
     };
 
-    // The number of input params might differ from the size of the input map depending on how many discarded parameters
-    // are there.
-    let (_, callable_input_params_count) = input_params.size_hint();
-    let callable_input_params_count =
-        callable_input_params_count.expect("input params count should be known");
-    let callable_input_map = derive_callable_input_map(input_params);
-
     // Analyze each one of the specializations.
     let body = create_specialization_applications_table(
         id,
         &implementation.body,
-        callable_input_params_count,
-        &callable_input_map,
+        input_params,
         package_store,
         package_store_compute_properties,
     );
@@ -271,8 +264,7 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         create_specialization_applications_table(
             id,
             specialization,
-            callable_input_params_count,
-            &callable_input_map,
+            input_params,
             package_store,
             package_store_compute_properties,
         )
@@ -281,8 +273,7 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         create_specialization_applications_table(
             id,
             specialization,
-            callable_input_params_count,
-            &callable_input_map,
+            input_params,
             package_store,
             package_store_compute_properties,
         )
@@ -291,8 +282,7 @@ fn analyze_non_intrinsic_callable_compute_properties<'a>(
         create_specialization_applications_table(
             id,
             specialization,
-            callable_input_params_count,
-            &callable_input_map,
+            input_params,
             package_store,
             package_store_compute_properties,
         )
@@ -324,10 +314,10 @@ fn analyze_statement(
     // TODO (cesarzc): Implement.
 }
 
-fn create_cycled_function_compute_properties<'a>(
+fn create_cycled_function_compute_properties(
     callable: &CallableDecl,
     cycled_callable_info: &CycledCallableInfo,
-    input_params: impl Iterator<Item = &'a InputParam>,
+    input_params_count: usize,
 ) -> CallableComputeProperties {
     // This function is not meant for intrinsics.
     let CallableImpl::Spec(spec_impl) = &callable.implementation else {
@@ -353,7 +343,7 @@ fn create_cycled_function_compute_properties<'a>(
 
     // Create compute properties for each dynamic parameter.
     let mut dynamic_params_properties = Vec::new();
-    for _ in input_params {
+    for _ in 0..input_params_count {
         // If any parameter is dynamic, then we assume a function with cycles is a a source of dynamism if its output type
         // is non-unit.
         let dynamism_sources = if callable.output == Ty::UNIT {
@@ -385,11 +375,11 @@ fn create_cycled_function_compute_properties<'a>(
     }
 }
 
-fn create_cycled_operation_compute_properties<'a>(
+fn create_cycled_operation_compute_properties(
     callable_id: StoreItemId,
     callable: &CallableDecl,
     cycled_callable_info: &CycledCallableInfo,
-    input_params: impl Iterator<Item = &'a InputParam>,
+    input_params: &Vec<InputParam>,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) -> CallableComputeProperties {
@@ -398,13 +388,6 @@ fn create_cycled_operation_compute_properties<'a>(
         panic!("a non-intrinsic callable is expected");
     };
 
-    // The number of input params might differ from the size of the input map depending on how many discarded parameters
-    // are there.
-    let (_, callable_input_params_count) = input_params.size_hint();
-    let callable_input_params_count =
-        callable_input_params_count.expect("input params count should be known");
-    let callable_input_map = derive_callable_input_map(input_params);
-
     // Create the compute properties for each one of the specializations.
     // When a specialization has call cycles, assume its properties. Otherwise, create the specialization applications
     // table the same way we would do it for any other specialization.
@@ -412,15 +395,14 @@ fn create_cycled_operation_compute_properties<'a>(
         if is_spec_cycled {
             create_cycled_operation_specialization_applications_table(
                 specialization,
-                callable_input_params_count,
+                input_params.len(),
                 &callable.output,
             )
         } else {
             create_specialization_applications_table(
                 callable_id,
                 specialization,
-                callable_input_params_count,
-                &callable_input_map,
+                input_params,
                 package_store,
                 package_store_compute_properties,
             )
@@ -501,9 +483,9 @@ fn create_cycled_operation_specialization_applications_table(
     }
 }
 
-fn create_intrinsic_callable_compute_properties<'a>(
+fn create_intrinsic_callable_compute_properties(
     callable: &CallableDecl,
-    input_params: impl Iterator<Item = &'a InputParam>,
+    input_params: &Vec<InputParam>,
 ) -> CallableComputeProperties {
     assert!(matches!(callable.implementation, CallableImpl::Intrinsic));
     match callable.kind {
@@ -516,9 +498,9 @@ fn create_intrinsic_callable_compute_properties<'a>(
     }
 }
 
-fn create_intrinsic_function_compute_properties<'a>(
+fn create_intrinsic_function_compute_properties(
     callable: &CallableDecl,
-    input_params: impl Iterator<Item = &'a InputParam>,
+    input_params: &Vec<InputParam>,
 ) -> CallableComputeProperties {
     assert!(matches!(callable.kind, CallableKind::Function));
 
@@ -568,9 +550,9 @@ fn create_intrinsic_function_compute_properties<'a>(
     }
 }
 
-fn create_instrinsic_operation_compute_properties<'a>(
+fn create_instrinsic_operation_compute_properties(
     callable: &CallableDecl,
-    input_params: impl Iterator<Item = &'a InputParam>,
+    input_params: &Vec<InputParam>,
 ) -> CallableComputeProperties {
     assert!(matches!(callable.kind, CallableKind::Operation));
 
@@ -635,8 +617,7 @@ fn create_instrinsic_operation_compute_properties<'a>(
 fn create_specialization_applications_table(
     callable_id: StoreItemId,
     specialization: &SpecDecl,
-    callable_input_params_count: usize,
-    callable_input_map: &FxHashMap<NodeId, CallableVariable>,
+    callable_input_params: &Vec<InputParam>,
     package_store: &PackageStore,
     package_store_compute_properties: &mut PackageStoreComputeProperties,
 ) -> ApplicationsTable {
@@ -647,95 +628,27 @@ fn create_specialization_applications_table(
         .expect("package should exist")
         .pats;
 
-    // The number of input params for the specialization can be different from the size of the specialization input map
-    // depending on whether the specialization's input was discarded.
-    let specialization_input_params_count = if specialization.input.is_some() {
-        callable_input_params_count + 1
-    } else {
-        callable_input_params_count
-    };
-    let specialization_input_map =
-        create_specialization_input_map(callable_input_map, specialization.input, package_patterns);
+    // Derive the input parameters for the specialization, which can be different from the callable input parameters
+    // if the specialization has its own input.
+    let specialization_input_params =
+        derive_specialization_input_params(specialization, callable_input_params, package_patterns);
 
-    // Then we analyze the block.
+    // Then we analyze the block which implements the specialization.
     let block_id = (callable_id.package, specialization.block).into();
     analyze_block(
         block_id,
-        specialization_input_params_count,
-        &specialization_input_map,
+        &specialization_input_params,
         package_store,
         package_store_compute_properties,
     );
 
-    // Finally, we get the compute properties of the analyzed block and use it to create the application table of the
+    // Finally, we get the compute properties of the analyzed block, which also represent the compute properties of the
     // specialization.
+    // TODO (cesarzc): implement propertly when making the change of everything being an application table.
     let block_compute_properties = package_store_compute_properties.get_block(block_id);
-    match block_compute_properties {
-        CallableElementComputeProperties::ApplicationDependent(applications_table) => {
-            applications_table.clone()
-        }
-        CallableElementComputeProperties::ApplicationIndependent(compute_properties) => {
-            let inherent_properties = compute_properties.clone();
-            let dynamic_params_properties =
-                vec![ComputeProperties::default(); callable_input_params_count];
-            ApplicationsTable {
-                inherent_properties,
-                dynamic_params_properties,
-            }
-        }
-        // TODO (cesarzc): remove this case.
-        CallableElementComputeProperties::Invalid => ApplicationsTable {
-            inherent_properties: ComputeProperties::default(),
-            dynamic_params_properties: Vec::new(),
-        },
-    }
-}
-
-fn create_specialization_input_map(
-    callable_input_map: &FxHashMap<NodeId, CallableVariable>,
-    specialization_input: Option<PatId>,
-    package_patterns: &IndexMap<PatId, Pat>,
-) -> FxHashMap<NodeId, CallableVariable> {
-    if let Some(spec_input_pat_id) = specialization_input {
-        // If the specialization has its own input, as it is the case for controlled specializations, create a new map
-        // with the specialization input as the first parameter..
-        let spec_input_pat = package_patterns
-            .get(spec_input_pat_id)
-            .expect("specialization input pattern should exist");
-        let mut input_map = FxHashMap::<NodeId, CallableVariable>::default();
-
-        // We are only interested in adding the specialization input to the map if it is actually binded to the
-        // specialization.
-        if let PatKind::Bind(ident) = &spec_input_pat.kind {
-            let spec_input_variable = CallableVariable {
-                node: ident.id,
-                pat: spec_input_pat_id,
-                ty: spec_input_pat.ty.clone(),
-                kind: CallableVariableKind::InputParam(InputParamIndex::from(0)),
-            };
-            input_map.insert(spec_input_variable.node, spec_input_variable);
-        };
-
-        for (node_id, variable) in callable_input_map {
-            let CallableVariableKind::InputParam(input_param_idx) = variable.kind else {
-                panic!("all callable input variables should be of the input parameter kind");
-            };
-            let new_variable = CallableVariable {
-                node: variable.node,
-                pat: variable.pat,
-                ty: variable.ty.clone(),
-                // The input param index increases because now the specialization input has the index zero, so we must
-                // move the index of all the other parameters by one.
-                kind: CallableVariableKind::InputParam(input_param_idx + 1),
-            };
-            input_map.insert(*node_id, new_variable);
-        }
-
-        input_map
-    } else {
-        // If the specialization does not have its own input, as it is the case for body and adjoint specializations,
-        // the input map for the specialization is the same as then one for the callable.
-        callable_input_map.clone()
+    ApplicationsTable {
+        inherent_properties: ComputeProperties::default(),
+        dynamic_params_properties: Vec::new(),
     }
 }
 
