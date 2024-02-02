@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// elements 𝑎ⱼ = 0.0 if fewer than 2ⁿ are specified.
     ///
     /// # Example
-    /// The following snippet prepares the quantum state |𝜓⟩=√(1/8)|0⟩+√(7/8)|2⟩
+    /// The following snippet prepares the quantum state |𝜓⟩=√(1/8)|0⟩+√(7/8)|2⟩=√(1/8)|00⟩+√(7/8)|10⟩
     /// in the qubit register `qubits`.
     /// ```qsharp
     /// let amplitudes = [Sqrt(0.125), 0.0, Sqrt(0.875), 0.0];
