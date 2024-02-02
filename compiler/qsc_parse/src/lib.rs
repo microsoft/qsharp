@@ -19,7 +19,7 @@ mod ty;
 use lex::TokenKind;
 use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Namespace, TopLevelNode};
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use scan::Scanner;
 use std::result;
 use thiserror::Error;
@@ -100,9 +100,9 @@ trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
 
 impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
-pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
+pub fn namespaces(input: &str, features: &LanguageFeatures) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match item::parse_namespaces(&mut scanner) {
+    match item::parse_namespaces(&mut scanner, features) {
         Ok(namespaces) => (namespaces, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();
@@ -112,9 +112,9 @@ pub fn namespaces(input: &str) -> (Vec<Namespace>, Vec<Error>) {
     }
 }
 
-pub fn top_level_nodes(input: &str) -> (Vec<TopLevelNode>, Vec<Error>) {
+pub fn top_level_nodes(input: &str, features: &LanguageFeatures) -> (Vec<TopLevelNode>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
-    match item::parse_top_level_nodes(&mut scanner) {
+    match item::parse_top_level_nodes(&mut scanner, features) {
         Ok(nodes) => (nodes, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();

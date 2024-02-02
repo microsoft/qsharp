@@ -20,9 +20,9 @@ use crate::{
 use qsc_ast::ast::{
     Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::{LanguageFeature, LanguageFeatures}, span::Span};
 
-pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
+pub(super) fn parse_with_config(s: &mut Scanner, features: &LanguageFeatures) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Semi).is_ok() {
         Box::new(StmtKind::Empty)
@@ -30,7 +30,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
         Box::new(StmtKind::Item(item))
     } else if let Some(local) = opt(s, parse_local)? {
         local
-    } else if let Some(qubit) = opt(s, parse_qubit)? {
+    } else if let Some(qubit) = opt(s, |p| parse_qubit(p, features))? {
         qubit
     } else {
         let e = expr_stmt(s)?;
@@ -46,6 +46,11 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
         span: s.span(lo),
         kind,
     }))
+}
+
+
+pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
+  parse_with_config(s, &Default::default())
 }
 
 #[allow(clippy::vec_box)]
@@ -95,7 +100,7 @@ fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
     Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
 
-fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
+fn parse_qubit(s: &mut Scanner, features: &LanguageFeatures) -> Result<Box<StmtKind>> {
     let source = if token(s, TokenKind::Keyword(Keyword::Use)).is_ok() {
         QubitSource::Fresh
     } else if token(s, TokenKind::Keyword(Keyword::Borrow)).is_ok() {
@@ -111,7 +116,10 @@ fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = parse_qubit_init(s)?;
-    let block = opt(s, parse_block)?;
+    let block =  if features.contains(LanguageFeature::V2PreviewSyntax) {
+        opt(s, parse_block)?
+    } else { None };
+
     if block.is_none() {
         recovering_semi(s)?;
     }

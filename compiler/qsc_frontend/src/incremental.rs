@@ -21,6 +21,7 @@ use qsc_ast::{
     validate::Validator as AstValidator,
     visit::Visitor as AstVisitor,
 };
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},
@@ -107,12 +108,28 @@ impl Compiler {
         source_name: &str,
         source_contents: &str,
         mut accumulate_errors: F,
+    ) -> Result<Increment, E>  
+       where
+        F: FnMut(Vec<Error>) -> Result<(), E>
+    {
+        self.compile_fragments_with_config(unit, source_name, source_contents, accumulate_errors, &Default::default())
+    }
+
+    /// See [compile_fragments] for more documentation.
+    /// Allows for compiling of fragments with language features specified.
+    pub fn compile_fragments_with_config<F, E>(
+        &mut self,
+        unit: &mut CompileUnit,
+        source_name: &str,
+        source_contents: &str,
+        mut accumulate_errors: F,
+        features: &LanguageFeatures
     ) -> Result<Increment, E>
     where
         F: FnMut(Vec<Error>) -> Result<(), E>,
     {
         let (mut ast, parse_errors) =
-            Self::parse_fragments(&mut unit.sources, source_name, source_contents);
+            Self::parse_fragments(&mut unit.sources, source_name, source_contents, features);
 
         accumulate_errors(parse_errors)?;
 
@@ -280,10 +297,11 @@ impl Compiler {
         sources: &mut SourceMap,
         source_name: &str,
         source_contents: &str,
+        features: &LanguageFeatures
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
 
-        let (mut top_level_nodes, errors) = qsc_parse::top_level_nodes(source_contents);
+        let (mut top_level_nodes, errors) = qsc_parse::top_level_nodes(source_contents, features);
         let mut offsetter = Offsetter(offset);
         for node in &mut top_level_nodes {
             match node {

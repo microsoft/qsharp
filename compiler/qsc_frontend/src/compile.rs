@@ -345,7 +345,7 @@ pub fn compile(
     capabilities: RuntimeCapabilityFlags,
     opt_in_features: LanguageFeatures,
 ) -> CompileUnit {
-    let (mut ast_package, parse_errors) = parse_all(&sources);
+    let (mut ast_package, parse_errors) = parse_all(&sources, &opt_in_features);
 
     let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
@@ -448,11 +448,11 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
     unit
 }
 
-fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
+fn parse_all(sources: &SourceMap, features: &LanguageFeatures) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {
-        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents);
+        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents, features);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(TopLevelNode::Namespace(namespace));

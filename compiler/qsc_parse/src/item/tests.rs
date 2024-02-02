@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{parse, parse_attr, parse_namespaces, parse_spec_decl};
-use crate::tests::{check, check_vec};
+use super::{parse, parse_attr, parse_spec_decl};
+use crate::{scan::Scanner, tests::{check, check_vec}};
 use expect_test::expect;
+
+fn parse_namespaces(s: &mut Scanner) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> { super::parse_namespaces(s, &Default::default()) }
 
 #[test]
 fn body_intrinsic() {

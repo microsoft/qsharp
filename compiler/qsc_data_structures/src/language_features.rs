@@ -1,11 +1,10 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet};
 
 use clap::ValueEnum;
-use miette::Diagnostic;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 use serde::Deserialize;
-#[derive(Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Copy)]
 #[serde(rename_all = "kebab-case")]
 pub enum LanguageFeature {
     /// This language feature enables experimental syntax that will likely be stabilized in the next major version.
@@ -31,6 +30,10 @@ impl LanguageFeatures {
 
     pub fn merge(&mut self, other: impl Into<BTreeSet<LanguageFeature>>) {
         self.0.append(&mut other.into());
+    }
+
+    pub fn contains(&self, feat: LanguageFeature) -> bool {
+        self.0.contains(&feat)
     }
 }
 impl Into<BTreeSet<LanguageFeature>> for LanguageFeatures {

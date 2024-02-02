@@ -25,7 +25,7 @@ use qsc_ast::ast::{
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
     TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::{LanguageFeature, LanguageFeatures}, span::Span};
 
 pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
@@ -94,25 +94,25 @@ fn default(span: Span) -> Box<Item> {
     })
 }
 
-pub(super) fn parse_namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
-    let namespaces = many(s, parse_namespace)?;
+pub(super) fn parse_namespaces(s: &mut Scanner, features: &LanguageFeatures) -> Result<Vec<Namespace>> {
+    let namespaces = many(s, |p| parse_namespace(p, features))?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(namespaces)
 }
 
-pub(super) fn parse_top_level_nodes(s: &mut Scanner) -> Result<Vec<TopLevelNode>> {
-    let nodes = many(s, parse_top_level_node)?;
+pub(super) fn parse_top_level_nodes(s: &mut Scanner, features: &LanguageFeatures) -> Result<Vec<TopLevelNode>> {
+    let nodes = many(s, |p| parse_top_level_node(p, features))?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(nodes)
 }
 
-fn parse_top_level_node(s: &mut Scanner) -> Result<TopLevelNode> {
+fn parse_top_level_node(s: &mut Scanner, features: &LanguageFeatures) -> Result<TopLevelNode> {
     // Here we parse any doc comments ahead of calling `parse_namespace` or `stmt::parse` in order
     // to avoid problems with error reporting. Specifically, if `parse_namespace` consumes the
     // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
     // opt. This pattern can be dropped along with namespaces once we have a module-based design.
     let doc = parse_doc(s).unwrap_or_default();
-    if let Some(mut namespace) = opt(s, parse_namespace)? {
+    if let Some(mut namespace) = opt(s, |p| parse_namespace(p, features))? {
         namespace.doc = doc.into();
         Ok(TopLevelNode::Namespace(namespace))
     } else {
@@ -128,7 +128,7 @@ fn parse_top_level_node(s: &mut Scanner) -> Result<TopLevelNode> {
     }
 }
 
-fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
+fn parse_namespace(s: &mut Scanner, features: &LanguageFeatures) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
