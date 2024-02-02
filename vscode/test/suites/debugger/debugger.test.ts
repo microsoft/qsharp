@@ -6,6 +6,12 @@ import { assert } from "chai";
 import { activateExtension, waitForCondition } from "../extensionUtils";
 import { DebugProtocol } from "@vscode/debugprotocol";
 
+/**
+ * Set to true to log Debug Adapter Protocol messages to the console.
+ * This is useful for debugging test failures.
+ */
+const logDapMessages = true;
+
 suite("Q# Debugger Tests", function suite() {
   const workspaceFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
@@ -32,9 +38,9 @@ suite("Q# Debugger Tests", function suite() {
   this.afterEach(async () => {
     disposable.dispose();
     tracker = undefined;
-    vscode.debug.removeBreakpoints(vscode.debug.breakpoints);
     await terminateSession();
     vscode.commands.executeCommand("workbench.action.closeAllEditors");
+    vscode.debug.removeBreakpoints(vscode.debug.breakpoints);
   });
 
   test("Launch with debugEditorContents command", async () => {
@@ -455,13 +461,22 @@ class Tracker implements vscode.DebugAdapterTracker {
     const stepMs = performance.now() - start;
     if (stepMs > 700) {
       // Not much we can control here if the debugger is taking too long,
-      // but log a warning so that we see it in the test log if we hit test timeouts.
+      // but log a warning so that we see it in the test log if we get
+      // close to hitting test timeouts.
       // The default mocha test timeout is 2000ms.
       console.log(`qsharp-tests: debugger took ${stepMs}ms to stop`);
     }
   }
+  onWillReceiveMessage(message: any): void {
+    if (logDapMessages) {
+      console.log(`qsharp-tests: -> ${JSON.stringify(message)}`);
+    }
+  }
 
   onDidSendMessage(message: any): void {
+    if (logDapMessages) {
+      console.log(`qsharp-tests: <- ${JSON.stringify(message)}`);
+    }
     if (message.type === "event") {
       if (message.event === "stopped") {
         this.stoppedCount++;
