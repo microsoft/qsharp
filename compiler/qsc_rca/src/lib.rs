@@ -33,21 +33,21 @@ fn set_indentation<'a, 'b>(
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {
     /// Searches for the compute properties of a block with the specified ID.
-    fn find_block(&self, id: StoreBlockId) -> Option<&CallableElementComputeProperties>;
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsTable>;
     /// Searches for the compute properties of an expression with the specified ID.
-    fn find_expr(&self, id: StoreExprId) -> Option<&CallableElementComputeProperties>;
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsTable>;
     /// Searches for the compute properties of an item with the specified ID.
     fn find_item(&self, id: StoreItemId) -> Option<&ItemComputeProperties>;
     /// Searches for the compute properties of a statement with the specified ID.
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&CallableElementComputeProperties>;
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsTable>;
     /// Gets the compute properties of a block.
-    fn get_block(&self, id: StoreBlockId) -> &CallableElementComputeProperties;
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationsTable;
     /// Gets the compute properties of an expression.
-    fn get_expr(&self, id: StoreExprId) -> &CallableElementComputeProperties;
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationsTable;
     /// Gets the compute properties of an item.
     fn get_item(&self, id: StoreItemId) -> &ItemComputeProperties;
     /// Gets the compute properties of a statement.
-    fn get_stmt(&self, id: StoreStmtId) -> &CallableElementComputeProperties;
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsTable;
 }
 
 /// The compute properties of a package store.
@@ -55,12 +55,12 @@ pub trait ComputePropertiesLookup {
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
-    fn find_block(&self, id: StoreBlockId) -> Option<&CallableElementComputeProperties> {
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsTable> {
         self.get(id.package)
             .and_then(|package| package.blocks.get(id.block))
     }
 
-    fn find_expr(&self, id: StoreExprId) -> Option<&CallableElementComputeProperties> {
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsTable> {
         self.get(id.package)
             .and_then(|package| package.exprs.get(id.expr))
     }
@@ -70,17 +70,17 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .and_then(|package| package.items.get(id.item))
     }
 
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&CallableElementComputeProperties> {
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsTable> {
         self.get(id.package)
             .and_then(|package| package.stmts.get(id.stmt))
     }
 
-    fn get_block(&self, id: StoreBlockId) -> &CallableElementComputeProperties {
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationsTable {
         self.find_block(id)
             .expect("block compute properties should exist")
     }
 
-    fn get_expr(&self, id: StoreExprId) -> &CallableElementComputeProperties {
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationsTable {
         self.find_expr(id)
             .expect("expression compute properties should exist")
     }
@@ -90,7 +90,7 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .expect("item compute properties should exist")
     }
 
-    fn get_stmt(&self, id: StoreStmtId) -> &CallableElementComputeProperties {
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsTable {
         self.find_stmt(id)
             .expect("statement compute properties should exist")
     }
@@ -105,14 +105,14 @@ impl PackageStoreComputeProperties {
         self.0.get_mut(id)
     }
 
-    pub fn insert_block(&mut self, id: StoreBlockId, value: CallableElementComputeProperties) {
+    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
             .blocks
             .insert(id.block, value);
     }
 
-    pub fn insert_expr(&mut self, id: StoreExprId, value: CallableElementComputeProperties) {
+    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
             .exprs
@@ -126,7 +126,7 @@ impl PackageStoreComputeProperties {
             .insert(id.item, value);
     }
 
-    pub fn insert_stmt(&mut self, id: StoreExprId, value: CallableElementComputeProperties) {
+    pub fn insert_stmt(&mut self, id: StoreExprId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
             .exprs
@@ -176,11 +176,11 @@ pub struct PackageComputeProperties {
     /// The compute properties of the package items.
     pub items: IndexMap<LocalItemId, ItemComputeProperties>,
     /// The compute properties of the package blocks.
-    pub blocks: IndexMap<BlockId, CallableElementComputeProperties>,
+    pub blocks: IndexMap<BlockId, ApplicationsTable>,
     /// The compute properties of the package statements.
-    pub stmts: IndexMap<StmtId, CallableElementComputeProperties>,
+    pub stmts: IndexMap<StmtId, ApplicationsTable>,
     /// The compute properties of the package expressions.
-    pub exprs: IndexMap<ExprId, CallableElementComputeProperties>,
+    pub exprs: IndexMap<ExprId, ApplicationsTable>,
 }
 
 impl Default for PackageComputeProperties {
@@ -287,31 +287,6 @@ impl Display for CallableComputeProperties {
             None => write!(indent, "\nctl-adj: <none>")?,
         }
         Ok(())
-    }
-}
-
-/// The compute properties of a callable element.
-#[derive(Debug)]
-pub enum CallableElementComputeProperties {
-    /// An application dependent element.
-    ApplicationDependent(ApplicationsTable),
-    /// An application independent element.
-    ApplicationIndependent(ComputeProperties),
-    /// An invalid element compute properties. TODO (cesarzc): remove once implementation is complete.
-    Invalid,
-}
-
-impl Display for CallableElementComputeProperties {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self {
-            CallableElementComputeProperties::ApplicationDependent(applications_table) => {
-                write!(f, "ApplicationDependent: {}", applications_table)
-            }
-            CallableElementComputeProperties::ApplicationIndependent(compute_properties) => {
-                write!(f, "ApplicationIndependent: {}", compute_properties)
-            }
-            CallableElementComputeProperties::Invalid => write!(f, "Invalid"),
-        }
     }
 }
 

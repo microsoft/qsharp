@@ -7,9 +7,8 @@ use crate::{
         InputParam, InputParamIndex, LocalsMap,
     },
     cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
-    ApplicationsTable, CallableComputeProperties, CallableElementComputeProperties,
-    ComputeProperties, ComputePropertiesLookup, DynamismSource, ItemComputeProperties,
-    PackageStoreComputeProperties, RuntimeFeatureFlags,
+    ApplicationsTable, CallableComputeProperties, ComputeProperties, ComputePropertiesLookup,
+    DynamismSource, ItemComputeProperties, PackageStoreComputeProperties, RuntimeFeatureFlags,
 };
 use qsc_fir::fir::{BlockId, ExprId, StmtId, StoreBlockId};
 use qsc_fir::{
@@ -109,7 +108,13 @@ fn analyze_block(
 
     let _block = package_store.get_block(id);
     // TODO (cesarzc): implement properly.
-    package_store_compute_properties.insert_block(id, CallableElementComputeProperties::Invalid);
+    package_store_compute_properties.insert_block(
+        id,
+        ApplicationsTable {
+            inherent_properties: ComputeProperties::default(),
+            dynamic_params_properties: Vec::new(),
+        },
+    );
 }
 
 fn analyze_callable(
@@ -642,14 +647,10 @@ fn create_specialization_applications_table(
         package_store_compute_properties,
     );
 
-    // Finally, we get the compute properties of the analyzed block, which also represent the compute properties of the
+    // Finally, we get the applications table of the analyzed block, which also represents the application table of the
     // specialization.
-    // TODO (cesarzc): implement propertly when making the change of everything being an application table.
-    let block_compute_properties = package_store_compute_properties.get_block(block_id);
-    ApplicationsTable {
-        inherent_properties: ComputeProperties::default(),
-        dynamic_params_properties: Vec::new(),
-    }
+    let block_applications_table = package_store_compute_properties.get_block(block_id);
+    block_applications_table.clone()
 }
 
 fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
