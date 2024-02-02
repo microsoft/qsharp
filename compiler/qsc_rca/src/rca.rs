@@ -4,13 +4,12 @@
 use crate::{
     common::{
         derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
-        CallableInputElement, CallableInputElementKind, CallableVariable, CallableVariableKind,
-        InputParam, InputParamIndex,
+        CallableVariable, CallableVariableKind, InputParam, InputParamIndex,
     },
     cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
     ApplicationsTable, CallableComputeProperties, CallableElementComputeProperties,
     ComputeProperties, ComputePropertiesLookup, DynamismSource, ItemComputeProperties,
-    PackageStoreComputeProperties, PatComputeProperties, RuntimeFeatureFlags,
+    PackageStoreComputeProperties, RuntimeFeatureFlags,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{Pat, PatId, PatKind, StoreBlockId};
@@ -105,7 +104,6 @@ fn analyze_callable(
             .expect("package should exist")
             .pats,
     );
-    analyze_callable_input_elements(id, input_elements.iter(), package_store_compute_properties);
 
     // Analyze the callable depending on its type.
     let input_params = derive_callable_input_params(input_elements.iter());
@@ -123,38 +121,6 @@ fn analyze_callable(
             package_store,
             package_store_compute_properties,
         ),
-    }
-}
-
-fn analyze_callable_input_elements<'a>(
-    callable_id: StoreItemId,
-    input_elements: impl Iterator<Item = &'a CallableInputElement>,
-    package_store_compute_properties: &mut PackageStoreComputeProperties,
-) {
-    // This function is only called when a callable has not already been analyzed.
-    if package_store_compute_properties
-        .find_item(callable_id)
-        .is_some()
-    {
-        panic!("callable is already analyzed");
-    }
-
-    for element in input_elements {
-        match &element.kind {
-            CallableInputElementKind::Discard => package_store_compute_properties.insert_pat(
-                (callable_id.package, element.pat).into(),
-                PatComputeProperties::InputParamDiscard,
-            ),
-            CallableInputElementKind::Node(node_id) => package_store_compute_properties.insert_pat(
-                (callable_id.package, element.pat).into(),
-                PatComputeProperties::InputParamNode(*node_id),
-            ),
-            CallableInputElementKind::Tuple(tuple_pats) => package_store_compute_properties
-                .insert_pat(
-                    (callable_id.package, element.pat).into(),
-                    PatComputeProperties::InputParamTuple(tuple_pats.clone()),
-                ),
-        }
     }
 }
 
@@ -181,8 +147,6 @@ fn analyze_callable_with_cycles(
             .expect("package should exist")
             .pats,
     );
-    analyze_callable_input_elements(id, input_elements.iter(), package_store_compute_properties);
-
     // Create compute properties differently depending on whether it is a function or an operation.
     let input_params = derive_callable_input_params(input_elements.iter());
     let callable_compute_properties = match &callable.kind {

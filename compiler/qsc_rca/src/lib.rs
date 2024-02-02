@@ -12,8 +12,8 @@ use bitflags::bitflags;
 use indenter::{indented, Indented};
 use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
-    BlockId, ExprId, LocalItemId, NodeId, PackageId, PackageStore, PatId, StmtId, StoreBlockId,
-    StoreExprId, StoreItemId, StorePatId, StoreStmtId,
+    BlockId, ExprId, LocalItemId, PackageId, PackageStore, StmtId, StoreBlockId, StoreExprId,
+    StoreItemId, StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use std::fmt::{self, Debug, Display, Formatter, Write};
@@ -38,8 +38,6 @@ pub trait ComputePropertiesLookup {
     fn find_expr(&self, id: StoreExprId) -> Option<&CallableElementComputeProperties>;
     /// Searches for the compute properties of an item with the specified ID.
     fn find_item(&self, id: StoreItemId) -> Option<&ItemComputeProperties>;
-    /// Searches for the compute properties of a pattern with the specified ID.
-    fn find_pats(&self, id: StorePatId) -> Option<&PatComputeProperties>;
     /// Searches for the compute properties of a statement with the specified ID.
     fn find_stmt(&self, id: StoreStmtId) -> Option<&CallableElementComputeProperties>;
     /// Gets the compute properties of a block.
@@ -48,8 +46,6 @@ pub trait ComputePropertiesLookup {
     fn get_expr(&self, id: StoreExprId) -> &CallableElementComputeProperties;
     /// Gets the compute properties of an item.
     fn get_item(&self, id: StoreItemId) -> &ItemComputeProperties;
-    /// Gets the compute properties of a pattern.
-    fn get_pats(&self, id: StorePatId) -> &PatComputeProperties;
     /// Gets the compute properties of a statement.
     fn get_stmt(&self, id: StoreStmtId) -> &CallableElementComputeProperties;
 }
@@ -74,11 +70,6 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .and_then(|package| package.items.get(id.item))
     }
 
-    fn find_pats(&self, id: StorePatId) -> Option<&PatComputeProperties> {
-        self.get(id.package)
-            .and_then(|package| package.pats.get(id.pat))
-    }
-
     fn find_stmt(&self, id: StoreStmtId) -> Option<&CallableElementComputeProperties> {
         self.get(id.package)
             .and_then(|package| package.stmts.get(id.stmt))
@@ -97,11 +88,6 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
     fn get_item(&self, id: StoreItemId) -> &ItemComputeProperties {
         self.find_item(id)
             .expect("item compute properties should exist")
-    }
-
-    fn get_pats(&self, id: StorePatId) -> &PatComputeProperties {
-        self.find_pats(id)
-            .expect("pattern compute properties should exist")
     }
 
     fn get_stmt(&self, id: StoreStmtId) -> &CallableElementComputeProperties {
@@ -138,13 +124,6 @@ impl PackageStoreComputeProperties {
             .expect("package should exist")
             .items
             .insert(id.item, value);
-    }
-
-    pub fn insert_pat(&mut self, id: StorePatId, value: PatComputeProperties) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .pats
-            .insert(id.pat, value);
     }
 
     pub fn insert_stmt(&mut self, id: StoreExprId, value: CallableElementComputeProperties) {
@@ -202,8 +181,6 @@ pub struct PackageComputeProperties {
     pub stmts: IndexMap<StmtId, CallableElementComputeProperties>,
     /// The compute properties of the package expressions.
     pub exprs: IndexMap<ExprId, CallableElementComputeProperties>,
-    /// The compute properties of the package patterns.
-    pub pats: IndexMap<PatId, PatComputeProperties>,
 }
 
 impl Default for PackageComputeProperties {
@@ -213,7 +190,6 @@ impl Default for PackageComputeProperties {
             blocks: IndexMap::new(),
             stmts: IndexMap::new(),
             exprs: IndexMap::new(),
-            pats: IndexMap::new(),
         }
     }
 }
@@ -246,12 +222,6 @@ impl Display for PackageComputeProperties {
         for (expr_id, expr) in self.exprs.iter() {
             write!(indent, "\nExpr {expr_id}: {expr}")?;
         }
-        indent = set_indentation(indent, 1);
-        write!(indent, "\nPats:")?;
-        indent = set_indentation(indent, 2);
-        for (pat_id, pat) in self.pats.iter() {
-            write!(indent, "\nPat {pat_id}: {pat}")?;
-        }
         Ok(())
     }
 }
@@ -262,7 +232,6 @@ impl PackageComputeProperties {
         self.blocks.clear();
         self.stmts.clear();
         self.exprs.clear();
-        self.pats.clear();
     }
 }
 
@@ -318,42 +287,6 @@ impl Display for CallableComputeProperties {
             None => write!(indent, "\nctl-adj: <none>")?,
         }
         Ok(())
-    }
-}
-
-/// The compute properties of pattern.
-#[derive(Debug)]
-pub enum PatComputeProperties {
-    /// A local discard. No compute properties tracked.
-    LocalDiscard,
-    /// A local node with compute properties tracked.
-    LocalNode(NodeId, CallableElementComputeProperties),
-    /// A local tuple. No compute properties tracked because it is not a node.
-    LocalTuple(Vec<PatId>),
-    /// A discarded input parameter.
-    InputParamDiscard,
-    /// An input parameter. No compute properties tracked.
-    InputParamNode(NodeId),
-    /// An input parameter(s) tuple. No compute properties tracked.
-    InputParamTuple(Vec<PatId>),
-}
-
-impl Display for PatComputeProperties {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self {
-            PatComputeProperties::LocalDiscard => write!(f, "LocalDiscard"),
-            PatComputeProperties::LocalNode(node_id, element_compute_properties) => {
-                write!(f, "LocalNode ({}): {}", node_id, element_compute_properties)
-            }
-            PatComputeProperties::LocalTuple(tuple) => write!(f, "LocalTuple: {:?}", tuple),
-            PatComputeProperties::InputParamDiscard => write!(f, "InputParamDiscard"),
-            PatComputeProperties::InputParamNode(node_id) => {
-                write!(f, "InputParamNode: {}", node_id)
-            }
-            PatComputeProperties::InputParamTuple(tuple) => {
-                write!(f, "InputParamTuple: {:?}", tuple)
-            }
-        }
     }
 }
 
