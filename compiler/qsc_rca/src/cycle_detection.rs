@@ -285,7 +285,7 @@ impl<'a> CycleDetector<'a> {
 
     fn walk_callable_decl(
         &mut self,
-        callable_specialization_id: CallableSpecializationSelector,
+        callable_specialization_selector: CallableSpecializationSelector,
         callable_decl: &'a CallableDecl,
     ) {
         // We only need to go deeper for non-intrinsic callables.
@@ -293,7 +293,7 @@ impl<'a> CycleDetector<'a> {
             return;
         };
 
-        let functor_application = callable_specialization_id.specialization_selector;
+        let functor_application = callable_specialization_selector.specialization_selector;
         let spec_decl = if !functor_application.adjoint && !functor_application.controlled {
             &spec_impl.body
         } else if functor_application.adjoint && !functor_application.controlled {
@@ -313,7 +313,7 @@ impl<'a> CycleDetector<'a> {
                 .expect("ctl_adj specialization must exist")
         };
 
-        self.walk_spec_decl(callable_specialization_id, spec_decl);
+        self.walk_spec_decl(callable_specialization_selector, spec_decl);
     }
 
     fn walk_call_expr(&mut self, callee: ExprId, args: ExprId) {
