@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 
 
 def read_file(path: str) -> Tuple[str, str]:
-    with open(path, mode="r", encoding="utf-8") as f:
+    with open(path, mode="r", encoding="utf-8-sig") as f:
         return (path, f.read())
 
 
