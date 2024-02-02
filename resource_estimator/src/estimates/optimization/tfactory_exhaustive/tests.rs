@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::estimates::stages::physical_estimation::{ErrorCorrection, Factory};
+
 use super::{
     super::super::{
         data,

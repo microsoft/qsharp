@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::estimates::modeling::PhysicalQubit;
+
 use super::{
     super::{
         modeling::{ErrorBudget, LogicalQubit},
@@ -26,7 +28,7 @@ pub struct Success {
     #[serde(skip_serializing_if = "Option::is_none")]
     physical_counts_formatted: Option<FormattedPhysicalResourceCounts>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    logical_qubit: Option<LogicalQubit>,
+    logical_qubit: Option<LogicalQubit<PhysicalQubit>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tfactory: Option<TFactory>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -41,7 +43,7 @@ impl Success {
     pub fn new<L: Overhead + Clone>(
         logical_resources: LogicalResourceCounts,
         job_params: JobParams,
-        result: PhysicalResourceEstimationResult<L>,
+        result: PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
     ) -> Self {
         let counts = create_physical_resource_counts(&result);
 
@@ -69,7 +71,7 @@ impl Success {
     pub fn new_from_multiple<L: Overhead + Clone>(
         logical_resources: LogicalResourceCounts,
         job_params: JobParams,
-        mut results: Vec<PhysicalResourceEstimationResult<L>>,
+        mut results: Vec<PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>>,
     ) -> Self {
         let mut report_data: Option<Report> = None;
 
@@ -110,7 +112,7 @@ impl Success {
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct FrontierEntry {
-    pub logical_qubit: LogicalQubit,
+    pub logical_qubit: LogicalQubit<PhysicalQubit>,
     pub tfactory: Option<TFactory>,
     pub error_budget: ErrorBudget,
     pub physical_counts: PhysicalResourceCounts,
@@ -120,7 +122,7 @@ pub struct FrontierEntry {
 fn create_frontier_entry<L: Overhead + Clone>(
     logical_resources: &LogicalResourceCounts,
     job_params: &JobParams,
-    result: PhysicalResourceEstimationResult<L>,
+    result: PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
     create_report: bool,
 ) -> (FrontierEntry, Option<Report>) {
     let physical_counts = create_physical_resource_counts(&result);
@@ -154,7 +156,7 @@ fn create_frontier_entry<L: Overhead + Clone>(
 }
 
 fn create_physical_resource_counts<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<L>,
+    result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
 ) -> PhysicalResourceCounts {
     let breakdown = create_physical_resource_counts_breakdown(result);
 
@@ -167,11 +169,11 @@ fn create_physical_resource_counts<L: Overhead + Clone>(
 }
 
 fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<L>,
+    result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()
-        .num_ts_per_rotation(result.error_budget().rotations());
+        .num_magic_states_per_rotation(result.error_budget().rotations());
     PhysicalResourceCountsBreakdown {
         algorithmic_logical_qubits: result.layout_overhead().logical_qubits(),
         algorithmic_logical_depth: result
@@ -181,13 +183,13 @@ fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
         clock_frequency: result.logical_qubit().logical_cycles_per_second(),
         num_tstates: result
             .layout_overhead()
-            .num_tstates(num_ts_per_rotation.unwrap_or_default()),
-        num_tfactories: result.num_tfactories(),
-        num_tfactory_runs: result.num_tfactory_runs(),
-        physical_qubits_for_tfactories: result.physical_qubits_for_tfactories(),
+            .num_magic_states(num_ts_per_rotation.unwrap_or_default()),
+        num_tfactories: result.num_factories(),
+        num_tfactory_runs: result.num_factory_runs(),
+        physical_qubits_for_tfactories: result.physical_qubits_for_factories(),
         physical_qubits_for_algorithm: result.physical_qubits_for_algorithm(),
         required_logical_qubit_error_rate: result.required_logical_qubit_error_rate(),
-        required_logical_tstate_error_rate: result.required_logical_tstate_error_rate(),
+        required_logical_tstate_error_rate: result.required_logical_magic_state_error_rate(),
         num_ts_per_rotation,
         clifford_error_rate: result
             .logical_qubit()

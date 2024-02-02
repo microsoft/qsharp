@@ -11,10 +11,12 @@ use super::super::{
 
 pub trait Overhead {
     fn logical_qubits(&self) -> u64;
-    fn logical_qubits_without_padding(&self) -> u64;
-    fn logical_depth(&self, num_ts_per_rotation: u64) -> u64;
-    fn num_tstates(&self, num_ts_per_rotation: u64) -> u64;
-    fn num_ts_per_rotation(&self, eps_synthesis: f64) -> Option<u64>;
+    fn logical_qubits_without_padding(&self) -> u64 {
+        self.logical_qubits()
+    }
+    fn logical_depth(&self, num_magic_states_per_rotation: u64) -> u64;
+    fn num_magic_states(&self, num_magic_states_per_rotation: u64) -> u64;
+    fn num_magic_states_per_rotation(&self, eps_synthesis: f64) -> Option<u64>;
 }
 
 /// Models the logical resources after layout
@@ -41,13 +43,13 @@ impl Overhead for LogicalResourceCounts {
             + num_ts_per_rotation * self.rotation_depth * NUM_MEASUREMENTS_PER_R
     }
 
-    fn num_tstates(&self, num_ts_per_rotation: u64) -> u64 {
+    fn num_magic_states(&self, num_ts_per_rotation: u64) -> u64 {
         4 * (self.ccz_count + self.ccix_count)
             + self.t_count
             + num_ts_per_rotation * self.rotation_count
     }
 
-    fn num_ts_per_rotation(&self, eps_synthesis: f64) -> Option<u64> {
+    fn num_magic_states_per_rotation(&self, eps_synthesis: f64) -> Option<u64> {
         if self.rotation_count > 0 {
             Some(
                 (NUM_TS_PER_ROTATION_A_COEFFICIENT

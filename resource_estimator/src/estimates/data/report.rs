@@ -8,6 +8,8 @@ mod tests;
 
 use serde::Serialize;
 
+use crate::estimates::{modeling::PhysicalQubit, stages::physical_estimation::Factory};
+
 use super::{
     super::{
         modeling::PhysicalInstructionSet,
@@ -32,16 +34,16 @@ impl Report {
     pub fn new<L: Overhead + Clone>(
         logical_counts: &LogicalResourceCounts,
         job_params: &JobParams,
-        result: &PhysicalResourceEstimationResult<L>,
+        result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
         formatted_counts: &FormattedPhysicalResourceCounts,
     ) -> Self {
         // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH resource_estimator/scripts/generate_report_code.py from docs/output_data.md
         let mut groups = vec![];
 
         let mut entries = vec![];
-        entries.push(ReportEntry::new("physicalCountsFormatted/runtime", "Runtime", r#"Total runtime"#, &format!(r#"This is a runtime estimate for the execution time of the algorithm.  In general, the execution time corresponds to the duration of one logical cycle ({} nanosecs) multiplied by the {} logical cycles to run the algorithm.  If however the duration of a single T factory (here: {} nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory."#, format_thousand_sep(&result.logical_qubit().logical_cycle_time()), format_thousand_sep(&result.algorithmic_logical_depth()), format_thousand_sep(&result.tfactory().map_or(0, TFactory::duration)))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/runtime", "Runtime", r#"Total runtime"#, &format!(r#"This is a runtime estimate for the execution time of the algorithm.  In general, the execution time corresponds to the duration of one logical cycle ({} nanosecs) multiplied by the {} logical cycles to run the algorithm.  If however the duration of a single T factory (here: {} nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory."#, format_thousand_sep(&result.logical_qubit().logical_cycle_time()), format_thousand_sep(&result.algorithmic_logical_depth()), format_thousand_sep(&result.factory().map_or(0, TFactory::duration)))));
         entries.push(ReportEntry::new("physicalCountsFormatted/rqops", "rQOPS", r#"Reliable quantum operations per second"#, &format!(r#"The value is computed as the number of logical qubits after layout ({}) (with a logical error rate of {}) multiplied by the clock frequency ({}), which is the number of logical cycles per second."#, format_thousand_sep(&result.layout_overhead().logical_qubits()), formatted_counts.required_logical_qubit_error_rate, format_thousand_sep_f64(result.logical_qubit().logical_cycles_per_second()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubits", "Physical qubits", r#"Number of physical qubits"#, &format!(r#"This value represents the total number of physical qubits, which is the sum of {} physical qubits to implement the algorithm logic, and {} physical qubits to execute the T factories that are responsible to produce the T states that are consumed by the algorithm."#, format_thousand_sep(&result.physical_qubits_for_algorithm()), format_thousand_sep(&result.physical_qubits_for_tfactories()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubits", "Physical qubits", r#"Number of physical qubits"#, &format!(r#"This value represents the total number of physical qubits, which is the sum of {} physical qubits to implement the algorithm logic, and {} physical qubits to execute the T factories that are responsible to produce the T states that are consumed by the algorithm."#, format_thousand_sep(&result.physical_qubits_for_algorithm()), format_thousand_sep(&result.physical_qubits_for_factories()))));
         groups.push(ReportEntryGroup {
             title: "Physical resource estimates".into(),
             always_visible: true,
@@ -54,12 +56,12 @@ impl Report {
         entries.push(ReportEntry::new("physicalCountsFormatted/logicalDepth", "Logical depth", r#"Number of logical cycles performed"#, &format!(r#"This number is usually equal to the logical depth of the algorithm, which is {}.  However, in the case in which a single T factory is slower than the execution time of the algorithm, we adjust the logical cycle depth to exceed the T factory's execution time."#, format_thousand_sep(&result.algorithmic_logical_depth()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/clockFrequency", "Clock frequency", r#"Number of logical cycles per second"#, &format!(r#"This is the number of logical cycles that can be performed within one second.  The logical cycle time is {}."#, formatted_counts.logical_cycle_time)));
         entries.push(ReportEntry::new("physicalCountsFormatted/numTstates", "Number of T states", r#"Number of T states consumed by the algorithm"#, &format!(r#"To execute the algorithm, we require one T state for each of the {} T gates, four T states for each of the {} CCZ and {} CCiX gates, as well as {} for each of the {} single-qubit rotation gates with arbitrary angle rotation."#, format_thousand_sep(&logical_counts.t_count), format_thousand_sep(&logical_counts.ccz_count), format_thousand_sep(&logical_counts.ccix_count), formatted_counts.num_ts_per_rotation, format_thousand_sep(&logical_counts.rotation_count))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/numTfactories", "Number of T factories", &format!(r#"Number of T factories capable of producing the demanded {} T states during the algorithm's runtime"#, format_thousand_sep(&result.num_tstates())), &format!(r#"The total number of T factories {} that are executed in parallel is computed as $\left\lceil\dfrac{{\text{{T states}}\cdot\text{{T factory duration}}}}{{\text{{T states per T factory}}\cdot\text{{algorithm runtime}}}}\right\rceil = \left\lceil\dfrac{{{} \cdot {}\;\text{{ns}}}}{{{} \cdot {}\;\text{{ns}}}}\right\rceil$"#, format_thousand_sep(&result.num_tfactories()), format_thousand_sep(&result.num_tstates()), format_thousand_sep(&result.tfactory().map_or(0, TFactory::duration)), format_thousand_sep(&result.tfactory().map_or(0, TFactory::output_t_count)), format_thousand_sep(&result.runtime()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/numTfactoryRuns", "Number of T factory invocations", r#"Number of times all T factories are invoked"#, &format!(r#"In order to prepare the {} T states, the {} copies of the T factory are repeatedly invoked {} times."#, format_thousand_sep(&result.num_tstates()), format_thousand_sep(&result.num_tfactories()), format_thousand_sep(&result.num_tfactory_runs()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/numTfactories", "Number of T factories", &format!(r#"Number of T factories capable of producing the demanded {} T states during the algorithm's runtime"#, format_thousand_sep(&result.num_magic_states())), &format!(r#"The total number of T factories {} that are executed in parallel is computed as $\left\lceil\dfrac{{\text{{T states}}\cdot\text{{T factory duration}}}}{{\text{{T states per T factory}}\cdot\text{{algorithm runtime}}}}\right\rceil = \left\lceil\dfrac{{{} \cdot {}\;\text{{ns}}}}{{{} \cdot {}\;\text{{ns}}}}\right\rceil$"#, format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.num_magic_states()), format_thousand_sep(&result.factory().map_or(0, TFactory::duration)), format_thousand_sep(&result.factory().map_or(0, TFactory::num_output_states)), format_thousand_sep(&result.runtime()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/numTfactoryRuns", "Number of T factory invocations", r#"Number of times all T factories are invoked"#, &format!(r#"In order to prepare the {} T states, the {} copies of the T factory are repeatedly invoked {} times."#, format_thousand_sep(&result.num_magic_states()), format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.num_factory_runs()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForAlgorithm", "Physical algorithmic qubits", r#"Number of physical qubits for the algorithm after layout"#, &format!(r#"The {} are the product of the {} logical qubits after layout and the {} physical qubits that encode a single logical qubit."#, format_thousand_sep(&result.physical_qubits_for_algorithm()), format_thousand_sep(&result.layout_overhead().logical_qubits()), format_thousand_sep(&result.logical_qubit().physical_qubits()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForTfactories", "Physical T factory qubits", r#"Number of physical qubits for the T factories"#, &format!(r#"Each T factory requires {} physical qubits and we run {} in parallel, therefore we need ${} = {} \cdot {}$ qubits."#, format_thousand_sep(&result.tfactory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_tfactories()), format_thousand_sep(&result.physical_qubits_for_tfactories()), format_thousand_sep(&result.tfactory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_tfactories()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForTfactories", "Physical T factory qubits", r#"Number of physical qubits for the T factories"#, &format!(r#"Each T factory requires {} physical qubits and we run {} in parallel, therefore we need ${} = {} \cdot {}$ qubits."#, format_thousand_sep(&result.factory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.physical_qubits_for_factories()), format_thousand_sep(&result.factory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_factories()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/requiredLogicalQubitErrorRate", "Required logical qubit error rate", r#"The minimum logical qubit error rate required to run the algorithm within the error budget"#, &format!(r#"The minimum logical qubit error rate is obtained by dividing the logical error probability {} by the product of {} logical qubits and the total cycle count {}."#, formatted_counts.error_budget_logical, format_thousand_sep(&result.layout_overhead().logical_qubits()), format_thousand_sep(&result.num_cycles()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/requiredLogicalTstateErrorRate", "Required logical T state error rate", r#"The minimum T state error rate required for distilled T states"#, &format!(r#"The minimum T state error rate is obtained by dividing the T distillation error probability {} by the total number of T states {}."#, formatted_counts.error_budget_tstates, format_thousand_sep(&result.num_tstates()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/requiredLogicalTstateErrorRate", "Required logical T state error rate", r#"The minimum T state error rate required for distilled T states"#, &format!(r#"The minimum T state error rate is obtained by dividing the T distillation error probability {} by the total number of T states {}."#, formatted_counts.error_budget_tstates, format_thousand_sep(&result.num_magic_states()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/numTsPerRotation", "Number of T states per rotation", r#"Number of T states to implement a rotation with an arbitrary angle"#, &format!(r#"The number of T states to implement a rotation with an arbitrary angle is $\lceil 0.53 \log_2({} / {}) + 5.3\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)].  For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases."#, format_thousand_sep(&logical_counts.rotation_count), result.error_budget().rotations())));
         groups.push(ReportEntryGroup {
             title: "Resource estimates breakdown".into(),
@@ -91,11 +93,11 @@ impl Report {
             entries,
         });
 
-        if result.tfactory().is_some() {
+        if result.factory().is_some() {
             let mut entries = vec![];
             entries.push(ReportEntry::new("physicalCountsFormatted/tfactoryPhysicalQubits", "Physical qubits", r#"Number of physical qubits for a single T factory"#, r#"This corresponds to the maximum number of physical qubits over all rounds of T distillation units in a T factory.  A round of distillation contains of multiple copies of distillation units to achieve the required success probability of producing a T state with the expected logical T state error rate."#));
             entries.push(ReportEntry::new("physicalCountsFormatted/tfactoryRuntime", "Runtime", r#"Runtime of a single T factory"#, r#"The runtime of a single T factory is the accumulated runtime of executing each round in a T factory."#));
-            entries.push(ReportEntry::new("tfactory/numTstates", "Number of output T states per run", r#"Number of output T states produced in a single run of T factory"#, &format!(r#"The T factory takes as input {} noisy physical T states with an error rate of {} and produces {} T states with an error rate of {}."#, format_thousand_sep(&result.tfactory().map_or(0, TFactory::input_t_count)), job_params.qubit_params().t_gate_error_rate(), format_thousand_sep(&result.tfactory().map_or(0, TFactory::output_t_count)), formatted_counts.tstate_logical_error_rate)));
+            entries.push(ReportEntry::new("tfactory/numTstates", "Number of output T states per run", r#"Number of output T states produced in a single run of T factory"#, &format!(r#"The T factory takes as input {} noisy physical T states with an error rate of {} and produces {} T states with an error rate of {}."#, format_thousand_sep(&result.factory().map_or(0, TFactory::input_t_count)), job_params.qubit_params().t_gate_error_rate(), format_thousand_sep(&result.factory().map_or(0, TFactory::num_output_states)), formatted_counts.tstate_logical_error_rate)));
             entries.push(ReportEntry::new("physicalCountsFormatted/numInputTstates", "Number of input T states per run", r#"Number of physical input T states consumed in a single run of a T factory"#, r#"This value includes the physical input T states of all copies of the distillation unit in the first round."#));
             entries.push(ReportEntry::new("tfactory/numRounds", "Distillation rounds", r#"The number of distillation rounds"#, r#"This is the number of distillation rounds.  In each round one or multiple copies of some distillation unit is executed."#));
             entries.push(ReportEntry::new(
@@ -357,7 +359,7 @@ pub struct FormattedPhysicalResourceCounts {
 impl FormattedPhysicalResourceCounts {
     #[allow(clippy::too_many_lines, clippy::cast_lossless)]
     pub fn new<L: Overhead + Clone>(
-        result: &PhysicalResourceEstimationResult<L>,
+        result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
         logical_resources: &LogicalResourceCounts,
         job_params: &JobParams,
     ) -> Self {
@@ -373,18 +375,17 @@ impl FormattedPhysicalResourceCounts {
             format_metric_prefix(result.layout_overhead().logical_qubits());
         let algorithmic_logical_depth = format_metric_prefix(result.algorithmic_logical_depth());
         let logical_depth = format_metric_prefix(result.num_cycles());
-        let num_tstates = format_metric_prefix(result.num_tstates());
-        let num_tfactories = format_metric_prefix(result.num_tfactories());
-        let num_tfactory_runs = format_metric_prefix(result.num_tfactory_runs());
+        let num_tstates = format_metric_prefix(result.num_magic_states());
+        let num_tfactories = format_metric_prefix(result.num_factories());
+        let num_tfactory_runs = format_metric_prefix(result.num_factory_runs());
         let physical_qubits_for_algorithm =
             format_metric_prefix(result.physical_qubits_for_algorithm());
         let physical_qubits_for_tfactories =
-            format_metric_prefix(result.physical_qubits_for_tfactories());
+            format_metric_prefix(result.physical_qubits_for_factories());
 
         let physical_qubits_for_tfactories_percentage = format!(
             "{:.2} %",
-            (result.physical_qubits_for_tfactories() * 100) as f64
-                / result.physical_qubits() as f64
+            (result.physical_qubits_for_factories() * 100) as f64 / result.physical_qubits() as f64
         );
 
         let required_logical_qubit_error_rate =
@@ -394,7 +395,7 @@ impl FormattedPhysicalResourceCounts {
         let no_rotations_msg = "No rotations in algorithm";
 
         let required_logical_tstate_error_rate = result
-            .required_logical_tstate_error_rate()
+            .required_logical_magic_state_error_rate()
             .as_ref()
             .map_or(String::from(no_tstates_msg), |error_rate| {
                 format!("{error_rate:.2e}")
@@ -414,24 +415,24 @@ impl FormattedPhysicalResourceCounts {
 
         // T factory parameters
         let tfactory_physical_qubits = result
-            .tfactory()
+            .factory()
             .map_or(String::from(no_tstates_msg), |tfactory| {
                 format_metric_prefix(tfactory.physical_qubits())
             });
         let tfactory_runtime = result
-            .tfactory()
+            .factory()
             .map_or(String::from(no_tstates_msg), |tfactory| {
                 format_duration(tfactory.duration() as u128)
             });
         let num_input_tstates = result
-            .tfactory()
+            .factory()
             .map_or(String::from(no_tstates_msg), |tfactory| {
                 format_metric_prefix(tfactory.input_t_count())
             });
 
         let num_units_per_round =
             result
-                .tfactory()
+                .factory()
                 .map_or(String::from(no_tstates_msg), |tfactory| {
                     tfactory
                         .num_units_per_round()
@@ -442,14 +443,14 @@ impl FormattedPhysicalResourceCounts {
                 });
 
         let unit_name_per_round = result
-            .tfactory()
+            .factory()
             .map_or(String::from(no_tstates_msg), |tfactory| {
                 tfactory.unit_names().join(", ")
             });
 
         let code_distance_per_round =
             result
-                .tfactory()
+                .factory()
                 .map_or(String::from(no_tstates_msg), |tfactory| {
                     tfactory
                         .code_distance_per_round()
@@ -461,7 +462,7 @@ impl FormattedPhysicalResourceCounts {
 
         let physical_qubits_per_round =
             result
-                .tfactory()
+                .factory()
                 .map_or(String::from(no_tstates_msg), |tfactory| {
                     tfactory
                         .physical_qubits_per_round()
@@ -473,7 +474,7 @@ impl FormattedPhysicalResourceCounts {
 
         let tfactory_runtime_per_round =
             result
-                .tfactory()
+                .factory()
                 .map_or(String::from(no_tstates_msg), |tfactory| {
                     tfactory
                         .duration_per_round()
@@ -484,7 +485,7 @@ impl FormattedPhysicalResourceCounts {
                 });
 
         let tstate_logical_error_rate = result
-            .tfactory()
+            .factory()
             .map_or(String::from(no_tstates_msg), |tfactory| {
                 format!("{:.2e}", tfactory.output_t_error_rate())
             });
@@ -507,7 +508,7 @@ impl FormattedPhysicalResourceCounts {
 
         let num_ts_per_rotation = result
             .layout_overhead()
-            .num_ts_per_rotation(result.error_budget().rotations())
+            .num_magic_states_per_rotation(result.error_budget().rotations())
             .map_or_else(|| String::from(no_rotations_msg), format_metric_prefix);
 
         let constraint_not_set_msg = "constraint not set";

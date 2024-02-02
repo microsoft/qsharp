@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 mod counts;
-mod estimates;
+pub mod estimates;
 
 pub use estimates::estimate_physical_resources_from_json;
 
