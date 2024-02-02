@@ -71,6 +71,7 @@ async function findManifestDocument(
     // levels in each others' path ancestry.
     // [1]: https://code.visualstudio.com/docs/editor/workspaces#_multiroot-workspaces
     if (
+      // TODO: It's perfectly valid to have > 1 workspace folders open in VS Code
       vscode.workspace.workspaceFolders?.length === 1 &&
       Utils.resolvePath(vscode.workspace.workspaceFolders[0].uri, "..") ===
         uriToQuery
@@ -137,6 +138,22 @@ async function readFileUri(
   const uri: vscode.Uri = (maybeUri as any).path
     ? (maybeUri as vscode.Uri)
     : vscode.Uri.parse(maybeUri as string);
+
+  // If any open documents match this uri, return their contents instead of from disk
+  const opendoc = vscode.workspace.textDocuments.find(
+    (opendoc) =>
+      opendoc.uri.scheme === uri.scheme &&
+      opendoc.uri.authority === uri.authority &&
+      opendoc.uri.path == uri.path,
+  );
+
+  if (opendoc) {
+    return {
+      content: opendoc.getText(),
+      uri,
+    };
+  }
+
   try {
     return await vscode.workspace.fs.readFile(uri).then((res) => {
       return {
@@ -145,7 +162,12 @@ async function readFileUri(
       };
     });
   } catch (_err) {
-    // `readFile` returns `err` if the file didn't exist.
+    // `readFile` should throw the below if the file is not found
+    if (
+      !(_err instanceof vscode.FileSystemError && _err.code === "FileNotFound")
+    ) {
+      log.error("Unexpected error trying to read file", _err);
+    }
     return null;
   }
 }
@@ -184,6 +206,12 @@ let projectLoader: any | undefined = undefined;
 export async function loadProject(
   documentUri: vscode.Uri,
 ): Promise<[string, string][]> {
+  // If the file is not even named yet, it won't be on disk and can't be in a project
+  if (documentUri.scheme === "untitled") {
+    const file = await vscode.workspace.openTextDocument(documentUri);
+    return [[documentUri.toString(), file.getText()]];
+  }
+
   // get the project using this.program
   const manifest = await getManifestThrowsOnParseFailure(
     documentUri.toString(),
