@@ -139,11 +139,9 @@ impl Protocol {
 
         // validate that formulas only yield positive values
         for code_distance in (1..=model.max_code_distance).skip(2) {
-            // can you compute logical cycle time with code distance?
+            // can you compute logical cycle time and number of physical qubits with code distance?
             ftp.logical_cycle_time(qubit, code_distance)?;
-            if ftp.physical_qubits_per_logical_qubit(code_distance)? <= 0 {
-                return Err(NonPositivePhysicalQubitsPerLogicalQubit(code_distance).into());
-            }
+            ftp.physical_qubits_per_logical_qubit(code_distance)?;
         }
 
         Ok(ftp)
@@ -463,13 +461,17 @@ impl ErrorCorrection for Protocol {
     ///
     /// The formula for this field has a default value of `2 * code_distance *
     /// code_distance`.
-    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<i64> {
+    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64> {
         let mut context = Self::create_evaluation_context(None, code_distance);
-        #[allow(clippy::cast_possible_truncation)]
-        #[allow(clippy::cast_sign_loss)]
-        Ok(self
+        let value = self
             .physical_qubits_per_logical_qubit
-            .evaluate(&mut context)? as i64)
+            .evaluate(&mut context)?;
+
+        if value <= 0.0 {
+            Err(NonPositivePhysicalQubitsPerLogicalQubit(code_distance).into())
+        } else {
+            Ok(value as u64)
+        }
     }
 
     /// Returns the time of one logical cycle.

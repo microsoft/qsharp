@@ -82,7 +82,7 @@ jobs:
 
   # Below VS Code extension build only needs to run on one platform (Linux x86_64 for now)
   - script: |
-      npm install -g @vscode/vsce
+      npm install -g @vscode/vsce@2.22.0
     displayName: Install Prereqs for VSCode Extension
 
   # build steps
@@ -297,7 +297,7 @@ jobs:
     displayName: Download VSCode Extension Artifact
 
   - script: |
-      npm install -g @vscode/vsce
+      npm install -g @vscode/vsce@2.22.0
     displayName: Install Prereqs for VSCode Ext Publishing
 
   - script: |

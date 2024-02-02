@@ -962,7 +962,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Input
     /// ## partitionSizes
-    /// Number of elements in each splitted part of array.
+    /// Number of elements in each split part of array.
     /// ## array
     /// Input array to be split.
     ///

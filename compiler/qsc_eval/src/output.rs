@@ -70,7 +70,7 @@ impl<'a> Receiver for GenericReceiver<'a> {
                 self.writer,
                 "{}: {}",
                 format_state_id(&id, qubit_count),
-                state
+                fmt_complex(&state),
             )
             .map_err(|_| Error)?;
         }
