@@ -3,7 +3,7 @@
 
 use crate::data_structures::{
     derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
-    CallableSpecializationId, CallableVariable, CallableVariableKind, FunctorApplication,
+    CallableSpecializationSelector, CallableVariable, CallableVariableKind, SpecializationSelector,
 };
 use qsc_fir::{
     fir::{
@@ -29,7 +29,7 @@ pub struct CycledCallableInfo {
 }
 
 impl CycledCallableInfo {
-    pub fn new(item: &Item, specialization: &CallableSpecializationId) -> Self {
+    pub fn new(item: &Item, specialization: &CallableSpecializationSelector) -> Self {
         // No entry for the callable exists, so create insert it.
         let ItemKind::Callable(callable) = &item.kind else {
             panic!("item should be callable");
@@ -39,7 +39,7 @@ impl CycledCallableInfo {
         };
 
         // Values for a cycled callable depending on what specializations exist for the callable.
-        let functor_application = specialization.functor_application;
+        let functor_application = specialization.specialization_selector;
         let body = !functor_application.adjoint && !functor_application.controlled;
         let adj = if spec_impl.adj.is_some() {
             Some(functor_application.adjoint && !functor_application.controlled)
@@ -65,7 +65,7 @@ impl CycledCallableInfo {
         }
     }
 
-    pub fn update(&mut self, functor_application: &FunctorApplication) {
+    pub fn update(&mut self, functor_application: &SpecializationSelector) {
         if !functor_application.adjoint && !functor_application.controlled {
             self.is_body_cycled = true;
         } else if functor_application.adjoint && !functor_application.controlled {
@@ -89,26 +89,26 @@ impl CycledCallableInfo {
 
 #[derive(Default)]
 struct CallStack {
-    set: FxHashSet<CallableSpecializationId>,
-    stack: Vec<CallableSpecializationId>,
+    set: FxHashSet<CallableSpecializationSelector>,
+    stack: Vec<CallableSpecializationSelector>,
 }
 
 impl CallStack {
-    fn contains(&self, value: &CallableSpecializationId) -> bool {
+    fn contains(&self, value: &CallableSpecializationSelector) -> bool {
         self.set.contains(value)
     }
 
-    fn peak(&self) -> &CallableSpecializationId {
+    fn peak(&self) -> &CallableSpecializationSelector {
         self.stack.last().expect("stack should not be empty")
     }
 
-    fn pop(&mut self) -> CallableSpecializationId {
+    fn pop(&mut self) -> CallableSpecializationSelector {
         let popped = self.stack.pop().expect("stack should not be empty");
         self.set.remove(&popped);
         popped
     }
 
-    fn push(&mut self, value: CallableSpecializationId) {
+    fn push(&mut self, value: CallableSpecializationSelector) {
         self.set.insert(value);
         self.stack.push(value);
     }
@@ -118,8 +118,8 @@ struct CycleDetector<'a> {
     package_id: PackageId,
     package: &'a Package,
     stack: CallStack,
-    node_maps: FxHashMap<CallableSpecializationId, FxHashMap<NodeId, CallableVariable>>,
-    specializations_with_cycles: FxHashSet<CallableSpecializationId>,
+    node_maps: FxHashMap<CallableSpecializationSelector, FxHashMap<NodeId, CallableVariable>>,
+    specializations_with_cycles: FxHashSet<CallableSpecializationSelector>,
 }
 
 impl<'a> CycleDetector<'a> {
@@ -129,7 +129,7 @@ impl<'a> CycleDetector<'a> {
             package,
             stack: CallStack::default(),
             node_maps: FxHashMap::default(),
-            specializations_with_cycles: FxHashSet::<CallableSpecializationId>::default(),
+            specializations_with_cycles: FxHashSet::<CallableSpecializationSelector>::default(),
         }
     }
 
@@ -137,7 +137,7 @@ impl<'a> CycleDetector<'a> {
         self.visit_package(self.package);
     }
 
-    fn get_callables_with_cycles(&self) -> &FxHashSet<CallableSpecializationId> {
+    fn get_callables_with_cycles(&self) -> &FxHashSet<CallableSpecializationSelector> {
         &self.specializations_with_cycles
     }
 
@@ -173,9 +173,9 @@ impl<'a> CycleDetector<'a> {
     }
 
     /// Uniquely resolves the callable specialization referenced in a callee expression.
-    fn resolve_callee(&self, expr_id: ExprId) -> Option<CallableSpecializationId> {
+    fn resolve_callee(&self, expr_id: ExprId) -> Option<CallableSpecializationSelector> {
         // Resolves a block callee.
-        let resolve_block = |block_id: BlockId| -> Option<CallableSpecializationId> {
+        let resolve_block = |block_id: BlockId| -> Option<CallableSpecializationSelector> {
             let block = self.package.get_block(block_id);
             if let Some(return_stmt_id) = block.stmts.last() {
                 let return_stmt = self.package.get_stmt(*return_stmt_id);
@@ -190,16 +190,17 @@ impl<'a> CycleDetector<'a> {
         };
 
         // Resolves a closure callee.
-        let resolve_closure = |local_item_id: LocalItemId| -> Option<CallableSpecializationId> {
-            Some(CallableSpecializationId {
-                callable: local_item_id,
-                functor_application: FunctorApplication::default(),
-            })
-        };
+        let resolve_closure =
+            |local_item_id: LocalItemId| -> Option<CallableSpecializationSelector> {
+                Some(CallableSpecializationSelector {
+                    callable: local_item_id,
+                    specialization_selector: SpecializationSelector::default(),
+                })
+            };
 
         // Resolves a unary operator callee.
         let resolve_un_op =
-            |operator: &UnOp, expr_id: ExprId| -> Option<CallableSpecializationId> {
+            |operator: &UnOp, expr_id: ExprId| -> Option<CallableSpecializationSelector> {
                 let UnOp::Functor(functor) = operator else {
                     panic!("unary operator is expected to be a functor for a callee expression")
                 };
@@ -207,19 +208,21 @@ impl<'a> CycleDetector<'a> {
                 let resolved_callee = self.resolve_callee(expr_id);
                 if let Some(callable_specialization_id) = resolved_callee {
                     let functor_application = match functor {
-                        Functor::Adj => FunctorApplication {
-                            adjoint: !callable_specialization_id.functor_application.adjoint,
-                            controlled: callable_specialization_id.functor_application.controlled,
+                        Functor::Adj => SpecializationSelector {
+                            adjoint: !callable_specialization_id.specialization_selector.adjoint,
+                            controlled: callable_specialization_id
+                                .specialization_selector
+                                .controlled,
                         },
-                        Functor::Ctl => FunctorApplication {
-                            adjoint: callable_specialization_id.functor_application.adjoint,
+                        Functor::Ctl => SpecializationSelector {
+                            adjoint: callable_specialization_id.specialization_selector.adjoint,
                             // Once set to `true`, it remains as `true`.
                             controlled: true,
                         },
                     };
-                    Some(CallableSpecializationId {
+                    Some(CallableSpecializationSelector {
                         callable: callable_specialization_id.callable,
-                        functor_application,
+                        specialization_selector: functor_application,
                     })
                 } else {
                     None
@@ -227,28 +230,28 @@ impl<'a> CycleDetector<'a> {
             };
 
         // Resolves an item callee.
-        let resolve_item = |item_id: ItemId| -> Option<CallableSpecializationId> {
+        let resolve_item = |item_id: ItemId| -> Option<CallableSpecializationSelector> {
             match item_id.package {
                 Some(package_id) => {
                     if package_id == self.package_id {
-                        Some(CallableSpecializationId {
+                        Some(CallableSpecializationSelector {
                             callable: item_id.item,
-                            functor_application: FunctorApplication::default(),
+                            specialization_selector: SpecializationSelector::default(),
                         })
                     } else {
                         None
                     }
                 }
                 // No package ID assumes the callee is in the same package than the caller.
-                None => Some(CallableSpecializationId {
+                None => Some(CallableSpecializationSelector {
                     callable: item_id.item,
-                    functor_application: FunctorApplication::default(),
+                    specialization_selector: SpecializationSelector::default(),
                 }),
             }
         };
 
         // Resolves a local callee.
-        let resolve_local = |node_id: NodeId| -> Option<CallableSpecializationId> {
+        let resolve_local = |node_id: NodeId| -> Option<CallableSpecializationSelector> {
             let callable_specialization_id = self.stack.peak();
             let node_map = self
                 .node_maps
@@ -282,7 +285,7 @@ impl<'a> CycleDetector<'a> {
 
     fn walk_callable_decl(
         &mut self,
-        callable_specialization_id: CallableSpecializationId,
+        callable_specialization_id: CallableSpecializationSelector,
         callable_decl: &'a CallableDecl,
     ) {
         // We only need to go deeper for non-intrinsic callables.
@@ -290,7 +293,7 @@ impl<'a> CycleDetector<'a> {
             return;
         };
 
-        let functor_application = callable_specialization_id.functor_application;
+        let functor_application = callable_specialization_id.specialization_selector;
         let spec_decl = if !functor_application.adjoint && !functor_application.controlled {
             &spec_impl.body
         } else if functor_application.adjoint && !functor_application.controlled {
@@ -334,7 +337,7 @@ impl<'a> CycleDetector<'a> {
 
     fn walk_spec_decl(
         &mut self,
-        callable_specialization_id: CallableSpecializationId,
+        callable_specialization_id: CallableSpecializationSelector,
         spec_decl: &'a SpecDecl,
     ) {
         // If the specialization is already in the stack, it means the callable has a cycle.
@@ -482,9 +485,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
 
         // Visit the body specialization.
         self.walk_spec_decl(
-            CallableSpecializationId {
+            CallableSpecializationSelector {
                 callable: item.id,
-                functor_application: FunctorApplication {
+                specialization_selector: SpecializationSelector {
                     adjoint: false,
                     controlled: false,
                 },
@@ -495,9 +498,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         // Visit the adj specialization.
         if let Some(adj_decl) = &spec_impl.adj {
             self.walk_spec_decl(
-                CallableSpecializationId {
+                CallableSpecializationSelector {
                     callable: item.id,
-                    functor_application: FunctorApplication {
+                    specialization_selector: SpecializationSelector {
                         adjoint: true,
                         controlled: false,
                     },
@@ -509,9 +512,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         // Visit the ctl specialization.
         if let Some(ctl_decl) = &spec_impl.ctl {
             self.walk_spec_decl(
-                CallableSpecializationId {
+                CallableSpecializationSelector {
                     callable: item.id,
-                    functor_application: FunctorApplication {
+                    specialization_selector: SpecializationSelector {
                         adjoint: false,
                         controlled: true,
                     },
@@ -523,9 +526,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         // Visit the ctl_adj specialization.
         if let Some(ctl_adj_decl) = &spec_impl.ctl {
             self.walk_spec_decl(
-                CallableSpecializationId {
+                CallableSpecializationSelector {
                     callable: item.id,
-                    functor_application: FunctorApplication {
+                    specialization_selector: SpecializationSelector {
                         adjoint: true,
                         controlled: true,
                     },
@@ -570,7 +573,7 @@ pub fn detect_callables_with_cycles(
         callables_with_cycles
             .entry(specialization.callable)
             .and_modify(|cycled_callable| {
-                cycled_callable.update(&specialization.functor_application)
+                cycled_callable.update(&specialization.specialization_selector)
             })
             .or_insert({
                 let item = package.get_item(specialization.callable);

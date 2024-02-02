@@ -3,13 +3,14 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{CallableDecl, ExprId, LocalItemId, NodeId, Pat, PatId, PatKind},
+    fir::{CallableDecl, ExprId, LocalItemId, NodeId, PackageStore, Pat, PatId, PatKind},
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
 use std::{cmp::Ordering, ops};
 
 /// A callable input element.
+// TODO (cesarzc): Maybe this can be private if we do things through RuntimeContext.
 #[derive(Debug)]
 pub struct CallableInputElement {
     pub pat: PatId,
@@ -18,6 +19,7 @@ pub struct CallableInputElement {
 }
 
 /// A kind of callable input element.
+// TODO (cesarzc): Maybe this can be private if we do things through RuntimeContext.
 #[derive(Debug)]
 pub enum CallableInputElementKind {
     Discard,
@@ -26,6 +28,7 @@ pub enum CallableInputElementKind {
 }
 
 /// Creates a vector of flattened callable input elements.
+// TODO (cesarzc): Maybe this can be private if we do things through RuntimeContext.
 pub fn derive_callable_input_elements(
     callable: &CallableDecl,
     pats: &IndexMap<PatId, Pat>,
@@ -163,6 +166,7 @@ pub enum CallableVariableKind {
 }
 
 /// Creates a map of a input parameters.
+// TODO (cesarzc): Maybe this function is not needed anymore.
 pub fn derive_callable_input_map<'a>(
     input_params: impl Iterator<Item = &'a InputParam>,
 ) -> FxHashMap<NodeId, CallableVariable> {
@@ -183,16 +187,29 @@ pub fn derive_callable_input_map<'a>(
     variable_map
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct CallableSpecializationId {
-    pub callable: LocalItemId,
-    pub functor_application: FunctorApplication,
+/// The context in which statements and expression run.
+#[derive(Debug, Default)]
+pub struct RuntimeContext {
+    pub input_params: Option<Vec<InputParam>>,
+    pub variable_map: FxHashMap<NodeId, CallableVariable>,
+}
+
+pub fn create_specialization_runtime_context(
+    _callable_specialization_selector: CallableSpecializationSelector,
+    _package_store: &PackageStore,
+) -> RuntimeContext {
+    // TODO (cesarzc): Implement properly.
+    RuntimeContext::default()
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct FunctorApplication {
+pub struct CallableSpecializationSelector {
+    pub callable: LocalItemId,
+    pub specialization_selector: SpecializationSelector,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub struct SpecializationSelector {
     pub adjoint: bool,
-    // N.B. For the purposes of RCA, we only care about the controlled functor being applied, but not the number of
-    // times it was applied.
     pub controlled: bool,
 }
