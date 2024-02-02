@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 use crate::{
-    cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
-    data_structures::{
+    common::{
         derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
         CallableInputElement, CallableInputElementKind, CallableVariable, CallableVariableKind,
         InputParam, InputParamIndex,
     },
+    cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
     ApplicationsTable, CallableComputeProperties, CallableElementComputeProperties,
     ComputeProperties, ComputePropertiesLookup, DynamismSource, ItemComputeProperties,
     PackageStoreComputeProperties, PatComputeProperties, RuntimeFeatureFlags,

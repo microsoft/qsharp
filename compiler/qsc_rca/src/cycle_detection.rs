@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::data_structures::{
+use crate::common::{
     derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
     CallableSpecializationSelector, CallableVariable, CallableVariableKind, SpecializationSelector,
 };

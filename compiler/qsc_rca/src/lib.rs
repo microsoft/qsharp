@@ -3,8 +3,8 @@
 
 //! Runtime Capabilities Analysis (RCA)...
 
+mod common;
 mod cycle_detection;
-mod data_structures;
 mod rca;
 
 use crate::rca::analyze_package;
