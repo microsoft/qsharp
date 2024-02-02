@@ -6,5 +6,6 @@ namespace Foo {
         Bar();
         use q = Qubit();
         H(q);
+        Reset(q);
     }
 }

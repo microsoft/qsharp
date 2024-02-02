@@ -10,7 +10,7 @@ import { DebugProtocol } from "@vscode/debugprotocol";
  * Set to true to log Debug Adapter Protocol messages to the console.
  * This is useful for debugging test failures.
  */
-const logDapMessages = true;
+const logDebugAdapterActivity = false;
 
 suite("Q# Debugger Tests", function suite() {
   const workspaceFolder =
@@ -49,7 +49,7 @@ suite("Q# Debugger Tests", function suite() {
     // launch debugger
     await vscode.commands.executeCommand("qsharp-vscode.debugEditorContents");
 
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 0,
         source: {
@@ -78,7 +78,7 @@ suite("Q# Debugger Tests", function suite() {
       program: "${workspaceFolder}src/foo.qs",
     });
 
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 0,
         source: {
@@ -97,35 +97,75 @@ suite("Q# Debugger Tests", function suite() {
     ]);
   });
 
-  // test("Launch with launch.json configuration - file substitution", async () => {
-  //   await vscode.window.showTextDocument(fooUri);
+  test("Launch with launch.json configuration - file substitution", async () => {
+    await vscode.window.showTextDocument(fooUri);
 
-  //   // ${file} will expand to the filesystem path of the currently opened file
-  //   await vscode.debug.startDebugging(workspaceFolder, {
-  //     name: "Launch foo.qs",
-  //     type: "qsharp",
-  //     request: "launch",
-  //     program: "${file}",
-  //   });
+    // ${file} will expand to the filesystem path of the currently opened file
+    await vscode.debug.startDebugging(workspaceFolder, {
+      name: "Launch foo.qs",
+      type: "qsharp",
+      request: "launch",
+      program: "${file}",
+    });
 
-  //   await waitUntilStopped([
-  //     {
-  //       id: 0,
-  //       source: {
-  //         name: "foo.qs",
-  //         path: "vscode-test-web://mount/src/foo.qs",
-  //         sourceReference: 0,
-  //         adapterData: "qsharp-adapter-data",
-  //       },
-  //       line: 5,
-  //       column: 9,
-  //       name: "Foo ",
-  //       endLine: 5,
-  //       endColumn: 15,
-  //     },
-  //     { id: 0, line: 0, column: 0, name: "entry", source: undefined },
-  //   ]);
-  // });
+    await waitUntilPaused([
+      {
+        id: 0,
+        source: {
+          name: "foo.qs",
+          path: "vscode-test-web://mount/src/foo.qs",
+          sourceReference: 0,
+          adapterData: "qsharp-adapter-data",
+        },
+        line: 5,
+        column: 9,
+        name: "Foo ",
+        endLine: 5,
+        endColumn: 15,
+      },
+      { id: 0, line: 0, column: 0, name: "entry", source: undefined },
+    ]);
+  });
+
+  test("Run until completion", async () => {
+    // launch debugger
+    await vscode.debug.startDebugging(workspaceFolder, {
+      name: "Launch foo.qs",
+      type: "qsharp",
+      request: "launch",
+      program: "${workspaceFolder}src/foo.qs",
+      stopOnEntry: true,
+    });
+
+    // should hit the breakpoint we set above
+    await waitUntilPaused([
+      {
+        id: 0,
+        source: {
+          name: "foo.qs",
+          path: "vscode-test-web://mount/src/foo.qs",
+          sourceReference: 0,
+          adapterData: "qsharp-adapter-data",
+        },
+        line: 5,
+        column: 9,
+        name: "Foo ",
+        endLine: 5,
+        endColumn: 15,
+      },
+      { id: 0, line: 0, column: 0, name: "entry", source: undefined },
+    ]);
+
+    vscode.commands.executeCommand("workbench.action.debug.continue");
+
+    // wait until there's no longer an active debug session
+    await waitForCondition(
+      () => !vscode.debug.activeDebugSession,
+      vscode.debug.onDidChangeActiveDebugSession,
+      2000,
+      "timed out waiting for the debugger to be terminated",
+    );
+  });
 
   test("Set breakpoint in main file", async () => {
     // Set a breakpoint on line 6 of foo.qs (5 when 0-indexed)
@@ -145,7 +185,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 0,
         source: {
@@ -182,7 +222,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 1,
         source: {
@@ -229,7 +269,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should break on entry (per debug config above)
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 0,
         source: {
@@ -250,7 +290,7 @@ suite("Q# Debugger Tests", function suite() {
     // step into call (will be a call into bar.qs)
     await vscode.commands.executeCommand("workbench.action.debug.stepInto");
 
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 1,
         source: {
@@ -305,7 +345,7 @@ suite("Q# Debugger Tests", function suite() {
     });
 
     // should hit the breakpoint we set above
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 0,
         source: {
@@ -326,7 +366,7 @@ suite("Q# Debugger Tests", function suite() {
     // step into call (will be a call into intrinsic.qs)
     await vscode.commands.executeCommand("workbench.action.debug.stepInto");
 
-    await waitUntilStopped([
+    await waitUntilPaused([
       {
         id: 1,
         source: {
@@ -365,12 +405,12 @@ suite("Q# Debugger Tests", function suite() {
   });
 
   /**
-   * Wait until the debugger has entered stopped state.
+   * Wait until the debugger has entered the paused state.
    *
    * @param expectedStackTrace assert that the stack trace matches this value
    */
-  function waitUntilStopped(expectedStackTrace: DebugProtocol.StackFrame[]) {
-    tracker!.waitUntilStopped(expectedStackTrace);
+  function waitUntilPaused(expectedStackTrace: DebugProtocol.StackFrame[]) {
+    return tracker!.waitUntilPaused(expectedStackTrace);
   }
 });
 
@@ -404,9 +444,9 @@ async function waitForTextEditorOn(uri: vscode.Uri) {
 /**
  * This class will listen to the communication between VS Code and the debug adapter (our code).
  *
- * VS Code does not provide an easy way to hook into debugger state for our tests. But there
+ * VS Code does not provide an easy way to hook into debug session state for our tests. But there
  * is a predictable pattern of Debug Adapter Protocol messages we can listen to,
- * to figure out when the debugger has entered the stop state (as a result of a breakpoint, step, breaking on entry, etc.).
+ * to figure out when the debugger has entered the paused state (as a result of a breakpoint, step, breaking on entry, etc.).
  *
  * 1. a "stopped" event coming from the debug adapter.
  * 2. a response to a "stackTrace" request.
@@ -425,12 +465,12 @@ class Tracker implements vscode.DebugAdapterTracker {
   private onVariablesResponse: ((e: any) => void) | undefined;
 
   /**
-   * Wait until the debugger has entered stopped state by waiting for the
+   * Wait until the debugger has entered the paused state by waiting for the
    * appropriate sequence of messages in the debug adapter.
    *
    * @param expectedStackTrace assert that the stack trace matches this value
    */
-  async waitUntilStopped(expectedStackTrace: DebugProtocol.StackFrame[]) {
+  async waitUntilPaused(expectedStackTrace: DebugProtocol.StackFrame[]) {
     const start = performance.now();
 
     await waitForCondition(
@@ -439,12 +479,12 @@ class Tracker implements vscode.DebugAdapterTracker {
         this.onVariablesResponse = listener;
         return {
           dispose() {
-            this.variables = undefined;
+            this.onVariablesResponse = undefined;
           },
         };
       },
-      2000,
-      "timed out waiting for the debugger to stop after continue",
+      1800,
+      "timed out waiting for the debugger to stop",
     );
 
     assert.deepEqual(
@@ -466,17 +506,27 @@ class Tracker implements vscode.DebugAdapterTracker {
       // The default mocha test timeout is 2000ms.
       console.log(`qsharp-tests: debugger took ${stepMs}ms to stop`);
     }
+    if (logDebugAdapterActivity) {
+      console.log(`qsharp-tests: debugger paused`);
+    }
   }
+
   onWillReceiveMessage(message: any): void {
-    if (logDapMessages) {
-      console.log(`qsharp-tests: -> ${JSON.stringify(message)}`);
+    if (logDebugAdapterActivity) {
+      console.log(`qsharp-tests: ->  ${JSON.stringify(message)}`);
     }
   }
 
   onDidSendMessage(message: any): void {
-    if (logDapMessages) {
-      console.log(`qsharp-tests: <- ${JSON.stringify(message)}`);
+    if (logDebugAdapterActivity) {
+      if (message.type === "response") {
+        console.log(`qsharp-tests:  <- ${JSON.stringify(message)}`);
+      } else {
+        // message.type === "event"
+        console.log(`qsharp-tests: <-* ${JSON.stringify(message)}`);
+      }
     }
+
     if (message.type === "event") {
       if (message.event === "stopped") {
         this.stoppedCount++;
@@ -488,6 +538,30 @@ class Tracker implements vscode.DebugAdapterTracker {
       } else if (message.command === "stackTrace") {
         this.stackTrace = message.body.stackFrames;
       }
+    }
+  }
+
+  onWillStartSession(): void {
+    if (logDebugAdapterActivity) {
+      console.log(`qsharp-tests: starting debug session`);
+    }
+  }
+
+  onWillStopSession(): void {
+    if (logDebugAdapterActivity) {
+      console.log(`qsharp-tests: stopping debug session`);
+    }
+  }
+
+  onError(error: Error): void {
+    console.log(`qsharp-tests: [error] error in debug session: ${error}`);
+  }
+
+  onExit(code: number, signal: string): void {
+    if (logDebugAdapterActivity) {
+      console.log(
+        `qsharp-tests: debug session exited with code ${code} and signal ${signal}`,
+      );
     }
   }
 }

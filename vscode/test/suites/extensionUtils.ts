@@ -62,7 +62,7 @@ export async function waitForCondition(
       }
     });
 
-    // Resolve immediately if condition is already true
+    // Resolve immediately if condition is already met
     if (condition()) {
       done = true;
       resolve();
