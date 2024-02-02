@@ -225,6 +225,9 @@ function registerMonacoLanguageServiceProviders(
             case "keyword":
               kind = monaco.languages.CompletionItemKind.Keyword;
               break;
+            case "variable":
+              kind = monaco.languages.CompletionItemKind.Variable;
+              break;
             case "module":
               kind = monaco.languages.CompletionItemKind.Module;
               break;

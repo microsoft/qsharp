@@ -61,6 +61,9 @@ class QSharpCompletionItemProvider implements vscode.CompletionItemProvider {
         case "keyword":
           kind = vscode.CompletionItemKind.Keyword;
           break;
+        case "variable":
+          kind = vscode.CompletionItemKind.Variable;
+          break;
         case "module":
           kind = vscode.CompletionItemKind.Module;
           break;
