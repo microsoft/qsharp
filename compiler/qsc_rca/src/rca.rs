@@ -3,8 +3,8 @@
 
 use crate::{
     common::{
-        derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
-        CallableVariable, CallableVariableKind, InputParam, InputParamIndex,
+        derive_callable_input_map, derive_callable_input_params, CallableVariable,
+        CallableVariableKind, InputParam, InputParamIndex,
     },
     cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
     ApplicationsTable, CallableComputeProperties, CallableElementComputeProperties,
@@ -96,17 +96,14 @@ fn analyze_callable(
         panic!("callable is already analyzed");
     }
 
-    // First, set the compute properties of all the patterns that are part of the callable input.
-    let input_elements = derive_callable_input_elements(
+    // Analyze the callable depending on its type.
+    let input_params = derive_callable_input_params(
         callable,
         &package_store
             .get(id.package)
             .expect("package should exist")
             .pats,
     );
-
-    // Analyze the callable depending on its type.
-    let input_params = derive_callable_input_params(input_elements.iter());
     match callable.implementation {
         CallableImpl::Intrinsic => analyze_intrinsic_callable_compute_properties(
             id,
@@ -139,16 +136,14 @@ fn analyze_callable_with_cycles(
         panic!("item should be a callable")
     };
 
-    // First, set the compute properties of all the patterns that are part of the callable input.
-    let input_elements = derive_callable_input_elements(
+    // Create compute properties differently depending on whether it is a function or an operation.
+    let input_params = derive_callable_input_params(
         callable,
         &package_store
             .get(id.package)
             .expect("package should exist")
             .pats,
     );
-    // Create compute properties differently depending on whether it is a function or an operation.
-    let input_params = derive_callable_input_params(input_elements.iter());
     let callable_compute_properties = match &callable.kind {
         CallableKind::Function => create_cycled_function_compute_properties(
             callable,

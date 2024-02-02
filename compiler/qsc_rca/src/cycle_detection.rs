@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_elements, derive_callable_input_map, derive_callable_input_params,
-    CallableSpecializationSelector, CallableVariable, CallableVariableKind, SpecializationSelector,
+    derive_callable_input_map, derive_callable_input_params, CallableSpecializationSelector,
+    CallableVariable, CallableVariableKind, SpecializationSelector,
 };
 use qsc_fir::{
     fir::{
@@ -357,8 +357,7 @@ impl<'a> CycleDetector<'a> {
                 panic!("item must be a callable");
             };
 
-            let input_elements = derive_callable_input_elements(callable_decl, &self.package.pats);
-            let input_params = derive_callable_input_params(input_elements.iter());
+            let input_params = derive_callable_input_params(callable_decl, &self.package.pats);
             let input_map = derive_callable_input_map(input_params.iter());
             entry.insert(input_map);
         }
