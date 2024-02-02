@@ -81,7 +81,7 @@ mod tests {
 
         expect![[r#"
             Location {
-                source_name: "qsharp-library-source:arrays.qs",
+                source: "qsharp-library-source:arrays.qs",
                 range: Range {
                     start: Position {
                         line: 0,
@@ -111,7 +111,7 @@ mod tests {
 
         expect![[r#"
             Location {
-                source_name: "qsharp-library-source:core/core.qs",
+                source: "qsharp-library-source:core/core.qs",
                 range: Range {
                     start: Position {
                         line: 0,
@@ -152,7 +152,7 @@ mod tests {
 
         expect![[r#"
             Location {
-                source_name: "bar.qs",
+                source: "bar.qs",
                 range: Range {
                     start: Position {
                         line: 0,
@@ -183,7 +183,7 @@ mod tests {
         // Per [`Range`] spec, out of bounds positions map to EOF
         expect![[r#"
             Location {
-                source_name: "bar.qs",
+                source: "bar.qs",
                 range: Range {
                     start: Position {
                         line: 0,
@@ -214,7 +214,7 @@ mod tests {
         // Per [`Range`] spec, out of bounds positions map to EOF
         expect![[r#"
             Location {
-                source_name: "foo.qs",
+                source: "foo.qs",
                 range: Range {
                     start: Position {
                         line: 0,
