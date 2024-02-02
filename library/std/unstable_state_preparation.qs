@@ -217,8 +217,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
             } apply {
                 ApproximatelyMultiplexPauli(tolerance, coefficients, PauliX, control, target);
             }
-        } elif pauli == PauliI {
-            ApproximatelyApplyDiagonalUnitary(tolerance, coefficients, control);
         } else {
             fail $"MultiplexPauli failed. Invalid pauli {pauli}.";
         }
@@ -271,68 +269,6 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         let phi = arg1 - arg0;
         let theta = 2.0 * ArcTan2(abs1, abs0);
         return (ComplexPolar(r, t), phi, theta);
-    }
-
-    /// # Summary
-    /// Applies an array of complex phases to numeric basis states of a register
-    /// of qubits, truncating small rotation angles according to a given
-    /// tolerance.
-    ///
-    /// # Description
-    /// This operation implements a diagonal unitary that applies a complex phase
-    /// $e^{i \theta_j}$ on the $n$-qubit number state $\ket{j}$.
-    /// In particular, this operation can be represented by the unitary
-    ///
-    /// $$
-    /// \begin{align}
-    ///     U = \sum^{2^n-1}_{j=0}e^{i\theta_j}\ket{j}\bra{j}.
-    /// \end{align}
-    /// $$
-    ///
-    /// # Input
-    /// ## tolerance
-    /// A tolerance below which small coefficients are truncated.
-    ///
-    /// ## coefficients
-    /// Array of up to $2^n$ coefficients $\theta_j$. The $j$th coefficient
-    /// indexes the number state $\ket{j}$ encoded in little-endian format.
-    ///
-    /// ## qubits
-    /// $n$-qubit control register that encodes number states $\ket{j}$ in
-    /// little-endian format.
-    ///
-    /// # Remarks
-    /// `coefficients` will be padded with elements $\theta_j = 0.0$ if
-    /// fewer than $2^n$ are specified.
-    ///
-    /// # References
-    /// - Synthesis of Quantum Logic Circuits
-    ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
-    ///   https://arxiv.org/abs/quant-ph/0406176
-    internal operation ApproximatelyApplyDiagonalUnitary(
-        tolerance : Double,
-        coefficients : Double[],
-        qubits : Qubit[]) : Unit is Adj + Ctl {
-
-        if IsEmpty(qubits) {
-            fail "operation ApplyDiagonalUnitary -- Number of qubits must be greater than 0.";
-        }
-
-        // pad coefficients length at tail to a power of 2.
-        let coefficientsPadded = Padded(-2 ^ Length(qubits), 0.0, coefficients);
-
-        // Compute new coefficients.
-        let (coefficients0, coefficients1) = MultiplexZCoefficients(coefficientsPadded);
-        ApproximatelyMultiplexZ(tolerance,coefficients1, Most(qubits), Tail(qubits));
-
-        if Length(coefficientsPadded) == 2 {
-            // Termination case
-            if AbsD(coefficients0[0]) > tolerance {
-                Exp([PauliI], 1.0 * coefficients0[0], qubits);
-            }
-        } else {
-            ApproximatelyApplyDiagonalUnitary(tolerance, coefficients0, Most(qubits));
-        }
     }
 
     /// # Summary
