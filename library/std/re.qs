@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// variant for which they were collected and the current variant is the same.
     ///
     /// # Output
-    /// `true` indicated that the cached estimates are not yet avialable and the code fragment
+    /// `true` indicated that the cached estimates are not yet available and the code fragment
     /// needs to be executed in order to collect and cache estimates.
     /// `false` indicates if cached estimates have been incorporated into the overall costs
     /// and the code fragment should be skipped.
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
 
     /// # Summary
     /// Returns a tuple that can be passed to the `AccountForEstimates` operation
-    /// to specify that the number of auxilliary qubits is equal to the `amount`.
+    /// to specify that the number of auxiliary qubits is equal to the `amount`.
     function AuxQubitCount(amount : Int) : (Int, Int) {
         return (0, amount);
     }
@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
 
     /// # Summary
     /// Account for the resource estimates of an unimplemented operation,
-    /// which were obtainted separately. This operation is only available
+    /// which were obtained separately. This operation is only available
     /// when using resource estimator execution target.
     /// # Input
     /// ## cost

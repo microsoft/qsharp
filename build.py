@@ -133,6 +133,32 @@ def step_end():
     if os.getenv("GITHUB_ACTIONS") == "true":
         print(f"::endgroup::")
 
+def use_python_env(folder):
+    # Check if in a virtual environment
+    if (
+        os.environ.get("VIRTUAL_ENV") is None
+        and os.environ.get("CONDA_PREFIX") is None
+        and os.environ.get("CI") is None
+    ):
+        print("Not in a virtual python environment")
+
+        venv_dir = os.path.join(folder, ".venv")
+        # Create virtual environment under repo root
+        if not os.path.exists(venv_dir):
+            print(f"Creating a virtual environment under {venv_dir}")
+            venv.main([venv_dir])
+
+        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
+        python_bin = os.path.join(venv_dir, "bin", "python")
+        if not os.path.exists(python_bin):
+            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
+        print(f"Using python from {python_bin}")
+    else:
+        # Already in a virtual environment, use current Python
+        python_bin = sys.executable
+
+    return python_bin
+
 
 if npm_install_needed:
     step_start("Running npm install")
@@ -185,28 +211,8 @@ if build_cli:
 
 if build_pip:
     step_start("Building the pip package")
-    # Check if in a virtual environment
-    if (
-        os.environ.get("VIRTUAL_ENV") is None
-        and os.environ.get("CONDA_PREFIX") is None
-        and os.environ.get("CI") is None
-    ):
-        print("Not in a virtual python environment")
 
-        venv_dir = os.path.join(pip_src, ".venv")
-        # Create virtual environment under repo root
-        if not os.path.exists(venv_dir):
-            print(f"Creating a virtual environment under {venv_dir}")
-            venv.main([venv_dir])
-
-        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
-        python_bin = os.path.join(venv_dir, "bin", "python")
-        if not os.path.exists(python_bin):
-            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
-        print(f"Using python from {python_bin}")
-    else:
-        # Already in a virtual environment, use current Python
-        python_bin = sys.executable
+    python_bin = use_python_env(pip_src)
 
     # copy the process env vars
     pip_env: dict[str, str] = os.environ.copy()
@@ -380,32 +386,17 @@ if build_vscode:
     vscode_args = [npm_cmd, "run", "build"]
     subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
     step_end()
+    if args.integration_tests:
+        step_start("Running the VS Code integration tests")
+        vscode_args = [npm_cmd, "test"]
+        subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+        step_end()
+
 
 if build_jupyterlab:
     step_start("Building the JupyterLab extension")
 
-    # Check if in a virtual environment
-    if (
-        os.environ.get("VIRTUAL_ENV") is None
-        and os.environ.get("CONDA_PREFIX") is None
-        and os.environ.get("CI") is None
-    ):
-        print("Not in a virtual python environment")
-
-        venv_dir = os.path.join(jupyterlab_src, ".venv")
-        # Create virtual environment under repo root
-        if not os.path.exists(venv_dir):
-            print(f"Creating a virtual environment under {venv_dir}")
-            venv.main([venv_dir])
-
-        # Check if .venv/bin/python exists, otherwise use .venv/Scripts/python.exe (Windows)
-        python_bin = os.path.join(venv_dir, "bin", "python")
-        if not os.path.exists(python_bin):
-            python_bin = os.path.join(venv_dir, "Scripts", "python.exe")
-        print(f"Using python from {python_bin}")
-    else:
-        # Already in a virtual environment, use current Python
-        python_bin = sys.executable
+    python_bin = use_python_env(jupyterlab_src)
 
     pip_build_args = [
         python_bin,
@@ -419,8 +410,68 @@ if build_jupyterlab:
     subprocess.run(pip_build_args, check=True, text=True, cwd=jupyterlab_src)
     step_end()
 
-if args.integration_tests:
-    step_start("Running the VS Code integration tests")
-    vscode_args = [npm_cmd, "test"]
-    subprocess.run(vscode_args, check=True, text=True, cwd=vscode_src)
+if build_pip and build_widgets and args.integration_tests:
+    step_start("Running notebook samples integration tests")
+    # Find all notebooks in the samples directory. Skip the basic sample and the azure submission sample, since those won't run
+    # nicely in automation.
+    notebook_files = [os.path.join(dp, f) for dp, _, filenames in os.walk(samples_src) for f in filenames if f.endswith(".ipynb")
+                    and not (f.startswith("sample.") or f.startswith("azure_submission."))]
+    python_bin = use_python_env(samples_src)
+
+    # copy the process env vars
+    pip_env: dict[str, str] = os.environ.copy()
+
+    # Install the qsharp package
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "--force-reinstall",
+        "--no-index",
+        "--find-links=" + wheels_dir,
+        f"qsharp",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=pip_src)
+
+    # Install the widgets package from the folder so dependencies are installed properly
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        widgets_src,
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
+
+    # Install other dependencies
+    pip_install_args = [
+        python_bin,
+        "-m",
+        "pip",
+        "install",
+        "ipykernel",
+        "nbconvert",
+        "pandas",
+    ]
+    subprocess.run(pip_install_args, check=True, text=True, cwd=root_dir, env=pip_env)
+
+    for notebook in notebook_files:
+        print(f"Running {notebook}")
+        # Run the notebook process, capturing stdout and only displaying it if there is an error
+        result = subprocess.run([python_bin,
+                        "-m",
+                        "nbconvert",
+                        "--to",
+                        "notebook",
+                        "--stdout",
+                        "--ExecutePreprocessor.timeout=60",
+                        "--sanitize-html",
+                        "--execute",
+                        notebook],
+                        check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+        if result.returncode != 0:
+            print(result.stdout)
+            raise Exception(f"Error running {notebook}")
+
     step_end()
