@@ -1,48 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as wasm from "../../lib/web/qsc_wasm.js";
-import { log } from "../log.js";
-import { QSharpLanguageService } from "./language-service.js";
-import { createLanguageServiceDispatcher } from "./worker-proxy.js";
-
-let invokeCompiler: ReturnType<typeof createLanguageServiceDispatcher> | null =
-  null;
+import { createWorker } from "../workers/browser.js";
+import { languageServiceProtocol } from "./language-service.js";
 
 // This export should be assigned to 'self.onmessage' in a WebWorker
-export function messageHandler(e: MessageEvent) {
-  const data = e.data;
-
-  if (!data.type || typeof data.type !== "string") {
-    log.error(`Unrecognized msg: ${data}`);
-    return;
-  }
-
-  switch (data.type) {
-    case "init":
-      {
-        log.setLogLevel(data.qscLogLevel);
-        wasm.initSync(data.wasmModule);
-        const languageService = new QSharpLanguageService(
-          wasm,
-          // we omit the callback arguments for the
-          // project system  because the browser worker
-          // doesn't support the project system right now
-        );
-        invokeCompiler = createLanguageServiceDispatcher(
-          self.postMessage.bind(self),
-          languageService,
-        );
-      }
-      break;
-    default:
-      if (!invokeCompiler) {
-        log.error(
-          `Received message before the compiler was initialized: %o`,
-          data,
-        );
-      } else {
-        invokeCompiler(data);
-      }
-  }
-}
+export const messageHandler = createWorker(languageServiceProtocol);

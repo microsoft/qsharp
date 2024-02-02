@@ -1,22 +1,41 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { TelemetryEvent, log } from "./log.js";
-import { CancellationToken } from "./cancellation.js";
+import { CancellationToken } from "../cancellation.js";
+import { TelemetryEvent, log } from "../log.js";
+type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
+
+/**
+ * Describes a service that can be run in a worker.
+ */
+export interface ServiceProtocol<
+  TService extends ServiceMethods<TService>,
+  TServiceEventMsg extends IServiceEventMessage,
+> {
+  /** The concrete class that implements the service. */
+  class: { new (wasmModule: Wasm): TService };
+  /** Methods that can be proxied from the main thread to the worker. @see MethodMap*/
+  methods: MethodMap<TService>;
+  /** Events that can be received by the main thread from the worker. */
+  eventNames: TServiceEventMsg["type"][];
+}
 
 /**
  * Used as a type constraint for a "service", i.e. an object
  * we can create proxy methods for. The type shouldn't define
  * any non-method properties.
  */
-type ServiceMethods<T> = { [x in keyof T]: (...args: any[]) => any };
+export type ServiceMethods<T> = { [x in keyof T]: (...args: any[]) => any };
 
 /**
  * Defines the service methods that the proxy will handle and their types.
+ *
  * "request" is a normal async method.
- * "requestWithProgress" methods take an @see IServiceEventTarget to
+ *
+ * "requestWithProgress" methods take an `IServiceEventTarget` to
  *   communicate events back to the main thread as they run. They also set
  *   the service state to "busy" while they run.
+ *
  * "addEventListener" and "removeEventListener" methods are used to
  *   subscribe to events from the service.
  */
@@ -60,7 +79,7 @@ export type EventMessage<TEventMsg extends IServiceEventMessage> = {
 } & TEventMsg;
 
 /** Used as a constraint for events defined by the service */
-interface IServiceEventMessage {
+export interface IServiceEventMessage {
   type: string;
   detail: unknown;
 }
@@ -117,7 +136,7 @@ complete the request.
  * @returns The proxy object. The caller should then set the onMsgFromWorker
  * property to a callback that will receive messages from the worker.
  */
-export function createProxy<
+export function createProxyInternal<
   TService extends ServiceMethods<TService>,
   TServiceEventMsg extends IServiceEventMessage,
 >(
@@ -308,13 +327,13 @@ export function createProxy<
  * Function to wrap a service in a dispatcher. To be used in the worker thread.
  *
  * @param service The service to be wrapped
- * @param methods A map of method names. Should match the list passed into @see createProxy.
+ * @param methods A map of method names. Should match the list passed into @see createProxyInternal.
  * @param eventNames The list of event names that the service can emit
  * @param postMessage A function to post messages back to the main thread
  * @returns A function that takes a message and invokes the corresponding
  * method on the service. The caller should then set this method as a message handler.
  */
-export function createDispatcher<
+function createDispatcher<
   TService extends ServiceMethods<TService>,
   TServiceEventMsg extends IServiceEventMessage,
 >(
@@ -324,7 +343,7 @@ export function createDispatcher<
   service: TService,
   methods: MethodMap<TService>,
   eventNames: TServiceEventMsg["type"][],
-) {
+): (req: RequestMessage<TService>) => Promise<void> {
   log.debug("Worker: Constructing WorkerEventHandler");
 
   function logAndPost(
@@ -389,4 +408,52 @@ export function createDispatcher<
         }),
       );
   };
+}
+
+/**
+ * Creates and initializes the actual service. To be used in the worker thread.
+ *
+ * @param postMessage A function to post messages back to the main thread
+ * @param serviceProtocol An object that describes the service: its constructor, methods and events
+ * @param wasm The wasm module to initialize the service with
+ * @param qscLogLevel The log level to initialize the service with
+ * @returns A function that takes a message and invokes the corresponding
+ * method on the service. The caller should then set this method as a message handler.
+ */
+export function initService<
+  TService extends ServiceMethods<TService>,
+  TServiceEventMsg extends IServiceEventMessage,
+>(
+  postMessage: (
+    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
+  ) => void,
+  serviceProtocol: ServiceProtocol<TService, TServiceEventMsg>,
+  wasm: Wasm,
+  qscLogLevel?: number,
+): (req: RequestMessage<TService>) => Promise<void> {
+  function telemetryHandler(telemetry: TelemetryEvent) {
+    postMessage({
+      messageType: "event",
+      type: "telemetry-event",
+      detail: telemetry,
+    });
+  }
+
+  if (qscLogLevel !== undefined) {
+    log.setLogLevel(qscLogLevel);
+  }
+
+  // Set up logging and telemetry as soon as possible after instantiating
+  log.onLevelChanged = (level) => wasm.setLogLevel(level);
+  log.setTelemetryCollector(telemetryHandler);
+  wasm.initLogging(log.logWithLevel, log.getLogLevel());
+
+  // Create the actual service and return the dispatcher method
+  const service = new serviceProtocol.class(wasm);
+  return createDispatcher(
+    postMessage,
+    service,
+    serviceProtocol.methods,
+    serviceProtocol.eventNames,
+  );
 }
