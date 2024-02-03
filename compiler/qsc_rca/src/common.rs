@@ -3,7 +3,7 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{CallableDecl, ExprId, LocalItemId, NodeId, Pat, PatId, PatKind, SpecDecl},
+    fir::{CallableDecl, ExprId, LocalItemId, NodeId, Pat, PatId, PatKind, SpecDecl, StoreItemId},
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
@@ -142,12 +142,29 @@ pub fn initalize_locals_map(
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+// TODO (cesarzc): Maybe remove this or only use it within cycle detection.
+// TODO (cesarzc): When moving it, rename to PackageSpecializationId.
 pub struct CallableSpecializationSelector {
     pub callable: LocalItemId,
     pub specialization_selector: SpecializationSelector,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct GlobalSpecializationId {
+    pub callable: StoreItemId,
+    pub specialization: SpecializationKind,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum SpecializationKind {
+    Body,
+    Adj,
+    Ctl,
+    CtlAdj,
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+// TODO (cesarzc): should probably be replaced by SpecializationKind.
 pub struct SpecializationSelector {
     pub adjoint: bool,
     pub controlled: bool,

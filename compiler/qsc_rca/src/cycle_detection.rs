@@ -19,6 +19,7 @@ use std::collections::hash_map::Entry;
 /// A callable that contains cycles in at least one of their specializations.
 /// Cycles can only happen within packages, that is why this struct does not have information to globally identify it in
 /// a package store.
+// TODO (cesarzc): Maybe this should be private.
 #[derive(Debug)]
 pub struct CycledCallableInfo {
     pub id: LocalItemId,

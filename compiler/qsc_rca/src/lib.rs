@@ -3,9 +3,11 @@
 
 //! Runtime Capabilities Analysis (RCA)...
 
+mod analyzer;
 mod common;
 mod cycle_detection;
 mod rca;
+mod scaffolding;
 
 use crate::rca::analyze_package;
 use bitflags::bitflags;
@@ -51,7 +53,7 @@ pub trait ComputePropertiesLookup {
 }
 
 /// The compute properties of a package store.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
@@ -101,10 +103,12 @@ impl PackageStoreComputeProperties {
         self.0.get(id)
     }
 
+    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn get_mut(&mut self, id: PackageId) -> Option<&mut PackageComputeProperties> {
         self.0.get_mut(id)
     }
 
+    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -112,6 +116,7 @@ impl PackageStoreComputeProperties {
             .insert(id.block, value);
     }
 
+    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -119,6 +124,7 @@ impl PackageStoreComputeProperties {
             .insert(id.expr, value);
     }
 
+    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn insert_item(&mut self, id: StoreItemId, value: ItemComputeProperties) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -126,6 +132,7 @@ impl PackageStoreComputeProperties {
             .insert(id.item, value);
     }
 
+    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn insert_stmt(&mut self, id: StoreExprId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -139,6 +146,7 @@ impl PackageStoreComputeProperties {
 
     /// Creates a structure that contains compute properties for a package store.
     /// Note: this is a computationally intensive operation.
+    // TODO (cesarzc): remove.
     pub fn new(package_store: &PackageStore) -> Self {
         // Create package store compute properties with empty properties for each package.
         let mut package_store_compute_properties = IndexMap::new();
@@ -163,6 +171,7 @@ impl PackageStoreComputeProperties {
     /// Updates the compute properties of the specified package using the contents of the passed package store.
     /// Note: this operation only updates the compute properties of a specific package, but it does not update the
     /// compute properties of other packages that depend on the package being reanalyzed.
+    // TODO (cesarzc): remove.
     pub fn reanalyze_package(&mut self, id: PackageId, package_store: &PackageStore) {
         let package = self.get_mut(id).expect("package should exist");
         package.clear();

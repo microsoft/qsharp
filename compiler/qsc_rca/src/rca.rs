@@ -13,7 +13,7 @@ use crate::{
 use qsc_fir::fir::{BlockId, ExprId, StmtId, StoreBlockId};
 use qsc_fir::{
     fir::{
-        CallableDecl, CallableImpl, CallableKind, Global, NodeId, PackageId, PackageStore,
+        CallableDecl, CallableImpl, CallableKind, Global, PackageId, PackageStore,
         PackageStoreLookup, SpecDecl, StoreItemId, StoreStmtId,
     },
     ty::{Prim, Ty},
