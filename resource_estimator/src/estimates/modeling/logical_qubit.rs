@@ -4,10 +4,9 @@
 #[cfg(test)]
 mod tests;
 
-use super::{
-    super::{error::InvalidInput::InvalidFaultToleranceProtocol, Result},
-    PhysicalQubit, Protocol,
-};
+use crate::estimates::stages::physical_estimation::ErrorCorrection;
+
+use super::super::Result;
 use serde::Serialize;
 use std::{fmt::Debug, rc::Rc};
 
@@ -19,24 +18,23 @@ use std::{fmt::Debug, rc::Rc};
 /// code distance is computed.
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct LogicalQubit {
+pub struct LogicalQubit<P> {
     #[serde(skip_serializing)]
-    physical_qubit: Rc<PhysicalQubit>,
+    physical_qubit: Rc<P>,
     code_distance: u64,
     physical_qubits: u64,
     logical_cycle_time: u64,
     logical_error_rate: f64,
 }
 
-impl LogicalQubit {
-    pub fn new(ftp: &Protocol, code_distance: u64, qubit: Rc<PhysicalQubit>) -> Result<Self> {
-        if ftp.instruction_set() != qubit.instruction_set() {
-            return Err(InvalidFaultToleranceProtocol.into());
-        }
-
+impl<P> LogicalQubit<P> {
+    pub fn new(
+        ftp: &impl ErrorCorrection<Qubit = P>,
+        code_distance: u64,
+        qubit: Rc<P>,
+    ) -> Result<Self> {
         // safe to convert here because we check for negative values before
-        #[allow(clippy::cast_sign_loss)]
-        let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)? as u64;
+        let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)?;
         let logical_cycle_time = ftp.logical_cycle_time(&qubit, code_distance)?;
         let logical_error_rate = ftp.logical_failure_probability(&qubit, code_distance)?;
 
@@ -50,7 +48,7 @@ impl LogicalQubit {
     }
 
     /// Returns a reference to the logical qubit's underlying physical qubit model.
-    pub fn physical_qubit(&self) -> &PhysicalQubit {
+    pub fn physical_qubit(&self) -> &P {
         &self.physical_qubit
     }
 
@@ -80,7 +78,7 @@ impl LogicalQubit {
     }
 }
 
-impl Debug for LogicalQubit {
+impl<P> Debug for LogicalQubit<P> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "LQubit(d={})", self.code_distance())
     }

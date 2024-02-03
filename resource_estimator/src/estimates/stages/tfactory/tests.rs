@@ -81,7 +81,7 @@ fn single_physical_qubit() {
     assert_eq!(unit.physical_qubits(0), 31);
 }
 
-fn create_logical_qubit_with_distance(code_distance: u64) -> Result<LogicalQubit> {
+fn create_logical_qubit_with_distance(code_distance: u64) -> Result<LogicalQubit<PhysicalQubit>> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::default());
 
@@ -128,7 +128,7 @@ fn create_pipeline_with_distance(
             pipeline.input_t_error_rate(),
             pipeline.output_t_error_rate(),
             pipeline.input_t_count(),
-            pipeline.output_t_count(),
+            pipeline.num_output_states(),
         ))
     } else {
         None
