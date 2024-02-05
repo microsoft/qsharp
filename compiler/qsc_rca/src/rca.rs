@@ -6,7 +6,7 @@ use crate::{
         derive_callable_input_params, derive_specialization_input_params, initalize_locals_map,
         InputParam, InputParamIndex, LocalsMap,
     },
-    cycle_detection::{detect_callables_with_cycles, CycledCallableInfo},
+    scaffolding::PackageStoreScaffolding,
     ApplicationsTable, CallableComputeProperties, ComputeProperties, ComputePropertiesLookup,
     DynamismSource, ItemComputeProperties, PackageStoreComputeProperties, RuntimeFeatureFlags,
 };
@@ -50,6 +50,15 @@ struct ApplicationInstanceComputeProperties {
     pub exprs: FxHashMap<ExprId, ComputeProperties>,
 }
 
+pub fn analyze_cycled_specializations(
+    id: PackageId,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    // TODO (cesarzc): implement.
+}
+
+// TODO (cesarzc): Probably won't need this anymore.
 pub fn analyze_package(
     id: PackageId,
     package_store: &PackageStore,
@@ -66,15 +75,15 @@ pub fn analyze_package(
     // runtime capabilities analysis (RCA) algorithm loop forever. If we have use a heuristic to analyze the compute
     // properties of callables with cycles, then the RCA algorithm can use those properties safely without getting stuck
     // in a infinite loop.
-    let callables_with_cycles = detect_callables_with_cycles(id, package);
-    for cycled_callable in callables_with_cycles {
-        analyze_callable_with_cycles(
-            (id, cycled_callable.id).into(),
-            &cycled_callable,
-            package_store,
-            package_store_compute_properties,
-        )
-    }
+    //let callables_with_cycles = detect_callables_with_cycles(id, package);
+    //for cycled_callable in callables_with_cycles {
+    //    analyze_callable_with_cycles(
+    //        (id, cycled_callable.id).into(),
+    //        &cycled_callable,
+    //        package_store,
+    //        package_store_compute_properties,
+    //    )
+    //}
 
     // Once all callables with cycles have been analyzed, it is safe to continue analyzing all the other items.
     for (item_id, _) in &package.items {
@@ -153,51 +162,51 @@ fn analyze_callable(
     }
 }
 
-fn analyze_callable_with_cycles(
-    id: StoreItemId,
-    cycled_callable_info: &CycledCallableInfo,
-    package_store: &PackageStore,
-    package_store_compute_properties: &mut PackageStoreComputeProperties,
-) {
-    // This function is only called when a callable has not already been analyzed.
-    if package_store_compute_properties.find_item(id).is_some() {
-        panic!("callable is already analyzed");
-    }
-
-    let Some(Global::Callable(callable)) = package_store.get_global(id) else {
-        panic!("item should be a callable")
-    };
-
-    // Create compute properties differently depending on whether it is a function or an operation.
-    let input_params = derive_callable_input_params(
-        callable,
-        &package_store
-            .get(id.package)
-            .expect("package should exist")
-            .pats,
-    );
-    let callable_compute_properties = match &callable.kind {
-        CallableKind::Function => create_cycled_function_compute_properties(
-            callable,
-            cycled_callable_info,
-            input_params.len(),
-        ),
-        CallableKind::Operation => create_cycled_operation_compute_properties(
-            id,
-            callable,
-            cycled_callable_info,
-            &input_params,
-            package_store,
-            package_store_compute_properties,
-        ),
-    };
-
-    // Finally, insert the callable compute properties.
-    package_store_compute_properties.insert_item(
-        id,
-        ItemComputeProperties::Callable(callable_compute_properties),
-    );
-}
+//fn analyze_callable_with_cycles(
+//    id: StoreItemId,
+//    cycled_callable_info: &CycledCallableInfo,
+//    package_store: &PackageStore,
+//    package_store_compute_properties: &mut PackageStoreComputeProperties,
+//) {
+//    // This function is only called when a callable has not already been analyzed.
+//    if package_store_compute_properties.find_item(id).is_some() {
+//        panic!("callable is already analyzed");
+//    }
+//
+//    let Some(Global::Callable(callable)) = package_store.get_global(id) else {
+//        panic!("item should be a callable")
+//    };
+//
+//    // Create compute properties differently depending on whether it is a function or an operation.
+//    let input_params = derive_callable_input_params(
+//        callable,
+//        &package_store
+//            .get(id.package)
+//            .expect("package should exist")
+//            .pats,
+//    );
+//    let callable_compute_properties = match &callable.kind {
+//        CallableKind::Function => create_cycled_function_compute_properties(
+//            callable,
+//            cycled_callable_info,
+//            input_params.len(),
+//        ),
+//        CallableKind::Operation => create_cycled_operation_compute_properties(
+//            id,
+//            callable,
+//            cycled_callable_info,
+//            &input_params,
+//            package_store,
+//            package_store_compute_properties,
+//        ),
+//    };
+//
+//    // Finally, insert the callable compute properties.
+//    package_store_compute_properties.insert_item(
+//        id,
+//        ItemComputeProperties::Callable(callable_compute_properties),
+//    );
+//}
 
 fn analyze_intrinsic_callable_compute_properties(
     id: StoreItemId,
@@ -319,137 +328,137 @@ fn analyze_statement(
     // TODO (cesarzc): Implement.
 }
 
-fn create_cycled_function_compute_properties(
-    callable: &CallableDecl,
-    cycled_callable_info: &CycledCallableInfo,
-    input_params_count: usize,
-) -> CallableComputeProperties {
-    // This function is not meant for intrinsics.
-    let CallableImpl::Spec(spec_impl) = &callable.implementation else {
-        panic!("a non-intrinsic callable is expected");
-    };
+//fn create_cycled_function_compute_properties(
+//    callable: &CallableDecl,
+//    cycled_callable_info: &CycledCallableInfo,
+//    input_params_count: usize,
+//) -> CallableComputeProperties {
+//    // This function is not meant for intrinsics.
+//    let CallableImpl::Spec(spec_impl) = &callable.implementation else {
+//        panic!("a non-intrinsic callable is expected");
+//    };
+//
+//    // The only specialization that functions have is the body.
+//    assert!(spec_impl.adj.is_none() && spec_impl.ctl.is_none() && spec_impl.ctl_adj.is_none());
+//    assert!(spec_impl.body.input.is_none());
+//    assert!(
+//        cycled_callable_info.is_adj_cycled.is_none()
+//            && cycled_callable_info.is_ctl_cycled.is_none()
+//            && cycled_callable_info.is_ctl_adj_cycled.is_none()
+//    );
+//    assert!(cycled_callable_info.is_body_cycled);
+//
+//    // Since functions are classically pure, they inherently do not use any runtime feature nor represent a source of
+//    // dynamism.
+//    let inherent_properties = ComputeProperties {
+//        runtime_features: RuntimeFeatureFlags::empty(),
+//        dynamism_sources: Vec::new(),
+//    };
+//
+//    // Create compute properties for each dynamic parameter.
+//    let mut dynamic_params_properties = Vec::new();
+//    for _ in 0..input_params_count {
+//        // If any parameter is dynamic, then we assume a function with cycles is a a source of dynamism if its output type
+//        // is non-unit.
+//        let dynamism_sources = if callable.output == Ty::UNIT {
+//            Vec::new()
+//        } else {
+//            vec![DynamismSource::Assumed]
+//        };
+//
+//        // Since convert functions can be called with dynamic parameters, we assume that all capabilities are required
+//        // for any dynamic parameter. The `CycledFunctionWithDynamicArg` feature flag encompasses this.
+//        let compute_properties = ComputeProperties {
+//            runtime_features: RuntimeFeatureFlags::CycledFunctionApplicationUsesDynamicArg,
+//            dynamism_sources,
+//        };
+//        dynamic_params_properties.push(compute_properties);
+//    }
+//
+//    let body = ApplicationsTable {
+//        inherent_properties,
+//        dynamic_params_properties,
+//    };
+//
+//    // Create the callable compute properties.
+//    CallableComputeProperties {
+//        body,
+//        adj: None,
+//        ctl: None,
+//        ctl_adj: None,
+//    }
+//}
 
-    // The only specialization that functions have is the body.
-    assert!(spec_impl.adj.is_none() && spec_impl.ctl.is_none() && spec_impl.ctl_adj.is_none());
-    assert!(spec_impl.body.input.is_none());
-    assert!(
-        cycled_callable_info.is_adj_cycled.is_none()
-            && cycled_callable_info.is_ctl_cycled.is_none()
-            && cycled_callable_info.is_ctl_adj_cycled.is_none()
-    );
-    assert!(cycled_callable_info.is_body_cycled);
-
-    // Since functions are classically pure, they inherently do not use any runtime feature nor represent a source of
-    // dynamism.
-    let inherent_properties = ComputeProperties {
-        runtime_features: RuntimeFeatureFlags::empty(),
-        dynamism_sources: Vec::new(),
-    };
-
-    // Create compute properties for each dynamic parameter.
-    let mut dynamic_params_properties = Vec::new();
-    for _ in 0..input_params_count {
-        // If any parameter is dynamic, then we assume a function with cycles is a a source of dynamism if its output type
-        // is non-unit.
-        let dynamism_sources = if callable.output == Ty::UNIT {
-            Vec::new()
-        } else {
-            vec![DynamismSource::Assumed]
-        };
-
-        // Since convert functions can be called with dynamic parameters, we assume that all capabilities are required
-        // for any dynamic parameter. The `CycledFunctionWithDynamicArg` feature flag encompasses this.
-        let compute_properties = ComputeProperties {
-            runtime_features: RuntimeFeatureFlags::CycledFunctionApplicationUsesDynamicArg,
-            dynamism_sources,
-        };
-        dynamic_params_properties.push(compute_properties);
-    }
-
-    let body = ApplicationsTable {
-        inherent_properties,
-        dynamic_params_properties,
-    };
-
-    // Create the callable compute properties.
-    CallableComputeProperties {
-        body,
-        adj: None,
-        ctl: None,
-        ctl_adj: None,
-    }
-}
-
-fn create_cycled_operation_compute_properties(
-    callable_id: StoreItemId,
-    callable: &CallableDecl,
-    cycled_callable_info: &CycledCallableInfo,
-    input_params: &Vec<InputParam>,
-    package_store: &PackageStore,
-    package_store_compute_properties: &mut PackageStoreComputeProperties,
-) -> CallableComputeProperties {
-    // This function is not meant for intrinsics.
-    let CallableImpl::Spec(spec_impl) = &callable.implementation else {
-        panic!("a non-intrinsic callable is expected");
-    };
-
-    // Create the compute properties for each one of the specializations.
-    // When a specialization has call cycles, assume its properties. Otherwise, create the specialization applications
-    // table the same way we would do it for any other specialization.
-    let mut create_specialization_applications_table_internal = |specialization, is_spec_cycled| {
-        if is_spec_cycled {
-            create_cycled_operation_specialization_applications_table(
-                specialization,
-                input_params.len(),
-                &callable.output,
-            )
-        } else {
-            create_specialization_applications_table(
-                callable_id,
-                specialization,
-                input_params,
-                package_store,
-                package_store_compute_properties,
-            )
-        }
-    };
-    let body = create_specialization_applications_table_internal(
-        &spec_impl.body,
-        cycled_callable_info.is_body_cycled,
-    );
-    let adj = spec_impl.adj.as_ref().map(|specialization| {
-        create_specialization_applications_table_internal(
-            specialization,
-            cycled_callable_info
-                .is_adj_cycled
-                .expect("is_adj_cycled should be some"),
-        )
-    });
-    let ctl = spec_impl.ctl.as_ref().map(|specialization| {
-        create_specialization_applications_table_internal(
-            specialization,
-            cycled_callable_info
-                .is_ctl_cycled
-                .expect("is_ctl_cycled should be some"),
-        )
-    });
-    let ctl_adj = spec_impl.ctl_adj.as_ref().map(|specialization| {
-        create_specialization_applications_table_internal(
-            specialization,
-            cycled_callable_info
-                .is_ctl_adj_cycled
-                .expect("is_ctl_adj_cycled should be some"),
-        )
-    });
-
-    // Create the callable compute properties.
-    CallableComputeProperties {
-        body,
-        adj,
-        ctl,
-        ctl_adj,
-    }
-}
+//fn create_cycled_operation_compute_properties(
+//    callable_id: StoreItemId,
+//    callable: &CallableDecl,
+//    cycled_callable_info: &CycledCallableInfo,
+//    input_params: &Vec<InputParam>,
+//    package_store: &PackageStore,
+//    package_store_compute_properties: &mut PackageStoreComputeProperties,
+//) -> CallableComputeProperties {
+//    // This function is not meant for intrinsics.
+//    let CallableImpl::Spec(spec_impl) = &callable.implementation else {
+//        panic!("a non-intrinsic callable is expected");
+//    };
+//
+//    // Create the compute properties for each one of the specializations.
+//    // When a specialization has call cycles, assume its properties. Otherwise, create the specialization applications
+//    // table the same way we would do it for any other specialization.
+//    let mut create_specialization_applications_table_internal = |specialization, is_spec_cycled| {
+//        if is_spec_cycled {
+//            create_cycled_operation_specialization_applications_table(
+//                specialization,
+//                input_params.len(),
+//                &callable.output,
+//            )
+//        } else {
+//            create_specialization_applications_table(
+//                callable_id,
+//                specialization,
+//                input_params,
+//                package_store,
+//                package_store_compute_properties,
+//            )
+//        }
+//    };
+//    let body = create_specialization_applications_table_internal(
+//        &spec_impl.body,
+//        cycled_callable_info.is_body_cycled,
+//    );
+//    let adj = spec_impl.adj.as_ref().map(|specialization| {
+//        create_specialization_applications_table_internal(
+//            specialization,
+//            cycled_callable_info
+//                .is_adj_cycled
+//                .expect("is_adj_cycled should be some"),
+//        )
+//    });
+//    let ctl = spec_impl.ctl.as_ref().map(|specialization| {
+//        create_specialization_applications_table_internal(
+//            specialization,
+//            cycled_callable_info
+//                .is_ctl_cycled
+//                .expect("is_ctl_cycled should be some"),
+//        )
+//    });
+//    let ctl_adj = spec_impl.ctl_adj.as_ref().map(|specialization| {
+//        create_specialization_applications_table_internal(
+//            specialization,
+//            cycled_callable_info
+//                .is_ctl_adj_cycled
+//                .expect("is_ctl_adj_cycled should be some"),
+//        )
+//    });
+//
+//    // Create the callable compute properties.
+//    CallableComputeProperties {
+//        body,
+//        adj,
+//        ctl,
+//        ctl_adj,
+//    }
+//}
 
 fn create_cycled_operation_specialization_applications_table(
     specialization: &SpecDecl,

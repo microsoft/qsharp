@@ -2,91 +2,20 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_params, initalize_locals_map, CallableSpecializationSelector, Local,
-    LocalKind, LocalsMap, SpecializationSelector,
+    derive_callable_input_params, initalize_locals_map, GlobalSpecializationId, Local, LocalKind,
+    LocalsMap, SpecializationKind,
 };
+use bitflags::iter;
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Functor, Item, ItemId,
         ItemKind, LocalItemId, NodeId, Package, PackageId, PackageLookup, Pat, PatId, PatKind, Res,
-        SpecDecl, Stmt, StmtId, StmtKind, StringComponent, UnOp,
+        SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
     },
     visit::Visitor,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
-
-/// A callable that contains cycles in at least one of their specializations.
-/// Cycles can only happen within packages, that is why this struct does not have information to globally identify it in
-/// a package store.
-// TODO (cesarzc): Maybe this should be private.
-#[derive(Debug)]
-pub struct CycledCallableInfo {
-    pub id: LocalItemId,
-    pub is_body_cycled: bool,
-    pub is_adj_cycled: Option<bool>,
-    pub is_ctl_cycled: Option<bool>,
-    pub is_ctl_adj_cycled: Option<bool>,
-}
-
-impl CycledCallableInfo {
-    pub fn new(item: &Item, specialization: &CallableSpecializationSelector) -> Self {
-        // No entry for the callable exists, so create insert it.
-        let ItemKind::Callable(callable) = &item.kind else {
-            panic!("item should be callable");
-        };
-        let CallableImpl::Spec(spec_impl) = &callable.implementation else {
-            panic!("callable should have specialized implementation");
-        };
-
-        // Values for a cycled callable depending on what specializations exist for the callable.
-        let functor_application = specialization.specialization_selector;
-        let body = !functor_application.adjoint && !functor_application.controlled;
-        let adj = if spec_impl.adj.is_some() {
-            Some(functor_application.adjoint && !functor_application.controlled)
-        } else {
-            None
-        };
-        let ctl = if spec_impl.ctl.is_some() {
-            Some(!functor_application.adjoint && functor_application.controlled)
-        } else {
-            None
-        };
-        let ctl_adj = if spec_impl.ctl_adj.is_some() {
-            Some(functor_application.adjoint && functor_application.controlled)
-        } else {
-            None
-        };
-        Self {
-            id: specialization.callable,
-            is_body_cycled: body,
-            is_adj_cycled: adj,
-            is_ctl_cycled: ctl,
-            is_ctl_adj_cycled: ctl_adj,
-        }
-    }
-
-    pub fn update(&mut self, functor_application: &SpecializationSelector) {
-        if !functor_application.adjoint && !functor_application.controlled {
-            self.is_body_cycled = true;
-        } else if functor_application.adjoint && !functor_application.controlled {
-            let Some(adj) = &mut self.is_adj_cycled else {
-                panic!("adj cycle value was expected to be some");
-            };
-            *adj = true;
-        } else if !functor_application.adjoint && functor_application.controlled {
-            let Some(ctl) = &mut self.is_ctl_cycled else {
-                panic!("ctl cycle value was expected to be some");
-            };
-            *ctl = true;
-        } else if functor_application.adjoint && functor_application.controlled {
-            let Some(ctl_adj) = &mut self.is_ctl_adj_cycled else {
-                panic!("ctl_adj cycle value was expected to be some");
-            };
-            *ctl_adj = true;
-        }
-    }
-}
 
 #[derive(Default)]
 struct CallStack {
@@ -115,6 +44,18 @@ impl CallStack {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+struct CallableSpecializationSelector {
+    pub callable: LocalItemId,
+    pub specialization: SpecializationSelector,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+struct SpecializationSelector {
+    pub adjoint: bool,
+    pub controlled: bool,
+}
+
 struct CycleDetector<'a> {
     package_id: PackageId,
     package: &'a Package,
@@ -134,12 +75,9 @@ impl<'a> CycleDetector<'a> {
         }
     }
 
-    fn detect_specializations_with_cycles(&mut self) {
+    fn detect_specializations_with_cycles(&mut self) -> Vec<CallableSpecializationSelector> {
         self.visit_package(self.package);
-    }
-
-    fn get_callables_with_cycles(&self) -> &FxHashSet<CallableSpecializationSelector> {
-        &self.specializations_with_cycles
+        self.specializations_with_cycles.drain().collect()
     }
 
     fn map_pat_to_expr(&mut self, pat_id: PatId, expr_id: ExprId) {
@@ -195,7 +133,7 @@ impl<'a> CycleDetector<'a> {
             |local_item_id: LocalItemId| -> Option<CallableSpecializationSelector> {
                 Some(CallableSpecializationSelector {
                     callable: local_item_id,
-                    specialization_selector: SpecializationSelector::default(),
+                    specialization: SpecializationSelector::default(),
                 })
             };
 
@@ -207,23 +145,21 @@ impl<'a> CycleDetector<'a> {
                 };
 
                 let resolved_callee = self.resolve_callee(expr_id);
-                if let Some(callable_specialization_id) = resolved_callee {
-                    let functor_application = match functor {
+                if let Some(callable_specialization) = resolved_callee {
+                    let specialization = match functor {
                         Functor::Adj => SpecializationSelector {
-                            adjoint: !callable_specialization_id.specialization_selector.adjoint,
-                            controlled: callable_specialization_id
-                                .specialization_selector
-                                .controlled,
+                            adjoint: !callable_specialization.specialization.adjoint,
+                            controlled: callable_specialization.specialization.controlled,
                         },
                         Functor::Ctl => SpecializationSelector {
-                            adjoint: callable_specialization_id.specialization_selector.adjoint,
+                            adjoint: callable_specialization.specialization.adjoint,
                             // Once set to `true`, it remains as `true`.
                             controlled: true,
                         },
                     };
                     Some(CallableSpecializationSelector {
-                        callable: callable_specialization_id.callable,
-                        specialization_selector: functor_application,
+                        callable: callable_specialization.callable,
+                        specialization,
                     })
                 } else {
                     None
@@ -237,7 +173,7 @@ impl<'a> CycleDetector<'a> {
                     if package_id == self.package_id {
                         Some(CallableSpecializationSelector {
                             callable: item_id.item,
-                            specialization_selector: SpecializationSelector::default(),
+                            specialization: SpecializationSelector::default(),
                         })
                     } else {
                         None
@@ -246,7 +182,7 @@ impl<'a> CycleDetector<'a> {
                 // No package ID assumes the callee is in the same package than the caller.
                 None => Some(CallableSpecializationSelector {
                     callable: item_id.item,
-                    specialization_selector: SpecializationSelector::default(),
+                    specialization: SpecializationSelector::default(),
                 }),
             }
         };
@@ -294,15 +230,15 @@ impl<'a> CycleDetector<'a> {
             return;
         };
 
-        let functor_application = callable_specialization_selector.specialization_selector;
-        let spec_decl = if !functor_application.adjoint && !functor_application.controlled {
+        let specialization_selector = callable_specialization_selector.specialization;
+        let spec_decl = if !specialization_selector.adjoint && !specialization_selector.controlled {
             &spec_impl.body
-        } else if functor_application.adjoint && !functor_application.controlled {
+        } else if specialization_selector.adjoint && !specialization_selector.controlled {
             spec_impl
                 .adj
                 .as_ref()
                 .expect("adj specialization must exist")
-        } else if !functor_application.adjoint && functor_application.controlled {
+        } else if !specialization_selector.adjoint && specialization_selector.controlled {
             spec_impl
                 .ctl
                 .as_ref()
@@ -490,7 +426,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         self.walk_spec_decl(
             CallableSpecializationSelector {
                 callable: item.id,
-                specialization_selector: SpecializationSelector {
+                specialization: SpecializationSelector {
                     adjoint: false,
                     controlled: false,
                 },
@@ -503,7 +439,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             self.walk_spec_decl(
                 CallableSpecializationSelector {
                     callable: item.id,
-                    specialization_selector: SpecializationSelector {
+                    specialization: SpecializationSelector {
                         adjoint: true,
                         controlled: false,
                     },
@@ -517,7 +453,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             self.walk_spec_decl(
                 CallableSpecializationSelector {
                     callable: item.id,
-                    specialization_selector: SpecializationSelector {
+                    specialization: SpecializationSelector {
                         adjoint: false,
                         controlled: true,
                     },
@@ -531,7 +467,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             self.walk_spec_decl(
                 CallableSpecializationSelector {
                     callable: item.id,
-                    specialization_selector: SpecializationSelector {
+                    specialization: SpecializationSelector {
                         adjoint: true,
                         controlled: true,
                     },
@@ -561,28 +497,35 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
     }
 }
 
-pub fn detect_callables_with_cycles(
+pub fn detect_specializations_with_cycles(
     package_id: PackageId,
     package: &Package,
-) -> Vec<CycledCallableInfo> {
+) -> Vec<GlobalSpecializationId> {
     // First, detect the specializations that have cycles.
     let mut cycle_detector = CycleDetector::new(package_id, package);
-    cycle_detector.detect_specializations_with_cycles();
-    let specializations_with_cycles = cycle_detector.get_callables_with_cycles();
+    let specializations_with_cycles = cycle_detector.detect_specializations_with_cycles();
 
-    // Now, group the specializations that have cycles by callable.
-    let mut callables_with_cycles = FxHashMap::<LocalItemId, CycledCallableInfo>::default();
-    for specialization in specializations_with_cycles {
-        callables_with_cycles
-            .entry(specialization.callable)
-            .and_modify(|cycled_callable| {
-                cycled_callable.update(&specialization.specialization_selector)
-            })
-            .or_insert({
-                let item = package.get_item(specialization.callable);
-                CycledCallableInfo::new(item, specialization)
-            });
-    }
-
-    callables_with_cycles.drain().map(|(_, v)| v).collect()
+    // Convert the package specialization IDs to global specialization IDs.
+    specializations_with_cycles
+        .iter()
+        .map(|callable_specialization_selector| {
+            let (is_adjoint, is_controlled) = (
+                callable_specialization_selector.specialization.adjoint,
+                callable_specialization_selector.specialization.controlled,
+            );
+            let specialization = match (is_adjoint, is_controlled) {
+                (false, false) => SpecializationKind::Body,
+                (true, false) => SpecializationKind::Adj,
+                (false, true) => SpecializationKind::Ctl,
+                (true, true) => SpecializationKind::CtlAdj,
+            };
+            GlobalSpecializationId {
+                callable: StoreItemId {
+                    package: package_id,
+                    item: callable_specialization_selector.callable,
+                },
+                specialization,
+            }
+        })
+        .collect()
 }

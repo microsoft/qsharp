@@ -141,33 +141,18 @@ pub fn initalize_locals_map(
     locals_map
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-// TODO (cesarzc): Maybe remove this or only use it within cycle detection.
-// TODO (cesarzc): When moving it, rename to PackageSpecializationId.
-pub struct CallableSpecializationSelector {
-    pub callable: LocalItemId,
-    pub specialization_selector: SpecializationSelector,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct GlobalSpecializationId {
     pub callable: StoreItemId,
     pub specialization: SpecializationKind,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SpecializationKind {
     Body,
     Adj,
     Ctl,
     CtlAdj,
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-// TODO (cesarzc): should probably be replaced by SpecializationKind.
-pub struct SpecializationSelector {
-    pub adjoint: bool,
-    pub controlled: bool,
 }
 
 /// An element related to an input pattern.
