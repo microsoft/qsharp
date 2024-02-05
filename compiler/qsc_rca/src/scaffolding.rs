@@ -74,12 +74,58 @@ impl PackageStoreScaffolding {
         self.0.get(id)
     }
 
+    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut PackageScaffolding> {
+        self.0.get_mut(id)
+    }
+
     pub fn get_specialization(&self, id: GlobalSpecializationId) -> &ApplicationsTable {
         self.find_specialization(id)
             .expect("specialization should exist")
     }
 
-    // TODO (cesarzc): implement insert functions.
+    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsTable) {
+        self.get_mut(id.package)
+            .expect("package should exist")
+            .blocks
+            .insert(id.block, value);
+    }
+
+    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsTable) {
+        self.get_mut(id.package)
+            .expect("package should exist")
+            .exprs
+            .insert(id.expr, value);
+    }
+
+    pub fn insert_spec(&mut self, id: GlobalSpecializationId, value: ApplicationsTable) {
+        let mut items = &mut self
+            .get_mut(id.callable.package)
+            .expect("package should exist")
+            .items;
+        if let Some(item_scaffolding) = items.get_mut(id.callable.item) {
+            if let ItemScaffolding::Specializations(specializations) = item_scaffolding {
+                // The item already exists but not the specialization.
+                specializations.insert(SpecializationIndex::from(id.specialization), value);
+            } else {
+                panic!("item should be a callable");
+            }
+        } else {
+            // Insert both the specialization and the item.
+            let mut specializations = IndexMap::new();
+            specializations.insert(SpecializationIndex::from(id.specialization), value);
+            items.insert(
+                id.callable.item,
+                ItemScaffolding::Specializations(specializations),
+            );
+        }
+    }
+
+    pub fn insert_stmt(&mut self, id: StoreExprId, value: ApplicationsTable) {
+        self.get_mut(id.package)
+            .expect("package should exist")
+            .exprs
+            .insert(id.expr, value);
+    }
 }
 
 /// Scaffolding used to build the compute properties of a package.
