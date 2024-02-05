@@ -105,10 +105,10 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
-      const documentType = isQsharpDocument(document)
-        ? QsharpDocumentType.Qsharp
-        : isQsharpNotebookCell(document)
+      const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
+        : isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
         : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
