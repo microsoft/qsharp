@@ -6,7 +6,7 @@
 //! unique identifiers by a later stage.
 
 mod expr;
-pub mod formatter;
+//pub mod formatter;
 mod item;
 mod keyword;
 mod lex;
@@ -17,6 +17,7 @@ mod stmt;
 mod tests;
 mod ty;
 
+pub use lex::formatter;
 use lex::TokenKind;
 pub use lex::{RawToken, RawTokenKind};
 use miette::Diagnostic;
