@@ -1,21 +1,25 @@
 use std::{cell::RefCell, fmt::Write, rc::Rc};
 
-use eframe::{egui, epaint::Vec2};
+use eframe::{
+    egui::{self, RichText},
+    epaint::{Color32, Vec2},
+};
 use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::line_column;
 
 use crate::{
     linter::{
         ast::{DummyWrapper, LintPass},
-        Lint, LintBuffer,
+        Lint, LintBuffer, LintLevel,
     },
-    lints::DoubleParens,
+    lints::{DivisionByZero, DoubleParens},
 };
 
 #[derive(Default)]
 pub struct LinterDemoApp {
     source: String,
     reports: String,
+    lints: LintBuffer,
 }
 
 impl LinterDemoApp {
@@ -54,7 +58,7 @@ impl LinterDemoApp {
 
         ui.horizontal(|ui| {
             self.code_editor(ui, size);
-            self.report_output(ui, size);
+            self.report_output_colored(ui, size);
         });
     }
 
@@ -72,7 +76,7 @@ impl LinterDemoApp {
         }
     }
 
-    fn report_output(&mut self, ui: &mut egui::Ui, size: Vec2) {
+    fn _report_output(&mut self, ui: &mut egui::Ui, size: Vec2) {
         ui.add(
             egui::TextEdit::multiline(&mut self.reports)
                 .code_editor()
@@ -83,6 +87,16 @@ impl LinterDemoApp {
         );
     }
 
+    fn report_output_colored(&mut self, ui: &mut egui::Ui, _size: Vec2) {
+        ui.vertical(|ui| {
+            egui::scroll_area::ScrollArea::vertical().show(ui, |ui| {
+                for lint in &self.lints.data {
+                    pp_to_ui(&self.source, lint, ui);
+                }
+            });
+        });
+    }
+
     fn compile(&mut self) {
         self.reports.clear();
         let buffer = Rc::new(RefCell::new(LintBuffer::new()));
@@ -91,6 +105,8 @@ impl LinterDemoApp {
         for lint in &buffer.borrow().data {
             pp(&self.source, lint, &mut self.reports);
         }
+
+        self.lints = buffer.take();
     }
 }
 
@@ -102,7 +118,11 @@ impl eframe::App for LinterDemoApp {
 }
 
 fn run_lints(source: &str, buffer: &Rc<RefCell<LintBuffer>>) {
-    let mut lints = [DoubleParens::new(buffer.clone())].map(DummyWrapper);
+    let mut lints = [
+        DoubleParens::new(buffer.clone()),
+        // DivisionByZero::new(buffer.clone()),
+    ]
+    .map(DummyWrapper);
 
     let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();
@@ -167,4 +187,87 @@ fn pp(source: &str, lint: &Lint, output_buffer: &mut String) {
     }
 
     writeln!(output_buffer, "\n").unwrap();
+}
+
+fn pp_to_ui(source: &str, lint: &Lint, ui: &mut egui::Ui) {
+    let range = line_column::Range::from_span(line_column::Encoding::Utf8, source, &lint.span);
+    let chunk = super::get_chunk(source, range);
+
+    let lint_color = match lint.level {
+        LintLevel::Allow => ui.visuals().text_color(),
+        LintLevel::Warn | LintLevel::ForceWarn => Color32::YELLOW,
+        LintLevel::Deny | LintLevel::ForceDeny => Color32::RED,
+    };
+    let margin_color = Color32::LIGHT_BLUE;
+
+    ui.vertical(|ui| {
+        ui.horizontal(|ui| {
+            colored_code(ui, lint.level.to_string(), lint_color);
+            code(ui, format!(": {}", lint.message));
+        });
+
+        ui.horizontal(|ui| {
+            colored_code(ui, " --> ", margin_color);
+            code(
+                ui,
+                format!("source.qs:{}:{}", range.start.line, range.start.column),
+            );
+        });
+
+        ui.spacing();
+
+        if chunk.len() == 1 {
+            let mut tabs = 0;
+            let mut spaces = 0;
+            for c in chunk.first().expect("").chars() {
+                if c == '\t' {
+                    tabs += 1;
+                }
+                if c == ' ' {
+                    spaces += 1;
+                }
+                if !(c == '\t' || c == ' ') {
+                    break;
+                }
+            }
+
+            let col = range.start.column as usize;
+            let width = (range.end.column - range.start.column) as usize;
+
+            let underline = format!(
+                "{x:\t>0$}{x: >1$}{x:>2$}{x:^>3$}\n",
+                tabs,
+                spaces,
+                col - tabs - spaces,
+                width,
+                x = "",
+            );
+
+            code(ui, (*chunk.first().expect("")).to_string());
+            colored_code(ui, underline, lint_color);
+        } else {
+            for line in chunk {
+                code(ui, format!("{line}\n"));
+            }
+        }
+
+        ui.spacing();
+    });
+}
+
+fn code(ui: &mut egui::Ui, text: impl Into<String>) -> egui::Response {
+    ui.label(
+        RichText::new(text)
+            .monospace()
+            .background_color(ui.style().visuals.panel_fill),
+    )
+}
+
+fn colored_code(ui: &mut egui::Ui, text: impl Into<String>, color: Color32) -> egui::Response {
+    ui.colored_label(
+        color,
+        RichText::new(text)
+            .monospace()
+            .background_color(ui.style().visuals.panel_fill),
+    )
 }
