@@ -88,6 +88,7 @@ where
     let mut compiler = Compiler::new(
         false,
         std_source_map,
+        vec![],
         PackageType::Lib,
         Profile::Unrestricted.into(),
     )
