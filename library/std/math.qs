@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Represents the ratio of the circumference of a circle to its diameter.
     ///
-    /// # Ouptut
+    /// # Output
     /// A double-precision approximation of the the circumference of a circle
     /// to its diameter, π ≈ 3.14159265358979323846.
     ///
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Math {
     /// Returns the natural logarithmic base to double-precision.
     ///
     /// # Output
-    /// A double-precision approximation of the natural logarithic base,
+    /// A double-precision approximation of the natural logarithmic base,
     /// e ≈ 2.7182818284590452354.
     ///
     /// # See Also
@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.Math {
     /// ## d
     /// The floating-point value to be checked.
     ///
-    /// # Ouput
+    /// # Output
     /// `true` if and only if `d` is either positive or negative infinity.
     ///
     /// # Remarks

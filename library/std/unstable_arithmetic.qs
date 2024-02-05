@@ -267,7 +267,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         Fact(zsLen >= xsLen, "Register `zs` must be no shorter than register `xs`.");
 
         // Since zs is zero-initialized, its bits at indexes higher than
-        // xsLen remain unsued as there will be no carry into them.
+        // xsLen remain unused as there will be no carry into them.
         let top = MinI(zsLen-2, xsLen-1);
         for k in 0 .. top {
             FullAdder(zs[k], xs[k], ys[k], zs[k + 1]);

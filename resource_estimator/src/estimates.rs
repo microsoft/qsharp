@@ -20,10 +20,15 @@ mod optimization;
 mod serialization;
 mod stages;
 
-use self::{modeling::Protocol, stages::physical_estimation::PhysicalResourceEstimation};
+use self::{modeling::Protocol, optimization::TFactoryBuilder};
 use super::LogicalResources;
 use data::{EstimateType, JobParams, LogicalResourceCounts};
 pub use error::Error;
+pub use modeling::ErrorBudget;
+pub use stages::layout::Overhead;
+pub use stages::physical_estimation::{
+    ErrorCorrection, Factory, FactoryBuilder, PhysicalResourceEstimation,
+};
 
 type Result<T> = std::result::Result<T, error::Error>;
 
@@ -79,13 +84,18 @@ fn estimate_single(
     // create error budget partitioning
     let partitioning = job_params.error_budget().partitioning(&logical_resources)?;
 
-    let mut estimation =
-        PhysicalResourceEstimation::new(ftp, qubit, logical_resources, partitioning);
+    let mut estimation = PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        logical_resources,
+        partitioning,
+    );
     if let Some(logical_depth_factor) = job_params.constraints().logical_depth_factor {
         estimation.set_logical_depth_factor(logical_depth_factor);
     }
     if let Some(max_t_factories) = job_params.constraints().max_t_factories {
-        estimation.set_max_t_factories(max_t_factories);
+        estimation.set_max_factories(max_t_factories);
     }
     if let Some(max_duration) = job_params.constraints().max_duration {
         estimation.set_max_duration(max_duration);
@@ -93,7 +103,9 @@ fn estimate_single(
     if let Some(max_physical_qubits) = job_params.constraints().max_physical_qubits {
         estimation.set_max_physical_qubits(max_physical_qubits);
     }
-    estimation.set_distillation_unit_templates(distillation_unit_templates);
+    estimation
+        .factory_builder_mut()
+        .set_distillation_unit_templates(distillation_unit_templates);
 
     match job_params.estimate_type() {
         EstimateType::Frontier => {
