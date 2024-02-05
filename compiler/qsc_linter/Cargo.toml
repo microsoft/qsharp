@@ -21,5 +21,9 @@ qsc_passes = { path = "../qsc_passes" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 rustc-hash = { workspace = true }
 
+# for Monday demo
+eframe = { version = "0.25", features = ["persistence"]}
+winit = { version = "0.29.10" }
+
 [lib]
 doctest = false

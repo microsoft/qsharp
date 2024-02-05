@@ -1,5 +1,7 @@
 pub mod ast;
 
+use std::fmt::Display;
+
 use qsc::Span;
 use qsc_ast::ast::NodeId;
 
@@ -34,4 +36,16 @@ pub enum LintLevel {
     ForceWarn,
     Deny,
     ForceDeny,
+}
+
+impl Display for LintLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let x = match self {
+            LintLevel::Allow => "",
+            LintLevel::Warn | LintLevel::ForceWarn => "warning",
+            LintLevel::Deny | LintLevel::ForceDeny => "error",
+        };
+
+        write!(f, "{x}")
+    }
 }
