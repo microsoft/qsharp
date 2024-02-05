@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use qsc_ast::{
     ast::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path,
@@ -8,12 +6,8 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 
-use super::LintBuffer;
-
 #[allow(unused_variables)]
 pub trait LintPass<'a> {
-    fn new(buffer: Rc<RefCell<LintBuffer>>) -> Self;
-
     fn check_attr(&mut self, attr: &'a Attr) {}
     fn check_block(&mut self, block: &'a Block) {}
     fn check_callable_decl(&mut self, callable_decl: &'a CallableDecl) {}
@@ -33,9 +27,15 @@ pub trait LintPass<'a> {
     fn check_visibility(&mut self, visibility: &'a Visibility) {}
 }
 
-pub struct DummyWrapper<T>(pub T);
+pub struct DummyWrapper<'a>(pub &'a mut dyn LintPass<'a>);
 
-impl<'a, T: LintPass<'a>> Visitor<'a> for DummyWrapper<T> {
+// impl<'a> DummyWrapper<'a> {
+//     pub fn new(x: &'a mut dyn LintPass<'a>) -> Self {
+//         Self(x)
+//     }
+// }
+
+impl<'a> Visitor<'a> for DummyWrapper<'a> {
     fn visit_package(&mut self, package: &'a Package) {
         self.0.check_package(package);
         visit::walk_package(self, package);

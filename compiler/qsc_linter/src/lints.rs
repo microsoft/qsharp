@@ -16,11 +16,13 @@ struct DoubleParens {
     buffer: Rc<RefCell<LintBuffer>>,
 }
 
-impl<'a> LintPass<'a> for DoubleParens {
-    fn new(buffer: Rc<RefCell<LintBuffer>>) -> Self {
+impl DoubleParens {
+    pub fn new(buffer: Rc<RefCell<LintBuffer>>) -> Self {
         Self { buffer }
     }
+}
 
+impl<'a> LintPass<'a> for DoubleParens {
     fn check_expr(&mut self, expr: &'a qsc_ast::ast::Expr) {
         if let ExprKind::Paren(ref inner_expr) = *expr.kind {
             if matches!(*inner_expr.kind, ExprKind::Paren(_)) {
@@ -39,11 +41,13 @@ struct DivisionByZero {
     buffer: Rc<RefCell<LintBuffer>>,
 }
 
-impl<'a> LintPass<'a> for DivisionByZero {
-    fn new(buffer: Rc<RefCell<LintBuffer>>) -> Self {
+impl DivisionByZero {
+    pub fn new(buffer: Rc<RefCell<LintBuffer>>) -> Self {
         Self { buffer }
     }
+}
 
+impl<'a> LintPass<'a> for DivisionByZero {
     fn check_expr(&mut self, expr: &'a qsc_ast::ast::Expr) {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {

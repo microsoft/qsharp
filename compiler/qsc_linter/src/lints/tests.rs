@@ -1,11 +1,8 @@
 mod demo;
 
-use super::DoubleParens;
+use super::{DivisionByZero, DoubleParens};
 use crate::{
-    linter::{
-        ast::{DummyWrapper, LintPass},
-        LintBuffer,
-    },
+    linter::{ast::DummyWrapper, LintBuffer},
     lints::tests::demo::LinterDemoApp,
 };
 use eframe::egui::ViewportBuilder;
@@ -66,12 +63,10 @@ fn linter() {
 }
 
 fn run_lints(source: &str, buffer: &Rc<RefCell<LintBuffer>>) {
-    let mut lints = [
-        DoubleParens::new(buffer.clone()),
-        DoubleParens::new(buffer.clone()),
-        DoubleParens::new(buffer.clone()),
-    ]
-    .map(DummyWrapper);
+    let mut parens = DoubleParens::new(buffer.clone());
+    let mut div_zero = DivisionByZero::new(buffer.clone());
+
+    let mut lints = [DummyWrapper(&mut parens), DummyWrapper(&mut div_zero)];
 
     let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();

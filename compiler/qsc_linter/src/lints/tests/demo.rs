@@ -8,10 +8,7 @@ use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::line_column;
 
 use crate::{
-    linter::{
-        ast::{DummyWrapper, LintPass},
-        Lint, LintBuffer, LintLevel,
-    },
+    linter::{ast::DummyWrapper, Lint, LintBuffer, LintLevel},
     lints::{DivisionByZero, DoubleParens},
 };
 
@@ -118,11 +115,10 @@ impl eframe::App for LinterDemoApp {
 }
 
 fn run_lints(source: &str, buffer: &Rc<RefCell<LintBuffer>>) {
-    let mut lints = [
-        DoubleParens::new(buffer.clone()),
-        // DivisionByZero::new(buffer.clone()),
-    ]
-    .map(DummyWrapper);
+    let mut parens = DoubleParens::new(buffer.clone());
+    let mut div_zero = DivisionByZero::new(buffer.clone());
+
+    let mut lints = [DummyWrapper(&mut parens), DummyWrapper(&mut div_zero)];
 
     let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();
