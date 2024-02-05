@@ -29,12 +29,6 @@ pub trait LintPass<'a> {
 
 pub struct DummyWrapper<'a>(pub &'a mut dyn LintPass<'a>);
 
-// impl<'a> DummyWrapper<'a> {
-//     pub fn new(x: &'a mut dyn LintPass<'a>) -> Self {
-//         Self(x)
-//     }
-// }
-
 impl<'a> Visitor<'a> for DummyWrapper<'a> {
     fn visit_package(&mut self, package: &'a Package) {
         self.0.check_package(package);

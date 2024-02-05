@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Write, rc::Rc};
+use std::fmt::Write;
 
 use eframe::{
     egui::{self, RichText},
@@ -8,15 +8,14 @@ use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::line_column;
 
 use crate::{
-    linter::{ast::DummyWrapper, Lint, LintBuffer, LintLevel},
+    linter::{self, ast::DummyWrapper, Lint, LintLevel},
     lints::{DivisionByZero, DoubleParens},
 };
 
 #[derive(Default)]
 pub struct LinterDemoApp {
     source: String,
-    reports: String,
-    lints: LintBuffer,
+    lints: Vec<Lint>,
 }
 
 impl LinterDemoApp {
@@ -73,21 +72,10 @@ impl LinterDemoApp {
         }
     }
 
-    fn _report_output(&mut self, ui: &mut egui::Ui, size: Vec2) {
-        ui.add(
-            egui::TextEdit::multiline(&mut self.reports)
-                .code_editor()
-                .desired_rows(12)
-                .desired_width(size.x)
-                .min_size(size)
-                .interactive(false),
-        );
-    }
-
     fn report_output_colored(&mut self, ui: &mut egui::Ui, _size: Vec2) {
         ui.vertical(|ui| {
             egui::scroll_area::ScrollArea::vertical().show(ui, |ui| {
-                for lint in &self.lints.data {
+                for lint in &self.lints {
                     pp_to_ui(&self.source, lint, ui);
                 }
             });
@@ -95,15 +83,8 @@ impl LinterDemoApp {
     }
 
     fn compile(&mut self) {
-        self.reports.clear();
-        let buffer = Rc::new(RefCell::new(LintBuffer::new()));
-        run_lints(&self.source, &buffer);
-
-        for lint in &buffer.borrow().data {
-            pp(&self.source, lint, &mut self.reports);
-        }
-
-        self.lints = buffer.take();
+        run_lints(&self.source);
+        self.lints = linter::drain().collect();
     }
 }
 
@@ -114,9 +95,9 @@ impl eframe::App for LinterDemoApp {
     }
 }
 
-fn run_lints(source: &str, buffer: &Rc<RefCell<LintBuffer>>) {
-    let mut parens = DoubleParens::new(buffer.clone());
-    let mut div_zero = DivisionByZero::new(buffer.clone());
+fn run_lints(source: &str) {
+    let mut parens = DoubleParens;
+    let mut div_zero = DivisionByZero;
 
     let mut lints = [DummyWrapper(&mut parens), DummyWrapper(&mut div_zero)];
 
@@ -134,7 +115,7 @@ fn run_lints(source: &str, buffer: &Rc<RefCell<LintBuffer>>) {
     }
 }
 
-fn pp(source: &str, lint: &Lint, output_buffer: &mut String) {
+fn _pp(source: &str, lint: &Lint, output_buffer: &mut String) {
     let range = line_column::Range::from_span(line_column::Encoding::Utf8, source, &lint.span);
     let chunk = super::get_chunk(source, range);
 

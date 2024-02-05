@@ -2,13 +2,12 @@ mod demo;
 
 use super::{DivisionByZero, DoubleParens};
 use crate::{
-    linter::{ast::DummyWrapper, LintBuffer},
+    linter::{self, ast::DummyWrapper},
     lints::tests::demo::LinterDemoApp,
 };
 use eframe::egui::ViewportBuilder;
 use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::line_column;
-use std::{cell::RefCell, rc::Rc};
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
 #[test]
@@ -49,10 +48,9 @@ fn linter() {
         }
     ";
 
-    let buffer = Rc::new(RefCell::new(LintBuffer::new()));
-    run_lints(source, &buffer);
+    run_lints(source);
 
-    for lint in &buffer.borrow().data {
+    for lint in linter::drain() {
         let range = line_column::Range::from_span(line_column::Encoding::Utf8, source, &lint.span);
         let chunk = get_chunk(source, range);
         for line in chunk {
@@ -62,9 +60,9 @@ fn linter() {
     }
 }
 
-fn run_lints(source: &str, buffer: &Rc<RefCell<LintBuffer>>) {
-    let mut parens = DoubleParens::new(buffer.clone());
-    let mut div_zero = DivisionByZero::new(buffer.clone());
+fn run_lints(source: &str) {
+    let mut parens = DoubleParens;
+    let mut div_zero = DivisionByZero;
 
     let mut lints = [DummyWrapper(&mut parens), DummyWrapper(&mut div_zero)];
 

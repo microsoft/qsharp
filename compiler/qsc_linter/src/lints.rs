@@ -1,10 +1,8 @@
 #[cfg(test)]
 mod tests;
 
-use std::{cell::RefCell, rc::Rc};
-
-use crate::linter::{ast::LintPass, Lint, LintBuffer, LintLevel};
-
+use super::linter;
+use crate::linter::{ast::LintPass, Lint, LintLevel};
 #[allow(unused_imports)]
 use qsc_ast::ast::{
     Attr, Block, CallableDecl, Expr, ExprKind, FunctorExpr, Ident, Item, Namespace, Package, Pat,
@@ -12,38 +10,42 @@ use qsc_ast::ast::{
 };
 use qsc_ast::ast::{BinOp, Lit};
 
-struct DoubleParens {
-    buffer: Rc<RefCell<LintBuffer>>,
+macro_rules! declare_lint {
+    ($lint_name:ident, $level:expr, $msg:expr) => {
+        struct $lint_name;
+
+        impl $lint_name {
+            const LEVEL: LintLevel = $level;
+            const MESSAGE: &'static str = $msg;
+        }
+    };
 }
 
-impl DoubleParens {
-    pub fn new(buffer: Rc<RefCell<LintBuffer>>) -> Self {
-        Self { buffer }
-    }
+macro_rules! push_lint {
+    ($lint_ty:ty, $node:expr) => {
+        linter::push(Lint {
+            node_id: $node.id,
+            span: $node.span,
+            message: <$lint_ty>::MESSAGE,
+            level: <$lint_ty>::LEVEL,
+        })
+    };
 }
+
+declare_lint!(
+    DoubleParens,
+    LintLevel::Warn,
+    "unnecesary double parentheses"
+);
+declare_lint!(DivisionByZero, LintLevel::Deny, "attempt to divide by zero");
 
 impl<'a> LintPass<'a> for DoubleParens {
     fn check_expr(&mut self, expr: &'a qsc_ast::ast::Expr) {
         if let ExprKind::Paren(ref inner_expr) = *expr.kind {
             if matches!(*inner_expr.kind, ExprKind::Paren(_)) {
-                self.buffer.borrow_mut().push(Lint {
-                    node_id: inner_expr.id,
-                    span: expr.span,
-                    message: "unnecesary double parentheses".to_owned(),
-                    level: LintLevel::Warn,
-                });
+                push_lint!(Self, expr);
             }
         }
-    }
-}
-
-struct DivisionByZero {
-    buffer: Rc<RefCell<LintBuffer>>,
-}
-
-impl DivisionByZero {
-    pub fn new(buffer: Rc<RefCell<LintBuffer>>) -> Self {
-        Self { buffer }
     }
 }
 
@@ -53,12 +55,7 @@ impl<'a> LintPass<'a> for DivisionByZero {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
                 if let Lit::Int(ref x) = **lit {
                     if *x == 0 {
-                        self.buffer.borrow_mut().push(Lint {
-                            node_id: expr.id,
-                            span: expr.span,
-                            message: "attempt to divide by zero".to_owned(),
-                            level: LintLevel::Deny,
-                        });
+                        push_lint!(Self, expr);
                     }
                 }
             }
