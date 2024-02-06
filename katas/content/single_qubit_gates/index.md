@@ -523,7 +523,11 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
   </tr>
   <tr>
     <td>$R_x(\theta)$</td>
-    <td>$\begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
+    <td>
+    $$
+    \begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}
+    $$
+    </td>
     <td>$R_x(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - i\beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} - i\alpha\sin\frac{\theta}{2})|1\rangle$</td>
     <td>
       $R_x(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle - i\sin\frac{\theta}{2}|1\rangle$<br>
@@ -563,7 +567,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
   </tr>
 </table>
 
-You have already encountered some special cases of the $R_1$ gate: 
+You have already encountered some special cases of the $R_1$ gate:
 
 $$T = R_1(\frac{\pi}{4}), S = R_1(\frac{\pi}{2}), Z = R_1(\pi)$$
 
