@@ -104,9 +104,11 @@ fn main() -> miette::Result<ExitCode> {
 
             features.merge(manifest.manifest.features);
 
-            features.check_compatibility()?;
         }
     }
+    
+    features.check_compatibility()?;
+
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
