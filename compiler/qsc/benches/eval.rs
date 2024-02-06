@@ -6,6 +6,7 @@ use indoc::indoc;
 use qsc::{interpret::Interpreter, PackageType};
 use qsc_eval::output::GenericReceiver;
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+use qsc_data_structures::language_features::LanguageFeatures;
 
 const TELEPORT: &str = include_str!("../../../samples/algorithms/Teleportation.qs");
 const DEUTSCHJOZSA: &str = include_str!("../../../samples/algorithms/DeutschJozsa.qs");
@@ -19,6 +20,7 @@ pub fn teleport(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+LanguageFeatures::none(),
         )
         .expect("code should compile");
         b.iter(move || {
@@ -37,6 +39,8 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::none(),
+
         )
         .expect("code should compile");
         b.iter(move || {
@@ -55,6 +59,8 @@ pub fn large_file(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::none(),
+
         )
         .expect("code should compile");
         b.iter(move || {
@@ -85,6 +91,8 @@ pub fn array_append(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::none(),
+
         )
         .expect("code should compile");
         b.iter(move || {
@@ -115,6 +123,8 @@ pub fn array_update(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::none(),
+
         )
         .expect("code should compile");
         b.iter(move || {

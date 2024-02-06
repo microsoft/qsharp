@@ -7,6 +7,7 @@
 use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
+use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use num_complex::Complex64;
 use qsc::interpret::{self, InterpretResult, Interpreter};
 use qsc_eval::{
@@ -17,11 +18,7 @@ use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceContents, SourceMap, S
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
-    fs,
-    io::{self, prelude::BufRead, Write},
-    path::{Path, PathBuf},
-    process::ExitCode,
-    string::String,
+    collections::BTreeSet, fs, io::{self, prelude::BufRead, Write}, path::{Path, PathBuf}, process::ExitCode, string::String
 };
 
 #[derive(Debug, Parser)]
@@ -47,6 +44,10 @@ struct Cli {
     /// Path to a Q# manifest for a project
     #[arg(short, long)]
     qsharp_json: Option<PathBuf>,
+
+        /// Language features to compile with
+        #[arg(short, long)]
+        features: Vec<LanguageFeature>,
 }
 
 struct TerminalReceiver;
@@ -80,6 +81,8 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
+        let mut features: LanguageFeatures = BTreeSet::from_iter(cli.features.into_iter()).into();
+
     if sources.is_empty() {
         let fs = StdFs;
         let manifest = Manifest::load(cli.qsharp_json)?;
@@ -88,6 +91,8 @@ fn main() -> miette::Result<ExitCode> {
             let mut project_sources = project.sources;
 
             sources.append(&mut project_sources);
+
+            features.merge(manifest.manifest.features);
         }
     }
     if cli.exec {
@@ -96,6 +101,7 @@ fn main() -> miette::Result<ExitCode> {
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+            features
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -115,6 +121,7 @@ fn main() -> miette::Result<ExitCode> {
         SourceMap::new(sources, None),
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
+        features
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

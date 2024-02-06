@@ -36,7 +36,7 @@ impl DebugService {
         let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
-        match Debugger::new(source_map, target.into(), Encoding::Utf16) {
+        match Debugger::new(source_map, target.into(), Encoding::Utf16, todo!("get language features")) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 match self.debugger_mut().set_entry() {

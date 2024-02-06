@@ -41,6 +41,7 @@ def init(
     *,
     target_profile: TargetProfile = TargetProfile.Unrestricted,
     project_root: Optional[str] = None,
+    language_features: List[str] = [],
 ) -> Config:
     """
     Initializes the Q# interpreter.
@@ -82,7 +83,7 @@ def init(
             ) from e
 
     _interpreter = Interpreter(
-        target_profile, manifest_descriptor, read_file, list_directory
+        language_features, target_profile, manifest_descriptor, read_file, list_directory
     )
 
     # Return the configuration information to provide a hint to the

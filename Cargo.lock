@@ -553,6 +553,7 @@ name = "katas"
 version = "0.0.0"
 dependencies = [
  "qsc",
+ "qsc_data_structures",
 ]
 
 [[package]]
@@ -586,6 +587,7 @@ dependencies = [
  "indoc",
  "num-bigint",
  "qsc",
+ "qsc_data_structures",
 ]
 
 [[package]]
@@ -1233,6 +1235,7 @@ dependencies = [
  "num-complex",
  "probability",
  "qsc",
+ "qsc_data_structures",
  "rand",
  "regex-lite",
  "rustc-hash",

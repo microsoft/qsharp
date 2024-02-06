@@ -20,6 +20,7 @@ use qsc::{
     target::Profile,
     PackageType, SourceMap,
 };
+use qsc_data_structures::language_features::LanguageFeatures;
 
 /// # Panics
 ///
@@ -45,7 +46,7 @@ pub fn test_expression_with_lib_and_profile(
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
-    let mut interpreter = Interpreter::new(true, sources, PackageType::Exe, profile.into())
+    let mut interpreter = Interpreter::new(true, sources, PackageType::Exe, profile.into(), LanguageFeatures::none(),)
         .expect("test should compile");
     let result = interpreter
         .eval_entry(&mut out)

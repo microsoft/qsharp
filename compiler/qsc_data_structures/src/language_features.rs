@@ -12,9 +12,22 @@ pub enum LanguageFeature {
     V2PreviewSyntax,
 }
 
+impl LanguageFeature {
+    pub fn try_parse(s: &str) -> Result<Self, UnrecognizedLanguageFeature> {
+        match s {
+            "v2-preview-syntax" => Ok(LanguageFeature::V2PreviewSyntax),
+            _ => Err(UnrecognizedLanguageFeature::msg(format!(
+                "Unrecognized language feature: {}",
+                s
+            ))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct LanguageFeatures(BTreeSet<LanguageFeature>);
 pub type LanguageFeatureIncompatibility = miette::ErrReport;
+pub type UnrecognizedLanguageFeature = miette::ErrReport;
 
 impl LanguageFeatures {
     /// Checks that the current set of language features is compatible and well-formed.
@@ -35,6 +48,8 @@ impl LanguageFeatures {
     pub fn contains(&self, feat: LanguageFeature) -> bool {
         self.0.contains(&feat)
     }
+
+
 }
 impl Into<BTreeSet<LanguageFeature>> for LanguageFeatures {
     fn into(self) -> BTreeSet<LanguageFeature> {

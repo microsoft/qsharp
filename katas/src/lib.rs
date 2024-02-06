@@ -13,6 +13,8 @@ use qsc::{
     PackageType, SourceContents, SourceMap, SourceName,
 };
 
+use qsc_data_structures::language_features::LanguageFeatures;
+
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
 
 pub const EXERCISE_ENTRY: &str = "Kata.Verification.CheckSolution()";
@@ -34,6 +36,7 @@ pub fn check_solution(
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        LanguageFeatures::none(),
     )?;
     interpreter.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {

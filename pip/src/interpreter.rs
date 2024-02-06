@@ -101,6 +101,7 @@ impl Interpreter {
     pub(crate) fn new(
         py: Python,
         target: TargetProfile,
+        language_features: Vec<String>,
         manifest_descriptor: Option<PyManifestDescriptor>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
@@ -127,7 +128,7 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
+        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into(), language_features.iter().map(|f| f.into()).collect()) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }

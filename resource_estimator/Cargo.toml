@@ -25,3 +25,4 @@ fasteval = { workspace = true }
 [dev-dependencies]
 expect-test = { workspace = true }
 indoc = { workspace = true }
+qsc_data_structures = { path = "../compiler/qsc_data_structures" }
