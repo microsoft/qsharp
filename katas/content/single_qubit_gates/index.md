@@ -384,11 +384,7 @@ The identity gate is mostly here for completeness, at least for now. It will com
 </tr>
 <tr>
 <td style=\"text-align:center; border:1px solid\">$I$</td>
-<td style=\"text-align:center; border:1px solid\">
-$$
-\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
-$$
-</td>
+<td style=\"text-align:center; border:1px solid\">$\begin{bmatrix} 1 & 0 \ 0 & 1 \end{bmatrix}$</td>
 <td style=\"text-align:center; border:1px solid\">$|0\rangle\langle0| + |1\rangle\langle1|$</td>
 <td style=\"text-align:center; border:1px solid\">$I|\psi\rangle = |\psi\rangle$</td>
 <td style=\"text-align:center; border:1px solid\"><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.i\">I</a></td>
