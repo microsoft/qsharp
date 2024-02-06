@@ -12,13 +12,18 @@ mod scaffolding;
 use crate::common::set_indentation;
 use bitflags::bitflags;
 use indenter::indented;
+use itertools::{sorted, Itertools};
 use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
     BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
     StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
-use std::fmt::{self, Debug, Display, Formatter, Write};
+use rustc_hash::FxHashSet;
+use std::{
+    cmp::Ord,
+    fmt::{self, Debug, Display, Formatter, Write},
+};
 
 pub use crate::analyzer::Analyzer;
 
@@ -286,14 +291,14 @@ pub struct ComputeProperties {
     /// The runtime features used by the program element.
     pub runtime_features: RuntimeFeatureFlags,
     /// The sources of dynamism, if any.
-    pub dynamism_sources: Vec<DynamismSource>,
+    pub dynamism_sources: FxHashSet<DynamismSource>,
 }
 
 impl Default for ComputeProperties {
     fn default() -> Self {
         Self {
             runtime_features: RuntimeFeatureFlags::empty(),
-            dynamism_sources: Vec::new(),
+            dynamism_sources: FxHashSet::default(),
         }
     }
 }
@@ -304,11 +309,30 @@ impl Display for ComputeProperties {
         write!(indent, "ComputeProperties:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nruntime_features: {:?}", self.runtime_features)?;
-        if !self.dynamism_sources.is_empty() {
-            write!(indent, "\ndynamism_sources: {:?}", self.dynamism_sources)?;
+        write!(indent, "\ndynamism_sources: ")?;
+        if self.dynamism_sources.is_empty() {
+            _ = write!(f, "<empty>");
+        } else {
+            _ = write!(f, "{{");
+            let mut first = true;
+            for source in self.dynamism_sources.iter().sorted() {
+                if !first {
+                    _ = write!(f, ", ");
+                }
+                _ = write!(f, "{source:?}");
+                first = false;
+            }
+            _ = write!(f, "}}");
         }
 
         Ok(())
+    }
+}
+
+impl ComputeProperties {
+    /// Creates an empty compute properties structure.
+    pub fn empty() -> Self {
+        Self::default()
     }
 }
 
@@ -414,7 +438,7 @@ impl RuntimeFeatureFlags {
 }
 
 /// A source of dynamism.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DynamismSource {
     /// An intrinsic dynamism source.
     Intrinsic,

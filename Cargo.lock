@@ -1055,6 +1055,7 @@ dependencies = [
  "bitflags 2.4.2",
  "expect-test",
  "indenter",
+ "itertools",
  "qsc",
  "qsc_data_structures",
  "qsc_eval",

@@ -29,6 +29,7 @@ fn check_rca_for_parameterless_one_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
@@ -60,6 +61,7 @@ fn check_rca_for_parameterless_two_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
@@ -77,6 +79,7 @@ fn check_rca_for_parameterless_two_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
@@ -110,6 +113,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
@@ -126,6 +130,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
@@ -142,6 +147,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
@@ -170,10 +176,11 @@ fn check_rca_for_direct_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -202,10 +209,11 @@ fn check_rca_for_indirect_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -236,10 +244,11 @@ fn check_rca_for_indirect_chain_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -268,10 +277,11 @@ fn check_rca_for_indirect_tuple_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -300,10 +310,11 @@ fn check_rca_for_indirect_closure_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -331,13 +342,14 @@ fn check_rca_for_indirect_partial_appplication_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                         [1]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -365,10 +377,11 @@ fn check_rca_for_function_cycle_within_binding() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -397,10 +410,11 @@ fn check_rca_for_function_cycle_within_assignment() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -427,10 +441,11 @@ fn check_rca_for_function_cycle_within_return() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -458,10 +473,11 @@ fn check_rca_for_function_cycle_within_tuple() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -514,13 +530,14 @@ fn check_rca_for_function_cycle_within_call_input() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                         [1]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -551,10 +568,11 @@ fn check_rca_for_function_cycle_within_if_block() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -585,10 +603,11 @@ fn check_rca_for_function_cycle_within_if_condition() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -618,10 +637,11 @@ fn check_rca_for_function_cycle_within_for_block() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -651,10 +671,11 @@ fn check_rca_for_function_cycle_within_while_block() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -683,10 +704,11 @@ fn check_rca_for_function_cycle_within_while_condition() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -713,9 +735,11 @@ fn check_rca_for_result_param_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -742,10 +766,11 @@ fn check_rca_for_result_inout_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -772,9 +797,11 @@ fn check_rca_for_bool_param_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -801,10 +828,11 @@ fn check_rca_for_bool_inout_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -831,9 +859,11 @@ fn check_rca_for_int_param_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -860,10 +890,11 @@ fn check_rca_for_int_inout_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -890,9 +921,11 @@ fn check_rca_for_double_param_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -919,10 +952,11 @@ fn check_rca_for_double_inout_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -949,13 +983,17 @@ fn check_rca_for_multi_param_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: <empty>
                         [1]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: <empty>
                         [2]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -982,16 +1020,17 @@ fn check_rca_for_multi_param_result_out_recursive_function() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                         [1]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                         [2]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: [Assumed]
+                            dynamism_sources: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1018,9 +1057,11 @@ fn check_rca_for_operation_body_recursion() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1052,15 +1093,19 @@ fn check_rca_for_operation_body_adj_recursion() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                 adj: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                 ctl: <none>
                 ctl-adj: <none>"#
         ],
@@ -1091,18 +1136,23 @@ fn check_rca_for_operation_body_ctl_recursion() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                         [1]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                 ctl-adj: <none>"#
         ],
     );
@@ -1223,18 +1273,23 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                 adj: <none>
                 ctl: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                        dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                         [1]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
+                            dynamism_sources: <empty>
                 ctl-adj: <none>"#
         ],
     );

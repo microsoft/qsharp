@@ -18,7 +18,7 @@ use qsc_fir::{
     },
     ty::{Prim, Ty},
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// An instance of a callable application.
 #[derive(Debug, Default)]
@@ -348,10 +348,7 @@ fn create_cycled_function_specialization_applications_table(
 
     // Since functions are classically pure, they inherently do not use any runtime feature nor represent a source of
     // dynamism.
-    let inherent_properties = ComputeProperties {
-        runtime_features: RuntimeFeatureFlags::empty(),
-        dynamism_sources: Vec::new(),
-    };
+    let inherent_properties = ComputeProperties::empty();
 
     // Create compute properties for each dynamic parameter.
     let mut dynamic_params_properties = Vec::new();
@@ -359,9 +356,9 @@ fn create_cycled_function_specialization_applications_table(
         // If any parameter is dynamic, we assume a function with cycles is a a source of dynamism if its output type
         // is non-unit.
         let dynamism_sources = if *output_type == Ty::UNIT {
-            Vec::new()
+            FxHashSet::default()
         } else {
-            vec![DynamismSource::Assumed]
+            FxHashSet::from_iter(vec![DynamismSource::Assumed])
         };
 
         // Since convert functions can be called with dynamic parameters, we assume that all capabilities are required
@@ -388,9 +385,9 @@ fn create_cycled_operation_specialization_applications_table(
     // the `CycledOperationSpecialization` runtime feature) and that they are a source of dynamism if they have a
     // non-unit output.
     let dynamism_sources = if *output_type == Ty::UNIT {
-        Vec::new()
+        FxHashSet::default()
     } else {
-        vec![DynamismSource::Assumed]
+        FxHashSet::from_iter(vec![DynamismSource::Assumed])
     };
     let compute_properties = ComputeProperties {
         runtime_features: RuntimeFeatureFlags::CycledOperationSpecializationApplication,
@@ -425,10 +422,7 @@ fn create_intrinsic_function_applications_table(
     assert!(matches!(callable_decl.kind, CallableKind::Function));
 
     // Functions are purely classical, so no runtime features are needed and cannot be an inherent dynamism source.
-    let inherent_properties = ComputeProperties {
-        runtime_features: RuntimeFeatureFlags::empty(),
-        dynamism_sources: Vec::new(),
-    };
+    let inherent_properties = ComputeProperties::empty();
 
     // Calculate the properties for all parameters.
     let mut dynamic_params_properties = Vec::new();
@@ -439,10 +433,10 @@ fn create_intrinsic_function_applications_table(
         // - It becomes a source of dynamism.
         // - The output type contributes to the runtime features used by the function.
         let (dynamism_sources, mut runtime_features) = if callable_decl.output == Ty::UNIT {
-            (Vec::new(), RuntimeFeatureFlags::empty())
+            (FxHashSet::default(), RuntimeFeatureFlags::empty())
         } else {
             (
-                vec![DynamismSource::Intrinsic],
+                FxHashSet::from_iter(vec![DynamismSource::Intrinsic]),
                 derive_intrinsic_runtime_features_from_type(&callable_decl.output),
             )
         };
@@ -483,9 +477,9 @@ fn create_instrinsic_operation_applications_table(
     // Intrinsic are an inherent source of dynamism if their output is not `Unit` or `Qubit`.
     let dynamism_sources =
         if callable_decl.output == Ty::UNIT || callable_decl.output == Ty::Prim(Prim::Qubit) {
-            Vec::new()
+            FxHashSet::default()
         } else {
-            vec![DynamismSource::Intrinsic]
+            FxHashSet::from_iter(vec![DynamismSource::Intrinsic])
         };
 
     // Build the inherent properties.
@@ -501,9 +495,9 @@ fn create_instrinsic_operation_applications_table(
         // dynamic the output of the operation is dynamic. Therefore, this operation becomes a source of dynamism for
         // all dynamic params if its output is not `Unit`.
         let dynamism_sources = if callable_decl.output == Ty::UNIT {
-            Vec::new()
+            FxHashSet::default()
         } else {
-            vec![DynamismSource::Intrinsic]
+            FxHashSet::from_iter(vec![DynamismSource::Intrinsic])
         };
 
         // When a parameter is binded to a dynamic value, its runtime features depend on the parameter type.
