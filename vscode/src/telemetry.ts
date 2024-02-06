@@ -266,7 +266,7 @@ function getBrowserRelease(): string {
       navigator.userAgentData.brands[navigator.userAgentData.brands.length - 1];
     return `${browser.brand}/${browser.version}`;
   } else {
-    return "";
+    return navigator.userAgent;
   }
 }
 
