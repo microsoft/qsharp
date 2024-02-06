@@ -9,7 +9,6 @@ mod cycle_detection;
 mod rca;
 mod scaffolding;
 
-use crate::rca::analyze_package;
 use bitflags::bitflags;
 use indenter::{indented, Indented};
 use qsc_data_structures::index_map::{IndexMap, Iter};
@@ -105,12 +104,10 @@ impl PackageStoreComputeProperties {
         self.0.get(id)
     }
 
-    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn get_mut(&mut self, id: PackageId) -> Option<&mut PackageComputeProperties> {
         self.0.get_mut(id)
     }
 
-    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -118,7 +115,6 @@ impl PackageStoreComputeProperties {
             .insert(id.block, value);
     }
 
-    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -126,7 +122,6 @@ impl PackageStoreComputeProperties {
             .insert(id.expr, value);
     }
 
-    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
     pub fn insert_item(&mut self, id: StoreItemId, value: ItemComputeProperties) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -134,12 +129,11 @@ impl PackageStoreComputeProperties {
             .insert(id.item, value);
     }
 
-    // TODO (cesarzc): maybe not needed anymore since there is no need to manipulate the package store directly.
-    pub fn insert_stmt(&mut self, id: StoreExprId, value: ApplicationsTable) {
+    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
-            .exprs
-            .insert(id.expr, value);
+            .stmts
+            .insert(id.stmt, value);
     }
 
     pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {

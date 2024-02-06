@@ -42,9 +42,11 @@ impl Analyzer {
         for (package_id, _) in package_store {
             analyze_package(package_id, package_store, &mut scaffolding);
         }
-        Self {
-            compute_properties: PackageStoreComputeProperties::default(),
-        }
+
+        // Once everything has been analyzed, flush everything to the package store compute properties.
+        let mut compute_properties = PackageStoreComputeProperties::default();
+        scaffolding.flush(&mut compute_properties);
+        Self { compute_properties }
     }
 
     pub fn get_package_store_compute_properties(&self) -> &PackageStoreComputeProperties {
