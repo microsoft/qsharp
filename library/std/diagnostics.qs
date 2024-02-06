@@ -80,7 +80,7 @@ namespace Microsoft.Quantum.Diagnostics {
             Adjoint expected(target);
         }
 
-        // Check and resturn result.
+        // Check and return result.
         let areEqual = CheckAllZero(reference) and CheckAllZero(target);
         ResetAll(target);
         ResetAll(reference);

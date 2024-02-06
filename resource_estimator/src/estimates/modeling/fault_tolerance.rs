@@ -7,6 +7,8 @@ mod tests;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+use crate::estimates::stages::physical_estimation::ErrorCorrection;
+
 use super::{
     super::{
         compiled_expression::CompiledExpression,
@@ -76,7 +78,6 @@ impl Default for ProtocolSpecification {
 /// in formulas for `physical_qubits_per_logical_qubit`.
 #[derive(Debug)]
 pub struct Protocol {
-    instruction_set: PhysicalInstructionSet,
     error_correction_threshold: f64,
     crossing_prefactor: f64,
     logical_cycle_time_expr: String,
@@ -102,6 +103,14 @@ impl Protocol {
 
         if predefined {
             ftp.update_default_from_specification(model)?;
+        }
+
+        if ftp.crossing_prefactor > 0.5 {
+            return Err(Error::InvalidValue(
+                String::from("crossingPrefactor"),
+                0.0,
+                0.5,
+            ));
         }
 
         // validate model with respect to qubit
@@ -130,11 +139,9 @@ impl Protocol {
 
         // validate that formulas only yield positive values
         for code_distance in (1..=model.max_code_distance).skip(2) {
-            // can you compute logical cycle time with code distance?
+            // can you compute logical cycle time and number of physical qubits with code distance?
             ftp.logical_cycle_time(qubit, code_distance)?;
-            if ftp.physical_qubits_per_logical_qubit(code_distance)? <= 0 {
-                return Err(NonPositivePhysicalQubitsPerLogicalQubit(code_distance).into());
-            }
+            ftp.physical_qubits_per_logical_qubit(code_distance)?;
         }
 
         Ok(ftp)
@@ -163,7 +170,6 @@ impl Protocol {
                 PhysicalInstructionSet::Majorana => Ok((Self::floquet_code(), true)),
             }
         } else {
-            let instruction_set = qubit.instruction_set();
             let error_correction_threshold = model.error_correction_threshold.ok_or_else(|| {
                 CannotParseJSON(serde::de::Error::missing_field("errorCorrectionThreshold"))
             })?;
@@ -199,7 +205,6 @@ impl Protocol {
 
             Ok((
                 Self {
-                    instruction_set,
                     error_correction_threshold,
                     crossing_prefactor,
                     logical_cycle_time_expr,
@@ -271,7 +276,6 @@ impl Protocol {
     /// physical_qubits_per_logical_qubit: "2 * codeDistance * codeDistance"
     /// ```
     pub(crate) fn surface_code_gate_based() -> Self {
-        let instruction_set = PhysicalInstructionSet::GateBased;
         // [arXiv:1208.0928, Eq. (13)]
         // [arXiv:1009.3686, Figs. 6-7]
         let error_correction_threshold = 0.01;
@@ -292,7 +296,6 @@ impl Protocol {
             .expect("could not parse expressions");
 
         Self {
-            instruction_set,
             error_correction_threshold,
             crossing_prefactor,
             logical_cycle_time_expr,
@@ -315,7 +318,6 @@ impl Protocol {
     /// physical_qubits_per_logical_qubit: "2 * codeDistance * codeDistance"
     /// ```
     pub(crate) fn surface_code_measurement_based() -> Self {
-        let instruction_set = PhysicalInstructionSet::Majorana;
         // [arXiv:2007.00307, Eq. (1)]
         let error_correction_threshold = 0.0015;
         let crossing_prefactor = 0.08;
@@ -332,7 +334,6 @@ impl Protocol {
             .expect("could not parse expressions");
 
         Self {
-            instruction_set,
             error_correction_threshold,
             crossing_prefactor,
             logical_cycle_time_expr,
@@ -355,7 +356,6 @@ impl Protocol {
     /// physical_qubits_per_logical_qubit: "4 * codeDistance * codeDistance + 8 * (codeDistance - 1)"
     /// ```
     pub(crate) fn floquet_code() -> Self {
-        let instruction_set = PhysicalInstructionSet::Majorana;
         let error_correction_threshold = 0.01;
         let crossing_prefactor = 0.07;
         let logical_cycle_time_expr = format!("3 * {ONE_QUBIT_MEASUREMENT_TIME} * codeDistance");
@@ -371,7 +371,6 @@ impl Protocol {
             .expect("could not parse expressions");
 
         Self {
-            instruction_set,
             error_correction_threshold,
             crossing_prefactor,
             logical_cycle_time_expr,
@@ -382,54 +381,14 @@ impl Protocol {
         }
     }
 
-    /// Returns the supported qubit gate type for this protocol.
-    pub(crate) fn instruction_set(&self) -> PhysicalInstructionSet {
-        self.instruction_set
-    }
-
     /// Returns the fault-tolerance protocol's crossing prefactor.
-    pub(crate) fn crossing_prefactor(&self) -> f64 {
+    fn crossing_prefactor(&self) -> f64 {
         self.crossing_prefactor
     }
 
     /// Returns the fault-tolerance protocol's error-correction threshold.
-    pub(crate) fn error_correction_threshold(&self) -> f64 {
+    fn error_correction_threshold(&self) -> f64 {
         self.error_correction_threshold
-    }
-
-    /// Computes the logical failure probability.
-    ///
-    /// Computes the logical failure probability based on a physical error rate
-    /// and a code distance
-    pub(crate) fn logical_failure_probability(
-        &self,
-        qubit: &PhysicalQubit,
-        code_distance: u64,
-    ) -> Result<f64> {
-        let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
-
-        if self.crossing_prefactor() > 0.5 {
-            Err(Error::InvalidValue(
-                String::from("crossingPrefactor"),
-                0.0,
-                0.5,
-            ))
-        } else if physical_error_rate > self.error_correction_threshold() {
-            Err(Error::InvalidValue(
-                String::from("physical_error_rate"),
-                0.0,
-                self.error_correction_threshold,
-            ))
-        } else {
-            #[allow(clippy::cast_possible_truncation)]
-            Ok(self.crossing_prefactor()
-                * ((physical_error_rate / self.error_correction_threshold())
-                    .powi((code_distance as i32 + 1) / 2)))
-        }
-    }
-
-    pub fn max_code_distance(&self) -> u64 {
-        self.max_code_distance
     }
 
     /// Creates an evaluation context for formulas specified in fault-tolerance
@@ -472,42 +431,6 @@ impl Protocol {
         context
     }
 
-    /// Returns the time of one logical cycle.
-    ///
-    /// The logical cycle time is the time it takes to perform `code_distance`
-    /// rounds of quantum error correction.  The latter, also called syndrome
-    /// extraction time, is based on physical operation times specified in the
-    /// qubit and usually some factor based on the choice of stabilizer
-    /// extraction circuit.
-    pub(crate) fn logical_cycle_time(
-        &self,
-        qubit: &PhysicalQubit,
-        code_distance: u64,
-    ) -> Result<u64> {
-        let mut context = Self::create_evaluation_context(Some(qubit), code_distance);
-
-        let result = self.logical_cycle_time.evaluate(&mut context)?;
-
-        if result <= 0.0 {
-            Err(NonPositiveLogicalCycleTime(code_distance).into())
-        } else {
-            Ok(result.round() as u64)
-        }
-    }
-
-    /// Computes the number of physical qubits required for one logical qubit
-    ///
-    /// The formula for this field has a default value of `2 * code_distance *
-    /// code_distance`.
-    pub(crate) fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<i64> {
-        let mut context = Self::create_evaluation_context(None, code_distance);
-        #[allow(clippy::cast_possible_truncation)]
-        #[allow(clippy::cast_sign_loss)]
-        Ok(self
-            .physical_qubits_per_logical_qubit
-            .evaluate(&mut context)? as i64)
-    }
-
     fn parse_compiled_expressions(
         logical_cycle_time_expr: &str,
         physical_qubits_per_logical_qubit_expr: &str,
@@ -524,5 +447,83 @@ impl Protocol {
     #[inline]
     fn default_max_code_distance() -> u64 {
         MAX_CODE_DISTANCE
+    }
+}
+
+impl ErrorCorrection for Protocol {
+    type Qubit = PhysicalQubit;
+
+    fn max_code_distance(&self) -> u64 {
+        self.max_code_distance
+    }
+
+    /// Computes the number of physical qubits required for one logical qubit
+    ///
+    /// The formula for this field has a default value of `2 * code_distance *
+    /// code_distance`.
+    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64> {
+        let mut context = Self::create_evaluation_context(None, code_distance);
+        let value = self
+            .physical_qubits_per_logical_qubit
+            .evaluate(&mut context)?;
+
+        if value <= 0.0 {
+            Err(NonPositivePhysicalQubitsPerLogicalQubit(code_distance).into())
+        } else {
+            Ok(value as u64)
+        }
+    }
+
+    /// Returns the time of one logical cycle.
+    ///
+    /// The logical cycle time is the time it takes to perform `code_distance`
+    /// rounds of quantum error correction.  The latter, also called syndrome
+    /// extraction time, is based on physical operation times specified in the
+    /// qubit and usually some factor based on the choice of stabilizer
+    /// extraction circuit.
+    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64> {
+        let mut context = Self::create_evaluation_context(Some(qubit), code_distance);
+
+        let result = self.logical_cycle_time.evaluate(&mut context)?;
+
+        if result <= 0.0 {
+            Err(NonPositiveLogicalCycleTime(code_distance).into())
+        } else {
+            Ok(result.round() as u64)
+        }
+    }
+
+    /// Computes the logical failure probability.
+    ///
+    /// Computes the logical failure probability based on a physical error rate
+    /// and a code distance
+    fn logical_failure_probability(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<f64> {
+        let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
+
+        if physical_error_rate > self.error_correction_threshold() {
+            Err(Error::InvalidValue(
+                String::from("physical_error_rate"),
+                0.0,
+                self.error_correction_threshold,
+            ))
+        } else {
+            #[allow(clippy::cast_possible_truncation)]
+            Ok(self.crossing_prefactor()
+                * ((physical_error_rate / self.error_correction_threshold())
+                    .powi((code_distance as i32 + 1) / 2)))
+        }
+    }
+
+    // Compute code distance d (Equation (E2) in paper)
+    fn compute_code_distance(
+        &self,
+        qubit: &Self::Qubit,
+        required_logical_qubit_error_rate: f64,
+    ) -> u64 {
+        let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
+        let numerator = 2.0 * (self.crossing_prefactor() / required_logical_qubit_error_rate).ln();
+        let denominator = (self.error_correction_threshold() / physical_error_rate).ln();
+
+        (((numerator / denominator) - 1.0).ceil() as u64) | 0x1
     }
 }

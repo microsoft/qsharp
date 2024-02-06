@@ -37,6 +37,10 @@ pub const STD_LIB: &[(&str, &str)] = &[
         include_str!("../std/unstable_arithmetic_internal.qs"),
     ),
     (
+        "unstable_state_preparation.qs",
+        include_str!("../std/unstable_state_preparation.qs"),
+    ),
+    (
         "unstable_table_lookup.qs",
         include_str!("../std/unstable_table_lookup.qs"),
     ),
