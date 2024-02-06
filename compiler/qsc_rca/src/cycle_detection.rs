@@ -195,7 +195,7 @@ impl<'a> CycleDetector<'a> {
                 .expect("node map should exist");
             if let Some(callable_variable) = node_map.get(&node_id) {
                 match &callable_variable.kind {
-                    LocalKind::InputParam(_, _) => None,
+                    LocalKind::InputParam(_) => None,
                     LocalKind::Local(expr_id) => self.resolve_callee(*expr_id),
                 }
             } else {
@@ -297,7 +297,7 @@ impl<'a> CycleDetector<'a> {
             };
 
             let input_params = derive_callable_input_params(callable_decl, &self.package.pats);
-            let locals_map = initalize_locals_map(&input_params, None);
+            let locals_map = initalize_locals_map(&input_params);
             entry.insert(locals_map);
         }
 

@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use indenter::Indented;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{CallableDecl, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StoreItemId},
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
-
-use crate::ComputeKind;
+use std::fmt::{Debug, Formatter};
 
 /// The index corresponding to an input parameter node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -105,35 +105,25 @@ pub struct Local {
 /// Kinds of local symbols.
 #[derive(Debug)]
 pub enum LocalKind {
-    InputParam(InputParamIndex, ComputeKind),
+    /// An input parameter with its associated index in the context of a particular specialization.
+    InputParam(InputParamIndex),
+    /// A local symbol with the lastest expression associated to it.
     Local(ExprId),
 }
 
 pub type LocalsMap = FxHashMap<NodeId, Local>;
 
-pub fn initalize_locals_map(
-    input_params: &Vec<InputParam>,
-    dynamic_param_index: Option<InputParamIndex>,
-) -> LocalsMap {
+pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> LocalsMap {
     let mut locals_map = FxHashMap::<NodeId, Local>::default();
     for param in input_params {
         if let Some(node) = param.node {
-            let compute_kind = if let Some(dynamic_param_index) = dynamic_param_index {
-                if param.index == dynamic_param_index {
-                    ComputeKind::Dynamic
-                } else {
-                    ComputeKind::Static
-                }
-            } else {
-                ComputeKind::Static
-            };
             locals_map.insert(
                 node,
                 Local {
                     node,
                     pat: param.pat,
                     ty: param.ty.clone(),
-                    kind: LocalKind::InputParam(param.index, compute_kind),
+                    kind: LocalKind::InputParam(param.index),
                 },
             );
         }
@@ -162,6 +152,18 @@ pub enum SpecializationKind {
     Adj,
     Ctl,
     CtlAdj,
+}
+
+pub fn set_indentation<'a, 'b>(
+    indent: Indented<'a, Formatter<'b>>,
+    level: usize,
+) -> Indented<'a, Formatter<'b>> {
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }
 
 /// An element related to an input pattern.

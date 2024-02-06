@@ -9,8 +9,9 @@ mod cycle_detection;
 mod rca;
 mod scaffolding;
 
+use crate::common::set_indentation;
 use bitflags::bitflags;
-use indenter::{indented, Indented};
+use indenter::indented;
 use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
     BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
@@ -18,18 +19,6 @@ use qsc_fir::fir::{
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use std::fmt::{self, Debug, Display, Formatter, Write};
-
-fn set_indentation<'a, 'b>(
-    indent: Indented<'a, Formatter<'b>>,
-    level: usize,
-) -> Indented<'a, Formatter<'b>> {
-    match level {
-        0 => indent.with_str(""),
-        1 => indent.with_str("    "),
-        2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
-    }
-}
 
 pub use crate::analyzer::Analyzer;
 

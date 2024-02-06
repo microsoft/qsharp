@@ -4,13 +4,13 @@
 use crate::{
     common::{
         derive_callable_input_params, derive_specialization_input_params, initalize_locals_map,
-        GlobalSpecializationId, InputParam, InputParamIndex, LocalsMap, SpecializationKind,
+        GlobalSpecializationId, InputParam, InputParamIndex, Local, SpecializationKind,
     },
     scaffolding::{ItemScaffolding, PackageStoreScaffolding},
     ApplicationsTable, ComputeProperties, ComputePropertiesLookup, DynamismSource,
     RuntimeFeatureFlags,
 };
-use qsc_fir::fir::{BlockId, ExprId, StmtId, StoreBlockId};
+use qsc_fir::fir::{BlockId, ExprId, NodeId, StmtId, StoreBlockId};
 use qsc_fir::{
     fir::{
         CallableDecl, CallableImpl, CallableKind, Global, PackageId, PackageStore,
@@ -24,22 +24,29 @@ use rustc_hash::FxHashMap;
 #[derive(Debug, Default)]
 struct ApplicationInstance {
     // TODO (cesarzc): document field.
-    pub _locals_map: LocalsMap,
+    pub locals_map: FxHashMap<NodeId, LocalComputeProperties>,
     // TODO (cesarzc): document field.
-    pub _dynamic_scopes_stack: Vec<ExprId>,
+    pub dynamic_scopes_stack: Vec<ExprId>,
     // TODO (cesarzc): document field.
-    pub _compute_properties: ApplicationInstanceComputeProperties,
+    pub compute_properties: ApplicationInstanceComputeProperties,
 }
 
 impl ApplicationInstance {
     fn new(input_params: &Vec<InputParam>, dynamic_param_index: InputParamIndex) -> Self {
-        let locals_map = initalize_locals_map(input_params, Some(dynamic_param_index));
+        let input_params_map = initalize_locals_map(input_params);
+
         Self {
-            _locals_map: locals_map,
-            _dynamic_scopes_stack: Vec::new(),
-            _compute_properties: ApplicationInstanceComputeProperties::default(),
+            locals_map: FxHashMap::default(), // TODO (cesarzc): do the right thing.
+            dynamic_scopes_stack: Vec::new(),
+            compute_properties: ApplicationInstanceComputeProperties::default(),
         }
     }
+}
+
+#[derive(Debug)]
+struct LocalComputeProperties {
+    pub local: Local,
+    pub compute_properties: ComputeProperties,
 }
 
 /// The compute properties of a callable application instance.
