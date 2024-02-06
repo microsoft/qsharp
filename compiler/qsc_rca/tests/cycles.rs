@@ -29,7 +29,7 @@ fn check_rca_for_parameterless_one_function_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -60,7 +60,7 @@ fn check_rca_for_parameterless_two_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -77,7 +77,7 @@ fn check_rca_for_parameterless_two_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -110,7 +110,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -126,7 +126,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -142,7 +142,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#

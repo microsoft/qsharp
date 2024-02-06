@@ -278,9 +278,14 @@ impl Display for ApplicationsTable {
         indent = set_indentation(indent, 1);
         write!(indent, "\ninherent: {}", self.inherent_properties)?;
         write!(indent, "\ndynamic_params_properties:")?;
-        indent = set_indentation(indent, 2);
-        for (para_index, param_properties) in self.dynamic_params_properties.iter().enumerate() {
-            write!(indent, "\n[{}]: {}", para_index, param_properties)?;
+        if self.dynamic_params_properties.is_empty() {
+            write!(indent, " <empty>")?;
+        } else {
+            indent = set_indentation(indent, 2);
+            for (para_index, param_properties) in self.dynamic_params_properties.iter().enumerate()
+            {
+                write!(indent, "\n[{}]: {}", para_index, param_properties)?;
+            }
         }
         Ok(())
     }

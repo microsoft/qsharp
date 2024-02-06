@@ -19,7 +19,7 @@ fn check_rca_for_quantum_rt_qubit_allocate() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -185,7 +185,7 @@ fn check_rca_for_dump_machine() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1142,7 +1142,7 @@ fn check_rca_for_end_estimate_caching() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1213,7 +1213,7 @@ fn check_rca_for_end_repeat_estimates_internal() {
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamic_params_properties:
+                    dynamic_params_properties: <empty>
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
