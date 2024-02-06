@@ -131,6 +131,7 @@ impl Checker {
                     callable_input: &decl.input,
                     spec_input: None,
                     output: &output,
+                    output_span: decl.output.span,
                     block,
                 },
             ),
@@ -144,6 +145,7 @@ impl Checker {
                                 callable_input: &decl.input,
                                 spec_input: Some(input),
                                 output: &output,
+                                output_span: decl.output.span,
                                 block,
                             },
                         );

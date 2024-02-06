@@ -53,6 +53,9 @@ async function findManifestDocument(
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
+  // Untitled documents don't have a file location, thus can't have a manifest
+  if (currentDocumentUri.scheme === "untitled") return null;
+
   // just the parent
   // e.g.
   // file://home/foo/bar/src
@@ -64,16 +67,12 @@ async function findManifestDocument(
 
   while (attempts > 0) {
     attempts--;
-    // we abort this check if we are going above the current VS Code
-    // workspace. If the user is working in a multi-root workspace [1],
-    // then we do not perform this check. This is because a multi-
-    // root workspace could contain different roots at different
-    // levels in each others' path ancestry.
-    // [1]: https://code.visualstudio.com/docs/editor/workspaces#_multiroot-workspaces
+
+    // Make sure that the path doesn't go above one of the open workspaces.
     if (
-      vscode.workspace.workspaceFolders?.length === 1 &&
-      Utils.resolvePath(vscode.workspace.workspaceFolders[0].uri, "..") ===
-        uriToQuery
+      !vscode.workspace.workspaceFolders?.some((root) =>
+        uriToQuery.toString().startsWith(root.uri.toString()),
+      )
     ) {
       log.debug("Aborting search for manifest file outside of workspace");
       return null;
@@ -137,6 +136,19 @@ async function readFileUri(
   const uri: vscode.Uri = (maybeUri as any).path
     ? (maybeUri as vscode.Uri)
     : vscode.Uri.parse(maybeUri as string);
+
+  // If any open documents match this uri, return their contents instead of from disk
+  const opendoc = vscode.workspace.textDocuments.find(
+    (opendoc) => opendoc.uri.toString() === uri.toString(),
+  );
+
+  if (opendoc) {
+    return {
+      content: opendoc.getText(),
+      uri,
+    };
+  }
+
   try {
     return await vscode.workspace.fs.readFile(uri).then((res) => {
       return {
@@ -145,7 +157,12 @@ async function readFileUri(
       };
     });
   } catch (_err) {
-    // `readFile` returns `err` if the file didn't exist.
+    // `readFile` should throw the below if the file is not found
+    if (
+      !(_err instanceof vscode.FileSystemError && _err.code === "FileNotFound")
+    ) {
+      log.error("Unexpected error trying to read file", _err);
+    }
     return null;
   }
 }
