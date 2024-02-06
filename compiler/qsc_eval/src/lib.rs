@@ -118,6 +118,11 @@ pub enum Error {
         #[label("callable has no implementation")] PackageSpan,
     ),
 
+    #[error("unsupported return type for intrinsic `{0}`")]
+    #[diagnostic(help("intrinsic callable return type should be `Unit`"))]
+    #[diagnostic(code("Qsc.Eval.UnsupportedIntrinsicType"))]
+    UnsupportedIntrinsicType(String, #[label] PackageSpan),
+
     #[error("program failed: {0}")]
     #[diagnostic(code("Qsc.Eval.UserFail"))]
     UserFail(String, #[label("explicit fail")] PackageSpan),
@@ -143,6 +148,7 @@ impl Error {
             | Error::ReleasedQubitNotZero(_, span)
             | Error::UnboundName(span)
             | Error::UnknownIntrinsic(_, span)
+            | Error::UnsupportedIntrinsicType(_, span)
             | Error::UserFail(_, span)
             | Error::InvalidArrayLength(_, span) => span,
         }
@@ -910,8 +916,8 @@ impl State {
             Action::Assign(lhs) => self.eval_assign(env, globals, lhs)?,
             Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
             Action::Bind(pat, mutability) => self.eval_bind(env, globals, pat, mutability),
-            Action::Call(callee_span, args_span) => {
-                self.eval_call(env, sim, globals, callee_span, args_span, out)?;
+            Action::Call(callable_span, args_span) => {
+                self.eval_call(env, sim, globals, callable_span, args_span, out)?;
             }
             Action::Consume => {
                 self.pop_val();
@@ -1074,7 +1080,7 @@ impl State {
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl PackageStoreLookup,
-        callee_span: Span,
+        callable_span: Span,
         arg_span: Span,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
@@ -1085,7 +1091,6 @@ impl State {
             _ => panic!("value is not callable"),
         };
 
-        let callee_span = self.to_global_span(callee_span);
         let arg_span = self.to_global_span(arg_span);
 
         let callee = match globals.get_global(callee_id) {
@@ -1094,8 +1099,10 @@ impl State {
                 self.push_val(arg);
                 return Ok(());
             }
-            None => return Err(Error::UnboundName(callee_span)),
+            None => return Err(Error::UnboundName(self.to_global_span(callable_span))),
         };
+
+        let callee_span = self.to_global_span(callee.span);
 
         let spec = spec_from_functor_app(functor);
         self.push_frame(callee_id, functor);
@@ -1112,6 +1119,12 @@ impl State {
                     &mut self.rng.borrow_mut(),
                     out,
                 )?;
+                if val == Value::unit() && callee.output != Ty::UNIT {
+                    return Err(Error::UnsupportedIntrinsicType(
+                        callee.name.name.to_string(),
+                        callee_span,
+                    ));
+                }
                 self.push_val(val);
                 Ok(())
             }
