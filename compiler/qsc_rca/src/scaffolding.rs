@@ -4,7 +4,7 @@
 use crate::{
     common::{GlobalSpecializationId, SpecializationKind},
     ApplicationsTable, CallableComputeProperties, ComputePropertiesLookup, ItemComputeProperties,
-    PackageStoreComputeProperties,
+    PackageComputeProperties, PackageStoreComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
@@ -70,44 +70,26 @@ impl PackageStoreScaffolding {
     }
 
     pub fn flush(&mut self, package_store_compute_properties: &mut PackageStoreComputeProperties) {
-        // TODO (cesarzc): drain packages too.
-        for (package_id, package) in self.0.iter_mut() {
-            // Flush items.
-            package
+        assert!(package_store_compute_properties.0.is_empty());
+        for (package_id, mut package_scaffolding) in self.0.drain() {
+            let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
+            package_scaffolding
                 .items
                 .drain()
                 .for_each(|(item_id, item_scaffolding)| {
                     let item_compute_properties = ItemComputeProperties::from(item_scaffolding);
-                    package_store_compute_properties
-                        .insert_item((package_id, item_id).into(), item_compute_properties);
+                    items.insert(item_id, item_compute_properties);
                 });
 
-            // Flush blocks.
-            package
-                .blocks
-                .drain()
-                .for_each(|(block_id, applications_table)| {
-                    package_store_compute_properties
-                        .insert_block((package_id, block_id).into(), applications_table)
-                });
-
-            // Flush statements.
-            package
-                .stmts
-                .drain()
-                .for_each(|(stmt_id, applications_table)| {
-                    package_store_compute_properties
-                        .insert_stmt((package_id, stmt_id).into(), applications_table)
-                });
-
-            // Flush expressions.
-            package
-                .exprs
-                .drain()
-                .for_each(|(expr_id, applications_table)| {
-                    package_store_compute_properties
-                        .insert_expr((package_id, expr_id).into(), applications_table)
-                });
+            let package_compute_properties = PackageComputeProperties {
+                items,
+                blocks: package_scaffolding.blocks,
+                stmts: package_scaffolding.stmts,
+                exprs: package_scaffolding.exprs,
+            };
+            package_store_compute_properties
+                .0
+                .insert(package_id, package_compute_properties);
         }
     }
 
@@ -156,7 +138,7 @@ impl PackageStoreScaffolding {
     }
 
     pub fn insert_spec(&mut self, id: GlobalSpecializationId, value: ApplicationsTable) {
-        let mut items = &mut self
+        let items = &mut self
             .get_mut(id.callable.package)
             .expect("package should exist")
             .items;
@@ -178,15 +160,34 @@ impl PackageStoreScaffolding {
         }
     }
 
-    pub fn insert_stmt(&mut self, id: StoreExprId, value: ApplicationsTable) {
+    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
-            .exprs
-            .insert(id.expr, value);
+            .stmts
+            .insert(id.stmt, value);
     }
 
     pub fn take(&mut self, package_store_compute_properties: &mut PackageStoreComputeProperties) {
-        // TODO (cesarzc): implement.
+        assert!(self.0.is_empty());
+        for (package_id, mut package_compute_properties) in
+            package_store_compute_properties.0.drain()
+        {
+            let mut items = IndexMap::<LocalItemId, ItemScaffolding>::new();
+            package_compute_properties.items.drain().for_each(
+                |(item_id, item_compute_properties)| {
+                    let item_scaffolding = ItemScaffolding::from(item_compute_properties);
+                    items.insert(item_id, item_scaffolding);
+                },
+            );
+
+            let package_scaffolding = PackageScaffolding {
+                items,
+                blocks: package_compute_properties.blocks,
+                stmts: package_compute_properties.stmts,
+                exprs: package_compute_properties.exprs,
+            };
+            self.0.insert(package_id, package_scaffolding);
+        }
     }
 }
 
@@ -209,6 +210,19 @@ pub enum ItemScaffolding {
     #[default]
     NonCallable,
     Specializations(SpecializationsScaffolding),
+}
+
+impl From<ItemComputeProperties> for ItemScaffolding {
+    fn from(value: ItemComputeProperties) -> Self {
+        match value {
+            ItemComputeProperties::NonCallable => ItemScaffolding::NonCallable,
+            ItemComputeProperties::Callable(callable_compute_properties) => {
+                ItemScaffolding::Specializations(SpecializationsScaffolding::from(
+                    callable_compute_properties,
+                ))
+            }
+        }
+    }
 }
 
 impl From<ItemScaffolding> for ItemComputeProperties {
@@ -243,7 +257,7 @@ impl From<SpecializationKind> for SpecializationIndex {
             SpecializationKind::Body => SpecializationIndex(0),
             SpecializationKind::Adj => SpecializationIndex(1),
             SpecializationKind::Ctl => SpecializationIndex(2),
-            SpecializationKind::CtlAdj => SpecializationIndex(4),
+            SpecializationKind::CtlAdj => SpecializationIndex(3),
         }
     }
 }
@@ -261,6 +275,17 @@ impl From<SpecializationIndex> for SpecializationKind {
 }
 
 pub type SpecializationsScaffolding = IndexMap<SpecializationIndex, ApplicationsTable>;
+
+impl From<CallableComputeProperties> for SpecializationsScaffolding {
+    fn from(value: CallableComputeProperties) -> Self {
+        let mut specializations = SpecializationsScaffolding::default();
+        specializations.insert(SpecializationKind::Body.into(), value.body);
+        if let Some(adj_applications_table) = value.adj {
+            specializations.insert(SpecializationKind::Body.into(), adj_applications_table);
+        }
+        specializations
+    }
+}
 
 impl From<SpecializationsScaffolding> for CallableComputeProperties {
     fn from(value: SpecializationsScaffolding) -> Self {

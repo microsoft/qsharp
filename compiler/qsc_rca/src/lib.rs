@@ -13,8 +13,8 @@ use bitflags::bitflags;
 use indenter::{indented, Indented};
 use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
-    BlockId, ExprId, LocalItemId, PackageId, PackageStore, StmtId, StoreBlockId, StoreExprId,
-    StoreItemId, StoreStmtId,
+    BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
+    StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use std::fmt::{self, Debug, Display, Formatter, Write};

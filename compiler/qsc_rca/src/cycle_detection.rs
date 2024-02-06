@@ -5,7 +5,6 @@ use crate::common::{
     derive_callable_input_params, initalize_locals_map, GlobalSpecializationId, Local, LocalKind,
     LocalsMap, SpecializationKind,
 };
-use bitflags::iter;
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Functor, Item, ItemId,

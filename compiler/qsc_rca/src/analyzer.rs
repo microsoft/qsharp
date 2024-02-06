@@ -55,9 +55,36 @@ impl Analyzer {
 
     pub fn update_package_compute_properties(
         &mut self,
-        _package_id: PackageId,
-        _package_store: &PackageStore,
+        package_id: PackageId,
+        package_store: &PackageStore,
     ) {
-        // TODO (cesarzc): Implement.
+        // Clear the package being updated.
+        let package_compute_properties = self
+            .compute_properties
+            .0
+            .get_mut(package_id)
+            .expect("package should exist");
+        package_compute_properties.clear();
+
+        // Re-analyze the package.
+        let mut package_store_scaffolding = PackageStoreScaffolding::default();
+        let package = package_store.get(package_id).expect("package should exist");
+        package_store_scaffolding.take(&mut self.compute_properties);
+
+        // First, analyze callables with cycles for the package being updated.
+        let specializations_with_cycles = detect_specializations_with_cycles(package_id, package);
+        specializations_with_cycles
+            .iter()
+            .for_each(|specialization_id| {
+                analyze_specialization_with_cyles(
+                    *specialization_id,
+                    package_store,
+                    &mut package_store_scaffolding,
+                )
+            });
+
+        // Analyze the remaining items.
+        analyze_package(package_id, package_store, &mut package_store_scaffolding);
+        package_store_scaffolding.flush(&mut self.compute_properties);
     }
 }

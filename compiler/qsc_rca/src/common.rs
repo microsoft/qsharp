@@ -3,7 +3,7 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{CallableDecl, ExprId, LocalItemId, NodeId, Pat, PatId, PatKind, SpecDecl, StoreItemId},
+    fir::{CallableDecl, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StoreItemId},
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
@@ -147,11 +147,11 @@ pub struct GlobalSpecializationId {
     pub specialization: SpecializationKind,
 }
 
-impl Into<GlobalSpecializationId> for (StoreItemId, SpecializationKind) {
-    fn into(self) -> GlobalSpecializationId {
-        GlobalSpecializationId {
-            callable: self.0,
-            specialization: self.1,
+impl From<(StoreItemId, SpecializationKind)> for GlobalSpecializationId {
+    fn from(value: (StoreItemId, SpecializationKind)) -> Self {
+        Self {
+            callable: value.0,
+            specialization: value.1,
         }
     }
 }
