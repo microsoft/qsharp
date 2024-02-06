@@ -112,13 +112,13 @@ namespace Microsoft.Quantum.Applications.Cryptography {
     ) : Unit {
         let expWindows = Chunks(ExponentWindowLength_(), xs);
 
-        for i in IndexRange(expWindows) {
-            if BeginEstimateCaching("MultiplyExpMod", Length(expWindows)) {
-                let adjustedBase = ExpModL(base, 1L <<< (i * ExponentWindowLength_()), mod);
-                MultiplyExpModWindowed(adjustedBase, mod, expWindows[i], zs);
+        within {
+            RepeatEstimates(Length(expWindows));
+        } apply {
+            let i = 0; // in simulation this i must be iterated over IndexRange(expWindows)
 
-                EndEstimateCaching();
-            }
+            let adjustedBase = ExpModL(base, 1L <<< (i * ExponentWindowLength_()), mod);
+            MultiplyExpModWindowed(adjustedBase, mod, expWindows[i], zs);
         }
     }
 
@@ -164,21 +164,21 @@ namespace Microsoft.Quantum.Applications.Cryptography {
         // split factor into parts
         let factorWindows = Chunks(MultiplicationWindowLength_(), ys);
 
-        for i in IndexRange(factorWindows) {
-            if BeginEstimateCaching("AddExpModWindowed", Length(factorWindows)) {
-                // compute data for table lookup
-                let factorValue = ExpModL(2L, IntAsBigInt(i * MultiplicationWindowLength_()), mod);
-                let data = LookupData(factorValue, Length(xs), Length(factorWindows[i]), base, mod, sign, Length(zs));
+        within {
+            RepeatEstimates(Length(factorWindows));
+        } apply {
+            let i = 0; // in simulation this i must be iterated over IndexRange(factorWindows)
 
-                use output = Qubit[Length(data[0])];
+            // compute data for table lookup
+            let factorValue = ExpModL(2L, IntAsBigInt(i * MultiplicationWindowLength_()), mod);
+            let data = LookupData(factorValue, Length(xs), Length(factorWindows[i]), base, mod, sign, Length(zs));
 
-                within {
-                    Select(data, xs + factorWindows[i], output);
-                } apply {
-                    RippleCarryCGIncByLE(output, zs);
-                }
+            use output = Qubit[Length(data[0])];
 
-                EndEstimateCaching();
+            within {
+                Select(data, xs + factorWindows[i], output);
+            } apply {
+                RippleCarryCGIncByLE(output, zs);
             }
         }
     }
