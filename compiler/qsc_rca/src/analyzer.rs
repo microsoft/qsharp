@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    scaffolding::{PackageScaffolding, PackageStoreScaffolding},
+    cycle_detection::detect_specializations_with_cycles,
+    rca::{analyze_package, analyze_specialization_with_cyles},
+    scaffolding::PackageStoreScaffolding,
     PackageStoreComputeProperties,
 };
 use qsc_fir::fir::{PackageId, PackageStore};
@@ -12,13 +14,34 @@ use qsc_fir::fir::{PackageId, PackageStore};
 pub struct Analyzer {
     compute_properties: PackageStoreComputeProperties,
 }
+
 impl Analyzer {
     /// Creates a new runtime capabilities analyzer for a package store. It analyses the provided package so this is a
     /// computationally intensive operation.
     pub fn new(package_store: &PackageStore) -> Self {
-        let mut _scaffolding = PackageStoreScaffolding::default();
-        // TODO (cesarzc): implement properly.
-        //                 insert cycled specs first and then pass onto RCA.
+        let mut scaffolding = PackageStoreScaffolding::default();
+        scaffolding.initialize_packages(package_store);
+
+        // First, we need to analyze the callable specializations with cycles. Otherwise, we cannot safely analyze the
+        // rest of the items without causing an infinite analysis loop.
+        for (package_id, package) in package_store {
+            let specializations_with_cycles =
+                detect_specializations_with_cycles(package_id, package);
+            specializations_with_cycles
+                .iter()
+                .for_each(|specialization_id| {
+                    analyze_specialization_with_cyles(
+                        *specialization_id,
+                        package_store,
+                        &mut scaffolding,
+                    )
+                });
+        }
+
+        // Now we can safely analyze the rest of the items.
+        for (package_id, _) in package_store {
+            analyze_package(package_id, package_store, &mut scaffolding);
+        }
         Self {
             compute_properties: PackageStoreComputeProperties::default(),
         }
@@ -30,8 +53,8 @@ impl Analyzer {
 
     pub fn update_package_compute_properties(
         &mut self,
-        package_id: PackageId,
-        package_store: &PackageStore,
+        _package_id: PackageId,
+        _package_store: &PackageStore,
     ) {
         // TODO (cesarzc): Implement.
     }

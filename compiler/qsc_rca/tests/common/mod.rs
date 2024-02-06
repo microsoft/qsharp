@@ -7,19 +7,23 @@ use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
-use qsc_rca::{ComputePropertiesLookup, PackageStoreComputeProperties};
+use qsc_rca::{Analyzer, ComputePropertiesLookup, PackageStoreComputeProperties};
 use std::{fs::File, io::Write};
 
 pub struct CompilationContext {
     pub compiler: Compiler,
     pub fir_store: PackageStore,
-    pub compute_properties: PackageStoreComputeProperties,
+    analyzer: Analyzer,
     lowerer: Lowerer,
 }
 
 impl CompilationContext {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn get_compute_properties(&self) -> &PackageStoreComputeProperties {
+        self.analyzer.get_package_store_compute_properties()
     }
 
     pub fn update(&mut self, source: &str) {
@@ -35,8 +39,8 @@ impl CompilationContext {
         self.lowerer
             .lower_and_update_package(fir_package, &increment.hir);
         self.compiler.update(increment);
-        self.compute_properties
-            .reanalyze_package(package_id, &self.fir_store);
+        self.analyzer
+            .update_package_compute_properties(package_id, &self.fir_store);
     }
 }
 
@@ -51,11 +55,11 @@ impl Default for CompilationContext {
         .expect("should be able to create a new compiler");
         let mut lowerer = Lowerer::new();
         let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
-        let compute_properties = PackageStoreComputeProperties::new(&fir_store);
+        let analyzer = Analyzer::new(&fir_store);
         Self {
             compiler,
             fir_store,
-            compute_properties,
+            analyzer,
             lowerer,
         }
     }

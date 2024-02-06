@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::default;
-
 use crate::{
     common::{GlobalSpecializationId, SpecializationKind},
     ApplicationsTable, ComputePropertiesLookup, ItemComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
-    BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
-    StoreStmtId,
+    BlockId, ExprId, LocalItemId, PackageId, PackageStore, StmtId, StoreBlockId, StoreExprId,
+    StoreItemId, StoreStmtId,
 };
 
 /// Scaffolding used to build the package store compute properties.
@@ -83,6 +81,16 @@ impl PackageStoreScaffolding {
             .expect("specialization should exist")
     }
 
+    pub fn initialize_packages(&mut self, package_store: &PackageStore) {
+        for (package_id, _) in package_store {
+            self.insert(package_id, PackageScaffolding::default())
+        }
+    }
+
+    pub fn insert(&mut self, id: PackageId, value: PackageScaffolding) {
+        self.0.insert(id, value);
+    }
+
     pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsTable) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -95,6 +103,13 @@ impl PackageStoreScaffolding {
             .expect("package should exist")
             .exprs
             .insert(id.expr, value);
+    }
+
+    pub fn insert_item(&mut self, id: StoreItemId, value: ItemScaffolding) {
+        self.get_mut(id.package)
+            .expect("package should exist")
+            .items
+            .insert(id.item, value);
     }
 
     pub fn insert_spec(&mut self, id: GlobalSpecializationId, value: ApplicationsTable) {

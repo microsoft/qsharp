@@ -32,6 +32,8 @@ fn set_indentation<'a, 'b>(
     }
 }
 
+pub use crate::analyzer::Analyzer;
+
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {
     /// Searches for the compute properties of a block with the specified ID.
@@ -142,40 +144,6 @@ impl PackageStoreComputeProperties {
 
     pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {
         self.0.iter()
-    }
-
-    /// Creates a structure that contains compute properties for a package store.
-    /// Note: this is a computationally intensive operation.
-    // TODO (cesarzc): remove.
-    pub fn new(package_store: &PackageStore) -> Self {
-        // Create package store compute properties with empty properties for each package.
-        let mut package_store_compute_properties = IndexMap::new();
-        for (id, _) in package_store.iter() {
-            package_store_compute_properties.insert(id, PackageComputeProperties::default());
-        }
-        let mut package_store_compute_properties = Self(package_store_compute_properties);
-
-        // Analyze each package in the store.
-        for (package_id, _) in package_store.iter() {
-            // N.B. It is assumed than when a package is analyzed, all the callables in other package that it depends
-            // on have already been analyzed.
-            analyze_package(
-                package_id,
-                package_store,
-                &mut package_store_compute_properties,
-            );
-        }
-        package_store_compute_properties
-    }
-
-    /// Updates the compute properties of the specified package using the contents of the passed package store.
-    /// Note: this operation only updates the compute properties of a specific package, but it does not update the
-    /// compute properties of other packages that depend on the package being reanalyzed.
-    // TODO (cesarzc): remove.
-    pub fn reanalyze_package(&mut self, id: PackageId, package_store: &PackageStore) {
-        let package = self.get_mut(id).expect("package should exist");
-        package.clear();
-        analyze_package(id, package_store, self);
     }
 }
 

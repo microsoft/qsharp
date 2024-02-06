@@ -21,7 +21,7 @@ fn check_rca_for_parameterless_one_function_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -52,7 +52,7 @@ fn check_rca_for_parameterless_two_functions_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -69,7 +69,7 @@ fn check_rca_for_parameterless_two_functions_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Bar",
         &expect![
             r#"
@@ -102,7 +102,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -118,7 +118,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Bar",
         &expect![
             r#"
@@ -134,7 +134,7 @@ fn check_rca_for_parameterless_three_functions_cycle() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Baz",
         &expect![
             r#"
@@ -162,7 +162,7 @@ fn check_rca_for_direct_function_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -194,7 +194,7 @@ fn check_rca_for_indirect_function_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -228,7 +228,7 @@ fn check_rca_for_indirect_chain_function_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -260,7 +260,7 @@ fn check_rca_for_indirect_tuple_function_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -292,7 +292,7 @@ fn check_rca_for_indirect_closure_function_cycle() {
 
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -323,7 +323,7 @@ fn check_rca_for_indirect_partial_appplication_function_cycle() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -357,7 +357,7 @@ fn check_rca_for_function_cycle_within_binding() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -389,7 +389,7 @@ fn check_rca_for_function_cycle_within_assignment() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -419,7 +419,7 @@ fn check_rca_for_function_cycle_within_return() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -450,7 +450,7 @@ fn check_rca_for_function_cycle_within_tuple() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -506,7 +506,7 @@ fn check_rca_for_function_cycle_within_call_input() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "MySorted",
         &expect![
             r#"
@@ -543,7 +543,7 @@ fn check_rca_for_function_cycle_within_if_block() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -577,7 +577,7 @@ fn check_rca_for_function_cycle_within_if_condition() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -610,7 +610,7 @@ fn check_rca_for_function_cycle_within_for_block() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -643,7 +643,7 @@ fn check_rca_for_function_cycle_within_while_block() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -675,7 +675,7 @@ fn check_rca_for_function_cycle_within_while_condition() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -705,7 +705,7 @@ fn check_rca_for_result_param_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -734,7 +734,7 @@ fn check_rca_for_result_inout_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -764,7 +764,7 @@ fn check_rca_for_bool_param_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -793,7 +793,7 @@ fn check_rca_for_bool_inout_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -823,7 +823,7 @@ fn check_rca_for_int_param_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -852,7 +852,7 @@ fn check_rca_for_int_inout_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -882,7 +882,7 @@ fn check_rca_for_double_param_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -911,7 +911,7 @@ fn check_rca_for_double_inout_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -941,7 +941,7 @@ fn check_rca_for_multi_param_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -974,7 +974,7 @@ fn check_rca_for_multi_param_result_out_recursive_function() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -1010,7 +1010,7 @@ fn check_rca_for_operation_body_recursion() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -1044,7 +1044,7 @@ fn check_rca_for_operation_body_adj_recursion() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -1083,7 +1083,7 @@ fn check_rca_for_operation_body_ctl_recursion() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"
@@ -1127,10 +1127,10 @@ fn check_rca_for_operation_body_adj_ctl_recursion() {
         }"#,
     );
     write_fir_store_to_files(&compilation_context.fir_store); // TODO (cesarzc): Remove.
-    write_compute_properties_to_files(&compilation_context.compute_properties); // TODO (cesarzc): Remove.
+    write_compute_properties_to_files(compilation_context.get_compute_properties()); // TODO (cesarzc): Remove.
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![r#""#],
     );
@@ -1151,7 +1151,7 @@ fn check_rca_for_operation_adj_recursion() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![r#""#],
     );
@@ -1172,7 +1172,7 @@ fn check_rca_for_operation_ctl_recursion() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![r#""#],
     );
@@ -1193,7 +1193,7 @@ fn check_rca_for_operation_multi_adjoint_functor_recursion() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![r#""#],
     );
@@ -1215,7 +1215,7 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
     );
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Foo",
         &expect![
             r#"

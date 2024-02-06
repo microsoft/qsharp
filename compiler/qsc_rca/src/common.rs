@@ -147,6 +147,15 @@ pub struct GlobalSpecializationId {
     pub specialization: SpecializationKind,
 }
 
+impl Into<GlobalSpecializationId> for (StoreItemId, SpecializationKind) {
+    fn into(self) -> GlobalSpecializationId {
+        GlobalSpecializationId {
+            callable: self.0,
+            specialization: self.1,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SpecializationKind {
     Body,

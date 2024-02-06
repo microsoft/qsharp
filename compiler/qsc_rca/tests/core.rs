@@ -12,7 +12,7 @@ fn check_rca_for_repeated() {
     let compilation_context = CompilationContext::new();
     check_callable_compute_properties(
         &compilation_context.fir_store,
-        &compilation_context.compute_properties,
+        compilation_context.get_compute_properties(),
         "Repeated",
         &expect![r#""#],
     );
