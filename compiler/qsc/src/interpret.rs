@@ -118,28 +118,17 @@ impl Interpreter {
     /// Creates a new incremental compiler, compiling the passed in sources.
     /// # Errors
     /// If compiling the sources fails, compiler errors are returned.
-
     pub fn new(
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
     ) -> Result<Self, Vec<Error>> {
-        Self::with_dependencies(std, sources, vec![], package_type, capabilities)
-    }
-
-    pub fn with_dependencies(
-        std: bool,
-        sources: SourceMap,
-        dependencies: Vec<CompileUnit>,
-        package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
-    ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = fir::PackageStore::new();
 
-        let compiler = Compiler::new(std, sources, dependencies, package_type, capabilities)
-            .map_err(into_errors)?;
+        let compiler =
+            Compiler::new(std, sources, package_type, capabilities).map_err(into_errors)?;
 
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
