@@ -66,6 +66,15 @@ impl Error {
             Self::Unknown(c, span) => Self::Unknown(c, span + offset),
         }
     }
+
+    pub(crate) fn get_span(self) -> Span {
+        match self {
+            Error::Incomplete(_, _, _, s)
+            | Error::IncompleteEof(_, _, s)
+            | Error::UnterminatedString(s)
+            | Error::Unknown(_, s) => s,
+        }
+    }
 }
 
 /// A token kind.
