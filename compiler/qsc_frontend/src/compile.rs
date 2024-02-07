@@ -24,7 +24,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::{
     index_map::{self, IndexMap},
-    language_features::{LanguageFeature, LanguageFeatures},
+    language_features::{ LanguageFeatures},
     span::Span,
 };
 use qsc_hir::{

@@ -1071,6 +1071,7 @@ dependencies = [
  "num-complex",
  "qsc",
  "qsc_codegen",
+ "qsc_data_structures",
  "qsc_project",
  "qsls",
  "resource_estimator",
@@ -1091,6 +1092,7 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
+ "qsc_data_structures",
  "resource_estimator",
  "rustc-hash",
 ]

@@ -19,9 +19,10 @@ use qsc::{
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
 use qsc_codegen::qir_base::generate_qir;
+use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use resource_estimator::{self as re, estimate_entry};
 use serde_json::json;
-use std::{fmt::Write, sync::Arc};
+use std::{collections::BTreeSet, fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -101,14 +102,29 @@ fn _get_qir(sources: SourceMap) -> Result<String, String> {
 }
 
 #[wasm_bindgen]
-pub fn get_estimates(sources: Vec<js_sys::Array>, params: &str) -> Result<String, String> {
+pub fn get_estimates(
+    sources: Vec<js_sys::Array>,
+    params: &str,
+    language_features: Vec<js_sys::JsString>,
+) -> Result<String, String> {
     let sources = get_source_map(sources, None);
+
+    let language_features = match language_features
+        .iter()
+        .map(|f| f.to_string().into())
+        .map(|f: String| LanguageFeature::try_parse(&f))
+        .collect::<Result<BTreeSet<LanguageFeature>, _>>()
+    {
+        Ok(features) => features,
+        Err(e) => return Err(e.to_string()),
+    };
 
     let mut interpreter = interpret::Interpreter::new(
         true,
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        language_features.into(),
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -221,6 +237,7 @@ where
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        todo!()
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {

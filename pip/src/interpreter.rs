@@ -27,9 +27,10 @@ use qsc::{
     target::Profile,
     PackageType, SourceMap,
 };
+use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use resource_estimator::{self as re, estimate_expr};
 use rustc_hash::FxHashMap;
-use std::fmt::Write;
+use std::{collections::BTreeSet, fmt::Write};
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -82,11 +83,17 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             ))?
             .downcast::<PyDict>()?;
 
+        let features = get_dict_opt_list_string(manifest, "features")? ;
+        let features: LanguageFeatures = match features.iter().map(|f| LanguageFeature::try_parse(&f)).collect::<std::result::Result<BTreeSet<_>, _>>() {
+            Ok(features) => features.into(),
+            Err(e) => return Err(QSharpError::new_err(e.to_string())),
+        };
+
         Ok(Self(ManifestDescriptor {
             manifest: Manifest {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
-                features: todo!(),
+                features,
             },
             manifest_dir: manifest_dir.into(),
         }))
@@ -128,7 +135,14 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into(), language_features.iter().map(|f| f.into()).collect()) {
+        let language_features = language_features.iter().map(|f| LanguageFeature::try_parse(&f)).collect::<std::result::Result<BTreeSet<_>, _>>();
+
+        let language_features = match language_features {
+            Ok(features) => features.into(),
+            Err(e) => return Err(QSharpError::new_err(e.to_string())),
+        };
+
+        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into(), language_features) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -535,4 +549,17 @@ fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
         Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
         None => None,
     })
+}
+fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
+    let value = dict.get_item(key)?;
+    let list: &PyList= match value {
+        Some(item) => item.downcast::<PyList>()?,
+        None => return Ok(vec![]),
+    };
+ match list.iter().map(|item| item.downcast::<PyString>().map(|s| s.to_string_lossy().into())).collect::<std::result::Result<Vec<String>, _>>() {
+        Ok(list) => return Ok(list),
+        Err(e) => return Err(QSharpError::new_err(e.to_string())),
+    }
+
+
 }

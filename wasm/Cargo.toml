@@ -34,6 +34,7 @@ wasm-bindgen-futures = { workspace = true}
 serde_json = { workspace = true }
 rustc-hash = { workspace = true }
 async-trait = { workspace = true }
+qsc_data_structures = { path = "../compiler/qsc_data_structures" }
 
 # This is a transitive dependency of qir-stdlib which fails to build for wasm if 'js' feature isn't enabled.
 getrandom = { workspace = true, features = ["js"] }

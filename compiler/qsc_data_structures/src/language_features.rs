@@ -1,5 +1,4 @@
-use std::collections::{BTreeSet};
-
+use std::collections::BTreeSet;
 use clap::ValueEnum;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
