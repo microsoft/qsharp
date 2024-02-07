@@ -31,6 +31,7 @@ use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use resource_estimator::{self as re, estimate_expr};
 use rustc_hash::FxHashMap;
 use std::{collections::BTreeSet, fmt::Write};
+use std::fmt::Write;
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
@@ -184,10 +185,7 @@ impl Interpreter {
     /// pairs of real and imaginary amplitudes.
     fn dump_machine(&mut self) -> StateDump {
         let (state, qubit_count) = self.interpreter.get_quantum_state();
-        StateDump(DisplayableState(
-            state.into_iter().collect::<FxHashMap<_, _>>(),
-            qubit_count,
-        ))
+        StateDump(DisplayableState(state, qubit_count))
     }
 
     fn run(
@@ -352,7 +350,13 @@ impl StateDump {
     // Pass by value is needed for compatiblity with the pyo3 API.
     #[allow(clippy::needless_pass_by_value)]
     fn __getitem__(&self, key: BigUint) -> Option<(f64, f64)> {
-        self.0 .0.get(&key).map(|state| (state.re, state.im))
+        self.0 .0.iter().find_map(|state| {
+            if state.0 == key {
+                Some((state.1.re, state.1.im))
+            } else {
+                None
+            }
+        })
     }
 
     fn __len__(&self) -> usize {
@@ -475,7 +479,6 @@ impl Receiver for OptionalCallbackReceiver<'_> {
         qubit_count: usize,
     ) -> core::result::Result<(), Error> {
         if let Some(callback) = &self.callback {
-            let state = state.into_iter().collect::<FxHashMap<_, _>>();
             let out = DisplayableOutput::State(DisplayableState(state, qubit_count));
             callback
                 .call1(
