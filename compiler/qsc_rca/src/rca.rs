@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::process::id;
-
 use crate::{
     applications::{ApplicationInstance, LocalComputeProperties, SpecApplicationInstances},
     common::{
@@ -14,7 +12,8 @@ use crate::{
     RuntimeFeatureFlags,
 };
 use qsc_fir::fir::{
-    ExprId, ExprKind, Package, PackageLookup, PatId, PatKind, StmtKind, StoreBlockId, StoreExprId,
+    ExprId, ExprKind, Mutability, PackageLookup, PatId, PatKind, StmtKind, StoreBlockId,
+    StoreExprId,
 };
 use qsc_fir::{
     fir::{
@@ -326,6 +325,7 @@ fn analyze_statement(
 }
 
 fn bind_expression_compute_properties(
+    mutability: Mutability,
     pat_id: PatId,
     expr_id: ExprId,
     package: &impl PackageLookup,
@@ -340,11 +340,15 @@ fn bind_expression_compute_properties(
                 .get(&expr_id)
                 .expect("expression compute properties should exist")
                 .clone();
+            let kind = match mutability {
+                Mutability::Immutable => LocalKind::Immutable(expr_id),
+                Mutability::Mutable => LocalKind::Mutable,
+            };
             let local = Local {
                 node: ident.id,
                 pat: pat_id,
                 ty: pat.ty.clone(),
-                kind: LocalKind::Local(expr_id),
+                kind,
             };
             let local_compute_properties = LocalComputeProperties {
                 local,
@@ -358,6 +362,7 @@ fn bind_expression_compute_properties(
             ExprKind::Tuple(exprs) => {
                 for (pat_id, expr_id) in pats.iter().zip(exprs.iter()) {
                     bind_expression_compute_properties(
+                        mutability,
                         *pat_id,
                         *expr_id,
                         package,
@@ -749,8 +754,9 @@ fn simulate_stmt(
             package_store,
             package_store_scaffolding,
         ),
-        StmtKind::Local(_, pat_id, expr_id) => simulate_stmt_local(
+        StmtKind::Local(mutability, pat_id, expr_id) => simulate_stmt_local(
             id,
+            mutability,
             pat_id,
             expr_id,
             application_instance,
@@ -787,6 +793,7 @@ fn simulate_stmt_expr(
 
 fn simulate_stmt_local(
     id: StoreStmtId,
+    mutability: Mutability,
     pat_id: PatId,
     expr_id: ExprId,
     application_instance: &mut ApplicationInstance,
@@ -804,7 +811,7 @@ fn simulate_stmt_local(
     // The compute properties of the binded expression are associated to the compute properties of both the local symbol
     // and the statement.
     let package = package_store.get(id.package).expect("package should exist");
-    bind_expression_compute_properties(pat_id, expr_id, package, application_instance);
+    bind_expression_compute_properties(mutability, pat_id, expr_id, package, application_instance);
     let stmt_compute_properties = application_instance
         .exprs
         .get(&expr_id)

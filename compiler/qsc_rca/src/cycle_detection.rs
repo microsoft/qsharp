@@ -8,8 +8,8 @@ use crate::common::{
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Functor, Item, ItemId,
-        ItemKind, LocalItemId, NodeId, Package, PackageId, PackageLookup, Pat, PatId, PatKind, Res,
-        SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
+        ItemKind, LocalItemId, Mutability, NodeId, Package, PackageId, PackageLookup, Pat, PatId,
+        PatKind, Res, SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
     },
     visit::Visitor,
 };
@@ -79,7 +79,7 @@ impl<'a> CycleDetector<'a> {
         self.specializations_with_cycles.drain().collect()
     }
 
-    fn map_pat_to_expr(&mut self, pat_id: PatId, expr_id: ExprId) {
+    fn map_pat_to_expr(&mut self, mutability: Mutability, pat_id: PatId, expr_id: ExprId) {
         let pat = self.get_pat(pat_id);
         match &pat.kind {
             PatKind::Bind(ident) => {
@@ -88,13 +88,17 @@ impl<'a> CycleDetector<'a> {
                     .specializations_locals
                     .get_mut(callable_specialization_id)
                     .expect("node map should exist");
+                let kind = match mutability {
+                    Mutability::Immutable => LocalKind::Immutable(expr_id),
+                    Mutability::Mutable => LocalKind::Mutable,
+                };
                 locals_map.insert(
                     ident.id,
                     Local {
                         pat: pat_id,
                         node: ident.id,
                         ty: pat.ty.clone(),
-                        kind: LocalKind::Local(expr_id),
+                        kind,
                     },
                 );
             }
@@ -102,7 +106,7 @@ impl<'a> CycleDetector<'a> {
                 let expr = self.get_expr(expr_id);
                 if let ExprKind::Tuple(exprs) = &expr.kind {
                     for (pat_id, expr_id) in pats.iter().zip(exprs.iter()) {
-                        self.map_pat_to_expr(*pat_id, *expr_id);
+                        self.map_pat_to_expr(mutability, *pat_id, *expr_id);
                     }
                 }
             }
@@ -195,8 +199,8 @@ impl<'a> CycleDetector<'a> {
                 .expect("node map should exist");
             if let Some(callable_variable) = node_map.get(&node_id) {
                 match &callable_variable.kind {
-                    LocalKind::InputParam(_) => None,
-                    LocalKind::Local(expr_id) => self.resolve_callee(*expr_id),
+                    LocalKind::InputParam(_) | LocalKind::Mutable => None,
+                    LocalKind::Immutable(expr_id) => self.resolve_callee(*expr_id),
                 }
             } else {
                 panic!("cannot determine callee from resolution")
@@ -307,8 +311,8 @@ impl<'a> CycleDetector<'a> {
         _ = self.stack.pop();
     }
 
-    fn walk_local_stmt(&mut self, pat_id: PatId, expr_id: ExprId) {
-        self.map_pat_to_expr(pat_id, expr_id);
+    fn walk_local_stmt(&mut self, mutability: Mutability, pat_id: PatId, expr_id: ExprId) {
+        self.map_pat_to_expr(mutability, pat_id, expr_id);
         self.visit_expr(expr_id);
     }
 }
@@ -491,7 +495,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         match &stmt.kind {
             StmtKind::Item(_) => {}
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => self.visit_expr(*expr_id),
-            StmtKind::Local(_, pat_id, expr_id) => self.walk_local_stmt(*pat_id, *expr_id),
+            StmtKind::Local(mutability, pat_id, expr_id) => {
+                self.walk_local_stmt(*mutability, *pat_id, *expr_id)
+            }
         }
     }
 }

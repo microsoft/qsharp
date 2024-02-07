@@ -107,9 +107,10 @@ pub struct Local {
 pub enum LocalKind {
     /// An input parameter with its associated index in the context of a particular specialization.
     InputParam(InputParamIndex),
-    /// A local symbol with the lastest expression associated to it.
-    // TODO: This should probably be divided into Immutable(ExprId) and Mutable.
-    Local(ExprId),
+    /// An immutable binding with the expression associated to it.
+    Immutable(ExprId),
+    /// A mutable binding.
+    Mutable,
 }
 
 pub type LocalsMap = FxHashMap<NodeId, Local>;
