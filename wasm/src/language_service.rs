@@ -239,10 +239,13 @@ impl LanguageService {
 
         let mut renames: FxHashMap<String, Vec<TextEdit>> = FxHashMap::default();
         locations.into_iter().for_each(|l| {
-            renames.entry(l.source).or_default().push(TextEdit {
-                range: l.span.into(),
-                newText: new_name.to_string(),
-            })
+            renames
+                .entry(l.source.to_string())
+                .or_default()
+                .push(TextEdit {
+                    range: l.range.into(),
+                    newText: new_name.to_string(),
+                })
         });
 
         let workspace_edit = WorkspaceEdit {
@@ -262,15 +265,6 @@ impl LanguageService {
             }
             .into()
         })
-    }
-}
-
-impl From<qsls::protocol::Location> for Location {
-    fn from(location: qsls::protocol::Location) -> Self {
-        Location {
-            source: location.source,
-            span: location.span.into(),
-        }
     }
 }
 

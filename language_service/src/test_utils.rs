@@ -9,6 +9,7 @@ use qsc::{
     hir::PackageId,
     incremental::Compiler,
     line_column::{Encoding, Position, Range},
+    location::Location,
     target::Profile,
     PackageStore, PackageType, SourceMap, Span,
 };
@@ -21,13 +22,13 @@ pub(crate) fn compile_with_fake_stdlib_and_markers(
     (
         compilation,
         cursor_offset,
-        target_spans.iter().map(|(_, s)| *s).collect(),
+        target_spans.iter().map(|l| l.range).collect(),
     )
 }
 
 pub(crate) fn compile_project_with_fake_stdlib_and_markers(
     sources_with_markers: &[(&str, &str)],
-) -> (Compilation, String, Position, Vec<(String, Range)>) {
+) -> (Compilation, String, Position, Vec<Location>) {
     let (sources, cursor_uri, cursor_offset, target_spans) =
         get_sources_and_markers(sources_with_markers);
 
@@ -58,7 +59,7 @@ pub(crate) fn compile_project_with_fake_stdlib_and_markers(
 
 pub(crate) fn compile_notebook_with_fake_stdlib_and_markers(
     cells_with_markers: &[(&str, &str)],
-) -> (Compilation, String, Position, Vec<(String, Range)>) {
+) -> (Compilation, String, Position, Vec<Location>) {
     let (cells, cell_uri, offset, target_spans) = get_sources_and_markers(cells_with_markers);
 
     let compilation =
@@ -160,12 +161,7 @@ fn compile_fake_stdlib() -> (PackageStore, PackageId) {
 #[allow(clippy::type_complexity)]
 fn get_sources_and_markers(
     sources: &[(&str, &str)],
-) -> (
-    Vec<(Arc<str>, Arc<str>)>,
-    String,
-    Position,
-    Vec<(String, Range)>,
-) {
+) -> (Vec<(Arc<str>, Arc<str>)>, String, Position, Vec<Location>) {
     let (mut cursor_uri, mut cursor_offset, mut target_spans) = (None, None, Vec::new());
     let sources = sources
         .iter()
@@ -189,10 +185,10 @@ fn get_sources_and_markers(
             }
             if !targets.is_empty() {
                 for span in target_offsets_to_spans(&targets) {
-                    target_spans.push((
-                        s.0.to_string(),
-                        Range::from_span(Encoding::Utf8, &source, &span),
-                    ));
+                    target_spans.push(Location {
+                        source: s.0.into(),
+                        range: Range::from_span(Encoding::Utf8, &source, &span),
+                    });
                 }
             }
             (Arc::from(s.0), Arc::from(source.as_ref()))

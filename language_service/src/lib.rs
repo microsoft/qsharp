@@ -27,10 +27,13 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
-    CompletionList, DiagnosticUpdate, Hover, Location, NotebookMetadata, SignatureHelp,
+    CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
-use qsc::line_column::{Encoding, Position, Range};
+use qsc::{
+    line_column::{Encoding, Position, Range},
+    location::Location,
+};
 use qsc_project::JSFileEntry;
 use state::{CompilationState, CompilationStateUpdater};
 use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc};
