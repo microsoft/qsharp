@@ -1,8 +1,8 @@
 mod demo;
 
-use super::{DivisionByZero, DoubleParens};
+use super::ast::{DivisionByZero, DoubleParens};
 use crate::{
-    linter::{self, ast::DummyWrapper},
+    linter::{self, ast::AstLintWrapper},
     lints::tests::demo::LinterDemoApp,
 };
 use eframe::egui::ViewportBuilder;
@@ -64,7 +64,7 @@ fn run_lints(source: &str) {
     let mut parens = DoubleParens;
     let mut div_zero = DivisionByZero;
 
-    let mut lints = [DummyWrapper(&mut parens), DummyWrapper(&mut div_zero)];
+    let mut lints = [AstLintWrapper(&mut parens), AstLintWrapper(&mut div_zero)];
 
     let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();

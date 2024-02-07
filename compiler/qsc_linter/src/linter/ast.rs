@@ -7,7 +7,7 @@ use qsc_ast::{
 };
 
 #[allow(unused_variables)]
-pub trait LintPass<'a> {
+pub(crate) trait AstLintPass<'a> {
     fn check_attr(&mut self, attr: &'a Attr) {}
     fn check_block(&mut self, block: &'a Block) {}
     fn check_callable_decl(&mut self, callable_decl: &'a CallableDecl) {}
@@ -27,9 +27,9 @@ pub trait LintPass<'a> {
     fn check_visibility(&mut self, visibility: &'a Visibility) {}
 }
 
-pub struct DummyWrapper<'a>(pub &'a mut dyn LintPass<'a>);
+pub(crate) struct AstLintWrapper<'a>(pub &'a mut dyn AstLintPass<'a>);
 
-impl<'a> Visitor<'a> for DummyWrapper<'a> {
+impl<'a> Visitor<'a> for AstLintWrapper<'a> {
     fn visit_package(&mut self, package: &'a Package) {
         self.0.check_package(package);
         visit::walk_package(self, package);

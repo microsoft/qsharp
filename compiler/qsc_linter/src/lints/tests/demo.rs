@@ -8,8 +8,8 @@ use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::line_column;
 
 use crate::{
-    linter::{self, ast::DummyWrapper, Lint, LintLevel},
-    lints::{DivisionByZero, DoubleParens},
+    linter::{self, ast::AstLintWrapper, Lint, LintLevel},
+    lints::ast::{DivisionByZero, DoubleParens},
 };
 
 #[derive(Default)]
@@ -99,7 +99,7 @@ fn run_lints(source: &str) {
     let mut parens = DoubleParens;
     let mut div_zero = DivisionByZero;
 
-    let mut lints = [DummyWrapper(&mut parens), DummyWrapper(&mut div_zero)];
+    let mut lints = [AstLintWrapper(&mut parens), AstLintWrapper(&mut div_zero)];
 
     let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();
