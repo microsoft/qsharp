@@ -4,9 +4,9 @@
 use crate::{
     common::{
         derive_callable_input_params, derive_specialization_input_params, initalize_locals_map,
-        GlobalSpecializationId, InputParam, InputParamIndex, Local, SpecializationKind,
+        GlobalSpecializationId, InputParam, InputParamIndex, Local, LocalKind, SpecializationKind,
     },
-    scaffolding::{ItemScaffolding, PackageStoreScaffolding},
+    scaffolding::{ItemScaffolding, PackageScaffolding, PackageStoreScaffolding},
     ApplicationsTable, ComputeProperties, ComputePropertiesLookup, DynamismSource,
     RuntimeFeatureFlags,
 };
@@ -32,11 +32,35 @@ struct ApplicationInstance {
 }
 
 impl ApplicationInstance {
-    fn new(input_params: &Vec<InputParam>, dynamic_param_index: InputParamIndex) -> Self {
-        let input_params_map = initalize_locals_map(input_params);
+    fn new(input_params: &Vec<InputParam>, dynamic_param_index: Option<InputParamIndex>) -> Self {
+        let mut unprocessed_locals_map = initalize_locals_map(input_params);
+        let mut locals_map = FxHashMap::default();
+        for (node_id, local) in unprocessed_locals_map.drain() {
+            let LocalKind::InputParam(input_param_index) = local.kind else {
+                panic!("only input parameters are expected");
+            };
 
+            // If a dynamic parameter index is provided, set the local compute properties as dynamic.
+            let dynamism_sources = if let Some(dynamic_param_index) = dynamic_param_index {
+                if input_param_index == dynamic_param_index {
+                    FxHashSet::from_iter(vec![DynamismSource::Assumed])
+                } else {
+                    FxHashSet::default()
+                }
+            } else {
+                FxHashSet::default()
+            };
+            let local_compute_properties = LocalComputeProperties {
+                local,
+                compute_properties: ComputeProperties {
+                    runtime_features: RuntimeFeatureFlags::empty(),
+                    dynamism_sources,
+                },
+            };
+            locals_map.insert(node_id, local_compute_properties);
+        }
         Self {
-            locals_map: FxHashMap::default(), // TODO (cesarzc): do the right thing.
+            locals_map,
             dynamic_scopes_stack: Vec::new(),
             compute_properties: ApplicationInstanceComputeProperties::default(),
         }
@@ -52,7 +76,7 @@ struct LocalComputeProperties {
 /// The compute properties of a callable application instance.
 #[derive(Debug, Default)]
 struct ApplicationInstanceComputeProperties {
-    pub _blocks: FxHashMap<BlockId, ComputeProperties>,
+    pub blocks: FxHashMap<BlockId, ComputeProperties>,
     pub _stmts: FxHashMap<StmtId, ComputeProperties>,
     pub _exprs: FxHashMap<ExprId, ComputeProperties>,
 }
@@ -146,28 +170,6 @@ pub fn analyze_specialization_with_cyles(
 
     // Finally, update the package store scaffolding.
     package_store_scaffolding.insert_spec(specialization_id, applications_table);
-}
-
-fn analyze_block(
-    id: StoreBlockId,
-    _input_params: &[InputParam],
-    package_store: &PackageStore,
-    package_store_scaffolding: &mut PackageStoreScaffolding,
-) {
-    // This function is only called when a block has not already been analyzed.
-    if package_store_scaffolding.find_block(id).is_some() {
-        panic!("block is already analyzed");
-    }
-
-    let _block = package_store.get_block(id);
-    // TODO (cesarzc): implement properly.
-    package_store_scaffolding.insert_block(
-        id,
-        ApplicationsTable {
-            inherent_properties: ComputeProperties::default(),
-            dynamic_params_properties: Vec::new(),
-        },
-    );
 }
 
 fn analyze_callable(
@@ -301,7 +303,7 @@ fn analyze_specialization(
     callable_id: StoreItemId,
     spec_kind: SpecializationKind,
     spec_decl: &SpecDecl,
-    input_params: &Vec<InputParam>,
+    callable_input_params: &Vec<InputParam>,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
@@ -314,14 +316,66 @@ fn analyze_specialization(
         return;
     }
 
-    let specialization_applications_table = create_specialization_applications_table(
-        callable_id,
-        spec_decl,
-        input_params,
+    // We expand the input map for controlled specializations, which have its own additional input (the control qubit
+    // register).
+    let package_patterns = &package_store
+        .get(callable_id.package)
+        .expect("package should exist")
+        .pats;
+
+    // Derive the input parameters for the specialization, which can be different from the callable input parameters
+    // if the specialization has its own input.
+    let specialization_input_params =
+        derive_specialization_input_params(spec_decl, callable_input_params, package_patterns);
+
+    // Then we analyze the block which implements the specialization by simulating callable applications.
+    let block_id = (callable_id.package, spec_decl.block).into();
+
+    // To get the inherent properties of the specialization, we simulate an application in which all arguments are
+    // static.
+    let mut inherent_application_instance =
+        ApplicationInstance::new(&specialization_input_params, None);
+    simulate_block_application_instance(
+        block_id,
+        &mut inherent_application_instance,
         package_store,
         package_store_scaffolding,
     );
-    package_store_scaffolding.insert_spec(specialization_id, specialization_applications_table);
+
+    // Then, we simulate applications in which one of the arguments is dynamic.
+    let mut dynamic_input_params_application_instances = Vec::new();
+    for input_param in specialization_input_params.iter() {
+        let mut application_instance =
+            ApplicationInstance::new(&specialization_input_params, Some(input_param.index));
+        simulate_block_application_instance(
+            block_id,
+            &mut application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        dynamic_input_params_application_instances.push(application_instance);
+    }
+
+    // Now that we have all the application instances for the block that implements the specialization, we can save them
+    // to the package store compute properties data structure.
+    let package_scaffolding = package_store_scaffolding
+        .get_mut(callable_id.package)
+        .expect("package scaffolding should exist");
+    let mut dynamic_instances_compute_properties: Vec<ApplicationInstanceComputeProperties> =
+        dynamic_input_params_application_instances
+            .drain(..)
+            .map(|application_instance| application_instance.compute_properties)
+            .collect();
+    save_application_instances(
+        &mut inherent_application_instance.compute_properties,
+        &mut dynamic_instances_compute_properties,
+        package_scaffolding,
+    );
+
+    // Finally, we get the applications table of the analyzed block, which also represents the application table of the
+    // specialization.
+    let block_applications_table = package_store_scaffolding.get_block(block_id);
+    package_store_scaffolding.insert_spec(specialization_id, block_applications_table.clone());
 }
 
 fn analyze_statement(
@@ -514,40 +568,6 @@ fn create_instrinsic_operation_applications_table(
     }
 }
 
-fn create_specialization_applications_table(
-    callable_id: StoreItemId,
-    spec_decl: &SpecDecl,
-    callable_input_params: &Vec<InputParam>,
-    package_store: &PackageStore,
-    package_store_scaffolding: &mut PackageStoreScaffolding,
-) -> ApplicationsTable {
-    // We expand the input map for controlled specializations, which have its own additional input (the control qubit
-    // register).
-    let package_patterns = &package_store
-        .get(callable_id.package)
-        .expect("package should exist")
-        .pats;
-
-    // Derive the input parameters for the specialization, which can be different from the callable input parameters
-    // if the specialization has its own input.
-    let specialization_input_params =
-        derive_specialization_input_params(spec_decl, callable_input_params, package_patterns);
-
-    // Then we analyze the block which implements the specialization.
-    let block_id = (callable_id.package, spec_decl.block).into();
-    analyze_block(
-        block_id,
-        &specialization_input_params,
-        package_store,
-        package_store_scaffolding,
-    );
-
-    // Finally, we get the applications table of the analyzed block, which also represents the application table of the
-    // specialization.
-    let block_applications_table = package_store_scaffolding.get_block(block_id);
-    block_applications_table.clone()
-}
-
 fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
     fn intrinsic_runtime_features_from_primitive_type(prim: &Prim) -> RuntimeFeatureFlags {
         match prim {
@@ -592,4 +612,56 @@ fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
         Ty::Udt(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicUdt,
         _ => panic!("unexpected type"),
     }
+}
+
+fn save_application_instances(
+    inherent_application_instance: &mut ApplicationInstanceComputeProperties,
+    dynamic_params_application_instances: &mut Vec<ApplicationInstanceComputeProperties>,
+    package_scaffolding: &mut PackageScaffolding,
+) {
+    let input_params_count = dynamic_params_application_instances.len();
+
+    // Save blocks.
+    for (block_id, inherent_properties) in inherent_application_instance.blocks.drain() {
+        let mut dynamic_params_properties =
+            Vec::<ComputeProperties>::with_capacity(input_params_count);
+        for application_instance in dynamic_params_application_instances.iter_mut() {
+            let block_compute_properties = application_instance
+                .blocks
+                .remove(&block_id)
+                .expect("block should exist in application instance");
+            dynamic_params_properties.push(block_compute_properties);
+        }
+        let block_applications_table = ApplicationsTable {
+            inherent_properties,
+            dynamic_params_properties,
+        };
+        package_scaffolding
+            .blocks
+            .insert(block_id, block_applications_table);
+    }
+
+    // TODO (cesarzc): finish implementation.
+}
+
+fn simulate_block_application_instance(
+    id: StoreBlockId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    // This function is only called when a block has not already been analyzed.
+    if package_store_scaffolding.find_block(id).is_some() {
+        panic!("block is already analyzed");
+    }
+
+    let _block = package_store.get_block(id);
+    let block_compute_properties = ComputeProperties::empty();
+    // TODO (cesarzc): implement properly.
+
+    // Finally, we insert the compute properties of the block to the application instance.
+    application_instance
+        .compute_properties
+        .blocks
+        .insert(id.block, block_compute_properties);
 }
