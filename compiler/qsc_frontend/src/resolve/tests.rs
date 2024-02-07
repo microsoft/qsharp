@@ -2057,7 +2057,6 @@ fn disallow_duplicate_intrinsic() {
             // DuplicateIntrinsic("B", Span { lo: 101, hi: 102 })
         "#]],
     );
-
 }
 
 #[allow(clippy::cast_possible_truncation)]

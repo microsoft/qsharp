@@ -1100,5 +1100,6 @@ fn duplicate_intrinsic_from_dependency() {
                 ),
             ),
         ]
-    "#]].assert_debug_eq(&unit.errors);
+    "#]]
+    .assert_debug_eq(&unit.errors);
 }
