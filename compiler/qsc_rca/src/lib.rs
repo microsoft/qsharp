@@ -265,6 +265,29 @@ pub struct ApplicationsTable {
     pub dynamic_params_properties: Vec<ComputeProperties>,
 }
 
+impl ApplicationsTable {
+    pub fn new(params_count: usize) -> Self {
+        let inherent_properties = ComputeProperties::default();
+        let dynamic_params_properties = vec![ComputeProperties::default(); params_count];
+        Self {
+            inherent_properties,
+            dynamic_params_properties,
+        }
+    }
+
+    pub fn aggregate_runtime_features(&mut self, other: &Self) {
+        assert!(self.dynamic_params_properties.len() == other.dynamic_params_properties.len());
+        self.inherent_properties.runtime_features |= other.inherent_properties.runtime_features;
+        for (self_compute_properties, other_compute_properties) in self
+            .dynamic_params_properties
+            .iter_mut()
+            .zip(other.dynamic_params_properties.iter())
+        {
+            self_compute_properties.runtime_features |= other_compute_properties.runtime_features;
+        }
+    }
+}
+
 impl Display for ApplicationsTable {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);

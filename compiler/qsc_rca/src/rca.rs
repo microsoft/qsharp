@@ -10,7 +10,7 @@ use crate::{
     ApplicationsTable, ComputeProperties, ComputePropertiesLookup, DynamismSource,
     RuntimeFeatureFlags,
 };
-use qsc_fir::fir::{BlockId, ExprId, NodeId, StmtId, StoreBlockId};
+use qsc_fir::fir::{BlockId, ExprId, NodeId, StmtId, StmtKind, StoreBlockId};
 use qsc_fir::{
     fir::{
         CallableDecl, CallableImpl, CallableKind, Global, PackageId, PackageStore,
@@ -23,16 +23,31 @@ use rustc_hash::{FxHashMap, FxHashSet};
 /// An instance of a callable application.
 #[derive(Debug, Default)]
 struct ApplicationInstance {
-    // TODO (cesarzc): document field.
+    /// A map of locals with their associated compute properties.
     pub locals_map: FxHashMap<NodeId, LocalComputeProperties>,
-    // TODO (cesarzc): document field.
-    pub dynamic_scopes_stack: Vec<ExprId>,
-    // TODO (cesarzc): document field.
-    pub compute_properties: ApplicationInstanceComputeProperties,
+    /// The currently active dynamic scopes in the application instance.
+    pub active_dynamic_scopes: Vec<ExprId>,
+    /// The return expressions througout the application instance.
+    pub return_expressions: Vec<ExprId>,
+    /// The compute properties of the blocks related to the application instance.
+    pub blocks: FxHashMap<BlockId, ComputeProperties>,
+    /// The compute properties of the statements related to the application instance.
+    pub stmts: FxHashMap<StmtId, ComputeProperties>,
+    /// The compute properties of the expressions related to the application instance.
+    pub exprs: FxHashMap<ExprId, ComputeProperties>,
+    /// Whether the application instance analysis has been completed.
+    /// This is used to verify that its contents are not used in a partial state.
+    is_settled: bool,
+    /// Whether the application instance's compute properties has been flushed.
+    /// This is used to verify that its contents are not used in a partial state.
+    was_flushed: bool,
 }
 
 impl ApplicationInstance {
-    fn new(input_params: &Vec<InputParam>, dynamic_param_index: Option<InputParamIndex>) -> Self {
+    pub fn new(
+        input_params: &Vec<InputParam>,
+        dynamic_param_index: Option<InputParamIndex>,
+    ) -> Self {
         let mut unprocessed_locals_map = initalize_locals_map(input_params);
         let mut locals_map = FxHashMap::default();
         for (node_id, local) in unprocessed_locals_map.drain() {
@@ -61,8 +76,192 @@ impl ApplicationInstance {
         }
         Self {
             locals_map,
-            dynamic_scopes_stack: Vec::new(),
-            compute_properties: ApplicationInstanceComputeProperties::default(),
+            active_dynamic_scopes: Vec::new(),
+            return_expressions: Vec::new(),
+            blocks: FxHashMap::default(),
+            stmts: FxHashMap::default(),
+            exprs: FxHashMap::default(),
+            is_settled: false,
+            was_flushed: false,
+        }
+    }
+
+    pub fn aggregate_return_expressions(&mut self) -> FxHashSet<DynamismSource> {
+        // Cannot aggregate return expressions until the application instance has been settled, but not yet flushed.
+        assert!(self.is_settled);
+        assert!(!self.was_flushed);
+        let mut dynamism_sources = FxHashSet::default();
+        for expr_id in self.return_expressions.drain(..) {
+            let expr_compute_properties = self
+                .exprs
+                .get(&expr_id)
+                .expect("expression compute properties should exist");
+            if !expr_compute_properties.dynamism_sources.is_empty() {
+                dynamism_sources.insert(DynamismSource::Expr(expr_id));
+            }
+        }
+        dynamism_sources
+    }
+
+    pub fn mark_flushed(&mut self) {
+        // Can only mark as flushed if no return expressions remain.
+        assert!(self.return_expressions.is_empty());
+        self.was_flushed = true;
+    }
+
+    pub fn settle(&mut self) {
+        // Cannot settle an application instance while there are active dynamic scopes.
+        assert!(self.active_dynamic_scopes.is_empty());
+        self.is_settled = true;
+    }
+}
+
+#[derive(Debug)]
+struct SpecApplicationInstances {
+    pub inherent: ApplicationInstance,
+    pub dynamic_params: Vec<ApplicationInstance>,
+    is_settled: bool,
+}
+
+impl SpecApplicationInstances {
+    pub fn new(input_params: &Vec<InputParam>) -> Self {
+        let inherent = ApplicationInstance::new(input_params, None);
+        let mut dynamic_params = Vec::<ApplicationInstance>::with_capacity(input_params.len());
+        for input_param in input_params {
+            let application_instance =
+                ApplicationInstance::new(input_params, Some(input_param.index));
+            dynamic_params.push(application_instance);
+        }
+
+        Self {
+            inherent,
+            dynamic_params,
+            is_settled: false,
+        }
+    }
+
+    pub fn close(
+        &mut self,
+        main_block_id: BlockId,
+        package_scaffolding: &mut PackageScaffolding,
+    ) -> ApplicationsTable {
+        // We can close only if this structure is not yet settled and if all the internal application instances are
+        // already settled.
+        assert!(!self.is_settled);
+        assert!(self.inherent.is_settled);
+        self.dynamic_params
+            .iter()
+            .for_each(|application_instance| assert!(application_instance.is_settled));
+
+        // Clear the locals since they are no longer needed.
+        self.clear_locals();
+
+        // Initialize the applications table and aggregate the return expressions to it.
+        let mut applications_table = ApplicationsTable::new(self.dynamic_params.len());
+        self.aggregate_return_expressions(&mut applications_table);
+
+        // Flush the compute properties to the package scaffolding
+        self.flush_compute_properties(package_scaffolding);
+
+        // Get the applications table of the main block and aggregate its runtime features.
+        let main_block_applications_table = package_scaffolding
+            .blocks
+            .get(main_block_id)
+            .expect("block applications table should exist");
+        applications_table.aggregate_runtime_features(main_block_applications_table);
+
+        // Mark the struct as settled and return the applications table that represents it.
+        self.is_settled = true;
+        applications_table
+    }
+
+    fn aggregate_return_expressions(&mut self, applications_table: &mut ApplicationsTable) {
+        assert!(self.dynamic_params.len() == applications_table.dynamic_params_properties.len());
+        let inherent_dynamism_sources = self.inherent.aggregate_return_expressions();
+        applications_table
+            .inherent_properties
+            .dynamism_sources
+            .extend(inherent_dynamism_sources);
+        for (param_compute_properties, application_instance) in applications_table
+            .dynamic_params_properties
+            .iter_mut()
+            .zip(self.dynamic_params.iter_mut())
+        {
+            let dynamism_sources = application_instance.aggregate_return_expressions();
+            param_compute_properties
+                .dynamism_sources
+                .extend(dynamism_sources);
+        }
+    }
+
+    fn clear_locals(&mut self) {
+        self.inherent.locals_map.clear();
+        self.dynamic_params
+            .iter_mut()
+            .for_each(|application_instance| application_instance.locals_map.clear());
+    }
+
+    fn flush_compute_properties(&mut self, package_scaffolding: &mut PackageScaffolding) {
+        let input_params_count = self.dynamic_params.len();
+
+        // Flush blocks.
+        for (block_id, inherent_properties) in self.inherent.blocks.drain() {
+            let mut dynamic_params_properties =
+                Vec::<ComputeProperties>::with_capacity(input_params_count);
+            for application_instance in self.dynamic_params.iter_mut() {
+                let block_compute_properties = application_instance
+                    .blocks
+                    .remove(&block_id)
+                    .expect("block should exist in application instance");
+                dynamic_params_properties.push(block_compute_properties);
+            }
+            let block_applications_table = ApplicationsTable {
+                inherent_properties,
+                dynamic_params_properties,
+            };
+            package_scaffolding
+                .blocks
+                .insert(block_id, block_applications_table);
+        }
+
+        // Flush statements.
+        for (stmt_id, inherent_properties) in self.inherent.stmts.drain() {
+            let mut dynamic_params_properties =
+                Vec::<ComputeProperties>::with_capacity(input_params_count);
+            for application_instance in self.dynamic_params.iter_mut() {
+                let stmt_compute_properties = application_instance
+                    .stmts
+                    .remove(&stmt_id)
+                    .expect("statement should exist in application instance");
+                dynamic_params_properties.push(stmt_compute_properties);
+            }
+            let stmt_applications_table = ApplicationsTable {
+                inherent_properties,
+                dynamic_params_properties,
+            };
+            package_scaffolding
+                .stmts
+                .insert(stmt_id, stmt_applications_table);
+        }
+
+        // Flush expressions.
+        for (expr_id, inherent_properties) in self.inherent.exprs.drain() {
+            let mut dynamic_params_properties =
+                Vec::<ComputeProperties>::with_capacity(input_params_count);
+            for application_instance in self.dynamic_params.iter_mut() {
+                let expr_compute_properties = application_instance
+                    .exprs
+                    .remove(&expr_id)
+                    .expect("statement should exist in application instance");
+                dynamic_params_properties.push(expr_compute_properties);
+            }
+            let expr_applications_table = ApplicationsTable {
+                inherent_properties,
+                dynamic_params_properties,
+            };
+            package_scaffolding
+                .exprs
+                .insert(expr_id, expr_applications_table);
         }
     }
 }
@@ -71,14 +270,6 @@ impl ApplicationInstance {
 struct LocalComputeProperties {
     pub local: Local,
     pub compute_properties: ComputeProperties,
-}
-
-/// The compute properties of a callable application instance.
-#[derive(Debug, Default)]
-struct ApplicationInstanceComputeProperties {
-    pub blocks: FxHashMap<BlockId, ComputeProperties>,
-    pub stmts: FxHashMap<StmtId, ComputeProperties>,
-    pub exprs: FxHashMap<ExprId, ComputeProperties>,
 }
 
 /// Performs runtime capabilities analysis (RCA) on a package.
@@ -330,52 +521,40 @@ fn analyze_specialization(
 
     // Then we analyze the block which implements the specialization by simulating callable applications.
     let block_id = (callable_id.package, spec_decl.block).into();
+    let mut spec_application_instances =
+        SpecApplicationInstances::new(&specialization_input_params);
 
-    // To get the inherent properties of the specialization, we simulate an application in which all arguments are
-    // static.
-    let mut inherent_application_instance =
-        ApplicationInstance::new(&specialization_input_params, None);
+    // First, we simulate the inherent application, in which all arguments are static.
     simulate_block_application_instance(
         block_id,
-        &mut inherent_application_instance,
+        &mut spec_application_instances.inherent,
         package_store,
         package_store_scaffolding,
     );
+    spec_application_instances.inherent.settle();
 
-    // Then, we simulate applications in which one of the arguments is dynamic.
-    let mut dynamic_input_params_application_instances = Vec::new();
-    for input_param in specialization_input_params.iter() {
-        let mut application_instance =
-            ApplicationInstance::new(&specialization_input_params, Some(input_param.index));
+    // Then, we simulate an application for each imput parameter, in which we consider it dynamic.
+    for application_instance in spec_application_instances.dynamic_params.iter_mut() {
         simulate_block_application_instance(
             block_id,
-            &mut application_instance,
+            application_instance,
             package_store,
             package_store_scaffolding,
         );
-        dynamic_input_params_application_instances.push(application_instance);
+        application_instance.settle();
     }
 
-    // Now that we have all the application instances for the block that implements the specialization, we can save them
-    // to the package store compute properties data structure.
+    // Now that we have all the application instances for the block that implements the specialization, we can close the
+    // application instances for the specialization, which will save all the analysis to the package store scaffolding
+    // and will return the applications table corresponding to the specialization.
     let package_scaffolding = package_store_scaffolding
         .get_mut(callable_id.package)
         .expect("package scaffolding should exist");
-    let mut dynamic_instances_compute_properties: Vec<ApplicationInstanceComputeProperties> =
-        dynamic_input_params_application_instances
-            .drain(..)
-            .map(|application_instance| application_instance.compute_properties)
-            .collect();
-    save_application_instances(
-        &mut inherent_application_instance.compute_properties,
-        &mut dynamic_instances_compute_properties,
-        package_scaffolding,
-    );
+    let specialization_applications_table =
+        spec_application_instances.close(block_id.block, package_scaffolding);
 
-    // Finally, we get the applications table of the analyzed block, which also represents the application table of the
-    // specialization.
-    let block_applications_table = package_store_scaffolding.get_block(block_id);
-    package_store_scaffolding.insert_spec(specialization_id, block_applications_table.clone());
+    // Finally, we insert the applications table to the scaffolding data structure.
+    package_store_scaffolding.insert_spec(specialization_id, specialization_applications_table);
 }
 
 fn analyze_statement(
@@ -389,6 +568,7 @@ fn analyze_statement(
     }
 
     let _stmt = package_store.get_stmt(id);
+
     // TODO (cesarzc): Implement.
 }
 
@@ -614,74 +794,6 @@ fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 }
 
-fn save_application_instances(
-    inherent_application_instance: &mut ApplicationInstanceComputeProperties,
-    dynamic_params_application_instances: &mut Vec<ApplicationInstanceComputeProperties>,
-    package_scaffolding: &mut PackageScaffolding,
-) {
-    let input_params_count = dynamic_params_application_instances.len();
-
-    // Save blocks.
-    for (block_id, inherent_properties) in inherent_application_instance.blocks.drain() {
-        let mut dynamic_params_properties =
-            Vec::<ComputeProperties>::with_capacity(input_params_count);
-        for application_instance in dynamic_params_application_instances.iter_mut() {
-            let block_compute_properties = application_instance
-                .blocks
-                .remove(&block_id)
-                .expect("block should exist in application instance");
-            dynamic_params_properties.push(block_compute_properties);
-        }
-        let block_applications_table = ApplicationsTable {
-            inherent_properties,
-            dynamic_params_properties,
-        };
-        package_scaffolding
-            .blocks
-            .insert(block_id, block_applications_table);
-    }
-
-    // Save statements.
-    for (stmt_id, inherent_properties) in inherent_application_instance.stmts.drain() {
-        let mut dynamic_params_properties =
-            Vec::<ComputeProperties>::with_capacity(input_params_count);
-        for application_instance in dynamic_params_application_instances.iter_mut() {
-            let stmt_compute_properties = application_instance
-                .stmts
-                .remove(&stmt_id)
-                .expect("statement should exist in application instance");
-            dynamic_params_properties.push(stmt_compute_properties);
-        }
-        let stmt_applications_table = ApplicationsTable {
-            inherent_properties,
-            dynamic_params_properties,
-        };
-        package_scaffolding
-            .stmts
-            .insert(stmt_id, stmt_applications_table);
-    }
-
-    // Save expressions.
-    for (expr_id, inherent_properties) in inherent_application_instance.exprs.drain() {
-        let mut dynamic_params_properties =
-            Vec::<ComputeProperties>::with_capacity(input_params_count);
-        for application_instance in dynamic_params_application_instances.iter_mut() {
-            let expr_compute_properties = application_instance
-                .exprs
-                .remove(&expr_id)
-                .expect("statement should exist in application instance");
-            dynamic_params_properties.push(expr_compute_properties);
-        }
-        let expr_applications_table = ApplicationsTable {
-            inherent_properties,
-            dynamic_params_properties,
-        };
-        package_scaffolding
-            .exprs
-            .insert(expr_id, expr_applications_table);
-    }
-}
-
 fn simulate_block_application_instance(
     id: StoreBlockId,
     application_instance: &mut ApplicationInstance,
@@ -693,13 +805,55 @@ fn simulate_block_application_instance(
         panic!("block is already analyzed");
     }
 
-    let _block = package_store.get_block(id);
-    let block_compute_properties = ComputeProperties::empty();
-    // TODO (cesarzc): implement properly.
+    // Initialize the compute properties of the block.
+    let block = package_store.get_block(id);
+    let mut block_compute_properties = ComputeProperties::empty();
+
+    // Iterate through the block statements and aggregate the runtime features of each into the block compute properties.
+    for (stmt_index, stmt_id) in block.stmts.iter().enumerate() {
+        let store_stmt_id = StoreStmtId::from((id.package, *stmt_id));
+        simulate_stmt_application_instance(
+            store_stmt_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        let stmt_compute_properties = application_instance
+            .stmts
+            .get(stmt_id)
+            .expect("statement compute properties should exist");
+        block_compute_properties.runtime_features |= stmt_compute_properties.runtime_features;
+
+        // If this is the last statement and it is a non-unit expression without a trailing semicolon, aggregate it to
+        // the block dynamism sources since the statement represents the block "return" value.
+        if stmt_index == block.stmts.len() - 1 {
+            let stmt = package_store.get_stmt((id.package, *stmt_id).into());
+            if let StmtKind::Expr(expr_id) = stmt.kind {
+                let expr = package_store.get_expr((id.package, expr_id).into());
+                if expr.ty != Ty::UNIT {
+                    block_compute_properties
+                        .dynamism_sources
+                        .insert(DynamismSource::Expr(expr_id));
+                }
+            }
+        }
+    }
 
     // Finally, we insert the compute properties of the block to the application instance.
     application_instance
-        .compute_properties
         .blocks
         .insert(id.block, block_compute_properties);
+}
+
+fn simulate_stmt_application_instance(
+    id: StoreStmtId,
+    application_instance: &mut ApplicationInstance,
+    _package_store: &PackageStore,
+    _package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    let stmt_compute_properties = ComputeProperties::default();
+    // TODO (cesarzc): implement properly.
+    application_instance
+        .stmts
+        .insert(id.stmt, stmt_compute_properties);
 }
