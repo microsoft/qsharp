@@ -1,4 +1,4 @@
-pub(crate) mod ast;
+pub(super) mod ast;
 #[cfg(test)]
 mod tests;
 
