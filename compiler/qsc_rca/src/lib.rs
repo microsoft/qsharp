@@ -358,6 +358,15 @@ impl ComputeProperties {
     pub fn empty() -> Self {
         Self::default()
     }
+
+    /// The compute kind of these properties.
+    pub fn compute_kind(&self) -> ComputeKind {
+        if self.dynamism_sources.is_empty() {
+            ComputeKind::Static
+        } else {
+            ComputeKind::Dynamic
+        }
+    }
 }
 
 bitflags! {

@@ -1,17 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::process::id;
+
 use crate::{
-    applications::{ApplicationInstance, SpecApplicationInstances},
+    applications::{ApplicationInstance, LocalComputeProperties, SpecApplicationInstances},
     common::{
         derive_callable_input_params, derive_specialization_input_params, GlobalSpecializationId,
-        InputParam, SpecializationKind,
+        InputParam, Local, LocalKind, SpecializationKind,
     },
     scaffolding::{ItemScaffolding, PackageStoreScaffolding},
-    ApplicationsTable, ComputeProperties, ComputePropertiesLookup, DynamismSource,
+    ApplicationsTable, ComputeKind, ComputeProperties, ComputePropertiesLookup, DynamismSource,
     RuntimeFeatureFlags,
 };
-use qsc_fir::fir::{StmtKind, StoreBlockId};
+use qsc_fir::fir::{
+    ExprId, ExprKind, Package, PackageLookup, PatId, PatKind, StmtKind, StoreBlockId, StoreExprId,
+};
 use qsc_fir::{
     fir::{
         CallableDecl, CallableImpl, CallableKind, Global, PackageId, PackageStore,
@@ -274,7 +278,7 @@ fn analyze_specialization(
         SpecApplicationInstances::new(&specialization_input_params);
 
     // First, we simulate the inherent application, in which all arguments are static.
-    simulate_block_application_instance(
+    simulate_block(
         block_id,
         &mut spec_application_instances.inherent,
         package_store,
@@ -284,7 +288,7 @@ fn analyze_specialization(
 
     // Then, we simulate an application for each imput parameter, in which we consider it dynamic.
     for application_instance in spec_application_instances.dynamic_params.iter_mut() {
-        simulate_block_application_instance(
+        simulate_block(
             block_id,
             application_instance,
             package_store,
@@ -319,6 +323,77 @@ fn analyze_statement(
     let _stmt = package_store.get_stmt(id);
 
     // TODO (cesarzc): Implement.
+}
+
+fn bind_expression_compute_properties(
+    pat_id: PatId,
+    expr_id: ExprId,
+    package: &impl PackageLookup,
+    application_instance: &mut ApplicationInstance,
+) {
+    let expr = package.get_expr(expr_id);
+    let pat = package.get_pat(pat_id);
+    match &pat.kind {
+        PatKind::Bind(ident) => {
+            let compute_properties = application_instance
+                .exprs
+                .get(&expr_id)
+                .expect("expression compute properties should exist")
+                .clone();
+            let local = Local {
+                node: ident.id,
+                pat: pat_id,
+                ty: pat.ty.clone(),
+                kind: LocalKind::Local(expr_id),
+            };
+            let local_compute_properties = LocalComputeProperties {
+                local,
+                compute_properties,
+            };
+            application_instance
+                .locals_map
+                .insert(ident.id, local_compute_properties);
+        }
+        PatKind::Tuple(pats) => match &expr.kind {
+            ExprKind::Tuple(exprs) => {
+                for (pat_id, expr_id) in pats.iter().zip(exprs.iter()) {
+                    bind_expression_compute_properties(
+                        *pat_id,
+                        *expr_id,
+                        package,
+                        application_instance,
+                    );
+                }
+            }
+            // TODO (cesarzc): Handle ExprKind::Var specifically.
+            _ => {
+                let compute_properties = application_instance
+                    .exprs
+                    .get(&expr_id)
+                    .expect("expression compute properties should exist")
+                    .clone();
+                bind_fixed_compute_properties(
+                    pat_id,
+                    &compute_properties,
+                    package,
+                    application_instance,
+                );
+            }
+        },
+        PatKind::Discard => {
+            // Nothing to bind to.
+        }
+    }
+}
+
+fn bind_fixed_compute_properties(
+    pat_id: PatId,
+    _compute_properties: &ComputeProperties,
+    package: &impl PackageLookup,
+    _application_instance: &mut ApplicationInstance,
+) {
+    let _pat = package.get_pat(pat_id);
+    // TODO (cesarzc): Implement properly.
 }
 
 fn create_cycled_function_specialization_applications_table(
@@ -543,7 +618,7 @@ fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 }
 
-fn simulate_block_application_instance(
+fn simulate_block(
     id: StoreBlockId,
     application_instance: &mut ApplicationInstance,
     package_store: &PackageStore,
@@ -561,7 +636,7 @@ fn simulate_block_application_instance(
     // Iterate through the block statements and aggregate the runtime features of each into the block compute properties.
     for (stmt_index, stmt_id) in block.stmts.iter().enumerate() {
         let store_stmt_id = StoreStmtId::from((id.package, *stmt_id));
-        simulate_stmt_application_instance(
+        simulate_stmt(
             store_stmt_id,
             application_instance,
             package_store,
@@ -594,14 +669,147 @@ fn simulate_block_application_instance(
         .insert(id.block, block_compute_properties);
 }
 
-fn simulate_stmt_application_instance(
+fn simulate_expr(
+    id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    let expr = package_store.get_expr(id);
+    match &expr.kind {
+        ExprKind::Tuple(exprs) => simulate_expr_tuple(
+            id,
+            exprs,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        // TODO (cesarzc): handle each case separately.
+        _ => {
+            application_instance
+                .exprs
+                .insert(id.expr, ComputeProperties::default());
+        }
+    }
+}
+
+fn simulate_expr_tuple(
+    id: StoreExprId,
+    exprs: &Vec<ExprId>,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    let mut tuple_compute_properties = ComputeProperties::default();
+
+    // Go through each sub-expression in the tuple aggregating its runtime features and marking them as sources of
+    // dynamism when applicable.
+    for expr_id in exprs {
+        let store_expr_id = StoreExprId::from((id.package, *expr_id));
+        simulate_expr(
+            store_expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        let expr_compute_properties = application_instance
+            .exprs
+            .get(expr_id)
+            .expect("expression compute properties should exist");
+
+        // Aggregate the runtime features of the sub-expression.
+        tuple_compute_properties.runtime_features |= expr_compute_properties.runtime_features;
+
+        // Mark the expression as a source of dynamims if its compute kind is dynamic.
+        if let ComputeKind::Dynamic = expr_compute_properties.compute_kind() {
+            tuple_compute_properties
+                .dynamism_sources
+                .insert(DynamismSource::Expr(*expr_id));
+        }
+    }
+
+    // Finally, insert the compute properties of the tuple expression.
+    application_instance
+        .exprs
+        .insert(id.expr, tuple_compute_properties);
+}
+
+fn simulate_stmt(
     id: StoreStmtId,
     application_instance: &mut ApplicationInstance,
-    _package_store: &PackageStore,
-    _package_store_scaffolding: &mut PackageStoreScaffolding,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
-    let stmt_compute_properties = ComputeProperties::default();
-    // TODO (cesarzc): implement properly.
+    let stmt = package_store.get_stmt(id);
+    match stmt.kind {
+        StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => simulate_stmt_expr(
+            id,
+            expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        StmtKind::Local(_, pat_id, expr_id) => simulate_stmt_local(
+            id,
+            pat_id,
+            expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        StmtKind::Item(_) => panic!("unexpected item statement"),
+    }
+}
+
+fn simulate_stmt_expr(
+    id: StoreStmtId,
+    expr_id: ExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    // Analyze the expression, whose compute properties will also be the compute properties of the statement.
+    simulate_expr(
+        (id.package, expr_id).into(),
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    let stmt_compute_properties = application_instance
+        .exprs
+        .get(&expr_id)
+        .expect("expression compute properties should exist")
+        .clone();
+    application_instance
+        .stmts
+        .insert(id.stmt, stmt_compute_properties);
+}
+
+fn simulate_stmt_local(
+    id: StoreStmtId,
+    pat_id: PatId,
+    expr_id: ExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    // First, analyze the expression.
+    simulate_expr(
+        (id.package, expr_id).into(),
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // The compute properties of the binded expression are associated to the compute properties of both the local symbol
+    // and the statement.
+    let package = package_store.get(id.package).expect("package should exist");
+    bind_expression_compute_properties(pat_id, expr_id, package, application_instance);
+    let stmt_compute_properties = application_instance
+        .exprs
+        .get(&expr_id)
+        .expect("expression compute properties should exist")
+        .clone();
     application_instance
         .stmts
         .insert(id.stmt, stmt_compute_properties);
