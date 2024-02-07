@@ -31,7 +31,7 @@ pub(crate) trait AstLintPass {
 /// [`Visitor`], a foreign trait, for a foreign type. Therefore, we can't do
 ///
 /// ```
-/// impl<'a, T> Visitor<'a> for <T: AstLintWrapper> { ... }
+/// impl<'a, T: AstLintPass> Visitor<'a> for T { ... }
 /// ```
 ///
 /// since there is no way of telling rust's compiler that `T` is a local type.
