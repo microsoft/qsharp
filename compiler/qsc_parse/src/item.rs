@@ -25,9 +25,10 @@ use qsc_ast::ast::{
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
     TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
-use qsc_data_structures::{language_features:: LanguageFeatures, span::Span};
+use qsc_data_structures::{language_features::{self,  LanguageFeatures}, span::Span};
 
-pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
+
+pub(super) fn parse_with_config(s: &mut Scanner, features: &LanguageFeatures) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s);
     let attrs = many(s, parse_attr)?;
@@ -36,7 +37,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         open
     } else if let Some(ty) = opt(s, parse_newtype)? {
         ty
-    } else if let Some(callable) = opt(s, parse_callable_decl)? {
+    } else if let Some(callable) = opt(s, |p| parse_callable_decl(p ,features))? {
         Box::new(ItemKind::Callable(callable))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
@@ -64,9 +65,12 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
         kind,
     }))
 }
+pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
+    parse_with_config(s, &LanguageFeatures::none())
+}
 
 #[allow(clippy::vec_box)]
-fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Item>>> {
+fn parse_many(s: &mut Scanner, features: &LanguageFeatures) -> Result<Vec<Box<Item>>> {
     const BARRIER_TOKENS: &[TokenKind] = &[
         TokenKind::At,
         TokenKind::Keyword(Keyword::Internal),
@@ -79,10 +83,9 @@ fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Item>>> {
     const RECOVERY_TOKENS: &[TokenKind] = &[TokenKind::Semi, TokenKind::Close(Delim::Brace)];
 
     barrier(s, BARRIER_TOKENS, |s| {
-        many(s, |s| recovering(s, default, RECOVERY_TOKENS, parse))
+        many(s, |s| recovering(s, default, RECOVERY_TOKENS, |p| parse_with_config(p, features)))
     })
 }
-
 fn default(span: Span) -> Box<Item> {
     Box::new(Item {
         id: NodeId::default(),
@@ -128,13 +131,13 @@ fn parse_top_level_node(s: &mut Scanner, features: &LanguageFeatures) -> Result<
     }
 }
 
-fn parse_namespace(s: &mut Scanner, features: &LanguageFeatures) -> Result<Namespace> {
+fn parse_namespace(s: &mut Scanner, language_features: &LanguageFeatures) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
+    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], |p| parse_many(p, language_features))?;
     recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
         id: NodeId::default(),
@@ -287,7 +290,7 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     }
 }
 
-fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
+fn parse_callable_decl(s: &mut Scanner, features: &LanguageFeatures) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Function)).is_ok() {
         CallableKind::Function
@@ -323,7 +326,7 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
         None
     };
     throw_away_doc(s);
-    let body = parse_callable_body(s)?;
+    let body = parse_callable_body(s, features)?;
 
     Ok(Box::new(CallableDecl {
         id: NodeId::default(),
@@ -338,13 +341,13 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     }))
 }
 
-fn parse_callable_body(s: &mut Scanner) -> Result<CallableBody> {
+fn parse_callable_body(s: &mut Scanner, features: &LanguageFeatures) -> Result<CallableBody> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     barrier(s, &[TokenKind::Close(Delim::Brace)], |s| {
         let specs = many(s, parse_spec_decl)?;
         if specs.is_empty() {
-            let stmts = stmt::parse_many(s)?;
+            let stmts = stmt::parse_many_with_config(s, features)?;
             check_semis(s, &stmts);
             recovering_token(s, TokenKind::Close(Delim::Brace))?;
             Ok(CallableBody::Block(Box::new(Block {

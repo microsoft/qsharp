@@ -53,9 +53,16 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
   parse_with_config(s, &Default::default())
 }
 
+
+#[allow(clippy::vec_box)]
+pub(super) fn parse_many_with_config(s: &mut Scanner, features: &LanguageFeatures) -> Result<Vec<Box<Stmt>>> {
+    many(s, |s| recovering(s, default, &[TokenKind::Semi], |p| parse_with_config(p, features)))
+}
+
+
 #[allow(clippy::vec_box)]
 pub(super) fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Stmt>>> {
-    many(s, |s| recovering(s, default, &[TokenKind::Semi], parse))
+    parse_many_with_config(s, &LanguageFeatures::none())
 }
 
 pub(super) fn parse_block(s: &mut Scanner) -> Result<Box<Block>> {
@@ -116,7 +123,7 @@ fn parse_qubit(s: &mut Scanner, features: &LanguageFeatures) -> Result<Box<StmtK
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = parse_qubit_init(s)?;
-    let block =  if features.contains(LanguageFeature::V2PreviewSyntax) {
+    let block =  if !features.contains(LanguageFeature::V2PreviewSyntax) {
         opt(s, parse_block)?
     } else { None };
 

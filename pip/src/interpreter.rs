@@ -29,9 +29,7 @@ use qsc::{
 };
 use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use resource_estimator::{self as re, estimate_expr};
-use rustc_hash::FxHashMap;
 use std::{collections::BTreeSet, fmt::Write};
-use std::fmt::Write;
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {

@@ -35,7 +35,9 @@ fn basic_manifest() {
                         "Microsoft",
                     ),
                     license: None,
-                    features: [],
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )
@@ -66,7 +68,9 @@ fn circular_imports() {
                         "Microsoft",
                     ),
                     license: None,
-                    features: [],
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )
@@ -97,7 +101,9 @@ fn different_files_same_manifest() {
                         "Microsoft",
                     ),
                     license: None,
-                    features: [],
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )
@@ -118,7 +124,9 @@ fn empty_manifest() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: [],
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )
@@ -151,7 +159,9 @@ fn folder_structure() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: [],
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )
@@ -179,7 +189,9 @@ fn hidden_files() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: [],
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )
@@ -211,7 +223,9 @@ fn peer_file() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: [],
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )
@@ -225,23 +239,16 @@ fn language_feature() {
             Project {
                 sources: [
                     (
-                        "basic_manifest/src/Dependency1.qs",
-                        "namespace Dependency1 {\n    function First() : String {\n        \"123\"\n    }\n}\n",
-                    ),
-                    (
-                        "basic_manifest/src/Dependency2.qs",
-                        "namespace Dependency2 {\n    function Second() : String {\n        \"45\"\n    }\n}\n",
-                    ),
-                    (
-                        "basic_manifest/src/Main.qs",
-                        "namespace Main {\n    open Dependency1;\n    open Dependency2;\n    @EntryPoint()\n    operation Main() : String {\n        First() + Second()\n    }\n}\n",
+                        "language_feature/src/Project.qs",
+                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
-                    author: Some(
-                        "Microsoft",
-                    ),
+                    author: None,
                     license: None,
+                    features: LanguageFeatures(
+                        {},
+                    ),
                 },
             }"#]],
     )

@@ -144,6 +144,7 @@ pub fn array_literal(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::none()
         )
         .expect("code should compile");
         b.iter(move || {

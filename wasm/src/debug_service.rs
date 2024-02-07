@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::collections::BTreeSet;
 use std::str::FromStr;
 
 use qsc::fir::StmtId;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
 use qsc::{fmt_complex, target::Profile};
+use qsc_data_structures::language_features::{self, LanguageFeature};
 
 use crate::line_column::Range;
 use crate::{get_source_map, serializable_type, CallbackReceiver};
@@ -32,11 +34,25 @@ impl DebugService {
         sources: Vec<js_sys::Array>,
         target_profile: String,
         entry: Option<String>,
+        language_features: Vec<String>,
     ) -> String {
         let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
-        match Debugger::new(source_map, target.into(), Encoding::Utf16, todo!("get language features")) {
+        let features: BTreeSet<LanguageFeature> = match language_features
+            .iter()
+            .map(|f| language_features::LanguageFeature::try_parse(f))
+            .collect()
+        {
+            Ok(features) => features,
+            Err(e) => panic!("Invalid language feature: {}", e),
+        };
+        match Debugger::new(
+            source_map,
+            target.into(),
+            Encoding::Utf16,
+            features.into(),
+        ) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 match self.debugger_mut().set_entry() {

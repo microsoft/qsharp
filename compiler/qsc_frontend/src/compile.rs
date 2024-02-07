@@ -24,7 +24,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::{
     index_map::{self, IndexMap},
-    language_features::{ LanguageFeatures},
+    language_features::LanguageFeatures,
     span::Span,
 };
 use qsc_hir::{
@@ -452,7 +452,7 @@ fn parse_all(sources: &SourceMap, features: &LanguageFeatures) -> (ast::Package,
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {
-        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents, features);
+        let (source_namespaces, source_errors) = qsc_parse::namespaces(dbg!(&source.contents), features);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(TopLevelNode::Namespace(namespace));

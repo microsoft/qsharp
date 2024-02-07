@@ -3,9 +3,17 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::SourceMap;
+use qsc::{interpret, SourceMap};
+use qsc_data_structures::language_features::LanguageFeatures;
 
-use super::run_internal;
+use super::run_internal_with_features;
+
+fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<interpret::Error>>
+where
+    F: FnMut(&str),
+{
+ run_internal_with_features(sources, event_cb, shots, LanguageFeatures::none())   
+}
 
 #[test]
 fn test_missing_type() {
@@ -32,7 +40,7 @@ fn test_compile() {
     M(q)
     }}";
 
-    let result = crate::_get_qir(SourceMap::new([("test.qs".into(), code.into())], None));
+    let result = crate::_get_qir(SourceMap::new([("test.qs".into(), code.into())], None), LanguageFeatures::none());
     assert!(result.is_ok());
 }
 
