@@ -16,7 +16,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::{index_map::IndexMap, span::Span, language_features::LanguageFeatures};
+use qsc_data_structures::{index_map::IndexMap, language_features::LanguageFeatures, span::Span};
 use qsc_hir::{assigner::Assigner as HirAssigner, ty::Ty};
 use std::fmt::Write;
 

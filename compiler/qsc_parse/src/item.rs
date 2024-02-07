@@ -27,7 +27,6 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
-
 pub(super) fn parse_with_config(s: &mut Scanner, features: &LanguageFeatures) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s);
@@ -37,7 +36,7 @@ pub(super) fn parse_with_config(s: &mut Scanner, features: &LanguageFeatures) ->
         open
     } else if let Some(ty) = opt(s, parse_newtype)? {
         ty
-    } else if let Some(callable) = opt(s, |p| parse_callable_decl(p ,features))? {
+    } else if let Some(callable) = opt(s, |p| parse_callable_decl(p, features))? {
         Box::new(ItemKind::Callable(callable))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
@@ -83,7 +82,11 @@ fn parse_many(s: &mut Scanner, features: &LanguageFeatures) -> Result<Vec<Box<It
     const RECOVERY_TOKENS: &[TokenKind] = &[TokenKind::Semi, TokenKind::Close(Delim::Brace)];
 
     barrier(s, BARRIER_TOKENS, |s| {
-        many(s, |s| recovering(s, default, RECOVERY_TOKENS, |p| parse_with_config(p, features)))
+        many(s, |s| {
+            recovering(s, default, RECOVERY_TOKENS, |p| {
+                parse_with_config(p, features)
+            })
+        })
     })
 }
 fn default(span: Span) -> Box<Item> {
@@ -97,13 +100,19 @@ fn default(span: Span) -> Box<Item> {
     })
 }
 
-pub(super) fn parse_namespaces(s: &mut Scanner, features: &LanguageFeatures) -> Result<Vec<Namespace>> {
+pub(super) fn parse_namespaces(
+    s: &mut Scanner,
+    features: &LanguageFeatures,
+) -> Result<Vec<Namespace>> {
     let namespaces = many(s, |p| parse_namespace(p, features))?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(namespaces)
 }
 
-pub(super) fn parse_top_level_nodes(s: &mut Scanner, features: &LanguageFeatures) -> Result<Vec<TopLevelNode>> {
+pub(super) fn parse_top_level_nodes(
+    s: &mut Scanner,
+    features: &LanguageFeatures,
+) -> Result<Vec<TopLevelNode>> {
     let nodes = many(s, |p| parse_top_level_node(p, features))?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(nodes)
@@ -137,7 +146,9 @@ fn parse_namespace(s: &mut Scanner, language_features: &LanguageFeatures) -> Res
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], |p| parse_many(p, language_features))?;
+    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], |p| {
+        parse_many(p, language_features)
+    })?;
     recovering_token(s, TokenKind::Close(Delim::Brace))?;
     Ok(Namespace {
         id: NodeId::default(),

@@ -68,7 +68,10 @@ pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> Sou
 }
 
 #[wasm_bindgen]
-pub fn get_qir(sources: Vec<js_sys::Array>, language_features: Vec<String>) -> Result<String, String> {
+pub fn get_qir(
+    sources: Vec<js_sys::Array>,
+    language_features: Vec<String>,
+) -> Result<String, String> {
     let language_features = language_features
         .into_iter()
         .map(|f: String| LanguageFeature::try_parse(&f))
@@ -161,10 +164,10 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 #[wasm_bindgen]
 pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
     let language_features = language_features
-    .into_iter()
-    .map(|f: String| LanguageFeature::try_parse(&f))
-    .collect::<Result<BTreeSet<LanguageFeature>, _>>()
-    .map_err(|e| e.to_string())?;
+        .into_iter()
+        .map(|f: String| LanguageFeature::try_parse(&f))
+        .collect::<Result<BTreeSet<LanguageFeature>, _>>()
+        .map_err(|e| e.to_string())?;
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
@@ -230,7 +233,12 @@ where
         Ok(())
     }
 }
-fn run_internal_with_features<F>(sources: SourceMap, event_cb: F, shots: u32, language_features: LanguageFeatures) -> Result<(), Box<interpret::Error>>
+fn run_internal_with_features<F>(
+    sources: SourceMap,
+    event_cb: F,
+    shots: u32,
+    language_features: LanguageFeatures,
+) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
 {
@@ -246,7 +254,7 @@ where
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
-       & language_features
+        &language_features,
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {
@@ -280,23 +288,22 @@ where
     Ok(())
 }
 
-
 #[wasm_bindgen]
 pub fn run(
     sources: Vec<js_sys::Array>,
     expr: &str,
     event_cb: &js_sys::Function,
     shots: u32,
-    language_features: Vec<String>
+    language_features: Vec<String>,
 ) -> Result<bool, JsValue> {
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
     let language_features = language_features
-    .into_iter()
-    .map(|f: String| LanguageFeature::try_parse(&f))
-    .collect::<Result<BTreeSet<LanguageFeature>, _>>()
-    .map_err(|e| e.to_string())?;
+        .into_iter()
+        .map(|f: String| LanguageFeature::try_parse(&f))
+        .collect::<Result<BTreeSet<LanguageFeature>, _>>()
+        .map_err(|e| e.to_string())?;
     let sources = get_source_map(sources, Some(expr.into()));
     match run_internal_with_features(
         sources,
@@ -305,7 +312,7 @@ pub fn run(
             let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
         },
         shots,
-        language_features.into()
+        language_features.into(),
     ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),

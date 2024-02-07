@@ -4,14 +4,28 @@
 use std::collections::BTreeSet;
 
 use super::{parse, parse_attr, parse_spec_decl};
-use crate::{scan::Scanner, tests::{check, check_vec}};
+use crate::{
+    scan::Scanner,
+    tests::{check, check_vec},
+};
 use expect_test::expect;
 use qsc_data_structures::language_features::LanguageFeature;
 
-fn parse_namespaces(s: &mut Scanner) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> { super::parse_namespaces(s, &Default::default()) }
+fn parse_namespaces(s: &mut Scanner) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
+    super::parse_namespaces(s, &Default::default())
+}
 
-fn parse_namespaces_v2_syntax(s: &mut Scanner) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> { super::parse_namespaces(s, &vec![LanguageFeature::V2PreviewSyntax].into_iter().collect::<BTreeSet<_>>().into()) }
-
+fn parse_namespaces_v2_syntax(
+    s: &mut Scanner,
+) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
+    super::parse_namespaces(
+        s,
+        &vec![LanguageFeature::V2PreviewSyntax]
+            .into_iter()
+            .collect::<BTreeSet<_>>()
+            .into(),
+    )
+}
 
 #[test]
 fn body_intrinsic() {
@@ -1501,7 +1515,6 @@ fn callable_missing_open_parens() {
             ]"#]],
     )
 }
-
 
 #[test]
 fn disallow_qubit_scoped_block() {

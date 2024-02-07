@@ -17,7 +17,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::{span::Span, language_features::LanguageFeatures};
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use qsc_hir::assigner::Assigner as HirAssigner;
 use std::fmt::Write;
 
@@ -86,7 +86,10 @@ fn resolve_names(input: &str) -> String {
     output
 }
 
-fn compile(input: &str, language_features: &LanguageFeatures) -> (Package, Names, Locals, Vec<Error>) {
+fn compile(
+    input: &str,
+    language_features: &LanguageFeatures,
+) -> (Package, Names, Locals, Vec<Error>) {
     let (namespaces, parse_errors) = qsc_parse::namespaces(input, language_features);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {

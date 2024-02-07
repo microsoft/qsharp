@@ -1,5 +1,5 @@
-use std::collections::BTreeSet;
 use clap::ValueEnum;
+use std::collections::BTreeSet;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 use serde::Deserialize;
@@ -22,8 +22,7 @@ impl LanguageFeature {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct LanguageFeatures(BTreeSet<LanguageFeature>);
 pub type LanguageFeatureIncompatibility = miette::ErrReport;
 pub type UnrecognizedLanguageFeature = miette::ErrReport;
@@ -36,7 +35,8 @@ impl LanguageFeatures {
         Ok(())
     }
 
-    #[must_use] pub fn none() -> Self {
+    #[must_use]
+    pub fn none() -> Self {
         Self(BTreeSet::default())
     }
 
@@ -44,11 +44,10 @@ impl LanguageFeatures {
         self.0.append(&mut other.into());
     }
 
-    #[must_use] pub fn contains(&self, feat: LanguageFeature) -> bool {
+    #[must_use]
+    pub fn contains(&self, feat: LanguageFeature) -> bool {
         self.0.contains(&feat)
     }
-
-
 }
 impl From<LanguageFeatures> for BTreeSet<LanguageFeature> {
     fn from(val: LanguageFeatures) -> Self {
@@ -60,8 +59,6 @@ impl From<BTreeSet<LanguageFeature>> for LanguageFeatures {
         LanguageFeatures(val)
     }
 }
-
-
 
 impl ValueEnum for LanguageFeature {
     fn value_variants<'a>() -> &'a [Self] {

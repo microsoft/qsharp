@@ -100,7 +100,10 @@ trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
 
 impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
 
-pub fn namespaces(input: &str, language_features: &LanguageFeatures) -> (Vec<Namespace>, Vec<Error>) {
+pub fn namespaces(
+    input: &str,
+    language_features: &LanguageFeatures,
+) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match item::parse_namespaces(&mut scanner, language_features) {
         Ok(namespaces) => (namespaces, scanner.into_errors()),
@@ -112,7 +115,10 @@ pub fn namespaces(input: &str, language_features: &LanguageFeatures) -> (Vec<Nam
     }
 }
 
-pub fn top_level_nodes(input: &str, language_features: &LanguageFeatures) -> (Vec<TopLevelNode>, Vec<Error>) {
+pub fn top_level_nodes(
+    input: &str,
+    language_features: &LanguageFeatures,
+) -> (Vec<TopLevelNode>, Vec<Error>) {
     let mut scanner = Scanner::new(input);
     match item::parse_top_level_nodes(&mut scanner, language_features) {
         Ok(nodes) => (nodes, scanner.into_errors()),

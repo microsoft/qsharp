@@ -108,11 +108,17 @@ impl Compiler {
         source_name: &str,
         source_contents: &str,
         accumulate_errors: F,
-    ) -> Result<Increment, E>  
-       where
-        F: FnMut(Vec<Error>) -> Result<(), E>
+    ) -> Result<Increment, E>
+    where
+        F: FnMut(Vec<Error>) -> Result<(), E>,
     {
-        self.compile_fragments_with_config(unit, source_name, source_contents, accumulate_errors, &LanguageFeatures::none())
+        self.compile_fragments_with_config(
+            unit,
+            source_name,
+            source_contents,
+            accumulate_errors,
+            &LanguageFeatures::none(),
+        )
     }
 
     /// See [`compile_fragments`] for more documentation.
@@ -123,7 +129,7 @@ impl Compiler {
         source_name: &str,
         source_contents: &str,
         mut accumulate_errors: F,
-        features: &LanguageFeatures
+        features: &LanguageFeatures,
     ) -> Result<Increment, E>
     where
         F: FnMut(Vec<Error>) -> Result<(), E>,
@@ -297,7 +303,7 @@ impl Compiler {
         sources: &mut SourceMap,
         source_name: &str,
         source_contents: &str,
-        features: &LanguageFeatures
+        features: &LanguageFeatures,
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
 

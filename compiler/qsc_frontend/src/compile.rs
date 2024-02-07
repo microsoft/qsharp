@@ -448,7 +448,10 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
     unit
 }
 
-fn parse_all(sources: &SourceMap, features: &LanguageFeatures) -> (ast::Package, Vec<qsc_parse::Error>) {
+fn parse_all(
+    sources: &SourceMap,
+    features: &LanguageFeatures,
+) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {

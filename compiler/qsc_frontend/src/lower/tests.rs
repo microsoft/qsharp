@@ -14,7 +14,7 @@ fn check_hir(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     expect.assert_eq(&unit.package.to_string());
@@ -26,7 +26,7 @@ fn check_errors(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
 

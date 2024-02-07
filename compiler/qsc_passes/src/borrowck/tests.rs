@@ -18,7 +18,7 @@ fn check(expr: &str, expect: &Expect) {
         &store,
         &[],
         sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);

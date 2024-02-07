@@ -47,12 +47,7 @@ impl DebugService {
             Ok(features) => features,
             Err(e) => panic!("Invalid language feature: {}", e),
         };
-        match Debugger::new(
-            source_map,
-            target.into(),
-            Encoding::Utf16,
-            &features.into(),
-        ) {
+        match Debugger::new(source_map, target.into(), Encoding::Utf16, &features.into()) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 match self.debugger_mut().set_entry() {

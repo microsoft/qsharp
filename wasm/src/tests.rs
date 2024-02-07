@@ -12,7 +12,7 @@ fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Bo
 where
     F: FnMut(&str),
 {
- run_internal_with_features(sources, event_cb, shots, LanguageFeatures::none())   
+    run_internal_with_features(sources, event_cb, shots, LanguageFeatures::none())
 }
 
 #[test]
@@ -40,7 +40,10 @@ fn test_compile() {
     M(q)
     }}";
 
-    let result = crate::_get_qir(SourceMap::new([("test.qs".into(), code.into())], None), LanguageFeatures::none());
+    let result = crate::_get_qir(
+        SourceMap::new([("test.qs".into(), code.into())], None),
+        LanguageFeatures::none(),
+    );
     assert!(result.is_ok());
 }
 

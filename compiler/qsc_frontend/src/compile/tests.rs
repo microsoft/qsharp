@@ -593,7 +593,7 @@ fn package_dependency_udt() {
         &store,
         &[],
         sources1,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
@@ -617,7 +617,7 @@ fn package_dependency_udt() {
         &store,
         &[package1],
         sources2,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
@@ -668,7 +668,7 @@ fn package_dependency_nested_udt() {
         &store,
         &[],
         sources1,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
@@ -697,7 +697,7 @@ fn package_dependency_nested_udt() {
         &store,
         &[package1],
         sources2,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
@@ -777,7 +777,7 @@ fn std_dependency() {
         &store,
         &[std],
         sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -837,7 +837,7 @@ fn introduce_prelude_ambiguity() {
         &store,
         &[std],
         sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     let errors: Vec<Error> = unit.errors;
@@ -926,7 +926,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         &store,
         &[],
         lib_sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
@@ -951,7 +951,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         &store,
         &[lib],
         sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     expect![[r#"
@@ -1063,7 +1063,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         &store,
         &[],
         lib_sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
@@ -1092,7 +1092,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         &store,
         &[lib],
         sources,
-         RuntimeCapabilityFlags::all(),
+        RuntimeCapabilityFlags::all(),
         &LanguageFeatures::none(),
     );
     expect![[r#"

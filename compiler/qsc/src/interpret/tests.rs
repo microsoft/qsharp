@@ -7,8 +7,8 @@ mod given_interpreter {
     use crate::interpret::{Error, InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
+    use qsc_data_structures::language_features::LanguageFeatures;
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_data_structures::language_features::LanguageFeatures;  
     use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
@@ -59,7 +59,7 @@ mod given_interpreter {
                     SourceMap::default(),
                     PackageType::Lib,
                     RuntimeCapabilityFlags::all(),
-                    &LanguageFeatures::none()
+                    &LanguageFeatures::none(),
                 )
                 .expect("interpreter should be created");
 
@@ -1041,7 +1041,6 @@ mod given_interpreter {
                     &result.expect("compilation should succeed"),
                     &output,
                     "hello!",
-                    
                 );
             }
         }
@@ -1053,7 +1052,7 @@ mod given_interpreter {
             SourceMap::default(),
             PackageType::Lib,
             RuntimeCapabilityFlags::empty(),
-                &LanguageFeatures::none(),
+            &LanguageFeatures::none(),
         )
         .expect("interpreter should be created")
     }
@@ -1161,7 +1160,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Exe,
                 RuntimeCapabilityFlags::all(),
-               & LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
 
@@ -1250,8 +1249,13 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
-            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, &LanguageFeatures::none(),)
-                .expect("debugger should be created");
+            let debugger = Debugger::new(
+                sources,
+                RuntimeCapabilityFlags::all(),
+                Encoding::Utf8,
+                &LanguageFeatures::none(),
+            )
+            .expect("debugger should be created");
             let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());
             let bps = debugger.get_breakpoints("b.qs");
