@@ -25,7 +25,7 @@ use qsc_ast::ast::{
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
     TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
-use qsc_data_structures::{language_features::{self,  LanguageFeatures}, span::Span};
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 
 pub(super) fn parse_with_config(s: &mut Scanner, features: &LanguageFeatures) -> Result<Box<Item>> {

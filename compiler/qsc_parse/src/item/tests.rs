@@ -1,11 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::collections::BTreeSet;
+
 use super::{parse, parse_attr, parse_spec_decl};
 use crate::{scan::Scanner, tests::{check, check_vec}};
 use expect_test::expect;
+use qsc_data_structures::language_features::LanguageFeature;
 
 fn parse_namespaces(s: &mut Scanner) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> { super::parse_namespaces(s, &Default::default()) }
+
+fn parse_namespaces_v2_syntax(s: &mut Scanner) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> { super::parse_namespaces(s, &vec![LanguageFeature::V2PreviewSyntax].into_iter().collect::<BTreeSet<_>>().into()) }
+
 
 #[test]
 fn body_intrinsic() {
@@ -1494,4 +1500,41 @@ fn callable_missing_open_parens() {
                 ),
             ]"#]],
     )
+}
+
+
+#[test]
+fn disallow_qubit_scoped_block() {
+    check_vec(
+        parse_namespaces_v2_syntax,
+        "namespace Foo { operation Main() : Unit { use q1 = Qubit() {  };  } }",
+        &expect![[r#"
+            Namespace _id_ [0-69] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [16-67]:
+                    Callable _id_ [16-67] (Operation):
+                        name: Ident _id_ [26-30] "Main"
+                        input: Pat _id_ [30-32]: Unit
+                        output: Type _id_ [35-39]: Path: Path _id_ [35-39] (Ident _id_ [35-39] "Unit")
+                        body: Block: Block _id_ [40-67]:
+                            Stmt _id_ [42-58]: Qubit (Fresh)
+                                Pat _id_ [46-48]: Bind:
+                                    Ident _id_ [46-48] "q1"
+                                QubitInit _id_ [51-58] Single
+                            Stmt _id_ [59-64]: Semi: Expr _id_ [59-63]: Expr Block: Block _id_ [59-63]: <empty>
+
+            [
+                Error(
+                    Token(
+                        Semi,
+                        Open(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 59,
+                            hi: 60,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
 }

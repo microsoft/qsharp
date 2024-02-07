@@ -990,7 +990,6 @@ fn unimplemented_attribute_call_within_unit_error() {
         )],
         None,
     );
-    let store = PackageStore::new(super::core());
     let unit = default_compile(sources);
     expect![[r#"
         [
@@ -1025,7 +1024,6 @@ fn unimplemented_attribute_with_non_unit_expr_error() {
         )],
         None,
     );
-    let store = PackageStore::new(super::core());
     let unit = default_compile(sources);
     expect![[r#"
         [

@@ -112,7 +112,6 @@ fn main() -> miette::Result<ExitCode> {
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    dbg!(&features);
     let (unit, errors) = compile(
         &store,
         &dependencies,

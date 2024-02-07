@@ -280,13 +280,6 @@ where
     Ok(())
 }
 
-#[cfg(test)]
-fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<interpret::Error>>
-where
-    F: FnMut(&str),
-{
- run_internal_with_features(sources, event_cb, shots, LanguageFeatures::none())   
-}
 
 #[wasm_bindgen]
 pub fn run(
