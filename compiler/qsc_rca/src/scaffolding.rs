@@ -116,20 +116,6 @@ impl PackageStoreScaffolding {
         self.0.insert(id, value);
     }
 
-    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsTable) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .blocks
-            .insert(id.block, value);
-    }
-
-    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsTable) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .exprs
-            .insert(id.expr, value);
-    }
-
     pub fn insert_item(&mut self, id: StoreItemId, value: ItemScaffolding) {
         self.get_mut(id.package)
             .expect("package should exist")
@@ -158,13 +144,6 @@ impl PackageStoreScaffolding {
                 ItemScaffolding::Specializations(specializations),
             );
         }
-    }
-
-    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationsTable) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .stmts
-            .insert(id.stmt, value);
     }
 
     pub fn take(&mut self, package_store_compute_properties: &mut PackageStoreComputeProperties) {

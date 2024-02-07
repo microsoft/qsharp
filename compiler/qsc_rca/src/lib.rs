@@ -12,7 +12,7 @@ mod scaffolding;
 use crate::common::set_indentation;
 use bitflags::bitflags;
 use indenter::indented;
-use itertools::{sorted, Itertools};
+use itertools::Itertools;
 use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
     BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,

@@ -77,8 +77,8 @@ struct LocalComputeProperties {
 #[derive(Debug, Default)]
 struct ApplicationInstanceComputeProperties {
     pub blocks: FxHashMap<BlockId, ComputeProperties>,
-    pub _stmts: FxHashMap<StmtId, ComputeProperties>,
-    pub _exprs: FxHashMap<ExprId, ComputeProperties>,
+    pub stmts: FxHashMap<StmtId, ComputeProperties>,
+    pub exprs: FxHashMap<ExprId, ComputeProperties>,
 }
 
 /// Performs runtime capabilities analysis (RCA) on a package.
@@ -641,7 +641,45 @@ fn save_application_instances(
             .insert(block_id, block_applications_table);
     }
 
-    // TODO (cesarzc): finish implementation.
+    // Save statements.
+    for (stmt_id, inherent_properties) in inherent_application_instance.stmts.drain() {
+        let mut dynamic_params_properties =
+            Vec::<ComputeProperties>::with_capacity(input_params_count);
+        for application_instance in dynamic_params_application_instances.iter_mut() {
+            let stmt_compute_properties = application_instance
+                .stmts
+                .remove(&stmt_id)
+                .expect("statement should exist in application instance");
+            dynamic_params_properties.push(stmt_compute_properties);
+        }
+        let stmt_applications_table = ApplicationsTable {
+            inherent_properties,
+            dynamic_params_properties,
+        };
+        package_scaffolding
+            .stmts
+            .insert(stmt_id, stmt_applications_table);
+    }
+
+    // Save expressions.
+    for (expr_id, inherent_properties) in inherent_application_instance.exprs.drain() {
+        let mut dynamic_params_properties =
+            Vec::<ComputeProperties>::with_capacity(input_params_count);
+        for application_instance in dynamic_params_application_instances.iter_mut() {
+            let expr_compute_properties = application_instance
+                .exprs
+                .remove(&expr_id)
+                .expect("statement should exist in application instance");
+            dynamic_params_properties.push(expr_compute_properties);
+        }
+        let expr_applications_table = ApplicationsTable {
+            inherent_properties,
+            dynamic_params_properties,
+        };
+        package_scaffolding
+            .exprs
+            .insert(expr_id, expr_applications_table);
+    }
 }
 
 fn simulate_block_application_instance(
