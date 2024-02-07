@@ -4,6 +4,7 @@
 //! Runtime Capabilities Analysis (RCA)...
 
 mod analyzer;
+mod applications;
 mod common;
 mod cycle_detection;
 mod rca;
