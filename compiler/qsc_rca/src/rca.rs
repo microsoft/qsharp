@@ -715,6 +715,7 @@ fn simulate_expr(
 ) {
     let expr = package_store.get_expr(id);
     match &expr.kind {
+        ExprKind::Lit(_) => simulate_expr_lit(id, application_instance),
         ExprKind::Tuple(exprs) => simulate_expr_tuple(
             id,
             exprs,
@@ -729,6 +730,14 @@ fn simulate_expr(
                 .insert(id.expr, ComputeProperties::default());
         }
     }
+}
+
+fn simulate_expr_lit(id: StoreExprId, application_instance: &mut ApplicationInstance) {
+    // Literal expressions have no runtime features nor are sources of dynamism so they are just empty compute
+    // properties.
+    application_instance
+        .exprs
+        .insert(id.expr, ComputeProperties::default());
 }
 
 fn simulate_expr_tuple(
