@@ -44,10 +44,7 @@ struct ApplicationInstance {
 }
 
 impl ApplicationInstance {
-    pub fn new(
-        input_params: &Vec<InputParam>,
-        dynamic_param_index: Option<InputParamIndex>,
-    ) -> Self {
+    fn new(input_params: &Vec<InputParam>, dynamic_param_index: Option<InputParamIndex>) -> Self {
         let mut unprocessed_locals_map = initalize_locals_map(input_params);
         let mut locals_map = FxHashMap::default();
         for (node_id, local) in unprocessed_locals_map.drain() {
@@ -86,7 +83,7 @@ impl ApplicationInstance {
         }
     }
 
-    pub fn aggregate_return_expressions(&mut self) -> FxHashSet<DynamismSource> {
+    fn aggregate_return_expressions(&mut self) -> FxHashSet<DynamismSource> {
         // Cannot aggregate return expressions until the application instance has been settled, but not yet flushed.
         assert!(self.is_settled);
         assert!(!self.was_flushed);
@@ -103,13 +100,24 @@ impl ApplicationInstance {
         dynamism_sources
     }
 
-    pub fn mark_flushed(&mut self) {
-        // Can only mark as flushed if no return expressions remain.
+    fn clear_locals(&mut self) {
+        // Cannot clear locals until the application instance has been settled.
+        assert!(self.is_settled);
+        self.locals_map.clear();
+    }
+
+    fn mark_flushed(&mut self) {
+        // Cannot mark as flushed until the application instance has been settled, no return expressions remain and all
+        // compute properties maps are empty.
+        assert!(self.is_settled);
         assert!(self.return_expressions.is_empty());
+        assert!(self.blocks.is_empty());
+        assert!(self.stmts.is_empty());
+        assert!(self.exprs.is_empty());
         self.was_flushed = true;
     }
 
-    pub fn settle(&mut self) {
+    fn settle(&mut self) {
         // Cannot settle an application instance while there are active dynamic scopes.
         assert!(self.active_dynamic_scopes.is_empty());
         self.is_settled = true;
@@ -195,10 +203,10 @@ impl SpecApplicationInstances {
     }
 
     fn clear_locals(&mut self) {
-        self.inherent.locals_map.clear();
+        self.inherent.clear_locals();
         self.dynamic_params
             .iter_mut()
-            .for_each(|application_instance| application_instance.locals_map.clear());
+            .for_each(|application_instance| application_instance.clear_locals());
     }
 
     fn flush_compute_properties(&mut self, package_scaffolding: &mut PackageScaffolding) {
@@ -263,6 +271,12 @@ impl SpecApplicationInstances {
                 .exprs
                 .insert(expr_id, expr_applications_table);
         }
+
+        // Mark individual application instances as flushed.
+        self.inherent.mark_flushed();
+        self.dynamic_params
+            .iter_mut()
+            .for_each(|application_instance| application_instance.mark_flushed());
     }
 }
 
