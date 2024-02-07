@@ -3,13 +3,15 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use std::collections::BTreeSet;
+
 use crate::compile::RuntimeCapabilityFlags;
 
 use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
-use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+use qsc_data_structures::{language_features::{LanguageFeature, LanguageFeatures}, span::Span};
 use qsc_hir::{
     global,
     hir::{
@@ -1099,4 +1101,97 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         []
     "#]]
     .assert_debug_eq(&unit.errors);
+}
+
+#[test]
+fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    open Microsoft.Quantum.Intrinsic;
+
+                    operation Main() : Unit {
+                        use q = Qubit() {
+                            // some qubit operation here
+                            // this should be a syntax error because
+                            // we have the v2 preview syntax feature enabled
+                            X(q);
+                        };
+                        
+                    }
+                }
+            "}
+            .into(),
+        )],
+        Some("Foo.Main()".into()),
+    );
+
+    let unit = compile(
+        &store,
+        &[std],
+        sources,
+        RuntimeCapabilityFlags::empty(),
+        &vec![LanguageFeature::V2PreviewSyntax].into_iter().collect::<BTreeSet<_>>().into(),
+    );
+    expect![[r#"
+        [
+            Error(
+                Parse(
+                    Error(
+                        Token(
+                            Semi,
+                            Open(
+                                Brace,
+                            ),
+                            Span {
+                                lo: 120,
+                                hi: 121,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}#[test]
+fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
+    let mut store = PackageStore::new(super::core());
+    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Foo {
+                    open Microsoft.Quantum.Intrinsic;
+
+                    operation Main() : Unit {
+                        use q = Qubit() {
+                            // some qubit operation here
+                            // this should be a syntax error because
+                            // we have the v2 preview syntax feature enabled
+                            X(q);
+
+                        };
+                    }
+                }
+            "}
+            .into(),
+        )],
+        Some("Foo.Main()".into()),
+    );
+
+    let unit = compile(
+        &store,
+        &[std],
+        sources,
+        RuntimeCapabilityFlags::empty(),
+        &LanguageFeatures::none(),
+    );
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+
 }
