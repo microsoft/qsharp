@@ -12,8 +12,8 @@ use crate::{
     RuntimeFeatureFlags,
 };
 use qsc_fir::fir::{
-    ExprId, ExprKind, Mutability, PackageLookup, PatId, PatKind, StmtKind, StoreBlockId,
-    StoreExprId,
+    ExprId, ExprKind, Ident, Mutability, PackageLookup, Pat, PatId, PatKind, StmtKind,
+    StoreBlockId, StoreExprId,
 };
 use qsc_fir::{
     fir::{
@@ -324,7 +324,7 @@ fn analyze_statement(
     // TODO (cesarzc): Implement.
 }
 
-fn bind_expression_compute_properties(
+fn bind_expr_compute_properties(
     mutability: Mutability,
     pat_id: PatId,
     expr_id: ExprId,
@@ -344,24 +344,12 @@ fn bind_expression_compute_properties(
                 Mutability::Immutable => LocalKind::Immutable(expr_id),
                 Mutability::Mutable => LocalKind::Mutable,
             };
-            let local = Local {
-                node: ident.id,
-                pat: pat_id,
-                ty: pat.ty.clone(),
-                kind,
-            };
-            let local_compute_properties = LocalComputeProperties {
-                local,
-                compute_properties,
-            };
-            application_instance
-                .locals_map
-                .insert(ident.id, local_compute_properties);
+            bind_ident(pat, ident, kind, compute_properties, application_instance);
         }
         PatKind::Tuple(pats) => match &expr.kind {
             ExprKind::Tuple(exprs) => {
                 for (pat_id, expr_id) in pats.iter().zip(exprs.iter()) {
-                    bind_expression_compute_properties(
+                    bind_expr_compute_properties(
                         mutability,
                         *pat_id,
                         *expr_id,
@@ -370,16 +358,11 @@ fn bind_expression_compute_properties(
                     );
                 }
             }
-            // TODO (cesarzc): Handle ExprKind::Var specifically.
             _ => {
-                let compute_properties = application_instance
-                    .exprs
-                    .get(&expr_id)
-                    .expect("expression compute properties should exist")
-                    .clone();
-                bind_fixed_compute_properties(
+                bind_fixed_expr_compute_properties(
+                    mutability,
                     pat_id,
-                    &compute_properties,
+                    expr_id,
                     package,
                     application_instance,
                 );
@@ -391,14 +374,64 @@ fn bind_expression_compute_properties(
     }
 }
 
-fn bind_fixed_compute_properties(
+fn bind_fixed_expr_compute_properties(
+    mutability: Mutability,
     pat_id: PatId,
-    _compute_properties: &ComputeProperties,
+    expr_id: ExprId,
     package: &impl PackageLookup,
-    _application_instance: &mut ApplicationInstance,
+    application_instance: &mut ApplicationInstance,
 ) {
-    let _pat = package.get_pat(pat_id);
-    // TODO (cesarzc): Implement properly.
+    let pat = package.get_pat(pat_id);
+    match &pat.kind {
+        PatKind::Bind(ident) => {
+            let compute_properties = application_instance
+                .exprs
+                .get(&expr_id)
+                .expect("expression compute properties should exist")
+                .clone();
+            let kind = match mutability {
+                Mutability::Immutable => LocalKind::Immutable(expr_id),
+                Mutability::Mutable => LocalKind::Mutable,
+            };
+            bind_ident(pat, ident, kind, compute_properties, application_instance);
+        }
+        PatKind::Tuple(pats) => {
+            for pat_id in pats {
+                bind_fixed_expr_compute_properties(
+                    mutability,
+                    *pat_id,
+                    expr_id,
+                    package,
+                    application_instance,
+                );
+            }
+        }
+        PatKind::Discard => {
+            // Nothing to bind to.
+        }
+    }
+}
+
+fn bind_ident(
+    pat: &Pat,
+    ident: &Ident,
+    local_kind: LocalKind,
+    compute_properties: ComputeProperties,
+    application_instance: &mut ApplicationInstance,
+) {
+    let local = Local {
+        node: ident.id,
+        pat: pat.id,
+        ty: pat.ty.clone(),
+        kind: local_kind,
+    };
+    let local_compute_properties = LocalComputeProperties {
+        local,
+        compute_properties,
+    };
+    application_instance
+        .locals_map
+        .insert(ident.id, local_compute_properties);
 }
 
 fn create_cycled_function_specialization_applications_table(
@@ -811,7 +844,7 @@ fn simulate_stmt_local(
     // The compute properties of the binded expression are associated to the compute properties of both the local symbol
     // and the statement.
     let package = package_store.get(id.package).expect("package should exist");
-    bind_expression_compute_properties(mutability, pat_id, expr_id, package, application_instance);
+    bind_expr_compute_properties(mutability, pat_id, expr_id, package, application_instance);
     let stmt_compute_properties = application_instance
         .exprs
         .get(&expr_id)
