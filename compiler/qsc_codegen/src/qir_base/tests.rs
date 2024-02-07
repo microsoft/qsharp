@@ -36,7 +36,7 @@ fn check(program: &str, expr: Option<&str>, expect: &Expect) {
         &[std],
         sources,
         RuntimeCapabilityFlags::empty(),
-        &&LanguageFeatures::none(),
+        &LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     assert!(run_default_passes(

@@ -11,7 +11,10 @@ use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
-use qsc_data_structures::{language_features::{LanguageFeature, LanguageFeatures}, span::Span};
+use qsc_data_structures::{
+    language_features::{LanguageFeature, LanguageFeatures},
+    span::Span,
+};
 use qsc_hir::{
     global,
     hir::{
@@ -1135,7 +1138,10 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
         &[std],
         sources,
         RuntimeCapabilityFlags::empty(),
-        &vec![LanguageFeature::V2PreviewSyntax].into_iter().collect::<BTreeSet<_>>().into(),
+        &vec![LanguageFeature::V2PreviewSyntax]
+            .into_iter()
+            .collect::<BTreeSet<_>>()
+            .into(),
     );
     expect![[r#"
         [
@@ -1158,7 +1164,8 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
         ]
     "#]]
     .assert_debug_eq(&unit.errors);
-}#[test]
+}
+#[test]
 fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
     let mut store = PackageStore::new(super::core());
     let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
@@ -1193,5 +1200,4 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         &LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
-
 }

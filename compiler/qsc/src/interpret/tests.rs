@@ -1062,7 +1062,7 @@ mod given_interpreter {
 
         match result {
             Ok(v) => assert_eq!(value, v),
-            Err(e) => panic!("Expected unit value, got {e:?}"),
+            Err(e) => panic!("Expected {value:?}, got {e:?}"),
         }
     }
 
