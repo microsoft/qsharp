@@ -91,7 +91,7 @@ fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<S
         sources,
         PackageType::Exe,
         Profile::Base.into(),
-        language_features,
+        &language_features,
     );
 
     // Ensure it compiles before trying to add it to the store.
@@ -129,7 +129,7 @@ pub fn get_estimates(
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
-        language_features.into(),
+        &language_features.into(),
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -173,7 +173,7 @@ pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, Str
             sources,
             PackageType::Exe,
             Profile::Unrestricted.into(),
-            language_features.into(),
+            &language_features.into(),
         );
         unit.package
     });
@@ -246,7 +246,7 @@ where
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
-        language_features
+       & language_features
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {

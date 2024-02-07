@@ -15,8 +15,8 @@ fn check(file: &str, expr: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+         RuntimeCapabilityFlags::all(),
+        &LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 

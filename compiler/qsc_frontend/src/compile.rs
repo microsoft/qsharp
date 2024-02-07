@@ -343,9 +343,9 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     capabilities: RuntimeCapabilityFlags,
-    opt_in_features: LanguageFeatures,
+    opt_in_features: &LanguageFeatures,
 ) -> CompileUnit {
-    let (mut ast_package, parse_errors) = parse_all(&sources, &opt_in_features);
+    let (mut ast_package, parse_errors) = parse_all(&sources, opt_in_features);
 
     let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
@@ -418,7 +418,7 @@ pub fn core() -> CompileUnit {
         &[],
         sources,
         RuntimeCapabilityFlags::empty(),
-        LanguageFeatures::none(),
+        &LanguageFeatures::none(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
@@ -442,7 +442,7 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
         &[PackageId::CORE],
         sources,
         capabilities,
-        LanguageFeatures::none(),
+        &LanguageFeatures::none(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit

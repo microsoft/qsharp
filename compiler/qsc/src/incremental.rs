@@ -38,7 +38,7 @@ impl Compiler {
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
-        opt_in_features: LanguageFeatures,
+        opt_in_features: &LanguageFeatures,
     ) -> Result<Self, Errors> {
         let core = core();
         let mut store = PackageStore::new(core);

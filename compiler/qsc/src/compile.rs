@@ -28,7 +28,7 @@ pub fn compile(
     sources: SourceMap,
     package_type: PackageType,
     capabilities: RuntimeCapabilityFlags,
-    opt_in_features: LanguageFeatures,
+    opt_in_features: &LanguageFeatures,
 ) -> (CompileUnit, Vec<Error>) {
     let mut unit =
         qsc_frontend::compile::compile(store, dependencies, sources, capabilities, opt_in_features);

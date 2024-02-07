@@ -16,14 +16,14 @@ impl LanguageFeature {
         match s {
             "v2-preview-syntax" => Ok(LanguageFeature::V2PreviewSyntax),
             _ => Err(UnrecognizedLanguageFeature::msg(format!(
-                "Unrecognized language feature: {}",
-                s
+                "Unrecognized language feature: {s}"
             ))),
         }
     }
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[derive(Default)]
 pub struct LanguageFeatures(BTreeSet<LanguageFeature>);
 pub type LanguageFeatureIncompatibility = miette::ErrReport;
 pub type UnrecognizedLanguageFeature = miette::ErrReport;
@@ -36,36 +36,32 @@ impl LanguageFeatures {
         Ok(())
     }
 
-    pub fn none() -> Self {
-        Self(Default::default())
+    #[must_use] pub fn none() -> Self {
+        Self(BTreeSet::default())
     }
 
     pub fn merge(&mut self, other: impl Into<BTreeSet<LanguageFeature>>) {
         self.0.append(&mut other.into());
     }
 
-    pub fn contains(&self, feat: LanguageFeature) -> bool {
+    #[must_use] pub fn contains(&self, feat: LanguageFeature) -> bool {
         self.0.contains(&feat)
     }
 
 
 }
-impl Into<BTreeSet<LanguageFeature>> for LanguageFeatures {
-    fn into(self) -> BTreeSet<LanguageFeature> {
-        self.0
+impl From<LanguageFeatures> for BTreeSet<LanguageFeature> {
+    fn from(val: LanguageFeatures) -> Self {
+        val.0
     }
 }
-impl Into<LanguageFeatures> for BTreeSet<LanguageFeature> {
-    fn into(self) -> LanguageFeatures {
-        LanguageFeatures(self)
+impl From<BTreeSet<LanguageFeature>> for LanguageFeatures {
+    fn from(val: BTreeSet<LanguageFeature>) -> Self {
+        LanguageFeatures(val)
     }
 }
 
-impl Default for LanguageFeatures {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
+
 
 impl ValueEnum for LanguageFeature {
     fn value_variants<'a>() -> &'a [Self] {

@@ -130,7 +130,7 @@ mod given_debugger {
             use qsc_data_structures::language_features::LanguageFeatures;
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger =
-                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, LanguageFeatures::none())?;
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, &LanguageFeatures::none())?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -150,7 +150,7 @@ mod given_debugger {
         fn next_crosses_operation_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger =
-                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, LanguageFeatures::none())?;
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, &LanguageFeatures::none())?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -166,7 +166,7 @@ mod given_debugger {
         fn in_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger =
-                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, LanguageFeatures::none())?;
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, &LanguageFeatures::none())?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
@@ -189,7 +189,7 @@ mod given_debugger {
         fn out_multiple_operations_works() -> Result<(), Vec<crate::interpret::Error>> {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger =
-                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, LanguageFeatures::none())?;
+                Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, &LanguageFeatures::none())?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];

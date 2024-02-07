@@ -83,7 +83,7 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             .downcast::<PyDict>()?;
 
         let features = get_dict_opt_list_string(manifest, "features")? ;
-        let features: LanguageFeatures = match features.iter().map(|f| LanguageFeature::try_parse(&f)).collect::<std::result::Result<BTreeSet<_>, _>>() {
+        let features: LanguageFeatures = match features.iter().map(|f| LanguageFeature::try_parse(f)).collect::<std::result::Result<BTreeSet<_>, _>>() {
             Ok(features) => features.into(),
             Err(e) => return Err(QSharpError::new_err(e.to_string())),
         };
@@ -102,6 +102,7 @@ impl FromPyObject<'_> for PyManifestDescriptor {
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    #[allow(clippy::needless_pass_by_value)]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
@@ -134,14 +135,15 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        let language_features = language_features.iter().map(|f| LanguageFeature::try_parse(&f)).collect::<std::result::Result<BTreeSet<_>, _>>();
+        let language_features = language_features.iter().map(|f| LanguageFeature::try_parse(f)).collect::<std::result::Result<BTreeSet<_>, _>>();
+
 
         let language_features = match language_features {
             Ok(features) => features.into(),
             Err(e) => return Err(QSharpError::new_err(e.to_string())),
         };
 
-        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into(), language_features) {
+        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into(), &language_features) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -558,8 +560,8 @@ fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
         None => return Ok(vec![]),
     };
  match list.iter().map(|item| item.downcast::<PyString>().map(|s| s.to_string_lossy().into())).collect::<std::result::Result<Vec<String>, _>>() {
-        Ok(list) => return Ok(list),
-        Err(e) => return Err(QSharpError::new_err(e.to_string())),
+        Ok(list) => Ok(list),
+        Err(e) => Err(QSharpError::new_err(e.to_string())),
     }
 
 

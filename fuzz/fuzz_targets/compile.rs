@@ -25,7 +25,7 @@ fn compile(data: &[u8]) {
                 sources,
                 qsc::PackageType::Lib,
                 Profile::Unrestricted.into(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             );
         });
     }

@@ -14,8 +14,8 @@ fn check_hir(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+         RuntimeCapabilityFlags::all(),
+        &LanguageFeatures::none(),
     );
     expect.assert_eq(&unit.package.to_string());
 }
@@ -26,8 +26,8 @@ fn check_errors(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+         RuntimeCapabilityFlags::all(),
+        &LanguageFeatures::none(),
     );
 
     let lower_errors: Vec<_> = unit

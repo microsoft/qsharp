@@ -21,7 +21,7 @@ pub fn teleport(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-LanguageFeatures::none(),
+&LanguageFeatures::none(),
         )
         .expect("code should compile");
         b.iter(move || {
@@ -39,8 +39,8 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
             true,
             sources,
             PackageType::Exe,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            RuntimeCapabilityFlags::empty(),
+                &LanguageFeatures::none(),
 
         )
         .expect("code should compile");
@@ -59,8 +59,8 @@ pub fn large_file(c: &mut Criterion) {
             true,
             sources,
             PackageType::Exe,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            RuntimeCapabilityFlags::empty(),
+                &LanguageFeatures::none(),
 
         )
         .expect("code should compile");
@@ -91,8 +91,8 @@ pub fn array_append(c: &mut Criterion) {
             true,
             sources,
             PackageType::Exe,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            RuntimeCapabilityFlags::empty(),
+                &LanguageFeatures::none(),
 
         )
         .expect("code should compile");
@@ -123,8 +123,8 @@ pub fn array_update(c: &mut Criterion) {
             true,
             sources,
             PackageType::Exe,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            RuntimeCapabilityFlags::empty(),
+                &LanguageFeatures::none(),
 
         )
         .expect("code should compile");
@@ -143,8 +143,8 @@ pub fn array_literal(c: &mut Criterion) {
             true,
             sources,
             PackageType::Exe,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none()
+            RuntimeCapabilityFlags::empty(),
+                &LanguageFeatures::none()
         )
         .expect("code should compile");
         b.iter(move || {

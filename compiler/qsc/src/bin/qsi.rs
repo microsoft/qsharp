@@ -81,7 +81,7 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
-        let mut features: LanguageFeatures = BTreeSet::from_iter(cli.features.into_iter()).into();
+        let mut features: LanguageFeatures = BTreeSet::from_iter(cli.features).into();
 
     if sources.is_empty() {
         let fs = StdFs;
@@ -101,7 +101,7 @@ fn main() -> miette::Result<ExitCode> {
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-            features
+            &features
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -121,7 +121,7 @@ fn main() -> miette::Result<ExitCode> {
         SourceMap::new(sources, None),
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
-        features
+        &features
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

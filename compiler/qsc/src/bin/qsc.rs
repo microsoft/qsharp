@@ -85,7 +85,7 @@ fn main() -> miette::Result<ExitCode> {
         dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
     }
 
-    let mut features: LanguageFeatures = BTreeSet::from_iter(cli.features.into_iter()).into();
+    let mut features: LanguageFeatures = BTreeSet::from_iter(cli.features).into();
 
     let mut sources = cli
         .sources
@@ -118,7 +118,7 @@ fn main() -> miette::Result<ExitCode> {
         sources,
         package_type,
         capabilities,
-        features,
+        &features,
     );
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");

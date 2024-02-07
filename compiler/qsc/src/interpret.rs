@@ -124,7 +124,7 @@ impl Interpreter {
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
-        language_features: LanguageFeatures,
+        language_features: &LanguageFeatures,
     ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = fir::PackageStore::new();
@@ -373,7 +373,7 @@ impl Debugger {
         sources: SourceMap,
         capabilities: RuntimeCapabilityFlags,
         position_encoding: Encoding,
-        language_features: LanguageFeatures,
+        language_features: &LanguageFeatures,
     ) -> Result<Self, Vec<Error>> {
         let interpreter = Interpreter::new(true, sources, PackageType::Exe, capabilities, language_features)?;
         let source_package_id = interpreter.source_package;

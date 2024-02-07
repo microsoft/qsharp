@@ -9,7 +9,7 @@ use std::{
     fs::{self, DirEntry, FileType},
 };
 
-use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
+use qsc_data_structures::language_features::{LanguageFeatures};
 use serde::Deserialize;
 use std::{path::PathBuf, sync::Arc};
 

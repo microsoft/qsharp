@@ -107,15 +107,15 @@ impl Compiler {
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-        mut accumulate_errors: F,
+        accumulate_errors: F,
     ) -> Result<Increment, E>  
        where
         F: FnMut(Vec<Error>) -> Result<(), E>
     {
-        self.compile_fragments_with_config(unit, source_name, source_contents, accumulate_errors, &Default::default())
+        self.compile_fragments_with_config(unit, source_name, source_contents, accumulate_errors, &LanguageFeatures::none())
     }
 
-    /// See [compile_fragments] for more documentation.
+    /// See [`compile_fragments`] for more documentation.
     /// Allows for compiling of fragments with language features specified.
     pub fn compile_fragments_with_config<F, E>(
         &mut self,

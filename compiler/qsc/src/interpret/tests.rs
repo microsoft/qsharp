@@ -59,7 +59,7 @@ mod given_interpreter {
                     SourceMap::default(),
                     PackageType::Lib,
                     RuntimeCapabilityFlags::all(),
-                    LanguageFeatures::none()
+                    &LanguageFeatures::none()
                 )
                 .expect("interpreter should be created");
 
@@ -553,7 +553,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -620,7 +620,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -687,7 +687,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -769,7 +769,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -796,7 +796,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -883,7 +883,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let res = interpreter
@@ -947,7 +947,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let res = interpreter
@@ -1052,8 +1052,8 @@ mod given_interpreter {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            RuntimeCapabilityFlags::empty(),
+                &LanguageFeatures::none(),
         )
         .expect("interpreter should be created")
     }
@@ -1161,7 +1161,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Exe,
                 RuntimeCapabilityFlags::all(),
-                LanguageFeatures::none(),
+               & LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
 
@@ -1184,7 +1184,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
 
@@ -1211,7 +1211,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
 
@@ -1250,7 +1250,7 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
-            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, LanguageFeatures::none(),)
+            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8, &LanguageFeatures::none(),)
                 .expect("debugger should be created");
             let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());
@@ -1279,7 +1279,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
@@ -1310,7 +1310,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
-                LanguageFeatures::none(),
+                &LanguageFeatures::none(),
             )
             .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);

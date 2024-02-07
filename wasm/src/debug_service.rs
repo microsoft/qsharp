@@ -51,7 +51,7 @@ impl DebugService {
             source_map,
             target.into(),
             Encoding::Utf16,
-            features.into(),
+            &features.into(),
         ) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
