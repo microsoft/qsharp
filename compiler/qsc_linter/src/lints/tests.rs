@@ -2,7 +2,7 @@ mod demo;
 
 use super::ast::{DivisionByZero, DoubleParens};
 use crate::{
-    linter::{self, ast::AstLintWrapper},
+    linter::{self, ast::LocalType},
     lints::tests::demo::LinterDemoApp,
 };
 use eframe::egui::ViewportBuilder;
@@ -61,10 +61,8 @@ fn linter() {
 }
 
 fn run_lints(source: &str) {
-    let mut parens = DoubleParens;
-    let mut div_zero = DivisionByZero;
-
-    let mut lints = [AstLintWrapper(&mut parens), AstLintWrapper(&mut div_zero)];
+    let mut parens = LocalType(DoubleParens);
+    let mut div_zero = LocalType(DivisionByZero);
 
     let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();
@@ -74,9 +72,8 @@ fn run_lints(source: &str) {
     }
 
     for namespace in &namespaces {
-        for lint in &mut lints {
-            lint.visit_namespace(namespace);
-        }
+        parens.visit_namespace(namespace);
+        div_zero.visit_namespace(namespace);
     }
 }
 

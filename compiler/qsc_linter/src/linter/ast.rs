@@ -7,29 +7,41 @@ use qsc_ast::{
 };
 
 #[allow(unused_variables)]
-pub(crate) trait AstLintPass<'a> {
-    fn check_attr(&mut self, attr: &'a Attr) {}
-    fn check_block(&mut self, block: &'a Block) {}
-    fn check_callable_decl(&mut self, callable_decl: &'a CallableDecl) {}
-    fn check_expr(&mut self, expr: &'a Expr) {}
-    fn check_functor_expr(&mut self, functor_expr: &'a FunctorExpr) {}
-    fn check_ident(&mut self, _: &'a Ident) {}
-    fn check_item(&mut self, item: &'a Item) {}
-    fn check_namespace(&mut self, namespace: &'a Namespace) {}
-    fn check_package(&mut self, package: &'a Package) {}
-    fn check_pat(&mut self, pat: &'a Pat) {}
-    fn check_path(&mut self, path: &'a Path) {}
-    fn check_qubit_init(&mut self, qubit_init: &'a QubitInit) {}
-    fn check_spec_decl(&mut self, spec_decl: &'a SpecDecl) {}
-    fn check_stmt(&mut self, stmt: &'a Stmt) {}
-    fn check_ty(&mut self, ty: &'a Ty) {}
-    fn check_ty_def(&mut self, ty_def: &'a TyDef) {}
-    fn check_visibility(&mut self, visibility: &'a Visibility) {}
+pub(crate) trait AstLintPass {
+    fn check_attr(&self, attr: &Attr) {}
+    fn check_block(&self, block: &Block) {}
+    fn check_callable_decl(&self, callable_decl: &CallableDecl) {}
+    fn check_expr(&self, expr: &Expr) {}
+    fn check_functor_expr(&self, functor_expr: &FunctorExpr) {}
+    fn check_ident(&self, _: &Ident) {}
+    fn check_item(&self, item: &Item) {}
+    fn check_namespace(&self, namespace: &Namespace) {}
+    fn check_package(&self, package: &Package) {}
+    fn check_pat(&self, pat: &Pat) {}
+    fn check_path(&self, path: &Path) {}
+    fn check_qubit_init(&self, qubit_init: &QubitInit) {}
+    fn check_spec_decl(&self, spec_decl: &SpecDecl) {}
+    fn check_stmt(&self, stmt: &Stmt) {}
+    fn check_ty(&self, ty: &Ty) {}
+    fn check_ty_def(&self, ty_def: &TyDef) {}
+    fn check_visibility(&self, visibility: &Visibility) {}
 }
 
-pub(crate) struct AstLintWrapper<'a>(pub &'a mut dyn AstLintPass<'a>);
+/// This is necessary because rust's Orphan Rules don't allow implementing
+/// [`Visitor`], a foreign trait, for a foreign type. Therefore, we can't do
+///
+/// ```
+/// impl<'a, T> Visitor<'a> for <T: AstLintWrapper> { ... }
+/// ```
+///
+/// since there is no way of telling rust's compiler that `T` is a local type.
+///
+/// The workaround is using the newtype idiom to tell rust that we are
+/// implementing [`Visitor`] for local types. That is, creating a dummy wrapper
+/// `LocalType(T)` to wrap T.
+pub(crate) struct LocalType<T: AstLintPass>(pub T);
 
-impl<'a> Visitor<'a> for AstLintWrapper<'a> {
+impl<'a, T: AstLintPass> Visitor<'a> for LocalType<T> {
     fn visit_package(&mut self, package: &'a Package) {
         self.0.check_package(package);
         visit::walk_package(self, package);

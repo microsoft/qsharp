@@ -14,8 +14,8 @@ declare_lint!(
 );
 declare_lint!(DivisionByZero, LintLevel::Deny, "attempt to divide by zero");
 
-impl<'a> AstLintPass<'a> for DoubleParens {
-    fn check_expr(&mut self, expr: &'a qsc_ast::ast::Expr) {
+impl AstLintPass for DoubleParens {
+    fn check_expr(&self, expr: &qsc_ast::ast::Expr) {
         if let ExprKind::Paren(ref inner_expr) = *expr.kind {
             if matches!(*inner_expr.kind, ExprKind::Paren(_)) {
                 push_lint!(Self, expr);
@@ -24,8 +24,8 @@ impl<'a> AstLintPass<'a> for DoubleParens {
     }
 }
 
-impl<'a> AstLintPass<'a> for DivisionByZero {
-    fn check_expr(&mut self, expr: &'a qsc_ast::ast::Expr) {
+impl AstLintPass for DivisionByZero {
+    fn check_expr(&self, expr: &qsc_ast::ast::Expr) {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
                 if let Lit::Int(ref x) = **lit {
