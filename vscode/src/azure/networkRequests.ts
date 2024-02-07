@@ -24,7 +24,7 @@ export async function azureRequest(
   const headers: [string, string][] = [
     ["Authorization", `Bearer ${token}`],
     ["Content-Type", "application/json"],
-    ["User-Agent", getUserAgent()],
+    ["x-ms-useragent", getUserAgent()],
   ];
 
   try {
@@ -81,7 +81,7 @@ export async function storageRequest(
   const headers: [string, string][] = [
     ["x-ms-version", "2023-01-03"],
     ["x-ms-date", new Date().toUTCString()],
-    ["User-Agent", getUserAgent()],
+    ["x-ms-useragent", getUserAgent()],
   ];
   if (token) headers.push(["Authorization", `Bearer ${token}`]);
 
