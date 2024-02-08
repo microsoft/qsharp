@@ -615,23 +615,18 @@ fn create_intrinsic_function_applications_table(
     for param in input_params {
         // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
         // the output of the function is dynamic. Therefore, for all dynamic parameters, if the function's output is
-        // non-unit:
-        // - It becomes a source of dynamism.
+        // non-unit it becomes a source of dynamism.
         // - The output type contributes to the runtime features used by the function.
-        let (dynamism_sources, mut runtime_features) = if callable_decl.output == Ty::UNIT {
-            (FxHashSet::default(), RuntimeFeatureFlags::empty())
+        let dynamism_sources = if callable_decl.output == Ty::UNIT {
+            FxHashSet::default()
         } else {
-            (
-                FxHashSet::from_iter(vec![DynamismSource::Intrinsic]),
-                derive_intrinsic_runtime_features_from_type(&callable_decl.output),
-            )
+            FxHashSet::from_iter(vec![DynamismSource::Intrinsic])
         };
 
-        // When a parameter is binded to a dynamic value, its type contributes to the runtime features used by the
-        // function.
-        runtime_features |= derive_intrinsic_runtime_features_from_type(&param.ty);
         let param_compute_properties = ComputeProperties {
-            runtime_features,
+            // When a parameter is binded to a dynamic value, its type contributes to the runtime features used by the
+            // function application.
+            runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
             dynamism_sources,
         };
         dynamic_params_properties.push(param_compute_properties);
@@ -657,10 +652,10 @@ fn create_instrinsic_operation_applications_table(
     {
         RuntimeFeatureFlags::empty()
     } else {
-        derive_intrinsic_runtime_features_from_type(&callable_decl.output)
+        derive_runtime_features_for_dynamic_type(&callable_decl.output)
     };
 
-    // Intrinsic are an inherent source of dynamism if their output is not `Unit` or `Qubit`.
+    // Intrinsic operations are an inherent source of dynamism if their output is not `Unit` or `Qubit`.
     let dynamism_sources =
         if callable_decl.output == Ty::UNIT || callable_decl.output == Ty::Prim(Prim::Qubit) {
             FxHashSet::default()
@@ -678,17 +673,19 @@ fn create_instrinsic_operation_applications_table(
     let mut dynamic_params_properties = Vec::new();
     for param in input_params {
         // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
-        // dynamic the output of the operation is dynamic. Therefore, this operation becomes a source of dynamism for
-        // all dynamic params if its output is not `Unit`.
+        // dynamic the output of the operation is dynamic. Therefore, for all dynamic parameters, if the operation's
+        // output is non-unit it becomes a source of dynamism.
         let dynamism_sources = if callable_decl.output == Ty::UNIT {
             FxHashSet::default()
         } else {
             FxHashSet::from_iter(vec![DynamismSource::Intrinsic])
         };
 
-        // When a parameter is binded to a dynamic value, its runtime features depend on the parameter type.
         let param_compute_properties = ComputeProperties {
-            runtime_features: derive_intrinsic_runtime_features_from_type(&param.ty),
+            // When a parameter is binded to a dynamic value, its type contributes to the runtime features used by the
+            // operation application.
+            runtime_features: runtime_features
+                | derive_runtime_features_for_dynamic_type(&param.ty),
             dynamism_sources,
         };
         dynamic_params_properties.push(param_compute_properties);
@@ -749,7 +746,7 @@ fn create_stmt_local_compute_properties(
         .clone()
 }
 
-fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
+fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     fn intrinsic_runtime_features_from_primitive_type(prim: &Prim) -> RuntimeFeatureFlags {
         match prim {
             Prim::BigInt => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBigInt,
@@ -773,7 +770,7 @@ fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
             RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicTuple
         };
         for item_type in tuple {
-            runtime_features |= derive_intrinsic_runtime_features_from_type(item_type);
+            runtime_features |= derive_runtime_features_for_dynamic_type(item_type);
         }
         runtime_features
     }
@@ -788,10 +785,12 @@ fn derive_intrinsic_runtime_features_from_type(ty: &Ty) -> RuntimeFeatureFlags {
                 RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowOperation
             }
         },
+        Ty::Infer(_) => panic!("cannot derive runtime features for `Infer` type"),
+        Ty::Param(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicGeneric,
         Ty::Prim(prim) => intrinsic_runtime_features_from_primitive_type(prim),
         Ty::Tuple(tuple) => intrinsic_runtime_features_from_tuple(tuple),
         Ty::Udt(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicUdt,
-        _ => panic!("unexpected type"),
+        Ty::Err => panic!("cannot derive runtime features for `Err` type"),
     }
 }
 
@@ -870,9 +869,7 @@ fn simulate_expr(
     // If the expression's compute properties are dynamic, then additional runtime features might be needed depending on
     // its type.
     if let ComputeKind::Dynamic = compute_properties.compute_kind() {
-        // TODO (cesarzc): uncomment.
-        //compute_properties.runtime_features |=
-        //    derive_intrinsic_runtime_features_from_type(&expr.ty);
+        compute_properties.runtime_features |= derive_runtime_features_for_dynamic_type(&expr.ty);
     }
 
     // Finally, insert the compute properties in the application instance.

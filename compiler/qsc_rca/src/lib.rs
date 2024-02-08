@@ -402,10 +402,12 @@ bitflags! {
         const IntrinsicApplicationUsesDynamicArrowFunction = 0b0001_0000_0000_0000;
         /// An intrinsic callable uses a dynamic arrow operation argument.
         const IntrinsicApplicationUsesDynamicArrowOperation = 0b0010_0000_0000_0000;
+        /// TODO (cesarzc): document.
+        const IntrinsicApplicationUsesDynamicGeneric = 0b0100_0000_0000_0000;
         /// A function with cycles used with a dynamic argument.
-        const CycledFunctionApplicationUsesDynamicArg = 0b0100_0000_0000_0000;
+        const CycledFunctionApplicationUsesDynamicArg = 0b1000_0000_0000_0000;
         /// An operation specialization with cycles is used.
-        const CycledOperationSpecializationApplication = 0b1000_0000_0000_0000;
+        const CycledOperationSpecializationApplication = 0b0001_0000_0000_0000_0000;
     }
 }
 

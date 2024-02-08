@@ -94,7 +94,7 @@ fn check_rca_for_length() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt | IntrinsicApplicationUsesDynamicArray)
+                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicArray)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -144,7 +144,7 @@ fn check_rca_for_int_as_double() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt | IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -169,7 +169,7 @@ fn check_rca_for_int_as_big_int() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt | IntrinsicApplicationUsesDynamicBigInt)
+                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -216,7 +216,7 @@ fn check_rca_for_check_zero() {
                         dynamism_sources: {Intrinsic}
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicBool | IntrinsicApplicationUsesDynamicQubit)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -569,7 +569,7 @@ fn check_rca_for_truncate() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt | IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -1195,10 +1195,10 @@ fn check_rca_for_begin_estimate_caching() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicBool | IntrinsicApplicationUsesDynamicString)
+                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicString)
                             dynamism_sources: {Intrinsic}
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicBool | IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
