@@ -1,4 +1,6 @@
-# function PowC(a : Complex, power : Complex) : Complex
+# PowC function
+
+`function PowC(a : Complex, power : Complex) : Complex`
 
 ## Summary
 Returns a number raised to a given power of type `Complex`.

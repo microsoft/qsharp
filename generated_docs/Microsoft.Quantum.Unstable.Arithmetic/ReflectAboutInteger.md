@@ -1,4 +1,6 @@
-# operation ReflectAboutInteger(index : Int, reg : Qubit[]) : Unit is Adj + Ctl
+# ReflectAboutInteger operation
+
+`operation ReflectAboutInteger(index : Int, reg : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Reflects a quantum register about a given classical integer.

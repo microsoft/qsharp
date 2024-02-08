@@ -1,4 +1,6 @@
-# operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl
+# ApplyCNOTChain operation
+
+`operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Computes the parity of a register of qubits in-place.

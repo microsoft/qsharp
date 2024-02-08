@@ -1,4 +1,6 @@
-# function Windows<'T>(size : Int, array : 'T[]) : 'T[][]
+# Windows function
+
+`function Windows<'T>(size : Int, array : 'T[]) : 'T[][]`
 
 ## Summary
 Returns all consecutive subarrays of length `size`.

@@ -1,4 +1,6 @@
-# function RangeEnd(r : Range) : Int
+# RangeEnd function
+
+`function RangeEnd(r : Range) : Int`
 
 ## Summary
 Returns the defined end value of the given range,

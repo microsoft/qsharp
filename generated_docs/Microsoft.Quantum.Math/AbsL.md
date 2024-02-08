@@ -1,3 +1,5 @@
-# function AbsL(a : BigInt) : BigInt
+# AbsL function
+
+`function AbsL(a : BigInt) : BigInt`
 
 ## Summary

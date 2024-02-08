@@ -1,4 +1,6 @@
-# operation ApplyIfEqualL<'T>(action : ('T => Unit is Param<1>), c : BigInt, xs : Qubit[], target : 'T) : Unit is Adj + Ctl
+# ApplyIfEqualL operation
+
+`operation ApplyIfEqualL<'T>(action : ('T => Unit is Param<1>), c : BigInt, xs : Qubit[], target : 'T) : Unit is Adj + Ctl`
 
 ## Summary
 Computes `if (c == x) { action(target) }`, that is, applies `action` to `target`

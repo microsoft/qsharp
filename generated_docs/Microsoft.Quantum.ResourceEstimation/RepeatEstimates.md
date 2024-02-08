@@ -1,4 +1,6 @@
-# operation RepeatEstimates(count : Int) : Unit is Adj
+# RepeatEstimates operation
+
+`operation RepeatEstimates(count : Int) : Unit is Adj`
 
 ## Summary
 

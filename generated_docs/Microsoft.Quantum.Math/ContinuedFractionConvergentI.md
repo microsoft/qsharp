@@ -1,4 +1,6 @@
-# function ContinuedFractionConvergentI(fraction : (Int, Int), denominatorBound : Int) : (Int, Int)
+# ContinuedFractionConvergentI function
+
+`function ContinuedFractionConvergentI(fraction : (Int, Int), denominatorBound : Int) : (Int, Int)`
 
 ## Summary
 Finds the continued fraction convergent closest to `fraction`

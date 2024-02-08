@@ -1,4 +1,6 @@
-# function Sin(theta : Double) : Double
+# Sin function
+
+`function Sin(theta : Double) : Double`
 
 ## Summary
 Returns the sine of the specified angle.

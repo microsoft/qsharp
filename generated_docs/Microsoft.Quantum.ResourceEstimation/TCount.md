@@ -1,4 +1,6 @@
-# function TCount(amount : Int) : (Int, Int)
+# TCount function
+
+`function TCount(amount : Int) : (Int, Int)`
 
 ## Summary
 Returns a tuple that can be passed to the `AccountForEstimates` operation

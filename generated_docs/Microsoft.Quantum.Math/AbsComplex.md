@@ -1,4 +1,6 @@
-# function AbsComplex(input : Complex) : Double
+# AbsComplex function
+
+`function AbsComplex(input : Complex) : Double`
 
 ## Summary
 Returns the absolute value of a complex number of type

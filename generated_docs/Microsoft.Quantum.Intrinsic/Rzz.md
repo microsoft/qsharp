@@ -1,4 +1,6 @@
-# operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl
+# Rzz operation
+
+`operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the two qubit Ising _ZZ_ rotation gate.

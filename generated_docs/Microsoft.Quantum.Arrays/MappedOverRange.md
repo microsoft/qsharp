@@ -1,4 +1,6 @@
-# function MappedOverRange<'T>(mapper : (Int -> 'T), range : Range) : 'T[]
+# MappedOverRange function
+
+`function MappedOverRange<'T>(mapper : (Int -> 'T), range : Range) : 'T[]`
 
 ## Summary
 Given a range and a function that takes an integer as input,

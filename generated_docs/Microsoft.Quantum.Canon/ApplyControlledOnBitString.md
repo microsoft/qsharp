@@ -1,4 +1,6 @@
-# operation ApplyControlledOnBitString<'T>(bits : Bool[], oracle : ('T => Unit is Param<1>), controlRegister : Qubit[], target : 'T) : Unit is Adj + Ctl
+# ApplyControlledOnBitString operation
+
+`operation ApplyControlledOnBitString<'T>(bits : Bool[], oracle : ('T => Unit is Param<1>), controlRegister : Qubit[], target : 'T) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a unitary operation on the target,

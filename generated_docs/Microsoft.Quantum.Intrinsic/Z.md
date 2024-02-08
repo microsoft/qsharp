@@ -1,4 +1,6 @@
-# operation Z(qubit : Qubit) : Unit is Adj + Ctl
+# Z operation
+
+`operation Z(qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the Pauli _Z_ gate.

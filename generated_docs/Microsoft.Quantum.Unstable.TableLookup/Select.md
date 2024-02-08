@@ -1,4 +1,6 @@
-# operation Select(data : Bool[][], address : Qubit[], target : Qubit[]) : Unit is Adj + Ctl
+# Select operation
+
+`operation Select(data : Bool[][], address : Qubit[], target : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Performs table lookup using a SELECT network

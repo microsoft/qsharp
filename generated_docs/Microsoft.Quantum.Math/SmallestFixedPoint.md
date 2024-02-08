@@ -1,4 +1,6 @@
-# function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double
+# SmallestFixedPoint function
+
+`function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double`
 
 ## Summary
 Returns the smallest representable number for specific fixed point dimensions.

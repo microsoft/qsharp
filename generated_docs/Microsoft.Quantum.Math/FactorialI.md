@@ -1,4 +1,6 @@
-# function FactorialI(n : Int) : Int
+# FactorialI function
+
+`function FactorialI(n : Int) : Int`
 
 ## Summary
 Returns the factorial of a given number.

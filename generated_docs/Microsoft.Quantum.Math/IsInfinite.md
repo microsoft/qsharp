@@ -1,4 +1,6 @@
-# function IsInfinite(d : Double) : Bool
+# IsInfinite function
+
+`function IsInfinite(d : Double) : Bool`
 
 ## Summary
 Returns whether a given floating-point value is either positive or

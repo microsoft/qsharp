@@ -1,4 +1,6 @@
-# operation MResetEachZ(register : Qubit[]) : Result[]
+# MResetEachZ operation
+
+`operation MResetEachZ(register : Qubit[]) : Result[]`
 
 ## Summary
 Measures each qubit in a given array in the Z basis

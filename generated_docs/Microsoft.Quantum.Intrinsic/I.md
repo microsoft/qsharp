@@ -1,4 +1,6 @@
-# operation I(target : Qubit) : Unit is Adj + Ctl
+# I operation
+
+`operation I(target : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Performs the identity operation (no-op) on a single qubit.

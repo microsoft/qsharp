@@ -1,4 +1,6 @@
-# function Reversed<'T>(array : 'T[]) : 'T[]
+# Reversed function
+
+`function Reversed<'T>(array : 'T[]) : 'T[]`
 
 ## Summary
 Create an array that contains the same elements as an input array but in reversed

@@ -1,4 +1,6 @@
-# function GreatestCommonDivisorI(a : Int, b : Int) : Int
+# GreatestCommonDivisorI function
+
+`function GreatestCommonDivisorI(a : Int, b : Int) : Int`
 
 ## Summary
 Computes the greatest common divisor of two integers.

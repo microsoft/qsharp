@@ -1,4 +1,6 @@
-# function Flattened<'T>(arrays : 'T[][]) : 'T[]
+# Flattened function
+
+`function Flattened<'T>(arrays : 'T[][]) : 'T[]`
 
 ## Summary
 Given an array of arrays, returns the concatenation of all arrays.

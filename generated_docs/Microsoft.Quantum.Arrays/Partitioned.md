@@ -1,4 +1,6 @@
-# function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][]
+# Partitioned function
+
+`function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][]`
 
 ## Summary
 Splits an array into multiple parts.

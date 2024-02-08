@@ -1,4 +1,6 @@
-# function MostAndTail<'A>(array : 'A[]) : ('A[], 'A)
+# MostAndTail function
+
+`function MostAndTail<'A>(array : 'A[]) : ('A[], 'A)`
 
 ## Summary
 Returns a tuple of all but one and the last element of the array.

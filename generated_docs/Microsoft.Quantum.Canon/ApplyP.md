@@ -1,4 +1,6 @@
-# operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl
+# ApplyP operation
+
+`operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Given a single-qubit Pauli operator, applies the corresponding operation

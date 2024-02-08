@@ -1,4 +1,6 @@
-# function Transposed<'T>(matrix : 'T[][]) : 'T[][]
+# Transposed function
+
+`function Transposed<'T>(matrix : 'T[][]) : 'T[][]`
 
 ## Summary
 Returns the transpose of a matrix represented as an array

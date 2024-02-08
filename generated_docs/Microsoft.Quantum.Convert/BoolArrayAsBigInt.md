@@ -1,4 +1,6 @@
-# function BoolArrayAsBigInt(boolArray : Bool[]) : BigInt
+# BoolArrayAsBigInt function
+
+`function BoolArrayAsBigInt(boolArray : Bool[]) : BigInt`
 
 ## Summary
 Converts an array of Boolean values into a non-negative BigInt, interpreting the

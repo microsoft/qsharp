@@ -1,4 +1,6 @@
-# function IsEmpty<'T>(array : 'T[]) : Bool
+# IsEmpty function
+
+`function IsEmpty<'T>(array : 'T[]) : Bool`
 
 ## Summary
 Returns true if and only if an array is empty.

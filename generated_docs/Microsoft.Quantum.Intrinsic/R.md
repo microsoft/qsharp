@@ -1,4 +1,6 @@
-# operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+# R operation
+
+`operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a rotation about the given Pauli axis.

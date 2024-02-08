@@ -1,4 +1,6 @@
-# operation RippleCarryCGIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
+# RippleCarryCGIncByLE operation
+
+`operation RippleCarryCGIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Increments a little-endian register ys by a little-endian register xs

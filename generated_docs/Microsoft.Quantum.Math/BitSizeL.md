@@ -1,4 +1,6 @@
-# function BitSizeL(a : BigInt) : Int
+# BitSizeL function
+
+`function BitSizeL(a : BigInt) : Int`
 
 ## Summary
 For a non-negative integer `a`, returns the number of bits required to represent `a`.

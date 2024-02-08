@@ -1,4 +1,6 @@
-# operation R1Frac(numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl
+# R1Frac operation
+
+`operation R1Frac(numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a rotation about the |1⟩ state by an angle specified

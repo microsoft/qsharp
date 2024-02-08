@@ -1,4 +1,6 @@
-# function ModulusI(value : Int, modulus : Int) : Int
+# ModulusI function
+
+`function ModulusI(value : Int, modulus : Int) : Int`
 
 ## Summary
 Computes the canonical residue of `value` modulo `modulus`.

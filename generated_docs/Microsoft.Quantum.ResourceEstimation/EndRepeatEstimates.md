@@ -1,4 +1,6 @@
-# operation EndRepeatEstimates() : Unit is Adj
+# EndRepeatEstimates operation
+
+`operation EndRepeatEstimates() : Unit is Adj`
 
 ## Summary
 

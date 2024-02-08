@@ -1,4 +1,6 @@
-# operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl
+# ApplyPauliFromBitString operation
+
+`operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a Pauli operator on each qubit in an array if the corresponding

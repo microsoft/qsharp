@@ -1,4 +1,6 @@
-# function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[]
+# ColumnAt function
+
+`function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[]`
 
 ## Summary
 Extracts a column from a matrix.

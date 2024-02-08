@@ -1,4 +1,6 @@
-# function RangeStep(r : Range) : Int
+# RangeStep function
+
+`function RangeStep(r : Range) : Int`
 
 ## Summary
 Returns the integer that specifies how the next value of a range is calculated.

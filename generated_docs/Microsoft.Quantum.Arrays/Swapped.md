@@ -1,4 +1,6 @@
-# function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[]
+# Swapped function
+
+`function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[]`
 
 ## Summary
 Applies a swap of two elements in an array.

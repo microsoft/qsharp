@@ -1,1 +1,3 @@
-# operation CheckAllZero(qubits : Qubit[]) : Bool
+# CheckAllZero operation
+
+`operation CheckAllZero(qubits : Qubit[]) : Bool`

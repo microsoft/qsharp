@@ -1,4 +1,6 @@
-# function SquaredNorm(array : Double[]) : Double
+# SquaredNorm function
+
+`function SquaredNorm(array : Double[]) : Double`
 
 ## Summary
 Returns the squared 2-norm of a vector.

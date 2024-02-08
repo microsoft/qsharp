@@ -1,4 +1,6 @@
-# function Zipped<'T, 'U>(left : 'T[], right : 'U[]) : ('T, 'U)[]
+# Zipped function
+
+`function Zipped<'T, 'U>(left : 'T[], right : 'U[]) : ('T, 'U)[]`
 
 ## Summary
 Given two arrays, returns a new array of pairs such that each pair

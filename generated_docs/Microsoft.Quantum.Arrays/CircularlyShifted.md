@@ -1,4 +1,6 @@
-# function CircularlyShifted<'T>(stepCount : Int, array : 'T[]) : 'T[]
+# CircularlyShifted function
+
+`function CircularlyShifted<'T>(stepCount : Int, array : 'T[]) : 'T[]`
 
 ## Summary
 Shift an array circularly left or right by a specific step size.

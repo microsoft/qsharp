@@ -1,4 +1,6 @@
-# operation AccountForEstimates(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit is Adj
+# AccountForEstimates operation
+
+`operation AccountForEstimates(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit is Adj`
 
 ## Summary
 Account for the resource estimates of an unimplemented operation,

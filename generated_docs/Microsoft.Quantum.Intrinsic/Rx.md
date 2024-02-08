@@ -1,4 +1,6 @@
-# operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+# Rx operation
+
+`operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a rotation about the _x_-axis by a given angle.

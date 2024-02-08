@@ -1,4 +1,6 @@
-# operation ApplyIfLessL<'T>(action : ('T => Unit is Param<1>), c : BigInt, x : Qubit[], target : 'T) : Unit is Adj + Ctl
+# ApplyIfLessL operation
+
+`operation ApplyIfLessL<'T>(action : ('T => Unit is Param<1>), c : BigInt, x : Qubit[], target : 'T) : Unit is Adj + Ctl`
 
 ## Summary
 Computes `if (c < x) { action(target) }`, that is, applies `action` to `target`

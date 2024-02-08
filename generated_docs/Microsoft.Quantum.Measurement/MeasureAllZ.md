@@ -1,4 +1,6 @@
-# operation MeasureAllZ(register : Qubit[]) : Result
+# MeasureAllZ operation
+
+`operation MeasureAllZ(register : Qubit[]) : Result`
 
 ## Summary
 Jointly measures a register of qubits in the Pauli Z basis.

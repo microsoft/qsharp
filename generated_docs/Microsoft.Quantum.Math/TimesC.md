@@ -1,4 +1,6 @@
-# function TimesC(a : Complex, b : Complex) : Complex
+# TimesC function
+
+`function TimesC(a : Complex, b : Complex) : Complex`
 
 ## Summary
 Returns the product of two inputs of type `Complex`.

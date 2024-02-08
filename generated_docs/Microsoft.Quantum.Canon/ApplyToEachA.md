@@ -1,4 +1,6 @@
-# operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Adj
+# ApplyToEachA operation
+
+`operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Adj`
 
 ## Summary
 Applies an operation to each element in a register.

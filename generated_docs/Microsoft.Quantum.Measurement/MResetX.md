@@ -1,4 +1,6 @@
-# operation MResetX(target : Qubit) : Result
+# MResetX operation
+
+`operation MResetX(target : Qubit) : Result`
 
 ## Summary
 Measures a single qubit in the X basis,

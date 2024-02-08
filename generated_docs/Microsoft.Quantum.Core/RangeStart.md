@@ -1,4 +1,6 @@
-# function RangeStart(r : Range) : Int
+# RangeStart function
+
+`function RangeStart(r : Range) : Int`
 
 ## Summary
 Returns the defined start value of the given range.

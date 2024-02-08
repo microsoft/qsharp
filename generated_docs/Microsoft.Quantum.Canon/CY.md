@@ -1,4 +1,6 @@
-# operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl
+# CY operation
+
+`operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the controlled-Y (CY) gate to a pair of qubits.

@@ -1,4 +1,6 @@
-# operation CCNOT(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj + Ctl
+# CCNOT operation
+
+`operation CCNOT(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the doubly controlled–NOT (CCNOT) gate to three qubits.

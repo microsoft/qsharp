@@ -1,4 +1,6 @@
-# function RangeReverse(r : Range) : Range
+# RangeReverse function
+
+`function RangeReverse(r : Range) : Range`
 
 ## Summary
 Returns a new range which is the reverse of the input range.

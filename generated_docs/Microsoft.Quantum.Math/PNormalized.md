@@ -1,4 +1,6 @@
-# function PNormalized(p : Double, array : Double[]) : Double[]
+# PNormalized function
+
+`function PNormalized(p : Double, array : Double[]) : Double[]`
 
 ## Summary
 Normalizes a vector of `Double`s in the `L(p)` norm.

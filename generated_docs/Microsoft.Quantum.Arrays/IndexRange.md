@@ -1,4 +1,6 @@
-# function IndexRange<'TElement>(array : 'TElement[]) : Range
+# IndexRange function
+
+`function IndexRange<'TElement>(array : 'TElement[]) : Range`
 
 ## Summary
 Given an array, returns a range over the indices of that array, suitable

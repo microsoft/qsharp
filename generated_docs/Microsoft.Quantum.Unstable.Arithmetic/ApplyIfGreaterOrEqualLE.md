@@ -1,4 +1,6 @@
-# operation ApplyIfGreaterOrEqualLE<'T>(action : ('T => Unit is Param<1>), x : Qubit[], y : Qubit[], target : 'T) : Unit is Adj + Ctl
+# ApplyIfGreaterOrEqualLE operation
+
+`operation ApplyIfGreaterOrEqualLE<'T>(action : ('T => Unit is Param<1>), x : Qubit[], y : Qubit[], target : 'T) : Unit is Adj + Ctl`
 
 ## Summary
 Computes `if x >= y { action(target) }`, that is, applies `action` to `target`

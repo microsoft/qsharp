@@ -1,4 +1,6 @@
-# function PowCP(a : ComplexPolar, power : ComplexPolar) : ComplexPolar
+# PowCP function
+
+`function PowCP(a : ComplexPolar, power : ComplexPolar) : ComplexPolar`
 
 ## Summary
 Returns a number raised to a given power of type `ComplexPolar`.

@@ -1,4 +1,6 @@
-# function Round(value : Double) : Int
+# Round function
+
+`function Round(value : Double) : Int`
 
 ## Summary
 Returns the nearest integer to the specified number.

@@ -1,4 +1,6 @@
-# function PI() : Double
+# PI function
+
+`function PI() : Double`
 
 ## Summary
 Represents the ratio of the circumference of a circle to its diameter.

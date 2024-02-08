@@ -1,4 +1,6 @@
-# function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[]
+# Sorted function
+
+`function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[]`
 
 ## Summary
 Given an array, returns the elements of that array sorted by a given

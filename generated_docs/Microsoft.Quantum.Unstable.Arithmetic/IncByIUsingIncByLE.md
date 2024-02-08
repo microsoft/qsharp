@@ -1,4 +1,6 @@
-# operation IncByIUsingIncByLE(adder : ((Qubit[], Qubit[]) => Unit is Param<0>), c : Int, ys : Qubit[]) : Unit is Adj + Ctl
+# IncByIUsingIncByLE operation
+
+`operation IncByIUsingIncByLE(adder : ((Qubit[], Qubit[]) => Unit is Param<0>), c : Int, ys : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Increments a little-endian register ys by an Int number c

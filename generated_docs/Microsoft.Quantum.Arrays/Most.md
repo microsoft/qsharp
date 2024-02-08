@@ -1,4 +1,6 @@
-# function Most<'T>(array : 'T[]) : 'T[]
+# Most function
+
+`function Most<'T>(array : 'T[]) : 'T[]`
 
 ## Summary
 Creates an array that is equal to an input array except that the last array

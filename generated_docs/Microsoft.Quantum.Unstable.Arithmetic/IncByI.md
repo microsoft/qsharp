@@ -1,4 +1,6 @@
-# operation IncByI(c : Int, ys : Qubit[]) : Unit is Adj + Ctl
+# IncByI operation
+
+`operation IncByI(c : Int, ys : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Increments a little-endian register ys by an integer number c

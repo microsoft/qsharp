@@ -7,9 +7,11 @@ mod tests;
 use crate::display::increase_header_level;
 use crate::{compilation::Compilation, display::CodeDisplay};
 use qsc::hir::hir::{Item, ItemKind, Package, Visibility};
+use qsc::hir::ty::Udt;
+use qsc::hir::{CallableDecl, Ident};
 use rustc_hash::FxHashMap;
 use std::fs;
-use std::{fmt::Display, rc::Rc};
+use std::rc::Rc;
 
 // Warning: this path gets deleted on each run. Use carefully!
 const GENERATED_DOCS_PATH: &str = "../generated_docs";
@@ -42,15 +44,6 @@ fn delete_existing_docs() {
     }
 }
 
-fn with_doc(doc: &str, code: impl Display) -> String {
-    if doc.is_empty() {
-        format!("# {code}\n")
-    } else {
-        let doc = increase_header_level(doc);
-        format!("# {code}\n\n{doc}\n")
-    }
-}
-
 impl<'a> GenDocs<'a> {
     fn generate_docs_for_package(self) {
         let package = self.package;
@@ -71,14 +64,6 @@ impl<'a> GenDocs<'a> {
             for (name, contents) in v.iter().map(|i| self.item_to_content(i)) {
                 fs::write(format!("{ns_dir}/{name}.md"), contents).expect("Unable to write file");
             }
-            // fs::write(
-            //     format!("{ns_dir}/{k}.md"),
-            //     v.iter()
-            //         .map(|i| self.item_to_content(i))
-            //         .collect::<Vec<_>>()
-            //         .join("\n&nbsp;\n\n---\n\n&nbsp;\n\n"),
-            // )
-            // .expect("Unable to write file");
         }
     }
 
@@ -86,15 +71,53 @@ impl<'a> GenDocs<'a> {
         match &item.kind {
             ItemKind::Callable(decl) => (
                 decl.name.name.to_string(),
-                with_doc(&item.doc, self.display.hir_callable_decl(decl)),
+                self.callable_to_content(decl, &item.doc),
             ),
             ItemKind::Ty(name, udt) => (
                 name.name.to_string(),
-                with_doc(&item.doc, self.display.hir_udt(udt)),
+                self.udt_to_content(name, udt, &item.doc),
             ),
             ItemKind::Namespace(_, _) => {
                 unreachable!("Namespace items should have been filtered out")
             }
+        }
+    }
+
+    fn callable_to_content(&self, decl: &CallableDecl, doc: &str) -> String {
+        if doc.is_empty() {
+            format!(
+                "# {} {}\n\n`{}`\n",
+                decl.name.name,
+                decl.kind,
+                self.display.hir_callable_decl(decl)
+            )
+        } else {
+            let doc = increase_header_level(doc);
+            format!(
+                "# {} {}\n\n`{}`\n\n{}\n",
+                decl.name.name,
+                decl.kind,
+                self.display.hir_callable_decl(decl),
+                doc
+            )
+        }
+    }
+
+    fn udt_to_content(&self, name: &Ident, udt: &Udt, doc: &str) -> String {
+        if doc.is_empty() {
+            format!(
+                "# {} User-Defined Type\n\n`{}`\n",
+                name.name,
+                self.display.hir_udt(udt)
+            )
+        } else {
+            let doc = increase_header_level(doc);
+            format!(
+                "# {} User-Defined Type\n\n`{}`\n\n{}\n",
+                name.name,
+                self.display.hir_udt(udt),
+                doc
+            )
         }
     }
 

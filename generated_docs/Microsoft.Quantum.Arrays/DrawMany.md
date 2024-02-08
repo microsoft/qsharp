@@ -1,4 +1,6 @@
-# operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput is Param<2>), nSamples : Int, input : 'TInput) : 'TOutput[]
+# DrawMany operation
+
+`operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput is Param<2>), nSamples : Int, input : 'TInput) : 'TOutput[]`
 
 ## Summary
 Repeats an operation for a given number of samples, collecting its outputs

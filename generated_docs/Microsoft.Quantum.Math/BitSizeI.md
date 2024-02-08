@@ -1,4 +1,6 @@
-# function BitSizeI(a : Int) : Int
+# BitSizeI function
+
+`function BitSizeI(a : Int) : Int`
 
 ## Summary
 For a non-negative integer `a`, returns the number of bits required to represent `a`.

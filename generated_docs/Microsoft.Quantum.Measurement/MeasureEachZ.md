@@ -1,4 +1,6 @@
-# operation MeasureEachZ(register : Qubit[]) : Result[]
+# MeasureEachZ operation
+
+`operation MeasureEachZ(register : Qubit[]) : Result[]`
 
 ## Summary
 Measures each qubit in a given array in the standard basis.

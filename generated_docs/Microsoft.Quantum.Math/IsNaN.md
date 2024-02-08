@@ -1,4 +1,6 @@
-# function IsNaN(d : Double) : Bool
+# IsNaN function
+
+`function IsNaN(d : Double) : Bool`
 
 ## Summary
 Returns whether a given floating-point value is not a number (i.e. is

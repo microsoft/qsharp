@@ -1,4 +1,6 @@
-# function MinusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
+# MinusCP function
+
+`function MinusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar`
 
 ## Summary
 Returns the difference between two inputs of type `ComplexPolar`.

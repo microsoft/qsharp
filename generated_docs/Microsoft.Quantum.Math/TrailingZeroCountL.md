@@ -1,4 +1,6 @@
-# function TrailingZeroCountL(a : BigInt) : Int
+# TrailingZeroCountL function
+
+`function TrailingZeroCountL(a : BigInt) : Int`
 
 ## Summary
 For a non-zero integer `a`, returns the number of trailing zero bits

@@ -1,4 +1,6 @@
-# operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl
+# CX operation
+
+`operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the controlled-X (CX) gate to a pair of qubits.

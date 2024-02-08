@@ -1,4 +1,6 @@
-# operation CNOT(control : Qubit, target : Qubit) : Unit is Adj + Ctl
+# CNOT operation
+
+`operation CNOT(control : Qubit, target : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the controlled-NOT (CNOT) gate to a pair of qubits.

@@ -1,4 +1,6 @@
-# function MeasurementCount(amount : Int) : (Int, Int)
+# MeasurementCount function
+
+`function MeasurementCount(amount : Int) : (Int, Int)`
 
 ## Summary
 Returns a tuple that can be passed to the `AccountForEstimates` operation

@@ -1,4 +1,6 @@
-# function EndEstimateCaching() : Unit
+# EndEstimateCaching function
+
+`function EndEstimateCaching() : Unit`
 
 ## Summary
 Instructs the resource estimator to stop estimates caching

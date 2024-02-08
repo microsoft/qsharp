@@ -1,4 +1,6 @@
-# function AuxQubitCount(amount : Int) : (Int, Int)
+# AuxQubitCount function
+
+`function AuxQubitCount(amount : Int) : (Int, Int)`
 
 ## Summary
 Returns a tuple that can be passed to the `AccountForEstimates` operation

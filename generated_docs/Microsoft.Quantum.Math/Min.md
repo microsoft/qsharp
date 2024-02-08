@@ -1,4 +1,6 @@
-# function Min(values : Int[]) : Int
+# Min function
+
+`function Min(values : Int[]) : Int`
 
 ## Summary
 Given an array of integers, returns the smallest element.

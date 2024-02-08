@@ -1,4 +1,6 @@
-# newtype ComplexPolar = (Magnitude: Double, Argument: Double)
+# ComplexPolar User-Defined Type
+
+`newtype ComplexPolar = (Magnitude: Double, Argument: Double)`
 
 ## Summary
 Represents a complex number in polar form.

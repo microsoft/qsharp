@@ -1,4 +1,6 @@
-# operation Measure(bases : Pauli[], qubits : Qubit[]) : Result
+# Measure operation
+
+`operation Measure(bases : Pauli[], qubits : Qubit[]) : Result`
 
 ## Summary
 Performs a joint measurement of one or more qubits in the

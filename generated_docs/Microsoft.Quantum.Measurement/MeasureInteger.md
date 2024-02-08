@@ -1,4 +1,6 @@
-# operation MeasureInteger(target : Qubit[]) : Int
+# MeasureInteger operation
+
+`operation MeasureInteger(target : Qubit[]) : Int`
 
 ## Summary
 Measures the content of a quantum register and converts

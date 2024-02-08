@@ -1,4 +1,6 @@
-# newtype Complex = (Real: Double, Imag: Double)
+# Complex User-Defined Type
+
+`newtype Complex = (Real: Double, Imag: Double)`
 
 ## Summary
 Represents a complex number by its real and imaginary components.

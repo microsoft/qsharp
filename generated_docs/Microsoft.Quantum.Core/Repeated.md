@@ -1,4 +1,6 @@
-# function Repeated<'T>(value : 'T, length : Int) : 'T[]
+# Repeated function
+
+`function Repeated<'T>(value : 'T, length : Int) : 'T[]`
 
 ## Summary
 Creates an array of given length with all elements equal to given value.

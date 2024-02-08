@@ -1,4 +1,6 @@
-# function DividedByC(a : Complex, b : Complex) : Complex
+# DividedByC function
+
+`function DividedByC(a : Complex, b : Complex) : Complex`
 
 ## Summary
 Returns the quotient of two inputs of type `Complex`.

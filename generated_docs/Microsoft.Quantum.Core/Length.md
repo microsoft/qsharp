@@ -1,4 +1,6 @@
-# function Length<'T>(a : 'T[]) : Int
+# Length function
+
+`function Length<'T>(a : 'T[]) : Int`
 
 ## Summary
 Returns the number of elements in an array.

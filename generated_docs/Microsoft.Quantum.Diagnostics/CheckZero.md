@@ -1,1 +1,3 @@
-# operation CheckZero(qubit : Qubit) : Bool
+# CheckZero operation
+
+`operation CheckZero(qubit : Qubit) : Bool`

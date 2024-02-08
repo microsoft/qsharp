@@ -1,4 +1,6 @@
-# operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl
+# RFrac operation
+
+`operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a rotation about the given Pauli axis by an angle specified

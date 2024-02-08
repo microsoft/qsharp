@@ -1,4 +1,6 @@
-# operation DrawRandomDouble(min : Double, max : Double) : Double
+# DrawRandomDouble operation
+
+`operation DrawRandomDouble(min : Double, max : Double) : Double`
 
 ## Summary
 Draws a random real number in a given inclusive interval.

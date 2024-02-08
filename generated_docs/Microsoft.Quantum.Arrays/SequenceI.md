@@ -1,4 +1,6 @@
-# function SequenceI(from : Int, to : Int) : Int[]
+# SequenceI function
+
+`function SequenceI(from : Int, to : Int) : Int[]`
 
 ## Summary
 Get an array of integers in a given interval.

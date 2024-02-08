@@ -1,4 +1,6 @@
-# function All<'T>(predicate : ('T -> Bool), array : 'T[]) : Bool
+# All function
+
+`function All<'T>(predicate : ('T -> Bool), array : 'T[]) : Bool`
 
 ## Summary
 Given an array and a predicate that is defined

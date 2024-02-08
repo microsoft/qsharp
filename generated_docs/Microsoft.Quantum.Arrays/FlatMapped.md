@@ -1,4 +1,6 @@
-# function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array : 'TInput[]) : 'TOutput[]
+# FlatMapped function
+
+`function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array : 'TInput[]) : 'TOutput[]`
 
 ## Summary
 Given an array and a function that maps an array element to some output

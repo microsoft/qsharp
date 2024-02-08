@@ -1,4 +1,6 @@
-# operation Ryy(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl
+# Ryy operation
+
+`operation Ryy(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the two qubit Ising _YY_ rotation gate.

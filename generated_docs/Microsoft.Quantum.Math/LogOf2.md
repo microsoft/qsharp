@@ -1,4 +1,6 @@
-# function LogOf2() : Double
+# LogOf2 function
+
+`function LogOf2() : Double`
 
 ## Summary
 Returns the natural logarithm of 2.

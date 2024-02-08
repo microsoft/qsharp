@@ -1,4 +1,6 @@
-# function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
+# PlusCP function
+
+`function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar`
 
 ## Summary
 Returns the sum of two inputs of type `ComplexPolar`.

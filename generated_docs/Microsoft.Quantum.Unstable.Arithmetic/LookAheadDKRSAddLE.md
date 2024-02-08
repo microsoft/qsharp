@@ -1,4 +1,6 @@
-# operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj
+# LookAheadDKRSAddLE operation
+
+`operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj`
 
 ## Summary
 Sets a zero-initialized little-endian register zs to the sum of

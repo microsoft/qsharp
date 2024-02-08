@@ -1,4 +1,6 @@
-# function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[])
+# Unzipped function
+
+`function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[])`
 
 ## Summary
 Given an array of 2-tuples, returns a tuple of two arrays, each containing

@@ -1,4 +1,6 @@
-# operation Ry(theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+# Ry operation
+
+`operation Ry(theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a rotation about the _y_-axis by a given angle.

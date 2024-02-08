@@ -1,4 +1,6 @@
-# operation RippleCarryTTKIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
+# RippleCarryTTKIncByLE operation
+
+`operation RippleCarryTTKIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Reversible, in-place ripple-carry addition of two integers.

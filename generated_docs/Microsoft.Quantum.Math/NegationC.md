@@ -1,4 +1,6 @@
-# function NegationC(input : Complex) : Complex
+# NegationC function
+
+`function NegationC(input : Complex) : Complex`
 
 ## Summary
 Returns the unary negation of an input of type `Complex`.

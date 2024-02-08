@@ -1,4 +1,6 @@
-# operation CheckOperationsAreEqual(nQubits : Int, actual : (Qubit[] => Unit is Param<0>), expected : (Qubit[] => Unit is Param<1>)) : Bool
+# CheckOperationsAreEqual operation
+
+`operation CheckOperationsAreEqual(nQubits : Int, actual : (Qubit[] => Unit is Param<0>), expected : (Qubit[] => Unit is Param<1>)) : Bool`
 
 ## Summary
 Given two operations, checks that they act identically for all input states.

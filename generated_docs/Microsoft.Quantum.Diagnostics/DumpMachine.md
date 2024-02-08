@@ -1,1 +1,3 @@
-# function DumpMachine() : Unit
+# DumpMachine function
+
+`function DumpMachine() : Unit`

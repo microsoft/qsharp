@@ -1,4 +1,6 @@
-# function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[]
+# Where function
+
+`function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[]`
 
 ## Summary
 Given a predicate and an array, returns the indices of that

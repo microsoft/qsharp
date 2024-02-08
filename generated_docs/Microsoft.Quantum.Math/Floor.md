@@ -1,4 +1,6 @@
-# function Floor(value : Double) : Int
+# Floor function
+
+`function Floor(value : Double) : Int`
 
 ## Summary
 Returns the largest integer less than or equal to the specified number.

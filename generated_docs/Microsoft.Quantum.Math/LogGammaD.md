@@ -1,4 +1,6 @@
-# function LogGammaD(x : Double) : Double
+# LogGammaD function
+
+`function LogGammaD(x : Double) : Double`
 
 ## Summary
 Returns the natural logarithm of the gamma function (aka the log-gamma

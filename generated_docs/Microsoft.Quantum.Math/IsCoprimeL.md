@@ -1,4 +1,6 @@
-# function IsCoprimeL(a : BigInt, b : BigInt) : Bool
+# IsCoprimeL function
+
+`function IsCoprimeL(a : BigInt, b : BigInt) : Bool`
 
 ## Summary
 Returns if two integers are co-prime.

@@ -1,4 +1,6 @@
-# function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State
+# Fold function
+
+`function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State`
 
 ## Summary
 Iterates a function `f` through an array `array`, returning

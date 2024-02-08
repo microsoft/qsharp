@@ -1,4 +1,6 @@
-# function Binom(n : Int, k : Int) : Int
+# Binom function
+
+`function Binom(n : Int, k : Int) : Int`
 
 ## Summary
 Returns the approximate binomial coefficient of two integers.

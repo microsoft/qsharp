@@ -1,4 +1,6 @@
-# operation Y(qubit : Qubit) : Unit is Adj + Ctl
+# Y operation
+
+`operation Y(qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the Pauli _Y_ gate.

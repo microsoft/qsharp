@@ -1,4 +1,6 @@
-# function AbsComplexPolar(input : ComplexPolar) : Double
+# AbsComplexPolar function
+
+`function AbsComplexPolar(input : ComplexPolar) : Double`
 
 ## Summary
 Returns the absolute value of a complex number of type

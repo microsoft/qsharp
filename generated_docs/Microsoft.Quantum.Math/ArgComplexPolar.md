@@ -1,4 +1,6 @@
-# function ArgComplexPolar(input : ComplexPolar) : Double
+# ArgComplexPolar function
+
+`function ArgComplexPolar(input : ComplexPolar) : Double`
 
 ## Summary
 Returns the phase of a complex number of type `ComplexPolar`.

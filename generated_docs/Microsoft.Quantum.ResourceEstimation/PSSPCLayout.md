@@ -1,4 +1,6 @@
-# function PSSPCLayout() : Int
+# PSSPCLayout function
+
+`function PSSPCLayout() : Int`
 
 ## Summary
 Pass the value returned by the function to the `AccountForEstimates` operation

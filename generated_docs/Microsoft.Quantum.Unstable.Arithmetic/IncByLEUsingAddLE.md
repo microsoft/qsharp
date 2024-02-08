@@ -1,4 +1,6 @@
-# operation IncByLEUsingAddLE(forwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<0>), backwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<1>), xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
+# IncByLEUsingAddLE operation
+
+`operation IncByLEUsingAddLE(forwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<0>), backwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<1>), xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Generic operation to turn two out-place adders into one in-place adder

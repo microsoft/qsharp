@@ -1,4 +1,6 @@
-# function LogFactorialD(n : Int) : Double
+# LogFactorialD function
+
+`function LogFactorialD(n : Int) : Double`
 
 ## Summary
 Returns the approximate natural logarithm of the factorial of a given

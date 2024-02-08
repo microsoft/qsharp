@@ -1,4 +1,6 @@
-# function AbsSquaredComplexPolar(input : ComplexPolar) : Double
+# AbsSquaredComplexPolar function
+
+`function AbsSquaredComplexPolar(input : ComplexPolar) : Double`
 
 ## Summary
 Returns the squared absolute value of a complex number of type

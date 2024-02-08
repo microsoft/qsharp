@@ -1,4 +1,6 @@
-# function Diagonal<'T>(matrix : 'T[][]) : 'T[]
+# Diagonal function
+
+`function Diagonal<'T>(matrix : 'T[][]) : 'T[]`
 
 ## Summary
 Returns an array of diagonal elements of a 2-dimensional array

@@ -1,4 +1,6 @@
-# function TimesCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
+# TimesCP function
+
+`function TimesCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar`
 
 ## Summary
 Returns the product of two inputs of type `ComplexPolar`.

@@ -1,4 +1,6 @@
-# operation ForEach<'T, 'U>(action : ('T => 'U is Param<2>), array : 'T[]) : 'U[]
+# ForEach operation
+
+`operation ForEach<'T, 'U>(action : ('T => 'U is Param<2>), array : 'T[]) : 'U[]`
 
 ## Summary
 Given an array and an operation that is defined

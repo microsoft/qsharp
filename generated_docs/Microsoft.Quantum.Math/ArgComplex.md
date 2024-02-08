@@ -1,4 +1,6 @@
-# function ArgComplex(input : Complex) : Double
+# ArgComplex function
+
+`function ArgComplex(input : Complex) : Double`
 
 ## Summary
 Returns the phase of a complex number of type

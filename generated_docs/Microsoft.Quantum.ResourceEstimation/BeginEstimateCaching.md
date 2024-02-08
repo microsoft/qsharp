@@ -1,4 +1,6 @@
-# function BeginEstimateCaching(name : String, variant : Int) : Bool
+# BeginEstimateCaching function
+
+`function BeginEstimateCaching(name : String, variant : Int) : Bool`
 
 ## Summary
 Informs the resource estimator of the start of the code fragment

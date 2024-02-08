@@ -1,4 +1,6 @@
-# function InverseModI(a : Int, modulus : Int) : Int
+# InverseModI function
+
+`function InverseModI(a : Int, modulus : Int) : Int`
 
 ## Summary
 Returns the multiplicative inverse of a modular integer.

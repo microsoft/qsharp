@@ -1,4 +1,6 @@
-# function IsCoprimeI(a : Int, b : Int) : Bool
+# IsCoprimeI function
+
+`function IsCoprimeI(a : Int, b : Int) : Bool`
 
 ## Summary
 Returns if two integers are co-prime.

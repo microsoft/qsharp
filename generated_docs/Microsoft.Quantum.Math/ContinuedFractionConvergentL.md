@@ -1,4 +1,6 @@
-# function ContinuedFractionConvergentL(fraction : (BigInt, BigInt), denominatorBound : BigInt) : (BigInt, BigInt)
+# ContinuedFractionConvergentL function
+
+`function ContinuedFractionConvergentL(fraction : (BigInt, BigInt), denominatorBound : BigInt) : (BigInt, BigInt)`
 
 ## Summary
 Finds the continued fraction convergent closest to `fraction`

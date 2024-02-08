@@ -1,4 +1,6 @@
-# function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double
+# LargestFixedPoint function
+
+`function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double`
 
 ## Summary
 Returns the largest representable number for specific fixed point dimensions.

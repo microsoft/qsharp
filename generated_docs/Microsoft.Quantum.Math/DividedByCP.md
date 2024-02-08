@@ -1,4 +1,6 @@
-# function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
+# DividedByCP function
+
+`function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar`
 
 ## Summary
 Returns the quotient of two inputs of type `ComplexPolar`.

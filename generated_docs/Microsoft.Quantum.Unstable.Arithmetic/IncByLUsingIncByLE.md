@@ -1,4 +1,6 @@
-# operation IncByLUsingIncByLE(adder : ((Qubit[], Qubit[]) => Unit is Param<0>), c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl
+# IncByLUsingIncByLE operation
+
+`operation IncByLUsingIncByLE(adder : ((Qubit[], Qubit[]) => Unit is Param<0>), c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Increments a little-endian register ys by a BigInt number c

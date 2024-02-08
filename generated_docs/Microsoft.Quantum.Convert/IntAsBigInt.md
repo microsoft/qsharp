@@ -1,4 +1,6 @@
-# function IntAsBigInt(number : Int) : BigInt
+# IntAsBigInt function
+
+`function IntAsBigInt(number : Int) : BigInt`
 
 ## Summary
 Converts a given integer to an equivalent big integer.

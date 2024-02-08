@@ -1,4 +1,6 @@
-# function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int
+# Count function
+
+`function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int`
 
 ## Summary
 Given an array and a predicate that is defined

@@ -1,4 +1,6 @@
-# function Padded<'T>(paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[]
+# Padded function
+
+`function Padded<'T>(paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[]`
 
 ## Summary
 Returns an array padded at with specified values up to a

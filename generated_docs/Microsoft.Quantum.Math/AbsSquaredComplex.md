@@ -1,4 +1,6 @@
-# function AbsSquaredComplex(input : Complex) : Double
+# AbsSquaredComplex function
+
+`function AbsSquaredComplex(input : Complex) : Double`
 
 ## Summary
 Returns the squared absolute value of a complex number of type

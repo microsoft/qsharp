@@ -1,4 +1,6 @@
-# function ModulusL(value : BigInt, modulus : BigInt) : BigInt
+# ModulusL function
+
+`function ModulusL(value : BigInt, modulus : BigInt) : BigInt`
 
 ## Summary
 Computes the canonical residue of `value` modulo `modulus`.

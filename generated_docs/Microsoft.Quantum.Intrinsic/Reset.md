@@ -1,4 +1,6 @@
-# operation Reset(qubit : Qubit) : Unit
+# Reset operation
+
+`operation Reset(qubit : Qubit) : Unit`
 
 ## Summary
 Given a single qubit, measures it and ensures it is in the |0⟩ state

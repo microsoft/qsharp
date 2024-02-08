@@ -1,4 +1,6 @@
-# function Ceiling(value : Double) : Int
+# Ceiling function
+
+`function Ceiling(value : Double) : Int`
 
 ## Summary
 Returns the smallest integer greater than or equal to the specified number.

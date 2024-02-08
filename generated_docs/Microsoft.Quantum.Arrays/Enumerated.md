@@ -1,4 +1,6 @@
-# function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[]
+# Enumerated function
+
+`function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[]`
 
 ## Summary
 Given an array, returns a new array containing elements of the original

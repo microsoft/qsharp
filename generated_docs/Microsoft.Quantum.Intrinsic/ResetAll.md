@@ -1,4 +1,6 @@
-# operation ResetAll(qubits : Qubit[]) : Unit
+# ResetAll operation
+
+`operation ResetAll(qubits : Qubit[]) : Unit`
 
 ## Summary
 Given an array of qubits, measure them and ensure they are in the |0⟩ state

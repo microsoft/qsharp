@@ -1,4 +1,6 @@
-# function PNorm(p : Double, array : Double[]) : Double
+# PNorm function
+
+`function PNorm(p : Double, array : Double[]) : Double`
 
 ## Summary
 Returns the `L(p)` norm of a vector of `Double`s.

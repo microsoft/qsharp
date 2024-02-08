@@ -1,4 +1,6 @@
-# function ComplexPolarAsComplex(input : ComplexPolar) : Complex
+# ComplexPolarAsComplex function
+
+`function ComplexPolarAsComplex(input : ComplexPolar) : Complex`
 
 ## Summary
 Converts a complex number of type `ComplexPolar` to a complex

@@ -1,4 +1,6 @@
-# operation MAJ(x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl
+# MAJ operation
+
+`operation MAJ(x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 This applies the in-place majority operation to 3 qubits.

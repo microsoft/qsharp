@@ -1,4 +1,6 @@
-# function IsRectangularArray<'T>(array : 'T[][]) : Bool
+# IsRectangularArray function
+
+`function IsRectangularArray<'T>(array : 'T[][]) : Bool`
 
 ## Summary
 Returns whether a 2-dimensional array has a rectangular shape

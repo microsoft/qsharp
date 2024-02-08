@@ -1,4 +1,6 @@
-# operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl
+# Exp operation
+
+`operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the exponential of a multi-qubit Pauli operator.

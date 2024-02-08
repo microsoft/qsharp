@@ -1,4 +1,6 @@
-# operation Rz(theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+# Rz operation
+
+`operation Rz(theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a rotation about the _z_-axis by a given angle.

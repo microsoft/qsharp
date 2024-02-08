@@ -1,4 +1,6 @@
-# function Tail<'A>(array : 'A[]) : 'A
+# Tail function
+
+`function Tail<'A>(array : 'A[]) : 'A`
 
 ## Summary
 Returns the last element of the array.

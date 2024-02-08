@@ -1,4 +1,6 @@
-# operation IncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
+# IncByLE operation
+
+`operation IncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Increments a little-endian register ys by a little-endian register xs

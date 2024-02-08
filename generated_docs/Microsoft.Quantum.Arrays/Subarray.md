@@ -1,4 +1,6 @@
-# function Subarray<'T>(locations : Int[], array : 'T[]) : 'T[]
+# Subarray function
+
+`function Subarray<'T>(locations : Int[], array : 'T[]) : 'T[]`
 
 ## Summary
 Takes an array and a list of locations and

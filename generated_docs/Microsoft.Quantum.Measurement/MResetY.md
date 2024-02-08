@@ -1,4 +1,6 @@
-# operation MResetY(target : Qubit) : Result
+# MResetY operation
+
+`operation MResetY(target : Qubit) : Result`
 
 ## Summary
 Measures a single qubit in the Y basis,

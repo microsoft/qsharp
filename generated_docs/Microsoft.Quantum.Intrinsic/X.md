@@ -1,4 +1,6 @@
-# operation X(qubit : Qubit) : Unit is Adj + Ctl
+# X operation
+
+`operation X(qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the Pauli _X_ gate.

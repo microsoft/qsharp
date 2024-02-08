@@ -1,4 +1,6 @@
-# function MappedByIndex<'T, 'U>(mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[]
+# MappedByIndex function
+
+`function MappedByIndex<'T, 'U>(mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[]`
 
 ## Summary
 Given an array and a function that is defined

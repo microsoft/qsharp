@@ -1,4 +1,6 @@
-# function BoolAsResult(input : Bool) : Result
+# BoolAsResult function
+
+`function BoolAsResult(input : Bool) : Result`
 
 ## Summary
 Converts a `Bool` type to a `Result` type, where `true` is mapped to

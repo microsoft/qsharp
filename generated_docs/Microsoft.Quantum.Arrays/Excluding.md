@@ -1,4 +1,6 @@
-# function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[]
+# Excluding function
+
+`function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[]`
 
 ## Summary
 Returns an array containing the elements of another array,

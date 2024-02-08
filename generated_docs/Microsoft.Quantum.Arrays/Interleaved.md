@@ -1,4 +1,6 @@
-# function Interleaved<'T>(first : 'T[], second : 'T[]) : 'T[]
+# Interleaved function
+
+`function Interleaved<'T>(first : 'T[], second : 'T[]) : 'T[]`
 
 ## Summary
 Interleaves two arrays of (almost) same size.

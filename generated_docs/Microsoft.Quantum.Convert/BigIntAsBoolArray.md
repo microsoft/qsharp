@@ -1,4 +1,6 @@
-# function BigIntAsBoolArray(number : BigInt, bits : Int) : Bool[]
+# BigIntAsBoolArray function
+
+`function BigIntAsBoolArray(number : BigInt, bits : Int) : Bool[]`
 
 ## Summary
 Produces a binary representation of a non-negative BigInt, using the

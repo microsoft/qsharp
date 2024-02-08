@@ -1,4 +1,6 @@
-# function FactorialL(n : Int) : BigInt
+# FactorialL function
+
+`function FactorialL(n : Int) : BigInt`
 
 ## Summary
 Returns the factorial of a given number.

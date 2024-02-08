@@ -1,4 +1,6 @@
-# operation SWAP(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl
+# SWAP operation
+
+`operation SWAP(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the SWAP gate to a pair of qubits.

@@ -1,4 +1,6 @@
-# operation M(qubit : Qubit) : Result
+# M operation
+
+`operation M(qubit : Qubit) : Result`
 
 ## Summary
 Performs a measurement of a single qubit in the

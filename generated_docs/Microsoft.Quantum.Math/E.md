@@ -1,4 +1,6 @@
-# function E() : Double
+# E function
+
+`function E() : Double`
 
 ## Summary
 Returns the natural logarithmic base to double-precision.

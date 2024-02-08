@@ -1,4 +1,6 @@
-# operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl
+# ApplyQFT operation
+
+`operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Applies Quantum Fourier Transform (QFT) to a little-endian quantum register.

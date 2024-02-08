@@ -1,4 +1,6 @@
-# function MinusC(a : Complex, b : Complex) : Complex
+# MinusC function
+
+`function MinusC(a : Complex, b : Complex) : Complex`
 
 ## Summary
 Returns the difference between two inputs of type `Complex`.

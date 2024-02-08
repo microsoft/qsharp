@@ -1,4 +1,6 @@
-# function Mapped<'T, 'U>(mapper : ('T -> 'U), array : 'T[]) : 'U[]
+# Mapped function
+
+`function Mapped<'T, 'U>(mapper : ('T -> 'U), array : 'T[]) : 'U[]`
 
 ## Summary
 Given an array and a function that is defined

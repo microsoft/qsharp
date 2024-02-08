@@ -1,4 +1,6 @@
-# function ApproximateFactorial(n : Int) : Double
+# ApproximateFactorial function
+
+`function ApproximateFactorial(n : Int) : Double`
 
 ## Summary
 Returns an approximate factorial of a given number.

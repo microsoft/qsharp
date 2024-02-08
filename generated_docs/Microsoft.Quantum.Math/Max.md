@@ -1,4 +1,6 @@
-# function Max(values : Int[]) : Int
+# Max function
+
+`function Max(values : Int[]) : Int`
 
 ## Summary
 Given an array of integers, returns the largest element.

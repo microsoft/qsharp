@@ -1,4 +1,6 @@
-# function IsSquareArray<'T>(array : 'T[][]) : Bool
+# IsSquareArray function
+
+`function IsSquareArray<'T>(array : 'T[][]) : Bool`
 
 ## Summary
 Returns whether a 2-dimensional array has a square shape

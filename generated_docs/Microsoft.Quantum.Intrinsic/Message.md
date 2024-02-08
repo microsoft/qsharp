@@ -1,4 +1,6 @@
-# function Message(msg : String) : Unit
+# Message function
+
+`function Message(msg : String) : Unit`
 
 ## Summary
 Logs a message.

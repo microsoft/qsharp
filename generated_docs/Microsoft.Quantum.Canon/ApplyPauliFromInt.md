@@ -1,4 +1,6 @@
-# operation ApplyPauliFromInt(pauli : Pauli, bitApply : Bool, numberState : Int, qubits : Qubit[]) : Unit is Adj + Ctl
+# ApplyPauliFromInt operation
+
+`operation ApplyPauliFromInt(pauli : Pauli, bitApply : Bool, numberState : Int, qubits : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a Pauli operator on each qubit in an array if the corresponding

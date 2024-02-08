@@ -1,4 +1,6 @@
-# function ResultArrayAsInt(results : Result[]) : Int
+# ResultArrayAsInt function
+
+`function ResultArrayAsInt(results : Result[]) : Int`
 
 ## Summary
 Produces a non-negative integer from a string of Results in little-endian format.

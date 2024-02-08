@@ -1,4 +1,6 @@
-# function SequenceL(from : BigInt, to : BigInt) : BigInt[]
+# SequenceL function
+
+`function SequenceL(from : BigInt, to : BigInt) : BigInt[]`
 
 ## Summary
 Get an array of integers in a given interval.

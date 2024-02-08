@@ -1,4 +1,6 @@
-# function Filtered<'T>(predicate : ('T -> Bool), array : 'T[]) : 'T[]
+# Filtered function
+
+`function Filtered<'T>(predicate : ('T -> Bool), array : 'T[]) : 'T[]`
 
 ## Summary
 Given an array and a predicate that is defined

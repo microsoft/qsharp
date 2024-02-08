@@ -1,4 +1,6 @@
-# function InverseModL(a : BigInt, modulus : BigInt) : BigInt
+# InverseModL function
+
+`function InverseModL(a : BigInt, modulus : BigInt) : BigInt`
 
 ## Summary
 Returns the multiplicative inverse of a modular integer.

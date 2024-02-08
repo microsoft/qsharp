@@ -1,4 +1,6 @@
-# function RotationCount(amount : Int) : (Int, Int)
+# RotationCount function
+
+`function RotationCount(amount : Int) : (Int, Int)`
 
 ## Summary
 Returns a tuple that can be passed to the `AccountForEstimates` operation

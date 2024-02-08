@@ -1,4 +1,6 @@
-# operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl
+# SwapReverseRegister operation
+
+`operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Uses SWAP gates to reverse the order of the qubits in a register.

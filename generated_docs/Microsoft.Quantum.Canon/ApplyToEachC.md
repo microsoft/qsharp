@@ -1,4 +1,6 @@
-# operation ApplyToEachC<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Ctl
+# ApplyToEachC operation
+
+`operation ApplyToEachC<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Ctl`
 
 ## Summary
 Applies an operation to each element in a register.

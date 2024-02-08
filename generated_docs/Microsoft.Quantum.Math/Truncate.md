@@ -1,4 +1,6 @@
-# function Truncate(value : Double) : Int
+# Truncate function
+
+`function Truncate(value : Double) : Int`
 
 ## Summary
 Returns the integral part of a number.

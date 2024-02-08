@@ -1,4 +1,6 @@
-# operation T(qubit : Qubit) : Unit is Adj + Ctl
+# T operation
+
+`operation T(qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the π/8 gate to a single qubit.

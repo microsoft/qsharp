@@ -1,4 +1,6 @@
-# function NegationCP(input : ComplexPolar) : ComplexPolar
+# NegationCP function
+
+`function NegationCP(input : ComplexPolar) : ComplexPolar`
 
 ## Summary
 Returns the unary negation of an input of type `ComplexPolar`

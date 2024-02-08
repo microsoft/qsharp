@@ -1,4 +1,6 @@
-# function ResultArrayAsBoolArray(input : Result[]) : Bool[]
+# ResultArrayAsBoolArray function
+
+`function ResultArrayAsBoolArray(input : Result[]) : Bool[]`
 
 ## Summary
 Converts a `Result[]` type to a `Bool[]` type, where `One`

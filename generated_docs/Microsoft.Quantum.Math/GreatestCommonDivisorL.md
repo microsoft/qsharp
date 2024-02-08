@@ -1,4 +1,6 @@
-# function GreatestCommonDivisorL(a : BigInt, b : BigInt) : BigInt
+# GreatestCommonDivisorL function
+
+`function GreatestCommonDivisorL(a : BigInt, b : BigInt) : BigInt`
 
 ## Summary
 Computes the greatest common divisor of two integers.

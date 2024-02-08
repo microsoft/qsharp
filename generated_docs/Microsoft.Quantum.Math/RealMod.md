@@ -1,4 +1,6 @@
-# function RealMod(value : Double, modulo : Double, minValue : Double) : Double
+# RealMod function
+
+`function RealMod(value : Double, modulo : Double, minValue : Double) : Double`
 
 ## Summary
 Computes the modulus between two real numbers.

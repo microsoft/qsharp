@@ -1,4 +1,6 @@
-# operation CZ(control : Qubit, target : Qubit) : Unit is Adj + Ctl
+# CZ operation
+
+`operation CZ(control : Qubit, target : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the controlled-Z (CZ) gate to a pair of qubits.

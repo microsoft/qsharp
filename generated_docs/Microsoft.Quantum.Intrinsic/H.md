@@ -1,4 +1,6 @@
-# operation H(qubit : Qubit) : Unit is Adj + Ctl
+# H operation
+
+`operation H(qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the Hadamard transformation to a single qubit.

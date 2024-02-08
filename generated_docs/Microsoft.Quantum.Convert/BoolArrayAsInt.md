@@ -1,4 +1,6 @@
-# function BoolArrayAsInt(bits : Bool[]) : Int
+# BoolArrayAsInt function
+
+`function BoolArrayAsInt(bits : Bool[]) : Int`
 
 ## Summary
 Produces a non-negative integer from a string of bits in little endian format.

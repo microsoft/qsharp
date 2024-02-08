@@ -1,4 +1,6 @@
-# function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int
+# IndexOf function
+
+`function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int`
 
 ## Summary
 Returns the first index of the first element in an array that satisfies

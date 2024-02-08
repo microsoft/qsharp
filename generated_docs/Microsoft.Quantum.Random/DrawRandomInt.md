@@ -1,4 +1,6 @@
-# operation DrawRandomInt(min : Int, max : Int) : Int
+# DrawRandomInt operation
+
+`operation DrawRandomInt(min : Int, max : Int) : Int`
 
 ## Summary
 Draws a random integer in a given inclusive range.

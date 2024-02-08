@@ -1,4 +1,6 @@
-# operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj + Ctl
+# ApplyXorInPlaceL operation
+
+`operation ApplyXorInPlaceL(value : BigInt, target : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Applies a bitwise-XOR operation between a classical integer and an

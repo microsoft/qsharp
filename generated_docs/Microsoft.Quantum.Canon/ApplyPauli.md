@@ -1,4 +1,6 @@
-# operation ApplyPauli(pauli : Pauli[], target : Qubit[]) : Unit is Adj + Ctl
+# ApplyPauli operation
+
+`operation ApplyPauli(pauli : Pauli[], target : Qubit[]) : Unit is Adj + Ctl`
 
 ## Summary
 Given a multi-qubit Pauli operator, applies the corresponding operation

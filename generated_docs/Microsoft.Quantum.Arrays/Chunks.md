@@ -1,4 +1,6 @@
-# function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][]
+# Chunks function
+
+`function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][]`
 
 ## Summary
 Splits an array into multiple parts of equal length.

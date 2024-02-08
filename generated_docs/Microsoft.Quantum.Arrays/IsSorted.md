@@ -1,4 +1,6 @@
-# function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool
+# IsSorted function
+
+`function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool`
 
 ## Summary
 Given an array, returns whether that array is sorted as defined by

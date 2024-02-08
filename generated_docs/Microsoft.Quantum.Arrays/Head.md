@@ -1,4 +1,6 @@
-# function Head<'A>(array : 'A[]) : 'A
+# Head function
+
+`function Head<'A>(array : 'A[]) : 'A`
 
 ## Summary
 Returns the first element of the array.

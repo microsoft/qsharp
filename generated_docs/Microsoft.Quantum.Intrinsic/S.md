@@ -1,4 +1,6 @@
-# operation S(qubit : Qubit) : Unit is Adj + Ctl
+# S operation
+
+`operation S(qubit : Qubit) : Unit is Adj + Ctl`
 
 ## Summary
 Applies the π/4 phase gate to a single qubit.
