@@ -36,8 +36,12 @@ export function runSingleShot(code, expr, useWorker) {
     const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
     compiler
-      .run([["test.qs", code]], expr, 1, resultsHandler)
-      .then(() => resolve(resultsHandler.getResults()[0]))
+      .run([["test.qs", code]], expr, 1, resultsHandler, [])
+      .then(() => {
+        const results = resultsHandler.getResults();
+        console.log("results are", JSON.stringify(results, null, 2));
+        return resolve(results[0]);
+      })
       .catch((err) => reject(err))
       /* @ts-expect-error: ICompiler does not include 'terminate' */
       .finally(() => (useWorker ? compiler.terminate() : null));
@@ -67,6 +71,7 @@ namespace Test {
     }
 }`;
   const result = await runSingleShot(code, "", true);
+  console.log("result", JSON.stringify(result, null, 2));
   assert(result.success === true);
   assert(result.result === "Zero");
 });
@@ -340,7 +345,7 @@ test("worker 100 shots", async () => {
 
   const resultsHandler = new QscEventTarget(true);
   const compiler = getCompilerWorker();
-  await compiler.run([["test.qs", code]], expr, 100, resultsHandler);
+  await compiler.run([["test.qs", code]], expr, 100, resultsHandler, []);
   compiler.terminate();
 
   const results = resultsHandler.getResults();
@@ -359,7 +364,13 @@ test("Run samples", async () => {
   const testCases = samples.filter((x) => !x.omitFromTests);
 
   for await (const sample of testCases) {
-    await compiler.run([[sample.title, sample.code]], "", 1, resultsHandler);
+    await compiler.run(
+      [[sample.title, sample.code]],
+      "",
+      1,
+      resultsHandler,
+      [],
+    );
   }
 
   compiler.terminate();
@@ -384,7 +395,7 @@ test("state change", async () => {
         return M(q1);
     }
   }`;
-  await compiler.run([["test.qs", code]], "", 10, resultsHandler);
+  await compiler.run([["test.qs", code]], "", 10, resultsHandler, []);
   compiler.terminate();
   // There SHOULDN'T be a race condition here between the 'run' promise completing and the
   // statechange events firing, as the run promise should 'resolve' in the next microtask,
@@ -412,10 +423,12 @@ test("cancel worker", () => {
     const resultsHandler = new QscEventTarget(false);
 
     // Queue some tasks that will never complete
-    compiler.run([["test.qs", code]], "", 10, resultsHandler).catch((err) => {
-      cancelledArray.push(err);
-    });
-    compiler.getHir(code).catch((err) => {
+    compiler
+      .run([["test.qs", code]], "", 10, resultsHandler, [])
+      .catch((err) => {
+        cancelledArray.push(err);
+      });
+    compiler.getHir(code, []).catch((err) => {
       cancelledArray.push(err);
     });
 
@@ -426,7 +439,7 @@ test("cancel worker", () => {
 
       // Start a new compiler and ensure that works fine
       const compiler2 = getCompilerWorker();
-      const result = await compiler2.getHir(code);
+      const result = await compiler2.getHir(code, []);
       compiler2.terminate();
 
       // getHir should have worked
@@ -698,7 +711,7 @@ async function testCompilerError(useWorker) {
   let promiseResult = undefined;
   let lastState = undefined;
   await compiler
-    .run([["test.qs", "invalid code"]], "", 1, events)
+    .run([["test.qs", "invalid code"]], "", 1, events, [])
     .then(() => {
       promiseResult = "success";
     })

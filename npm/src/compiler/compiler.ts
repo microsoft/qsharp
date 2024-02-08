@@ -15,15 +15,23 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
-  getHir(code: string): Promise<string>;
+  getHir(code: string, language_features: string[]): Promise<string>;
   run(
     sources: [string, string][],
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
+    language_features: string[],
   ): Promise<void>;
-  getQir(sources: [string, string][]): Promise<string>;
-  getEstimates(sources: [string, string][], params: string): Promise<string>;
+  getQir(
+    sources: [string, string][],
+    language_features: string[],
+  ): Promise<string>;
+  getEstimates(
+    sources: [string, string][],
+    params: string,
+    language_features: string[],
+  ): Promise<string>;
   checkExerciseSolution(
     user_code: string,
     exercise_sources: string[],
@@ -66,19 +74,23 @@ export class Compiler implements ICompiler {
     return diags;
   }
 
-  async getQir(sources: [string, string][]): Promise<string> {
-    return this.wasm.get_qir(sources);
+  async getQir(
+    sources: [string, string][],
+    language_features: string[],
+  ): Promise<string> {
+    return this.wasm.get_qir(sources, language_features);
   }
 
   async getEstimates(
     sources: [string, string][],
     params: string,
+    language_features: string[],
   ): Promise<string> {
-    return this.wasm.get_estimates(sources, params);
+    return this.wasm.get_estimates(sources, params, language_features);
   }
 
-  async getHir(code: string): Promise<string> {
-    return this.wasm.get_hir(code);
+  async getHir(code: string, language_features: string[]): Promise<string> {
+    return this.wasm.get_hir(code, language_features);
   }
 
   async run(
@@ -86,6 +98,7 @@ export class Compiler implements ICompiler {
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
+    language_features: string[],
   ): Promise<void> {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
@@ -95,6 +108,7 @@ export class Compiler implements ICompiler {
       expr,
       (msg: string) => onCompilerEvent(msg, eventHandler),
       shots,
+      language_features,
     );
   }
 

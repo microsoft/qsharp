@@ -83,7 +83,7 @@ def init(
             ) from e
 
     _interpreter = Interpreter(
-        language_features, target_profile, manifest_descriptor, read_file, list_directory
+        target_profile, language_features, manifest_descriptor, read_file, list_directory
     )
 
     # Return the configuration information to provide a hint to the

@@ -240,14 +240,16 @@ fn language_feature() {
                 sources: [
                     (
                         "language_feature/src/Project.qs",
-                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n    }\n}\n",
+                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n        use (q1, q2) = Qubit[2] { };\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
                     author: None,
                     license: None,
                     features: LanguageFeatures(
-                        {},
+                        {
+                            V2PreviewSyntax,
+                        },
                     ),
                 },
             }"#]],

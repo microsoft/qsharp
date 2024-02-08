@@ -1051,7 +1051,7 @@ mod given_interpreter {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::empty(),
+            RuntimeCapabilityFlags::all(),
             &LanguageFeatures::none(),
         )
         .expect("interpreter should be created")

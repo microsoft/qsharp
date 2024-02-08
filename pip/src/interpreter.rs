@@ -112,7 +112,7 @@ impl Interpreter {
     pub(crate) fn new(
         py: Python,
         target: TargetProfile,
-        language_features: Vec<String>,
+        language_features: Option<Vec<String>>,
         manifest_descriptor: Option<PyManifestDescriptor>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
@@ -121,6 +121,7 @@ impl Interpreter {
             TargetProfile::Unrestricted => Profile::Unrestricted,
             TargetProfile::Base => Profile::Base,
         };
+        let language_features = language_features.unwrap_or_default();
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
             let project = file_system(
