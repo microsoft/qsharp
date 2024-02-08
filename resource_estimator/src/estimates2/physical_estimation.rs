@@ -6,20 +6,87 @@ use super::{
     optimization::{Point2D, Population},
     ErrorBudget, LogicalQubit,
 };
-use crate::estimates::error::InvalidInput::{
-    self, BothDurationAndPhysicalQubitsProvided, InvalidCodeDistance, MaxDurationTooSmall,
-    MaxPhysicalQubitsTooSmall, NoSolutionFoundForMaxTFactories, NoTFactoriesFound,
-};
-use crate::estimates::Result;
+use miette::Diagnostic;
 use std::{cmp::Ordering, rc::Rc};
+use thiserror::Error;
+
+#[derive(Debug, Error, Diagnostic)]
+pub enum Error {
+    /// Input algorithm has no resources
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("Algorithm requires at least one T state or measurement to estimate resources")]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.AlgorithmHasNoResources"))]
+    AlgorithmHasNoResources,
+    /// Both constraints for maximal time and
+    /// maximal number of qubits are provided
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error(
+        "Both duration and number of physical qubits constraints are provided, but only one is allowed"
+    )]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.BothDurationAndPhysicalQubitsProvided"))]
+    BothDurationAndPhysicalQubitsProvided,
+    /// Computed code distance is too high
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("The computed code distance {0} is too high; maximum allowed code distance is {1}; try increasing the total logical error budget")]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.InvalidCodeDistance"))]
+    InvalidCodeDistance(u64, u64),
+    /// No solution found for the provided maximum duration.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("No solution found for the provided maximum duration.")]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.MaxDurationTooSmall"))]
+    MaxDurationTooSmall,
+    /// No solution found for the provided maximum number of physical qubits
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("No solution found for the provided maximum number of physical qubits.")]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.MaxPhysicalQubitsTooSmall"))]
+    MaxPhysicalQubitsTooSmall,
+    /// No solution found for the provided maximum number of T factories.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("No solution found for the provided maximum number of T factories.")]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.NoSolutionFoundForMaxTFactories"))]
+    NoSolutionFoundForMaxTFactories,
+    /// No T factories could be built for the provided range of code distances,
+    /// the provided error budget and provided distillation units.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("No T factories could be built for the provided range of code distances, the provided error budget and provided distillation units.")]
+    #[diagnostic(code("Qsc.Estimates.InvalidInputError.NoTFactoriesFound"))]
+    NoTFactoriesFound,
+    #[error("The number of physical qubits per logical qubit cannot be computed: {0}")]
+    #[diagnostic(code("Qsc.Estimates.PhysicalQubitComputationFailed"))]
+    PhysicalQubitComputationFailed(String),
+    #[error("The logical cycle time cannot be computed: {0}")]
+    #[diagnostic(code("Qsc.Estimates.LogicalCycleTimeComputationFailed"))]
+    LogicalCycleTimeComputationFailed(String),
+    #[error("The logical failure probability cannot be computed: {0}")]
+    #[diagnostic(code("Qsc.Estimates.LogicalFailureProbabilityFailed"))]
+    LogicalFailureProbabilityFailed(String),
+}
 
 pub trait ErrorCorrection {
     type Qubit;
 
     fn max_code_distance(&self) -> u64;
-    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64>;
-    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64>;
-    fn logical_failure_probability(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<f64>;
+    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64, String>;
+    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64, String>;
+    fn logical_failure_probability(
+        &self,
+        qubit: &Self::Qubit,
+        code_distance: u64,
+    ) -> Result<f64, String>;
     fn compute_code_distance(&self, qubit: &Self::Qubit, required_logical_error_rate: f64) -> u64;
 }
 
@@ -274,21 +341,21 @@ where
 
     pub fn estimate(
         &self,
-    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>, Error> {
         match (self.max_duration, self.max_physical_qubits) {
             (None, None) => self.estimate_without_restrictions(),
             (None, Some(max_physical_qubits)) => {
                 self.estimate_with_max_num_qubits(max_physical_qubits)
             }
             (Some(max_duration), None) => self.estimate_with_max_duration(max_duration),
-            _ => Err(BothDurationAndPhysicalQubitsProvided.into()),
+            _ => Err(Error::BothDurationAndPhysicalQubitsProvided),
         }
     }
 
     #[allow(clippy::too_many_lines, clippy::type_complexity)]
     pub fn build_frontier(
         &self,
-    ) -> Result<Vec<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>>> {
+    ) -> Result<Vec<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>>, Error> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -314,7 +381,10 @@ where
         let max_code_distance = self.ftp.max_code_distance();
 
         if min_code_distance > max_code_distance {
-            return Err(InvalidCodeDistance(min_code_distance, max_code_distance).into());
+            return Err(Error::InvalidCodeDistance(
+                min_code_distance,
+                max_code_distance,
+            ));
         }
 
         if self
@@ -349,7 +419,8 @@ where
 
             let allowed_logical_qubit_error_rate = self
                 .ftp
-                .logical_failure_probability(&self.qubit, code_distance)?;
+                .logical_failure_probability(&self.qubit, code_distance)
+                .map_err(Error::LogicalFailureProbabilityFailed)?;
 
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * allowed_logical_qubit_error_rate))
@@ -444,7 +515,7 @@ where
 
     pub fn estimate_without_restrictions(
         &self,
-    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>, Error> {
         let mut num_cycles = self.compute_num_cycles()?;
 
         let mut loaded_factories_at_least_once = false;
@@ -466,16 +537,17 @@ where
 
             if code_distance > self.ftp.max_code_distance() {
                 if !loaded_factories_at_least_once {
-                    return Err(NoTFactoriesFound.into());
+                    return Err(Error::NoTFactoriesFound);
                 }
 
                 if self.max_factories.is_some() {
-                    return Err(NoSolutionFoundForMaxTFactories.into());
+                    return Err(Error::NoSolutionFoundForMaxTFactories);
                 }
 
-                return Err(
-                    InvalidCodeDistance(code_distance, self.ftp.max_code_distance()).into(),
-                );
+                return Err(Error::InvalidCodeDistance(
+                    code_distance,
+                    self.ftp.max_code_distance(),
+                ));
             }
 
             let logical_qubit = LogicalQubit::new(&self.ftp, code_distance, self.qubit.clone())?;
@@ -514,7 +586,8 @@ where
 
             let max_allowed_error_rate = self
                 .ftp
-                .logical_failure_probability(&self.qubit, code_distance)?;
+                .logical_failure_probability(&self.qubit, code_distance)
+                .map_err(Error::LogicalFailureProbabilityFailed)?;
             let max_allowed_num_cycles_for_code_distance = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * max_allowed_error_rate))
                 .floor() as u64;
@@ -592,7 +665,7 @@ where
     pub fn estimate_with_max_duration(
         &self,
         max_duration_in_nanoseconds: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>, Error> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -618,7 +691,10 @@ where
         let max_code_distance = self.ftp.max_code_distance();
 
         if min_code_distance > max_code_distance {
-            return Err(InvalidCodeDistance(min_code_distance, max_code_distance).into());
+            return Err(Error::InvalidCodeDistance(
+                min_code_distance,
+                max_code_distance,
+            ));
         }
 
         if self
@@ -642,7 +718,7 @@ where
                     None,
                 ));
             }
-            return Err(MaxDurationTooSmall.into());
+            return Err(Error::MaxDurationTooSmall);
         }
 
         let mut best_estimation_result: Option<
@@ -665,7 +741,8 @@ where
 
             let allowed_logical_qubit_error_rate = self
                 .ftp
-                .logical_failure_probability(&self.qubit, code_distance)?;
+                .logical_failure_probability(&self.qubit, code_distance)
+                .map_err(Error::LogicalFailureProbabilityFailed)?;
 
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * allowed_logical_qubit_error_rate))
@@ -744,14 +821,14 @@ where
             }
         }
 
-        best_estimation_result.ok_or_else(|| MaxDurationTooSmall.into())
+        best_estimation_result.ok_or(Error::MaxDurationTooSmall)
     }
 
     #[allow(clippy::too_many_lines)]
     pub fn estimate_with_max_num_qubits(
         &self,
         max_num_qubits: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {
+    ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>, Error> {
         let min_num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required T-state error rate is computed by dividing the total
@@ -777,7 +854,10 @@ where
         let max_code_distance = self.ftp.max_code_distance();
 
         if min_code_distance > max_code_distance {
-            return Err(InvalidCodeDistance(min_code_distance, max_code_distance).into());
+            return Err(Error::InvalidCodeDistance(
+                min_code_distance,
+                max_code_distance,
+            ));
         }
 
         if self
@@ -800,7 +880,7 @@ where
                     None,
                 ));
             }
-            return Err(MaxPhysicalQubitsTooSmall.into());
+            return Err(Error::MaxPhysicalQubitsTooSmall);
         }
 
         let mut best_estimation_result: Option<
@@ -824,7 +904,8 @@ where
 
             let min_allowed_logical_qubit_error_rate = self
                 .ftp
-                .logical_failure_probability(&self.qubit, code_distance)?;
+                .logical_failure_probability(&self.qubit, code_distance)
+                .map_err(Error::LogicalFailureProbabilityFailed)?;
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64
                     * min_allowed_logical_qubit_error_rate))
@@ -900,7 +981,7 @@ where
             }
         }
 
-        best_estimation_result.ok_or_else(|| MaxPhysicalQubitsTooSmall.into())
+        best_estimation_result.ok_or(Error::MaxPhysicalQubitsTooSmall)
     }
 
     fn compute_num_cycles_required_for_magic_states(
@@ -1080,7 +1161,7 @@ where
     }
 
     // Possibly adjusts number of cycles C from initial starting point C_min
-    fn compute_num_cycles(&self) -> Result<u64> {
+    fn compute_num_cycles(&self) -> Result<u64, Error> {
         // Start loop with C = C_min
         let num_magic_states_per_rotation = self
             .layout_overhead
@@ -1102,7 +1183,7 @@ where
             == 0
             && num_cycles == 0
         {
-            return Err(InvalidInput::AlgorithmHasNoResources.into());
+            return Err(Error::AlgorithmHasNoResources);
         }
 
         Ok(num_cycles)

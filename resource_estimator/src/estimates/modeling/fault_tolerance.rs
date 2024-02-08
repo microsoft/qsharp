@@ -7,7 +7,10 @@ mod tests;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::estimates2::ErrorCorrection;
+use crate::estimates2::{
+    Error::{LogicalCycleTimeComputationFailed, PhysicalQubitComputationFailed},
+    ErrorCorrection,
+};
 
 use super::{
     super::{
@@ -25,7 +28,7 @@ use super::{
             },
             IO::CannotParseJSON,
         },
-        Error, Result,
+        Error,
     },
     PhysicalInstructionSet, PhysicalQubit,
 };
@@ -98,7 +101,7 @@ impl Protocol {
     pub(crate) fn load_from_specification(
         model: &mut ProtocolSpecification,
         qubit: &PhysicalQubit,
-    ) -> Result<Self> {
+    ) -> crate::estimates::Result<Self> {
         let (mut ftp, predefined) = Self::base_protocol(model, qubit)?;
 
         if predefined {
@@ -140,8 +143,10 @@ impl Protocol {
         // validate that formulas only yield positive values
         for code_distance in (1..=model.max_code_distance).skip(2) {
             // can you compute logical cycle time and number of physical qubits with code distance?
-            ftp.logical_cycle_time(qubit, code_distance)?;
-            ftp.physical_qubits_per_logical_qubit(code_distance)?;
+            ftp.logical_cycle_time(qubit, code_distance)
+                .map_err(LogicalCycleTimeComputationFailed)?;
+            ftp.physical_qubits_per_logical_qubit(code_distance)
+                .map_err(PhysicalQubitComputationFailed)?;
         }
 
         Ok(ftp)
@@ -150,7 +155,7 @@ impl Protocol {
     fn base_protocol(
         model: &mut ProtocolSpecification,
         qubit: &PhysicalQubit,
-    ) -> Result<(Self, bool)> {
+    ) -> crate::estimates::Result<(Self, bool)> {
         if model.name == "surface_code"
             || model.name == "surfaceCode"
             || model.name == "surface-code"
@@ -225,7 +230,7 @@ impl Protocol {
     fn update_default_from_specification(
         &mut self,
         model: &mut ProtocolSpecification,
-    ) -> Result<()> {
+    ) -> crate::estimates::Result<()> {
         if let Some(error_correction_threshold) = model.error_correction_threshold {
             self.error_correction_threshold = error_correction_threshold;
         } else {
@@ -434,7 +439,7 @@ impl Protocol {
     fn parse_compiled_expressions(
         logical_cycle_time_expr: &str,
         physical_qubits_per_logical_qubit_expr: &str,
-    ) -> Result<(CompiledExpression, CompiledExpression)> {
+    ) -> crate::estimates::Result<(CompiledExpression, CompiledExpression)> {
         Ok((
             CompiledExpression::from_string(logical_cycle_time_expr, "logical_cycle_time_expr")?,
             CompiledExpression::from_string(
@@ -461,14 +466,15 @@ impl ErrorCorrection for Protocol {
     ///
     /// The formula for this field has a default value of `2 * code_distance *
     /// code_distance`.
-    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64> {
+    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64, String> {
         let mut context = Self::create_evaluation_context(None, code_distance);
         let value = self
             .physical_qubits_per_logical_qubit
-            .evaluate(&mut context)?;
+            .evaluate(&mut context)
+            .map_err(|err| err.to_string())?;
 
         if value <= 0.0 {
-            Err(NonPositivePhysicalQubitsPerLogicalQubit(code_distance).into())
+            Err(NonPositivePhysicalQubitsPerLogicalQubit(code_distance).to_string())
         } else {
             Ok(value as u64)
         }
@@ -481,13 +487,16 @@ impl ErrorCorrection for Protocol {
     /// extraction time, is based on physical operation times specified in the
     /// qubit and usually some factor based on the choice of stabilizer
     /// extraction circuit.
-    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64> {
+    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64, String> {
         let mut context = Self::create_evaluation_context(Some(qubit), code_distance);
 
-        let result = self.logical_cycle_time.evaluate(&mut context)?;
+        let result = self
+            .logical_cycle_time
+            .evaluate(&mut context)
+            .map_err(|err| err.to_string())?;
 
         if result <= 0.0 {
-            Err(NonPositiveLogicalCycleTime(code_distance).into())
+            Err(NonPositiveLogicalCycleTime(code_distance).to_string())
         } else {
             Ok(result.round() as u64)
         }
@@ -497,7 +506,11 @@ impl ErrorCorrection for Protocol {
     ///
     /// Computes the logical failure probability based on a physical error rate
     /// and a code distance
-    fn logical_failure_probability(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<f64> {
+    fn logical_failure_probability(
+        &self,
+        qubit: &Self::Qubit,
+        code_distance: u64,
+    ) -> Result<f64, String> {
         let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
 
         if physical_error_rate > self.error_correction_threshold() {
@@ -505,7 +518,8 @@ impl ErrorCorrection for Protocol {
                 String::from("physical_error_rate"),
                 0.0,
                 self.error_correction_threshold,
-            ))
+            )
+            .to_string())
         } else {
             #[allow(clippy::cast_possible_truncation)]
             Ok(self.crossing_prefactor()

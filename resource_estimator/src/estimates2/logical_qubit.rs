@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::Result;
-use crate::estimates2::ErrorCorrection;
+use crate::estimates2::{Error, ErrorCorrection};
 
 use serde::Serialize;
 use std::{fmt::Debug, rc::Rc};
@@ -29,11 +28,17 @@ impl<P> LogicalQubit<P> {
         ftp: &impl ErrorCorrection<Qubit = P>,
         code_distance: u64,
         qubit: Rc<P>,
-    ) -> Result<Self> {
+    ) -> Result<Self, Error> {
         // safe to convert here because we check for negative values before
-        let physical_qubits = ftp.physical_qubits_per_logical_qubit(code_distance)?;
-        let logical_cycle_time = ftp.logical_cycle_time(&qubit, code_distance)?;
-        let logical_error_rate = ftp.logical_failure_probability(&qubit, code_distance)?;
+        let physical_qubits = ftp
+            .physical_qubits_per_logical_qubit(code_distance)
+            .map_err(Error::PhysicalQubitComputationFailed)?;
+        let logical_cycle_time = ftp
+            .logical_cycle_time(&qubit, code_distance)
+            .map_err(Error::LogicalCycleTimeComputationFailed)?;
+        let logical_error_rate = ftp
+            .logical_failure_probability(&qubit, code_distance)
+            .map_err(Error::LogicalFailureProbabilityFailed)?;
 
         Ok(Self {
             physical_qubit: qubit,

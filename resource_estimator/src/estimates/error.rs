@@ -63,13 +63,6 @@ pub enum InvalidInput {
         "Qsc.Estimates.InvalidInputError.NonPositivePhysicalQubitsPerLogicalQubit"
     ))]
     NonPositivePhysicalQubitsPerLogicalQubit(u64),
-    /// Input algorithm has no resources
-    ///
-    /// ✅ This does not contain user data and can be logged
-    /// 🧑‍💻 This indicates a user error
-    #[error("Algorithm requires at least one T state or measurement to estimate resources")]
-    #[diagnostic(code("Qsc.Estimates.InvalidInputError.AlgorithmHasNoResources"))]
-    AlgorithmHasNoResources,
     /// Invalid error budget (<= 0.0 or >= 1.0)
     ///
     /// ✅ This does not contain user data and can be logged
@@ -77,52 +70,6 @@ pub enum InvalidInput {
     #[error("The error budget must be between 0.0 and 1.0, provided input was `{0}`")]
     #[diagnostic(code("Qsc.Estimates.InvalidInputError.InvalidErrorBudget"))]
     InvalidErrorBudget(f64),
-    /// Computed code distance is too high
-    ///
-    /// ✅ This does not contain user data and can be logged
-    /// 🧑‍💻 This indicates a user error
-    #[error("The computed code distance {0} is too high; maximum allowed code distance is {1}; try increasing the total logical error budget")]
-    #[diagnostic(code("Qsc.Estimates.InvalidInputError.InvalidCodeDistance"))]
-    InvalidCodeDistance(u64, u64),
-    /// Both constraints for maximal time and
-    /// maximal number of qubits are provided
-    ///
-    /// ✅ This does not contain user data and can be logged
-    /// 🧑‍💻 This indicates a user error
-    #[error(
-        "Both duration and number of physical qubits constraints are provided, but only one is allowed"
-    )]
-    #[diagnostic(code("Qsc.Estimates.InvalidInputError.BothDurationAndPhysicalQubitsProvided"))]
-    BothDurationAndPhysicalQubitsProvided,
-    /// No solution found for the provided maximum duration.
-    ///
-    /// ✅ This does not contain user data and can be logged
-    /// 🧑‍💻 This indicates a user error
-    #[error("No solution found for the provided maximum duration.")]
-    #[diagnostic(code("Qsc.Estimates.InvalidInputError.MaxDurationTooSmall"))]
-    MaxDurationTooSmall,
-    /// No solution found for the provided maximum number of physical qubits
-    ///
-    /// ✅ This does not contain user data and can be logged
-    /// 🧑‍💻 This indicates a user error
-    #[error("No solution found for the provided maximum number of physical qubits.")]
-    #[diagnostic(code("Qsc.Estimates.InvalidInputError.MaxPhysicalQubitsTooSmall"))]
-    MaxPhysicalQubitsTooSmall,
-    /// No T factories could be built for the provided range of code distances,
-    /// the provided error budget and provided distillation units.
-    ///
-    /// ✅ This does not contain user data and can be logged
-    /// 🧑‍💻 This indicates a user error
-    #[error("No T factories could be built for the provided range of code distances, the provided error budget and provided distillation units.")]
-    #[diagnostic(code("Qsc.Estimates.InvalidInputError.NoTFactoriesFound"))]
-    NoTFactoriesFound,
-    /// No solution found for the provided maximum number of T factories.
-    ///
-    /// ✅ This does not contain user data and can be logged
-    /// 🧑‍💻 This indicates a user error
-    #[error("No solution found for the provided maximum number of T factories.")]
-    #[diagnostic(code("Qsc.Estimates.InvalidInputError.NoSolutionFoundForMaxTFactories"))]
-    NoSolutionFoundForMaxTFactories,
     /// Constraints provided for frontier estimation
     /// (maximal time, maximal number of qubits, maximal number of T factories)
     /// are not supported for frontier estimation.
@@ -173,6 +120,9 @@ pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     TFactory(TFactory),
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    Estimation(#[from] crate::estimates2::Error),
 }
 
 impl From<fasteval::Error> for Error {

@@ -83,7 +83,9 @@ fn single_physical_qubit() {
     assert_eq!(unit.physical_qubits(0), 31);
 }
 
-fn create_logical_qubit_with_distance(code_distance: u64) -> Result<LogicalQubit<PhysicalQubit>> {
+fn create_logical_qubit_with_distance(
+    code_distance: u64,
+) -> core::result::Result<LogicalQubit<PhysicalQubit>, crate::estimates2::Error> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::default());
 

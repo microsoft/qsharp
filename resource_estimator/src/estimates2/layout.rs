@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 pub trait Overhead {
     fn logical_qubits(&self) -> u64;
     fn logical_qubits_without_padding(&self) -> u64 {

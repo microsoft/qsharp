@@ -13,15 +13,12 @@ use super::estimate_physical_resources;
 
 use crate::estimates::{
     data::{ErrorBudgetSpecification, JobParams, LogicalResourceCounts},
-    error::{
-        InvalidInput::{MaxDurationTooSmall, MaxPhysicalQubitsTooSmall},
-        IO,
-    },
+    error::IO,
     modeling::GateBasedPhysicalQubit,
     modeling::{PhysicalQubit, Protocol},
     optimization::TFactoryBuilder,
     stages::tfactory::TFactory,
-    Error, Result,
+    Result,
 };
 
 use std::rc::Rc;
@@ -501,7 +498,7 @@ pub fn test_chemistry_small_max_duration() {
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds);
 
     match result {
-        Err(Error::InvalidInput(MaxDurationTooSmall)) => {}
+        Err(crate::estimates2::Error::MaxDurationTooSmall) => {}
         _ => unreachable!("Expected MaxDurationTooSmall"),
     }
 }
@@ -514,7 +511,7 @@ pub fn test_chemistry_small_max_num_qubits() {
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits);
 
     match result {
-        Err(Error::InvalidInput(MaxPhysicalQubitsTooSmall)) => {}
+        Err(crate::estimates2::Error::MaxPhysicalQubitsTooSmall) => {}
         _ => unreachable!("Expected MaxNumQubitsTooSmall"),
     }
 }
