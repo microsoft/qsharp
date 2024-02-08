@@ -35,9 +35,9 @@ impl SpecApplicationInstances {
 
     pub fn close(
         &mut self,
-        main_block_id: BlockId,
         package_scaffolding: &mut PackageScaffolding,
-    ) -> ApplicationsTable {
+        main_block_id: Option<BlockId>,
+    ) -> Option<ApplicationsTable> {
         // We can close only if this structure is not yet settled and if all the internal application instances are
         // already settled.
         assert!(!self.is_settled);
@@ -50,22 +50,27 @@ impl SpecApplicationInstances {
         self.clear_locals();
 
         // Initialize the applications table and aggregate the return expressions to it.
-        let mut applications_table = ApplicationsTable::new(self.dynamic_params.len());
-        self.aggregate_return_expressions(&mut applications_table);
+        let mut provisional_applications_table = ApplicationsTable::new(self.dynamic_params.len());
+        self.aggregate_return_expressions(&mut provisional_applications_table);
 
         // Flush the compute properties to the package scaffolding
         self.flush_compute_properties(package_scaffolding);
 
         // Get the applications table of the main block and aggregate its runtime features.
-        let main_block_applications_table = package_scaffolding
-            .blocks
-            .get(main_block_id)
-            .expect("block applications table should exist");
-        applications_table.aggregate_runtime_features(main_block_applications_table);
+        if let Some(main_block_id) = main_block_id {
+            let main_block_applications_table = package_scaffolding
+                .blocks
+                .get(main_block_id)
+                .expect("block applications table should exist");
+            provisional_applications_table
+                .aggregate_runtime_features(main_block_applications_table);
+        }
 
         // Mark the struct as settled and return the applications table that represents it.
         self.is_settled = true;
-        applications_table
+
+        // Only return an applications table if a main block was provided.
+        main_block_id.map(|_| provisional_applications_table)
     }
 
     fn aggregate_return_expressions(&mut self, applications_table: &mut ApplicationsTable) {

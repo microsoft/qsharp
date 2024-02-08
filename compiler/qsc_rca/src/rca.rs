@@ -11,8 +11,9 @@ use crate::{
     ApplicationsTable, ComputeKind, ComputeProperties, ComputePropertiesLookup, DynamismSource,
     RuntimeFeatureFlags,
 };
+use itertools::Itertools;
 use qsc_fir::fir::{
-    ExprId, ExprKind, Ident, Mutability, PackageLookup, Pat, PatId, PatKind, StmtKind,
+    ExprId, ExprKind, Ident, Mutability, PackageLookup, Pat, PatId, PatKind, Res, StmtId, StmtKind,
     StoreBlockId, StoreExprId,
 };
 use qsc_fir::{
@@ -43,14 +44,24 @@ pub fn analyze_package(
         );
     }
 
-    // By this point, only top-level statements remain unanalyzed.
-    for (stmt_id, _) in &package.stmts {
-        analyze_statement(
-            (id, stmt_id).into(),
-            package_store,
-            package_store_scaffolding,
-        );
-    }
+    // By this point, only top-level statements remain unanalyzed, so analyze them now.
+    let top_level_stmts: Vec<StmtId> = package
+        .stmts
+        .iter()
+        .map(|(stmt_id, _)| stmt_id)
+        .filter(|stmt_id| {
+            package_store_scaffolding
+                .find_stmt((id, *stmt_id).into())
+                .is_none()
+        })
+        .sorted() // This is needed since the statements might depend on previous top-level statements.
+        .collect();
+    analyze_top_level_stmts(
+        id,
+        &top_level_stmts,
+        package_store,
+        package_store_scaffolding,
+    );
 }
 
 /// Performs runtime capabilities analysis (RCA) on a specialization that is part of a callable cycle.
@@ -302,26 +313,43 @@ fn analyze_specialization(
     let package_scaffolding = package_store_scaffolding
         .get_mut(callable_id.package)
         .expect("package scaffolding should exist");
-    let specialization_applications_table =
-        spec_application_instances.close(block_id.block, package_scaffolding);
+    let specialization_applications_table = spec_application_instances
+        .close(package_scaffolding, Some(block_id.block))
+        .expect("applications table should be some");
 
     // Finally, we insert the applications table to the scaffolding data structure.
     package_store_scaffolding.insert_spec(specialization_id, specialization_applications_table);
 }
 
-fn analyze_statement(
-    id: StoreStmtId,
+pub fn analyze_top_level_stmts(
+    id: PackageId,
+    top_level_stmts: &Vec<StmtId>,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
-    // If the item has already been analyzed, there's nothing left to do.
-    if package_store_scaffolding.find_stmt(id).is_some() {
+    // TODO (cesarzc): Temporary workaround while all statements are thoruoughly analyzed in std lib packages.
+    if id == PackageId::from(0) || id == PackageId::from(1) {
         return;
     }
 
-    let _stmt = package_store.get_stmt(id);
+    // Analyze top-level statements as if they were all part of a parameterless operation.
+    let input_params = Vec::<InputParam>::new();
+    let mut application_instances = SpecApplicationInstances::new(&input_params);
+    for stmt_id in top_level_stmts {
+        simulate_stmt(
+            (id, *stmt_id).into(),
+            &mut application_instances.inherent,
+            package_store,
+            package_store_scaffolding,
+        );
+    }
+    application_instances.inherent.settle();
 
-    // TODO (cesarzc): Implement.
+    // Closing the application instances saves the analysis to the corresponding package scaffolding.
+    let package_scaffolding = package_store_scaffolding
+        .get_mut(id)
+        .expect("package scaffolding should exist");
+    _ = application_instances.close(package_scaffolding, None);
 }
 
 fn bind_expr_compute_properties(
@@ -723,6 +751,7 @@ fn simulate_expr(
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::Var(res, _) => simulate_expr_var(id, res, application_instance),
         // TODO (cesarzc): handle each case separately.
         _ => {
             application_instance
@@ -781,6 +810,24 @@ fn simulate_expr_tuple(
         .insert(id.expr, tuple_compute_properties);
 }
 
+fn simulate_expr_var(id: StoreExprId, res: &Res, application_instance: &mut ApplicationInstance) {
+    let compute_properties = match res {
+        // Global items do not have compute properties by themselves.
+        Res::Item(_) => ComputeProperties::default(),
+        // Gather the current compute properties of the local.
+        Res::Local(node_id) => application_instance
+            .locals_map
+            .get(node_id)
+            .expect("compute properties for local should exist")
+            .compute_properties
+            .clone(),
+        Res::Err => panic!("unexpected error resolution"),
+    };
+    application_instance
+        .exprs
+        .insert(id.expr, compute_properties);
+}
+
 fn simulate_stmt(
     id: StoreStmtId,
     application_instance: &mut ApplicationInstance,
@@ -805,7 +852,12 @@ fn simulate_stmt(
             package_store,
             package_store_scaffolding,
         ),
-        StmtKind::Item(_) => panic!("unexpected item statement"),
+        StmtKind::Item(_) => {
+            // An item statement does not have any inherent compute properties.
+            application_instance
+                .stmts
+                .insert(id.stmt, ComputeProperties::empty());
+        }
     }
 }
 
