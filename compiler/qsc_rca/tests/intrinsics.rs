@@ -44,7 +44,7 @@ fn check_rca_for_quantum_rt_qubit_release() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -69,7 +69,7 @@ fn check_rca_for_quantum_qis_m_body() {
                         dynamism_sources: {Intrinsic}
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -94,7 +94,7 @@ fn check_rca_for_length() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicArray)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -119,7 +119,7 @@ fn check_rca_for_quantum_qis_mresetz_body() {
                         dynamism_sources: {Intrinsic}
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -144,7 +144,7 @@ fn check_rca_for_int_as_double() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -169,7 +169,7 @@ fn check_rca_for_int_as_big_int() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -212,11 +212,11 @@ fn check_rca_for_check_zero() {
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicBool)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         dynamism_sources: {Intrinsic}
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicBool | IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -241,7 +241,7 @@ fn check_rca_for_message() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicString)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicString)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -266,7 +266,7 @@ fn check_rca_for_arc_cos() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -291,7 +291,7 @@ fn check_rca_for_arc_sin() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -316,7 +316,7 @@ fn check_rca_for_arc_tan() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -341,10 +341,10 @@ fn check_rca_for_arc_tan_2() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -369,7 +369,7 @@ fn check_rca_for_cos() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -394,7 +394,7 @@ fn check_rca_for_cosh() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -419,7 +419,7 @@ fn check_rca_for_sin() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -444,7 +444,7 @@ fn check_rca_for_sinh() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -469,7 +469,7 @@ fn check_rca_for_tan() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -494,7 +494,7 @@ fn check_rca_for_tanh() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -519,7 +519,7 @@ fn check_rca_for_sqrt() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -544,7 +544,7 @@ fn check_rca_for_log() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -569,7 +569,7 @@ fn check_rca_for_truncate() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -594,13 +594,13 @@ fn check_rca_for_quantum_qis_ccx_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -625,10 +625,10 @@ fn check_rca_for_quantum_qis_cx_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -653,10 +653,10 @@ fn check_rca_for_quantum_qis_cy_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -681,10 +681,10 @@ fn check_rca_for_quantum_qis_cz_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -709,10 +709,10 @@ fn check_rca_for_quantum_qis_rx_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -737,13 +737,13 @@ fn check_rca_for_quantum_qis_rxx_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -768,10 +768,10 @@ fn check_rca_for_quantum_qis_ry_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -796,13 +796,13 @@ fn check_rca_for_quantum_qis_ryy_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -827,10 +827,10 @@ fn check_rca_for_quantum_qis_rz_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -855,13 +855,13 @@ fn check_rca_for_quantum_qis_rzz_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -886,7 +886,7 @@ fn check_rca_for_quantum_qis_h_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -911,7 +911,7 @@ fn check_rca_for_quantum_qis_s_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -936,7 +936,7 @@ fn check_rca_for_quantum_qis_s_adj() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -961,7 +961,7 @@ fn check_rca_for_quantum_qis_t_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -986,7 +986,7 @@ fn check_rca_for_quantum_qis_t_adj() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -1011,7 +1011,7 @@ fn check_rca_for_quantum_qis_x_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -1036,7 +1036,7 @@ fn check_rca_for_quantum_qis_y_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -1061,7 +1061,7 @@ fn check_rca_for_quantum_qis_z_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -1086,10 +1086,10 @@ fn check_rca_for_quantum_qis_swap_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -1114,7 +1114,7 @@ fn check_rca_for_quantum_qis_reset_body() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicQubit)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -1135,14 +1135,14 @@ fn check_rca_for_draw_random_int() {
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                         dynamism_sources: {Intrinsic}
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: {Intrinsic}
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -1163,14 +1163,14 @@ fn check_rca_for_draw_random_double() {
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
                     inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                         dynamism_sources: {Intrinsic}
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicDouble)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -1195,10 +1195,10 @@ fn check_rca_for_begin_estimate_caching() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicString)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicString)
                             dynamism_sources: {Intrinsic}
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -1245,13 +1245,13 @@ fn check_rca_for_account_for_estimates_internal() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicArray)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: <empty>
                         [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicArray)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
@@ -1276,7 +1276,7 @@ fn check_rca_for_begin_repeat_estimates_internal() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(IntrinsicApplicationUsesDynamicInt)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>

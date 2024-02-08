@@ -749,17 +749,17 @@ fn create_stmt_local_compute_properties(
 fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     fn intrinsic_runtime_features_from_primitive_type(prim: &Prim) -> RuntimeFeatureFlags {
         match prim {
-            Prim::BigInt => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBigInt,
-            Prim::Bool => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBool,
-            Prim::Double => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicDouble,
-            Prim::Int => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicInt,
-            Prim::Pauli => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicPauli,
-            Prim::Qubit => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicQubit,
+            Prim::BigInt => RuntimeFeatureFlags::UseOfDynamicBigInt,
+            Prim::Bool => RuntimeFeatureFlags::UseOfDynamicBool,
+            Prim::Double => RuntimeFeatureFlags::UseOfDynamicDouble,
+            Prim::Int => RuntimeFeatureFlags::UseOfDynamicInt,
+            Prim::Pauli => RuntimeFeatureFlags::UseOfDynamicPauli,
+            Prim::Qubit => RuntimeFeatureFlags::UseOfDynamicQubit,
             Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
-                RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicRange
+                RuntimeFeatureFlags::UseOfDynamicRange
             }
-            Prim::Result => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicResult,
-            Prim::String => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicString,
+            Prim::Result => RuntimeFeatureFlags::UseOfDynamicResult,
+            Prim::String => RuntimeFeatureFlags::UseOfDynamicString,
         }
     }
 
@@ -767,7 +767,7 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
         let mut runtime_features = if tuple.is_empty() {
             RuntimeFeatureFlags::empty()
         } else {
-            RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicTuple
+            RuntimeFeatureFlags::UseOfDynamicTuple
         };
         for item_type in tuple {
             runtime_features |= derive_runtime_features_for_dynamic_type(item_type);
@@ -776,20 +776,16 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 
     match ty {
-        Ty::Array(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArray,
+        Ty::Array(_) => RuntimeFeatureFlags::UseOfDynamicArray,
         Ty::Arrow(arrow) => match arrow.kind {
-            CallableKind::Function => {
-                RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowFunction
-            }
-            CallableKind::Operation => {
-                RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowOperation
-            }
+            CallableKind::Function => RuntimeFeatureFlags::UseOfDynamicArrowFunction,
+            CallableKind::Operation => RuntimeFeatureFlags::UseOfDynamicArrowOperation,
         },
         Ty::Infer(_) => panic!("cannot derive runtime features for `Infer` type"),
-        Ty::Param(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicGeneric,
+        Ty::Param(_) => RuntimeFeatureFlags::UseOfDynamicGeneric,
         Ty::Prim(prim) => intrinsic_runtime_features_from_primitive_type(prim),
         Ty::Tuple(tuple) => intrinsic_runtime_features_from_tuple(tuple),
-        Ty::Udt(_) => RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicUdt,
+        Ty::Udt(_) => RuntimeFeatureFlags::UseOfDynamicUdt,
         Ty::Err => panic!("cannot derive runtime features for `Err` type"),
     }
 }

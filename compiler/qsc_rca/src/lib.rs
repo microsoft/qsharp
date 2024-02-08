@@ -374,36 +374,36 @@ bitflags! {
     /// statically allocated qubits and using constant arguments.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct RuntimeFeatureFlags: u64 {
-        /// An intrinsic callable uses a dynamic `Result` argument.
-        const IntrinsicApplicationUsesDynamicResult = 0b0001;
-        /// An intrinsic callable uses a dynamic `Bool` argument.
-        const IntrinsicApplicationUsesDynamicBool = 0b0010;
-        /// An intrinsic callable uses a dynamic `Int` argument.
-        const IntrinsicApplicationUsesDynamicInt = 0b0100;
-        /// An intrinsic callable uses a dynamic `Pauli` argument.
-        const IntrinsicApplicationUsesDynamicPauli = 0b1000;
-        /// An intrinsic callable uses a dynamic `Range` argument.
-        const IntrinsicApplicationUsesDynamicRange = 0b0001_0000;
-        /// An intrinsic callable uses a dynamic `Double` argument.
-        const IntrinsicApplicationUsesDynamicDouble = 0b010_0000;
-        /// An intrinsic callable uses a dynamic `Qubit` argument.
-        const IntrinsicApplicationUsesDynamicQubit = 0b0100_0000;
-        /// An intrinsic callable uses a dynamic `BigInt` argument.
-        const IntrinsicApplicationUsesDynamicBigInt = 0b1000_0000;
-        /// An intrinsic callable uses a dynamic `String` argument.
-        const IntrinsicApplicationUsesDynamicString = 0b0001_0000_0000;
-        /// An intrinsic callable uses a dynamic array argument.
-        const IntrinsicApplicationUsesDynamicArray = 0b0010_0000_0000;
-        /// An intrinsic callable uses a dynamic tuple argument.
-        const IntrinsicApplicationUsesDynamicTuple = 0b0100_0000_0000;
-        /// An intrinsic callable uses a dynamic UDT argument.
-        const IntrinsicApplicationUsesDynamicUdt = 0b1000_0000_0000;
-        /// An intrinsic callable uses a dynamic arrow function argument.
-        const IntrinsicApplicationUsesDynamicArrowFunction = 0b0001_0000_0000_0000;
-        /// An intrinsic callable uses a dynamic arrow operation argument.
-        const IntrinsicApplicationUsesDynamicArrowOperation = 0b0010_0000_0000_0000;
-        /// TODO (cesarzc): document.
-        const IntrinsicApplicationUsesDynamicGeneric = 0b0100_0000_0000_0000;
+        /// Use of a dynamic `Result`.
+        const UseOfDynamicResult = 0b0001;
+        /// Use of a dynamic `Bool`.
+        const UseOfDynamicBool = 0b0010;
+        /// Use of a dynamic `Int`.
+        const UseOfDynamicInt = 0b0100;
+        /// Use of a dynamic `Pauli`.
+        const UseOfDynamicPauli = 0b1000;
+        /// Use of a dynamic `Range`.
+        const UseOfDynamicRange = 0b0001_0000;
+        /// Use of a dynamic `Double`.
+        const UseOfDynamicDouble = 0b010_0000;
+        /// Use of a dynamic `Qubit`.
+        const UseOfDynamicQubit = 0b0100_0000;
+        /// Use of a dynamic `BigInt`.
+        const UseOfDynamicBigInt = 0b1000_0000;
+        /// Use of a dynamic `String`.
+        const UseOfDynamicString = 0b0001_0000_0000;
+        /// Use of a dynamic array.
+        const UseOfDynamicArray = 0b0010_0000_0000;
+        /// Use of a dynamic tuple.
+        const UseOfDynamicTuple = 0b0100_0000_0000;
+        /// Use of a dynamic UDT.
+        const UseOfDynamicUdt = 0b1000_0000_0000;
+        /// Use of a dynamic arrow function.
+        const UseOfDynamicArrowFunction = 0b0001_0000_0000_0000;
+        /// Use of a dynamic arrow operation.
+        const UseOfDynamicArrowOperation = 0b0010_0000_0000_0000;
+        /// Use of a dynamic generic.
+        const UseOfDynamicGeneric = 0b0100_0000_0000_0000;
         /// A function with cycles used with a dynamic argument.
         const CycledFunctionApplicationUsesDynamicArg = 0b1000_0000_0000_0000;
         /// An operation specialization with cycles is used.
@@ -415,50 +415,50 @@ impl RuntimeFeatureFlags {
     /// Maps program contructs to runtime capabilities.
     pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
         let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicResult) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicResult) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBool) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicBool) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicInt) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicInt) {
             runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicPauli) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicPauli) {
             runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicRange) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicRange) {
             runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicDouble) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicDouble) {
             runtume_capabilities |= RuntimeCapabilityFlags::FloatingPointComputations;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicQubit) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicQubit) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicBigInt) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicBigInt) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicString) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicString) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArray) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicArray) {
             // N.B. Mapped runtime capabilities can be more nuanced by taking into account the contained type.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicTuple) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
             // N.B. Mapped runtime capabilities can be more nuanced by taking into account the contained types.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicUdt) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
             // N.B. Mapped runtime capabilities can be more nuanced by taking into account the type of each UDT item.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowFunction) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowFunction) {
             // N.B. Mapped runtime capabilities can be more nuanced by taking into account the input and output types.
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::IntrinsicApplicationUsesDynamicArrowOperation) {
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
             // N.B. Mapped runtime capabilities can be more nuanced by taking into account the input and output types.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
