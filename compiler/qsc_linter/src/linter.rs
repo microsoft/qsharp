@@ -8,7 +8,7 @@ use std::fmt::Display;
 static mut LINT_BUFFER: Vec<Lint> = Vec::new();
 
 #[must_use]
-pub(crate) fn drain() -> std::vec::Drain<'static, Lint> {
+fn drain() -> std::vec::Drain<'static, Lint> {
     // SAFETY: mutable statics can be mutated by multiple threads,
     // our compiler is single threaded, so this should be fine.
     unsafe { LINT_BUFFER.drain(..) }
