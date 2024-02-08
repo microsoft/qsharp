@@ -1,11 +1,12 @@
 mod demo;
 
-use crate::{
-    linter::{self, ast::CombinedAstLints},
-    lints::tests::demo::LinterDemoApp,
-};
+use crate::lints::tests::demo::LinterDemoApp;
 use eframe::egui::ViewportBuilder;
-use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
+use qsc_ast::{
+    assigner::Assigner,
+    ast::{NodeId, Package},
+    mut_visit::MutVisitor,
+};
 use qsc_data_structures::line_column;
 use winit::platform::windows::EventLoopBuilderExtWindows;
 
@@ -39,6 +40,8 @@ fn linter_ui() {
 
 #[test]
 fn linter() {
+    use crate::linter::ast::run_ast_lints;
+
     let source = r"
         namespace foo {
             operation RunProgram(vector : Double[]) : Unit {
@@ -47,11 +50,12 @@ fn linter() {
         }
     ";
 
-    run_lints(source);
+    let package = parse(source);
+    let lints = run_ast_lints(&package);
 
-    for lint in linter::drain() {
+    for lint in &lints {
         let range = line_column::Range::from_span(line_column::Encoding::Utf8, source, &lint.span);
-        let chunk = get_chunk(source, range);
+        let chunk = get_lines(source, range);
         for line in chunk {
             println!("{line}");
         }
@@ -59,22 +63,20 @@ fn linter() {
     }
 }
 
-fn run_lints(source: &str) {
-    let mut lints = CombinedAstLints;
+fn parse(source: &str) -> Package {
+    let mut package = Package {
+        id: NodeId::FIRST,
+        nodes: qsc_parse::top_level_nodes(source).0.into(),
+        entry: None,
+    };
 
-    let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();
+    assigner.visit_package(&mut package);
 
-    for namespace in &mut namespaces {
-        assigner.visit_namespace(namespace);
-    }
-
-    for namespace in &namespaces {
-        lints.visit_namespace(namespace);
-    }
+    package
 }
 
-fn get_chunk(source: &str, range: line_column::Range) -> Vec<&str> {
+fn get_lines(source: &str, range: line_column::Range) -> Vec<&str> {
     let mut lines_of_interest = Vec::new();
     for (line_number, line) in source.lines().enumerate() {
         if range.start.line as usize <= line_number && line_number <= range.end.line as usize {

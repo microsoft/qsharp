@@ -4,10 +4,14 @@ use eframe::{
     egui::{self, RichText},
     epaint::{Color32, Vec2},
 };
-use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::line_column;
 
-use crate::linter::{self, ast::CombinedAstLints, Lint, LintLevel};
+use crate::{
+    linter::{Lint, LintLevel},
+    run_ast_lints,
+};
+
+use super::parse;
 
 #[derive(Default)]
 pub struct LinterDemoApp {
@@ -31,7 +35,7 @@ impl LinterDemoApp {
             ..Default::default()
         };
 
-        app.compile();
+        app.parse();
 
         app
     }
@@ -65,7 +69,7 @@ impl LinterDemoApp {
         );
 
         if res.changed() {
-            self.compile();
+            self.parse();
         }
     }
 
@@ -79,9 +83,9 @@ impl LinterDemoApp {
         });
     }
 
-    fn compile(&mut self) {
-        run_lints(&self.source);
-        self.lints = linter::drain().collect();
+    fn parse(&mut self) {
+        let package = parse(&self.source);
+        self.lints = run_ast_lints(&package);
     }
 }
 
@@ -92,24 +96,9 @@ impl eframe::App for LinterDemoApp {
     }
 }
 
-fn run_lints(source: &str) {
-    let mut lints = CombinedAstLints;
-
-    let (mut namespaces, _) = qsc_parse::namespaces(source);
-    let mut assigner = Assigner::new();
-
-    for namespace in &mut namespaces {
-        assigner.visit_namespace(namespace);
-    }
-
-    for namespace in &namespaces {
-        lints.visit_namespace(namespace);
-    }
-}
-
 fn _pp(source: &str, lint: &Lint, output_buffer: &mut String) {
     let range = line_column::Range::from_span(line_column::Encoding::Utf8, source, &lint.span);
-    let chunk = super::get_chunk(source, range);
+    let chunk = super::get_lines(source, range);
 
     writeln!(output_buffer, "{}: {}", lint.level, lint.message).unwrap();
     writeln!(
@@ -160,7 +149,7 @@ fn _pp(source: &str, lint: &Lint, output_buffer: &mut String) {
 
 fn pp_to_ui(source: &str, lint: &Lint, ui: &mut egui::Ui) {
     let range = line_column::Range::from_span(line_column::Encoding::Utf8, source, &lint.span);
-    let chunk = super::get_chunk(source, range);
+    let chunk = super::get_lines(source, range);
 
     let lint_color = match lint.level {
         LintLevel::Allow => ui.visuals().text_color(),
