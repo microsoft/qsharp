@@ -74,7 +74,9 @@ export async function getQirForActiveWindow(): Promise<string> {
     const associationId = getRandomGuid();
     const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
-    result = await worker.getQir(sources);
+    result = await worker.getQir(sources, [
+      /* TODO*/
+    ]);
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },

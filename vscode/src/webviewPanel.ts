@@ -213,6 +213,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const estimatesStr = await worker.getEstimates(
           sources,
           JSON.stringify(params),
+          [
+            /* TODO */
+          ],
         );
         sendTelemetryEvent(
           EventType.ResourceEstimationEnd,
@@ -343,7 +346,15 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const sources = await loadProject(editor.document.uri);
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
-        await worker.run(sources, "", parseInt(numberOfShots), evtTarget);
+        await worker.run(
+          sources,
+          "",
+          parseInt(numberOfShots),
+          [
+            /* TODO */
+          ],
+          evtTarget,
+        );
         sendTelemetryEvent(
           EventType.HistogramEnd,
           { associationId },

@@ -116,7 +116,7 @@ export function Editor(props: {
     if (code == null) return;
 
     if (props.activeTab === "hir-tab") {
-      props.setHir(await props.compiler.getHir(code));
+      props.setHir(await props.compiler.getHir(code, []));
     }
   };
 
@@ -140,6 +140,7 @@ export function Editor(props: {
           [["code", code]],
           runExpr,
           shotCount,
+          [],
           props.evtTarget,
         );
         const runTimer = performance.measure(

@@ -20,8 +20,8 @@ export interface ICompiler {
     sources: [string, string][],
     expr: string,
     shots: number,
-    eventHandler: IQscEventTarget,
     language_features: string[],
+    eventHandler: IQscEventTarget,
   ): Promise<void>;
   getQir(
     sources: [string, string][],
@@ -97,8 +97,8 @@ export class Compiler implements ICompiler {
     sources: [string, string][],
     expr: string,
     shots: number,
-    eventHandler: IQscEventTarget,
     language_features: string[],
+    eventHandler: IQscEventTarget,
   ): Promise<void> {
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
