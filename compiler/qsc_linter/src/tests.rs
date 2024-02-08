@@ -1,6 +1,6 @@
 mod demo;
 
-use crate::lints::tests::demo::LinterDemoApp;
+use demo::LinterDemoApp;
 use eframe::egui::ViewportBuilder;
 use qsc_ast::{
     assigner::Assigner,

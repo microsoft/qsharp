@@ -1,9 +1,6 @@
 pub(super) mod ast;
 pub(super) mod hir;
 
-#[cfg(test)]
-mod tests;
-
 macro_rules! declare_lint {
     ($lint_name:ident, $level:expr, $msg:expr) => {
         pub(crate) struct $lint_name;
