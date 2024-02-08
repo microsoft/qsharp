@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// The entry point to the AST linter. It takes a [`qsc_ast::ast::Package`]
-/// as input and outputs a Vec<[`Lint`]>.
+/// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
 pub fn run_ast_lints(package: &qsc_ast::ast::Package) -> Vec<Lint> {
     let mut lints = CombinedAstLints;
