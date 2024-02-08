@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod error;
+pub use error::Error;
 mod error_budget;
 pub use error_budget::ErrorBudget;
 mod physical_estimation;
 pub use physical_estimation::{
-    Error, ErrorCorrection, Factory, FactoryBuilder, PhysicalResourceEstimation,
+    ErrorCorrection, Factory, FactoryBuilder, PhysicalResourceEstimation,
     PhysicalResourceEstimationResult,
 };
 mod layout;
