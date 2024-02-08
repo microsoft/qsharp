@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use super::super::{
     error::InvalidInput::{self, InvalidErrorBudget},
-    modeling::{ErrorBudget, PhysicalQubit, ProtocolSpecification},
+    modeling::{PhysicalQubit, ProtocolSpecification},
     LogicalResourceCounts,
 };
+use crate::estimates::ErrorBudget;
 
 use super::{tfactory::TFactoryDistillationUnitSpecifications, Constraints};
 

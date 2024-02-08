@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::*;
+use crate::{
+    estimates::ErrorCorrection,
+    system::modeling::{PhysicalQubit, Protocol},
+};
 
 #[test]
-fn compute_code_distance() -> Result<()> {
+fn compute_code_distance() -> Result<(), String> {
     let qubit = PhysicalQubit::default();
     let ftp = Protocol::surface_code_gate_based();
     assert!(

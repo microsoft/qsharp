@@ -1,26 +1,100 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use serde_json::Value;
+
 use crate::estimates::{
+    ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, Overhead, PhysicalResourceEstimation,
+    PhysicalResourceEstimationResult,
+};
+use crate::LogicalResources;
+
+use super::estimate_physical_resources;
+
+use crate::system::{
+    data::{ErrorBudgetSpecification, JobParams, LogicalResourceCounts},
+    error::IO,
     modeling::GateBasedPhysicalQubit,
+    modeling::{PhysicalQubit, Protocol, TFactory},
     optimization::TFactoryBuilder,
-    stages::physical_estimation::{ErrorCorrection, Factory, FactoryBuilder},
+    Result,
 };
 
-use super::{
-    super::super::{
-        data::{ErrorBudgetSpecification, JobParams, LogicalResourceCounts},
-        error::{
-            InvalidInput::{MaxDurationTooSmall, MaxPhysicalQubitsTooSmall},
-            IO,
-        },
-        modeling::{ErrorBudget, PhysicalQubit, Protocol},
-        stages::tfactory::TFactory,
-        Error,
-    },
-    Overhead, PhysicalResourceEstimation, PhysicalResourceEstimationResult,
-};
 use std::rc::Rc;
+
+#[test]
+fn estimate_single() {
+    let logical_resources = LogicalResources {
+        num_qubits: 100,
+        t_count: 0,
+        rotation_count: 112_110,
+        rotation_depth: 2001,
+        ccz_count: 0,
+        measurement_count: 0,
+    };
+
+    let params: &str = "[{}]";
+    let result = estimate_physical_resources(&logical_resources, params);
+
+    let json_value: Vec<Value> =
+        serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
+    assert_eq!(json_value.len(), 1);
+
+    let map = json_value[0].as_object().expect("Failed build map");
+    assert!(!map.contains_key("frontierEntries"));
+    assert!(map.contains_key("logicalQubit"));
+    assert!(map.contains_key("physicalCounts"));
+    assert!(map.contains_key("physicalCountsFormatted"));
+}
+
+#[test]
+fn estimate_frontier() {
+    let logical_resources = LogicalResources {
+        num_qubits: 100,
+        t_count: 0,
+        rotation_count: 112_110,
+        rotation_depth: 2001,
+        ccz_count: 0,
+        measurement_count: 0,
+    };
+
+    let params: &str = r#"[{
+        "estimateType": "frontier"
+    }]"#;
+
+    let result = estimate_physical_resources(&logical_resources, params);
+
+    let json_value: Vec<Value> =
+        serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
+    assert_eq!(json_value.len(), 1);
+
+    let map = json_value[0].as_object().expect("Failed build map");
+    assert!(map.contains_key("frontierEntries"));
+    assert!(!map.contains_key("logicalQubit"));
+    assert!(!map.contains_key("physicalCounts"));
+    assert!(!map.contains_key("physicalCountsFormatted"));
+}
+
+#[test]
+fn physical_estimates_crash() {
+    let result = estimate_physical_resources(
+        &LogicalResources {
+            num_qubits: 9,
+            t_count: 160,
+            rotation_count: 0,
+            rotation_depth: 0,
+            ccz_count: 8,
+            measurement_count: 5,
+        },
+        r#"[{"qubitParams": {"name": "qubit_maj_ns_e6"},
+            "qecScheme": {"name": "floquet_code"},
+            "errorBudget": 0.075}]"#,
+    );
+
+    assert!(result
+        .expect("estimation should succeed")
+        .contains(r#""status":"success"#));
+}
 
 #[derive(Clone)]
 struct TestLayoutOverhead {
@@ -81,7 +155,7 @@ pub fn test_no_tstates() {
 }
 
 #[test]
-pub fn single_tstate() -> super::super::super::Result<()> {
+pub fn single_tstate() -> Result<()> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::default());
 
@@ -102,7 +176,7 @@ pub fn single_tstate() -> super::super::super::Result<()> {
 }
 
 #[test]
-pub fn perfect_tstate() -> super::super::super::Result<()> {
+pub fn perfect_tstate() -> Result<()> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::GateBased(GateBasedPhysicalQubit {
         t_gate_error_rate: 0.5e-4,
@@ -125,8 +199,7 @@ pub fn perfect_tstate() -> super::super::super::Result<()> {
     Ok(())
 }
 
-fn hubbard_overhead_and_partitioning(
-) -> super::super::super::Result<(LogicalResourceCounts, ErrorBudget)> {
+fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBudget)> {
     let logical_counts =
         serde_json::from_str(include_str!("counts.json")).map_err(IO::CannotParseJSON)?;
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
@@ -168,7 +241,7 @@ fn validate_result_invariants<L: Overhead + Clone>(
 
 #[allow(clippy::too_many_lines)]
 #[test]
-pub fn test_hubbard_e2e() -> super::super::super::Result<()> {
+pub fn test_hubbard_e2e() -> Result<()> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::default());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -254,7 +327,7 @@ pub fn test_hubbard_e2e() -> super::super::super::Result<()> {
 
 #[allow(clippy::too_many_lines)]
 #[test]
-pub fn test_hubbard_e2e_measurement_based() -> super::super::super::Result<()> {
+pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -337,7 +410,7 @@ pub fn test_hubbard_e2e_measurement_based() -> super::super::super::Result<()> {
 }
 
 #[test]
-pub fn test_hubbard_e2e_increasing_max_duration() -> super::super::super::Result<()> {
+pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -365,7 +438,7 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> super::super::super::Result
 }
 
 #[test]
-pub fn test_hubbard_e2e_increasing_max_num_qubits() -> super::super::super::Result<()> {
+pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
     let ftp = Protocol::floquet_code();
     let qubit = Rc::new(PhysicalQubit::qubit_maj_ns_e6());
     let (layout_overhead, partitioning) = hubbard_overhead_and_partitioning()?;
@@ -424,7 +497,7 @@ pub fn test_chemistry_small_max_duration() {
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds);
 
     match result {
-        Err(Error::InvalidInput(MaxDurationTooSmall)) => {}
+        Err(crate::estimates::Error::MaxDurationTooSmall) => {}
         _ => unreachable!("Expected MaxDurationTooSmall"),
     }
 }
@@ -437,13 +510,13 @@ pub fn test_chemistry_small_max_num_qubits() {
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits);
 
     match result {
-        Err(Error::InvalidInput(MaxPhysicalQubitsTooSmall)) => {}
+        Err(crate::estimates::Error::MaxPhysicalQubitsTooSmall) => {}
         _ => unreachable!("Expected MaxNumQubitsTooSmall"),
     }
 }
 
 #[test]
-pub fn test_chemistry_based_max_duration() -> super::super::super::Result<()> {
+pub fn test_chemistry_based_max_duration() -> Result<()> {
     let max_duration_in_nanoseconds: u64 = 365 * 24 * 3600 * 1_000_000_000_u64;
 
     let estimation = prepare_chemistry_estimation_with_expected_majorana();
@@ -503,7 +576,7 @@ pub fn test_chemistry_based_max_duration() -> super::super::super::Result<()> {
 }
 
 #[test]
-pub fn test_chemistry_based_max_num_qubits() -> super::super::super::Result<()> {
+pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     let max_num_qubits: u64 = 4_923_120;
 
     let estimation = prepare_chemistry_estimation_with_expected_majorana();
@@ -585,8 +658,7 @@ fn prepare_factorization_estimation_with_optimistic_majorana(
 }
 
 #[test]
-pub fn test_factorization_2048_max_duration_matches_regular_estimate(
-) -> super::super::super::Result<()> {
+pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result<()> {
     let estimation = prepare_factorization_estimation_with_optimistic_majorana();
 
     let result_no_max_duration = estimation.estimate_without_restrictions()?;
@@ -639,8 +711,7 @@ pub fn test_factorization_2048_max_duration_matches_regular_estimate(
 }
 
 #[test]
-pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate(
-) -> super::super::super::Result<()> {
+pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Result<()> {
     let estimation = prepare_factorization_estimation_with_optimistic_majorana();
 
     let result_no_max_num_qubits = estimation.estimate_without_restrictions()?;

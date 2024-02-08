@@ -8,13 +8,10 @@ use std::cmp::max;
 
 use std::rc::Rc;
 
-use crate::estimates::modeling::PhysicalQubit;
-
-use super::super::modeling::LogicalQubit;
-
-use super::super::stages::tfactory::{
-    TFactoryDistillationUnit, TFactoryDistillationUnitTemplate, TFactoryDistillationUnitType,
-    TFactoryQubit,
+use crate::estimates::LogicalQubit;
+use crate::system::modeling::{
+    PhysicalQubit, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
+    TFactoryDistillationUnitType, TFactoryQubit,
 };
 
 pub struct DistillationUnitsMap<'a> {

@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::stages::physical_estimation::{ErrorCorrection, Factory};
+use crate::estimates::{optimization::Point2D, ErrorCorrection, Factory};
 
 use super::{
     super::super::{
         data,
-        modeling::{PhysicalQubit, Protocol},
-        stages::tfactory::{TFactory, TFactoryDistillationUnitTemplate},
+        modeling::{PhysicalQubit, Protocol, TFactory, TFactoryDistillationUnitTemplate},
     },
     find_nondominated_population, find_nondominated_tfactories,
-    population::Point2D,
 };
 use std::{rc::Rc, time::Instant};
 
