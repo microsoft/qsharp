@@ -20,6 +20,44 @@ Converts a given integer to an equivalent big integer.
 
 &nbsp;
 
+# function ResultAsBool(input : Result) : Bool
+
+## Summary
+Converts a `Result` type to a `Bool` type, where `One` is mapped to
+`true` and `Zero` is mapped to `false`.
+
+## Input
+### input
+`Result` to be converted.
+
+## Output
+A `Bool` representing the `input`.
+
+&nbsp;
+
+---
+
+&nbsp;
+
+# function BoolAsResult(input : Bool) : Result
+
+## Summary
+Converts a `Bool` type to a `Result` type, where `true` is mapped to
+`One` and `false` is mapped to `Zero`.
+
+## Input
+### input
+`Bool` to be converted.
+
+## Output
+A `Result` representing the `input`.
+
+&nbsp;
+
+---
+
+&nbsp;
+
 # function BoolArrayAsInt(bits : Bool[]) : Int
 
 ## Summary
@@ -102,6 +140,68 @@ An array of Boolean values representing `number`.
 ## Remarks
 The input `bits` must be non-negative.
 The input `number` must be between 0 and 2^bits - 1.
+
+&nbsp;
+
+---
+
+&nbsp;
+
+# function ResultArrayAsInt(results : Result[]) : Int
+
+## Summary
+Produces a non-negative integer from a string of Results in little-endian format.
+
+## Input
+### results
+Results in binary representation of number.
+
+## Output
+A non-negative integer
+
+## Example
+```qsharp
+// The following returns 1
+let int1 = ResultArrayAsInt([One,Zero])
+```
+
+&nbsp;
+
+---
+
+&nbsp;
+
+# function ResultArrayAsBoolArray(input : Result[]) : Bool[]
+
+## Summary
+Converts a `Result[]` type to a `Bool[]` type, where `One`
+is mapped to `true` and `Zero` is mapped to `false`.
+
+## Input
+### input
+`Result[]` to be converted.
+
+## Output
+A `Bool[]` representing the `input`.
+
+&nbsp;
+
+---
+
+&nbsp;
+
+# function BoolArrayAsResultArray(input : Bool[]) : Result[]
+
+## Summary
+Converts a `Bool[]` type to a `Result[]` type, where `true`
+is mapped to `One` and `false` is mapped to `Zero`.
+
+## Input
+### input
+`Bool[]` to be converted.
+
+## Output
+A `Result[]` representing the `input`.
 
 &nbsp;
 

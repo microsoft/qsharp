@@ -41,7 +41,7 @@ struct GenDocs<'a> {
 
 fn with_doc(doc: &str, code: impl Display) -> String {
     if doc.is_empty() {
-        code.to_string()
+        format!("# {code}\n")
     } else {
         let doc = increase_header_level(doc);
         format!("# {code}\n\n{doc}\n")
@@ -104,7 +104,13 @@ impl<'a> GenDocs<'a> {
                     .get(local_id)
                     .expect("could not resolve parent item id");
                 match &parent.kind {
-                    ItemKind::Namespace(name, _) => Some(name.name.clone()),
+                    ItemKind::Namespace(name, _) => {
+                        if name.name.starts_with("QIR") {
+                            None // We ignore "QIR" namespaces
+                        } else {
+                            Some(name.name.clone())
+                        }
+                    }
                     _ => None,
                 }
             }
