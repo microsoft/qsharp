@@ -372,25 +372,20 @@ All the basic gates we will be covering in this kata are part of the <a href="ht
 
 The identity gate is mostly here for completeness, at least for now. It will come in handy when dealing with multi-qubit systems and multi-qubit gates. It is represented by the identity matrix, and does not affect the state of the qubit.
   
-<table style=\"border:1px solid\">
-<col width=50>
-<col width=50>
-<col width=150>
-<col width=200>
-<col width=50>
+<table>
 <tr>
-<th style=\"text-align:center; border:1px solid\">Gate</th>
-<th style=\"text-align:center; border:1px solid\">Matrix</th>
-<th style=\"text-align:center; border:1px solid\">Ket-Bra</th>
-<th style=\"text-align:center; border:1px solid\">Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
-<th style=\"text-align:center; border:1px solid\">Q# Documentation</th>
+<th>Gate</th>
+<th>Matrix</th>
+<th>Ket-Bra</th>
+<th>Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
+<th>Q# Documentation</th>
 </tr>
 <tr>
-<td style=\"text-align:center; border:1px solid\">$I$</td>
-<td style=\"text-align:center; border:1px solid\">$\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}$</td>
-<td style=\"text-align:center; border:1px solid\">$|0\rangle\langle0| + |1\rangle\langle1|$</td>
-<td style=\"text-align:center; border:1px solid\">$I|\psi\rangle = |\psi\rangle$</td>
-<td style=\"text-align:center; border:1px solid\"><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.i\">I</a></td>
+<td>$I$</td>
+<td>$\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}$</td>
+<td>$|0\rangle\langle0| + |1\rangle\langle1|$</td>
+<td>$I|\psi\rangle = |\psi\rangle$</td>
+<td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.i\">I</a></td>
 </tr>
 </table>
 
@@ -402,33 +397,27 @@ The identity gate is mostly here for completeness, at least for now. It will com
 The **Hadamard** gate is an extremely important quantum gate. Unlike the previous gates, applying the Hadamard gate to a qubit in a computational basis state puts that qubit into a superposition.
 Like the Pauli gates, the Hadamard gate is self-adjoint.
 
-<table style=\"border:1px solid\">
-<col width=50>
-<col width=200>
-<col width=150>
-<col width=260>
-<col width=150>
-<col width=50>
+<table>
 <tr>
-<th style=\"text-align:center; border:1px solid\">Gate</th>
-<th style=\"text-align:center; border:1px solid\">Matrix</th>
-<th style=\"text-align:center; border:1px solid\">Ket-Bra</th>
-<th style=\"text-align:center; border:1px solid\">Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
-<th style=\"text-align:center; border:1px solid\">Applying to basis states</th>
-<th style=\"text-align:center; border:1px solid\">Q# Documentation</th>
+<th>Gate</th>
+<th>Matrix</th>
+<th>Ket-Bra</th>
+<th>Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
+<th>Applying to basis states</th>
+<th>Q# Documentation</th>
 </tr>
 <tr>
-<td style=\"text-align:center; border:1px solid\">$H$</td>
-<td style=\"text-align:center; border:1px solid\">$\begin{bmatrix} \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$</td>
-<td style=\"text-align:center; border:1px solid\">$|0\rangle\langle+| + |1\rangle\langle-|$</td>
-<td style=\"text-align:center; border:1px solid\">$H|\psi\rangle = \alpha|+\rangle + \beta|-\rangle = \frac{\alpha + \beta}{\sqrt{2}}|0\rangle + \frac{\alpha - \beta}{\sqrt{2}}|1\rangle$</td>
-<td style=\"text-align:center; border:1px solid\">$H|0\rangle = |+\rangle \\
+<td>$H$</td>
+<td>$\begin{bmatrix} \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$</td>
+<td>$|0\rangle\langle+| + |1\rangle\langle-|$</td>
+<td>$H|\psi\rangle = \alpha|+\rangle + \beta|-\rangle = \frac{\alpha + \beta}{\sqrt{2}}|0\rangle + \frac{\alpha - \beta}{\sqrt{2}}|1\rangle$</td>
+<td>$H|0\rangle = |+\rangle \\
 H|1\rangle = |-\rangle \\
 H|+\rangle = |0\rangle \\
 H|-\rangle = |1\rangle \\
 H|i\rangle = e^{i\pi/4}|-i\rangle \\
 H|-i\rangle = e^{-i\pi/4}|i\rangle $</td>
-<td style=\"text-align:center; border:1px solid\"><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.h\">H</a></td>
+<td><a href=\"https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.h\">H</a></td>
 </tr>
 </table>
 
