@@ -776,15 +776,23 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 
     match ty {
-        Ty::Array(_) => RuntimeFeatureFlags::UseOfDynamicArray,
-        Ty::Arrow(arrow) => match arrow.kind {
-            CallableKind::Function => RuntimeFeatureFlags::UseOfDynamicArrowFunction,
-            CallableKind::Operation => RuntimeFeatureFlags::UseOfDynamicArrowOperation,
-        },
+        Ty::Array(ty) => {
+            RuntimeFeatureFlags::UseOfDynamicArray | derive_runtime_features_for_dynamic_type(ty)
+        }
+        Ty::Arrow(arrow) => {
+            let mut runtime_features = match arrow.kind {
+                CallableKind::Function => RuntimeFeatureFlags::UseOfDynamicArrowFunction,
+                CallableKind::Operation => RuntimeFeatureFlags::UseOfDynamicArrowOperation,
+            };
+            runtime_features |= derive_runtime_features_for_dynamic_type(&arrow.input);
+            runtime_features |= derive_runtime_features_for_dynamic_type(&arrow.output);
+            runtime_features
+        }
         Ty::Infer(_) => panic!("cannot derive runtime features for `Infer` type"),
         Ty::Param(_) => RuntimeFeatureFlags::UseOfDynamicGeneric,
         Ty::Prim(prim) => intrinsic_runtime_features_from_primitive_type(prim),
         Ty::Tuple(tuple) => intrinsic_runtime_features_from_tuple(tuple),
+        // N.B. Runtime features can be more nuanced by taking into account the contained types.
         Ty::Udt(_) => RuntimeFeatureFlags::UseOfDynamicUdt,
         Ty::Err => panic!("cannot derive runtime features for `Err` type"),
     }

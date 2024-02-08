@@ -443,23 +443,21 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArray) {
-            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the contained type.
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
-            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the contained types.
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
-            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the type of each UDT item.
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowFunction) {
-            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the input and output types.
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
-            // N.B. Mapped runtime capabilities can be more nuanced by taking into account the input and output types.
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicGeneric) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::CycledFunctionApplicationUsesDynamicArg) {

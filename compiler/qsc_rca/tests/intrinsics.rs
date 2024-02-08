@@ -94,7 +94,7 @@ fn check_rca_for_length() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray | UseOfDynamicGeneric)
                             dynamism_sources: {Intrinsic}
                 adj: <none>
                 ctl: <none>
@@ -1245,13 +1245,13 @@ fn check_rca_for_account_for_estimates_internal() {
                         dynamism_sources: <empty>
                     dynamic_params_properties:
                         [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicArray | UseOfDynamicTuple)
                             dynamism_sources: <empty>
                         [1]: ComputeProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             dynamism_sources: <empty>
                         [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicArray)
                             dynamism_sources: <empty>
                 adj: <none>
                 ctl: <none>
