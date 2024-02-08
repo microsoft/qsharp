@@ -7,8 +7,8 @@
 //!  - AST
 //!  - HIR
 //!
-//! The entry points to the linter are the run_*_lints functions, which take
-//! a [`qsc_*::*::Package`] as input and outputs a Vec<[`Lint`]>.
+//! The entry points to the linter are the `run_*_lints` functions, which take
+//! a `qsc_*::*::Package` as input and outputs a Vec<[`Lint`]>.
 //!
 //! # Examples
 //!
