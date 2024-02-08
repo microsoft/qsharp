@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use super::super::{
     compiled_expression::CompiledExpression,
     error::IO::{self, CannotParseJSON},
-    stages::tfactory::{
+    modeling::{
         TFactoryDistillationUnitResources, TFactoryDistillationUnitTemplate,
         TFactoryDistillationUnitType, TFactoryFormula,
     },

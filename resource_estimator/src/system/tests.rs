@@ -15,9 +15,8 @@ use crate::system::{
     data::{ErrorBudgetSpecification, JobParams, LogicalResourceCounts},
     error::IO,
     modeling::GateBasedPhysicalQubit,
-    modeling::{PhysicalQubit, Protocol},
+    modeling::{PhysicalQubit, Protocol, TFactory},
     optimization::TFactoryBuilder,
-    stages::tfactory::TFactory,
     Result,
 };
 

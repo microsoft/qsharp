@@ -11,9 +11,9 @@ use super::super::super::{
         TFactoryDistillationUnitSpecification,
         TFactoryProtocolSpecificDistillationUnitSpecification,
     },
-    modeling::{PhysicalQubit, Protocol},
-    stages::tfactory::{
-        TFactoryDistillationUnit, TFactoryDistillationUnitTemplate, TFactoryDistillationUnitType,
+    modeling::{
+        PhysicalQubit, Protocol, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
+        TFactoryDistillationUnitType,
     },
 };
 

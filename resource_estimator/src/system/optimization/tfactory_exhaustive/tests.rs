@@ -6,8 +6,7 @@ use crate::estimates::{optimization::Point2D, ErrorCorrection, Factory};
 use super::{
     super::super::{
         data,
-        modeling::{PhysicalQubit, Protocol},
-        stages::tfactory::{TFactory, TFactoryDistillationUnitTemplate},
+        modeling::{PhysicalQubit, Protocol, TFactory, TFactoryDistillationUnitTemplate},
     },
     find_nondominated_population, find_nondominated_tfactories,
 };

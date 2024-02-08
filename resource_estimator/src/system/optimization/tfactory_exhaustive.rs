@@ -7,14 +7,12 @@ use crate::estimates::{
     optimization::{Point, Point2D, Point4D, Population},
     Factory, FactoryBuilder, LogicalQubit,
 };
-use crate::system::modeling::{PhysicalQubit, Protocol};
-
-use super::super::{
-    constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},
-    stages::tfactory::{
-        TFactory, TFactoryBuildStatus, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
-    },
+use crate::system::modeling::{
+    PhysicalQubit, Protocol, TFactory, TFactoryBuildStatus, TFactoryDistillationUnit,
+    TFactoryDistillationUnitTemplate,
 };
+
+use super::super::constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS};
 
 use super::code_distance_iterators::{iterate_for_code_distances, search_for_code_distances};
 use super::distillation_units_map::DistillationUnitsMap;

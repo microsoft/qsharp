@@ -9,12 +9,10 @@ mod tests;
 use serde::Serialize;
 
 use crate::estimates::{Factory, Overhead, PhysicalResourceEstimationResult};
-use crate::system::modeling::PhysicalQubit;
+use crate::system::modeling::{PhysicalQubit, TFactory};
 
 use super::{
-    super::{modeling::PhysicalInstructionSet, stages::tfactory::TFactory},
-    job_params::JobParams,
-    LogicalResourceCounts,
+    super::modeling::PhysicalInstructionSet, job_params::JobParams, LogicalResourceCounts,
 };
 
 #[derive(Serialize)]

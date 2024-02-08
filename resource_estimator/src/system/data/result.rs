@@ -2,12 +2,11 @@
 // Licensed under the MIT License.
 
 use crate::estimates::{ErrorBudget, LogicalQubit, Overhead, PhysicalResourceEstimationResult};
-use crate::system::modeling::PhysicalQubit;
+use crate::system::modeling::{PhysicalQubit, TFactory};
 
 use super::{
-    super::{stages::tfactory::TFactory, Error},
-    FormattedPhysicalResourceCounts, JobParams, LogicalResourceCounts, PhysicalResourceCounts,
-    PhysicalResourceCountsBreakdown, Report,
+    super::Error, FormattedPhysicalResourceCounts, JobParams, LogicalResourceCounts,
+    PhysicalResourceCounts, PhysicalResourceCountsBreakdown, Report,
 };
 use miette::Diagnostic;
 use serde::{ser::SerializeMap, Serialize, Serializer};

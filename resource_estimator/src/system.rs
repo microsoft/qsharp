@@ -18,7 +18,6 @@ pub(crate) mod error;
 mod modeling;
 mod optimization;
 mod serialization;
-mod stages;
 
 use crate::estimates::PhysicalResourceEstimation;
 
