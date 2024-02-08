@@ -2,16 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::estimates::modeling::PhysicalQubit;
+use crate::estimates2::{ErrorBudget, LogicalQubit, Overhead, PhysicalResourceEstimationResult};
 
 use super::{
-    super::{
-        modeling::{ErrorBudget, LogicalQubit},
-        stages::{
-            layout::Overhead, physical_estimation::PhysicalResourceEstimationResult,
-            tfactory::TFactory,
-        },
-        Error,
-    },
+    super::{stages::tfactory::TFactory, Error},
     FormattedPhysicalResourceCounts, JobParams, LogicalResourceCounts, PhysicalResourceCounts,
     PhysicalResourceCountsBreakdown, Report,
 };

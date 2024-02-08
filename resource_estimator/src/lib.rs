@@ -3,6 +3,7 @@
 
 mod counts;
 pub mod estimates;
+pub mod estimates2;
 
 pub use estimates::estimate_physical_resources_from_json;
 

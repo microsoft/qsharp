@@ -1,12 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[cfg(test)]
-mod tests;
+use crate::estimates::Result;
+use crate::estimates2::ErrorCorrection;
 
-use crate::estimates::stages::physical_estimation::ErrorCorrection;
-
-use super::super::Result;
 use serde::Serialize;
 use std::{fmt::Debug, rc::Rc};
 

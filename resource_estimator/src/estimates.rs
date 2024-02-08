@@ -14,23 +14,20 @@ mod tests;
 mod compiled_expression;
 mod constants;
 mod data;
-mod error;
+pub(crate) mod error;
 mod modeling;
 mod optimization;
 mod serialization;
 mod stages;
 
+use crate::estimates2::PhysicalResourceEstimation;
+
 use self::{modeling::Protocol, optimization::TFactoryBuilder};
 use super::LogicalResources;
 use data::{EstimateType, JobParams, LogicalResourceCounts};
 pub use error::Error;
-pub use modeling::ErrorBudget;
-pub use stages::layout::Overhead;
-pub use stages::physical_estimation::{
-    ErrorCorrection, Factory, FactoryBuilder, PhysicalResourceEstimation,
-};
 
-type Result<T> = std::result::Result<T, error::Error>;
+pub(crate) type Result<T> = std::result::Result<T, error::Error>;
 
 pub fn estimate_physical_resources(
     logical_resources: &LogicalResources,

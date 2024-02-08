@@ -1,21 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[cfg(test)]
-mod tests;
-
 use super::{
-    super::{
-        error::InvalidInput::{
-            self, BothDurationAndPhysicalQubitsProvided, InvalidCodeDistance, MaxDurationTooSmall,
-            MaxPhysicalQubitsTooSmall, NoSolutionFoundForMaxTFactories, NoTFactoriesFound,
-        },
-        modeling::{ErrorBudget, LogicalQubit},
-        optimization::{Point2D, Population},
-        Result,
-    },
     layout::Overhead,
+    optimization::{Point2D, Population},
+    ErrorBudget, LogicalQubit,
 };
+use crate::estimates::error::InvalidInput::{
+    self, BothDurationAndPhysicalQubitsProvided, InvalidCodeDistance, MaxDurationTooSmall,
+    MaxPhysicalQubitsTooSmall, NoSolutionFoundForMaxTFactories, NoTFactoriesFound,
+};
+use crate::estimates::Result;
 use std::{cmp::Ordering, rc::Rc};
 
 pub trait ErrorCorrection {
@@ -447,7 +442,7 @@ where
             .collect())
     }
 
-    fn estimate_without_restrictions(
+    pub fn estimate_without_restrictions(
         &self,
     ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {
         let mut num_cycles = self.compute_num_cycles()?;
@@ -594,7 +589,7 @@ where
     }
 
     #[allow(clippy::too_many_lines)]
-    fn estimate_with_max_duration(
+    pub fn estimate_with_max_duration(
         &self,
         max_duration_in_nanoseconds: u64,
     ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {
@@ -753,7 +748,7 @@ where
     }
 
     #[allow(clippy::too_many_lines)]
-    fn estimate_with_max_num_qubits(
+    pub fn estimate_with_max_num_qubits(
         &self,
         max_num_qubits: u64,
     ) -> Result<PhysicalResourceEstimationResult<E::Qubit, Builder::Factory, L>> {

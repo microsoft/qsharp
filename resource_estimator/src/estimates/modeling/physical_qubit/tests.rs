@@ -1,6 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::rc::Rc;
+
+use crate::{
+    estimates::{constants::FLOAT_COMPARISON_EPSILON, modeling::Protocol, Result},
+    estimates2::LogicalQubit,
+};
+
 use super::{
     super::super::constants::{
         IDLE_ERROR_RATE, INSTRUCTION_SET, ONE_QUBIT_GATE_ERROR_RATE, ONE_QUBIT_GATE_TIME,
@@ -299,4 +306,21 @@ fn load_physical_qubit_from_file() {
     let qubit = load_qubit_from_json_string(r#"{"name": "qubit_gate_ns_e3"}"#);
 
     assert_eq!(qubit, PhysicalQubit::qubit_gate_ns_e3());
+}
+
+#[test]
+fn logical_qubit_from_fast_gate_based_and_surface_code() -> Result<()> {
+    let physical_qubit = Rc::new(PhysicalQubit::default());
+
+    let ftp = Protocol::default();
+
+    let logical_qubit = LogicalQubit::new(&ftp, 7, physical_qubit)?;
+
+    assert_eq!(logical_qubit.physical_qubits(), 98);
+    assert!(
+        (logical_qubit.logical_error_rate() - 3.000_000_000_000_001_3e-6).abs()
+            < FLOAT_COMPARISON_EPSILON
+    );
+
+    Ok(())
 }

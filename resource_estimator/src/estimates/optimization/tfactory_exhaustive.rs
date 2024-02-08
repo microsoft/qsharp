@@ -3,23 +3,21 @@
 
 use std::rc::Rc;
 
-use crate::estimates::{
-    modeling::{PhysicalQubit, Protocol},
-    stages::physical_estimation::{Factory, FactoryBuilder},
+use crate::estimates::modeling::{PhysicalQubit, Protocol};
+use crate::estimates2::{
+    optimization::{Point, Point2D, Point4D, Population},
+    Factory, FactoryBuilder, LogicalQubit,
 };
 
 use super::super::{
     constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},
-    modeling::LogicalQubit,
     stages::tfactory::{
         TFactory, TFactoryBuildStatus, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
     },
 };
-use super::population;
 
 use super::code_distance_iterators::{iterate_for_code_distances, search_for_code_distances};
 use super::distillation_units_map::DistillationUnitsMap;
-use super::population::{Point, Point2D, Point4D, Population};
 
 #[derive(Default)]
 struct TFactoryExhaustiveSearch<P>
@@ -71,7 +69,7 @@ where
     fn new(output_t_error_rate: f64) -> Self {
         Self {
             output_t_error_rate,
-            frontier_factories: population::Population::<P>::new(),
+            frontier_factories: Population::<P>::new(),
             num_combinations: 0,
             num_valid: 0,
             num_candidates: 0,

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::estimates2::Overhead;
+
 use super::super::{
     constants::{
         NUM_MEASUREMENTS_PER_R, NUM_MEASUREMENTS_PER_TOF, NUM_TS_PER_ROTATION_A_COEFFICIENT,
@@ -8,16 +10,6 @@ use super::super::{
     },
     data::LogicalResourceCounts,
 };
-
-pub trait Overhead {
-    fn logical_qubits(&self) -> u64;
-    fn logical_qubits_without_padding(&self) -> u64 {
-        self.logical_qubits()
-    }
-    fn logical_depth(&self, num_magic_states_per_rotation: u64) -> u64;
-    fn num_magic_states(&self, num_magic_states_per_rotation: u64) -> u64;
-    fn num_magic_states_per_rotation(&self, eps_synthesis: f64) -> Option<u64>;
-}
 
 /// Models the logical resources after layout
 ///

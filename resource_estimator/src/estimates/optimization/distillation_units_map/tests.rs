@@ -4,12 +4,14 @@
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
+use crate::estimates2::LogicalQubit;
+
 use super::super::super::{
     data::{
         TFactoryDistillationUnitSpecification,
         TFactoryProtocolSpecificDistillationUnitSpecification,
     },
-    modeling::{LogicalQubit, PhysicalQubit, Protocol},
+    modeling::{PhysicalQubit, Protocol},
     stages::tfactory::{
         TFactoryDistillationUnit, TFactoryDistillationUnitTemplate, TFactoryDistillationUnitType,
     },

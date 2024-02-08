@@ -11,14 +11,11 @@ use probability::{distribution::Inverse, prelude::Binomial};
 use serde::{ser::SerializeMap, Serialize};
 
 use crate::estimates::modeling::PhysicalQubit;
+use crate::estimates2::{Factory, LogicalQubit};
 
-use super::{
-    super::{
-        compiled_expression::CompiledExpression,
-        error::IO::{self, CannotParseJSON},
-        modeling::LogicalQubit,
-    },
-    physical_estimation::Factory,
+use super::super::{
+    compiled_expression::CompiledExpression,
+    error::IO::{self, CannotParseJSON},
 };
 
 pub enum TFactoryQubit<'a> {

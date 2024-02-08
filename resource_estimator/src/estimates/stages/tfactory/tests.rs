@@ -6,7 +6,9 @@ use probability::prelude::Inverse;
 use super::*;
 use std::rc::Rc;
 
-use super::super::super::modeling::{LogicalQubit, PhysicalQubit, Protocol};
+use crate::estimates2::LogicalQubit;
+
+use super::super::super::modeling::{PhysicalQubit, Protocol};
 use super::super::super::{constants::FLOAT_COMPARISON_EPSILON, Result};
 
 #[test]

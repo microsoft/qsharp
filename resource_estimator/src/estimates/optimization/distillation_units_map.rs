@@ -9,8 +9,7 @@ use std::cmp::max;
 use std::rc::Rc;
 
 use crate::estimates::modeling::PhysicalQubit;
-
-use super::super::modeling::LogicalQubit;
+use crate::estimates2::LogicalQubit;
 
 use super::super::stages::tfactory::{
     TFactoryDistillationUnit, TFactoryDistillationUnitTemplate, TFactoryDistillationUnitType,
