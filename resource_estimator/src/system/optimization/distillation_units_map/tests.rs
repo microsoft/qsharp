@@ -4,7 +4,7 @@
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
-use crate::estimates2::LogicalQubit;
+use crate::estimates::LogicalQubit;
 
 use super::super::super::{
     data::{

@@ -8,8 +8,8 @@ mod tests;
 
 use serde::Serialize;
 
-use crate::estimates::modeling::PhysicalQubit;
-use crate::estimates2::{Factory, Overhead, PhysicalResourceEstimationResult};
+use crate::estimates::{Factory, Overhead, PhysicalResourceEstimationResult};
+use crate::system::modeling::PhysicalQubit;
 
 use super::{
     super::{modeling::PhysicalInstructionSet, stages::tfactory::TFactory},

@@ -122,7 +122,7 @@ pub enum Error {
     TFactory(TFactory),
     #[error(transparent)]
     #[diagnostic(transparent)]
-    Estimation(#[from] crate::estimates2::Error),
+    Estimation(#[from] crate::estimates::Error),
 }
 
 impl From<fasteval::Error> for Error {

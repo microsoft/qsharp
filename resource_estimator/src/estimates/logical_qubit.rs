@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates2::{Error, ErrorCorrection};
+use crate::estimates::{Error, ErrorCorrection};
 
 use serde::Serialize;
 use std::{fmt::Debug, rc::Rc};

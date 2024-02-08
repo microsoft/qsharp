@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates2::{optimization::Point2D, ErrorCorrection, Factory};
+use crate::estimates::{optimization::Point2D, ErrorCorrection, Factory};
 
 use super::{
     super::super::{

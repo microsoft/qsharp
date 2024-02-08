@@ -3,11 +3,11 @@
 
 use std::rc::Rc;
 
-use crate::estimates::modeling::{PhysicalQubit, Protocol};
-use crate::estimates2::{
+use crate::estimates::{
     optimization::{Point, Point2D, Point4D, Population},
     Factory, FactoryBuilder, LogicalQubit,
 };
+use crate::system::modeling::{PhysicalQubit, Protocol};
 
 use super::super::{
     constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS},

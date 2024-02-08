@@ -10,7 +10,7 @@ use super::super::{
     modeling::{PhysicalQubit, ProtocolSpecification},
     LogicalResourceCounts,
 };
-use crate::estimates2::ErrorBudget;
+use crate::estimates::ErrorBudget;
 
 use super::{tfactory::TFactoryDistillationUnitSpecifications, Constraints};
 

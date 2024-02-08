@@ -7,7 +7,7 @@ mod tests;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use crate::estimates2::{
+use crate::estimates::{
     Error::{LogicalCycleTimeComputationFailed, PhysicalQubitComputationFailed},
     ErrorCorrection,
 };
@@ -101,7 +101,7 @@ impl Protocol {
     pub(crate) fn load_from_specification(
         model: &mut ProtocolSpecification,
         qubit: &PhysicalQubit,
-    ) -> crate::estimates::Result<Self> {
+    ) -> crate::system::Result<Self> {
         let (mut ftp, predefined) = Self::base_protocol(model, qubit)?;
 
         if predefined {
@@ -155,7 +155,7 @@ impl Protocol {
     fn base_protocol(
         model: &mut ProtocolSpecification,
         qubit: &PhysicalQubit,
-    ) -> crate::estimates::Result<(Self, bool)> {
+    ) -> crate::system::Result<(Self, bool)> {
         if model.name == "surface_code"
             || model.name == "surfaceCode"
             || model.name == "surface-code"
@@ -230,7 +230,7 @@ impl Protocol {
     fn update_default_from_specification(
         &mut self,
         model: &mut ProtocolSpecification,
-    ) -> crate::estimates::Result<()> {
+    ) -> crate::system::Result<()> {
         if let Some(error_correction_threshold) = model.error_correction_threshold {
             self.error_correction_threshold = error_correction_threshold;
         } else {
@@ -439,7 +439,7 @@ impl Protocol {
     fn parse_compiled_expressions(
         logical_cycle_time_expr: &str,
         physical_qubits_per_logical_qubit_expr: &str,
-    ) -> crate::estimates::Result<(CompiledExpression, CompiledExpression)> {
+    ) -> crate::system::Result<(CompiledExpression, CompiledExpression)> {
         Ok((
             CompiledExpression::from_string(logical_cycle_time_expr, "logical_cycle_time_expr")?,
             CompiledExpression::from_string(

@@ -8,8 +8,8 @@ use std::cmp::max;
 
 use std::rc::Rc;
 
-use crate::estimates::modeling::PhysicalQubit;
-use crate::estimates2::LogicalQubit;
+use crate::estimates::LogicalQubit;
+use crate::system::modeling::PhysicalQubit;
 
 use super::super::stages::tfactory::{
     TFactoryDistillationUnit, TFactoryDistillationUnitTemplate, TFactoryDistillationUnitType,

@@ -6,7 +6,7 @@ use probability::prelude::Inverse;
 use super::*;
 use std::rc::Rc;
 
-use crate::estimates2::LogicalQubit;
+use crate::estimates::LogicalQubit;
 
 use super::super::super::modeling::{PhysicalQubit, Protocol};
 use super::super::super::{constants::FLOAT_COMPARISON_EPSILON, Result};
@@ -85,7 +85,7 @@ fn single_physical_qubit() {
 
 fn create_logical_qubit_with_distance(
     code_distance: u64,
-) -> core::result::Result<LogicalQubit<PhysicalQubit>, crate::estimates2::Error> {
+) -> core::result::Result<LogicalQubit<PhysicalQubit>, crate::estimates::Error> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::default());
 

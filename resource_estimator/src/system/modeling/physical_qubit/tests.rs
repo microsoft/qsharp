@@ -4,8 +4,8 @@
 use std::rc::Rc;
 
 use crate::{
-    estimates::{constants::FLOAT_COMPARISON_EPSILON, modeling::Protocol, Result},
-    estimates2::LogicalQubit,
+    estimates::LogicalQubit,
+    system::{constants::FLOAT_COMPARISON_EPSILON, modeling::Protocol, Result},
 };
 
 use super::{

@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::modeling::PhysicalQubit;
-use crate::estimates2::{ErrorBudget, LogicalQubit, Overhead, PhysicalResourceEstimationResult};
+use crate::estimates::{ErrorBudget, LogicalQubit, Overhead, PhysicalResourceEstimationResult};
+use crate::system::modeling::PhysicalQubit;
 
 use super::{
     super::{stages::tfactory::TFactory, Error},

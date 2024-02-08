@@ -10,8 +10,8 @@ use std::{collections::BTreeMap, vec};
 use probability::{distribution::Inverse, prelude::Binomial};
 use serde::{ser::SerializeMap, Serialize};
 
-use crate::estimates::modeling::PhysicalQubit;
-use crate::estimates2::{Factory, LogicalQubit};
+use crate::estimates::{Factory, LogicalQubit};
+use crate::system::modeling::PhysicalQubit;
 
 use super::super::{
     compiled_expression::CompiledExpression,

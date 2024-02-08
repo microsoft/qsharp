@@ -3,7 +3,7 @@
 
 use serde_json::Value;
 
-use crate::estimates2::{
+use crate::estimates::{
     ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, Overhead, PhysicalResourceEstimation,
     PhysicalResourceEstimationResult,
 };
@@ -11,7 +11,7 @@ use crate::LogicalResources;
 
 use super::estimate_physical_resources;
 
-use crate::estimates::{
+use crate::system::{
     data::{ErrorBudgetSpecification, JobParams, LogicalResourceCounts},
     error::IO,
     modeling::GateBasedPhysicalQubit,
@@ -498,7 +498,7 @@ pub fn test_chemistry_small_max_duration() {
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds);
 
     match result {
-        Err(crate::estimates2::Error::MaxDurationTooSmall) => {}
+        Err(crate::estimates::Error::MaxDurationTooSmall) => {}
         _ => unreachable!("Expected MaxDurationTooSmall"),
     }
 }
@@ -511,7 +511,7 @@ pub fn test_chemistry_small_max_num_qubits() {
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits);
 
     match result {
-        Err(crate::estimates2::Error::MaxPhysicalQubitsTooSmall) => {}
+        Err(crate::estimates::Error::MaxPhysicalQubitsTooSmall) => {}
         _ => unreachable!("Expected MaxNumQubitsTooSmall"),
     }
 }

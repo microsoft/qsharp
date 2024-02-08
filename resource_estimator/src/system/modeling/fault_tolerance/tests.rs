@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::{
-    estimates::modeling::{PhysicalQubit, Protocol},
-    estimates2::ErrorCorrection,
+    estimates::ErrorCorrection,
+    system::modeling::{PhysicalQubit, Protocol},
 };
 
 #[test]
