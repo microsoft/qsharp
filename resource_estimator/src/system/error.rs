@@ -120,6 +120,10 @@ pub enum Error {
     #[error(transparent)]
     #[diagnostic(transparent)]
     TFactory(TFactory),
+    /// Handles various errors from physical resource estimation
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
     #[error(transparent)]
     #[diagnostic(transparent)]
     Estimation(#[from] crate::estimates::Error),
