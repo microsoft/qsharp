@@ -112,7 +112,13 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
 function createRunNames(estimatesData: ReData[]): string[] {
   // If there's only 1 entry, use the shared run name
   if (estimatesData.length === 1) {
-    return [estimatesData[0].jobParams.sharedRunName];
+    const name =
+      estimatesData[0].jobParams.sharedRunName ??
+      estimatesData[0].jobParams.qubitParams.name ??
+      estimatesData[0].jobParams.qecScheme.name ??
+      "estimate";
+
+    return [name];
   }
 
   const fields: string[][] = [];

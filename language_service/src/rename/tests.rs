@@ -20,7 +20,7 @@ fn check(source_with_markers: &str) {
         compile_with_fake_stdlib_and_markers(source_with_markers);
     let actual = get_rename(&compilation, "<source>", cursor_position, Encoding::Utf8)
         .into_iter()
-        .map(|l| l.span)
+        .map(|l| l.range)
         .collect::<Vec<_>>();
     for target in &target_spans {
         assert!(actual.contains(target));
@@ -391,7 +391,7 @@ fn notebook_rename_across_cells() {
             [
                 Location {
                     source: "cell1",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 0,
                             column: 10,
@@ -404,7 +404,7 @@ fn notebook_rename_across_cells() {
                 },
                 Location {
                     source: "cell2",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 0,
                             column: 0,

@@ -6,11 +6,11 @@ mod tests;
 
 use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
-use crate::protocol::Location;
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::Visitor;
 use qsc::hir::PackageId;
 use qsc::line_column::{Encoding, Position};
+use qsc::location::Location;
 use qsc::{ast, hir, Span};
 
 pub(crate) fn get_definition(

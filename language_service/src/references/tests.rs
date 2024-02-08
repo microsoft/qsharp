@@ -5,7 +5,6 @@
 
 use super::get_references;
 use crate::{
-    protocol,
     test_utils::{
         compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
     },
@@ -43,7 +42,7 @@ fn check(source_with_markers: &str, include_declaration: bool) {
         include_declaration,
     )
     .into_iter()
-    .map(|l| l.span)
+    .map(|l| l.range)
     .collect::<Vec<_>>();
     for target in &target_spans {
         assert!(
@@ -71,10 +70,7 @@ fn check_notebook_exclude_decl(cells_with_markers: &[(&str, &str)]) {
         .collect::<Vec<_>>();
     for target in &target_spans {
         assert!(
-            actual.contains(&protocol::Location {
-                source: target.0.clone(),
-                span: target.1
-            }),
+            actual.contains(target),
             "expected {actual:?} to contain {target:?}"
         );
     }
@@ -98,7 +94,7 @@ fn std_callable_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 1,
                             column: 26,
@@ -111,7 +107,7 @@ fn std_callable_ref() {
                 },
                 Location {
                     source: "<source>",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 3,
                             column: 8,
@@ -124,7 +120,7 @@ fn std_callable_ref() {
                 },
                 Location {
                     source: "<source>",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 5,
                             column: 8,
@@ -255,7 +251,7 @@ fn std_udt_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 4,
                             column: 24,
@@ -268,7 +264,7 @@ fn std_udt_ref() {
                 },
                 Location {
                     source: "<source>",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 2,
                             column: 22,
@@ -345,7 +341,7 @@ fn std_field_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 4,
                             column: 31,
@@ -358,7 +354,7 @@ fn std_field_ref() {
                 },
                 Location {
                     source: "<source>",
-                    span: Range {
+                    range: Range {
                         start: Position {
                             line: 4,
                             column: 23,
