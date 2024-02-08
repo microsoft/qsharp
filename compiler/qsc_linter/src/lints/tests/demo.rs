@@ -7,10 +7,7 @@ use eframe::{
 use qsc_ast::{assigner::Assigner, mut_visit::MutVisitor, visit::Visitor};
 use qsc_data_structures::line_column;
 
-use crate::{
-    linter::{self, ast::LocalType, Lint, LintLevel},
-    lints::ast::{DivisionByZero, DoubleParens},
-};
+use crate::linter::{self, ast::CombinedAstLints, Lint, LintLevel};
 
 #[derive(Default)]
 pub struct LinterDemoApp {
@@ -96,8 +93,7 @@ impl eframe::App for LinterDemoApp {
 }
 
 fn run_lints(source: &str) {
-    let mut parens = LocalType(DoubleParens);
-    let mut div_zero = LocalType(DivisionByZero);
+    let mut lints = CombinedAstLints;
 
     let (mut namespaces, _) = qsc_parse::namespaces(source);
     let mut assigner = Assigner::new();
@@ -107,8 +103,7 @@ fn run_lints(source: &str) {
     }
 
     for namespace in &namespaces {
-        parens.visit_namespace(namespace);
-        div_zero.visit_namespace(namespace);
+        lints.visit_namespace(namespace);
     }
 }
 

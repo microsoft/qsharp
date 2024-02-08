@@ -28,5 +28,4 @@
 mod linter;
 mod lints;
 
-pub use linter::{Lint, LintLevel};
-pub use lints::{run_ast_lints, run_hir_lints};
+pub use linter::{ast::run_ast_lints, hir::run_hir_lints, Lint, LintLevel};

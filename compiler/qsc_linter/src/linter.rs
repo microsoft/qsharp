@@ -1,4 +1,6 @@
 pub(crate) mod ast;
+pub(crate) mod hir;
+
 use qsc::Span;
 use qsc_ast::ast::NodeId;
 use std::fmt::Display;
