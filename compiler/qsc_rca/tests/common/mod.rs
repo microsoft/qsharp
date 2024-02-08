@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use expect_test::Expect;
+use itertools::Itertools;
 use qsc::incremental::Compiler;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
@@ -111,6 +112,33 @@ pub fn check_callable_compute_properties(
 
     let callable_compute_properties = package_store_compute_properties.get_item(callable_id);
     expect.assert_eq(&callable_compute_properties.to_string());
+}
+
+pub fn check_last_statement_compute_propeties(
+    package_store_compute_properties: &PackageStoreComputeProperties,
+    expect: &Expect,
+) {
+    let last_package_id = package_store_compute_properties
+        .iter()
+        .map(|(package_id, _)| package_id)
+        .sorted()
+        .last()
+        .expect("at least one package should exist");
+    let package_compute_properties = package_store_compute_properties
+        .get(last_package_id)
+        .expect("package should exist");
+    let last_statement_id = package_compute_properties
+        .stmts
+        .iter()
+        .map(|(stmt_id, _)| stmt_id)
+        .sorted()
+        .last()
+        .expect("at least one statement should exist");
+    let stmt_compute_properties = package_compute_properties
+        .stmts
+        .get(last_statement_id)
+        .expect("statement compute properties should exist");
+    expect.assert_eq(&stmt_compute_properties.to_string());
 }
 
 fn lower_hir_package_store(
