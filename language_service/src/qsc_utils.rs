@@ -1,14 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    compilation::Compilation,
-    protocol::{self},
-};
+use crate::compilation::Compilation;
 use qsc::line_column::{Encoding, Range};
+use qsc::location::Location;
 use qsc::{ast, hir::PackageId, SourceMap, Span};
-
-pub(crate) const QSHARP_LIBRARY_URI_SCHEME: &str = "qsharp-library-source";
 
 pub(crate) fn span_contains(span: Span, offset: u32) -> bool {
     offset >= span.lo && offset < span.hi
@@ -39,33 +35,16 @@ pub(crate) fn into_range(encoding: Encoding, span: Span, source_map: &SourceMap)
 pub(crate) fn into_location(
     position_encoding: Encoding,
     compilation: &Compilation,
-    location: Span,
+    span: Span,
     package_id: PackageId,
-) -> protocol::Location {
-    let source_map = &compilation
-        .package_store
-        .get(package_id)
-        .expect("package id must exist in store")
-        .sources;
-    let source = source_map
-        .find_by_offset(location.lo)
-        .expect("source should exist for offset");
-    let source_name = if package_id == compilation.user_package_id {
-        source.name.to_string()
-    } else {
-        // Currently the only supported external packages are our library packages,
-        // URI's to which need to include our custom library scheme.
-        format!("{}:{}", QSHARP_LIBRARY_URI_SCHEME, source.name)
-    };
-
-    protocol::Location {
-        source: source_name,
-        span: Range::from_span(
-            position_encoding,
-            &source.contents,
-            &(location - source.offset),
-        ),
-    }
+) -> Location {
+    Location::from(
+        span,
+        package_id,
+        &compilation.package_store,
+        compilation.user_package_id,
+        position_encoding,
+    )
 }
 
 pub(crate) fn find_ident<'a>(

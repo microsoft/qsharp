@@ -37,7 +37,7 @@ fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
 
     let actual =
         get_hover(&compilation, &cell_uri, position, Encoding::Utf8).expect("Expected a hover.");
-    assert_eq!(&actual.span, &target_spans[0].1);
+    assert_eq!(&actual.span, &target_spans[0].range);
     expect.assert_eq(&actual.contents);
 }
 
