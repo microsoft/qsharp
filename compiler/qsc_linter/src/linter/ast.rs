@@ -41,27 +41,6 @@ impl AstLintPass for CombinedAstLints {
     }
 }
 
-#[allow(unused_variables)]
-pub(crate) trait AstLintPass {
-    fn check_attr(attr: &Attr) {}
-    fn check_block(block: &Block) {}
-    fn check_callable_decl(callable_decl: &CallableDecl) {}
-    fn check_expr(expr: &Expr) {}
-    fn check_functor_expr(functor_expr: &FunctorExpr) {}
-    fn check_ident(_: &Ident) {}
-    fn check_item(item: &Item) {}
-    fn check_namespace(namespace: &Namespace) {}
-    fn check_package(package: &Package) {}
-    fn check_pat(pat: &Pat) {}
-    fn check_path(path: &Path) {}
-    fn check_qubit_init(qubit_init: &QubitInit) {}
-    fn check_spec_decl(spec_decl: &SpecDecl) {}
-    fn check_stmt(stmt: &Stmt) {}
-    fn check_ty(ty: &Ty) {}
-    fn check_ty_def(ty_def: &TyDef) {}
-    fn check_visibility(visibility: &Visibility) {}
-}
-
 impl<'a> Visitor<'a> for CombinedAstLints {
     fn visit_package(&mut self, package: &'a Package) {
         CombinedAstLints::check_package(package);
@@ -145,4 +124,25 @@ impl<'a> Visitor<'a> for CombinedAstLints {
     fn visit_ident(&mut self, ident: &'a Ident) {
         CombinedAstLints::check_ident(ident);
     }
+}
+
+#[allow(unused_variables)]
+pub(crate) trait AstLintPass {
+    fn check_attr(attr: &Attr) {}
+    fn check_block(block: &Block) {}
+    fn check_callable_decl(callable_decl: &CallableDecl) {}
+    fn check_expr(expr: &Expr) {}
+    fn check_functor_expr(functor_expr: &FunctorExpr) {}
+    fn check_ident(_: &Ident) {}
+    fn check_item(item: &Item) {}
+    fn check_namespace(namespace: &Namespace) {}
+    fn check_package(package: &Package) {}
+    fn check_pat(pat: &Pat) {}
+    fn check_path(path: &Path) {}
+    fn check_qubit_init(qubit_init: &QubitInit) {}
+    fn check_spec_decl(spec_decl: &SpecDecl) {}
+    fn check_stmt(stmt: &Stmt) {}
+    fn check_ty(ty: &Ty) {}
+    fn check_ty_def(ty_def: &TyDef) {}
+    fn check_visibility(visibility: &Visibility) {}
 }

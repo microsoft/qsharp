@@ -16,9 +16,8 @@
 //! use linter::run_ast_lints;;
 //! use qsc_ast::ast::Package;
 //!
-//! let source = todo!();
 //! let package: Package = todo!();
-//! let lints: Vec<Lint> = run_ast_lints(source, &package);
+//! let lints: Vec<Lint> = run_ast_lints(&package);
 //! ```
 
 #![deny(missing_docs)]
