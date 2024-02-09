@@ -2096,7 +2096,6 @@ fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
             // DuplicateIntrinsic("C", Span { lo: 154, hi: 155 })
         "#]],
     );
-
 }
 
 #[allow(clippy::cast_possible_truncation)]
