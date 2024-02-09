@@ -5,21 +5,6 @@ use qsc::Span;
 use qsc_ast::ast::NodeId;
 use std::fmt::Display;
 
-static mut LINT_BUFFER: Vec<Lint> = Vec::new();
-
-#[must_use]
-fn drain() -> std::vec::Drain<'static, Lint> {
-    // SAFETY: mutable statics can be mutated by multiple threads,
-    // our compiler is single threaded, so this should be fine.
-    unsafe { LINT_BUFFER.drain(..) }
-}
-
-pub(crate) fn push(lint: Lint) {
-    // SAFETY: mutable statics can be mutated by multiple threads,
-    // our compiler is single threaded, so this should be fine.
-    unsafe { LINT_BUFFER.push(lint) }
-}
-
 /// A lint emited by the linter.
 #[allow(missing_docs)]
 #[derive(Debug)]

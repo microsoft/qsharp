@@ -42,20 +42,19 @@
 //! impl linter::ast::AstLintPass for DoubleParens {
 //!     // we only need to impl the relevant check_* method, all the other ones
 //!     // will default to an empty method that will get optmized by rust
-//!     fn check_expr(expr: &qsc_ast::ast::Expr) {
+//!     fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
 //!         // we match the relevant pattern
 //!         if let ExprKind::Paren(ref inner_expr) = *expr.kind {
 //!             if matches!(*inner_expr.kind, ExprKind::Paren(_)) {
-//!                 // we push the lint to an internal stack
-//!                 push_lint!(Self, expr);
+//!                 // we push the lint to the buffer
+//!                 push_lint!(Self, expr, buffer);
 //!             }
 //!         }
 //!     }
 //! }
 //! ```
 //!
-//! Finally we add our new lint to `impl AstLintPass for CombinedAstLints { ... }`
-//! in `src/linter/ast.rs`.
+//! Finally we add our new lint to `impl CombinedAstLints { ... }` in `src/linter/ast.rs`.
 //!
 //! ```
 //! impl AstLintPass for CombinedAstLints {

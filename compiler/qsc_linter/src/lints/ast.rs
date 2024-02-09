@@ -17,22 +17,22 @@ declare_lint!(
 declare_lint!(DivisionByZero, LintLevel::Deny, "attempt to divide by zero");
 
 impl AstLintPass for DoubleParens {
-    fn check_expr(expr: &qsc_ast::ast::Expr) {
+    fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::Paren(ref inner_expr) = *expr.kind {
             if matches!(*inner_expr.kind, ExprKind::Paren(_)) {
-                push_lint!(Self, expr);
+                push_lint!(Self, expr, buffer);
             }
         }
     }
 }
 
 impl AstLintPass for DivisionByZero {
-    fn check_expr(expr: &qsc_ast::ast::Expr) {
+    fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
                 if let Lit::Int(ref x) = **lit {
                     if *x == 0 {
-                        push_lint!(Self, expr);
+                        push_lint!(Self, expr, buffer);
                     }
                 }
             }
