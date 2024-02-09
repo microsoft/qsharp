@@ -275,7 +275,7 @@ async function validateKata(
 test("all katas work", async () => {
   const katas = await getAllKatas();
   // N.B. If you update the expected katas count, make sure to add a validation test for your newly added kata.
-  const expectedKatasCount = 9;
+  const expectedKatasCount = 10;
   assert.equal(
     katas.length,
     expectedKatasCount,
@@ -305,6 +305,11 @@ test("multi_qubit_systems kata is valid", async () => {
 
 test("multi_qubit_gates kata is valid", async () => {
   const kata = await getKata("multi_qubit_gates");
+  await validateKata(kata, true, true, true);
+});
+
+test("superposition_kata kata is valid", async () => {
+  const kata = await getKata("superposition_kata");
   await validateKata(kata, true, true, true);
 });
 

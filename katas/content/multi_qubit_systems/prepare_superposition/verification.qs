@@ -8,6 +8,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        CheckEqualOnZeroState(Kata.PrepareSuperposition, PrepareSuperposition_Reference)
+        CheckOperationsEquivalenceOnZeroStateWithFeedback(Kata.PrepareSuperposition, 
+            PrepareSuperposition_Reference, 2)
     }
 }
