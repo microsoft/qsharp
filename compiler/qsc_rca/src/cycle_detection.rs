@@ -3,7 +3,7 @@
 
 use crate::common::{
     derive_callable_input_params, initalize_locals_map, GlobalSpecializationId, Local, LocalKind,
-    LocalsMap, SpecializationKind,
+    SpecializationKind,
 };
 use qsc_fir::{
     fir::{
@@ -59,7 +59,7 @@ struct CycleDetector<'a> {
     package_id: PackageId,
     package: &'a Package,
     stack: CallStack,
-    specializations_locals: FxHashMap<CallableSpecializationSelector, LocalsMap>,
+    specializations_locals: FxHashMap<CallableSpecializationSelector, FxHashMap<NodeId, Local>>,
     specializations_with_cycles: FxHashSet<CallableSpecializationSelector>,
 }
 

@@ -539,6 +539,18 @@ fn create_cycled_operation_specialization_applications_table(
     }
 }
 
+fn create_expr_call(
+    callee: ExprId,
+    args: ExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeProperties {
+    let compute_properties = ComputeProperties::default();
+    // TODO (cesarzc): implement properly.
+    compute_properties
+}
+
 fn create_expr_lit_compute_properties() -> ComputeProperties {
     // Literal expressions have no runtime features nor are sources of dynamism so they are just empty compute
     // properties.
@@ -857,6 +869,13 @@ fn simulate_expr(
 ) {
     let expr = package_store.get_expr(id);
     let mut compute_properties = match &expr.kind {
+        ExprKind::Call(callee, args) => create_expr_call(
+            *callee,
+            *args,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
         ExprKind::Lit(_) => create_expr_lit_compute_properties(),
         ExprKind::Tuple(exprs) => create_expr_tuple_compute_properties(
             id.package,

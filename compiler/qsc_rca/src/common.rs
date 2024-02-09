@@ -4,7 +4,10 @@
 use indenter::Indented;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
-    fir::{CallableDecl, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StoreItemId},
+    fir::{
+        CallableDecl, ExprId, ExprKind, ItemId, NodeId, PackageId, PackageStoreLookup, Pat, PatId,
+        PatKind, Res, SpecDecl, StoreBlockId, StoreExprId, StoreItemId, UnOp,
+    },
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
@@ -113,9 +116,21 @@ pub enum LocalKind {
     Mutable,
 }
 
-pub type LocalsMap = FxHashMap<NodeId, Local>;
+pub trait LocalsMap {
+    fn find(&self, node_id: NodeId) -> Option<&Local>;
 
-pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> LocalsMap {
+    fn get(&self, node_id: NodeId) -> &Local {
+        self.find(node_id).expect("local should exist")
+    }
+}
+
+impl LocalsMap for FxHashMap<NodeId, Local> {
+    fn find(&self, node_id: NodeId) -> Option<&Local> {
+        self.get(&node_id)
+    }
+}
+
+pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<NodeId, Local> {
     let mut locals_map = FxHashMap::<NodeId, Local>::default();
     for param in input_params {
         if let Some(node) = param.node {
@@ -246,4 +261,91 @@ fn derive_specialization_input_pattern_element(
             PatKind::Tuple(_) => panic!("specialization inputs are not expected to be tuples"),
         }
     })
+}
+
+#[derive(Debug)]
+pub struct SpecCallee {
+    callable: StoreItemId,
+    spec: SpecFunctor,
+}
+
+#[derive(Debug, Default)]
+pub struct SpecFunctor {
+    adjoint: bool,
+    controlled: u8,
+}
+
+/// Tries to uniquely resolve the callable specialization referenced in a callee expression.
+pub fn try_resolve_callee(
+    expr_id: StoreExprId,
+    locals_map: &impl LocalsMap,
+    package_store: &impl PackageStoreLookup,
+) -> Option<SpecCallee> {
+    let expr = package_store.get_expr(expr_id);
+    match &expr.kind {
+        ExprKind::Block(block_id) => {
+            try_resolve_block_callee((expr_id.package, *block_id).into(), package_store)
+        }
+        ExprKind::Closure(_, local_item_id) => {
+            try_resolve_closure_callee((expr_id.package, *local_item_id).into(), package_store)
+        }
+        ExprKind::UnOp(operator, operand_expr_id) => try_resolve_un_op_callee(
+            *operator,
+            (expr_id.package, *operand_expr_id).into(),
+            package_store,
+        ),
+        ExprKind::Var(res, _) => match res {
+            Res::Item(item_id) => try_resolve_item_callee(expr_id.package, *item_id, package_store),
+            // TODO (cesarzc): uncomment.
+            //Res::Local(node_id) => resolve_local(*node_id),
+            Res::Local(_) => None,
+            Res::Err => panic!("callee resolution should not be an error"),
+        },
+        // N.B. More complex callee expressions might require evaluation so we don't try to resolve them at compile
+        // time.
+        _ => None,
+    }
+}
+
+fn try_resolve_block_callee(
+    block_id: StoreBlockId,
+    package_store: &impl PackageStoreLookup,
+) -> Option<SpecCallee> {
+    // TODO (cesarzc): implement properly.
+    None
+}
+
+fn try_resolve_closure_callee(
+    item_id: StoreItemId,
+    package_store: &impl PackageStoreLookup,
+) -> Option<SpecCallee> {
+    // TODO (cesarzc): implement properly.
+    None
+}
+
+fn try_resolve_item_callee(
+    call_package_id: PackageId,
+    item_id: ItemId,
+    package_store: &impl PackageStoreLookup,
+) -> Option<SpecCallee> {
+    // TODO (cesarzc): implement properly.
+    None
+}
+
+fn try_resolve_local(
+    node_id: NodeId,
+    locals_map: &impl LocalsMap,
+    package_store: &impl PackageStoreLookup,
+) -> Option<SpecCallee> {
+    // TODO (cesarzc): implement properly.
+    None
+}
+
+fn try_resolve_un_op_callee(
+    operator: UnOp,
+    expr_id: StoreExprId,
+    package_store: &impl PackageStoreLookup,
+) -> Option<SpecCallee> {
+    // TODO (cesarzc): implement properly.
+    None
 }
