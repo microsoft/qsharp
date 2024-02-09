@@ -2064,7 +2064,7 @@ fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
     check(
         indoc! {"
             namespace A {
-                operation C() : Unit {
+                internal operation C() : Unit {
                     body intrinsic;
                 }
             }
@@ -2079,7 +2079,7 @@ fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
         "},
         &expect![[r#"
             namespace item0 {
-                operation item1() : Unit {
+                internal operation item1() : Unit {
                     body intrinsic;
                 }
             }
@@ -2092,8 +2092,8 @@ fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
                 }
             }
 
-            // Duplicate("C", "B", Span { lo: 145, hi: 146 })
-            // DuplicateIntrinsic("C", Span { lo: 145, hi: 146 })
+            // Duplicate("C", "B", Span { lo: 154, hi: 155 })
+            // DuplicateIntrinsic("C", Span { lo: 154, hi: 155 })
         "#]],
     );
 
