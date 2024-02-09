@@ -296,9 +296,7 @@ pub fn try_resolve_callee(
         ),
         ExprKind::Var(res, _) => match res {
             Res::Item(item_id) => try_resolve_item_callee(expr_id.package, *item_id, package_store),
-            // TODO (cesarzc): uncomment.
-            //Res::Local(node_id) => resolve_local(*node_id),
-            Res::Local(_) => None,
+            Res::Local(node_id) => try_resolve_local(*node_id, locals_map, package_store),
             Res::Err => panic!("callee resolution should not be an error"),
         },
         // N.B. More complex callee expressions might require evaluation so we don't try to resolve them at compile
