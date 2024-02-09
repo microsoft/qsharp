@@ -150,6 +150,9 @@ jobs:
   runBenchmark:
     name: run benchmark
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v3
       - uses: boa-dev/criterion-compare-action@v3
@@ -161,6 +164,9 @@ jobs:
   runMemoryProfile:
     name: run memory profile
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v2
         with:

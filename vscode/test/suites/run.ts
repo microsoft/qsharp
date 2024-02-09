@@ -30,8 +30,10 @@ export function runMochaTests(requireTestModules: () => void): Promise<void> {
           console.error(
             `[error] ${failures} vscode integration test(s) failed.`,
           );
+          e(new Error(`${failures} vscode integration test(s) failed.`));
+        } else {
+          c();
         }
-        c();
       });
     } catch (err) {
       console.error(err);

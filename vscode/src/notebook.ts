@@ -47,24 +47,49 @@ export function registerQSharpNotebookHandlers() {
         const addedCells = event.contentChanges
           .map((change) => change.addedCells)
           .flat();
+
         updateQSharpCellLanguages(changedCells.concat(addedCells));
       }
     }),
   );
 
+  let defaultLanguageId: string | undefined;
+
   function updateQSharpCellLanguages(cells: vscode.NotebookCell[]) {
     for (const cell of cells) {
-      // If this is a code cell that starts with %%qsharp, and language isn't already set to Q#, set it.
+      // If this is a code cell that starts with %%qsharp, and language wasn't already set to Q#, set it.
       if (cell.kind === vscode.NotebookCellKind.Code) {
         const document = cell.document;
-        if (
-          document.languageId !== qsharpLanguageId &&
-          findQSharpCellMagic(document)
-        ) {
-          vscode.languages.setTextDocumentLanguage(
-            cell.document,
-            qsharpLanguageId,
-          );
+        const currentLanguageId = document.languageId;
+        if (findQSharpCellMagic(document)) {
+          if (currentLanguageId !== qsharpLanguageId) {
+            // Remember the "default" language of the notebook (this will normally be Python)
+            defaultLanguageId = currentLanguageId;
+            vscode.languages.setTextDocumentLanguage(
+              cell.document,
+              qsharpLanguageId,
+            );
+            log.trace(
+              `setting cell ${cell.index} language to ${qsharpLanguageId}`,
+            );
+          }
+        } else {
+          // This is not a %%qsharp cell. If the language was set to Q#,
+          // change it back to the default language.
+          //
+          // If the cell language was not set to Q#, it's out of our purview and we don't
+          // want to automatically change the language settings. For example, this could
+          // be a %%bash cell magic and the user may have intentionally set the language
+          // to "shell".
+          if (currentLanguageId === qsharpLanguageId && defaultLanguageId) {
+            vscode.languages.setTextDocumentLanguage(
+              cell.document,
+              defaultLanguageId,
+            );
+            log.trace(
+              `setting cell ${cell.index} language to ${defaultLanguageId}`,
+            );
+          }
         }
       }
     }

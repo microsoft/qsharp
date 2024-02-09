@@ -87,12 +87,6 @@ impl Hash for CompletionItem {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Location {
-    pub source: String,
-    pub span: Range,
-}
-
-#[derive(Debug, PartialEq)]
 pub struct Hover {
     pub contents: String,
     pub span: Range,
