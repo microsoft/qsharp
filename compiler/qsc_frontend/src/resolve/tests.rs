@@ -2059,6 +2059,46 @@ fn disallow_duplicate_intrinsic() {
     );
 }
 
+#[test]
+fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
+    check(
+        indoc! {"
+            namespace A {
+                operation C() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace B {
+                operation C() : Unit {}
+            }
+            namespace B {
+                operation C() : Unit {
+                    body intrinsic;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace item2 {
+                operation item3() : Unit {}
+            }
+            namespace item4 {
+                operation item5() : Unit {
+                    body intrinsic;
+                }
+            }
+
+            // Duplicate("C", "B", Span { lo: 145, hi: 146 })
+            // DuplicateIntrinsic("C", Span { lo: 145, hi: 146 })
+        "#]],
+    );
+
+}
+
 #[allow(clippy::cast_possible_truncation)]
 fn check_locals(input: &str, expect: &Expect) {
     let parts = input.split('↘').collect::<Vec<_>>();
