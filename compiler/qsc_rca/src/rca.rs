@@ -4,22 +4,20 @@
 use crate::{
     applications::{ApplicationInstance, LocalComputeProperties, SpecApplicationInstances},
     common::{
-        derive_callable_input_params, derive_specialization_input_params, GlobalSpecializationId,
-        InputParam, Local, LocalKind, SpecializationKind,
+        derive_callable_input_params, derive_specialization_input_params, try_resolve_callee,
+        GlobalSpecializationId, InputParam, Local, LocalKind, SpecializationKind,
     },
-    scaffolding::{ItemScaffolding, PackageStoreScaffolding},
+    scaffolding::{ItemScaffolding, PackageScaffolding, PackageStoreScaffolding},
     ApplicationsTable, ComputeKind, ComputeProperties, ComputePropertiesLookup, DynamismSource,
     RuntimeFeatureFlags,
 };
 use itertools::Itertools;
-use qsc_fir::fir::{
-    ExprId, ExprKind, Ident, Mutability, PackageLookup, Pat, PatId, PatKind, Res, StmtId, StmtKind,
-    StoreBlockId, StoreExprId,
-};
 use qsc_fir::{
     fir::{
-        CallableDecl, CallableImpl, CallableKind, Global, PackageId, PackageStore,
-        PackageStoreLookup, SpecDecl, StoreItemId, StoreStmtId,
+        BlockId, CallableDecl, CallableImpl, CallableKind, ExprId, ExprKind, Global, Ident,
+        Mutability, PackageId, PackageLookup, PackageStore, PackageStoreLookup, Pat, PatId,
+        PatKind, Res, SpecDecl, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
+        StoreStmtId, StringComponent,
     },
     ty::{Prim, Ty},
 };
@@ -121,6 +119,19 @@ pub fn analyze_specialization_with_cyles(
             &callable.output,
         ),
     };
+
+    // Now propagate the applications table through the implementation block.
+    let package_id = specialization_id.callable.package;
+    let package = package_store.get_package(package_id);
+    let package_scaffolding = package_store_scaffolding
+        .get_mut(package_id)
+        .expect("package scaffolding should exist");
+    propagate_applications_table_through_block(
+        spec_decl.block,
+        &applications_table,
+        package,
+        package_scaffolding,
+    );
 
     // Finally, update the package store scaffolding.
     package_store_scaffolding.insert_spec(specialization_id, applications_table);
@@ -539,16 +550,39 @@ fn create_cycled_operation_specialization_applications_table(
     }
 }
 
-fn create_expr_call(
-    callee: ExprId,
-    args: ExprId,
+fn create_expr_call_compute_properties(
+    package_id: PackageId,
+    callee_expr_id: ExprId,
+    args_expr_id: ExprId,
     application_instance: &mut ApplicationInstance,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) -> ComputeProperties {
-    let compute_properties = ComputeProperties::default();
+    // First, simulate the callee and arguments expressions.
+    let callee_expr_id = StoreExprId::from((package_id, callee_expr_id));
+    simulate_expr(
+        callee_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    let args_expr_id = StoreExprId::from((package_id, args_expr_id));
+    simulate_expr(
+        args_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // Then, try to resolve the callee and create compute properties depending on whether we could successfully resolve
+    // the callee or not.
+    let _resolved_callee = try_resolve_callee(
+        callee_expr_id,
+        &application_instance.locals_map,
+        package_store,
+    );
     // TODO (cesarzc): implement properly.
-    compute_properties
+    ComputeProperties::default()
 }
 
 fn create_expr_lit_compute_properties() -> ComputeProperties {
@@ -605,9 +639,7 @@ fn create_expr_var_compute_properties(
         // Gather the current compute properties of the local.
         Res::Local(node_id) => application_instance
             .locals_map
-            .get(node_id)
-            .expect("compute properties for local should exist")
-            .compute_properties
+            .get_compute_properties(*node_id)
             .clone(),
         Res::Err => panic!("unexpected error resolution"),
     }
@@ -810,6 +842,149 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 }
 
+fn propagate_applications_table_through_block(
+    block_id: BlockId,
+    applications_table: &ApplicationsTable,
+    package: &impl PackageLookup,
+    package_scaffolding: &mut PackageScaffolding,
+) {
+    let block = package.get_block(block_id);
+    for stmt_id in &block.stmts {
+        propagate_applications_table_through_stmt(
+            *stmt_id,
+            applications_table,
+            package,
+            package_scaffolding,
+        );
+    }
+    package_scaffolding
+        .blocks
+        .insert(block_id, applications_table.clone());
+}
+
+fn propagate_applications_table_through_expr(
+    expr_id: ExprId,
+    applications_table: &ApplicationsTable,
+    package: &impl PackageLookup,
+    package_scaffolding: &mut PackageScaffolding,
+) {
+    // Convenience closures to make this function more succint.
+    let mut propagate_expr = |id: ExprId| {
+        propagate_applications_table_through_expr(
+            id,
+            applications_table,
+            package,
+            package_scaffolding,
+        );
+    };
+
+    // Propagate the application table through all the sub-expressions.
+    let expr = package.get_expr(expr_id);
+    match &expr.kind {
+        ExprKind::Array(exprs) => exprs.iter().for_each(|e| propagate_expr(*e)),
+        ExprKind::ArrayRepeat(item, size) => {
+            propagate_expr(*item);
+            propagate_expr(*size);
+        }
+        ExprKind::Assign(lhs, rhs)
+        | ExprKind::AssignOp(_, lhs, rhs)
+        | ExprKind::BinOp(_, lhs, rhs) => {
+            propagate_expr(*lhs);
+            propagate_expr(*rhs);
+        }
+        ExprKind::AssignField(record, _, replace) | ExprKind::UpdateField(record, _, replace) => {
+            propagate_expr(*record);
+            propagate_expr(*replace);
+        }
+        ExprKind::AssignIndex(array, index, replace) => {
+            propagate_expr(*array);
+            propagate_expr(*index);
+            propagate_expr(*replace);
+        }
+        ExprKind::Block(block) => propagate_applications_table_through_block(
+            *block,
+            applications_table,
+            package,
+            package_scaffolding,
+        ),
+        ExprKind::Call(callee, arg) => {
+            propagate_expr(*callee);
+            propagate_expr(*arg);
+        }
+        ExprKind::Fail(msg) => propagate_expr(*msg),
+        ExprKind::Field(record, _) => propagate_expr(*record),
+        ExprKind::If(cond, body, otherwise) => {
+            propagate_expr(*cond);
+            propagate_expr(*body);
+            otherwise.iter().for_each(|e| propagate_expr(*e));
+        }
+        ExprKind::Index(array, index) => {
+            propagate_expr(*array);
+            propagate_expr(*index);
+        }
+        ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
+            propagate_expr(*expr);
+        }
+        ExprKind::Range(start, step, end) => {
+            start.iter().for_each(|s| propagate_expr(*s));
+            step.iter().for_each(|s| propagate_expr(*s));
+            end.iter().for_each(|e| propagate_expr(*e));
+        }
+        ExprKind::String(components) => {
+            for component in components {
+                match component {
+                    StringComponent::Expr(expr) => propagate_expr(*expr),
+                    StringComponent::Lit(_) => {}
+                }
+            }
+        }
+        ExprKind::UpdateIndex(e1, e2, e3) => {
+            propagate_expr(*e1);
+            propagate_expr(*e2);
+            propagate_expr(*e3);
+        }
+        ExprKind::Tuple(exprs) => exprs.iter().for_each(|e| propagate_expr(*e)),
+        ExprKind::While(cond, block) => {
+            propagate_expr(*cond);
+            propagate_applications_table_through_block(
+                *block,
+                applications_table,
+                package,
+                package_scaffolding,
+            );
+        }
+        ExprKind::Closure(_, _) | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_, _) => {}
+    }
+
+    // Insert the applications table.
+    package_scaffolding
+        .exprs
+        .insert(expr_id, applications_table.clone());
+}
+
+fn propagate_applications_table_through_stmt(
+    stmt_id: StmtId,
+    applications_table: &ApplicationsTable,
+    package: &impl PackageLookup,
+    package_scaffolding: &mut PackageScaffolding,
+) {
+    let stmt = package.get_stmt(stmt_id);
+    match stmt.kind {
+        StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) | StmtKind::Local(_, _, expr_id) => {
+            propagate_applications_table_through_expr(
+                expr_id,
+                applications_table,
+                package,
+                package_scaffolding,
+            )
+        }
+        StmtKind::Item(_) => {}
+    }
+    package_scaffolding
+        .stmts
+        .insert(stmt_id, applications_table.clone())
+}
+
 fn simulate_block(
     id: StoreBlockId,
     application_instance: &mut ApplicationInstance,
@@ -869,7 +1044,8 @@ fn simulate_expr(
 ) {
     let expr = package_store.get_expr(id);
     let mut compute_properties = match &expr.kind {
-        ExprKind::Call(callee, args) => create_expr_call(
+        ExprKind::Call(callee, args) => create_expr_call_compute_properties(
+            id.package,
             *callee,
             *args,
             application_instance,

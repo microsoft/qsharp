@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{initalize_locals_map, InputParam, InputParamIndex, Local, LocalKind},
+    common::{initalize_locals_map, InputParam, InputParamIndex, Local, LocalKind, LocalsLookup},
     scaffolding::PackageScaffolding,
     ApplicationsTable, ComputeProperties, DynamismSource, RuntimeFeatureFlags,
 };
@@ -174,7 +174,7 @@ impl SpecApplicationInstances {
 #[derive(Debug, Default)]
 pub struct ApplicationInstance {
     /// A map of locals with their associated compute properties.
-    pub locals_map: FxHashMap<NodeId, LocalComputeProperties>,
+    pub locals_map: LocalComputePropertiesMap,
     /// The currently active dynamic scopes in the application instance.
     pub active_dynamic_scopes: Vec<ExprId>,
     /// The return expressions througout the application instance.
@@ -196,7 +196,7 @@ pub struct ApplicationInstance {
 impl ApplicationInstance {
     fn new(input_params: &Vec<InputParam>, dynamic_param_index: Option<InputParamIndex>) -> Self {
         let mut unprocessed_locals_map = initalize_locals_map(input_params);
-        let mut locals_map = FxHashMap::default();
+        let mut locals_map = LocalComputePropertiesMap::default();
         for (node_id, local) in unprocessed_locals_map.drain() {
             let LocalKind::InputParam(input_param_index) = local.kind else {
                 panic!("only input parameters are expected");
@@ -271,6 +271,38 @@ impl ApplicationInstance {
         assert!(self.stmts.is_empty());
         assert!(self.exprs.is_empty());
         self.was_flushed = true;
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct LocalComputePropertiesMap(FxHashMap<NodeId, LocalComputeProperties>);
+
+impl LocalsLookup for LocalComputePropertiesMap {
+    fn find(&self, node_id: NodeId) -> Option<&Local> {
+        self.0
+            .get(&node_id)
+            .map(|local_compute_properties| &local_compute_properties.local)
+    }
+}
+
+impl LocalComputePropertiesMap {
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+
+    pub fn find_compute_properties(&self, node_id: NodeId) -> Option<&ComputeProperties> {
+        self.0
+            .get(&node_id)
+            .map(|local_compute_properties| &local_compute_properties.compute_properties)
+    }
+
+    pub fn get_compute_properties(&self, node_id: NodeId) -> &ComputeProperties {
+        self.find_compute_properties(node_id)
+            .expect("compute properties for local should exist")
+    }
+
+    pub fn insert(&mut self, node_id: NodeId, value: LocalComputeProperties) {
+        self.0.insert(node_id, value);
     }
 }
 

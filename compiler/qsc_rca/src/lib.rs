@@ -408,6 +408,8 @@ bitflags! {
         const CycledFunctionApplicationUsesDynamicArg = 0b1000_0000_0000_0000;
         /// An operation specialization with cycles is used.
         const CycledOperationSpecializationApplication = 0b0001_0000_0000_0000_0000;
+        /// A callee expression than does not directly resolve to a global.
+        const NonGlobalCallee = 0b0010_0000_0000_0000_0000;
     }
 }
 
