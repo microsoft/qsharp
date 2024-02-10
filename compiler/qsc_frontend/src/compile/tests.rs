@@ -1107,6 +1107,69 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
 }
 
 #[test]
+fn duplicate_intrinsic_from_dependency() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo {
+                    operation Bar() : Unit { body intrinsic; }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let mut store = PackageStore::new(super::core());
+    let lib = compile(
+        &store,
+        &[],
+        lib_sources,
+        RuntimeCapabilityFlags::all(),
+        &LanguageFeatures::none(),
+    );
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
+    let lib = store.insert(lib);
+
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Test {
+                    operation Bar() : Unit { body intrinsic; }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let unit = compile(
+        &store,
+        &[lib],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        &LanguageFeatures::none(),
+    );
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    DuplicateIntrinsic(
+                        "Bar",
+                        Span {
+                            lo: 31,
+                            hi: 34,
+                        },
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}
+#[test]
 fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
     let mut store = PackageStore::new(super::core());
     let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
@@ -1116,7 +1179,6 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
             indoc! {"
                 namespace Foo {
                     open Microsoft.Quantum.Intrinsic;
-
                     operation Main() : Unit {
                         use q = Qubit() {
                             // some qubit operation here
@@ -1154,8 +1216,8 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
                                 Brace,
                             ),
                             Span {
-                                lo: 120,
-                                hi: 121,
+                                lo: 119,
+                                hi: 120,
                             },
                         ),
                     ),
@@ -1175,14 +1237,12 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
             indoc! {"
                 namespace Foo {
                     open Microsoft.Quantum.Intrinsic;
-
                     operation Main() : Unit {
                         use q = Qubit() {
                             // some qubit operation here
                             // this should be a syntax error because
                             // we have the v2 preview syntax feature enabled
                             X(q);
-
                         };
                     }
                 }

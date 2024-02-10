@@ -9,6 +9,7 @@ mod canon;
 mod convert;
 mod core;
 mod diagnostics;
+mod logical;
 mod math;
 mod measurement;
 mod state_preparation;

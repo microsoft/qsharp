@@ -70,3 +70,12 @@ impl From<qsc::line_column::Range> for Range {
         }
     }
 }
+
+impl From<qsc::location::Location> for Location {
+    fn from(location: qsc::location::Location) -> Self {
+        Location {
+            source: location.source.to_string(),
+            span: location.range.into(),
+        }
+    }
+}

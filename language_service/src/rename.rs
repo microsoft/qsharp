@@ -6,11 +6,11 @@ mod tests;
 
 use crate::compilation::{Compilation, Lookup};
 use crate::name_locator::{Handler, Locator, LocatorContext};
-use crate::protocol::Location;
 use crate::qsc_utils::into_range;
 use crate::references::ReferenceFinder;
 use qsc::ast::visit::Visitor;
 use qsc::line_column::{Encoding, Position, Range};
+use qsc::location::Location;
 use qsc::{ast, hir, resolve, Span};
 
 pub(crate) fn prepare_rename(
@@ -126,9 +126,9 @@ impl<'a> Rename<'a> {
                 .for_ty_param(param_id, current_callable)
                 .into_iter()
                 .map(|l| {
-                    assert!(!l.span.empty(), "Type parameter name is empty");
+                    assert!(!l.range.empty(), "Type parameter name is empty");
                     Location {
-                        span: type_param_ident_range(l.span),
+                        range: type_param_ident_range(l.range),
                         ..l
                     }
                 })
