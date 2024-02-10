@@ -113,19 +113,15 @@ fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<S
 pub fn get_estimates(
     sources: Vec<js_sys::Array>,
     params: &str,
-    language_features: Vec<js_sys::JsString>,
+    language_features: Vec<String>,
 ) -> Result<String, String> {
     let sources = get_source_map(sources, None);
 
-    let language_features = match language_features
-        .iter()
-        .map(|f| f.to_string().into())
+    let language_features = language_features
+        .into_iter()
         .map(|f: String| LanguageFeature::try_parse(&f))
         .collect::<Result<BTreeSet<LanguageFeature>, _>>()
-    {
-        Ok(features) => features,
-        Err(e) => return Err(e.to_string()),
-    };
+        .map_err(|e| e.to_string())?;
 
     let mut interpreter = interpret::Interpreter::new(
         true,

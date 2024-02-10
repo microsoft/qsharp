@@ -13,6 +13,7 @@ import { updateQSharpJsonDiagnostics } from "./diagnostics";
  */
 export async function getManifest(uri: string): Promise<{
   manifestDirectory: string;
+  languageFeatures: string[] | undefined;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
 
@@ -20,9 +21,11 @@ export async function getManifest(uri: string): Promise<{
     return null;
   }
 
+  let parsedManifest: { languageFeatures: string[] | undefined } | null = null;
+
   try {
     updateQSharpJsonDiagnostics(manifestDocument.uri);
-    JSON.parse(manifestDocument.content);
+    parsedManifest = JSON.parse(manifestDocument.content);
   } catch (e) {
     log.warn(
       `failed to parse manifest at ${manifestDocument.uri.toString()}`,
@@ -39,6 +42,7 @@ export async function getManifest(uri: string): Promise<{
 
   return {
     manifestDirectory: manifestDirectory.toString(),
+    languageFeatures: parsedManifest?.languageFeatures,
   };
 }
 

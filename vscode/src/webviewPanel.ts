@@ -18,7 +18,7 @@ import {
   window,
 } from "vscode";
 import { isQsharpDocument } from "./common";
-import { loadProject } from "./projectSystem";
+import { getManifest, loadProject } from "./projectSystem";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 
@@ -204,6 +204,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
 
       try {
         const sources = await loadProject(editor.document.uri);
+        const manifest: { languageFeatures?: string[] } =
+          (await getManifest(editor.document.uri.toString())) || {};
+
         const start = performance.now();
         sendTelemetryEvent(
           EventType.ResourceEstimationStart,
@@ -213,9 +216,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const estimatesStr = await worker.getEstimates(
           sources,
           JSON.stringify(params),
-          [
-            /* TODO */
-          ],
+          manifest.languageFeatures || [],
         );
         sendTelemetryEvent(
           EventType.ResourceEstimationEnd,
@@ -344,15 +345,15 @@ export function registerWebViewCommands(context: ExtensionContext) {
           sendMessageToPanel("histogram", false, message);
         });
         const sources = await loadProject(editor.document.uri);
+        const manifest: { languageFeatures?: string[] } =
+          (await getManifest(editor.document.uri.toString())) || {};
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
         await worker.run(
           sources,
           "",
           parseInt(numberOfShots),
-          [
-            /* TODO */
-          ],
+          manifest.languageFeatures || [],
           evtTarget,
         );
         sendTelemetryEvent(

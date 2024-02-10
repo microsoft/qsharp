@@ -7,7 +7,7 @@ import { isQsharpDocument } from "./common";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { getTarget, setTarget } from "./config";
-import { loadProject } from "./projectSystem";
+import { loadProject, getManifest } from "./projectSystem";
 
 const generateQirTimeoutMs = 30000;
 
@@ -49,8 +49,10 @@ export async function getQirForActiveWindow(): Promise<string> {
     }
   }
   let sources: [string, string][] = [];
+  let manifest: { languageFeatures?: string[] } = {};
   try {
     sources = await loadProject(editor.document.uri);
+    manifest = (await getManifest(editor.document.uri.toString())) || {};
   } catch (e: any) {
     throw new QirGenerationError(e.message);
   }
@@ -74,9 +76,7 @@ export async function getQirForActiveWindow(): Promise<string> {
     const associationId = getRandomGuid();
     const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
-    result = await worker.getQir(sources, [
-      /* TODO*/
-    ]);
+    result = await worker.getQir(sources, manifest?.languageFeatures || []);
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },
