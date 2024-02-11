@@ -256,35 +256,21 @@ impl Display for CallableComputeProperties {
     }
 }
 
-/// The compute properties associated to an application table.
+/// The compute properties associated to a callable or one of its elements.
 #[derive(Clone, Debug)]
 pub struct ApplicationsTable {
-    /// The inherent compute properties present in all applications.
-    /// N.B. These are the properties of the callable when all its parameters are binded to static values.
-    pub inherent_properties: ComputeProperties,
-    /// The compute properties of a callable application when a parameter is binded to a dynamic value.
-    pub dynamic_params_properties: Vec<ComputeProperties>,
+    /// The inherent compute kind when all parameters are binded to static values.
+    pub inherent: ComputeKind,
+    /// Each element in the vector represents the compute kind of a call application when the parameter associated
+    /// to the vector index is binded to a dynamic value.
+    pub dynamic_param_applications: Vec<ComputeKind>,
 }
 
 impl ApplicationsTable {
     pub fn new(params_count: usize) -> Self {
-        let inherent_properties = ComputeProperties::default();
-        let dynamic_params_properties = vec![ComputeProperties::default(); params_count];
         Self {
-            inherent_properties,
-            dynamic_params_properties,
-        }
-    }
-
-    pub fn aggregate_runtime_features(&mut self, other: &Self) {
-        assert!(self.dynamic_params_properties.len() == other.dynamic_params_properties.len());
-        self.inherent_properties.runtime_features |= other.inherent_properties.runtime_features;
-        for (self_compute_properties, other_compute_properties) in self
-            .dynamic_params_properties
-            .iter_mut()
-            .zip(other.dynamic_params_properties.iter())
-        {
-            self_compute_properties.runtime_features |= other_compute_properties.runtime_features;
+            inherent: ComputeKind::Classical,
+            dynamic_param_applications: vec![ComputeKind::Classical; params_count],
         }
     }
 }
@@ -294,78 +280,124 @@ impl Display for ApplicationsTable {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "ApplicationsTable:",)?;
         indent = set_indentation(indent, 1);
-        write!(indent, "\ninherent: {}", self.inherent_properties)?;
-        write!(indent, "\ndynamic_params_properties:")?;
-        if self.dynamic_params_properties.is_empty() {
+        write!(indent, "\ninherent: {}", self.inherent)?;
+        write!(indent, "\ndynamic_param_applications:")?;
+        if self.dynamic_param_applications.is_empty() {
             write!(indent, " <empty>")?;
         } else {
             indent = set_indentation(indent, 2);
-            for (para_index, param_properties) in self.dynamic_params_properties.iter().enumerate()
+            for (para_index, param_compute_kind) in
+                self.dynamic_param_applications.iter().enumerate()
             {
-                write!(indent, "\n[{}]: {}", para_index, param_properties)?;
+                write!(indent, "\n[{}]: {}", para_index, param_compute_kind)?;
             }
         }
         Ok(())
     }
 }
 
-/// The tracked compute properties of a program element.
 #[derive(Clone, Debug)]
-pub struct ComputeProperties {
-    /// The runtime features used by the program element.
-    pub runtime_features: RuntimeFeatureFlags,
-    /// The sources of dynamism, if any.
-    pub dynamism_sources: FxHashSet<DynamismSource>,
+pub enum ComputeKind {
+    Classical,
+    Quantum(QuantumProperties),
 }
 
-impl Default for ComputeProperties {
+impl Display for ComputeKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match &self {
+            ComputeKind::Quantum(quantum_properties) => {
+                write!(f, "Quantum: {}", quantum_properties)?
+            }
+            ComputeKind::Classical => write!(f, "Classical")?,
+        };
+        Ok(())
+    }
+}
+
+impl ComputeKind {
+    pub fn add_dynamism_sources(&mut self, new_sources: FxHashSet<DynamismSource>) {
+        let ComputeKind::Quantum(quantum_properties) = self else {
+            panic!("cannot add dynamism sources to classical compute kind");
+        };
+
+        if let ValueKind::Dynamic(dynamism_sources) = &mut quantum_properties.value_kind {
+            dynamism_sources.extend(new_sources);
+        } else {
+            quantum_properties.value_kind = ValueKind::Dynamic(new_sources);
+        };
+    }
+
+    pub fn get_dynamism_sources(&self) -> Option<&FxHashSet<DynamismSource>> {
+        match self {
+            ComputeKind::Classical => None,
+            ComputeKind::Quantum(quantum_properties) => match &quantum_properties.value_kind {
+                ValueKind::Static => None,
+                ValueKind::Dynamic(dynamism_sources) => Some(dynamism_sources),
+            },
+        }
+    }
+
+    pub fn is_dynamic(&self) -> bool {
+        self.get_dynamism_sources().is_some()
+    }
+}
+
+/// The quantum properties of a program element.
+#[derive(Clone, Debug)]
+pub struct QuantumProperties {
+    /// The runtime features used by the program element.
+    pub runtime_features: RuntimeFeatureFlags,
+    /// The kind of value of the program element.
+    pub value_kind: ValueKind,
+}
+
+impl Default for QuantumProperties {
     fn default() -> Self {
         Self {
             runtime_features: RuntimeFeatureFlags::empty(),
-            dynamism_sources: FxHashSet::default(),
+            value_kind: ValueKind::Static,
         }
     }
 }
 
-impl Display for ComputeProperties {
+impl Display for QuantumProperties {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "ComputeProperties:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nruntime_features: {:?}", self.runtime_features)?;
-        write!(indent, "\ndynamism_sources: ")?;
-        if self.dynamism_sources.is_empty() {
-            _ = write!(f, "<empty>");
-        } else {
-            _ = write!(f, "{{");
-            let mut first = true;
-            for source in self.dynamism_sources.iter().sorted() {
-                if !first {
-                    _ = write!(f, ", ");
-                }
-                _ = write!(f, "{source:?}");
-                first = false;
-            }
-            _ = write!(f, "}}");
-        }
-
+        write!(indent, "\nvalue_kind: {}", self.value_kind)?;
         Ok(())
     }
 }
 
-impl ComputeProperties {
-    /// Creates an empty compute properties structure.
-    pub fn empty() -> Self {
-        Self::default()
-    }
+#[derive(Clone, Debug)]
+pub enum ValueKind {
+    Static,
+    Dynamic(FxHashSet<DynamismSource>),
+}
 
-    /// The compute kind of these properties.
-    pub fn compute_kind(&self) -> ComputeKind {
-        if self.dynamism_sources.is_empty() {
-            ComputeKind::Static
-        } else {
-            ComputeKind::Dynamic
-        }
+impl Display for ValueKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match &self {
+            ValueKind::Dynamic(dynamism_sources) => {
+                write!(f, "Dynamic:")?;
+                write!(f, "{{")?;
+                let mut first = true;
+                for source in dynamism_sources.iter().sorted() {
+                    if !first {
+                        _ = write!(f, ", ");
+                    }
+                    write!(f, "{source:?}")?;
+                    first = false;
+                }
+                write!(f, "}}")?;
+            }
+            ValueKind::Static => {
+                write!(f, "Static")?;
+            }
+        };
+        Ok(())
     }
 }
 
@@ -481,6 +513,8 @@ pub enum DynamismSource {
     Assumed,
     /// A dynamism source that comes from an expression.
     Expr(ExprId),
+    /// A dynamism source that comes from a statement.
+    Stmt(StmtId),
 }
 
 impl Display for DynamismSource {
@@ -489,13 +523,7 @@ impl Display for DynamismSource {
             DynamismSource::Intrinsic => write!(f, "Intrinsic",),
             DynamismSource::Assumed => write!(f, "Assumed",),
             DynamismSource::Expr(expr_id) => write!(f, "Expr: {}", expr_id),
+            DynamismSource::Stmt(stmt_id) => write!(f, "Stmt: {}", stmt_id),
         }
     }
-}
-
-/// The kind of compute associated to a program element.
-#[derive(Debug)]
-pub enum ComputeKind {
-    Static,
-    Dynamic,
 }

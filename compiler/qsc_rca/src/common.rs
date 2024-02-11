@@ -5,9 +5,8 @@ use indenter::Indented;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        CallableDecl, ExprId, ExprKind, Functor, ItemId, LocalItemId, NodeId, PackageId,
-        PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, StmtKind, StoreBlockId,
-        StoreExprId, StoreItemId, UnOp,
+        CallableDecl, ExprId, ExprKind, Functor, ItemId, NodeId, PackageId, PackageStoreLookup,
+        Pat, PatId, PatKind, Res, SpecDecl, StoreExprId, StoreItemId, UnOp,
     },
     ty::Ty,
 };
