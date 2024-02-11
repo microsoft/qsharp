@@ -15,11 +15,12 @@ class Config:
     Configuration hints for the language service.
     """
 
-    def __init__(self, target_profile: TargetProfile):
+    def __init__(self, target_profile: TargetProfile, language_features: List[str]):
         if target_profile == TargetProfile.Unrestricted:
             self._config = {"targetProfile": "unrestricted"}
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
+        self._config["languageFeatures"] = language_features
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -88,7 +89,7 @@ def init(
 
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile)
+    return Config(target_profile, language_features)
 
 
 def get_interpreter() -> Interpreter:

@@ -1,8 +1,9 @@
-use clap::ValueEnum;
-use std::collections::BTreeSet;
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
+use clap::ValueEnum;
 use serde::Deserialize;
+use std::collections::BTreeSet;
 #[derive(Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Copy)]
 #[serde(rename_all = "kebab-case")]
 pub enum LanguageFeature {

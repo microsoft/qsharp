@@ -46,6 +46,7 @@ impl Compilation {
         sources: &[(Arc<str>, Arc<str>)],
         package_type: PackageType,
         target_profile: Profile,
+        language_features: &LanguageFeatures,
     ) -> Self {
         if sources.len() == 1 {
             trace!("compiling single-file document {}", sources[0].0);
@@ -65,7 +66,7 @@ impl Compilation {
             source_map,
             package_type,
             target_profile.into(),
-            &LanguageFeatures::none(),
+            language_features,
         );
 
         let package_id = package_store.insert(unit);
@@ -79,7 +80,11 @@ impl Compilation {
     }
 
     /// Creates a new `Compilation` by compiling sources from notebook cells.
-    pub(crate) fn new_notebook<I>(cells: I, target_profile: Profile) -> Self
+    pub(crate) fn new_notebook<I>(
+        cells: I,
+        target_profile: Profile,
+        language_features: &LanguageFeatures,
+    ) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
     {
@@ -89,7 +94,7 @@ impl Compilation {
             SourceMap::default(),
             PackageType::Lib,
             target_profile.into(),
-            &LanguageFeatures::none(),
+            language_features,
         )
         .expect("expected incremental compiler creation to succeed");
 
@@ -157,7 +162,12 @@ impl Compilation {
     }
 
     /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
-    pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
+    pub fn recompile(
+        &mut self,
+        package_type: PackageType,
+        target_profile: Profile,
+        language_features: &LanguageFeatures,
+    ) {
         let sources = self
             .user_unit()
             .sources
@@ -165,10 +175,15 @@ impl Compilation {
             .map(|source| (source.name.clone(), source.contents.clone()));
 
         let new = match self.kind {
-            CompilationKind::OpenProject => {
-                Self::new(&sources.collect::<Vec<_>>(), package_type, target_profile)
+            CompilationKind::OpenProject => Self::new(
+                &sources.collect::<Vec<_>>(),
+                package_type,
+                target_profile,
+                language_features,
+            ),
+            CompilationKind::Notebook => {
+                Self::new_notebook(sources, target_profile, language_features)
             }
-            CompilationKind::Notebook => Self::new_notebook(sources, target_profile),
         };
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;

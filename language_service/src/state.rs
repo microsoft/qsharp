@@ -10,6 +10,7 @@ use crate::protocol::WorkspaceConfigurationUpdate;
 use log::{error, trace};
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, PackageType};
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_project::{FileSystemAsync, JSFileEntry};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
@@ -62,7 +63,7 @@ struct OpenDocument {
     pub latest_str_content: Arc<str>,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 struct Configuration {
     pub target_profile: Profile,
     pub package_type: PackageType,
@@ -77,12 +78,21 @@ impl Default for Configuration {
     }
 }
 
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Default, Clone, Debug)]
 struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
+    pub language_features: Option<LanguageFeatures>,
 }
 
+impl PartialConfiguration {
+    pub fn from_language_features(features: LanguageFeatures) -> Self {
+        Self {
+            language_features: Some(features),
+            ..Default::default()
+        }
+    }
+}
 pub(super) struct CompilationStateUpdater<'a> {
     /// Compilation state which is shared with readers. It can only be accessed
     /// by dynamically borrowing. Mutable references to `CompilationState` should not
@@ -148,9 +158,13 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let project = self.load_manifest(&doc_uri).await;
 
-        let (compilation_uri, sources) = project.unwrap_or_else(|| {
+        let (compilation_uri, sources, language_features) = project.unwrap_or_else(|| {
             // If we are in single file mode, use the file's path as the compilation identifier.
-            (doc_uri.clone(), vec![(doc_uri.clone(), text.clone())])
+            (
+                doc_uri.clone(),
+                vec![(doc_uri.clone(), text.clone())],
+                LanguageFeatures::none(),
+            )
         });
 
         let prev_compilation_uri = self.with_state_mut(|state| {
@@ -175,7 +189,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.insert_buffer_aware_compilation(sources, &compilation_uri);
+        self.insert_buffer_aware_compilation(sources, &compilation_uri, &language_features);
 
         self.publish_diagnostics();
     }
@@ -186,12 +200,16 @@ impl<'a> CompilationStateUpdater<'a> {
     async fn load_manifest(
         &self,
         doc_uri: &Arc<str>,
-    ) -> Option<(Arc<str>, Vec<(Arc<str>, Arc<str>)>)> {
+    ) -> Option<(Arc<str>, Vec<(Arc<str>, Arc<str>)>, LanguageFeatures)> {
         let manifest = (self.get_manifest)(doc_uri.to_string()).await;
         if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
             match res {
-                Ok(o) => Some((manifest.compilation_uri(), o.sources)),
+                Ok(o) => Some((
+                    manifest.compilation_uri(),
+                    o.sources,
+                    manifest.manifest.language_features.clone(),
+                )),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
                     None
@@ -211,6 +229,7 @@ impl<'a> CompilationStateUpdater<'a> {
         &mut self,
         mut sources: Vec<(Arc<str>, Arc<str>)>,
         compilation_uri: &Arc<str>,
+        language_features: &LanguageFeatures,
     ) {
         self.with_state_mut(|state| {
             // replace source with one from memory if it exists
@@ -227,11 +246,15 @@ impl<'a> CompilationStateUpdater<'a> {
                 &sources,
                 self.configuration.package_type,
                 self.configuration.target_profile,
+                language_features,
             );
 
             state.compilations.insert(
                 compilation_uri.clone(),
-                (compilation, PartialConfiguration::default()),
+                (
+                    compilation,
+                    PartialConfiguration::from_language_features(language_features.clone()),
+                ),
             );
         });
     }
@@ -246,7 +269,7 @@ impl<'a> CompilationStateUpdater<'a> {
             // uses the disk contents instead of the open buffer contents
             // for this document
             if let Some(project) = project {
-                self.insert_buffer_aware_compilation(project.1, &project.0);
+                self.insert_buffer_aware_compilation(project.1, &project.0, &project.2);
             }
         }
 
@@ -288,14 +311,15 @@ impl<'a> CompilationStateUpdater<'a> {
     pub(super) fn update_notebook_document<'b, I>(
         &mut self,
         notebook_uri: &str,
-        notebook_metadata: NotebookMetadata,
+        notebook_metadata: &NotebookMetadata,
         cells: I,
     ) where
         I: Iterator<Item = (&'b str, u32, &'b str)>, // uri, version, text - basically DidChangeTextDocumentParams in LSP
     {
+        let notebook_metadata = notebook_metadata.clone();
+        let configuration = self.configuration.clone();
         self.with_state_mut(|state| {
             let compilation_uri: Arc<str> = notebook_uri.into();
-
             // First remove all previously known cells for this notebook
             state
                 .open_documents
@@ -304,8 +328,9 @@ impl<'a> CompilationStateUpdater<'a> {
             let notebook_configuration = PartialConfiguration {
                 target_profile: notebook_metadata.target_profile,
                 package_type: None,
+                language_features: Some(notebook_metadata.language_features),
             };
-            let configuration = merge_configurations(notebook_configuration, self.configuration);
+            let configuration = merge_configurations(&notebook_configuration, &configuration);
 
             // Compile the notebook and add each cell into the document map
             let compilation = Compilation::new_notebook(
@@ -322,6 +347,10 @@ impl<'a> CompilationStateUpdater<'a> {
                     (Arc::from(cell_uri), Arc::from(cell_contents))
                 }),
                 configuration.target_profile,
+                &(notebook_configuration
+                    .language_features
+                    .clone()
+                    .unwrap_or_default()),
             );
 
             state.compilations.insert(
@@ -421,11 +450,18 @@ impl<'a> CompilationStateUpdater<'a> {
     /// diagnostics for all documents.
     fn recompile_all(&mut self) {
         self.with_state_mut(|state| {
-            for compilation in state.compilations.values_mut() {
-                let configuration = merge_configurations(compilation.1, self.configuration);
-                compilation
-                    .0
-                    .recompile(configuration.package_type, configuration.target_profile);
+            for (compilation, package_specific_configuration) in state.compilations.values_mut() {
+                let configuration =
+                    merge_configurations(package_specific_configuration, &self.configuration);
+                let language_features = package_specific_configuration
+                    .language_features
+                    .clone()
+                    .unwrap_or_default();
+                compilation.recompile(
+                    configuration.package_type,
+                    configuration.target_profile,
+                    &language_features,
+                );
             }
         });
 
@@ -508,8 +544,8 @@ fn map_errors_to_docs(
 
 /// Merges workspace configuration with any compilation-specific overrides.
 fn merge_configurations(
-    compilation_overrides: PartialConfiguration,
-    workspace_scope: Configuration,
+    compilation_overrides: &PartialConfiguration,
+    workspace_scope: &Configuration,
 ) -> Configuration {
     Configuration {
         target_profile: compilation_overrides

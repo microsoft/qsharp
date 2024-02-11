@@ -13,6 +13,10 @@ namespace MyQuantumApp {
   operation Main() : Unit {
     let particleA = Particle(0, 0, 0);
     let particleB = Particle(1, 1, 1);
+    use q1 = Qubit() {
+      H(q1);
+      H(q1);
+    };
 
     let particleC = addParticles(particleA, particleB);
   }

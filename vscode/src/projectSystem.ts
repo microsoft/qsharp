@@ -40,10 +40,15 @@ export async function getManifest(uri: string): Promise<{
 
   const manifestDirectory = Utils.dirname(manifestDocument.uri);
 
-  return {
+  console.log("Parsed manifest", JSON.stringify(parsedManifest, null, 2));
+  log.info("Parsed manifest", JSON.stringify(parsedManifest, null, 2));
+
+  const toReturn = {
     manifestDirectory: manifestDirectory.toString(),
     languageFeatures: parsedManifest?.languageFeatures,
   };
+  log.info("returning manifest", JSON.stringify(toReturn, null, 2));
+  return toReturn;
 }
 
 /** Returns the manifest document if one is found

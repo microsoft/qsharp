@@ -295,11 +295,13 @@ pub fn run(
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
+
     let language_features = language_features
         .into_iter()
         .map(|f: String| LanguageFeature::try_parse(&f))
         .collect::<Result<BTreeSet<LanguageFeature>, _>>()
         .map_err(|e| e.to_string())?;
+
     let sources = get_source_map(sources, Some(expr.into()));
     match run_internal_with_features(
         sources,

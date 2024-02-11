@@ -17,11 +17,12 @@ pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
 /// A Q# manifest, used to describe project metadata.
 #[derive(Deserialize, Debug, Default, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
     #[serde(default)]
-    pub features: LanguageFeatures,
+    pub language_features: LanguageFeatures,
 }
 
 /// Describes the contents and location of a Q# manifest file.

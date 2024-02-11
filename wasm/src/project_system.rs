@@ -3,7 +3,9 @@
 
 use async_trait::async_trait;
 use js_sys::JsString;
+use qsc_data_structures::language_features::LanguageFeature;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
+use std::collections::BTreeSet;
 use std::iter::FromIterator;
 use std::{path::PathBuf, sync::Arc};
 use wasm_bindgen::prelude::*;
@@ -165,14 +167,40 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
                 v
             )
         }),
-                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
+        Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
     };
+    let language_features = match js_sys::Reflect::get(&js_val, &JsValue::from_str("languageFeatures"))
+    {
+        Ok(v) => match v.dyn_into::<js_sys::Array>()  {
+            Ok(arr) => arr
+                .into_iter()
+                .map(|x| {
+                    x.as_string().unwrap_or_else(|| {
+                        panic!(
+                            "manifest callback returned {:?}, but we expected a string representing a language feature",
+                            x
+                        )
+                    })
+                })
+                .map(|x| LanguageFeature::try_parse(&x))
+                .filter_map(|x| match x {
+                    Ok(x) => Some(x),
+                    Err(_) => None,
+                })
+                .collect::<BTreeSet<_>>(),
+            Err(_) => BTreeSet::default(),
+        },
+        _ => BTreeSet::default(),
+
+    }.into();
+
     log::trace!("found manifest at {manifest_dir:?}");
 
     let manifest_dir = PathBuf::from(manifest_dir);
 
     Some(ManifestDescriptor {
         manifest: Manifest {
+            language_features,
             ..Default::default()
         },
         manifest_dir,

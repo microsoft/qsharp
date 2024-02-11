@@ -102,7 +102,7 @@ fn main() -> miette::Result<ExitCode> {
 
             sources.append(&mut project_sources);
 
-            features.merge(manifest.manifest.features);
+            features.merge(manifest.manifest.language_features);
         }
     }
 

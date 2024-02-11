@@ -35,7 +35,7 @@ fn basic_manifest() {
                         "Microsoft",
                     ),
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {},
                     ),
                 },
@@ -68,7 +68,7 @@ fn circular_imports() {
                         "Microsoft",
                     ),
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {},
                     ),
                 },
@@ -101,7 +101,7 @@ fn different_files_same_manifest() {
                         "Microsoft",
                     ),
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {},
                     ),
                 },
@@ -124,7 +124,7 @@ fn empty_manifest() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {},
                     ),
                 },
@@ -159,7 +159,7 @@ fn folder_structure() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {},
                     ),
                 },
@@ -189,7 +189,7 @@ fn hidden_files() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {},
                     ),
                 },
@@ -223,7 +223,7 @@ fn peer_file() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {},
                     ),
                 },
@@ -246,7 +246,7 @@ fn language_feature() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    features: LanguageFeatures(
+                    language_features: LanguageFeatures(
                         {
                             V2PreviewSyntax,
                         },

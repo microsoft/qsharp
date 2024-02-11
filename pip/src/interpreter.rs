@@ -82,8 +82,8 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             ))?
             .downcast::<PyDict>()?;
 
-        let features = get_dict_opt_list_string(manifest, "features")?;
-        let features: LanguageFeatures = match features
+        let language_features = get_dict_opt_list_string(manifest, "features")?;
+        let language_features: LanguageFeatures = match language_features
             .iter()
             .map(|f| LanguageFeature::try_parse(f))
             .collect::<std::result::Result<BTreeSet<_>, _>>()
@@ -96,7 +96,7 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             manifest: Manifest {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
-                features,
+                language_features,
             },
             manifest_dir: manifest_dir.into(),
         }))
