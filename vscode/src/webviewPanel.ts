@@ -347,7 +347,6 @@ export function registerWebViewCommands(context: ExtensionContext) {
         const sources = await loadProject(editor.document.uri);
         const manifest: { languageFeatures?: string[] } =
           (await getManifest(editor.document.uri.toString())) || {};
-        log.info("manifest from within histogram", manifest);
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
         await worker.run(
