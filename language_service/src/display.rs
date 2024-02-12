@@ -565,6 +565,7 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
 // parsing functions for working with doc comments
 //
 
+#[cfg(test)]
 pub fn increase_header_level(doc: &str) -> String {
     let re = Regex::new(r"(?mi)^(#+)( [\s\S]+?)$").expect("Invalid regex");
     re.replace_all(doc, "$1#$2").to_string()
