@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Unstable.Arithmetic.IncByLUsingIncByLE
+title: IncByLUsingIncByLE operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
+qsharp.name: IncByLUsingIncByLE
+qsharp.summary: Increments a little-endian register ys by a BigInt number c
+using provided adder.
+---
+
 # IncByLUsingIncByLE operation
 
-`operation IncByLUsingIncByLE(adder : ((Qubit[], Qubit[]) => Unit is Param<0>), c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
+
+Increments a little-endian register ys by a BigInt number c
+using provided adder.
+```qsharp
+operation IncByLUsingIncByLE(adder : ((Qubit[], Qubit[]) => Unit is Param<0>), c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Increments a little-endian register ys by a BigInt number c

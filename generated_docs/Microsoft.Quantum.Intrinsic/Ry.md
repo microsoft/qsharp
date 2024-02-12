@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.Ry
+title: Ry operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Ry
+qsharp.summary: Applies a rotation about the _y_-axis by a given angle.
+---
+
 # Ry operation
 
-`operation Ry(theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies a rotation about the _y_-axis by a given angle.
+```qsharp
+operation Ry(theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies a rotation about the _y_-axis by a given angle.

@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.Zipped
+title: Zipped function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Zipped
+qsharp.summary: Given two arrays, returns a new array of pairs such that each pair
+contains an element from each original array.
+---
+
 # Zipped function
 
-`function Zipped<'T, 'U>(left : 'T[], right : 'U[]) : ('T, 'U)[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given two arrays, returns a new array of pairs such that each pair
+contains an element from each original array.
+```qsharp
+function Zipped<'T, 'U>(left : 'T[], right : 'U[]) : ('T, 'U)[]
+```
 
 ## Summary
 Given two arrays, returns a new array of pairs such that each pair

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Canon.CY
+title: CY operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: CY
+qsharp.summary: Applies the controlled-Y (CY) gate to a pair of qubits.
+---
+
 # CY operation
 
-`operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies the controlled-Y (CY) gate to a pair of qubits.
+```qsharp
+operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the controlled-Y (CY) gate to a pair of qubits.

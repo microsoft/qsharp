@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.NegationC
+title: NegationC function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: NegationC
+qsharp.summary: Returns the unary negation of an input of type `Complex`.
+---
+
 # NegationC function
 
-`function NegationC(input : Complex) : Complex`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the unary negation of an input of type `Complex`.
+```qsharp
+function NegationC(input : Complex) : Complex
+```
 
 ## Summary
 Returns the unary negation of an input of type `Complex`.

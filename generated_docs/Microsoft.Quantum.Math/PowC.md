@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.PowC
+title: PowC function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: PowC
+qsharp.summary: Returns a number raised to a given power of type `Complex`.
+Note that this is a multi-valued function, but only one value is returned.
+---
+
 # PowC function
 
-`function PowC(a : Complex, power : Complex) : Complex`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns a number raised to a given power of type `Complex`.
+Note that this is a multi-valued function, but only one value is returned.
+```qsharp
+function PowC(a : Complex, power : Complex) : Complex
+```
 
 ## Summary
 Returns a number raised to a given power of type `Complex`.

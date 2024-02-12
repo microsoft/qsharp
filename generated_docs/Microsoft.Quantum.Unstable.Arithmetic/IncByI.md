@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Unstable.Arithmetic.IncByI
+title: IncByI operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
+qsharp.name: IncByI
+qsharp.summary: Increments a little-endian register ys by an integer number c
+---
+
 # IncByI operation
 
-`operation IncByI(c : Int, ys : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
+
+Increments a little-endian register ys by an integer number c
+```qsharp
+operation IncByI(c : Int, ys : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Increments a little-endian register ys by an integer number c

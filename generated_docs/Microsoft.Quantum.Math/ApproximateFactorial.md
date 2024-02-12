@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.ApproximateFactorial
+title: ApproximateFactorial function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: ApproximateFactorial
+qsharp.summary: Returns an approximate factorial of a given number.
+---
+
 # ApproximateFactorial function
 
-`function ApproximateFactorial(n : Int) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns an approximate factorial of a given number.
+```qsharp
+function ApproximateFactorial(n : Int) : Double
+```
 
 ## Summary
 Returns an approximate factorial of a given number.

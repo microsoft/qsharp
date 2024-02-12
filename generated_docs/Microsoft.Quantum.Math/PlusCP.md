@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.PlusCP
+title: PlusCP function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: PlusCP
+qsharp.summary: Returns the sum of two inputs of type `ComplexPolar`.
+---
+
 # PlusCP function
 
-`function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the sum of two inputs of type `ComplexPolar`.
+```qsharp
+function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
+```
 
 ## Summary
 Returns the sum of two inputs of type `ComplexPolar`.

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Unstable.Arithmetic.ReflectAboutInteger
+title: ReflectAboutInteger operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
+qsharp.name: ReflectAboutInteger
+qsharp.summary: Reflects a quantum register about a given classical integer.
+---
+
 # ReflectAboutInteger operation
 
-`operation ReflectAboutInteger(index : Int, reg : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
+
+Reflects a quantum register about a given classical integer.
+```qsharp
+operation ReflectAboutInteger(index : Int, reg : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Reflects a quantum register about a given classical integer.

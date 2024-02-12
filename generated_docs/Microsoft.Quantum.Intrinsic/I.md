@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.I
+title: I operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: I
+qsharp.summary: Performs the identity operation (no-op) on a single qubit.
+---
+
 # I operation
 
-`operation I(target : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Performs the identity operation (no-op) on a single qubit.
+```qsharp
+operation I(target : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Performs the identity operation (no-op) on a single qubit.

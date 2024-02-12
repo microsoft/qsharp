@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.DividedByC
+title: DividedByC function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: DividedByC
+qsharp.summary: Returns the quotient of two inputs of type `Complex`.
+---
+
 # DividedByC function
 
-`function DividedByC(a : Complex, b : Complex) : Complex`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the quotient of two inputs of type `Complex`.
+```qsharp
+function DividedByC(a : Complex, b : Complex) : Complex
+```
 
 ## Summary
 Returns the quotient of two inputs of type `Complex`.

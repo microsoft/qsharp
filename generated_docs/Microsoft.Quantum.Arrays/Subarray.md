@@ -1,6 +1,26 @@
+---
+uid Microsoft.Quantum.Arrays.Subarray
+title: Subarray function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Subarray
+qsharp.summary: Takes an array and a list of locations and
+produces a new array formed from the elements of the original
+array that match the given locations.
+---
+
 # Subarray function
 
-`function Subarray<'T>(locations : Int[], array : 'T[]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Takes an array and a list of locations and
+produces a new array formed from the elements of the original
+array that match the given locations.
+```qsharp
+function Subarray<'T>(locations : Int[], array : 'T[]) : 'T[]
+```
 
 ## Summary
 Takes an array and a list of locations and

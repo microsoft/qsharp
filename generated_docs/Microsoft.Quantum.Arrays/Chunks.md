@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Chunks
+title: Chunks function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Chunks
+qsharp.summary: Splits an array into multiple parts of equal length.
+---
+
 # Chunks function
 
-`function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Splits an array into multiple parts of equal length.
+```qsharp
+function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][]
+```
 
 ## Summary
 Splits an array into multiple parts of equal length.

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Windows
+title: Windows function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Windows
+qsharp.summary: Returns all consecutive subarrays of length `size`.
+---
+
 # Windows function
 
-`function Windows<'T>(size : Int, array : 'T[]) : 'T[][]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns all consecutive subarrays of length `size`.
+```qsharp
+function Windows<'T>(size : Int, array : 'T[]) : 'T[][]
+```
 
 ## Summary
 Returns all consecutive subarrays of length `size`.

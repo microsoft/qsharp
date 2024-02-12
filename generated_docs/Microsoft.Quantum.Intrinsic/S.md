@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.S
+title: S operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: S
+qsharp.summary: Applies the π/4 phase gate to a single qubit.
+---
+
 # S operation
 
-`operation S(qubit : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies the π/4 phase gate to a single qubit.
+```qsharp
+operation S(qubit : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the π/4 phase gate to a single qubit.

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.T
+title: T operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: T
+qsharp.summary: Applies the π/8 gate to a single qubit.
+---
+
 # T operation
 
-`operation T(qubit : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies the π/8 gate to a single qubit.
+```qsharp
+operation T(qubit : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the π/8 gate to a single qubit.

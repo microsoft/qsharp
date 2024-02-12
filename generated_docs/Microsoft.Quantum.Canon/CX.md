@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Canon.CX
+title: CX operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: CX
+qsharp.summary: Applies the controlled-X (CX) gate to a pair of qubits.
+---
+
 # CX operation
 
-`operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies the controlled-X (CX) gate to a pair of qubits.
+```qsharp
+operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the controlled-X (CX) gate to a pair of qubits.

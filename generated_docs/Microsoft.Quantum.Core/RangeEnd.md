@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Core.RangeEnd
+title: RangeEnd function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Core
+qsharp.name: RangeEnd
+qsharp.summary: Returns the defined end value of the given range,
+which is not necessarily the last element in the sequence.
+---
+
 # RangeEnd function
 
-`function RangeEnd(r : Range) : Int`
+Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
+
+Returns the defined end value of the given range,
+which is not necessarily the last element in the sequence.
+```qsharp
+function RangeEnd(r : Range) : Int
+```
 
 ## Summary
 Returns the defined end value of the given range,

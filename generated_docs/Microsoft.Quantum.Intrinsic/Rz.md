@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.Rz
+title: Rz operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Rz
+qsharp.summary: Applies a rotation about the _z_-axis by a given angle.
+---
+
 # Rz operation
 
-`operation Rz(theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies a rotation about the _z_-axis by a given angle.
+```qsharp
+operation Rz(theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies a rotation about the _z_-axis by a given angle.

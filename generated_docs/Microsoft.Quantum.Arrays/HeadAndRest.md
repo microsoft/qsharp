@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.HeadAndRest
+title: HeadAndRest function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: HeadAndRest
+qsharp.summary: Returns a tuple of first and all remaining elements of the array.
+---
+
 # HeadAndRest function
 
-`function HeadAndRest<'A>(array : 'A[]) : ('A, 'A[])`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns a tuple of first and all remaining elements of the array.
+```qsharp
+function HeadAndRest<'A>(array : 'A[]) : ('A, 'A[])
+```
 
 ## Summary
 Returns a tuple of first and all remaining elements of the array.

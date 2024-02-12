@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.MinusC
+title: MinusC function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: MinusC
+qsharp.summary: Returns the difference between two inputs of type `Complex`.
+---
+
 # MinusC function
 
-`function MinusC(a : Complex, b : Complex) : Complex`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the difference between two inputs of type `Complex`.
+```qsharp
+function MinusC(a : Complex, b : Complex) : Complex
+```
 
 ## Summary
 Returns the difference between two inputs of type `Complex`.

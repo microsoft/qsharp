@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Random.DrawRandomDouble
+title: DrawRandomDouble operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Random
+qsharp.name: DrawRandomDouble
+qsharp.summary: Draws a random real number in a given inclusive interval.
+---
+
 # DrawRandomDouble operation
 
-`operation DrawRandomDouble(min : Double, max : Double) : Double`
+Namespace: [Microsoft.Quantum.Random](xref:Microsoft.Quantum.Random)
+
+Draws a random real number in a given inclusive interval.
+```qsharp
+operation DrawRandomDouble(min : Double, max : Double) : Double
+```
 
 ## Summary
 Draws a random real number in a given inclusive interval.

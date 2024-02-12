@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.Rx
+title: Rx operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Rx
+qsharp.summary: Applies a rotation about the _x_-axis by a given angle.
+---
+
 # Rx operation
 
-`operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies a rotation about the _x_-axis by a given angle.
+```qsharp
+operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies a rotation about the _x_-axis by a given angle.

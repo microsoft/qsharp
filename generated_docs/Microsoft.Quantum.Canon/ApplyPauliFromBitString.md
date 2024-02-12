@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Canon.ApplyPauliFromBitString
+title: ApplyPauliFromBitString operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyPauliFromBitString
+qsharp.summary: Applies a Pauli operator on each qubit in an array if the corresponding
+bit of a Boolean array matches a given input.
+---
+
 # ApplyPauliFromBitString operation
 
-`operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies a Pauli operator on each qubit in an array if the corresponding
+bit of a Boolean array matches a given input.
+```qsharp
+operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies a Pauli operator on each qubit in an array if the corresponding

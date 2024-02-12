@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Canon.ApplyP
+title: ApplyP operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyP
+qsharp.summary: Given a single-qubit Pauli operator, applies the corresponding operation
+to a single qubit.
+---
+
 # ApplyP operation
 
-`operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Given a single-qubit Pauli operator, applies the corresponding operation
+to a single qubit.
+```qsharp
+operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Given a single-qubit Pauli operator, applies the corresponding operation

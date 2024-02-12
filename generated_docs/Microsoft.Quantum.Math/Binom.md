@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.Binom
+title: Binom function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: Binom
+qsharp.summary: Returns the approximate binomial coefficient of two integers.
+---
+
 # Binom function
 
-`function Binom(n : Int, k : Int) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the approximate binomial coefficient of two integers.
+```qsharp
+function Binom(n : Int, k : Int) : Int
+```
 
 ## Summary
 Returns the approximate binomial coefficient of two integers.

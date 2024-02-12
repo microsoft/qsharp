@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.Sinh
+title: Sinh function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: Sinh
+qsharp.summary: Returns the hyperbolic sine of the specified angle.
+---
+
 # Sinh function
 
-`function Sinh(d : Double) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the hyperbolic sine of the specified angle.
+```qsharp
+function Sinh(d : Double) : Double
+```
 
 ## Summary
 Returns the hyperbolic sine of the specified angle.

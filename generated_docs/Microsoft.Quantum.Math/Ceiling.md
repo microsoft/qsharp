@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.Ceiling
+title: Ceiling function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: Ceiling
+qsharp.summary: Returns the smallest integer greater than or equal to the specified number.
+For example: Ceiling(3.1) = 4; Ceiling(-3.7) = -3
+---
+
 # Ceiling function
 
-`function Ceiling(value : Double) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the smallest integer greater than or equal to the specified number.
+For example: Ceiling(3.1) = 4; Ceiling(-3.7) = -3
+```qsharp
+function Ceiling(value : Double) : Int
+```
 
 ## Summary
 Returns the smallest integer greater than or equal to the specified number.

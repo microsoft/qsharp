@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.Fold
+title: Fold function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Fold
+qsharp.summary: Iterates a function `f` through an array `array`, returning
+`f(...f(f(initialState, array[0]), array[1]), ...)`.
+---
+
 # Fold function
 
-`function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Iterates a function `f` through an array `array`, returning
+`f(...f(f(initialState, array[0]), array[1]), ...)`.
+```qsharp
+function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State
+```
 
 ## Summary
 Iterates a function `f` through an array `array`, returning

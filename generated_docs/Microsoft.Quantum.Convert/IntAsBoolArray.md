@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Convert.IntAsBoolArray
+title: IntAsBoolArray function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Convert
+qsharp.name: IntAsBoolArray
+qsharp.summary: Produces a binary representation of a non-negative integer, using the
+little-endian representation for the returned array.
+---
+
 # IntAsBoolArray function
 
-`function IntAsBoolArray(number : Int, bits : Int) : Bool[]`
+Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
+
+Produces a binary representation of a non-negative integer, using the
+little-endian representation for the returned array.
+```qsharp
+function IntAsBoolArray(number : Int, bits : Int) : Bool[]
+```
 
 ## Summary
 Produces a binary representation of a non-negative integer, using the

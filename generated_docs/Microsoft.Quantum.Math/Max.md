@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.Max
+title: Max function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: Max
+qsharp.summary: Given an array of integers, returns the largest element.
+---
+
 # Max function
 
-`function Max(values : Int[]) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Given an array of integers, returns the largest element.
+```qsharp
+function Max(values : Int[]) : Int
+```
 
 ## Summary
 Given an array of integers, returns the largest element.

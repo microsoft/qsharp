@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.IsInfinite
+title: IsInfinite function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: IsInfinite
+qsharp.summary: Returns whether a given floating-point value is either positive or
+negative infinity.
+---
+
 # IsInfinite function
 
-`function IsInfinite(d : Double) : Bool`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns whether a given floating-point value is either positive or
+negative infinity.
+```qsharp
+function IsInfinite(d : Double) : Bool
+```
 
 ## Summary
 Returns whether a given floating-point value is either positive or

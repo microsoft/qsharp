@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Canon.ApplyControlledOnInt
+title: ApplyControlledOnInt operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyControlledOnInt
+qsharp.summary: Applies a unitary operation on the target if the control
+register state corresponds to a specified nonnegative integer.
+---
+
 # ApplyControlledOnInt operation
 
-`operation ApplyControlledOnInt<'T>(numberState : Int, oracle : ('T => Unit is Param<1>), controlRegister : Qubit[], target : 'T) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies a unitary operation on the target if the control
+register state corresponds to a specified nonnegative integer.
+```qsharp
+operation ApplyControlledOnInt<'T>(numberState : Int, oracle : ('T => Unit is Param<1>), controlRegister : Qubit[], target : 'T) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies a unitary operation on the target if the control

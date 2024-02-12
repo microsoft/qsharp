@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Convert.BoolArrayAsResultArray
+title: BoolArrayAsResultArray function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Convert
+qsharp.name: BoolArrayAsResultArray
+qsharp.summary: Converts a `Bool[]` type to a `Result[]` type, where `true`
+is mapped to `One` and `false` is mapped to `Zero`.
+---
+
 # BoolArrayAsResultArray function
 
-`function BoolArrayAsResultArray(input : Bool[]) : Result[]`
+Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
+
+Converts a `Bool[]` type to a `Result[]` type, where `true`
+is mapped to `One` and `false` is mapped to `Zero`.
+```qsharp
+function BoolArrayAsResultArray(input : Bool[]) : Result[]
+```
 
 ## Summary
 Converts a `Bool[]` type to a `Result[]` type, where `true`

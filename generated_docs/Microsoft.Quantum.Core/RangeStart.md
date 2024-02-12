@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Core.RangeStart
+title: RangeStart function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Core
+qsharp.name: RangeStart
+qsharp.summary: Returns the defined start value of the given range.
+---
+
 # RangeStart function
 
-`function RangeStart(r : Range) : Int`
+Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
+
+Returns the defined start value of the given range.
+```qsharp
+function RangeStart(r : Range) : Int
+```
 
 ## Summary
 Returns the defined start value of the given range.

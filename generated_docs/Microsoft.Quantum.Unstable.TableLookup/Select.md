@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Unstable.TableLookup.Select
+title: Select operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.TableLookup
+qsharp.name: Select
+qsharp.summary: Performs table lookup using a SELECT network
+---
+
 # Select operation
 
-`operation Select(data : Bool[][], address : Qubit[], target : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Unstable.TableLookup](xref:Microsoft.Quantum.Unstable.TableLookup)
+
+Performs table lookup using a SELECT network
+```qsharp
+operation Select(data : Bool[][], address : Qubit[], target : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Performs table lookup using a SELECT network

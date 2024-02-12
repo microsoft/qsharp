@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.AbsComplex
+title: AbsComplex function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: AbsComplex
+qsharp.summary: Returns the absolute value of a complex number of type
+`Complex`.
+---
+
 # AbsComplex function
 
-`function AbsComplex(input : Complex) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the absolute value of a complex number of type
+`Complex`.
+```qsharp
+function AbsComplex(input : Complex) : Double
+```
 
 ## Summary
 Returns the absolute value of a complex number of type

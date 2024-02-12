@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.Message
+title: Message function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Message
+qsharp.summary: Logs a message.
+---
+
 # Message function
 
-`function Message(msg : String) : Unit`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Logs a message.
+```qsharp
+function Message(msg : String) : Unit
+```
 
 ## Summary
 Logs a message.

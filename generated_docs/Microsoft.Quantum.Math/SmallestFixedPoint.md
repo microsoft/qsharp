@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.SmallestFixedPoint
+title: SmallestFixedPoint function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: SmallestFixedPoint
+qsharp.summary: Returns the smallest representable number for specific fixed point dimensions.
+---
+
 # SmallestFixedPoint function
 
-`function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the smallest representable number for specific fixed point dimensions.
+```qsharp
+function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double
+```
 
 ## Summary
 Returns the smallest representable number for specific fixed point dimensions.

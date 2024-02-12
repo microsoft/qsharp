@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Unstable.Arithmetic.FourierTDIncByLE
+title: FourierTDIncByLE operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
+qsharp.name: FourierTDIncByLE
+qsharp.summary: Increments a little-endian register ys by a little-endian register xs
+using Quantum Fourier Transform.
+---
+
 # FourierTDIncByLE operation
 
-`operation FourierTDIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
+
+Increments a little-endian register ys by a little-endian register xs
+using Quantum Fourier Transform.
+```qsharp
+operation FourierTDIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Increments a little-endian register ys by a little-endian register xs

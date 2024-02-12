@@ -1,6 +1,26 @@
+---
+uid Microsoft.Quantum.ResourceEstimation.AccountForEstimates
+title: AccountForEstimates operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.ResourceEstimation
+qsharp.name: AccountForEstimates
+qsharp.summary: Account for the resource estimates of an unimplemented operation,
+which were obtainted separately. This operation is only available
+when using resource estimator execution target.
+---
+
 # AccountForEstimates operation
 
-`operation AccountForEstimates(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit is Adj`
+Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
+
+Account for the resource estimates of an unimplemented operation,
+which were obtainted separately. This operation is only available
+when using resource estimator execution target.
+```qsharp
+operation AccountForEstimates(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit is Adj
+```
 
 ## Summary
 Account for the resource estimates of an unimplemented operation,

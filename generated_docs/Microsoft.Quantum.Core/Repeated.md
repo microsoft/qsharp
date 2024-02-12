@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Core.Repeated
+title: Repeated function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Core
+qsharp.name: Repeated
+qsharp.summary: Creates an array of given length with all elements equal to given value.
+---
+
 # Repeated function
 
-`function Repeated<'T>(value : 'T, length : Int) : 'T[]`
+Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
+
+Creates an array of given length with all elements equal to given value.
+```qsharp
+function Repeated<'T>(value : 'T, length : Int) : 'T[]
+```
 
 ## Summary
 Creates an array of given length with all elements equal to given value.

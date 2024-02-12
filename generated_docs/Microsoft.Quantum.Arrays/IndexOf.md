@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.IndexOf
+title: IndexOf function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: IndexOf
+qsharp.summary: Returns the first index of the first element in an array that satisfies
+a given predicate. If no such element exists, returns -1.
+---
+
 # IndexOf function
 
-`function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns the first index of the first element in an array that satisfies
+a given predicate. If no such element exists, returns -1.
+```qsharp
+function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int
+```
 
 ## Summary
 Returns the first index of the first element in an array that satisfies

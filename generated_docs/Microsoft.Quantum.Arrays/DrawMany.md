@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.DrawMany
+title: DrawMany operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: DrawMany
+qsharp.summary: Repeats an operation for a given number of samples, collecting its outputs
+in an array.
+---
+
 # DrawMany operation
 
-`operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput is Param<2>), nSamples : Int, input : 'TInput) : 'TOutput[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Repeats an operation for a given number of samples, collecting its outputs
+in an array.
+```qsharp
+operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput is Param<2>), nSamples : Int, input : 'TInput) : 'TOutput[]
+```
 
 ## Summary
 Repeats an operation for a given number of samples, collecting its outputs

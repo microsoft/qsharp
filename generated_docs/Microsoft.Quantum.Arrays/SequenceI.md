@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.SequenceI
+title: SequenceI function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: SequenceI
+qsharp.summary: Get an array of integers in a given interval.
+---
+
 # SequenceI function
 
-`function SequenceI(from : Int, to : Int) : Int[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Get an array of integers in a given interval.
+```qsharp
+function SequenceI(from : Int, to : Int) : Int[]
+```
 
 ## Summary
 Get an array of integers in a given interval.

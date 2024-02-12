@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Convert.IntAsBigInt
+title: IntAsBigInt function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Convert
+qsharp.name: IntAsBigInt
+qsharp.summary: Converts a given integer to an equivalent big integer.
+---
+
 # IntAsBigInt function
 
-`function IntAsBigInt(number : Int) : BigInt`
+Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
+
+Converts a given integer to an equivalent big integer.
+```qsharp
+function IntAsBigInt(number : Int) : BigInt
+```
 
 ## Summary
 Converts a given integer to an equivalent big integer.

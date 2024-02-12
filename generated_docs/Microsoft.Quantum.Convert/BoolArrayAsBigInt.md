@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Convert.BoolArrayAsBigInt
+title: BoolArrayAsBigInt function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Convert
+qsharp.name: BoolArrayAsBigInt
+qsharp.summary: Converts an array of Boolean values into a non-negative BigInt, interpreting the
+array as a binary representation in little-endian format.
+---
+
 # BoolArrayAsBigInt function
 
-`function BoolArrayAsBigInt(boolArray : Bool[]) : BigInt`
+Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
+
+Converts an array of Boolean values into a non-negative BigInt, interpreting the
+array as a binary representation in little-endian format.
+```qsharp
+function BoolArrayAsBigInt(boolArray : Bool[]) : BigInt
+```
 
 ## Summary
 Converts an array of Boolean values into a non-negative BigInt, interpreting the

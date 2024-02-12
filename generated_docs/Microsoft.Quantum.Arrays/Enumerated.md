@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.Enumerated
+title: Enumerated function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Enumerated
+qsharp.summary: Given an array, returns a new array containing elements of the original
+array along with the indices of each element.
+---
+
 # Enumerated function
 
-`function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given an array, returns a new array containing elements of the original
+array along with the indices of each element.
+```qsharp
+function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[]
+```
 
 ## Summary
 Given an array, returns a new array containing elements of the original

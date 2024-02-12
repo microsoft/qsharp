@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Canon.ApplyToEachA
+title: ApplyToEachA operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyToEachA
+qsharp.summary: Applies an operation to each element in a register.
+The modifier `A` indicates that the single-element operation is adjointable.
+---
+
 # ApplyToEachA operation
 
-`operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Adj`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies an operation to each element in a register.
+The modifier `A` indicates that the single-element operation is adjointable.
+```qsharp
+operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Adj
+```
 
 ## Summary
 Applies an operation to each element in a register.

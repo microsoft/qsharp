@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Unstable.Arithmetic.IncByLEUsingAddLE
+title: IncByLEUsingAddLE operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
+qsharp.name: IncByLEUsingAddLE
+qsharp.summary: Generic operation to turn two out-place adders into one in-place adder
+---
+
 # IncByLEUsingAddLE operation
 
-`operation IncByLEUsingAddLE(forwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<0>), backwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<1>), xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
+
+Generic operation to turn two out-place adders into one in-place adder
+```qsharp
+operation IncByLEUsingAddLE(forwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<0>), backwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<1>), xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Generic operation to turn two out-place adders into one in-place adder

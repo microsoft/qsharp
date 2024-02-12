@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Canon.ApplyToEach
+title: ApplyToEach operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyToEach
+qsharp.summary: Applies an operation to each element in a register.
+---
+
 # ApplyToEach operation
 
-`operation ApplyToEach<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies an operation to each element in a register.
+```qsharp
+operation ApplyToEach<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit
+```
 
 ## Summary
 Applies an operation to each element in a register.

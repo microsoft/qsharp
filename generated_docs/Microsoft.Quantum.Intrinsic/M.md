@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Intrinsic.M
+title: M operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: M
+qsharp.summary: Performs a measurement of a single qubit in the
+Pauli _Z_ basis.
+---
+
 # M operation
 
-`operation M(qubit : Qubit) : Result`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Performs a measurement of a single qubit in the
+Pauli _Z_ basis.
+```qsharp
+operation M(qubit : Qubit) : Result
+```
 
 ## Summary
 Performs a measurement of a single qubit in the

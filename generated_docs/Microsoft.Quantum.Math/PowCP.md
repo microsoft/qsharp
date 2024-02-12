@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.PowCP
+title: PowCP function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: PowCP
+qsharp.summary: Returns a number raised to a given power of type `ComplexPolar`.
+Note that this is a multi-valued function, but only one value is returned.
+---
+
 # PowCP function
 
-`function PowCP(a : ComplexPolar, power : ComplexPolar) : ComplexPolar`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns a number raised to a given power of type `ComplexPolar`.
+Note that this is a multi-valued function, but only one value is returned.
+```qsharp
+function PowCP(a : ComplexPolar, power : ComplexPolar) : ComplexPolar
+```
 
 ## Summary
 Returns a number raised to a given power of type `ComplexPolar`.

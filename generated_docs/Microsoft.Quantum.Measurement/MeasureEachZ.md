@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Measurement.MeasureEachZ
+title: MeasureEachZ operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Measurement
+qsharp.name: MeasureEachZ
+qsharp.summary: Measures each qubit in a given array in the standard basis.
+---
+
 # MeasureEachZ operation
 
-`operation MeasureEachZ(register : Qubit[]) : Result[]`
+Namespace: [Microsoft.Quantum.Measurement](xref:Microsoft.Quantum.Measurement)
+
+Measures each qubit in a given array in the standard basis.
+```qsharp
+operation MeasureEachZ(register : Qubit[]) : Result[]
+```
 
 ## Summary
 Measures each qubit in a given array in the standard basis.

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.Exp
+title: Exp operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Exp
+qsharp.summary: Applies the exponential of a multi-qubit Pauli operator.
+---
+
 # Exp operation
 
-`operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies the exponential of a multi-qubit Pauli operator.
+```qsharp
+operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the exponential of a multi-qubit Pauli operator.

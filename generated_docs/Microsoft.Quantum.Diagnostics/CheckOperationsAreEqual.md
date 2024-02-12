@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Diagnostics.CheckOperationsAreEqual
+title: CheckOperationsAreEqual operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Diagnostics
+qsharp.name: CheckOperationsAreEqual
+qsharp.summary: Given two operations, checks that they act identically for all input states.
+---
+
 # CheckOperationsAreEqual operation
 
-`operation CheckOperationsAreEqual(nQubits : Int, actual : (Qubit[] => Unit is Param<0>), expected : (Qubit[] => Unit is Param<1>)) : Bool`
+Namespace: [Microsoft.Quantum.Diagnostics](xref:Microsoft.Quantum.Diagnostics)
+
+Given two operations, checks that they act identically for all input states.
+```qsharp
+operation CheckOperationsAreEqual(nQubits : Int, actual : (Qubit[] => Unit is Param<0>), expected : (Qubit[] => Unit is Param<1>)) : Bool
+```
 
 ## Summary
 Given two operations, checks that they act identically for all input states.

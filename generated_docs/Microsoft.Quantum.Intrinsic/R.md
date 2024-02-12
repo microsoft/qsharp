@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.R
+title: R operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: R
+qsharp.summary: Applies a rotation about the given Pauli axis.
+---
+
 # R operation
 
-`operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies a rotation about the given Pauli axis.
+```qsharp
+operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies a rotation about the given Pauli axis.

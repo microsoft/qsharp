@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Convert.BoolArrayAsInt
+title: BoolArrayAsInt function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Convert
+qsharp.name: BoolArrayAsInt
+qsharp.summary: Produces a non-negative integer from a string of bits in little endian format.
+---
+
 # BoolArrayAsInt function
 
-`function BoolArrayAsInt(bits : Bool[]) : Int`
+Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
+
+Produces a non-negative integer from a string of bits in little endian format.
+```qsharp
+function BoolArrayAsInt(bits : Bool[]) : Int
+```
 
 ## Summary
 Produces a non-negative integer from a string of bits in little endian format.

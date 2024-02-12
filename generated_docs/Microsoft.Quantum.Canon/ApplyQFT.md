@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Canon.ApplyQFT
+title: ApplyQFT operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyQFT
+qsharp.summary: Applies Quantum Fourier Transform (QFT) to a little-endian quantum register.
+---
+
 # ApplyQFT operation
 
-`operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies Quantum Fourier Transform (QFT) to a little-endian quantum register.
+```qsharp
+operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies Quantum Fourier Transform (QFT) to a little-endian quantum register.

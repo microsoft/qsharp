@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.IsEmpty
+title: IsEmpty function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: IsEmpty
+qsharp.summary: Returns true if and only if an array is empty.
+---
+
 # IsEmpty function
 
-`function IsEmpty<'T>(array : 'T[]) : Bool`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns true if and only if an array is empty.
+```qsharp
+function IsEmpty<'T>(array : 'T[]) : Bool
+```
 
 ## Summary
 Returns true if and only if an array is empty.

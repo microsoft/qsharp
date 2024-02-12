@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.LogGammaD
+title: LogGammaD function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: LogGammaD
+qsharp.summary: Returns the natural logarithm of the gamma function (aka the log-gamma
+function).
+---
+
 # LogGammaD function
 
-`function LogGammaD(x : Double) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the natural logarithm of the gamma function (aka the log-gamma
+function).
+```qsharp
+function LogGammaD(x : Double) : Double
+```
 
 ## Summary
 Returns the natural logarithm of the gamma function (aka the log-gamma

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.MinusCP
+title: MinusCP function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: MinusCP
+qsharp.summary: Returns the difference between two inputs of type `ComplexPolar`.
+---
+
 # MinusCP function
 
-`function MinusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the difference between two inputs of type `ComplexPolar`.
+```qsharp
+function MinusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
+```
 
 ## Summary
 Returns the difference between two inputs of type `ComplexPolar`.

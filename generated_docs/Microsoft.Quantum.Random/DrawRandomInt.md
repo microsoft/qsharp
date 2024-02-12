@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Random.DrawRandomInt
+title: DrawRandomInt operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Random
+qsharp.name: DrawRandomInt
+qsharp.summary: Draws a random integer in a given inclusive range.
+---
+
 # DrawRandomInt operation
 
-`operation DrawRandomInt(min : Int, max : Int) : Int`
+Namespace: [Microsoft.Quantum.Random](xref:Microsoft.Quantum.Random)
+
+Draws a random integer in a given inclusive range.
+```qsharp
+operation DrawRandomInt(min : Int, max : Int) : Int
+```
 
 ## Summary
 Draws a random integer in a given inclusive range.

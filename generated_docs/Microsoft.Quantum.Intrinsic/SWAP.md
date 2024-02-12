@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.SWAP
+title: SWAP operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: SWAP
+qsharp.summary: Applies the SWAP gate to a pair of qubits.
+---
+
 # SWAP operation
 
-`operation SWAP(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies the SWAP gate to a pair of qubits.
+```qsharp
+operation SWAP(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the SWAP gate to a pair of qubits.

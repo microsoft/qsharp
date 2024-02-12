@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.Log10
+title: Log10 function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: Log10
+qsharp.summary: Returns the base-10 logarithm of a specified number.
+---
+
 # Log10 function
 
-`function Log10(input : Double) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the base-10 logarithm of a specified number.
+```qsharp
+function Log10(input : Double) : Double
+```
 
 ## Summary
 Returns the base-10 logarithm of a specified number.

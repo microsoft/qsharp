@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.RealMod
+title: RealMod function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: RealMod
+qsharp.summary: Computes the modulus between two real numbers.
+---
+
 # RealMod function
 
-`function RealMod(value : Double, modulo : Double, minValue : Double) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Computes the modulus between two real numbers.
+```qsharp
+function RealMod(value : Double, modulo : Double, minValue : Double) : Double
+```
 
 ## Summary
 Computes the modulus between two real numbers.

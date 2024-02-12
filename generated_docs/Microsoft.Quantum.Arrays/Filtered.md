@@ -1,6 +1,26 @@
+---
+uid Microsoft.Quantum.Arrays.Filtered
+title: Filtered function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Filtered
+qsharp.summary: Given an array and a predicate that is defined
+for the elements of the array, returns an array that consists of
+those elements that satisfy the predicate.
+---
+
 # Filtered function
 
-`function Filtered<'T>(predicate : ('T -> Bool), array : 'T[]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given an array and a predicate that is defined
+for the elements of the array, returns an array that consists of
+those elements that satisfy the predicate.
+```qsharp
+function Filtered<'T>(predicate : ('T -> Bool), array : 'T[]) : 'T[]
+```
 
 ## Summary
 Given an array and a predicate that is defined

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Core.Length
+title: Length function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Core
+qsharp.name: Length
+qsharp.summary: Returns the number of elements in an array.
+---
+
 # Length function
 
-`function Length<'T>(a : 'T[]) : Int`
+Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
+
+Returns the number of elements in an array.
+```qsharp
+function Length<'T>(a : 'T[]) : Int
+```
 
 ## Summary
 Returns the number of elements in an array.

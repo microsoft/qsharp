@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.MaxD
+title: MaxD function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: MaxD
+qsharp.summary: Returns the larger of two specified numbers.
+---
+
 # MaxD function
 
-`function MaxD(a : Double, b : Double) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the larger of two specified numbers.
+```qsharp
+function MaxD(a : Double, b : Double) : Double
+```
 
 ## Summary
 Returns the larger of two specified numbers.

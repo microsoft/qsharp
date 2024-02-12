@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Flattened
+title: Flattened function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Flattened
+qsharp.summary: Given an array of arrays, returns the concatenation of all arrays.
+---
+
 # Flattened function
 
-`function Flattened<'T>(arrays : 'T[][]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given an array of arrays, returns the concatenation of all arrays.
+```qsharp
+function Flattened<'T>(arrays : 'T[][]) : 'T[]
+```
 
 ## Summary
 Given an array of arrays, returns the concatenation of all arrays.

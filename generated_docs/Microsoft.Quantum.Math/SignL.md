@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.SignL
+title: SignL function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: SignL
+qsharp.summary: Returns -1, 0 or +1 that indicates the sign of a number.
+---
+
 # SignL function
 
-`function SignL(a : BigInt) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns -1, 0 or +1 that indicates the sign of a number.
+```qsharp
+function SignL(a : BigInt) : Int
+```
 
 ## Summary
 Returns -1, 0 or +1 that indicates the sign of a number.

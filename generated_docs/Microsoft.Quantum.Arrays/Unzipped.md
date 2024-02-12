@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.Unzipped
+title: Unzipped function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Unzipped
+qsharp.summary: Given an array of 2-tuples, returns a tuple of two arrays, each containing
+the elements of the tuples of the input array.
+---
+
 # Unzipped function
 
-`function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[])`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given an array of 2-tuples, returns a tuple of two arrays, each containing
+the elements of the tuples of the input array.
+```qsharp
+function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[])
+```
 
 ## Summary
 Given an array of 2-tuples, returns a tuple of two arrays, each containing

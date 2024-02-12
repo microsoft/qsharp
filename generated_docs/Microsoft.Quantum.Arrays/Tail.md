@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Tail
+title: Tail function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Tail
+qsharp.summary: Returns the last element of the array.
+---
+
 # Tail function
 
-`function Tail<'A>(array : 'A[]) : 'A`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns the last element of the array.
+```qsharp
+function Tail<'A>(array : 'A[]) : 'A
+```
 
 ## Summary
 Returns the last element of the array.

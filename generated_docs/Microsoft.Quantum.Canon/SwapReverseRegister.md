@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Canon.SwapReverseRegister
+title: SwapReverseRegister operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: SwapReverseRegister
+qsharp.summary: Uses SWAP gates to reverse the order of the qubits in a register.
+---
+
 # SwapReverseRegister operation
 
-`operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Uses SWAP gates to reverse the order of the qubits in a register.
+```qsharp
+operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Uses SWAP gates to reverse the order of the qubits in a register.

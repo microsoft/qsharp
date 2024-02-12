@@ -1,6 +1,26 @@
+---
+uid Microsoft.Quantum.Arrays.Any
+title: Any function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Any
+qsharp.summary: Given an array and a predicate that is defined
+for the elements of the array, checks if at least one element of
+the array satisfies the predicate.
+---
+
 # Any function
 
-`function Any<'T>(predicate : ('T -> Bool), array : 'T[]) : Bool`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given an array and a predicate that is defined
+for the elements of the array, checks if at least one element of
+the array satisfies the predicate.
+```qsharp
+function Any<'T>(predicate : ('T -> Bool), array : 'T[]) : Bool
+```
 
 ## Summary
 Given an array and a predicate that is defined

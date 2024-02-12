@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.GreatestCommonDivisorI
+title: GreatestCommonDivisorI function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: GreatestCommonDivisorI
+qsharp.summary: Computes the greatest common divisor of two integers.
+Note: GCD is always positive except that GCD(0,0)=0.
+---
+
 # GreatestCommonDivisorI function
 
-`function GreatestCommonDivisorI(a : Int, b : Int) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Computes the greatest common divisor of two integers.
+Note: GCD is always positive except that GCD(0,0)=0.
+```qsharp
+function GreatestCommonDivisorI(a : Int, b : Int) : Int
+```
 
 ## Summary
 Computes the greatest common divisor of two integers.

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Swapped
+title: Swapped function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Swapped
+qsharp.summary: Applies a swap of two elements in an array.
+---
+
 # Swapped function
 
-`function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Applies a swap of two elements in an array.
+```qsharp
+function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[]
+```
 
 ## Summary
 Applies a swap of two elements in an array.

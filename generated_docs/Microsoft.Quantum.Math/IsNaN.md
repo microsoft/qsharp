@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.IsNaN
+title: IsNaN function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: IsNaN
+qsharp.summary: Returns whether a given floating-point value is not a number (i.e. is
+NaN).
+---
+
 # IsNaN function
 
-`function IsNaN(d : Double) : Bool`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns whether a given floating-point value is not a number (i.e. is
+NaN).
+```qsharp
+function IsNaN(d : Double) : Bool
+```
 
 ## Summary
 Returns whether a given floating-point value is not a number (i.e. is

@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.ModulusI
+title: ModulusI function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: ModulusI
+qsharp.summary: Computes the canonical residue of `value` modulo `modulus`.
+The result is always in the range 0..modulus-1 even for negative numbers.
+---
+
 # ModulusI function
 
-`function ModulusI(value : Int, modulus : Int) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Computes the canonical residue of `value` modulo `modulus`.
+The result is always in the range 0..modulus-1 even for negative numbers.
+```qsharp
+function ModulusI(value : Int, modulus : Int) : Int
+```
 
 ## Summary
 Computes the canonical residue of `value` modulo `modulus`.

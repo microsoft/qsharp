@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Math.Floor
+title: Floor function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: Floor
+qsharp.summary: Returns the largest integer less than or equal to the specified number.
+For example: Floor(3.7) = 3; Floor(-3.1) = -4
+---
+
 # Floor function
 
-`function Floor(value : Double) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the largest integer less than or equal to the specified number.
+For example: Floor(3.7) = 3; Floor(-3.1) = -4
+```qsharp
+function Floor(value : Double) : Int
+```
 
 ## Summary
 Returns the largest integer less than or equal to the specified number.

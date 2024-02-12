@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.ColumnAt
+title: ColumnAt function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: ColumnAt
+qsharp.summary: Extracts a column from a matrix.
+---
+
 # ColumnAt function
 
-`function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Extracts a column from a matrix.
+```qsharp
+function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[]
+```
 
 ## Summary
 Extracts a column from a matrix.

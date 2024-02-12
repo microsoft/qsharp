@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Canon.ApplyPauliFromInt
+title: ApplyPauliFromInt operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyPauliFromInt
+qsharp.summary: Applies a Pauli operator on each qubit in an array if the corresponding
+bit of a Little-endian integer matches a given input.
+---
+
 # ApplyPauliFromInt operation
 
-`operation ApplyPauliFromInt(pauli : Pauli, bitApply : Bool, numberState : Int, qubits : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies a Pauli operator on each qubit in an array if the corresponding
+bit of a Little-endian integer matches a given input.
+```qsharp
+operation ApplyPauliFromInt(pauli : Pauli, bitApply : Bool, numberState : Int, qubits : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies a Pauli operator on each qubit in an array if the corresponding

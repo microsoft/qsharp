@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Core.RangeStep
+title: RangeStep function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Core
+qsharp.name: RangeStep
+qsharp.summary: Returns the integer that specifies how the next value of a range is calculated.
+---
+
 # RangeStep function
 
-`function RangeStep(r : Range) : Int`
+Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
+
+Returns the integer that specifies how the next value of a range is calculated.
+```qsharp
+function RangeStep(r : Range) : Int
+```
 
 ## Summary
 Returns the integer that specifies how the next value of a range is calculated.

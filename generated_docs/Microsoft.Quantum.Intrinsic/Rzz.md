@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.Rzz
+title: Rzz operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Rzz
+qsharp.summary: Applies the two qubit Ising _ZZ_ rotation gate.
+---
+
 # Rzz operation
 
-`operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies the two qubit Ising _ZZ_ rotation gate.
+```qsharp
+operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the two qubit Ising _ZZ_ rotation gate.

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Canon.ApplyCNOTChain
+title: ApplyCNOTChain operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: ApplyCNOTChain
+qsharp.summary: Computes the parity of a register of qubits in-place.
+---
+
 # ApplyCNOTChain operation
 
-`operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Computes the parity of a register of qubits in-place.
+```qsharp
+operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl
+```
 
 ## Summary
 Computes the parity of a register of qubits in-place.

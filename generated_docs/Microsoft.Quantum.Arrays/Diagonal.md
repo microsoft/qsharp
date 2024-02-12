@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Diagonal
+title: Diagonal function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Diagonal
+qsharp.summary: Returns an array of diagonal elements of a 2-dimensional array
+---
+
 # Diagonal function
 
-`function Diagonal<'T>(matrix : 'T[][]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns an array of diagonal elements of a 2-dimensional array
+```qsharp
+function Diagonal<'T>(matrix : 'T[][]) : 'T[]
+```
 
 ## Summary
 Returns an array of diagonal elements of a 2-dimensional array

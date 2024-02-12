@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Convert.BoolAsResult
+title: BoolAsResult function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Convert
+qsharp.name: BoolAsResult
+qsharp.summary: Converts a `Bool` type to a `Result` type, where `true` is mapped to
+`One` and `false` is mapped to `Zero`.
+---
+
 # BoolAsResult function
 
-`function BoolAsResult(input : Bool) : Result`
+Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
+
+Converts a `Bool` type to a `Result` type, where `true` is mapped to
+`One` and `false` is mapped to `Zero`.
+```qsharp
+function BoolAsResult(input : Bool) : Result
+```
 
 ## Summary
 Converts a `Bool` type to a `Result` type, where `true` is mapped to

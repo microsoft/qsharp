@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Canon.CZ
+title: CZ operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Canon
+qsharp.name: CZ
+qsharp.summary: Applies the controlled-Z (CZ) gate to a pair of qubits.
+---
+
 # CZ operation
 
-`operation CZ(control : Qubit, target : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
+
+Applies the controlled-Z (CZ) gate to a pair of qubits.
+```qsharp
+operation CZ(control : Qubit, target : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the controlled-Z (CZ) gate to a pair of qubits.

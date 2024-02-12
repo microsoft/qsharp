@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Intrinsic.Z
+title: Z operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Z
+qsharp.summary: Applies the Pauli _Z_ gate.
+---
+
 # Z operation
 
-`operation Z(qubit : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Applies the Pauli _Z_ gate.
+```qsharp
+operation Z(qubit : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 Applies the Pauli _Z_ gate.

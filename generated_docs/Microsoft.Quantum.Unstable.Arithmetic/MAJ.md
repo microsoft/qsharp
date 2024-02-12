@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Unstable.Arithmetic.MAJ
+title: MAJ operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
+qsharp.name: MAJ
+qsharp.summary: This applies the in-place majority operation to 3 qubits.
+---
+
 # MAJ operation
 
-`operation MAJ(x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl`
+Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
+
+This applies the in-place majority operation to 3 qubits.
+```qsharp
+operation MAJ(x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl
+```
 
 ## Summary
 This applies the in-place majority operation to 3 qubits.

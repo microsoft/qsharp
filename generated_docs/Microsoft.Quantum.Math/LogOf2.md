@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.LogOf2
+title: LogOf2 function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: LogOf2
+qsharp.summary: Returns the natural logarithm of 2.
+---
+
 # LogOf2 function
 
-`function LogOf2() : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the natural logarithm of 2.
+```qsharp
+function LogOf2() : Double
+```
 
 ## Summary
 Returns the natural logarithm of 2.

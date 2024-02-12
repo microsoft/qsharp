@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.Sorted
+title: Sorted function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Sorted
+qsharp.summary: Given an array, returns the elements of that array sorted by a given
+comparison function.
+---
+
 # Sorted function
 
-`function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given an array, returns the elements of that array sorted by a given
+comparison function.
+```qsharp
+function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[]
+```
 
 ## Summary
 Given an array, returns the elements of that array sorted by a given

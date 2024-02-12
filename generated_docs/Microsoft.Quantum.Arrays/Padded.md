@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.Padded
+title: Padded function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Padded
+qsharp.summary: Returns an array padded at with specified values up to a
+specified length.
+---
+
 # Padded function
 
-`function Padded<'T>(paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns an array padded at with specified values up to a
+specified length.
+```qsharp
+function Padded<'T>(paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[]
+```
 
 ## Summary
 Returns an array padded at with specified values up to a

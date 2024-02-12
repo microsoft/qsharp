@@ -1,6 +1,24 @@
-# ComplexPolar User-Defined Type
+---
+uid Microsoft.Quantum.Math.ComplexPolar
+title: ComplexPolar user defined type
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: udt
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: ComplexPolar
+qsharp.summary: Represents a complex number in polar form.
+The polar representation of a complex number is c = r⋅𝑒^(t𝑖).
+---
 
-`newtype ComplexPolar = (Magnitude: Double, Argument: Double)`
+# ComplexPolar user defined type
+
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Represents a complex number in polar form.
+The polar representation of a complex number is c = r⋅𝑒^(t𝑖).
+```qsharp
+newtype ComplexPolar = (Magnitude: Double, Argument: Double)
+```
 
 ## Summary
 Represents a complex number in polar form.

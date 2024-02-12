@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Partitioned
+title: Partitioned function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Partitioned
+qsharp.summary: Splits an array into multiple parts.
+---
+
 # Partitioned function
 
-`function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Splits an array into multiple parts.
+```qsharp
+function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][]
+```
 
 ## Summary
 Splits an array into multiple parts.

@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.DividedByCP
+title: DividedByCP function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: DividedByCP
+qsharp.summary: Returns the quotient of two inputs of type `ComplexPolar`.
+---
+
 # DividedByCP function
 
-`function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the quotient of two inputs of type `ComplexPolar`.
+```qsharp
+function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
+```
 
 ## Summary
 Returns the quotient of two inputs of type `ComplexPolar`.

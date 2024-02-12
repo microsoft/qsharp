@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.LargestFixedPoint
+title: LargestFixedPoint function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: LargestFixedPoint
+qsharp.summary: Returns the largest representable number for specific fixed point dimensions.
+---
+
 # LargestFixedPoint function
 
-`function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the largest representable number for specific fixed point dimensions.
+```qsharp
+function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double
+```
 
 ## Summary
 Returns the largest representable number for specific fixed point dimensions.

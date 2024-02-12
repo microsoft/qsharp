@@ -4,12 +4,13 @@
 #[cfg(test)]
 mod tests;
 
-use crate::display::increase_header_level;
+use crate::display::{increase_header_level, parse_doc_for_summary};
 use crate::{compilation::Compilation, display::CodeDisplay};
 use qsc::hir::hir::{Item, ItemKind, Package, Visibility};
 use qsc::hir::ty::Udt;
 use qsc::hir::{CallableDecl, Ident};
 use rustc_hash::FxHashMap;
+use std::fmt::{Display, Formatter, Result};
 use std::fs;
 use std::rc::Rc;
 
@@ -63,7 +64,7 @@ fn generate_doc_for_item<'a>(
     }
 
     // Print file
-    let (title, content) = item_to_content(package, item, display)?;
+    let (title, content) = generate_file(package, ns.clone(), item, display)?;
     fs::write(format!("{ns_dir}/{title}.md"), content).expect("Unable to write file");
 
     // Create toc line
@@ -95,61 +96,171 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn item_to_content(
+fn generate_file(
     package: &Package,
+    ns: Rc<str>,
     item: &Item,
     display: &CodeDisplay,
-) -> Option<(String, String)> {
-    match &item.kind {
+) -> Option<(Rc<str>, String)> {
+    let metadata = get_metadata(package, ns.clone(), item, display)?;
+
+    let doc = increase_header_level(&item.doc);
+    let title = &metadata.title;
+    let summary = &metadata.summary;
+    let sig = &metadata.signature;
+
+    let content = format!(
+        "{metadata}
+
+# {title}
+
+Namespace: [{ns}](xref:{ns})
+
+{summary}
+```qsharp
+{sig}
+```
+"
+    );
+
+    let content = if doc.is_empty() {
+        content
+    } else {
+        format!("{content}\n{doc}\n")
+    };
+
+    Some((metadata.name.clone(), content))
+}
+
+struct Metadata {
+    uid: String,
+    title: String,
+    date: String,
+    topic: String,
+    kind: MetadataKind,
+    package: String,
+    namespace: Rc<str>,
+    name: Rc<str>,
+    summary: String,
+    signature: String,
+}
+
+impl Display for Metadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let kind = match &self.kind {
+            MetadataKind::Function => "function",
+            MetadataKind::Operation => "opeartion",
+            MetadataKind::Udt => "udt",
+        };
+        write!(
+            f,
+            "---
+uid {}
+title: {}
+ms.date: {}
+ms.topic: {}
+qsharp.kind: {}
+qsharp.namespace: {}
+qsharp.name: {}
+qsharp.summary: {}
+---",
+            self.uid,
+            self.title,
+            self.date,
+            self.topic,
+            kind,
+            self.namespace,
+            self.name,
+            self.summary
+        )
+    }
+}
+
+enum MetadataKind {
+    Function,
+    Operation,
+    Udt,
+}
+
+fn get_metadata(
+    package: &Package,
+    ns: Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<Metadata> {
+    let (name, signature, kind) = match &item.kind {
         ItemKind::Callable(decl) => Some((
-            decl.name.name.to_string(),
-            callable_to_content(decl, &item.doc, display),
+            decl.name.name.clone(),
+            display.hir_callable_decl(decl).to_string(),
+            match &decl.kind {
+                qsc::hir::CallableKind::Function => MetadataKind::Function,
+                qsc::hir::CallableKind::Operation => MetadataKind::Operation,
+            },
         )),
-        ItemKind::Ty(name, udt) => Some((
-            name.name.to_string(),
-            udt_to_content(name, udt, &item.doc, display),
+        ItemKind::Ty(ident, udt) => Some((
+            ident.name.clone(),
+            display.hir_udt(udt).to_string(),
+            MetadataKind::Udt,
         )),
         ItemKind::Namespace(_, _) => None,
-    }
+    }?;
+
+    Some(Metadata {
+        uid: format!("{ns}.{name}"),
+        title: match &kind {
+            MetadataKind::Function => format!("{name} function"),
+            MetadataKind::Operation => format!("{name} operation"),
+            MetadataKind::Udt => format!("{name} user defined type"),
+        },
+        date: "todo".to_string(), // ToDo
+        topic: "managed-reference".to_string(),
+        kind,
+        //Note that we currently do not store package names anywhere, so for now, just hardcoding them all to this value
+        package: "Microsoft.Quantum.Standard".to_string(),
+        namespace: ns,
+        name,
+        summary: parse_doc_for_summary(&item.doc),
+        signature,
+    })
 }
 
-fn callable_to_content(decl: &CallableDecl, doc: &str, display: &CodeDisplay) -> String {
-    if doc.is_empty() {
-        format!(
-            "# {} {}\n\n`{}`\n",
-            decl.name.name,
-            decl.kind,
-            display.hir_callable_decl(decl)
-        )
-    } else {
-        let doc = increase_header_level(doc);
-        format!(
-            "# {} {}\n\n`{}`\n\n{}\n",
-            decl.name.name,
-            decl.kind,
-            display.hir_callable_decl(decl),
-            doc
-        )
-    }
-}
+// fn callable_to_content(decl: &CallableDecl, doc: &str, display: &CodeDisplay) -> String {
+//     if doc.is_empty() {
+//         format!(
+//             "# {} {}\n\n`{}`\n",
+//             decl.name.name,
+//             decl.kind,
+//             display.hir_callable_decl(decl)
+//         )
+//     } else {
+//         let doc = increase_header_level(doc);
+//         format!(
+//             "# {} {}\n\n`{}`\n\n{}\n",
+//             decl.name.name,
+//             decl.kind,
+//             display.hir_callable_decl(decl),
+//             doc
+//         )
+//     }
+// }
 
-fn udt_to_content(name: &Ident, udt: &Udt, doc: &str, display: &CodeDisplay) -> String {
-    if doc.is_empty() {
-        format!(
-            "# {} User-Defined Type\n\n`{}`\n",
-            name.name,
-            display.hir_udt(udt)
-        )
-    } else {
-        let doc = increase_header_level(doc);
-        format!(
-            "# {} User-Defined Type\n\n`{}`\n\n{}\n",
-            name.name,
-            display.hir_udt(udt),
-            doc
-        )
-    }
-}
+// fn udt_to_content(name: &Ident, udt: &Udt, doc: &str, display: &CodeDisplay) -> String {
+//     if doc.is_empty() {
+//         format!(
+//             "# {} User-Defined Type\n\n`{}`\n",
+//             name.name,
+//             display.hir_udt(udt)
+//         )
+//     } else {
+//         let doc = increase_header_level(doc);
+//         format!(
+//             "# {} User-Defined Type\n\n`{}`\n\n{}\n",
+//             name.name,
+//             display.hir_udt(udt),
+//             doc
+//         )
+//     }
+// }
 
 fn generate_toc(map: &FxHashMap<Rc<str>, Vec<String>>) {
     let header = "

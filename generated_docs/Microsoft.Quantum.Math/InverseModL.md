@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.InverseModL
+title: InverseModL function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: InverseModL
+qsharp.summary: Returns the multiplicative inverse of a modular integer.
+---
+
 # InverseModL function
 
-`function InverseModL(a : BigInt, modulus : BigInt) : BigInt`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the multiplicative inverse of a modular integer.
+```qsharp
+function InverseModL(a : BigInt, modulus : BigInt) : BigInt
+```
 
 ## Summary
 Returns the multiplicative inverse of a modular integer.

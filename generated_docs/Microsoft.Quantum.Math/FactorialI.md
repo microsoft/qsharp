@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.FactorialI
+title: FactorialI function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: FactorialI
+qsharp.summary: Returns the factorial of a given number.
+---
+
 # FactorialI function
 
-`function FactorialI(n : Int) : Int`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns the factorial of a given number.
+```qsharp
+function FactorialI(n : Int) : Int
+```
 
 ## Summary
 Returns the factorial of a given number.

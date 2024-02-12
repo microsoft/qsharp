@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Arrays.IsSorted
+title: IsSorted function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: IsSorted
+qsharp.summary: Given an array, returns whether that array is sorted as defined by
+a given comparison function.
+---
+
 # IsSorted function
 
-`function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Given an array, returns whether that array is sorted as defined by
+a given comparison function.
+```qsharp
+function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool
+```
 
 ## Summary
 Given an array, returns whether that array is sorted as defined by

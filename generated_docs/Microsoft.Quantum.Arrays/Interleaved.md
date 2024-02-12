@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Interleaved
+title: Interleaved function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Interleaved
+qsharp.summary: Interleaves two arrays of (almost) same size.
+---
+
 # Interleaved function
 
-`function Interleaved<'T>(first : 'T[], second : 'T[]) : 'T[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Interleaves two arrays of (almost) same size.
+```qsharp
+function Interleaved<'T>(first : 'T[], second : 'T[]) : 'T[]
+```
 
 ## Summary
 Interleaves two arrays of (almost) same size.

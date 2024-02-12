@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.IsSquareArray
+title: IsSquareArray function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: IsSquareArray
+qsharp.summary: Returns whether a 2-dimensional array has a square shape
+---
+
 # IsSquareArray function
 
-`function IsSquareArray<'T>(array : 'T[][]) : Bool`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns whether a 2-dimensional array has a square shape
+```qsharp
+function IsSquareArray<'T>(array : 'T[][]) : Bool
+```
 
 ## Summary
 Returns whether a 2-dimensional array has a square shape

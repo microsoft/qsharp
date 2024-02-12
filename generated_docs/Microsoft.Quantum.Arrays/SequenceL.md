@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.SequenceL
+title: SequenceL function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: SequenceL
+qsharp.summary: Get an array of integers in a given interval.
+---
+
 # SequenceL function
 
-`function SequenceL(from : BigInt, to : BigInt) : BigInt[]`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Get an array of integers in a given interval.
+```qsharp
+function SequenceL(from : BigInt, to : BigInt) : BigInt[]
+```
 
 ## Summary
 Get an array of integers in a given interval.

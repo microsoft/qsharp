@@ -1,6 +1,26 @@
-# Complex User-Defined Type
+---
+uid Microsoft.Quantum.Math.Complex
+title: Complex user defined type
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: udt
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: Complex
+qsharp.summary: Represents a complex number by its real and imaginary components.
+The first element of the tuple is the real component,
+the second one - the imaginary component.
+---
 
-`newtype Complex = (Real: Double, Imag: Double)`
+# Complex user defined type
+
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Represents a complex number by its real and imaginary components.
+The first element of the tuple is the real component,
+the second one - the imaginary component.
+```qsharp
+newtype Complex = (Real: Double, Imag: Double)
+```
 
 ## Summary
 Represents a complex number by its real and imaginary components.

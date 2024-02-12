@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Intrinsic.Measure
+title: Measure operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Intrinsic
+qsharp.name: Measure
+qsharp.summary: Performs a joint measurement of one or more qubits in the
+specified Pauli bases.
+---
+
 # Measure operation
 
-`operation Measure(bases : Pauli[], qubits : Qubit[]) : Result`
+Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
+
+Performs a joint measurement of one or more qubits in the
+specified Pauli bases.
+```qsharp
+operation Measure(bases : Pauli[], qubits : Qubit[]) : Result
+```
 
 ## Summary
 Performs a joint measurement of one or more qubits in the

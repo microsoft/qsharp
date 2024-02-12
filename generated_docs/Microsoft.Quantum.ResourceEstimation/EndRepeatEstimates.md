@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.ResourceEstimation.EndRepeatEstimates
+title: EndRepeatEstimates operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.ResourceEstimation
+qsharp.name: EndRepeatEstimates
+qsharp.summary: Companion operation to `BeginRepeatEstimates`.
+---
+
 # EndRepeatEstimates operation
 
-`operation EndRepeatEstimates() : Unit is Adj`
+Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
+
+Companion operation to `BeginRepeatEstimates`.
+```qsharp
+operation EndRepeatEstimates() : Unit is Adj
+```
 
 ## Summary
 

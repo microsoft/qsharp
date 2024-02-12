@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Math.IsCoprimeL
+title: IsCoprimeL function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Math
+qsharp.name: IsCoprimeL
+qsharp.summary: Returns if two integers are co-prime.
+---
+
 # IsCoprimeL function
 
-`function IsCoprimeL(a : BigInt, b : BigInt) : Bool`
+Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
+
+Returns if two integers are co-prime.
+```qsharp
+function IsCoprimeL(a : BigInt, b : BigInt) : Bool
+```
 
 ## Summary
 Returns if two integers are co-prime.

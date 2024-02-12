@@ -1,6 +1,24 @@
+---
+uid Microsoft.Quantum.Unstable.Arithmetic.AddLE
+title: AddLE operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
+qsharp.name: AddLE
+qsharp.summary: Sets a zero-initialized little-endian register zs to the sum of
+little-endian registers xs and ys
+---
+
 # AddLE operation
 
-`operation AddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj`
+Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
+
+Sets a zero-initialized little-endian register zs to the sum of
+little-endian registers xs and ys
+```qsharp
+operation AddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj
+```
 
 ## Summary
 Sets a zero-initialized little-endian register zs to the sum of

@@ -1,5 +1,21 @@
+---
+uid Microsoft.Quantum.Diagnostics.Fact
+title: Fact function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Diagnostics
+qsharp.name: Fact
+qsharp.summary: Checks whether a classical condition is true, and throws an exception if it is not.
+---
+
 # Fact function
 
-`function Fact(actual : Bool, message : String) : Unit`
+Namespace: [Microsoft.Quantum.Diagnostics](xref:Microsoft.Quantum.Diagnostics)
+
+Checks whether a classical condition is true, and throws an exception if it is not.
+```qsharp
+function Fact(actual : Bool, message : String) : Unit
+```
 
 Checks whether a classical condition is true, and throws an exception if it is not.

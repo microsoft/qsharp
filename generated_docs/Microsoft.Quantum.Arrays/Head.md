@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Arrays.Head
+title: Head function
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: function
+qsharp.namespace: Microsoft.Quantum.Arrays
+qsharp.name: Head
+qsharp.summary: Returns the first element of the array.
+---
+
 # Head function
 
-`function Head<'A>(array : 'A[]) : 'A`
+Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
+
+Returns the first element of the array.
+```qsharp
+function Head<'A>(array : 'A[]) : 'A
+```
 
 ## Summary
 Returns the first element of the array.

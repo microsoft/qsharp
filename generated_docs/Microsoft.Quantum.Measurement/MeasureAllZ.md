@@ -1,6 +1,22 @@
+---
+uid Microsoft.Quantum.Measurement.MeasureAllZ
+title: MeasureAllZ operation
+ms.date: todo
+ms.topic: managed-reference
+qsharp.kind: opeartion
+qsharp.namespace: Microsoft.Quantum.Measurement
+qsharp.name: MeasureAllZ
+qsharp.summary: Jointly measures a register of qubits in the Pauli Z basis.
+---
+
 # MeasureAllZ operation
 
-`operation MeasureAllZ(register : Qubit[]) : Result`
+Namespace: [Microsoft.Quantum.Measurement](xref:Microsoft.Quantum.Measurement)
+
+Jointly measures a register of qubits in the Pauli Z basis.
+```qsharp
+operation MeasureAllZ(register : Qubit[]) : Result
+```
 
 ## Summary
 Jointly measures a register of qubits in the Pauli Z basis.
