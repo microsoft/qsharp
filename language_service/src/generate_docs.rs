@@ -14,7 +14,7 @@ use std::fs;
 use std::rc::Rc;
 
 // Warning: this path gets deleted on each run. Use carefully!
-const GENERATED_DOCS_PATH: &str = "../generated_docs";
+const GENERATED_DOCS_PATH: &str = "../npm/generated_docs";
 
 pub(crate) fn generate_docs(compilation: &Compilation) {
     let display = &CodeDisplay { compilation };
@@ -158,7 +158,7 @@ impl Display for Metadata {
         write!(
             f,
             "---
-uid {}
+uid: {}
 title: {}
 ms.date: {}
 ms.topic: {}
