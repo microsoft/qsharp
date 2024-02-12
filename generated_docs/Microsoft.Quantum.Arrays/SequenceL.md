@@ -1,7 +1,7 @@
 ---
 uid Microsoft.Quantum.Arrays.SequenceL
 title: SequenceL function
-ms.date: todo
+ms.date: 02/12/2024
 ms.topic: managed-reference
 qsharp.kind: function
 qsharp.namespace: Microsoft.Quantum.Arrays

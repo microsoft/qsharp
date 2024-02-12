@@ -1,7 +1,7 @@
 ---
 uid Microsoft.Quantum.Math.Cos
 title: Cos function
-ms.date: todo
+ms.date: 02/12/2024
 ms.topic: managed-reference
 qsharp.kind: function
 qsharp.namespace: Microsoft.Quantum.Math

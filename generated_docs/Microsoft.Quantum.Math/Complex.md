@@ -1,7 +1,7 @@
 ---
 uid Microsoft.Quantum.Math.Complex
 title: Complex user defined type
-ms.date: todo
+ms.date: 02/12/2024
 ms.topic: managed-reference
 qsharp.kind: udt
 qsharp.namespace: Microsoft.Quantum.Math

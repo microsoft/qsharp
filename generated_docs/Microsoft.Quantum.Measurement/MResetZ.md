@@ -1,7 +1,7 @@
 ---
 uid Microsoft.Quantum.Measurement.MResetZ
 title: MResetZ operation
-ms.date: todo
+ms.date: 02/12/2024
 ms.topic: managed-reference
 qsharp.kind: opeartion
 qsharp.namespace: Microsoft.Quantum.Measurement

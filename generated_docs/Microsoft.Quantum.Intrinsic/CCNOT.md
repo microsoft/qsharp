@@ -1,7 +1,7 @@
 ---
 uid Microsoft.Quantum.Intrinsic.CCNOT
 title: CCNOT operation
-ms.date: todo
+ms.date: 02/12/2024
 ms.topic: managed-reference
 qsharp.kind: opeartion
 qsharp.namespace: Microsoft.Quantum.Intrinsic

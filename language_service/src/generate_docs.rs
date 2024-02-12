@@ -6,6 +6,7 @@ mod tests;
 
 use crate::display::{increase_header_level, parse_doc_for_summary};
 use crate::{compilation::Compilation, display::CodeDisplay};
+use chrono;
 use qsc::hir::hir::{Item, ItemKind, Package, Visibility};
 use rustc_hash::FxHashMap;
 use std::fmt::{Display, Formatter, Result};
@@ -61,8 +62,14 @@ fn generate_doc_for_item<'a>(
         fs::create_dir(&ns_dir).expect("Unable to create directory for namespace");
     }
 
+    // Get Date
+    let date = chrono::Utc::now()
+        .date_naive()
+        .format("%m/%d/%Y")
+        .to_string();
+
     // Print file
-    let (title, content) = generate_file(&ns, item, display)?;
+    let (title, content) = generate_file(&ns, item, display, date)?;
     fs::write(format!("{ns_dir}/{title}.md"), content).expect("Unable to write file");
 
     // Create toc line
@@ -94,8 +101,13 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Rc<str>, String)> {
-    let metadata = get_metadata(ns.clone(), item, display)?;
+fn generate_file(
+    ns: &Rc<str>,
+    item: &Item,
+    display: &CodeDisplay,
+    date: String,
+) -> Option<(Rc<str>, String)> {
+    let metadata = get_metadata(ns.clone(), item, display, date)?;
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
@@ -172,7 +184,7 @@ enum MetadataKind {
     Udt,
 }
 
-fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metadata> {
+fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay, date: String) -> Option<Metadata> {
     let (name, signature, kind) = match &item.kind {
         ItemKind::Callable(decl) => Some((
             decl.name.name.clone(),
@@ -197,7 +209,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
             MetadataKind::Operation => format!("{name} operation"),
             MetadataKind::Udt => format!("{name} user defined type"),
         },
-        date: "todo".to_string(), // ToDo
+        date,
         topic: "managed-reference".to_string(),
         kind,
         namespace: ns,
