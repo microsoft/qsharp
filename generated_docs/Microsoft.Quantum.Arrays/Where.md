@@ -14,8 +14,6 @@ array where the predicate is true.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given a predicate and an array, returns the indices of that
-array where the predicate is true.
 ```qsharp
 function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[]
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Applies the two qubit Ising _ZZ_ rotation gate.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the two qubit Ising _ZZ_ rotation gate.
 ```qsharp
 operation Rzz(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl
 ```

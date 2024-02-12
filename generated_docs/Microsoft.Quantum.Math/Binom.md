@@ -13,7 +13,6 @@ qsharp.summary: Returns the approximate binomial coefficient of two integers.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the approximate binomial coefficient of two integers.
 ```qsharp
 function Binom(n : Int, k : Int) : Int
 ```

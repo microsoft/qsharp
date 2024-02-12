@@ -13,7 +13,6 @@ qsharp.summary: Interleaves two arrays of (almost) same size.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Interleaves two arrays of (almost) same size.
 ```qsharp
 function Interleaved<'T>(first : 'T[], second : 'T[]) : 'T[]
 ```

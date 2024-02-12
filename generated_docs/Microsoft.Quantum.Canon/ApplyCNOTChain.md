@@ -13,7 +13,6 @@ qsharp.summary: Computes the parity of a register of qubits in-place.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Computes the parity of a register of qubits in-place.
 ```qsharp
 operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Performs the identity operation (no-op) on a single qubit.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Performs the identity operation (no-op) on a single qubit.
 ```qsharp
 operation I(target : Qubit) : Unit is Adj + Ctl
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Computes the modulus between two real numbers.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Computes the modulus between two real numbers.
 ```qsharp
 function RealMod(value : Double, modulo : Double, minValue : Double) : Double
 ```

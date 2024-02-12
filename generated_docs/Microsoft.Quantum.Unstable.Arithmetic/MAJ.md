@@ -13,7 +13,6 @@ qsharp.summary: This applies the in-place majority operation to 3 qubits.
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-This applies the in-place majority operation to 3 qubits.
 ```qsharp
 operation MAJ(x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl
 ```

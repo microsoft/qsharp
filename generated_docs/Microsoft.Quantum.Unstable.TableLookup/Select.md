@@ -13,7 +13,6 @@ qsharp.summary: Performs table lookup using a SELECT network
 
 Namespace: [Microsoft.Quantum.Unstable.TableLookup](xref:Microsoft.Quantum.Unstable.TableLookup)
 
-Performs table lookup using a SELECT network
 ```qsharp
 operation Select(data : Bool[][], address : Qubit[], target : Qubit[]) : Unit is Adj + Ctl
 ```

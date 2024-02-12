@@ -13,7 +13,6 @@ qsharp.summary: Applies Quantum Fourier Transform (QFT) to a little-endian quant
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies Quantum Fourier Transform (QFT) to a little-endian quantum register.
 ```qsharp
 operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl
 ```

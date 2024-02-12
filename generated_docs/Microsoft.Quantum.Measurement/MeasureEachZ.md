@@ -13,7 +13,6 @@ qsharp.summary: Measures each qubit in a given array in the standard basis.
 
 Namespace: [Microsoft.Quantum.Measurement](xref:Microsoft.Quantum.Measurement)
 
-Measures each qubit in a given array in the standard basis.
 ```qsharp
 operation MeasureEachZ(register : Qubit[]) : Result[]
 ```

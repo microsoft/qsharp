@@ -14,8 +14,6 @@ integer.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the approximate natural logarithm of the factorial of a given
-integer.
 ```qsharp
 function LogFactorialD(n : Int) : Double
 ```

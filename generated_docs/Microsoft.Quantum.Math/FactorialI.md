@@ -13,7 +13,6 @@ qsharp.summary: Returns the factorial of a given number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the factorial of a given number.
 ```qsharp
 function FactorialI(n : Int) : Int
 ```

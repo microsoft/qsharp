@@ -14,8 +14,6 @@ bit of a Little-endian integer matches a given input.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies a Pauli operator on each qubit in an array if the corresponding
-bit of a Little-endian integer matches a given input.
 ```qsharp
 operation ApplyPauliFromInt(pauli : Pauli, bitApply : Bool, numberState : Int, qubits : Qubit[]) : Unit is Adj + Ctl
 ```

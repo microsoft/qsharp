@@ -15,9 +15,6 @@ when using resource estimator execution target.
 
 Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
 
-Account for the resource estimates of an unimplemented operation,
-which were obtainted separately. This operation is only available
-when using resource estimator execution target.
 ```qsharp
 operation AccountForEstimates(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit is Adj
 ```

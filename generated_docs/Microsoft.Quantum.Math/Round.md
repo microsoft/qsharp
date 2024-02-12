@@ -14,8 +14,6 @@ For example: Floor(3.7) = 4; Floor(-3.7) = -4
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the nearest integer to the specified number.
-For example: Floor(3.7) = 4; Floor(-3.7) = -4
 ```qsharp
 function Round(value : Double) : Int
 ```

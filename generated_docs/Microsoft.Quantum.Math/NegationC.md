@@ -13,7 +13,6 @@ qsharp.summary: Returns the unary negation of an input of type `Complex`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the unary negation of an input of type `Complex`.
 ```qsharp
 function NegationC(input : Complex) : Complex
 ```

@@ -14,8 +14,6 @@ the elements of the tuples of the input array.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array of 2-tuples, returns a tuple of two arrays, each containing
-the elements of the tuples of the input array.
 ```qsharp
 function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[])
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Given an array of integers, returns the smallest element.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Given an array of integers, returns the smallest element.
 ```qsharp
 function Min(values : Int[]) : Int
 ```

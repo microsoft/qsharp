@@ -14,8 +14,6 @@ qsharp.summary: Returns the phase of a complex number of type
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the phase of a complex number of type
-`Complex`.
 ```qsharp
 function ArgComplex(input : Complex) : Double
 ```

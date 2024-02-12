@@ -14,8 +14,6 @@ function).
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the natural logarithm of the gamma function (aka the log-gamma
-function).
 ```qsharp
 function LogGammaD(x : Double) : Double
 ```

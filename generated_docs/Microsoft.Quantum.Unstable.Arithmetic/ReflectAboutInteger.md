@@ -13,7 +13,6 @@ qsharp.summary: Reflects a quantum register about a given classical integer.
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Reflects a quantum register about a given classical integer.
 ```qsharp
 operation ReflectAboutInteger(index : Int, reg : Qubit[]) : Unit is Adj + Ctl
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Returns the integer that specifies how the next value of a range
 
 Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
 
-Returns the integer that specifies how the next value of a range is calculated.
 ```qsharp
 function RangeStep(r : Range) : Int
 ```

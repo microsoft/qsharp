@@ -14,8 +14,6 @@ little-endian representation for the returned array.
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Produces a binary representation of a non-negative BigInt, using the
-little-endian representation for the returned array.
 ```qsharp
 function BigIntAsBoolArray(number : BigInt, bits : Int) : Bool[]
 ```

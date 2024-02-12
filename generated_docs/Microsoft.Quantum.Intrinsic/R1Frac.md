@@ -19,13 +19,6 @@ factor of 1/2 included by Microsoft.Quantum.Intrinsic.R1.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies a rotation about the |1⟩ state by an angle specified
-as a dyadic fraction.
-
-WARNING:
-This operation uses the **opposite** sign convention from
-Microsoft.Quantum.Intrinsic.R, and does not include the
-factor of 1/2 included by Microsoft.Quantum.Intrinsic.R1.
 ```qsharp
 operation R1Frac(numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl
 ```

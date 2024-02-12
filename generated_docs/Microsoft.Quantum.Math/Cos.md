@@ -13,7 +13,6 @@ qsharp.summary: Returns the cosine of the specified angle.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the cosine of the specified angle.
 ```qsharp
 function Cos(theta : Double) : Double
 ```

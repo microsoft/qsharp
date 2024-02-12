@@ -13,7 +13,6 @@ qsharp.summary: Returns the multiplicative inverse of a modular integer.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the multiplicative inverse of a modular integer.
 ```qsharp
 function InverseModI(a : Int, modulus : Int) : Int
 ```

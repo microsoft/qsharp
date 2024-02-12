@@ -14,8 +14,6 @@ array as a binary representation in little-endian format.
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Converts an array of Boolean values into a non-negative BigInt, interpreting the
-array as a binary representation in little-endian format.
 ```qsharp
 function BoolArrayAsBigInt(boolArray : Bool[]) : BigInt
 ```

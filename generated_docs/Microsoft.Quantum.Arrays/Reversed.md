@@ -14,8 +14,6 @@ order.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Create an array that contains the same elements as an input array but in reversed
-order.
 ```qsharp
 function Reversed<'T>(array : 'T[]) : 'T[]
 ```

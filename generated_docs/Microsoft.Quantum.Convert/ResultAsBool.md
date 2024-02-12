@@ -14,8 +14,6 @@ qsharp.summary: Converts a `Result` type to a `Bool` type, where `One` is mapped
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Converts a `Result` type to a `Bool` type, where `One` is mapped to
-`true` and `Zero` is mapped to `false`.
 ```qsharp
 function ResultAsBool(input : Result) : Bool
 ```

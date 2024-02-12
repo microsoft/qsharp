@@ -15,9 +15,6 @@ is only available when using resource estimator execution target.
 
 Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
 
-Instructs the resource estimator to stop estimates caching
-because the code fragment in consideration is over. This function
-is only available when using resource estimator execution target.
 ```qsharp
 function EndEstimateCaching() : Unit
 ```

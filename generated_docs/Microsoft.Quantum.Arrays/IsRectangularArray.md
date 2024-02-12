@@ -13,7 +13,6 @@ qsharp.summary: Returns whether a 2-dimensional array has a rectangular shape
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns whether a 2-dimensional array has a rectangular shape
 ```qsharp
 function IsRectangularArray<'T>(array : 'T[][]) : Bool
 ```

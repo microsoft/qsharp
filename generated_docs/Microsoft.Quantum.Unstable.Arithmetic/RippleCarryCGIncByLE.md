@@ -14,8 +14,6 @@ using the ripple-carry algorithm.
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Increments a little-endian register ys by a little-endian register xs
-using the ripple-carry algorithm.
 ```qsharp
 operation RippleCarryCGIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
 ```

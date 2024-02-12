@@ -14,8 +14,6 @@ The modifier `CA` indicates that the single-element operation is controllable an
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies an operation to each element in a register.
-The modifier `CA` indicates that the single-element operation is controllable and adjointable.
 ```qsharp
 operation ApplyToEachCA<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Adj + Ctl
 ```

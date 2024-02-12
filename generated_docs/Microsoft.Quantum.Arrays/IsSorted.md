@@ -14,8 +14,6 @@ a given comparison function.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array, returns whether that array is sorted as defined by
-a given comparison function.
 ```qsharp
 function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool
 ```

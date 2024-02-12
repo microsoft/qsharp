@@ -13,7 +13,6 @@ qsharp.summary: Returns the angle whose tangent is the specified number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the angle whose tangent is the specified number.
 ```qsharp
 function ArcTan(d : Double) : Double
 ```

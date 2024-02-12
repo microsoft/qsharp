@@ -13,7 +13,6 @@ qsharp.summary:
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-
 ```qsharp
 function AbsL(a : BigInt) : BigInt
 ```

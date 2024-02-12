@@ -14,8 +14,6 @@ little-endian representation for the returned array.
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Produces a binary representation of a non-negative integer, using the
-little-endian representation for the returned array.
 ```qsharp
 function IntAsBoolArray(number : Int, bits : Int) : Bool[]
 ```

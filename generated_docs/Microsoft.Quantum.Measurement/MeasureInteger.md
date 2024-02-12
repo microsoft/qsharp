@@ -15,9 +15,6 @@ to the standard computational basis, i.e., the eigenbasis of `PauliZ`.
 
 Namespace: [Microsoft.Quantum.Measurement](xref:Microsoft.Quantum.Measurement)
 
-Measures the content of a quantum register and converts
-it to an integer. The measurement is performed with respect
-to the standard computational basis, i.e., the eigenbasis of `PauliZ`.
 ```qsharp
 operation MeasureInteger(target : Qubit[]) : Int
 ```

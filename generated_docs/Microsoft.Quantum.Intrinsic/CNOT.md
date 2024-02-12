@@ -13,7 +13,6 @@ qsharp.summary: Applies the controlled-NOT (CNOT) gate to a pair of qubits.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the controlled-NOT (CNOT) gate to a pair of qubits.
 ```qsharp
 operation CNOT(control : Qubit, target : Qubit) : Unit is Adj + Ctl
 ```

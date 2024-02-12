@@ -13,7 +13,6 @@ qsharp.summary: Computes the inverse hyperbolic sine of a number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Computes the inverse hyperbolic sine of a number.
 ```qsharp
 function ArcSinh(x : Double) : Double
 ```

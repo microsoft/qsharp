@@ -13,7 +13,6 @@ qsharp.summary: Returns the unary negation of an input of type `ComplexPolar`
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the unary negation of an input of type `ComplexPolar`
 ```qsharp
 function NegationCP(input : ComplexPolar) : ComplexPolar
 ```

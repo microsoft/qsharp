@@ -13,7 +13,6 @@ qsharp.summary: Given two operations, checks that they act identically for all i
 
 Namespace: [Microsoft.Quantum.Diagnostics](xref:Microsoft.Quantum.Diagnostics)
 
-Given two operations, checks that they act identically for all input states.
 ```qsharp
 operation CheckOperationsAreEqual(nQubits : Int, actual : (Qubit[] => Unit is Param<0>), expected : (Qubit[] => Unit is Param<1>)) : Bool
 ```

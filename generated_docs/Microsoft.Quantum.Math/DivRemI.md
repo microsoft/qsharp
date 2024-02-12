@@ -13,7 +13,6 @@ qsharp.summary: Divides one Integer value by another, returns the result and the
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Divides one Integer value by another, returns the result and the remainder as a tuple.
 ```qsharp
 function DivRemI(dividend : Int, divisor : Int) : (Int, Int)
 ```

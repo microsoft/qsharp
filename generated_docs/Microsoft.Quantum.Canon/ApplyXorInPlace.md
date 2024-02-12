@@ -14,8 +14,6 @@ integer represented by a register of qubits.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies a bitwise-XOR operation between a classical integer and an
-integer represented by a register of qubits.
 ```qsharp
 operation ApplyXorInPlace(value : Int, target : Qubit[]) : Unit is Adj + Ctl
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Applies the SWAP gate to a pair of qubits.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the SWAP gate to a pair of qubits.
 ```qsharp
 operation SWAP(qubit1 : Qubit, qubit2 : Qubit) : Unit is Adj + Ctl
 ```

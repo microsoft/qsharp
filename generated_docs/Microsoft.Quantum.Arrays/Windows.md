@@ -13,7 +13,6 @@ qsharp.summary: Returns all consecutive subarrays of length `size`.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns all consecutive subarrays of length `size`.
 ```qsharp
 function Windows<'T>(size : Int, array : 'T[]) : 'T[][]
 ```

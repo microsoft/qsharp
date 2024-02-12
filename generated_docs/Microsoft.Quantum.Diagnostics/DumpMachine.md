@@ -13,7 +13,6 @@ qsharp.summary:
 
 Namespace: [Microsoft.Quantum.Diagnostics](xref:Microsoft.Quantum.Diagnostics)
 
-
 ```qsharp
 function DumpMachine() : Unit
 ```

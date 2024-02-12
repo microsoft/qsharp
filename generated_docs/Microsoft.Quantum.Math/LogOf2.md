@@ -13,7 +13,6 @@ qsharp.summary: Returns the natural logarithm of 2.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the natural logarithm of 2.
 ```qsharp
 function LogOf2() : Double
 ```

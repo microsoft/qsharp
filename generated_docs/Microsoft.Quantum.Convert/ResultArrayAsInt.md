@@ -13,7 +13,6 @@ qsharp.summary: Produces a non-negative integer from a string of Results in litt
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Produces a non-negative integer from a string of Results in little-endian format.
 ```qsharp
 function ResultArrayAsInt(results : Result[]) : Int
 ```

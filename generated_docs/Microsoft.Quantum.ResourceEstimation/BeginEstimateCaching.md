@@ -15,9 +15,6 @@ is only available when using resource estimator execution target.
 
 Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
 
-Informs the resource estimator of the start of the code fragment
-for which estimates caching can be done. This function
-is only available when using resource estimator execution target.
 ```qsharp
 function BeginEstimateCaching(name : String, variant : Int) : Bool
 ```

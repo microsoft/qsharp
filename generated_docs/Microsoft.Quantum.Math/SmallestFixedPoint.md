@@ -13,7 +13,6 @@ qsharp.summary: Returns the smallest representable number for specific fixed poi
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the smallest representable number for specific fixed point dimensions.
 ```qsharp
 function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double
 ```

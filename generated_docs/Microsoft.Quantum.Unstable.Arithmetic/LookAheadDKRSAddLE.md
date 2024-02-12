@@ -14,8 +14,6 @@ little-endian registers xs and ys using the carry-lookahead algorithm.
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Sets a zero-initialized little-endian register zs to the sum of
-little-endian registers xs and ys using the carry-lookahead algorithm.
 ```qsharp
 operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj
 ```

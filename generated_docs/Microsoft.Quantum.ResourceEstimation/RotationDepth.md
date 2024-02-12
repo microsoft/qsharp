@@ -14,8 +14,6 @@ to specify that the rotation depth is equal to the `amount`.
 
 Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
 
-Returns a tuple that can be passed to the `AccountForEstimates` operation
-to specify that the rotation depth is equal to the `amount`.
 ```qsharp
 function RotationDepth(amount : Int) : (Int, Int)
 ```

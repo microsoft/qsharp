@@ -14,8 +14,6 @@ function
 
 Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
 
-Used to specify that there's only one execution variant in `BeginEstimateCaching`
-function
 ```qsharp
 function SingleVariant() : Int
 ```

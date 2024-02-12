@@ -13,7 +13,6 @@ qsharp.summary: Returns the defined start value of the given range.
 
 Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
 
-Returns the defined start value of the given range.
 ```qsharp
 function RangeStart(r : Range) : Int
 ```

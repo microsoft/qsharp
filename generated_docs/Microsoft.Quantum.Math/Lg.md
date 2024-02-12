@@ -13,7 +13,6 @@ qsharp.summary: Computes the base-2 logarithm of a number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Computes the base-2 logarithm of a number.
 ```qsharp
 function Lg(input : Double) : Double
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Returns the difference between two inputs of type `Complex`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the difference between two inputs of type `Complex`.
 ```qsharp
 function MinusC(a : Complex, b : Complex) : Complex
 ```

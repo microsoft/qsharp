@@ -13,7 +13,6 @@ qsharp.summary: Returns the hyperbolic tangent of the specified angle.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the hyperbolic tangent of the specified angle.
 ```qsharp
 function Tanh(d : Double) : Double
 ```

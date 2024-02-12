@@ -13,7 +13,6 @@ qsharp.summary: Returns a new range which is the reverse of the input range.
 
 Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
 
-Returns a new range which is the reverse of the input range.
 ```qsharp
 function RangeReverse(r : Range) : Range
 ```

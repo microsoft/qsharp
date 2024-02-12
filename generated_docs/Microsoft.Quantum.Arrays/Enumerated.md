@@ -14,8 +14,6 @@ array along with the indices of each element.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array, returns a new array containing elements of the original
-array along with the indices of each element.
 ```qsharp
 function Enumerated<'TElement>(array : 'TElement[]) : (Int, 'TElement)[]
 ```

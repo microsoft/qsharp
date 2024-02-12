@@ -14,8 +14,6 @@ using provided adder.
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Increments a little-endian register ys by a BigInt number c
-using provided adder.
 ```qsharp
 operation IncByLUsingIncByLE(adder : ((Qubit[], Qubit[]) => Unit is Param<0>), c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl
 ```

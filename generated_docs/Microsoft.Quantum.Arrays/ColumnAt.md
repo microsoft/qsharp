@@ -13,7 +13,6 @@ qsharp.summary: Extracts a column from a matrix.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Extracts a column from a matrix.
 ```qsharp
 function ColumnAt<'T>(column : Int, matrix : 'T[][]) : 'T[]
 ```

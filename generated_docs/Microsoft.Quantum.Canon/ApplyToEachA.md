@@ -14,8 +14,6 @@ The modifier `A` indicates that the single-element operation is adjointable.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies an operation to each element in a register.
-The modifier `A` indicates that the single-element operation is adjointable.
 ```qsharp
 operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Adj
 ```

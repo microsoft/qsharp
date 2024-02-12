@@ -13,7 +13,6 @@ qsharp.summary: Returns the larger of two specified numbers.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the larger of two specified numbers.
 ```qsharp
 function MaxL(a : BigInt, b : BigInt) : BigInt
 ```

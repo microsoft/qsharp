@@ -14,8 +14,6 @@ For example: Truncate(3.7) = 3; Truncate(-3.7) = -3
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the integral part of a number.
-For example: Truncate(3.7) = 3; Truncate(-3.7) = -3
 ```qsharp
 function Truncate(value : Double) : Int
 ```

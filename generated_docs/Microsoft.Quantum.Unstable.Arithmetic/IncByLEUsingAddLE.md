@@ -13,7 +13,6 @@ qsharp.summary: Generic operation to turn two out-place adders into one in-place
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Generic operation to turn two out-place adders into one in-place adder
 ```qsharp
 operation IncByLEUsingAddLE(forwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<0>), backwardAdder : ((Qubit[], Qubit[], Qubit[]) => Unit is Param<1>), xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
 ```

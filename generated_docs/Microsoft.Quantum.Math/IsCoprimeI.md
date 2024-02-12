@@ -13,7 +13,6 @@ qsharp.summary: Returns if two integers are co-prime.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns if two integers are co-prime.
 ```qsharp
 function IsCoprimeI(a : Int, b : Int) : Bool
 ```

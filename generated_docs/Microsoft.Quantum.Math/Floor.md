@@ -14,8 +14,6 @@ For example: Floor(3.7) = 3; Floor(-3.1) = -4
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the largest integer less than or equal to the specified number.
-For example: Floor(3.7) = 3; Floor(-3.1) = -4
 ```qsharp
 function Floor(value : Double) : Int
 ```

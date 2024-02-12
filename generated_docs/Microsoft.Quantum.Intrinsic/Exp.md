@@ -13,7 +13,6 @@ qsharp.summary: Applies the exponential of a multi-qubit Pauli operator.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the exponential of a multi-qubit Pauli operator.
 ```qsharp
 operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Jointly measures a register of qubits in the Pauli Z basis.
 
 Namespace: [Microsoft.Quantum.Measurement](xref:Microsoft.Quantum.Measurement)
 
-Jointly measures a register of qubits in the Pauli Z basis.
 ```qsharp
 operation MeasureAllZ(register : Qubit[]) : Result
 ```

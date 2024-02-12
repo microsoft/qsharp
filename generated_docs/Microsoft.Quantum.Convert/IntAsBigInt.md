@@ -13,7 +13,6 @@ qsharp.summary: Converts a given integer to an equivalent big integer.
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Converts a given integer to an equivalent big integer.
 ```qsharp
 function IntAsBigInt(number : Int) : BigInt
 ```

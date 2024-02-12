@@ -14,8 +14,6 @@ contains an element from each original array.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given two arrays, returns a new array of pairs such that each pair
-contains an element from each original array.
 ```qsharp
 function Zipped<'T, 'U>(left : 'T[], right : 'U[]) : ('T, 'U)[]
 ```

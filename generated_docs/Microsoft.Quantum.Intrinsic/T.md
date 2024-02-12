@@ -13,7 +13,6 @@ qsharp.summary: Applies the π/8 gate to a single qubit.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the π/8 gate to a single qubit.
 ```qsharp
 operation T(qubit : Qubit) : Unit is Adj + Ctl
 ```

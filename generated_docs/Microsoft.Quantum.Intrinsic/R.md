@@ -13,7 +13,6 @@ qsharp.summary: Applies a rotation about the given Pauli axis.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies a rotation about the given Pauli axis.
 ```qsharp
 operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl
 ```

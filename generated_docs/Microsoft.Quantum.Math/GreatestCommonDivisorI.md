@@ -14,8 +14,6 @@ Note: GCD is always positive except that GCD(0,0)=0.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Computes the greatest common divisor of two integers.
-Note: GCD is always positive except that GCD(0,0)=0.
 ```qsharp
 function GreatestCommonDivisorI(a : Int, b : Int) : Int
 ```

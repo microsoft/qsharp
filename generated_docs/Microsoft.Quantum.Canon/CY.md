@@ -13,7 +13,6 @@ qsharp.summary: Applies the controlled-Y (CY) gate to a pair of qubits.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies the controlled-Y (CY) gate to a pair of qubits.
 ```qsharp
 operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl
 ```

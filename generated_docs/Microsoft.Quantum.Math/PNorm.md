@@ -16,10 +16,6 @@ That is, given an array x of type `Double[]`, this returns the p-norm
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the `L(p)` norm of a vector of `Double`s.
-
-That is, given an array x of type `Double[]`, this returns the p-norm
-|x̄|ₚ= (∑(xᵢ)ᵖ)¹ᐟᵖ.
 ```qsharp
 function PNorm(p : Double, array : Double[]) : Double
 ```

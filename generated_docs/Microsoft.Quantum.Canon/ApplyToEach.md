@@ -13,7 +13,6 @@ qsharp.summary: Applies an operation to each element in a register.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies an operation to each element in a register.
 ```qsharp
 operation ApplyToEach<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit
 ```

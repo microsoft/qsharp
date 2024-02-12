@@ -14,8 +14,6 @@ Pauli _Z_ basis.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Performs a measurement of a single qubit in the
-Pauli _Z_ basis.
 ```qsharp
 operation M(qubit : Qubit) : Result
 ```

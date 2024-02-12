@@ -13,7 +13,6 @@ qsharp.summary: Reversible, in-place ripple-carry addition of two integers.
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Reversible, in-place ripple-carry addition of two integers.
 ```qsharp
 operation RippleCarryTTKIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl
 ```

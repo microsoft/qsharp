@@ -14,8 +14,6 @@ Note that this is a multi-valued function, but only one value is returned.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns a number raised to a given power of type `Complex`.
-Note that this is a multi-valued function, but only one value is returned.
 ```qsharp
 function PowC(a : Complex, power : Complex) : Complex
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Returns the natural (base _e_) logarithm of a specified number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the natural (base _e_) logarithm of a specified number.
 ```qsharp
 function Log(input : Double) : Double
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Applies a rotation about the _x_-axis by a given angle.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies a rotation about the _x_-axis by a given angle.
 ```qsharp
 operation Rx(theta : Double, qubit : Qubit) : Unit is Adj + Ctl
 ```

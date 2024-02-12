@@ -13,7 +13,6 @@ qsharp.summary: Represents the ratio of the circumference of a circle to its dia
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Represents the ratio of the circumference of a circle to its diameter.
 ```qsharp
 function PI() : Double
 ```

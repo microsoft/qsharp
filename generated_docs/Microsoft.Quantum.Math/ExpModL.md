@@ -14,8 +14,6 @@ modulus. I.e. (expBase^power) % modulus.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns an integer raised to a given power, with respect to a given
-modulus. I.e. (expBase^power) % modulus.
 ```qsharp
 function ExpModL(expBase : BigInt, power : BigInt, modulus : BigInt) : BigInt
 ```

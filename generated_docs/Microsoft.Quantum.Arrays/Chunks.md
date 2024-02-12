@@ -13,7 +13,6 @@ qsharp.summary: Splits an array into multiple parts of equal length.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Splits an array into multiple parts of equal length.
 ```qsharp
 function Chunks<'T>(chunkSize : Int, array : 'T[]) : 'T[][]
 ```

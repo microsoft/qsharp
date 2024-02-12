@@ -15,9 +15,6 @@ array satisfy the predicate.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array and a predicate that is defined
-for the elements of the array, and checks if all elements of the
-array satisfy the predicate.
 ```qsharp
 function All<'T>(predicate : ('T -> Bool), array : 'T[]) : Bool
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Returns a tuple of all but one and the last element of the array
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns a tuple of all but one and the last element of the array.
 ```qsharp
 function MostAndTail<'A>(array : 'A[]) : ('A[], 'A)
 ```

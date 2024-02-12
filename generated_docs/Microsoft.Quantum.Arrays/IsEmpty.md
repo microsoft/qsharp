@@ -13,7 +13,6 @@ qsharp.summary: Returns true if and only if an array is empty.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns true if and only if an array is empty.
 ```qsharp
 function IsEmpty<'T>(array : 'T[]) : Bool
 ```

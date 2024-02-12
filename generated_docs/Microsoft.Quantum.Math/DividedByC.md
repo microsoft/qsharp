@@ -13,7 +13,6 @@ qsharp.summary: Returns the quotient of two inputs of type `Complex`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the quotient of two inputs of type `Complex`.
 ```qsharp
 function DividedByC(a : Complex, b : Complex) : Complex
 ```

@@ -14,8 +14,6 @@ specified Pauli bases.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Performs a joint measurement of one or more qubits in the
-specified Pauli bases.
 ```qsharp
 operation Measure(bases : Pauli[], qubits : Qubit[]) : Result
 ```

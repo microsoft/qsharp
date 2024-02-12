@@ -13,7 +13,6 @@ qsharp.summary: Returns whether a 2-dimensional array has a square shape
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns whether a 2-dimensional array has a square shape
 ```qsharp
 function IsSquareArray<'T>(array : 'T[][]) : Bool
 ```

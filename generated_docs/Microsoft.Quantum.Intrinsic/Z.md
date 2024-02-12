@@ -13,7 +13,6 @@ qsharp.summary: Applies the Pauli _Z_ gate.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the Pauli _Z_ gate.
 ```qsharp
 operation Z(qubit : Qubit) : Unit is Adj + Ctl
 ```

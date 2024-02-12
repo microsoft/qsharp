@@ -13,7 +13,6 @@ qsharp.summary: Given a pair, returns its first element.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Given a pair, returns its first element.
 ```qsharp
 function Fst<'T, 'U>(pair : ('T, 'U)) : 'T
 ```

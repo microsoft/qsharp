@@ -13,7 +13,6 @@ qsharp.summary: Returns the last element of the array.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns the last element of the array.
 ```qsharp
 function Tail<'A>(array : 'A[]) : 'A
 ```

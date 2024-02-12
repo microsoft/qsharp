@@ -14,8 +14,6 @@ little-endian registers xs and ys
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Sets a zero-initialized little-endian register zs to the sum of
-little-endian registers xs and ys
 ```qsharp
 operation AddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj
 ```

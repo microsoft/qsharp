@@ -13,7 +13,6 @@ qsharp.summary: Produces a non-negative integer from a string of bits in little 
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Produces a non-negative integer from a string of bits in little endian format.
 ```qsharp
 function BoolArrayAsInt(bits : Bool[]) : Int
 ```

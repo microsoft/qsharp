@@ -13,7 +13,6 @@ qsharp.summary: Given an array of integers, returns the largest element.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Given an array of integers, returns the largest element.
 ```qsharp
 function Max(values : Int[]) : Int
 ```

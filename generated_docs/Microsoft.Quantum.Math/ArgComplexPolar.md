@@ -13,7 +13,6 @@ qsharp.summary: Returns the phase of a complex number of type `ComplexPolar`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the phase of a complex number of type `ComplexPolar`.
 ```qsharp
 function ArgComplexPolar(input : ComplexPolar) : Double
 ```

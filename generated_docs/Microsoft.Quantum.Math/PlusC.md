@@ -13,7 +13,6 @@ qsharp.summary: Returns the sum of two inputs of type `Complex`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the sum of two inputs of type `Complex`.
 ```qsharp
 function PlusC(a : Complex, b : Complex) : Complex
 ```

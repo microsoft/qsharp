@@ -13,7 +13,6 @@ qsharp.summary: Returns the squared 2-norm of a vector.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the squared 2-norm of a vector.
 ```qsharp
 function SquaredNorm(array : Double[]) : Double
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Applies the π/4 phase gate to a single qubit.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the π/4 phase gate to a single qubit.
 ```qsharp
 operation S(qubit : Qubit) : Unit is Adj + Ctl
 ```

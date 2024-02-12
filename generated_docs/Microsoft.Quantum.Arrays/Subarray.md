@@ -15,9 +15,6 @@ array that match the given locations.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Takes an array and a list of locations and
-produces a new array formed from the elements of the original
-array that match the given locations.
 ```qsharp
 function Subarray<'T>(locations : Int[], array : 'T[]) : 'T[]
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Converts a given integer to an equivalent double-precision float
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Converts a given integer to an equivalent double-precision floating-point number.
 ```qsharp
 function IntAsDouble(number : Int) : Double
 ```

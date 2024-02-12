@@ -14,8 +14,6 @@ specified length.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns an array padded at with specified values up to a
-specified length.
 ```qsharp
 function Padded<'T>(paddedLength : Int, defaultElement : 'T, inputArray : 'T[]) : 'T[]
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Given a pair, returns its second element.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Given a pair, returns its second element.
 ```qsharp
 function Snd<'T, 'U>(pair : ('T, 'U)) : 'U
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Returns the number of 1 bits in the binary representation of int
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the number of 1 bits in the binary representation of integer `n`.
 ```qsharp
 function HammingWeightI(n : Int) : Int
 ```

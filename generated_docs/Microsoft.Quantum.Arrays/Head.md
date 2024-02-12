@@ -13,7 +13,6 @@ qsharp.summary: Returns the first element of the array.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns the first element of the array.
 ```qsharp
 function Head<'A>(array : 'A[]) : 'A
 ```

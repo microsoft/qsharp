@@ -14,8 +14,6 @@ qsharp.summary: Returns the squared absolute value of a complex number of type
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the squared absolute value of a complex number of type
-`Complex`.
 ```qsharp
 function AbsSquaredComplex(input : Complex) : Double
 ```

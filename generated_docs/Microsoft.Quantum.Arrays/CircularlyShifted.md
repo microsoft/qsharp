@@ -13,7 +13,6 @@ qsharp.summary: Shift an array circularly left or right by a specific step size.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Shift an array circularly left or right by a specific step size.
 ```qsharp
 function CircularlyShifted<'T>(stepCount : Int, array : 'T[]) : 'T[]
 ```

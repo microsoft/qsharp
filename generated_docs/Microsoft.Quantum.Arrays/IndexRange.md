@@ -14,8 +14,6 @@ for use in a for loop.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array, returns a range over the indices of that array, suitable
-for use in a for loop.
 ```qsharp
 function IndexRange<'TElement>(array : 'TElement[]) : Range
 ```

@@ -18,12 +18,6 @@ Microsoft.Quantum.Intrinsic.R.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies a rotation about the given Pauli axis by an angle specified
-as a dyadic fraction.
-
-WARNING:
-This operation uses the **opposite** sign convention from
-Microsoft.Quantum.Intrinsic.R.
 ```qsharp
 operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl
 ```

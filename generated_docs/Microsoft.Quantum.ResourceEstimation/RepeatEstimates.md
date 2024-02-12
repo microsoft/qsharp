@@ -16,10 +16,6 @@ times.
 
 Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
 
-Instructs the resource estimator to assume that the resources from the
-call of this operation until a call to `Adjoint RepeatEstimates` are
-accounted for `count` times, without the need to execute the code that many
-times.
 ```qsharp
 operation RepeatEstimates(count : Int) : Unit is Adj
 ```

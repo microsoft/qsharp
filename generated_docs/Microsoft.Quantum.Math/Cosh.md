@@ -13,7 +13,6 @@ qsharp.summary: Returns the hyperbolic cosine of the specified angle.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the hyperbolic cosine of the specified angle.
 ```qsharp
 function Cosh(d : Double) : Double
 ```

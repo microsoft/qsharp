@@ -14,8 +14,6 @@ and resets them to a fixed initial state.
 
 Namespace: [Microsoft.Quantum.Measurement](xref:Microsoft.Quantum.Measurement)
 
-Measures each qubit in a given array in the Z basis
-and resets them to a fixed initial state.
 ```qsharp
 operation MResetEachZ(register : Qubit[]) : Result[]
 ```

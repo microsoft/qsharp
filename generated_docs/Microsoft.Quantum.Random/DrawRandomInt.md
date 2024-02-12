@@ -13,7 +13,6 @@ qsharp.summary: Draws a random integer in a given inclusive range.
 
 Namespace: [Microsoft.Quantum.Random](xref:Microsoft.Quantum.Random)
 
-Draws a random integer in a given inclusive range.
 ```qsharp
 operation DrawRandomInt(min : Int, max : Int) : Int
 ```

@@ -14,8 +14,6 @@ in the binary representation of `a`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-For a non-zero integer `a`, returns the number of trailing zero bits
-in the binary representation of `a`.
 ```qsharp
 function TrailingZeroCountL(a : BigInt) : Int
 ```

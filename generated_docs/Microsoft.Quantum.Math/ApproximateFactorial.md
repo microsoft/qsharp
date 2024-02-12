@@ -13,7 +13,6 @@ qsharp.summary: Returns an approximate factorial of a given number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns an approximate factorial of a given number.
 ```qsharp
 function ApproximateFactorial(n : Int) : Double
 ```

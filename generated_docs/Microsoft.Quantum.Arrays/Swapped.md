@@ -13,7 +13,6 @@ qsharp.summary: Applies a swap of two elements in an array.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Applies a swap of two elements in an array.
 ```qsharp
 function Swapped<'T>(firstIndex : Int, secondIndex : Int, array : 'T[]) : 'T[]
 ```

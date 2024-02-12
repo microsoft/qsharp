@@ -15,9 +15,6 @@ an array that consists of those elements that satisfy the predicate.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array and a predicate that is defined
-for the elements of the array, returns the number of elements
-an array that consists of those elements that satisfy the predicate.
 ```qsharp
 function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int
 ```

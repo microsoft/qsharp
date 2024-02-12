@@ -13,7 +13,6 @@ qsharp.summary: Applies the Hadamard transformation to a single qubit.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the Hadamard transformation to a single qubit.
 ```qsharp
 operation H(qubit : Qubit) : Unit is Adj + Ctl
 ```

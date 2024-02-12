@@ -14,8 +14,6 @@ element is dropped.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Creates an array that is equal to an input array except that the first array
-element is dropped.
 ```qsharp
 function Rest<'T>(array : 'T[]) : 'T[]
 ```

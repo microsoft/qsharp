@@ -13,7 +13,6 @@ qsharp.summary: Returns the quotient of two inputs of type `ComplexPolar`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the quotient of two inputs of type `ComplexPolar`.
 ```qsharp
 function DividedByCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
 ```

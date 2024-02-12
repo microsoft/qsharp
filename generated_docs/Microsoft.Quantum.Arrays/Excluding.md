@@ -14,8 +14,6 @@ excluding elements at a given list of indices.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns an array containing the elements of another array,
-excluding elements at a given list of indices.
 ```qsharp
 function Excluding<'T>(remove : Int[], array : 'T[]) : 'T[]
 ```

@@ -14,8 +14,6 @@ register state corresponds to a specified nonnegative integer.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies a unitary operation on the target if the control
-register state corresponds to a specified nonnegative integer.
 ```qsharp
 operation ApplyControlledOnInt<'T>(numberState : Int, oracle : ('T => Unit is Param<1>), controlRegister : Qubit[], target : 'T) : Unit is Adj + Ctl
 ```

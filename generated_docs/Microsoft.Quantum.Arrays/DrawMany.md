@@ -14,8 +14,6 @@ in an array.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Repeats an operation for a given number of samples, collecting its outputs
-in an array.
 ```qsharp
 operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput is Param<2>), nSamples : Int, input : 'TInput) : 'TOutput[]
 ```

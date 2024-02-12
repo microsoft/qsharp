@@ -14,8 +14,6 @@ The polar representation of a complex number is c = r⋅𝑒^(t𝑖).
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Represents a complex number in polar form.
-The polar representation of a complex number is c = r⋅𝑒^(t𝑖).
 ```qsharp
 newtype ComplexPolar = (Magnitude: Double, Argument: Double)
 ```

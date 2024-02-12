@@ -14,8 +14,6 @@ The modifier `C` indicates that the single-element operation is controllable.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies an operation to each element in a register.
-The modifier `C` indicates that the single-element operation is controllable.
 ```qsharp
 operation ApplyToEachC<'T>(singleElementOperation : ('T => Unit is Param<1>), register : 'T[]) : Unit is Ctl
 ```

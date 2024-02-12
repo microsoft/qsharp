@@ -13,7 +13,6 @@ qsharp.summary: Returns the absolute value of an integer.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the absolute value of an integer.
 ```qsharp
 function AbsI(a : Int) : Int
 ```

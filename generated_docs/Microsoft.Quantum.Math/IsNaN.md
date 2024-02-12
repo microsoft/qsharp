@@ -14,8 +14,6 @@ NaN).
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns whether a given floating-point value is not a number (i.e. is
-NaN).
 ```qsharp
 function IsNaN(d : Double) : Bool
 ```

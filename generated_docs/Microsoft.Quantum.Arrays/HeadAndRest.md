@@ -13,7 +13,6 @@ qsharp.summary: Returns a tuple of first and all remaining elements of the array
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns a tuple of first and all remaining elements of the array.
 ```qsharp
 function HeadAndRest<'A>(array : 'A[]) : ('A, 'A[])
 ```

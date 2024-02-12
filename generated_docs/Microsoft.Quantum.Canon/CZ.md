@@ -13,7 +13,6 @@ qsharp.summary: Applies the controlled-Z (CZ) gate to a pair of qubits.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies the controlled-Z (CZ) gate to a pair of qubits.
 ```qsharp
 operation CZ(control : Qubit, target : Qubit) : Unit is Adj + Ctl
 ```

@@ -15,9 +15,6 @@ following the measurement.
 
 Namespace: [Microsoft.Quantum.Measurement](xref:Microsoft.Quantum.Measurement)
 
-Measures a single qubit in the Y basis,
-and resets it to a fixed initial state
-following the measurement.
 ```qsharp
 operation MResetY(target : Qubit) : Result
 ```

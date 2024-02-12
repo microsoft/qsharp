@@ -13,7 +13,6 @@ qsharp.summary: Uses SWAP gates to reverse the order of the qubits in a register
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Uses SWAP gates to reverse the order of the qubits in a register.
 ```qsharp
 operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl
 ```

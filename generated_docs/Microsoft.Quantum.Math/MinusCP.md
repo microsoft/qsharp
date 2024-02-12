@@ -13,7 +13,6 @@ qsharp.summary: Returns the difference between two inputs of type `ComplexPolar`
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the difference between two inputs of type `ComplexPolar`.
 ```qsharp
 function MinusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Applies the two qubit Ising _YY_ rotation gate.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the two qubit Ising _YY_ rotation gate.
 ```qsharp
 operation Ryy(theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit is Adj + Ctl
 ```

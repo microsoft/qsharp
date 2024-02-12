@@ -14,8 +14,6 @@ to a quantum register.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Given a multi-qubit Pauli operator, applies the corresponding operation
-to a quantum register.
 ```qsharp
 operation ApplyPauli(pauli : Pauli[], target : Qubit[]) : Unit is Adj + Ctl
 ```

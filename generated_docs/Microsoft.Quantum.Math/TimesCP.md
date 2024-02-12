@@ -13,7 +13,6 @@ qsharp.summary: Returns the product of two inputs of type `ComplexPolar`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the product of two inputs of type `ComplexPolar`.
 ```qsharp
 function TimesCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
 ```

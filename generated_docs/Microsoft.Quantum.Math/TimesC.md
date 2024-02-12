@@ -13,7 +13,6 @@ qsharp.summary: Returns the product of two inputs of type `Complex`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the product of two inputs of type `Complex`.
 ```qsharp
 function TimesC(a : Complex, b : Complex) : Complex
 ```

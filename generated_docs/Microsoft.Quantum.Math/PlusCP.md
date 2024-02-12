@@ -13,7 +13,6 @@ qsharp.summary: Returns the sum of two inputs of type `ComplexPolar`.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the sum of two inputs of type `ComplexPolar`.
 ```qsharp
 function PlusCP(a : ComplexPolar, b : ComplexPolar) : ComplexPolar
 ```

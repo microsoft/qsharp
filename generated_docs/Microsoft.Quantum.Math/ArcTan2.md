@@ -13,7 +13,6 @@ qsharp.summary: Returns the angle whose tangent is the quotient of two specified
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the angle whose tangent is the quotient of two specified numbers.
 ```qsharp
 function ArcTan2(y : Double, x : Double) : Double
 ```

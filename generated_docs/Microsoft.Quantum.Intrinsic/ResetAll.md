@@ -14,8 +14,6 @@ such that they can be safely released.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Given an array of qubits, measure them and ensure they are in the |0⟩ state
-such that they can be safely released.
 ```qsharp
 operation ResetAll(qubits : Qubit[]) : Unit
 ```

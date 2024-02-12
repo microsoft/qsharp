@@ -13,7 +13,6 @@ qsharp.summary: Applies the Pauli _Y_ gate.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the Pauli _Y_ gate.
 ```qsharp
 operation Y(qubit : Qubit) : Unit is Adj + Ctl
 ```

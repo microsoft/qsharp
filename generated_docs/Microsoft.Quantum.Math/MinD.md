@@ -13,7 +13,6 @@ qsharp.summary: Returns the smaller of two specified numbers.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the smaller of two specified numbers.
 ```qsharp
 function MinD(a : Double, b : Double) : Double
 ```

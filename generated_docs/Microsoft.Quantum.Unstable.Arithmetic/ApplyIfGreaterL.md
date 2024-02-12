@@ -14,8 +14,6 @@ if a BigInt value `c` is greater than the little-endian qubit register `x`
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Computes `if (c > x) { action(target) }`, that is, applies `action` to `target`
-if a BigInt value `c` is greater than the little-endian qubit register `x`
 ```qsharp
 operation ApplyIfGreaterL<'T>(action : ('T => Unit is Param<1>), c : BigInt, x : Qubit[], target : 'T) : Unit is Adj + Ctl
 ```

@@ -14,8 +14,6 @@ bit of a Boolean array matches a given input.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies a Pauli operator on each qubit in an array if the corresponding
-bit of a Boolean array matches a given input.
 ```qsharp
 operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl
 ```

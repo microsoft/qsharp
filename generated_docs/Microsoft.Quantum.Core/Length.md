@@ -13,7 +13,6 @@ qsharp.summary: Returns the number of elements in an array.
 
 Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
 
-Returns the number of elements in an array.
 ```qsharp
 function Length<'T>(a : 'T[]) : Int
 ```

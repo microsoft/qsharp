@@ -14,8 +14,6 @@ such that it can be safely released.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Given a single qubit, measures it and ensures it is in the |0⟩ state
-such that it can be safely released.
 ```qsharp
 operation Reset(qubit : Qubit) : Unit
 ```

@@ -13,7 +13,6 @@ qsharp.summary: Applies the controlled-X (CX) gate to a pair of qubits.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Applies the controlled-X (CX) gate to a pair of qubits.
 ```qsharp
 operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl
 ```

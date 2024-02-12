@@ -14,8 +14,6 @@ comparison function.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array, returns the elements of that array sorted by a given
-comparison function.
 ```qsharp
 function Sorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : 'T[]
 ```

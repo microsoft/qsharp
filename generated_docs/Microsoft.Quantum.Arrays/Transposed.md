@@ -14,8 +14,6 @@ of arrays.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns the transpose of a matrix represented as an array
-of arrays.
 ```qsharp
 function Transposed<'T>(matrix : 'T[][]) : 'T[][]
 ```

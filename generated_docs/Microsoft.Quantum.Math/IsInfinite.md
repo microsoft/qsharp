@@ -14,8 +14,6 @@ negative infinity.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns whether a given floating-point value is either positive or
-negative infinity.
 ```qsharp
 function IsInfinite(d : Double) : Bool
 ```

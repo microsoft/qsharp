@@ -13,7 +13,6 @@ qsharp.summary: Returns an array of diagonal elements of a 2-dimensional array
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns an array of diagonal elements of a 2-dimensional array
 ```qsharp
 function Diagonal<'T>(matrix : 'T[][]) : 'T[]
 ```

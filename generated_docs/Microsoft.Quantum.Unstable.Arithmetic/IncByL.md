@@ -13,7 +13,6 @@ qsharp.summary: Increments a little-endian register ys by a BigInt number c
 
 Namespace: [Microsoft.Quantum.Unstable.Arithmetic](xref:Microsoft.Quantum.Unstable.Arithmetic)
 
-Increments a little-endian register ys by a BigInt number c
 ```qsharp
 operation IncByL(c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl
 ```

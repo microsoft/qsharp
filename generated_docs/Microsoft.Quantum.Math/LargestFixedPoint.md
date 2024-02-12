@@ -13,7 +13,6 @@ qsharp.summary: Returns the largest representable number for specific fixed poin
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the largest representable number for specific fixed point dimensions.
 ```qsharp
 function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double
 ```

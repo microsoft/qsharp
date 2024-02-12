@@ -13,7 +13,6 @@ qsharp.summary: Computes the inverse hyperbolic tangent of a number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Computes the inverse hyperbolic tangent of a number.
 ```qsharp
 function ArcTanh(x : Double) : Double
 ```

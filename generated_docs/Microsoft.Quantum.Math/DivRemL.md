@@ -13,7 +13,6 @@ qsharp.summary: Divides one BigInteger value by another, returns the result and 
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Divides one BigInteger value by another, returns the result and the remainder as a tuple.
 ```qsharp
 function DivRemL(dividend : BigInt, divisor : BigInt) : (BigInt, BigInt)
 ```

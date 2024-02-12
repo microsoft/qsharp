@@ -13,7 +13,6 @@ qsharp.summary: Companion operation to `BeginRepeatEstimates`.
 
 Namespace: [Microsoft.Quantum.ResourceEstimation](xref:Microsoft.Quantum.ResourceEstimation)
 
-Companion operation to `BeginRepeatEstimates`.
 ```qsharp
 operation EndRepeatEstimates() : Unit is Adj
 ```

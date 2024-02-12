@@ -13,7 +13,6 @@ qsharp.summary: Given an array of arrays, returns the concatenation of all array
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array of arrays, returns the concatenation of all arrays.
 ```qsharp
 function Flattened<'T>(arrays : 'T[][]) : 'T[]
 ```

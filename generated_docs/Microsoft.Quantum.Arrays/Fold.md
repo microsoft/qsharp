@@ -14,8 +14,6 @@ qsharp.summary: Iterates a function `f` through an array `array`, returning
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Iterates a function `f` through an array `array`, returning
-`f(...f(f(initialState, array[0]), array[1]), ...)`.
 ```qsharp
 function Fold<'State, 'T>(folder : (('State, 'T) -> 'State), state : 'State, array : 'T[]) : 'State
 ```

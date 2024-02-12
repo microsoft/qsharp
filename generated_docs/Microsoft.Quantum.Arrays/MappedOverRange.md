@@ -15,9 +15,6 @@ of the images of the range values under the function.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given a range and a function that takes an integer as input,
-returns a new array that consists
-of the images of the range values under the function.
 ```qsharp
 function MappedOverRange<'T>(mapper : (Int -> 'T), range : Range) : 'T[]
 ```

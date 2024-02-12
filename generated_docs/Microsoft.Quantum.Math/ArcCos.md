@@ -13,7 +13,6 @@ qsharp.summary: Returns the angle whose cosine is the specified number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the angle whose cosine is the specified number.
 ```qsharp
 function ArcCos(x : Double) : Double
 ```

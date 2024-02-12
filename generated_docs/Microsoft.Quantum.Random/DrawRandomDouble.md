@@ -13,7 +13,6 @@ qsharp.summary: Draws a random real number in a given inclusive interval.
 
 Namespace: [Microsoft.Quantum.Random](xref:Microsoft.Quantum.Random)
 
-Draws a random real number in a given inclusive interval.
 ```qsharp
 operation DrawRandomDouble(min : Double, max : Double) : Double
 ```

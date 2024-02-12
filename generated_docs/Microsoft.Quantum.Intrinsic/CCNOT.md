@@ -13,7 +13,6 @@ qsharp.summary: Applies the doubly controlled–NOT (CCNOT) gate to three qubits
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Applies the doubly controlled–NOT (CCNOT) gate to three qubits.
 ```qsharp
 operation CCNOT(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj + Ctl
 ```

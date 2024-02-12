@@ -13,7 +13,6 @@ qsharp.summary: Logs a message.
 
 Namespace: [Microsoft.Quantum.Intrinsic](xref:Microsoft.Quantum.Intrinsic)
 
-Logs a message.
 ```qsharp
 function Message(msg : String) : Unit
 ```

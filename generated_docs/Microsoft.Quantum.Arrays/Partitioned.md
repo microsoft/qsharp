@@ -13,7 +13,6 @@ qsharp.summary: Splits an array into multiple parts.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Splits an array into multiple parts.
 ```qsharp
 function Partitioned<'T>(partitionSizes : Int[], array : 'T[]) : 'T[][]
 ```

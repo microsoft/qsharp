@@ -14,8 +14,6 @@ a given predicate. If no such element exists, returns -1.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Returns the first index of the first element in an array that satisfies
-a given predicate. If no such element exists, returns -1.
 ```qsharp
 function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int
 ```

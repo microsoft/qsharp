@@ -13,7 +13,6 @@ qsharp.summary: Returns the absolute value of a double-precision floating-point 
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the absolute value of a double-precision floating-point number.
 ```qsharp
 function AbsD(a : Double) : Double
 ```

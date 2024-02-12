@@ -13,7 +13,6 @@ qsharp.summary: Creates an array of given length with all elements equal to give
 
 Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
 
-Creates an array of given length with all elements equal to given value.
 ```qsharp
 function Repeated<'T>(value : 'T, length : Int) : 'T[]
 ```

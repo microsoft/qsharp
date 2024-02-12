@@ -14,8 +14,6 @@ array, returns the concatenated output arrays for each array element.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array and a function that maps an array element to some output
-array, returns the concatenated output arrays for each array element.
 ```qsharp
 function FlatMapped<'TInput, 'TOutput>(mapper : ('TInput -> 'TOutput[]), array : 'TInput[]) : 'TOutput[]
 ```

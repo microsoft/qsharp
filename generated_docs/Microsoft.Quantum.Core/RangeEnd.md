@@ -14,8 +14,6 @@ which is not necessarily the last element in the sequence.
 
 Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
 
-Returns the defined end value of the given range,
-which is not necessarily the last element in the sequence.
 ```qsharp
 function RangeEnd(r : Range) : Int
 ```

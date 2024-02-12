@@ -15,9 +15,6 @@ of the images of the original array under the function.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Given an array and a function that is defined
-for the elements of the array, returns a new array that consists
-of the images of the original array under the function.
 ```qsharp
 function Mapped<'T, 'U>(mapper : ('T -> 'U), array : 'T[]) : 'U[]
 ```

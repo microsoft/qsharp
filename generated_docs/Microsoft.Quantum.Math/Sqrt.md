@@ -13,7 +13,6 @@ qsharp.summary: Returns the square root of a specified number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the square root of a specified number.
 ```qsharp
 function Sqrt(d : Double) : Double
 ```

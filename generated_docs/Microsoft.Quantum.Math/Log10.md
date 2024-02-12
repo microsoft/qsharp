@@ -13,7 +13,6 @@ qsharp.summary: Returns the base-10 logarithm of a specified number.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the base-10 logarithm of a specified number.
 ```qsharp
 function Log10(input : Double) : Double
 ```

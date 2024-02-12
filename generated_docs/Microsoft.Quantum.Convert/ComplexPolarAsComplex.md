@@ -14,8 +14,6 @@ number of type `Complex`.
 
 Namespace: [Microsoft.Quantum.Convert](xref:Microsoft.Quantum.Convert)
 
-Converts a complex number of type `ComplexPolar` to a complex
-number of type `Complex`.
 ```qsharp
 function ComplexPolarAsComplex(input : ComplexPolar) : Complex
 ```

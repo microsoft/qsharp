@@ -13,7 +13,6 @@ qsharp.summary: Returns the sine of the specified angle.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the sine of the specified angle.
 ```qsharp
 function Sin(theta : Double) : Double
 ```

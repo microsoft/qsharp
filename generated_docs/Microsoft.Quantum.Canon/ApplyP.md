@@ -14,8 +14,6 @@ to a single qubit.
 
 Namespace: [Microsoft.Quantum.Canon](xref:Microsoft.Quantum.Canon)
 
-Given a single-qubit Pauli operator, applies the corresponding operation
-to a single qubit.
 ```qsharp
 operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl
 ```

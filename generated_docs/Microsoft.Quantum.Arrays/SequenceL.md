@@ -13,7 +13,6 @@ qsharp.summary: Get an array of integers in a given interval.
 
 Namespace: [Microsoft.Quantum.Arrays](xref:Microsoft.Quantum.Arrays)
 
-Get an array of integers in a given interval.
 ```qsharp
 function SequenceL(from : BigInt, to : BigInt) : BigInt[]
 ```

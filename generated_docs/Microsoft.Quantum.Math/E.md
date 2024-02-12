@@ -13,7 +13,6 @@ qsharp.summary: Returns the natural logarithmic base to double-precision.
 
 Namespace: [Microsoft.Quantum.Math](xref:Microsoft.Quantum.Math)
 
-Returns the natural logarithmic base to double-precision.
 ```qsharp
 function E() : Double
 ```
