@@ -39,6 +39,7 @@ pub struct Compiler {
     checker: Checker,
     lowerer: Lowerer,
     capabilities: RuntimeCapabilityFlags,
+    language_features: LanguageFeatures
 }
 
 pub type Error = WithSource<compile::Error>;
@@ -58,6 +59,7 @@ impl Compiler {
         store: &PackageStore,
         dependencies: impl IntoIterator<Item = PackageId>,
         capabilities: RuntimeCapabilityFlags,
+        language_features: LanguageFeatures
     ) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
@@ -83,6 +85,7 @@ impl Compiler {
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
             capabilities,
+            language_features
         }
     }
 
@@ -107,35 +110,13 @@ impl Compiler {
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-        accumulate_errors: F,
-    ) -> Result<Increment, E>
-    where
-        F: FnMut(Vec<Error>) -> Result<(), E>,
-    {
-        self.compile_fragments_with_config(
-            unit,
-            source_name,
-            source_contents,
-            accumulate_errors,
-            &LanguageFeatures::none(),
-        )
-    }
-
-    /// See [`compile_fragments`] for more documentation.
-    /// Allows for compiling of fragments with language features specified.
-    pub fn compile_fragments_with_config<F, E>(
-        &mut self,
-        unit: &mut CompileUnit,
-        source_name: &str,
-        source_contents: &str,
         mut accumulate_errors: F,
-        features: &LanguageFeatures,
     ) -> Result<Increment, E>
     where
         F: FnMut(Vec<Error>) -> Result<(), E>,
     {
         let (mut ast, parse_errors) =
-            Self::parse_fragments(&mut unit.sources, source_name, source_contents, features);
+            Self::parse_fragments(&mut unit.sources, source_name, source_contents, &self.language_features);
 
         accumulate_errors(parse_errors)?;
 

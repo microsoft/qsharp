@@ -38,7 +38,7 @@ impl Compiler {
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
-        opt_in_features: &LanguageFeatures,
+        opt_in_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
         let core = core();
         let mut store = PackageStore::new(core);
@@ -55,7 +55,7 @@ impl Compiler {
             sources,
             package_type,
             capabilities,
-            opt_in_features,
+            &opt_in_features,
         );
         if !errors.is_empty() {
             return Err(errors);
@@ -64,7 +64,7 @@ impl Compiler {
         let source_package_id = store.insert(unit);
         dependencies.push(source_package_id);
 
-        let frontend = qsc_frontend::incremental::Compiler::new(&store, dependencies, capabilities);
+        let frontend = qsc_frontend::incremental::Compiler::new(&store, dependencies, capabilities, opt_in_features);
         let store = store.open();
 
         Ok(Self {

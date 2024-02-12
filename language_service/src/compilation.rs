@@ -94,7 +94,7 @@ impl Compilation {
             SourceMap::default(),
             PackageType::Lib,
             target_profile.into(),
-            language_features,
+            language_features.clone(),
         )
         .expect("expected incremental compiler creation to succeed");
 
