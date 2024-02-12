@@ -6,7 +6,7 @@ mod tests;
 
 use crate::display::{increase_header_level, parse_doc_for_summary};
 use crate::{compilation::Compilation, display::CodeDisplay};
-use chrono;
+use chrono::Utc;
 use qsc::hir::hir::{Item, ItemKind, Package, Visibility};
 use rustc_hash::FxHashMap;
 use std::fmt::{Display, Formatter, Result};
@@ -64,10 +64,7 @@ fn generate_doc_for_item<'a>(
 
     // Get Date
     // Note: there might be a better way to do rounding with chrono instead of hardcoding the time
-    let date = format!(
-        "{} 12:00:00 AM",
-        chrono::Utc::now().date_naive().format("%m/%d/%Y")
-    );
+    let date = format!("{} 12:00:00 AM", Utc::now().date_naive().format("%m/%d/%Y"));
 
     // Print file
     let (title, content) = generate_file(&ns, item, display, date)?;
