@@ -22,18 +22,17 @@ pub(crate) fn generate_docs(compilation: &Compilation) {
     delete_existing_docs();
     fs::create_dir(GENERATED_DOCS_PATH).expect("Unable to create directory for generated docs");
 
+    let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
     for (_, unit) in &compilation.package_store {
-        GenDocs {
-            package: &unit.package,
-            display,
+        let package = &unit.package;
+        for (_, item) in &package.items {
+            if let Some((ns, line)) = generate_doc_for_item(package, item, display) {
+                toc.entry(ns).or_default().push(line);
+            }
         }
-        .generate_docs_for_package();
     }
-}
 
-struct GenDocs<'a> {
-    package: &'a Package,
-    display: &'a CodeDisplay<'a>,
+    generate_toc(&toc);
 }
 
 fn delete_existing_docs() {
@@ -44,164 +43,129 @@ fn delete_existing_docs() {
     }
 }
 
-impl<'a> GenDocs<'a> {
-    fn generate_docs_for_package(self) {
-        let package = self.package;
-
-        let items_to_gen = package
-            .items
-            .iter()
-            .filter_map(|(_, i)| self.filter_items(i));
-        let mut namespace_to_content_map: FxHashMap<Rc<str>, Vec<&Item>> = FxHashMap::default();
-        for (k, v) in items_to_gen {
-            namespace_to_content_map.entry(k).or_default().push(v);
-        }
-        self.generate_doc_files(&namespace_to_content_map);
-        self.generate_toc(&namespace_to_content_map);
-        // for (k, v) in namespace_to_content_map {
-        //     let ns_dir = format!("{GENERATED_DOCS_PATH}/{k}");
-        //     if fs::metadata(&ns_dir).is_err() {
-        //         fs::create_dir(&ns_dir).expect("Unable to create directory for namespace");
-        //     }
-        //     for (name, contents) in v.iter().map(|i| self.item_to_content(i)) {
-        //         fs::write(format!("{ns_dir}/{name}.md"), contents).expect("Unable to write file");
-        //     }
-        // }
+fn generate_doc_for_item<'a>(
+    package: &'a Package,
+    item: &'a Item,
+    display: &'a CodeDisplay,
+) -> Option<(Rc<str>, String)> {
+    // Filter items
+    if item.visibility == Visibility::Internal || matches!(item.kind, ItemKind::Namespace(_, _)) {
+        return None;
     }
 
-    fn generate_doc_files(&self, map: &FxHashMap<Rc<str>, Vec<&Item>>) {
-        for (namespace, items) in map {
-            let ns_dir = format!("{GENERATED_DOCS_PATH}/{namespace}");
-            if fs::metadata(&ns_dir).is_err() {
-                fs::create_dir(&ns_dir).expect("Unable to create directory for namespace");
-            }
-            for (name, contents) in items.iter().map(|i| self.item_to_content(i)) {
-                fs::write(format!("{ns_dir}/{name}.md"), contents).expect("Unable to write file");
-            }
-        }
+    // Get namespace for item
+    let ns = get_namespace(package, item)?;
+
+    // Create ns folder, if it doesn't exist
+    let ns_dir = format!("{GENERATED_DOCS_PATH}/{ns}");
+    if fs::metadata(&ns_dir).is_err() {
+        fs::create_dir(&ns_dir).expect("Unable to create directory for namespace");
     }
 
-    fn generate_toc(&self, map: &FxHashMap<Rc<str>, Vec<&Item>>) {
-        let header = "
+    // Print file
+    let (title, content) = item_to_content(package, item, display)?;
+    fs::write(format!("{ns_dir}/{title}.md"), content).expect("Unable to write file");
+
+    // Create toc line
+    let line = format!("  - {{name: {title}, uid: {ns}.{title}}}");
+
+    // Return (ns, line)
+    Some((ns.clone(), line))
+}
+
+fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
+    match item.parent {
+        Some(local_id) => {
+            let parent = package
+                .items
+                .get(local_id)
+                .expect("Could not resolve parent item id");
+            match &parent.kind {
+                ItemKind::Namespace(name, _) => {
+                    if name.name.starts_with("QIR") {
+                        None // We ignore "QIR" namespaces
+                    } else {
+                        Some(name.name.clone())
+                    }
+                }
+                _ => None,
+            }
+        }
+        None => None,
+    }
+}
+
+fn item_to_content(
+    package: &Package,
+    item: &Item,
+    display: &CodeDisplay,
+) -> Option<(String, String)> {
+    match &item.kind {
+        ItemKind::Callable(decl) => Some((
+            decl.name.name.to_string(),
+            callable_to_content(decl, &item.doc, display),
+        )),
+        ItemKind::Ty(name, udt) => Some((
+            name.name.to_string(),
+            udt_to_content(name, udt, &item.doc, display),
+        )),
+        ItemKind::Namespace(_, _) => None,
+    }
+}
+
+fn callable_to_content(decl: &CallableDecl, doc: &str, display: &CodeDisplay) -> String {
+    if doc.is_empty() {
+        format!(
+            "# {} {}\n\n`{}`\n",
+            decl.name.name,
+            decl.kind,
+            display.hir_callable_decl(decl)
+        )
+    } else {
+        let doc = increase_header_level(doc);
+        format!(
+            "# {} {}\n\n`{}`\n\n{}\n",
+            decl.name.name,
+            decl.kind,
+            display.hir_callable_decl(decl),
+            doc
+        )
+    }
+}
+
+fn udt_to_content(name: &Ident, udt: &Udt, doc: &str, display: &CodeDisplay) -> String {
+    if doc.is_empty() {
+        format!(
+            "# {} User-Defined Type\n\n`{}`\n",
+            name.name,
+            display.hir_udt(udt)
+        )
+    } else {
+        let doc = increase_header_level(doc);
+        format!(
+            "# {} User-Defined Type\n\n`{}`\n\n{}\n",
+            name.name,
+            display.hir_udt(udt),
+            doc
+        )
+    }
+}
+
+fn generate_toc(map: &FxHashMap<Rc<str>, Vec<String>>) {
+    let header = "
 # This file is automatically generated.
 # Please do not modify this file manually, or your changes may be lost when
 # documentation is rebuilt.";
-        let table = map
-            .iter()
-            .map(|(namespace, items)| {
-                let items_str = items
-                    .iter()
-                    .map(|i| self.item_to_toc_record(i, namespace))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                format!("- items:\n{items_str}\n  name: {namespace}\n  uid: {namespace}")
-            })
-            .collect::<Vec<_>>()
-            .join("\n");
-        let contents = format!("{header}\n{table}");
+    let table = map
+        .iter()
+        .map(|(namespace, lines)| {
+            let items_str = lines.join("\n");
+            format!("- items:\n{items_str}\n  name: {namespace}\n  uid: {namespace}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let contents = format!("{header}\n{table}");
 
-        fs::write(format!("{GENERATED_DOCS_PATH}/toc.yml"), contents)
-            .expect("Unable to create table of contents file");
-    }
-
-    fn item_to_toc_record(&self, item: &Item, namespace: &str) -> String {
-        let name = match &item.kind {
-            ItemKind::Callable(decl) => decl.name.name.clone(),
-            ItemKind::Ty(name, _) => name.name.clone(),
-            ItemKind::Namespace(_, _) => {
-                unreachable!("Namespace items should have been filtered out")
-            }
-        };
-        format!("  - {{name: {name}, uid: {namespace}.{name}}}")
-    }
-
-    fn item_to_content(&self, item: &Item) -> (String, String) {
-        match &item.kind {
-            ItemKind::Callable(decl) => (
-                decl.name.name.to_string(),
-                self.callable_to_content(decl, &item.doc),
-            ),
-            ItemKind::Ty(name, udt) => (
-                name.name.to_string(),
-                self.udt_to_content(name, udt, &item.doc),
-            ),
-            ItemKind::Namespace(_, _) => {
-                unreachable!("Namespace items should have been filtered out")
-            }
-        }
-    }
-
-    fn callable_to_content(&self, decl: &CallableDecl, doc: &str) -> String {
-        if doc.is_empty() {
-            format!(
-                "# {} {}\n\n`{}`\n",
-                decl.name.name,
-                decl.kind,
-                self.display.hir_callable_decl(decl)
-            )
-        } else {
-            let doc = increase_header_level(doc);
-            format!(
-                "# {} {}\n\n`{}`\n\n{}\n",
-                decl.name.name,
-                decl.kind,
-                self.display.hir_callable_decl(decl),
-                doc
-            )
-        }
-    }
-
-    fn udt_to_content(&self, name: &Ident, udt: &Udt, doc: &str) -> String {
-        if doc.is_empty() {
-            format!(
-                "# {} User-Defined Type\n\n`{}`\n",
-                name.name,
-                self.display.hir_udt(udt)
-            )
-        } else {
-            let doc = increase_header_level(doc);
-            format!(
-                "# {} User-Defined Type\n\n`{}`\n\n{}\n",
-                name.name,
-                self.display.hir_udt(udt),
-                doc
-            )
-        }
-    }
-
-    fn filter_items(&'a self, item: &'a Item) -> Option<(Rc<str>, &'a Item)> {
-        if item.visibility == Visibility::Internal {
-            return None;
-        }
-
-        match item.kind {
-            ItemKind::Callable(_) | ItemKind::Ty(_, _) => {
-                self.get_namespace(item).map(|ns| (ns, item))
-            }
-            ItemKind::Namespace(_, _) => None,
-        }
-    }
-
-    fn get_namespace(&self, item: &Item) -> Option<Rc<str>> {
-        match item.parent {
-            Some(local_id) => {
-                let parent = self
-                    .package
-                    .items
-                    .get(local_id)
-                    .expect("Could not resolve parent item id");
-                match &parent.kind {
-                    ItemKind::Namespace(name, _) => {
-                        if name.name.starts_with("QIR") {
-                            None // We ignore "QIR" namespaces
-                        } else {
-                            Some(name.name.clone())
-                        }
-                    }
-                    _ => None,
-                }
-            }
-            None => None,
-        }
-    }
+    fs::write(format!("{GENERATED_DOCS_PATH}/toc.yml"), contents)
+        .expect("Unable to create table of contents file");
 }
