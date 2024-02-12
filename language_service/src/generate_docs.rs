@@ -63,10 +63,11 @@ fn generate_doc_for_item<'a>(
     }
 
     // Get Date
-    let date = chrono::Utc::now()
-        .date_naive()
-        .format("%m/%d/%Y")
-        .to_string();
+    // Note: there might be a better way to do rounding with chrono instead of hardcoding the time
+    let date = format!(
+        "{} 12:00:00 AM",
+        chrono::Utc::now().date_naive().format("%m/%d/%Y")
+    );
 
     // Print file
     let (title, content) = generate_file(&ns, item, display, date)?;

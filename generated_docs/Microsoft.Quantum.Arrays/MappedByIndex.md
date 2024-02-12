@@ -1,7 +1,7 @@
 ---
 uid Microsoft.Quantum.Arrays.MappedByIndex
 title: MappedByIndex function
-ms.date: 02/12/2024
+ms.date: 02/12/2024 12:00:00 AM
 ms.topic: managed-reference
 qsharp.kind: function
 qsharp.namespace: Microsoft.Quantum.Arrays

@@ -1,7 +1,7 @@
 ---
 uid Microsoft.Quantum.Unstable.Arithmetic.IncByLEUsingAddLE
 title: IncByLEUsingAddLE operation
-ms.date: 02/12/2024
+ms.date: 02/12/2024 12:00:00 AM
 ms.topic: managed-reference
 qsharp.kind: opeartion
 qsharp.namespace: Microsoft.Quantum.Unstable.Arithmetic
