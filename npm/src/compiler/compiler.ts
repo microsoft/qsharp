@@ -128,7 +128,10 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       qscEvent = makeEvent("Message", qscMsg.message);
       break;
     case "DumpMachine":
-      qscEvent = makeEvent("DumpMachine", qscMsg.state);
+      qscEvent = makeEvent("DumpMachine", {
+        state: qscMsg.state,
+        stateLatex: qscMsg.stateLatex,
+      });
       break;
     case "Result":
       qscEvent = makeEvent("Result", qscMsg.result);

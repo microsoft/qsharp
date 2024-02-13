@@ -186,12 +186,18 @@ where
         }
         write!(
             dump_json,
-            r#""{}": [{}, {}]}}}}"#,
+            r#""{}": [{}, {}]}}, "#,
             output::format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )
         .expect("writing to string should succeed");
+
+        let latex: String = "$|0\\rangle$".into();
+
+        let json_latex = serde_json::to_string(&latex).expect("serialization should succeed");
+        write!(dump_json, r#" "stateLatex": {} }} "#, json_latex)
+            .expect("writing to string should succeed");
         (self.event_cb)(&dump_json);
         Ok(())
     }

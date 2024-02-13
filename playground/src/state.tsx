@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { useEffect } from "preact/hooks";
 import { Dump } from "qsharp-lang";
 
 function probability(real: number, imag: number) {
@@ -16,46 +17,53 @@ function formatComplex(real: number, imag: number) {
   return `${r}${i}`;
 }
 
-export function StateTable(props: { dump: Dump }) {
+export function StateTable(props: { dump: Dump; latexDump: string }) {
+  useEffect(() => {
+    MathJax.typeset();
+  });
+
   return (
-    <table class="state-table">
-      <thead>
-        <tr>
-          <th>
-            Basis State
-            <br />
-            (|𝜓₁…𝜓ₙ⟩)
-          </th>
-          <th>Amplitude</th>
-          <th>Measurement Probability</th>
-          <th colSpan={2}>Phase</th>
-        </tr>
-      </thead>
-      <tbody>
-        {Object.keys(props.dump).map((basis) => {
-          const [real, imag] = props.dump[basis];
-          const complex = formatComplex(real, imag);
-          const probabilityPercent = probability(real, imag) * 100;
-          const phase = Math.atan2(imag, real);
-          const phaseStyle = `transform: rotate(${phase.toFixed(4)}rad)`;
-          return (
-            <tr>
-              <td style="text-align: center">{basis}</td>
-              <td style="text-align: right">{complex}</td>
-              <td style="display: flex; justify-content: space-between; padding: 8px 20px;">
-                <progress
-                  style="width: 40%"
-                  max="100"
-                  value={probabilityPercent}
-                ></progress>
-                <span>{probabilityPercent.toFixed(4)}%</span>
-              </td>
-              <td style={phaseStyle}>↑</td>
-              <td style="text-align:right">{phase.toFixed(4)}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div>
+      <table class="state-table">
+        <thead>
+          <tr>
+            <th>
+              Basis State
+              <br />
+              (|𝜓₁…𝜓ₙ⟩)
+            </th>
+            <th>Amplitude</th>
+            <th>Measurement Probability</th>
+            <th colSpan={2}>Phase</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.keys(props.dump).map((basis) => {
+            const [real, imag] = props.dump[basis];
+            const complex = formatComplex(real, imag);
+            const probabilityPercent = probability(real, imag) * 100;
+            const phase = Math.atan2(imag, real);
+            const phaseStyle = `transform: rotate(${phase.toFixed(4)}rad)`;
+            return (
+              <tr>
+                <td style="text-align: center">{basis}</td>
+                <td style="text-align: right">{complex}</td>
+                <td style="display: flex; justify-content: space-between; padding: 8px 20px;">
+                  <progress
+                    style="width: 40%"
+                    max="100"
+                    value={probabilityPercent}
+                  ></progress>
+                  <span>{probabilityPercent.toFixed(4)}%</span>
+                </td>
+                <td style={phaseStyle}>↑</td>
+                <td style="text-align:right">{phase.toFixed(4)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p>{props.latexDump}</p>
+    </div>
   );
 }
