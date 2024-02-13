@@ -103,6 +103,7 @@ fn parse_local(s: &mut ParserConfig) -> Result<Box<StmtKind>> {
 }
 
 fn parse_qubit(s: &mut ParserConfig) -> Result<Box<StmtKind>> {
+    println!("language features are {:?}", s.language_features);
     let source = if token(s, TokenKind::Keyword(Keyword::Use)).is_ok() {
         QubitSource::Fresh
     } else if token(s, TokenKind::Keyword(Keyword::Borrow)).is_ok() {

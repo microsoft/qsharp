@@ -1,4 +1,5 @@
 namespace Sample {
+    @EntryPoint()
     operation Main() : Result {
         use q = Qubit();
         X(q);
