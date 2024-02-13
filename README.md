@@ -12,6 +12,7 @@ This repository contains tooling for the Q# language, specifically:
 - **[npm](./npm/)**: Q# npm package
 - **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
+- **[resource_estimator](./resource_estimator)**: Implementation for the Azure Quantum Resource Estimator
 - **[vscode](./vscode/)**: Visual Studio Code extension
 - **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
 - **[widgets](./widgets)**: The Q# Jupyter widgets Python package
@@ -38,8 +39,9 @@ build of each project, including running tests and checks such as linting. Run w
 
 ### Playground
 
-To run the "playground" locally, `cd` into the `playground` directory, and run `npm start`.
-This will launch a local web server and output the URL to visit to the console.
+To run the "playground" locally, build the repository, then `cd` into the `playground` directory, and run `npm start`.
+This will launch a local web server and output the URL to the console; copy that URL and open it in a browser to use the playground.
+If you only want to build the functionality necessary to run the playground, you can use `python .\build.py --wasm --npm --play`.
 
 ### Python
 
