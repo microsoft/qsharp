@@ -23,6 +23,7 @@ pub const STD_LIB: &[(&str, &str)] = &[
     ("diagnostics.qs", include_str!("../std/diagnostics.qs")),
     ("internal.qs", include_str!("../std/internal.qs")),
     ("intrinsic.qs", include_str!("../std/intrinsic.qs")),
+    ("logical.qs", include_str!("../std/logical.qs")),
     ("math.qs", include_str!("../std/math.qs")),
     ("measurement.qs", include_str!("../std/measurement.qs")),
     ("qir.qs", include_str!("../std/qir.qs")),
