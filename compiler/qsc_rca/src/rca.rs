@@ -661,17 +661,6 @@ fn create_instrinsic_operation_applications_table(
 ) -> ApplicationsTable {
     assert!(matches!(callable_decl.kind, CallableKind::Operation));
 
-    // Intrinsic operations inherently use runtime features if their output is not `Unit`, `Qubit` or `Result`, and
-    // these runtime features are derived from the output type.
-    let runtime_features = if callable_decl.output == Ty::UNIT
-        || callable_decl.output == Ty::Prim(Prim::Qubit)
-        || callable_decl.output == Ty::Prim(Prim::Result)
-    {
-        RuntimeFeatureFlags::empty()
-    } else {
-        derive_runtime_features_for_dynamic_type(&callable_decl.output)
-    };
-
     // The value kind of intrinsic operations is inherently dynamic if their output is not `Unit` or `Qubit`.
     let value_kind =
         if callable_decl.output == Ty::UNIT || callable_decl.output == Ty::Prim(Prim::Qubit) {
@@ -682,7 +671,7 @@ fn create_instrinsic_operation_applications_table(
 
     // The compute kind of intrinsic operations is always quantum.
     let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
-        runtime_features,
+        runtime_features: RuntimeFeatureFlags::empty(),
         value_kind,
     });
 
@@ -702,8 +691,7 @@ fn create_instrinsic_operation_applications_table(
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
             // When a parameter is binded to a dynamic value, its type contributes to the runtime features used by the
             // operation application.
-            runtime_features: runtime_features
-                | derive_runtime_features_for_dynamic_type(&param.ty),
+            runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
             value_kind,
         });
         dynamic_param_applications.push(param_compute_kind);

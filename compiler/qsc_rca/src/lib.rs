@@ -500,6 +500,9 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::CycledOperation) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
+        if self.contains(RuntimeFeatureFlags::UnresolvedCallee) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
         runtume_capabilities
     }
 }
