@@ -296,6 +296,25 @@ impl Display for ApplicationsTable {
     }
 }
 
+impl ApplicationsTable {
+    pub fn derive_application_compute_kind(
+        &self,
+        input_params_dynamism: &Vec<bool>,
+    ) -> ComputeKind {
+        assert!(self.dynamic_param_applications.len() == input_params_dynamism.len());
+        let mut compute_kind = self.inherent.clone();
+        for (is_dynamic, dynamic_param_application) in input_params_dynamism
+            .iter()
+            .zip(self.dynamic_param_applications.iter())
+        {
+            if *is_dynamic {
+                compute_kind = aggregate_compute_kind(compute_kind, dynamic_param_application);
+            }
+        }
+        compute_kind
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum ComputeKind {
     Classical,
@@ -340,6 +359,45 @@ impl ComputeKind {
     pub fn is_dynamic(&self) -> bool {
         self.get_dynamism_sources().is_some()
     }
+}
+
+#[must_use]
+fn aggregate_compute_kind(
+    base_compute_kind: ComputeKind,
+    delta_compute_kind: &ComputeKind,
+) -> ComputeKind {
+    let ComputeKind::Quantum(delta_quantum_properties) = delta_compute_kind else {
+        // A classical compute kind has nothing to aggregate so just return the base with no changes.
+        return base_compute_kind;
+    };
+
+    // Determine the aggregated runtime features.
+    let aggregated_runtime_features = match base_compute_kind {
+        ComputeKind::Classical => delta_quantum_properties.runtime_features,
+        ComputeKind::Quantum(ref base_quantum_properties) => {
+            base_quantum_properties.runtime_features | delta_quantum_properties.runtime_features
+        }
+    };
+
+    // Determine the aggregated value kind.
+    let value_kind = match &base_compute_kind {
+        ComputeKind::Classical => delta_quantum_properties.value_kind.clone(),
+        ComputeKind::Quantum(base_quantum_properties) => {
+            match &base_quantum_properties.value_kind {
+                ValueKind::Static => delta_quantum_properties.value_kind.clone(),
+                ValueKind::Dynamic(_) => match &delta_quantum_properties.value_kind {
+                    ValueKind::Static => base_quantum_properties.value_kind.clone(),
+                    ValueKind::Dynamic(_) => ValueKind::Dynamic(FxHashSet::default()),
+                },
+            }
+        }
+    };
+
+    // Return the aggregated compute kind.
+    ComputeKind::Quantum(QuantumProperties {
+        runtime_features: aggregated_runtime_features,
+        value_kind,
+    })
 }
 
 /// The quantum properties of a program element.
@@ -440,8 +498,10 @@ bitflags! {
         const CycledFunctionUsesDynamicArg = 0b1000_0000_0000_0000;
         /// An operation specialization with cycles is used.
         const CycledOperation = 0b0001_0000_0000_0000_0000;
-        /// A callee expression than does not directly resolve to a global.
-        const UnresolvedCallee = 0b0010_0000_0000_0000_0000;
+        /// A callee expression is dynamic.
+        const DynamicCallee = 0b0010_0000_0000_0000_0000;
+        /// A callee expression could not be resolved to a specific callable.
+        const UnresolvedCallee = 0b0100_0000_0000_0000_0000;
     }
 }
 
@@ -498,6 +558,9 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::CycledOperation) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(RuntimeFeatureFlags::DynamicCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::UnresolvedCallee) {

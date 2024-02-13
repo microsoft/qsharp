@@ -7,29 +7,47 @@ use crate::{
     ApplicationsTable, ComputeKind, DynamismSource, QuantumProperties, RuntimeFeatureFlags,
     ValueKind,
 };
-use qsc_fir::fir::{BlockId, ExprId, NodeId, StmtId};
+use qsc_data_structures::index_map::IndexMap;
+use qsc_fir::fir::{BlockId, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StmtId};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 #[derive(Debug)]
-pub struct SpecApplicationInstances {
+pub struct ApplicationInstancesTable {
     pub inherent: ApplicationInstance,
     pub dynamic_params: Vec<ApplicationInstance>,
     is_settled: bool,
 }
 
-impl SpecApplicationInstances {
-    pub fn new(input_params: &Vec<InputParam>) -> Self {
-        let inherent = ApplicationInstance::new(input_params, None);
+impl ApplicationInstancesTable {
+    pub fn from_spec(
+        spec_decl: &SpecDecl,
+        input_params: &Vec<InputParam>,
+        pats: &IndexMap<PatId, Pat>,
+    ) -> Self {
+        let spec_input = derive_spec_input(spec_decl, pats);
+        let inherent = ApplicationInstance::new(input_params, None, spec_input.as_ref());
         let mut dynamic_params = Vec::<ApplicationInstance>::with_capacity(input_params.len());
         for input_param in input_params {
-            let application_instance =
-                ApplicationInstance::new(input_params, Some(input_param.index));
+            let application_instance = ApplicationInstance::new(
+                input_params,
+                Some(input_param.index),
+                spec_input.as_ref(),
+            );
             dynamic_params.push(application_instance);
         }
 
         Self {
             inherent,
             dynamic_params,
+            is_settled: false,
+        }
+    }
+
+    pub fn parameterless() -> Self {
+        let inherent = ApplicationInstance::new(&Vec::new(), None, None);
+        Self {
+            inherent,
+            dynamic_params: Vec::new(),
             is_settled: false,
         }
     }
@@ -188,6 +206,22 @@ impl SpecApplicationInstances {
     }
 }
 
+fn derive_spec_input(spec_decl: &SpecDecl, pats: &IndexMap<PatId, Pat>) -> Option<Local> {
+    spec_decl.input.and_then(|pat_id| {
+        let pat = pats.get(pat_id).expect("pat should exist");
+        match &pat.kind {
+            PatKind::Bind(ident) => Some(Local {
+                node: ident.id,
+                pat: pat_id,
+                ty: pat.ty.clone(),
+                kind: LocalKind::SpecInput,
+            }),
+            PatKind::Discard => None, // Nothing to bind to.
+            PatKind::Tuple(_) => panic!("expected specialization input pattern"),
+        }
+    })
+}
+
 /// An instance of a callable application.
 #[derive(Debug, Default)]
 pub struct ApplicationInstance {
@@ -212,9 +246,25 @@ pub struct ApplicationInstance {
 }
 
 impl ApplicationInstance {
-    fn new(input_params: &Vec<InputParam>, dynamic_param_index: Option<InputParamIndex>) -> Self {
-        let mut unprocessed_locals_map = initalize_locals_map(input_params);
+    fn new(
+        input_params: &Vec<InputParam>,
+        dynamic_param_index: Option<InputParamIndex>,
+        spec_input: Option<&Local>,
+    ) -> Self {
+        // Initialize the locals map with the specialization input (if any).
         let mut locals_map = LocalsComputeKindMap::default();
+        if let Some(spec_input_local) = spec_input {
+            // Specialization inputs are currently only used for controls, whose compute properties are handled at
+            // the call expression, so just use classical compute kind here for when controls are explicitly used.
+            locals_map.insert(
+                spec_input_local.node,
+                LocalComputeKind {
+                    local: spec_input_local.clone(),
+                    compute_kind: ComputeKind::Classical,
+                },
+            );
+        }
+        let mut unprocessed_locals_map = initalize_locals_map(input_params);
         for (node_id, local) in unprocessed_locals_map.drain() {
             let LocalKind::InputParam(input_param_index) = local.kind else {
                 panic!("only input parameters are expected");

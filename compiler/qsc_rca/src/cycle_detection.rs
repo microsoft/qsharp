@@ -2,8 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_params, initalize_locals_map, GlobalSpecializationId, Local, LocalKind,
-    SpecializationKind,
+    derive_callable_input_params, initalize_locals_map, GlobalSpecId, Local, LocalKind, SpecKind,
 };
 use qsc_fir::{
     fir::{
@@ -199,7 +198,7 @@ impl<'a> CycleDetector<'a> {
                 .expect("node map should exist");
             if let Some(callable_variable) = node_map.get(&node_id) {
                 match &callable_variable.kind {
-                    LocalKind::InputParam(_) | LocalKind::Mutable => None,
+                    LocalKind::InputParam(_) | LocalKind::SpecInput | LocalKind::Mutable => None,
                     LocalKind::Immutable(expr_id) => self.resolve_callee(*expr_id),
                 }
             } else {
@@ -505,7 +504,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
 pub fn detect_specializations_with_cycles(
     package_id: PackageId,
     package: &Package,
-) -> Vec<GlobalSpecializationId> {
+) -> Vec<GlobalSpecId> {
     // First, detect the specializations that have cycles.
     let mut cycle_detector = CycleDetector::new(package_id, package);
     let specializations_with_cycles = cycle_detector.detect_specializations_with_cycles();
@@ -519,12 +518,12 @@ pub fn detect_specializations_with_cycles(
                 callable_specialization_selector.specialization.controlled,
             );
             let specialization = match (is_adjoint, is_controlled) {
-                (false, false) => SpecializationKind::Body,
-                (true, false) => SpecializationKind::Adj,
-                (false, true) => SpecializationKind::Ctl,
-                (true, true) => SpecializationKind::CtlAdj,
+                (false, false) => SpecKind::Body,
+                (true, false) => SpecKind::Adj,
+                (false, true) => SpecKind::Ctl,
+                (true, true) => SpecKind::CtlAdj,
             };
-            GlobalSpecializationId {
+            GlobalSpecId {
                 callable: StoreItemId {
                     package: package_id,
                     item: callable_specialization_selector.callable,

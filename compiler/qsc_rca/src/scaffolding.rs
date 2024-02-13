@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{GlobalSpecializationId, SpecializationKind},
+    common::{GlobalSpecId, SpecKind},
     ApplicationsTable, CallableComputeProperties, ComputePropertiesLookup, ItemComputeProperties,
     PackageComputeProperties, PackageStoreComputeProperties,
 };
@@ -57,7 +57,7 @@ impl ComputePropertiesLookup for PackageStoreScaffolding {
 }
 
 impl PackageStoreScaffolding {
-    pub fn find_specialization(&self, id: GlobalSpecializationId) -> Option<&ApplicationsTable> {
+    pub fn find_specialization(&self, id: GlobalSpecId) -> Option<&ApplicationsTable> {
         self.get(id.callable.package)
             .and_then(|package| package.items.get(id.callable.item))
             .and_then(|item_scaffolding| match item_scaffolding {
@@ -73,13 +73,10 @@ impl PackageStoreScaffolding {
         assert!(package_store_compute_properties.0.is_empty());
         for (package_id, mut package_scaffolding) in self.0.drain() {
             let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
-            package_scaffolding
-                .items
-                .drain()
-                .for_each(|(item_id, item_scaffolding)| {
-                    let item_compute_properties = ItemComputeProperties::from(item_scaffolding);
-                    items.insert(item_id, item_compute_properties);
-                });
+            for (item_id, item_scaffolding) in package_scaffolding.items.drain() {
+                let item_compute_properties = ItemComputeProperties::from(item_scaffolding);
+                items.insert(item_id, item_compute_properties);
+            }
 
             let package_compute_properties = PackageComputeProperties {
                 items,
@@ -101,7 +98,7 @@ impl PackageStoreScaffolding {
         self.0.get_mut(id)
     }
 
-    pub fn get_specialization(&self, id: GlobalSpecializationId) -> &ApplicationsTable {
+    pub fn get_spec(&self, id: GlobalSpecId) -> &ApplicationsTable {
         self.find_specialization(id)
             .expect("specialization should exist")
     }
@@ -123,7 +120,7 @@ impl PackageStoreScaffolding {
             .insert(id.item, value);
     }
 
-    pub fn insert_spec(&mut self, id: GlobalSpecializationId, value: ApplicationsTable) {
+    pub fn insert_spec(&mut self, id: GlobalSpecId, value: ApplicationsTable) {
         let items = &mut self
             .get_mut(id.callable.package)
             .expect("package should exist")
@@ -230,18 +227,18 @@ impl From<usize> for SpecializationIndex {
     }
 }
 
-impl From<SpecializationKind> for SpecializationIndex {
-    fn from(specialization_kind: SpecializationKind) -> Self {
+impl From<SpecKind> for SpecializationIndex {
+    fn from(specialization_kind: SpecKind) -> Self {
         match specialization_kind {
-            SpecializationKind::Body => SpecializationIndex(0),
-            SpecializationKind::Adj => SpecializationIndex(1),
-            SpecializationKind::Ctl => SpecializationIndex(2),
-            SpecializationKind::CtlAdj => SpecializationIndex(3),
+            SpecKind::Body => SpecializationIndex(0),
+            SpecKind::Adj => SpecializationIndex(1),
+            SpecKind::Ctl => SpecializationIndex(2),
+            SpecKind::CtlAdj => SpecializationIndex(3),
         }
     }
 }
 
-impl From<SpecializationIndex> for SpecializationKind {
+impl From<SpecializationIndex> for SpecKind {
     fn from(value: SpecializationIndex) -> Self {
         match value {
             SpecializationIndex(0) => Self::Body,
@@ -258,9 +255,15 @@ pub type SpecializationsScaffolding = IndexMap<SpecializationIndex, Applications
 impl From<CallableComputeProperties> for SpecializationsScaffolding {
     fn from(value: CallableComputeProperties) -> Self {
         let mut specializations = SpecializationsScaffolding::default();
-        specializations.insert(SpecializationKind::Body.into(), value.body);
+        specializations.insert(SpecKind::Body.into(), value.body);
         if let Some(adj_applications_table) = value.adj {
-            specializations.insert(SpecializationKind::Body.into(), adj_applications_table);
+            specializations.insert(SpecKind::Adj.into(), adj_applications_table);
+        }
+        if let Some(ctl_applications_table) = value.ctl {
+            specializations.insert(SpecKind::Ctl.into(), ctl_applications_table);
+        }
+        if let Some(ctl_adj_applications_table) = value.ctl_adj {
+            specializations.insert(SpecKind::CtlAdj.into(), ctl_adj_applications_table);
         }
         specializations
     }
@@ -275,11 +278,11 @@ impl From<SpecializationsScaffolding> for CallableComputeProperties {
             Option::<ApplicationsTable>::default(),
         );
         for (specialization_index, applications_table) in value {
-            match SpecializationKind::from(specialization_index) {
-                SpecializationKind::Body => body = Some(applications_table),
-                SpecializationKind::Adj => adj = Some(applications_table),
-                SpecializationKind::Ctl => ctl = Some(applications_table),
-                SpecializationKind::CtlAdj => ctl_adj = Some(applications_table),
+            match SpecKind::from(specialization_index) {
+                SpecKind::Body => body = Some(applications_table),
+                SpecKind::Adj => adj = Some(applications_table),
+                SpecKind::Ctl => ctl = Some(applications_table),
+                SpecKind::CtlAdj => ctl_adj = Some(applications_table),
             };
         }
 

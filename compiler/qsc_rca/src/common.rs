@@ -5,8 +5,8 @@ use indenter::Indented;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        CallableDecl, ExprId, ExprKind, Functor, ItemId, NodeId, PackageId, PackageStoreLookup,
-        Pat, PatId, PatKind, Res, SpecDecl, StoreExprId, StoreItemId, UnOp,
+        CallableDecl, ExprId, ExprKind, Functor, Global, ItemId, NodeId, PackageId, PackageStore,
+        PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, StoreExprId, StoreItemId, UnOp,
     },
     ty::Ty,
 };
@@ -59,45 +59,8 @@ pub fn derive_callable_input_params(
     input_params
 }
 
-pub fn derive_specialization_input_params(
-    spec_decl: &SpecDecl,
-    callable_input_params: &Vec<InputParam>,
-    pats: &IndexMap<PatId, Pat>,
-) -> Vec<InputParam> {
-    let spec_input_element = derive_specialization_input_pattern_element(spec_decl, pats);
-    if let Some(spec_input_element) = spec_input_element {
-        // Insert the specialization input parameter at the beginning of the new input parameters vector.
-        let spec_input_param = InputParam {
-            index: InputParamIndex(0),
-            pat: spec_input_element.pat,
-            ty: spec_input_element.ty.clone(),
-            node: match &spec_input_element.kind {
-                InputPatternElementKind::Discard => None,
-                InputPatternElementKind::Node(node_id) => Some(*node_id),
-                InputPatternElementKind::Tuple(_) => {
-                    panic!("specialization inputs are not expected to be tuples")
-                }
-            },
-        };
-        let mut spec_input_params = vec![spec_input_param];
-
-        // Now, insert the callable input parameters shifting the input parameter index.
-        for input_param in callable_input_params {
-            spec_input_params.push(InputParam {
-                index: InputParamIndex(input_param.index.0 + 1),
-                pat: input_param.pat,
-                ty: input_param.ty.clone(),
-                node: input_param.node,
-            })
-        }
-        spec_input_params
-    } else {
-        callable_input_params.clone()
-    }
-}
-
 /// A represenation of a local symbol.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Local {
     pub node: NodeId,
     pub pat: PatId,
@@ -106,10 +69,12 @@ pub struct Local {
 }
 
 /// Kinds of local symbols.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum LocalKind {
-    /// An input parameter with its associated index in the context of a particular specialization.
+    /// An input parameter with its associated index.
     InputParam(InputParamIndex),
+    /// A specialization input (i.e. control qubits).
+    SpecInput,
     /// An immutable binding with the expression associated to it.
     Immutable(ExprId),
     /// A mutable binding.
@@ -149,13 +114,13 @@ pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<NodeId,
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct GlobalSpecializationId {
+pub struct GlobalSpecId {
     pub callable: StoreItemId,
-    pub specialization: SpecializationKind,
+    pub specialization: SpecKind,
 }
 
-impl From<(StoreItemId, SpecializationKind)> for GlobalSpecializationId {
-    fn from(value: (StoreItemId, SpecializationKind)) -> Self {
+impl From<(StoreItemId, SpecKind)> for GlobalSpecId {
+    fn from(value: (StoreItemId, SpecKind)) -> Self {
         Self {
             callable: value.0,
             specialization: value.1,
@@ -164,22 +129,23 @@ impl From<(StoreItemId, SpecializationKind)> for GlobalSpecializationId {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum SpecializationKind {
+pub enum SpecKind {
     Body,
     Adj,
     Ctl,
     CtlAdj,
 }
 
-pub fn set_indentation<'a, 'b>(
-    indent: Indented<'a, Formatter<'b>>,
-    level: usize,
-) -> Indented<'a, Formatter<'b>> {
-    match level {
-        0 => indent.with_str(""),
-        1 => indent.with_str("    "),
-        2 => indent.with_str("        "),
-        _ => unimplemented!("intentation level not supported"),
+impl From<&SpecFunctor> for SpecKind {
+    fn from(value: &SpecFunctor) -> Self {
+        let adjoint = value.adjoint;
+        let controlled = value.controlled > 0;
+        match (adjoint, controlled) {
+            (false, false) => Self::Body,
+            (true, false) => Self::Adj,
+            (false, true) => Self::Ctl,
+            (true, true) => Self::CtlAdj,
+        }
     }
 }
 
@@ -240,39 +206,16 @@ fn derive_callable_input_pattern_elements(
     create_input_elements(callable.input, pats)
 }
 
-/// Creates an input pattern element if the specialization input is `Some`.
-fn derive_specialization_input_pattern_element(
-    spec_decl: &SpecDecl,
-    pats: &IndexMap<PatId, Pat>,
-) -> Option<InputPatternElement> {
-    spec_decl.input.map(|pat_id| {
-        let pat = pats.get(pat_id).expect("pattern should exist");
-        match &pat.kind {
-            PatKind::Bind(ident) => InputPatternElement {
-                pat: pat_id,
-                ty: pat.ty.clone(),
-                kind: InputPatternElementKind::Node(ident.id),
-            },
-            PatKind::Discard => InputPatternElement {
-                pat: pat_id,
-                ty: pat.ty.clone(),
-                kind: InputPatternElementKind::Discard,
-            },
-            PatKind::Tuple(_) => panic!("specialization inputs are not expected to be tuples"),
-        }
-    })
-}
-
 #[derive(Debug)]
 pub struct Callee {
-    callable: StoreItemId,
-    spec_functor: SpecFunctor,
+    pub item: StoreItemId,
+    pub spec_functor: SpecFunctor,
 }
 
 #[derive(Debug, Default)]
 pub struct SpecFunctor {
-    adjoint: bool,
-    controlled: u8,
+    pub adjoint: bool,
+    pub controlled: u8,
 }
 
 /// Tries to uniquely resolve the callable specialization referenced in a callee expression.
@@ -307,7 +250,7 @@ pub fn try_resolve_callee(
 fn resolve_item_callee(call_package_id: PackageId, item_id: ItemId) -> Option<Callee> {
     let package_id = item_id.package.unwrap_or(call_package_id);
     Some(Callee {
-        callable: (package_id, item_id.item).into(),
+        item: (package_id, item_id.item).into(),
         spec_functor: SpecFunctor::default(),
     })
 }
@@ -350,8 +293,35 @@ fn try_resolve_un_op_callee(
             },
         };
         Callee {
-            callable: callee.callable,
+            item: callee.item,
             spec_functor,
         }
     })
+}
+
+pub trait PackageStoreLookupExtension {
+    fn get_callable(&self, id: StoreItemId) -> &CallableDecl;
+}
+
+impl PackageStoreLookupExtension for PackageStore {
+    fn get_callable(&self, id: StoreItemId) -> &CallableDecl {
+        let global = self.get_global(id).expect("global should exist");
+        let Global::Callable(callble_decl) = global else {
+            panic!("global should be callable");
+        };
+
+        callble_decl
+    }
+}
+
+pub fn set_indentation<'a, 'b>(
+    indent: Indented<'a, Formatter<'b>>,
+    level: usize,
+) -> Indented<'a, Formatter<'b>> {
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }

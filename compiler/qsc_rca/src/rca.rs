@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::{
-    applications::{ApplicationInstance, LocalComputeKind, SpecApplicationInstances},
+    applications::{ApplicationInstance, ApplicationInstancesTable, LocalComputeKind},
     common::{
-        derive_callable_input_params, derive_specialization_input_params, try_resolve_callee,
-        GlobalSpecializationId, InputParam, Local, LocalKind, SpecializationKind,
+        derive_callable_input_params, try_resolve_callee, Callee, GlobalSpecId, InputParam, Local,
+        LocalKind, PackageStoreLookupExtension, SpecFunctor, SpecKind,
     },
     scaffolding::{ItemScaffolding, PackageScaffolding, PackageStoreScaffolding},
     ApplicationsTable, ComputeKind, ComputePropertiesLookup, DynamismSource, QuantumProperties,
@@ -15,9 +15,9 @@ use itertools::Itertools;
 use qsc_fir::{
     fir::{
         BlockId, CallableDecl, CallableImpl, CallableKind, ExprId, ExprKind, Global, Ident,
-        Mutability, PackageId, PackageLookup, PackageStore, PackageStoreLookup, Pat, PatId,
-        PatKind, Res, SpecDecl, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
-        StoreStmtId, StringComponent,
+        LocalItemId, Mutability, PackageId, PackageLookup, PackageStore, PackageStoreLookup, Pat,
+        PatId, PatKind, Res, SpecDecl, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
+        StorePatId, StoreStmtId, StringComponent,
     },
     ty::{Prim, Ty},
 };
@@ -64,7 +64,7 @@ pub fn analyze_package(
 
 /// Performs runtime capabilities analysis (RCA) on a specialization that is part of a callable cycle.
 pub fn analyze_specialization_with_cyles(
-    specialization_id: GlobalSpecializationId,
+    specialization_id: GlobalSpecId,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
@@ -81,23 +81,6 @@ pub fn analyze_specialization_with_cyles(
         panic!("callable implementation should not be intrinsic");
     };
 
-    // Use the correct specialization declaration.
-    let spec_decl = match specialization_id.specialization {
-        SpecializationKind::Body => &spec_impl.body,
-        SpecializationKind::Adj => spec_impl
-            .adj
-            .as_ref()
-            .expect("adj specialization should exist"),
-        SpecializationKind::Ctl => spec_impl
-            .ctl
-            .as_ref()
-            .expect("ctl specialization should exist"),
-        SpecializationKind::CtlAdj => spec_impl
-            .ctl_adj
-            .as_ref()
-            .expect("ctl_adj specializatiob should exist"),
-    };
-
     let input_params = derive_callable_input_params(
         callable,
         &package_store
@@ -109,12 +92,10 @@ pub fn analyze_specialization_with_cyles(
     // Create compute properties differently depending on whether the callable is a function or an operation.
     let applications_table = match callable.kind {
         CallableKind::Function => create_cycled_function_specialization_applications_table(
-            spec_decl,
             input_params.len(),
             &callable.output,
         ),
         CallableKind::Operation => create_cycled_operation_specialization_applications_table(
-            spec_decl,
             input_params.len(),
             &callable.output,
         ),
@@ -126,6 +107,21 @@ pub fn analyze_specialization_with_cyles(
     let package_scaffolding = package_store_scaffolding
         .get_mut(package_id)
         .expect("package scaffolding should exist");
+    let spec_decl = match specialization_id.specialization {
+        SpecKind::Body => &spec_impl.body,
+        SpecKind::Adj => spec_impl
+            .adj
+            .as_ref()
+            .expect("adj specialization should exist"),
+        SpecKind::Ctl => spec_impl
+            .ctl
+            .as_ref()
+            .expect("ctl specialization should exist"),
+        SpecKind::CtlAdj => spec_impl
+            .ctl_adj
+            .as_ref()
+            .expect("ctl_adj specializatiob should exist"),
+    };
     propagate_applications_table_through_block(
         spec_decl.block,
         &applications_table,
@@ -246,7 +242,7 @@ fn analyze_intrinsic_callable(
 ) {
     // If an entry for the specialization already exists, there is nothing left to do. Note that intrinsic callables
     // only have a body specialization.
-    let body_specialization_id = GlobalSpecializationId::from((id, SpecializationKind::Body));
+    let body_specialization_id = GlobalSpecId::from((id, SpecKind::Body));
     if package_store_scaffolding
         .find_specialization(body_specialization_id)
         .is_some()
@@ -294,9 +290,8 @@ fn analyze_non_intrinsic_callable(
     };
 
     // Analyze each one of the specializations.
-    analyze_specialization(
-        id,
-        SpecializationKind::Body,
+    analyze_spec_decl(
+        (id, SpecKind::Body).into(),
         &implementation.body,
         input_params,
         package_store,
@@ -304,9 +299,8 @@ fn analyze_non_intrinsic_callable(
     );
 
     if let Some(adj_spec) = &implementation.adj {
-        analyze_specialization(
-            id,
-            SpecializationKind::Adj,
+        analyze_spec_decl(
+            (id, SpecKind::Adj).into(),
             adj_spec,
             input_params,
             package_store,
@@ -315,9 +309,8 @@ fn analyze_non_intrinsic_callable(
     }
 
     if let Some(ctl_spec) = &implementation.ctl {
-        analyze_specialization(
-            id,
-            SpecializationKind::Ctl,
+        analyze_spec_decl(
+            (id, SpecKind::Ctl).into(),
             ctl_spec,
             input_params,
             package_store,
@@ -326,9 +319,8 @@ fn analyze_non_intrinsic_callable(
     }
 
     if let Some(ctl_adj_spec) = &implementation.ctl_adj {
-        analyze_specialization(
-            id,
-            SpecializationKind::CtlAdj,
+        analyze_spec_decl(
+            (id, SpecKind::CtlAdj).into(),
             ctl_adj_spec,
             input_params,
             package_store,
@@ -337,51 +329,94 @@ fn analyze_non_intrinsic_callable(
     }
 }
 
-fn analyze_specialization(
-    callable_id: StoreItemId,
-    spec_kind: SpecializationKind,
+fn analyze_spec(
+    id: GlobalSpecId,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) {
+    let callable = package_store
+        .get_global(id.callable)
+        .expect("global should exist");
+    let Global::Callable(callable_decl) = callable else {
+        panic!("global should be a callable");
+    };
+
+    match &callable_decl.implementation {
+        CallableImpl::Intrinsic => analyze_callable(
+            id.callable,
+            callable_decl,
+            package_store,
+            package_store_scaffolding,
+        ),
+        CallableImpl::Spec(spec_impl) => {
+            let spec_decl = match id.specialization {
+                SpecKind::Body => &spec_impl.body,
+                SpecKind::Adj => spec_impl
+                    .adj
+                    .as_ref()
+                    .expect("adj specialization should exist"),
+                SpecKind::Ctl => spec_impl
+                    .ctl
+                    .as_ref()
+                    .expect("ctl specialization should exist"),
+                SpecKind::CtlAdj => spec_impl
+                    .ctl_adj
+                    .as_ref()
+                    .expect("ctladj specialization should exist"),
+            };
+            let callable_input_params = derive_callable_input_params(
+                callable_decl,
+                &package_store
+                    .get(id.callable.package)
+                    .expect("package should exist")
+                    .pats,
+            );
+            analyze_spec_decl(
+                id,
+                spec_decl,
+                &callable_input_params,
+                package_store,
+                package_store_scaffolding,
+            );
+        }
+    };
+}
+
+fn analyze_spec_decl(
+    id: GlobalSpecId,
     spec_decl: &SpecDecl,
     callable_input_params: &Vec<InputParam>,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
     // If an entry for the specialization already exists, there is nothing left to do.
-    let specialization_id = GlobalSpecializationId::from((callable_id, spec_kind));
-    if package_store_scaffolding
-        .find_specialization(specialization_id)
-        .is_some()
-    {
+    if package_store_scaffolding.find_specialization(id).is_some() {
         return;
     }
 
     // We expand the input map for controlled specializations, which have its own additional input (the control qubit
     // register).
     let package_patterns = &package_store
-        .get(callable_id.package)
+        .get(id.callable.package)
         .expect("package should exist")
         .pats;
 
-    // Derive the input parameters for the specialization, which can be different from the callable input parameters
-    // if the specialization has its own input.
-    let specialization_input_params =
-        derive_specialization_input_params(spec_decl, callable_input_params, package_patterns);
-
     // Then we analyze the block which implements the specialization by simulating callable applications.
-    let block_id = (callable_id.package, spec_decl.block).into();
-    let mut spec_application_instances =
-        SpecApplicationInstances::new(&specialization_input_params);
+    let block_id = (id.callable.package, spec_decl.block).into();
+    let mut application_instances_table =
+        ApplicationInstancesTable::from_spec(spec_decl, callable_input_params, package_patterns);
 
     // First, we simulate the inherent application, in which all arguments are static.
     simulate_block(
         block_id,
-        &mut spec_application_instances.inherent,
+        &mut application_instances_table.inherent,
         package_store,
         package_store_scaffolding,
     );
-    spec_application_instances.inherent.settle();
+    application_instances_table.inherent.settle();
 
     // Then, we simulate an application for each imput parameter, in which we consider it dynamic.
-    for application_instance in spec_application_instances.dynamic_params.iter_mut() {
+    for application_instance in application_instances_table.dynamic_params.iter_mut() {
         simulate_block(
             block_id,
             application_instance,
@@ -395,14 +430,14 @@ fn analyze_specialization(
     // application instances for the specialization, which will save all the analysis to the package store scaffolding
     // and will return the applications table corresponding to the specialization.
     let package_scaffolding = package_store_scaffolding
-        .get_mut(callable_id.package)
+        .get_mut(id.callable.package)
         .expect("package scaffolding should exist");
-    let specialization_applications_table = spec_application_instances
+    let specialization_applications_table = application_instances_table
         .close(package_scaffolding, Some(block_id.block))
         .expect("applications table should be some");
 
     // Finally, we insert the applications table to the scaffolding data structure.
-    package_store_scaffolding.insert_spec(specialization_id, specialization_applications_table);
+    package_store_scaffolding.insert_spec(id, specialization_applications_table);
 }
 
 pub fn analyze_top_level_stmts(
@@ -417,23 +452,22 @@ pub fn analyze_top_level_stmts(
     }
 
     // Analyze top-level statements as if they were all part of a parameterless operation.
-    let input_params = Vec::<InputParam>::new();
-    let mut application_instances = SpecApplicationInstances::new(&input_params);
+    let mut application_instances_table = ApplicationInstancesTable::parameterless();
     for stmt_id in top_level_stmts {
         simulate_stmt(
             (id, *stmt_id).into(),
-            &mut application_instances.inherent,
+            &mut application_instances_table.inherent,
             package_store,
             package_store_scaffolding,
         );
     }
-    application_instances.inherent.settle();
+    application_instances_table.inherent.settle();
 
     // Closing the application instances saves the analysis to the corresponding package scaffolding.
     let package_scaffolding = package_store_scaffolding
         .get_mut(id)
         .expect("package scaffolding should exist");
-    _ = application_instances.close(package_scaffolding, None);
+    _ = application_instances_table.close(package_scaffolding, None);
 }
 
 fn bind_expr_compute_kind_to_pattern(
@@ -546,14 +580,147 @@ fn bind_compute_kind_to_ident(
         .insert(ident.id, local_compute_kind);
 }
 
+fn create_compute_kind_for_call_with_dynamic_callee(
+    callee_expr_id: ExprId,
+    expr_type: &Ty,
+) -> ComputeKind {
+    let value_kind = if *expr_type == Ty::UNIT {
+        ValueKind::Static
+    } else {
+        // Assume a dynamic value kind if the output of the call expression is non-unit.
+        ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Expr(
+            callee_expr_id,
+        )]))
+    };
+    ComputeKind::Quantum(QuantumProperties {
+        runtime_features: RuntimeFeatureFlags::DynamicCallee,
+        value_kind,
+    })
+}
+
+fn create_compute_kind_for_call_with_spec_callee(
+    callee: &Callee,
+    callable_decl: &CallableDecl,
+    args_expr_id: StoreExprId,
+    application_instance: &ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Now that we know the callee, we can use its applications table to determine the compute kind of the call
+    // expression.
+    let callee_id = GlobalSpecId::from((callee.item, SpecKind::from(&callee.spec_functor)));
+    analyze_spec(callee_id, package_store, package_store_scaffolding);
+    let callee_applications_table = package_store_scaffolding.get_spec(callee_id);
+
+    // We need to split controls and specialization input arguments so we can use the right entry in the applications
+    // table.
+    let args_package = package_store.get_package(args_expr_id.package);
+    let (args_controls, args_input_id) =
+        split_controls_and_input(args_expr_id.expr, &callee.spec_functor, args_package);
+    let callee_input_pattern_id =
+        StorePatId::from((callee_id.callable.package, callable_decl.input));
+    let args_input_id = StoreExprId::from((args_expr_id.package, args_input_id));
+    let input_param_exprs =
+        map_input_param_exprs(callee_input_pattern_id, args_input_id, package_store);
+    let input_params_dynamism: Vec<bool> = input_param_exprs
+        .iter()
+        .map(|expr_id| {
+            let input_param_compute_kind = application_instance
+                .exprs
+                .get(expr_id)
+                .expect("expression compute kind should exist");
+            input_param_compute_kind.is_dynamic()
+        })
+        .collect();
+
+    // Derive the compute kind based on the dynamism of input parameters.
+    let compute_kind =
+        callee_applications_table.derive_application_compute_kind(&input_params_dynamism);
+    // TODO (cesarzc): incorportate dynamism of controls.
+    compute_kind
+}
+
+fn create_compute_kind_for_call_with_static_callee(
+    callee_expr_id: StoreExprId,
+    args_expr_id: StoreExprId,
+    expr_type: &Ty,
+    application_instance: &ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Try to resolve the callee.
+    let maybe_callee = try_resolve_callee(
+        callee_expr_id,
+        &application_instance.locals_map,
+        package_store,
+    );
+    let Some(callee) = maybe_callee else {
+        return create_compute_kind_for_call_with_unresolved_callee(callee_expr_id.expr, expr_type);
+    };
+
+    // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
+    let global_callee = package_store
+        .get_global(callee.item)
+        .expect("global should exist");
+    match global_callee {
+        Global::Callable(callable_decl) => create_compute_kind_for_call_with_spec_callee(
+            &callee,
+            callable_decl,
+            args_expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        Global::Udt => {
+            create_compute_kind_for_call_with_udt_callee(args_expr_id.expr, application_instance)
+        }
+    }
+}
+
+fn create_compute_kind_for_call_with_udt_callee(
+    args_expr_id: ExprId,
+    application_instance: &ApplicationInstance,
+) -> ComputeKind {
+    let args_expr_compute_kind = application_instance
+        .exprs
+        .get(&args_expr_id)
+        .expect("expression compute kind should exist");
+    match args_expr_compute_kind {
+        ComputeKind::Classical => ComputeKind::Classical,
+        ComputeKind::Quantum(quantum_properties) => match quantum_properties.value_kind {
+            ValueKind::Static => ComputeKind::Quantum(QuantumProperties::default()),
+            ValueKind::Dynamic(_) => ComputeKind::Quantum(QuantumProperties {
+                runtime_features: RuntimeFeatureFlags::empty(),
+                value_kind: ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Expr(
+                    args_expr_id,
+                )])),
+            }),
+        },
+    }
+}
+
+fn create_compute_kind_for_call_with_unresolved_callee(
+    callee_expr_id: ExprId,
+    expr_type: &Ty,
+) -> ComputeKind {
+    let value_kind = if *expr_type == Ty::UNIT {
+        ValueKind::Static
+    } else {
+        // Assume a dynamic value kind if the output of the call expression is non-unit.
+        ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Expr(
+            callee_expr_id,
+        )]))
+    };
+    ComputeKind::Quantum(QuantumProperties {
+        runtime_features: RuntimeFeatureFlags::UnresolvedCallee,
+        value_kind,
+    })
+}
+
 fn create_cycled_function_specialization_applications_table(
-    spec_decl: &SpecDecl,
     callable_input_params_count: usize,
     output_type: &Ty,
 ) -> ApplicationsTable {
-    // Functions can only have a body specialization, which does not have its input.
-    assert!(spec_decl.input.is_none());
-
     // Set the compute kind of the function for each parameter when it is binded to a dynamic value.
     let mut using_dynamic_param = Vec::new();
     for _ in 0..callable_input_params_count {
@@ -583,7 +750,6 @@ fn create_cycled_function_specialization_applications_table(
 }
 
 fn create_cycled_operation_specialization_applications_table(
-    spec_decl: &SpecDecl,
     callable_input_params_count: usize,
     output_type: &Ty,
 ) -> ApplicationsTable {
@@ -600,17 +766,10 @@ fn create_cycled_operation_specialization_applications_table(
         value_kind,
     });
 
-    // If the specialization has its own input, then the number of input params needs to be increased by one.
-    let specialization_input_params_count = if spec_decl.input.is_some() {
-        callable_input_params_count + 1
-    } else {
-        callable_input_params_count
-    };
-
     // The compute kind of a cycled function when any of its parameters is binded to a dynamic value is the same as its
     // inherent compute kind.
     let mut using_dynamic_param = Vec::new();
-    for _ in 0..specialization_input_params_count {
+    for _ in 0..callable_input_params_count {
         using_dynamic_param.push(inherent_compute_kind.clone());
     }
 
@@ -759,6 +918,7 @@ fn determine_expr_call_compute_kind(
     package_id: PackageId,
     callee_expr_id: ExprId,
     args_expr_id: ExprId,
+    expr_type: &Ty,
     application_instance: &mut ApplicationInstance,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
@@ -779,15 +939,41 @@ fn determine_expr_call_compute_kind(
         package_store_scaffolding,
     );
 
-    // Then, try to resolve the callee and determine the compute kind depending on whether we could successfully resolve
-    // the callee or not.
-    let _resolved_callee = try_resolve_callee(
-        callee_expr_id,
-        &application_instance.locals_map,
-        package_store,
-    );
-    // TODO (cesarzc): implement properly.
-    ComputeKind::Classical
+    // Get the compute kind of the callee expression and based on it create the compute kind for the call expression.
+    let callee_expr_compute_kind = application_instance
+        .exprs
+        .get(&callee_expr_id.expr)
+        .expect("compute kind should exist");
+    let mut compute_kind = match callee_expr_compute_kind {
+        ComputeKind::Classical => create_compute_kind_for_call_with_static_callee(
+            callee_expr_id,
+            args_expr_id,
+            expr_type,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        ComputeKind::Quantum(calle_expr_quantum_properties) => {
+            match calle_expr_quantum_properties.value_kind {
+                ValueKind::Static => create_compute_kind_for_call_with_static_callee(
+                    callee_expr_id,
+                    args_expr_id,
+                    expr_type,
+                    application_instance,
+                    package_store,
+                    package_store_scaffolding,
+                ),
+                ValueKind::Dynamic(_) => {
+                    create_compute_kind_for_call_with_dynamic_callee(callee_expr_id.expr, expr_type)
+                }
+            }
+        }
+    };
+
+    // Aggregate runtime features from the callee and args expressions.
+    compute_kind = aggregate_compute_kind_runtime_features(compute_kind, callee_expr_compute_kind);
+    compute_kind = aggregate_compute_kind_runtime_features(compute_kind, callee_expr_compute_kind);
+    compute_kind
 }
 
 fn determine_expr_lit_compute_kind() -> ComputeKind {
@@ -941,6 +1127,35 @@ fn propagate_applications_table_through_block(
     package_scaffolding
         .blocks
         .insert(block_id, applications_table.clone());
+}
+
+fn map_input_param_exprs(
+    pat_id: StorePatId,
+    expr_id: StoreExprId,
+    package_store: &impl PackageStoreLookup,
+) -> Vec<ExprId> {
+    let pat = package_store.get_pat(pat_id);
+    match &pat.kind {
+        PatKind::Bind(_) | PatKind::Discard => vec![expr_id.expr],
+        PatKind::Tuple(pats) => {
+            let expr = package_store.get_expr(expr_id);
+            match &expr.kind {
+                ExprKind::Tuple(exprs) => {
+                    assert!(pats.len() == exprs.len());
+                    let mut input_param_exprs = Vec::<ExprId>::with_capacity(pats.len());
+                    for (local_pat_id, local_expr_id) in pats.iter().zip(exprs.iter()) {
+                        let global_pat_id = StorePatId::from((pat_id.package, *local_pat_id));
+                        let global_expr_id = StoreExprId::from((expr_id.package, *local_expr_id));
+                        let mut sub_input_param_exprs =
+                            map_input_param_exprs(global_pat_id, global_expr_id, package_store);
+                        input_param_exprs.append(&mut sub_input_param_exprs);
+                    }
+                    input_param_exprs
+                }
+                _ => panic!("expected tuple expression"),
+            }
+        }
+    }
 }
 
 fn propagate_applications_table_through_expr(
@@ -1148,6 +1363,7 @@ fn simulate_expr(
             id.package,
             *callee,
             *args,
+            &expr.ty,
             application_instance,
             package_store,
             package_store_scaffolding,
@@ -1219,4 +1435,25 @@ fn simulate_stmt(
 
     // Insert the statements's compute kind into the application instance.
     application_instance.stmts.insert(id.stmt, compute_kind);
+}
+
+fn split_controls_and_input(
+    args_expr_id: ExprId,
+    spec_functor: &SpecFunctor,
+    package: &impl PackageLookup,
+) -> (Vec<ExprId>, ExprId) {
+    let mut controls = Vec::new();
+    let mut remainder_expr_id = args_expr_id;
+    for _ in 0..spec_functor.controlled {
+        let expr = package.get_expr(remainder_expr_id);
+        match &expr.kind {
+            ExprKind::Tuple(pats) => {
+                assert!(pats.len() == 2);
+                controls.push(pats[0]);
+                remainder_expr_id = pats[1];
+            }
+            _ => panic!("expected tuple expression"),
+        }
+    }
+    (controls, remainder_expr_id)
 }
