@@ -1393,9 +1393,9 @@ fn assignop_add_concat_copy() {
             let x = [1, 2];
             mutable y = x;
             set y += [3, 4];
-            y
+            (x, y)
         }"},
-        &expect!["[1, 2, 3, 4]"],
+        &expect!["([1, 2], [1, 2, 3, 4])"],
     );
 }
 
@@ -2292,9 +2292,9 @@ fn assignupdate_on_copy_should_work() {
             let x = [1, 2, 3];
             mutable y = x;
             set y w/= 2 <- 4;
-            y
+            (x, y)
         }"},
-        &expect!["[1, 2, 4]"],
+        &expect!["([1, 2, 3], [1, 2, 4])"],
     );
 }
 
