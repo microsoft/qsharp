@@ -3,13 +3,14 @@
 
 mod counts;
 pub mod estimates;
+pub mod system;
 
-pub use estimates::estimate_physical_resources_from_json;
+pub use system::estimate_physical_resources_from_json;
 
 use counts::LogicalCounter;
-use estimates::estimate_physical_resources;
 use miette::Diagnostic;
 use qsc::interpret::{self, GenericReceiver, Interpreter};
+use system::estimate_physical_resources;
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -27,7 +28,7 @@ pub struct LogicalResources {
 #[diagnostic(transparent)]
 pub enum Error {
     Interpreter(interpret::Error),
-    Estimation(estimates::Error),
+    Estimation(system::Error),
 }
 
 pub fn estimate_entry(interpreter: &mut Interpreter, params: &str) -> Result<String, Vec<Error>> {
