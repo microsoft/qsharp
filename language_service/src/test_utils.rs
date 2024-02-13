@@ -93,7 +93,7 @@ where
         std_source_map,
         PackageType::Lib,
         Profile::Unrestricted.into(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     )
     .expect("expected incremental compiler creation to succeed");
 

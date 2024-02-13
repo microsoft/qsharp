@@ -20,7 +20,7 @@ use lex::TokenKind;
 use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Namespace, TopLevelNode};
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
-use scan::Scanner;
+use scan::ParserConfig;
 use std::result;
 use thiserror::Error;
 
@@ -96,16 +96,16 @@ impl ErrorKind {
 
 type Result<T> = result::Result<T, Error>;
 
-trait Parser<T>: FnMut(&mut Scanner) -> Result<T> {}
+trait Parser<T>: FnMut(&mut ParserConfig) -> Result<T> {}
 
-impl<T, F: FnMut(&mut Scanner) -> Result<T>> Parser<T> for F {}
+impl<T, F: FnMut(&mut ParserConfig) -> Result<T>> Parser<T> for F {}
 
 pub fn namespaces(
     input: &str,
     language_features: &LanguageFeatures,
 ) -> (Vec<Namespace>, Vec<Error>) {
-    let mut scanner = Scanner::new(input);
-    match item::parse_namespaces(&mut scanner, language_features) {
+    let mut scanner = ParserConfig::new(input, language_features.clone());
+    match item::parse_namespaces(&mut scanner) {
         Ok(namespaces) => (namespaces, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();
@@ -119,8 +119,8 @@ pub fn top_level_nodes(
     input: &str,
     language_features: &LanguageFeatures,
 ) -> (Vec<TopLevelNode>, Vec<Error>) {
-    let mut scanner = Scanner::new(input);
-    match item::parse_top_level_nodes(&mut scanner, language_features) {
+    let mut scanner = ParserConfig::new(input, language_features.clone());
+    match item::parse_top_level_nodes(&mut scanner) {
         Ok(nodes) => (nodes, scanner.into_errors()),
         Err(error) => {
             let mut errors = scanner.into_errors();
@@ -130,8 +130,8 @@ pub fn top_level_nodes(
     }
 }
 
-pub fn expr(input: &str) -> (Box<Expr>, Vec<Error>) {
-    let mut scanner = Scanner::new(input);
+pub fn expr(input: &str, language_features: &LanguageFeatures) -> (Box<Expr>, Vec<Error>) {
+    let mut scanner = ParserConfig::new(input, language_features.clone());
     match expr::expr_eof(&mut scanner) {
         Ok(expr) => (expr, scanner.into_errors()),
         Err(error) => {

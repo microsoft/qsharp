@@ -152,7 +152,7 @@ impl Compiler {
         source_contents: &str,
     ) -> Result<Increment, Vec<Error>> {
         let (mut ast, parse_errors) =
-            Self::parse_expr(&mut unit.sources, source_name, source_contents);
+            Self::parse_expr(&mut unit.sources, source_name, source_contents, &self.language_features);
 
         if !parse_errors.is_empty() {
             return Err(parse_errors);
@@ -256,10 +256,11 @@ impl Compiler {
         sources: &mut SourceMap,
         source_name: &str,
         source_contents: &str,
+        language_features: &LanguageFeatures
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
 
-        let (expr, errors) = qsc_parse::expr(source_contents);
+        let (expr, errors) = qsc_parse::expr(source_contents, language_features);
         let mut stmt = Box::new(Stmt {
             id: ast::NodeId::default(),
             span: expr.span,

@@ -5,26 +5,27 @@ use std::collections::BTreeSet;
 
 use super::{parse, parse_attr, parse_spec_decl};
 use crate::{
-    scan::Scanner,
+    scan::{ParserConfig, Scanner},
     tests::{check, check_vec},
 };
 use expect_test::expect;
 use qsc_data_structures::language_features::LanguageFeature;
 
-fn parse_namespaces(s: &mut Scanner) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
-    super::parse_namespaces(s, &Default::default())
+fn parse_namespaces(s: &mut ParserConfig) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
+    super::parse_namespaces(s)
 }
 
 fn parse_namespaces_v2_syntax(
-    s: &mut Scanner,
+    s: &mut ParserConfig,
 ) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
-    super::parse_namespaces(
-        s,
-        &vec![LanguageFeature::V2PreviewSyntax]
-            .into_iter()
-            .collect::<BTreeSet<_>>()
-            .into(),
-    )
+    todo!("fix test for v2 syntax")
+    // super::parse_namespaces(
+    //     s,
+    //     &vec![LanguageFeature::V2PreviewSyntax]
+    //         .into_iter()
+    //         .collect::<BTreeSet<_>>()
+    //         .into(),
+    // )
 }
 
 #[test]

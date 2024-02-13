@@ -1,21 +1,23 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{scan::Scanner, Parser};
+use super::{scan::ParserConfig, Parser};
 use crate::prim::FinalSep;
 use expect_test::Expect;
-use std::fmt::Display;
+use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
+use std::{collections::BTreeSet, fmt::Display, vec};
 
 pub(super) fn check<T: Display>(parser: impl Parser<T>, input: &str, expect: &Expect) {
-    check_map(parser, input, expect, ToString::to_string);
+    check_map(parser, input, expect, ToString::to_string, Default::default());
 }
 
 pub(super) fn check_opt<T: Display>(parser: impl Parser<Option<T>>, input: &str, expect: &Expect) {
     check_map(parser, input, expect, |value| match value {
         Some(value) => value.to_string(),
         None => "None".to_string(),
-    });
+    }, Default::default());
 }
+
 
 pub(super) fn check_vec<T: Display>(parser: impl Parser<Vec<T>>, input: &str, expect: &Expect) {
     check_map(parser, input, expect, |values| {
@@ -24,7 +26,7 @@ pub(super) fn check_vec<T: Display>(parser: impl Parser<Vec<T>>, input: &str, ex
             .map(ToString::to_string)
             .collect::<Vec<_>>()
             .join(",\n")
-    });
+    }, Default::default());
 }
 
 pub(super) fn check_seq<T: Display>(
@@ -41,7 +43,7 @@ pub(super) fn check_seq<T: Display>(
                 .collect::<Vec<_>>()
                 .join(",\n")
         )
-    });
+    }, Default::default());
 }
 
 fn check_map<T>(
@@ -49,8 +51,9 @@ fn check_map<T>(
     input: &str,
     expect: &Expect,
     f: impl FnOnce(&T) -> String,
+    features: LanguageFeatures,
 ) {
-    let mut scanner = Scanner::new(input);
+    let mut scanner = ParserConfig::new(input, Default::default());
     let result = parser(&mut scanner);
     let errors = scanner.into_errors();
     match result {

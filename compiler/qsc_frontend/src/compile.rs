@@ -469,7 +469,7 @@ fn parse_all(
         .as_ref()
         .filter(|source| !source.contents.is_empty())
         .map(|source| {
-            let (mut entry, entry_errors) = qsc_parse::expr(&source.contents);
+            let (mut entry, entry_errors) = qsc_parse::expr(&source.contents, features);
             Offsetter(source.offset).visit_expr(&mut entry);
             append_parse_errors(&mut errors, source.offset, entry_errors);
             entry
