@@ -16,10 +16,8 @@ fn check_rca_for_big_int_literal() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
@@ -34,10 +32,8 @@ fn check_rca_for_bool_literal() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
@@ -52,10 +48,8 @@ fn check_rca_for_double_literal() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
@@ -70,10 +64,8 @@ fn check_rca_for_pauli_literal() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
@@ -88,10 +80,8 @@ fn check_rca_for_result_literal() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
