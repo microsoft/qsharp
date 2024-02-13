@@ -24,7 +24,6 @@ export interface IDebugService {
     target: TargetProfile,
     entry: string | undefined,
     language_features: string[],
-
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;

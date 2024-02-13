@@ -16,8 +16,7 @@ pub(super) struct NoBarrierError;
 
 pub(super) struct ParserConfig<'a> {
     scanner: Scanner<'a>,
-    // TODO remove `pub`
-    pub language_features: LanguageFeatures,
+    language_features: LanguageFeatures,
 }
 
 /// Scans over the token stream. Notably enforces LL(1) parser behavior via
