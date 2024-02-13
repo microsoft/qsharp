@@ -11,9 +11,9 @@
   },
   "scripts": {
     "eslint:check": "eslint -c ./.eslintrc.cjs --max-warnings 0 ./",
-    "prettier:check": "prettier -c --no-config --ignore-path ./npm/generated_docs/* ./",
+    "prettier:check": "prettier -c --no-config --ignore-path ./",
     "check": "npm run eslint:check && npm run prettier:check",
-    "prettier:fix": "prettier -w --no-config ./npm/generated_docs/* ./"
+    "prettier:fix": "prettier -w --no-config ./"
   },
   "private": true,
   "devDependencies": {
