@@ -85,7 +85,7 @@ def init(
         
     # if no features were passed in as an argument, use the features from the manifest.
     # this way we prefer the features from the argument over those from the manifest.
-    if language_features == []:
+    if language_features == [] and manifest_descriptor != None:
         language_features = manifest_descriptor["manifest"].get("languageFeatures") or []
 
     _interpreter = Interpreter(

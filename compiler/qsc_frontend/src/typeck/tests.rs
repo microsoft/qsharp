@@ -112,7 +112,7 @@ fn parse(input: &str, entry_expr: &str) -> Package {
     let entry = if entry_expr.is_empty() {
         None
     } else {
-        let (mut entry, errors) = qsc_parse::expr(entry_expr, &Default::default());
+        let (mut entry, errors) = qsc_parse::expr(entry_expr, &LanguageFeatures::default());
         let offset = input
             .len()
             .try_into()

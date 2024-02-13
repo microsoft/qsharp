@@ -52,7 +52,7 @@ fn ident_num_prefix() {
 #[test]
 fn ident_keyword() {
     for keyword in enum_iterator::all::<Keyword>() {
-        let mut scanner = ParserConfig::new(keyword.as_str(), Default::default()    );
+        let mut scanner = ParserConfig::new(keyword.as_str(), Default::default());
         let actual = ident(&mut scanner);
         let span = Span {
             lo: 0,

@@ -1,31 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::collections::BTreeSet;
-
 use super::{parse, parse_attr, parse_spec_decl};
 use crate::{
-    scan::{ParserConfig, Scanner},
-    tests::{check, check_vec},
+    scan::ParserConfig,
+    tests::{check, check_vec, check_vec_v2_preview},
 };
 use expect_test::expect;
-use qsc_data_structures::language_features::LanguageFeature;
 
 fn parse_namespaces(s: &mut ParserConfig) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
     super::parse_namespaces(s)
-}
-
-fn parse_namespaces_v2_syntax(
-    s: &mut ParserConfig,
-) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
-    todo!("fix test for v2 syntax")
-    // super::parse_namespaces(
-    //     s,
-    //     &vec![LanguageFeature::V2PreviewSyntax]
-    //         .into_iter()
-    //         .collect::<BTreeSet<_>>()
-    //         .into(),
-    // )
 }
 
 #[test]
@@ -1519,8 +1503,8 @@ fn callable_missing_open_parens() {
 
 #[test]
 fn disallow_qubit_scoped_block() {
-    check_vec(
-        parse_namespaces_v2_syntax,
+    check_vec_v2_preview(
+        parse_namespaces,
         "namespace Foo { operation Main() : Unit { use q1 = Qubit() {  };  } }",
         &expect![[r#"
             Namespace _id_ [0-69] (Ident _id_ [10-13] "Foo"):

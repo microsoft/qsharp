@@ -64,7 +64,12 @@ impl Compiler {
         let source_package_id = store.insert(unit);
         dependencies.push(source_package_id);
 
-        let frontend = qsc_frontend::incremental::Compiler::new(&store, dependencies, capabilities, opt_in_features);
+        let frontend = qsc_frontend::incremental::Compiler::new(
+            &store,
+            dependencies,
+            capabilities,
+            opt_in_features,
+        );
         let store = store.open();
 
         Ok(Self {

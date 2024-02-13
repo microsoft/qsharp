@@ -39,7 +39,7 @@ pub struct Compiler {
     checker: Checker,
     lowerer: Lowerer,
     capabilities: RuntimeCapabilityFlags,
-    language_features: LanguageFeatures
+    language_features: LanguageFeatures,
 }
 
 pub type Error = WithSource<compile::Error>;
@@ -59,7 +59,7 @@ impl Compiler {
         store: &PackageStore,
         dependencies: impl IntoIterator<Item = PackageId>,
         capabilities: RuntimeCapabilityFlags,
-        language_features: LanguageFeatures
+        language_features: LanguageFeatures,
     ) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();
         let mut typeck_globals = typeck::GlobalTable::new();
@@ -85,7 +85,7 @@ impl Compiler {
             checker: Checker::new(typeck_globals),
             lowerer: Lowerer::new(),
             capabilities,
-            language_features
+            language_features,
         }
     }
 
@@ -115,8 +115,12 @@ impl Compiler {
     where
         F: FnMut(Vec<Error>) -> Result<(), E>,
     {
-        let (mut ast, parse_errors) =
-            Self::parse_fragments(&mut unit.sources, source_name, source_contents, &self.language_features);
+        let (mut ast, parse_errors) = Self::parse_fragments(
+            &mut unit.sources,
+            source_name,
+            source_contents,
+            &self.language_features,
+        );
 
         accumulate_errors(parse_errors)?;
 
@@ -151,8 +155,12 @@ impl Compiler {
         source_name: &str,
         source_contents: &str,
     ) -> Result<Increment, Vec<Error>> {
-        let (mut ast, parse_errors) =
-            Self::parse_expr(&mut unit.sources, source_name, source_contents, &self.language_features);
+        let (mut ast, parse_errors) = Self::parse_expr(
+            &mut unit.sources,
+            source_name,
+            source_contents,
+            &self.language_features,
+        );
 
         if !parse_errors.is_empty() {
             return Err(parse_errors);
@@ -256,7 +264,7 @@ impl Compiler {
         sources: &mut SourceMap,
         source_name: &str,
         source_contents: &str,
-        language_features: &LanguageFeatures
+        language_features: &LanguageFeatures,
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
 

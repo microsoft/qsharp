@@ -6,7 +6,10 @@ use crate::{
     lex::{Lexer, Token, TokenKind},
     ErrorKind,
 };
-use qsc_data_structures::{span::Span, language_features::{LanguageFeatures, LanguageFeature}};
+use qsc_data_structures::{
+    language_features::{LanguageFeature, LanguageFeatures},
+    span::Span,
+};
 
 #[derive(Debug)]
 pub(super) struct NoBarrierError;
@@ -32,10 +35,7 @@ pub(super) struct Scanner<'a> {
 }
 
 impl<'a> ParserConfig<'a> {
-    pub fn new(
-        input: &'a str,
-        language_features: LanguageFeatures,
-    ) -> Self {
+    pub fn new(input: &'a str, language_features: LanguageFeatures) -> Self {
         Self {
             scanner: Scanner::new(input),
             language_features,
@@ -47,7 +47,7 @@ impl<'a> ParserConfig<'a> {
     }
 
     pub(super) fn read(&self) -> &'a str {
-            self.scanner.read()
+        self.scanner.read()
     }
 
     pub(super) fn span(&self, from: u32) -> Span {
@@ -88,7 +88,6 @@ impl<'a> ParserConfig<'a> {
         self.language_features.contains(feat)
     }
 }
-
 
 impl<'a> Scanner<'a> {
     pub(super) fn new(input: &'a str) -> Self {

@@ -16,16 +16,12 @@ export async function getManifest(uri: string): Promise<{
   languageFeatures: string[] | undefined;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
-
   if (manifestDocument === null) {
     return null;
   }
-
-  let parsedManifest: { languageFeatures: string[] | undefined } | null = null;
-
+  let result;
   try {
-    updateQSharpJsonDiagnostics(manifestDocument.uri);
-    parsedManifest = JSON.parse(manifestDocument.content);
+    result = await getManifestThrowsOnParseFailure(uri);
   } catch (e) {
     log.warn(
       `failed to parse manifest at ${manifestDocument.uri.toString()}`,
@@ -37,13 +33,7 @@ export async function getManifest(uri: string): Promise<{
     );
     return null;
   }
-
-  const manifestDirectory = Utils.dirname(manifestDocument.uri);
-
-  return {
-    manifestDirectory: manifestDirectory.toString(),
-    languageFeatures: parsedManifest?.languageFeatures,
-  }
+  return result;
 }
 
 /** Returns the manifest document if one is found
@@ -173,12 +163,14 @@ async function readFileUri(
 
 async function getManifestThrowsOnParseFailure(uri: string): Promise<{
   manifestDirectory: string;
+  languageFeatures: string[] | undefined;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
+  let parsedManifest: { languageFeatures: string[] | undefined } | null = null;
 
   if (manifestDocument) {
     try {
-      JSON.parse(manifestDocument.content); // will throw if invalid
+      parsedManifest = JSON.parse(manifestDocument.content); // will throw if invalid
     } catch (e: any) {
       updateQSharpJsonDiagnostics(
         manifestDocument.uri,
@@ -195,6 +187,7 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
 
     return {
       manifestDirectory: manifestDirectory.toString(),
+      languageFeatures: parsedManifest?.languageFeatures,
     };
   }
   return null;
@@ -202,9 +195,10 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
 
 let projectLoader: any | undefined = undefined;
 
-export async function loadProject(
-  documentUri: vscode.Uri,
-): Promise<[string, string][]> {
+export async function loadProject(documentUri: vscode.Uri): Promise<{
+  sources: [string, string][];
+  languageFeatures: string[];
+}> {
   // get the project using this.program
   const manifest = await getManifestThrowsOnParseFailure(
     documentUri.toString(),
@@ -213,12 +207,19 @@ export async function loadProject(
     // return just the one file if we are in single file mode
     const file = await vscode.workspace.openTextDocument(documentUri);
 
-    return [[documentUri.toString(), file.getText()]];
+    return {
+      sources: [[documentUri.toString(), file.getText()]],
+      languageFeatures: [],
+    };
   }
 
   if (!projectLoader) {
     projectLoader = await getProjectLoader(readFile, listDir, getManifest);
   }
-  const project = await projectLoader.load_project(manifest);
-  return project;
+  const project: [string, string][] =
+    await projectLoader.load_project(manifest);
+  return {
+    sources: project,
+    languageFeatures: manifest.languageFeatures || [],
+  };
 }

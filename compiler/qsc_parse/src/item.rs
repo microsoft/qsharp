@@ -25,7 +25,7 @@ use qsc_ast::ast::{
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
     TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
-use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+use qsc_data_structures::span::Span;
 
 pub(super) fn parse(s: &mut ParserConfig) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
@@ -36,7 +36,7 @@ pub(super) fn parse(s: &mut ParserConfig) -> Result<Box<Item>> {
         open
     } else if let Some(ty) = opt(s, parse_newtype)? {
         ty
-    } else if let Some(callable) = opt(s, |p| parse_callable_decl(p))? {
+    } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
@@ -79,9 +79,7 @@ fn parse_many(s: &mut ParserConfig) -> Result<Vec<Box<Item>>> {
     const RECOVERY_TOKENS: &[TokenKind] = &[TokenKind::Semi, TokenKind::Close(Delim::Brace)];
 
     barrier(s, BARRIER_TOKENS, |s| {
-        many(s, |s| {
-            recovering(s, default, RECOVERY_TOKENS, parse)
-        })
+        many(s, |s| recovering(s, default, RECOVERY_TOKENS, parse))
     })
 }
 fn default(span: Span) -> Box<Item> {
@@ -95,17 +93,13 @@ fn default(span: Span) -> Box<Item> {
     })
 }
 
-pub(super) fn parse_namespaces(
-    s: &mut ParserConfig,
-) -> Result<Vec<Namespace>> {
+pub(super) fn parse_namespaces(s: &mut ParserConfig) -> Result<Vec<Namespace>> {
     let namespaces = many(s, parse_namespace)?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(namespaces)
 }
 
-pub(super) fn parse_top_level_nodes(
-    s: &mut ParserConfig,
-) -> Result<Vec<TopLevelNode>> {
+pub(super) fn parse_top_level_nodes(s: &mut ParserConfig) -> Result<Vec<TopLevelNode>> {
     let nodes = many(s, parse_top_level_node)?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(nodes)
@@ -117,7 +111,7 @@ fn parse_top_level_node(s: &mut ParserConfig) -> Result<TopLevelNode> {
     // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
     // opt. This pattern can be dropped along with namespaces once we have a module-based design.
     let doc = parse_doc(s).unwrap_or_default();
-    if let Some(mut namespace) = opt(s,  parse_namespace)? {
+    if let Some(mut namespace) = opt(s, parse_namespace)? {
         namespace.doc = doc.into();
         Ok(TopLevelNode::Namespace(namespace))
     } else {

@@ -20,10 +20,7 @@ use crate::{
 use qsc_ast::ast::{
     Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
-use qsc_data_structures::{
-    language_features::{LanguageFeature, LanguageFeatures},
-    span::Span,
-};
+use qsc_data_structures::{language_features::LanguageFeature, span::Span};
 
 pub(super) fn parse(s: &mut ParserConfig) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
@@ -33,7 +30,7 @@ pub(super) fn parse(s: &mut ParserConfig) -> Result<Box<Stmt>> {
         Box::new(StmtKind::Item(item))
     } else if let Some(local) = opt(s, parse_local)? {
         local
-    } else if let Some(qubit) = opt(s,  parse_qubit)? {
+    } else if let Some(qubit) = opt(s, parse_qubit)? {
         qubit
     } else {
         let e = expr_stmt(s)?;
@@ -52,12 +49,8 @@ pub(super) fn parse(s: &mut ParserConfig) -> Result<Box<Stmt>> {
 }
 
 #[allow(clippy::vec_box)]
-pub(super) fn parse_many(
-    s: &mut ParserConfig,
-) -> Result<Vec<Box<Stmt>>> {
-    many(s, |s| {
-        recovering(s, default, &[TokenKind::Semi], parse)
-    })
+pub(super) fn parse_many(s: &mut ParserConfig) -> Result<Vec<Box<Stmt>>> {
+    many(s, |s| recovering(s, default, &[TokenKind::Semi], parse))
 }
 
 pub(super) fn parse_block(s: &mut ParserConfig) -> Result<Box<Block>> {
@@ -103,7 +96,7 @@ fn parse_local(s: &mut ParserConfig) -> Result<Box<StmtKind>> {
 }
 
 fn parse_qubit(s: &mut ParserConfig) -> Result<Box<StmtKind>> {
-    println!("language features are {:?}", s.language_features);
+    // println!("language features are {:?}", s.language_features);
     let source = if token(s, TokenKind::Keyword(Keyword::Use)).is_ok() {
         QubitSource::Fresh
     } else if token(s, TokenKind::Keyword(Keyword::Borrow)).is_ok() {
