@@ -363,7 +363,7 @@ impl Default for QuantumProperties {
 impl Display for QuantumProperties {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "ComputeProperties:",)?;
+        write!(indent, "QuantumProperties:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nruntime_features: {:?}", self.runtime_features)?;
         write!(indent, "\nvalue_kind: {}", self.value_kind)?;
@@ -381,7 +381,7 @@ impl Display for ValueKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
             ValueKind::Dynamic(dynamism_sources) => {
-                write!(f, "Dynamic:")?;
+                write!(f, "Dynamic: ")?;
                 write!(f, "{{")?;
                 let mut first = true;
                 for source in dynamism_sources.iter().sorted() {
@@ -437,11 +437,11 @@ bitflags! {
         /// Use of a dynamic generic.
         const UseOfDynamicGeneric = 0b0100_0000_0000_0000;
         /// A function with cycles used with a dynamic argument.
-        const CycledFunctionApplicationUsesDynamicArg = 0b1000_0000_0000_0000;
+        const CycledFunctionUsesDynamicArg = 0b1000_0000_0000_0000;
         /// An operation specialization with cycles is used.
-        const CycledOperationSpecializationApplication = 0b0001_0000_0000_0000_0000;
+        const CycledOperation = 0b0001_0000_0000_0000_0000;
         /// A callee expression than does not directly resolve to a global.
-        const NonGlobalCallee = 0b0010_0000_0000_0000_0000;
+        const UnresolvedCallee = 0b0010_0000_0000_0000_0000;
     }
 }
 
@@ -494,10 +494,10 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::UseOfDynamicGeneric) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::CycledFunctionApplicationUsesDynamicArg) {
+        if self.contains(RuntimeFeatureFlags::CycledFunctionUsesDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::CycledOperationSpecializationApplication) {
+        if self.contains(RuntimeFeatureFlags::CycledOperation) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         runtume_capabilities

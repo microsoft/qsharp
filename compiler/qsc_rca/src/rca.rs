@@ -569,7 +569,7 @@ fn create_cycled_function_specialization_applications_table(
         // if the function is used with any dynamic parameter. The `CycledFunctionWithDynamicArg` feature conveys this
         // assumption.
         let quantum_properties = QuantumProperties {
-            runtime_features: RuntimeFeatureFlags::CycledFunctionApplicationUsesDynamicArg,
+            runtime_features: RuntimeFeatureFlags::CycledFunctionUsesDynamicArg,
             value_kind,
         };
         using_dynamic_param.push(ComputeKind::Quantum(quantum_properties));
@@ -596,7 +596,7 @@ fn create_cycled_operation_specialization_applications_table(
         ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Assumed]))
     };
     let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
-        runtime_features: RuntimeFeatureFlags::CycledOperationSpecializationApplication,
+        runtime_features: RuntimeFeatureFlags::CycledOperation,
         value_kind,
     });
 

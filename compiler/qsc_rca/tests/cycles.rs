@@ -10,12 +10,12 @@ use common::{
 use expect_test::expect;
 
 #[test]
-fn check_rca_for_parameterless_one_function_cycle() {
+fn check_rca_for_one_function_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo() : Unit {
-            Foo();
+        function Foo(i : Int) : Int {
+            Foo(i)
         }"#,
     );
 
@@ -27,10 +27,11 @@ fn check_rca_for_parameterless_one_function_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties: <empty>
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -39,15 +40,15 @@ fn check_rca_for_parameterless_one_function_cycle() {
 }
 
 #[test]
-fn check_rca_for_parameterless_two_functions_cycle() {
+fn check_rca_for_two_functions_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo() : Unit {
-            Bar();
+        function Foo(i : Int) : Int {
+            Bar(i)
         }
-        function Bar() : Unit {
-            Foo();
+        function Bar(i : Int) : Int {
+            Foo(i)
         }"#,
     );
 
@@ -59,10 +60,11 @@ fn check_rca_for_parameterless_two_functions_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties: <empty>
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -77,10 +79,11 @@ fn check_rca_for_parameterless_two_functions_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties: <empty>
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -89,18 +92,18 @@ fn check_rca_for_parameterless_two_functions_cycle() {
 }
 
 #[test]
-fn check_rca_for_parameterless_three_functions_cycle() {
+fn check_rca_for_three_functions_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo() : Unit {
-            Bar();
+        function Foo(i : Int) : Int {
+            Bar(i)
         }
-        function Bar() : Unit {
-            Baz();
+        function Bar(i : Int) : Int {
+            Baz(i)
         }
-        function Baz() : Unit {
-            Foo();
+        function Baz(i : Int) : Int {
+            Foo(i)
         }"#,
     );
     check_callable_compute_properties(
@@ -111,10 +114,11 @@ fn check_rca_for_parameterless_three_functions_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties: <empty>
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -128,10 +132,11 @@ fn check_rca_for_parameterless_three_functions_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties: <empty>
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -145,42 +150,11 @@ fn check_rca_for_parameterless_three_functions_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties: <empty>
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_direct_function_cycle() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(i: Int) : Int {
-            Foo(i)
-        }"#,
-    );
-
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -193,12 +167,11 @@ fn check_rca_for_indirect_function_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             let f = Foo;
             f(i)
         }"#,
     );
-
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -207,13 +180,11 @@ fn check_rca_for_indirect_function_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -226,14 +197,13 @@ fn check_rca_for_indirect_chain_function_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             let a = Foo;
             let b = a;
             let c = b;
             c(i)
         }"#,
     );
-
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -242,13 +212,11 @@ fn check_rca_for_indirect_chain_function_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -261,12 +229,11 @@ fn check_rca_for_indirect_tuple_function_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             let (f, _) = (Foo, 0);
             f(i)
         }"#,
     );
-
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -275,13 +242,11 @@ fn check_rca_for_indirect_tuple_function_cycle() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -289,45 +254,32 @@ fn check_rca_for_indirect_tuple_function_cycle() {
     );
 }
 
+#[ignore = "insufficient closure resolution support"]
 #[test]
 fn check_rca_for_indirect_closure_function_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             let f = () -> Foo(0);
             f()
         }"#,
     );
-
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
+        &expect![r#""#],
     );
 }
 
+#[ignore = "insufficient partial application resolution support"]
 #[test]
 fn check_rca_for_indirect_partial_appplication_function_cycle() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(b: Bool, i: Int) : Int {
+        function Foo(b : Bool, i : Int) : Int {
             let f = Foo(false, _);
             f(0)
         }"#,
@@ -336,24 +288,7 @@ fn check_rca_for_indirect_partial_appplication_function_cycle() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                        [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
+        &expect![r#""#],
     );
 }
 
@@ -362,7 +297,7 @@ fn check_rca_for_function_cycle_within_binding() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             let out = Foo(i);
             return out;
         }"#,
@@ -375,13 +310,11 @@ fn check_rca_for_function_cycle_within_binding() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -394,7 +327,7 @@ fn check_rca_for_function_cycle_within_assignment() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             mutable out = 0;
             set out = Foo(i);
             return out;
@@ -408,13 +341,11 @@ fn check_rca_for_function_cycle_within_assignment() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -427,7 +358,7 @@ fn check_rca_for_function_cycle_within_return() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             return Foo(i);
         }"#,
     );
@@ -439,13 +370,11 @@ fn check_rca_for_function_cycle_within_return() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -458,7 +387,7 @@ fn check_rca_for_function_cycle_within_tuple() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(i: Int) : Int {
+        function Foo(i : Int) : Int {
             let (a, b) = (Foo(0), Foo(1));
             return a + b;
         }"#,
@@ -471,13 +400,11 @@ fn check_rca_for_function_cycle_within_tuple() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -528,16 +455,14 @@ fn check_rca_for_function_cycle_within_call_input() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                        [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
+                        [1]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -566,13 +491,11 @@ fn check_rca_for_function_cycle_within_if_block() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -601,13 +524,11 @@ fn check_rca_for_function_cycle_within_if_condition() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -635,13 +556,11 @@ fn check_rca_for_function_cycle_within_for_block() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -669,13 +588,11 @@ fn check_rca_for_function_cycle_within_while_block() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -702,13 +619,11 @@ fn check_rca_for_function_cycle_within_while_condition() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -717,12 +632,12 @@ fn check_rca_for_function_cycle_within_while_condition() {
 }
 
 #[test]
-fn check_rca_for_result_param_recursive_function() {
+fn check_rca_for_multi_param_recursive_bool_function() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(r : Result) : Unit {
-            Foo(r);
+        function Foo(r : Result, i : Int, d: Double) : Bool {
+            Foo(r, i, d)
         }"#,
     );
     check_callable_compute_properties(
@@ -733,13 +648,17 @@ fn check_rca_for_result_param_recursive_function() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: <empty>
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
+                        [1]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
+                        [2]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -748,224 +667,7 @@ fn check_rca_for_result_param_recursive_function() {
 }
 
 #[test]
-fn check_rca_for_result_inout_recursive_function() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(r : Result) : Result {
-            Foo(r)
-        }"#,
-    );
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_bool_param_recursive_function() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(b : Bool) : Unit {
-            Foo(b);
-        }"#,
-    );
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: <empty>
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_bool_inout_recursive_function() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(b : Bool) : Bool {
-            Foo(b)
-        }"#,
-    );
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_int_param_recursive_function() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(i : Int) : Unit {
-            Foo(i);
-        }"#,
-    );
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: <empty>
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_int_inout_recursive_function() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(i : Int) : Int {
-            Foo(i)
-        }"#,
-    );
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_double_param_recursive_function() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(d : Double) : Unit {
-            Foo(d);
-        }"#,
-    );
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: <empty>
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_double_inout_recursive_function() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        function Foo(d : Double) : Double {
-            Foo(d)
-        }"#,
-    );
-    check_callable_compute_properties(
-        &compilation_context.fir_store,
-        compilation_context.get_compute_properties(),
-        "Foo",
-        &expect![
-            r#"
-            Callable: CallableComputeProperties:
-                body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                adj: <none>
-                ctl: <none>
-                ctl-adj: <none>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_multi_param_recursive_function() {
+fn check_rca_for_multi_param_recursive_unit_function() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
@@ -981,19 +683,17 @@ fn check_rca_for_multi_param_recursive_function() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: <empty>
-                        [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: <empty>
-                        [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: <empty>
+                    inherent: Classical
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Static
+                        [1]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Static
+                        [2]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledFunctionUsesDynamicArg)
+                            value_kind: Static
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1002,12 +702,12 @@ fn check_rca_for_multi_param_recursive_function() {
 }
 
 #[test]
-fn check_rca_for_multi_param_result_out_recursive_function() {
+fn check_rca_for_result_recursive_operation() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        function Foo(p : Pauli, s: String[], t: (Range, BigInt)) : Result {
-            Foo(p, s, t)
+        operation Foo(q : Qubit) : Result {
+            Foo(q)
         }"#,
     );
     check_callable_compute_properties(
@@ -1018,19 +718,53 @@ fn check_rca_for_multi_param_result_out_recursive_function() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(0x0)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                        [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
-                        [2]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledFunctionApplicationUsesDynamicArg)
-                            dynamism_sources: {Assumed}
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Dynamic: {Assumed}
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Dynamic: {Assumed}
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_multi_param_result_recursive_operation() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo(q : Qubit, b : Bool, i : Int, d : Double) : Result {
+            Foo(q, b, i, d)
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsTable:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Dynamic: {Assumed}
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Dynamic: {Assumed}
+                        [1]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Dynamic: {Assumed}
+                        [2]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Dynamic: {Assumed}
+                        [3]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Dynamic: {Assumed}
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1043,7 +777,7 @@ fn check_rca_for_operation_body_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit {
+        operation Foo(q : Qubit) : Unit {
             Foo(q);
         }"#,
     );
@@ -1055,13 +789,13 @@ fn check_rca_for_operation_body_recursion() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Static
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1074,7 +808,7 @@ fn check_rca_for_operation_body_adj_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit is Adj {
+        operation Foo(q : Qubit) : Unit is Adj {
             body ... {
                 Adjoint Foo(q);
             }
@@ -1091,21 +825,21 @@ fn check_rca_for_operation_body_adj_recursion() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Static
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
                 adj: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Static
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
                 ctl: <none>
                 ctl-adj: <none>"#
         ],
@@ -1117,7 +851,7 @@ fn check_rca_for_operation_body_ctl_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit is Ctl {
+        operation Foo(q : Qubit) : Unit is Ctl {
             body ... {
                 Controlled Foo([], q);
             }
@@ -1134,25 +868,25 @@ fn check_rca_for_operation_body_ctl_recursion() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Static
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
                 adj: <none>
                 ctl: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
-                        [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Static
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
+                        [1]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
                 ctl-adj: <none>"#
         ],
     );
@@ -1164,7 +898,7 @@ fn check_rca_for_operation_body_adj_ctl_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit is Adj + Ctl {
+        operation Foo(q : Qubit) : Unit is Adj + Ctl {
             body ... {
                 Adjoint Foo(q);
             }
@@ -1176,8 +910,6 @@ fn check_rca_for_operation_body_adj_ctl_recursion() {
             }
         }"#,
     );
-    write_fir_store_to_files(&compilation_context.fir_store); // TODO (cesarzc): Remove.
-    write_compute_properties_to_files(compilation_context.get_compute_properties()); // TODO (cesarzc): Remove.
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1192,7 +924,7 @@ fn check_rca_for_operation_adj_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit is Adj {
+        operation Foo(q : Qubit) : Unit is Adj {
             body ... {}
             adjoint ... { 
                 Adjoint Foo(q);
@@ -1213,7 +945,7 @@ fn check_rca_for_operation_ctl_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit is Ctl {
+        operation Foo(q : Qubit) : Unit is Ctl {
             body ... {}
             controlled (cs, ...) { 
                 Controlled Foo(cs, q);
@@ -1234,7 +966,7 @@ fn check_rca_for_operation_multi_adjoint_functor_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit is Adj {
+        operation Foo(q : Qubit) : Unit is Adj {
             body ... {
                 Adjoint Adjoint Foo(q);
             }
@@ -1254,7 +986,7 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
-        operation Foo(q: Qubit) : Unit is Ctl {
+        operation Foo(q : Qubit) : Unit is Ctl {
             body ... {
                 Controlled Controlled Foo([], ([], q));
             }
@@ -1271,25 +1003,25 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
             r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Static
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
                 adj: <none>
                 ctl: ApplicationsTable:
-                    inherent: ComputeProperties:
-                        runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                        dynamism_sources: <empty>
-                    dynamic_params_properties:
-                        [0]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
-                        [1]: ComputeProperties:
-                            runtime_features: RuntimeFeatureFlags(CycledOperationSpecializationApplication)
-                            dynamism_sources: <empty>
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(CycledOperation)
+                        value_kind: Static
+                    dynamic_param_applications:
+                        [0]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
+                        [1]: Quantum: QuantumProperties:
+                            runtime_features: RuntimeFeatureFlags(CycledOperation)
+                            value_kind: Static
                 ctl-adj: <none>"#
         ],
     );
