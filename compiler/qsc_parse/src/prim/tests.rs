@@ -5,7 +5,7 @@ use super::{ident, opt, pat, path, seq};
 use crate::{
     keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
-    scan::ParserConfig,
+    scan::ParserContext,
     tests::{check, check_opt, check_seq},
     Error, ErrorKind,
 };
@@ -52,7 +52,7 @@ fn ident_num_prefix() {
 #[test]
 fn ident_keyword() {
     for keyword in enum_iterator::all::<Keyword>() {
-        let mut scanner = ParserConfig::new(keyword.as_str(), Default::default());
+        let mut scanner = ParserContext::new(keyword.as_str(), Default::default());
         let actual = ident(&mut scanner);
         let span = Span {
             lo: 0,

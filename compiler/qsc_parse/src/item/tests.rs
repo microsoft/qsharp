@@ -3,12 +3,12 @@
 
 use super::{parse, parse_attr, parse_spec_decl};
 use crate::{
-    scan::ParserConfig,
+    scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
 };
 use expect_test::expect;
 
-fn parse_namespaces(s: &mut ParserConfig) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
+fn parse_namespaces(s: &mut ParserContext) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
     super::parse_namespaces(s)
 }
 

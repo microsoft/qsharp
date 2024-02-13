@@ -28,10 +28,15 @@ pub fn compile(
     sources: SourceMap,
     package_type: PackageType,
     capabilities: RuntimeCapabilityFlags,
-    opt_in_features: &LanguageFeatures,
+    language_features: &LanguageFeatures,
 ) -> (CompileUnit, Vec<Error>) {
-    let mut unit =
-        qsc_frontend::compile::compile(store, dependencies, sources, capabilities, opt_in_features);
+    let mut unit = qsc_frontend::compile::compile(
+        store,
+        dependencies,
+        sources,
+        capabilities,
+        language_features,
+    );
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
         errors.push(WithSource::from_map(&unit.sources, error.into()));

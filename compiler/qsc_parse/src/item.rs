@@ -8,7 +8,7 @@ use super::{
     expr::expr,
     keyword::Keyword,
     prim::{dot_ident, ident, many, opt, pat, seq, token},
-    scan::ParserConfig,
+    scan::ParserContext,
     stmt,
     ty::{self, ty},
     Error, Result,
@@ -27,7 +27,7 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::span::Span;
 
-pub(super) fn parse(s: &mut ParserConfig) -> Result<Box<Item>> {
+pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s);
     let attrs = many(s, parse_attr)?;
@@ -66,7 +66,7 @@ pub(super) fn parse(s: &mut ParserConfig) -> Result<Box<Item>> {
 }
 
 #[allow(clippy::vec_box)]
-fn parse_many(s: &mut ParserConfig) -> Result<Vec<Box<Item>>> {
+fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
     const BARRIER_TOKENS: &[TokenKind] = &[
         TokenKind::At,
         TokenKind::Keyword(Keyword::Internal),
@@ -93,19 +93,19 @@ fn default(span: Span) -> Box<Item> {
     })
 }
 
-pub(super) fn parse_namespaces(s: &mut ParserConfig) -> Result<Vec<Namespace>> {
+pub(super) fn parse_namespaces(s: &mut ParserContext) -> Result<Vec<Namespace>> {
     let namespaces = many(s, parse_namespace)?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(namespaces)
 }
 
-pub(super) fn parse_top_level_nodes(s: &mut ParserConfig) -> Result<Vec<TopLevelNode>> {
+pub(super) fn parse_top_level_nodes(s: &mut ParserContext) -> Result<Vec<TopLevelNode>> {
     let nodes = many(s, parse_top_level_node)?;
     recovering_token(s, TokenKind::Eof)?;
     Ok(nodes)
 }
 
-fn parse_top_level_node(s: &mut ParserConfig) -> Result<TopLevelNode> {
+fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
     // Here we parse any doc comments ahead of calling `parse_namespace` or `stmt::parse` in order
     // to avoid problems with error reporting. Specifically, if `parse_namespace` consumes the
     // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
@@ -127,7 +127,7 @@ fn parse_top_level_node(s: &mut ParserConfig) -> Result<TopLevelNode> {
     }
 }
 
-fn parse_namespace(s: &mut ParserConfig) -> Result<Namespace> {
+fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
@@ -152,11 +152,11 @@ fn parse_namespace(s: &mut ParserConfig) -> Result<Namespace> {
 /// or support warnings, we can use this function to determine
 /// places that need to be updated. This function can then emit
 /// a warning.
-pub(super) fn throw_away_doc(s: &mut ParserConfig) {
+pub(super) fn throw_away_doc(s: &mut ParserContext) {
     let _ = parse_doc(s);
 }
 
-fn parse_doc(s: &mut ParserConfig) -> Option<String> {
+fn parse_doc(s: &mut ParserContext) -> Option<String> {
     let mut content = String::new();
     while s.peek().kind == TokenKind::DocComment {
         if !content.is_empty() {
@@ -172,7 +172,7 @@ fn parse_doc(s: &mut ParserConfig) -> Option<String> {
     (!content.is_empty()).then_some(content)
 }
 
-fn parse_attr(s: &mut ParserConfig) -> Result<Box<Attr>> {
+fn parse_attr(s: &mut ParserContext) -> Result<Box<Attr>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::At)?;
     let name = ident(s)?;
@@ -185,7 +185,7 @@ fn parse_attr(s: &mut ParserConfig) -> Result<Box<Attr>> {
     }))
 }
 
-fn parse_visibility(s: &mut ParserConfig) -> Result<Visibility> {
+fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Internal))?;
     Ok(Visibility {
@@ -195,7 +195,7 @@ fn parse_visibility(s: &mut ParserConfig) -> Result<Visibility> {
     })
 }
 
-fn parse_open(s: &mut ParserConfig) -> Result<Box<ItemKind>> {
+fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Open))?;
     let name = dot_ident(s)?;
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
@@ -207,7 +207,7 @@ fn parse_open(s: &mut ParserConfig) -> Result<Box<ItemKind>> {
     Ok(Box::new(ItemKind::Open(name, alias)))
 }
 
-fn parse_newtype(s: &mut ParserConfig) -> Result<Box<ItemKind>> {
+fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Newtype))?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
@@ -245,7 +245,7 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
     }
 }
 
-fn parse_ty_def(s: &mut ParserConfig) -> Result<Box<TyDef>> {
+fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
@@ -286,7 +286,7 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     }
 }
 
-fn parse_callable_decl(s: &mut ParserConfig) -> Result<Box<CallableDecl>> {
+fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Function)).is_ok() {
         CallableKind::Function
@@ -337,7 +337,7 @@ fn parse_callable_decl(s: &mut ParserConfig) -> Result<Box<CallableDecl>> {
     }))
 }
 
-fn parse_callable_body(s: &mut ParserConfig) -> Result<CallableBody> {
+fn parse_callable_body(s: &mut ParserContext) -> Result<CallableBody> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     barrier(s, &[TokenKind::Close(Delim::Brace)], |s| {
@@ -358,7 +358,7 @@ fn parse_callable_body(s: &mut ParserConfig) -> Result<CallableBody> {
     })
 }
 
-fn parse_spec_decl(s: &mut ParserConfig) -> Result<Box<SpecDecl>> {
+fn parse_spec_decl(s: &mut ParserContext) -> Result<Box<SpecDecl>> {
     let lo = s.peek().span.lo;
     let spec = if token(s, TokenKind::Keyword(Keyword::Body)).is_ok() {
         Spec::Body
@@ -393,7 +393,7 @@ fn parse_spec_decl(s: &mut ParserConfig) -> Result<Box<SpecDecl>> {
     }))
 }
 
-fn parse_spec_gen(s: &mut ParserConfig) -> Result<SpecGen> {
+fn parse_spec_gen(s: &mut ParserContext) -> Result<SpecGen> {
     if token(s, TokenKind::Keyword(Keyword::Auto)).is_ok() {
         Ok(SpecGen::Auto)
     } else if token(s, TokenKind::Keyword(Keyword::Distribute)).is_ok() {

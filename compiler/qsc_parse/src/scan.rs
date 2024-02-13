@@ -14,7 +14,7 @@ use qsc_data_structures::{
 #[derive(Debug)]
 pub(super) struct NoBarrierError;
 
-pub(super) struct ParserConfig<'a> {
+pub(super) struct ParserContext<'a> {
     scanner: Scanner<'a>,
     language_features: LanguageFeatures,
 }
@@ -33,7 +33,7 @@ pub(super) struct Scanner<'a> {
     offset: u32,
 }
 
-impl<'a> ParserConfig<'a> {
+impl<'a> ParserContext<'a> {
     pub fn new(input: &'a str, language_features: LanguageFeatures) -> Self {
         Self {
             scanner: Scanner::new(input),

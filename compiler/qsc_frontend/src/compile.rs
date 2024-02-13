@@ -343,9 +343,9 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     capabilities: RuntimeCapabilityFlags,
-    opt_in_features: &LanguageFeatures,
+    language_features: &LanguageFeatures,
 ) -> CompileUnit {
-    let (mut ast_package, parse_errors) = parse_all(&sources, opt_in_features);
+    let (mut ast_package, parse_errors) = parse_all(&sources, language_features);
 
     let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);

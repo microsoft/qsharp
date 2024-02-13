@@ -38,7 +38,7 @@ impl Compiler {
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
-        opt_in_features: LanguageFeatures,
+        language_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
         let core = core();
         let mut store = PackageStore::new(core);
@@ -55,7 +55,7 @@ impl Compiler {
             sources,
             package_type,
             capabilities,
-            &opt_in_features,
+            &language_features,
         );
         if !errors.is_empty() {
             return Err(errors);
@@ -68,7 +68,7 @@ impl Compiler {
             &store,
             dependencies,
             capabilities,
-            opt_in_features,
+            language_features,
         );
         let store = store.open();
 

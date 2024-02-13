@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{scan::ParserConfig, Parser};
+use super::{scan::ParserContext, Parser};
 use crate::prim::FinalSep;
 use expect_test::Expect;
 use qsc_data_structures::language_features::LanguageFeature;
@@ -28,6 +28,7 @@ pub(super) fn check_vec<T: Display>(parser: impl Parser<Vec<T>>, input: &str, ex
     });
 }
 
+/// This function is the same as `check_vec`, but it uses the v2 preview syntax language feature.
 pub(super) fn check_vec_v2_preview<T: Display>(
     parser: impl Parser<Vec<T>>,
     input: &str,
@@ -58,13 +59,15 @@ pub(super) fn check_seq<T: Display>(
         )
     });
 }
+
+/// This function is the same as `check_map`, but it uses the v2 preview syntax language feature.
 fn check_map_v2_preview<T>(
     mut parser: impl Parser<T>,
     input: &str,
     expect: &Expect,
     f: impl FnOnce(&T) -> String,
 ) {
-    let mut scanner = ParserConfig::new(
+    let mut scanner = ParserContext::new(
         input,
         vec![LanguageFeature::V2PreviewSyntax]
             .into_iter()
@@ -87,7 +90,7 @@ fn check_map<T>(
     expect: &Expect,
     f: impl FnOnce(&T) -> String,
 ) {
-    let mut scanner = ParserConfig::new(input, Default::default());
+    let mut scanner = ParserContext::new(input, Default::default());
     let result = parser(&mut scanner);
     let errors = scanner.into_errors();
     match result {
