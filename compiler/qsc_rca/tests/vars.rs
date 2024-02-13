@@ -19,10 +19,8 @@ fn check_rca_for_callable_var() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
@@ -41,10 +39,8 @@ fn check_rca_for_udt_var() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
@@ -63,10 +59,8 @@ fn check_rca_for_static_int_var() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
@@ -85,10 +79,8 @@ fn check_rca_for_static_qubit_var() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: ComputeProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    dynamism_sources: <empty>
-                dynamic_params_properties: <empty>"#
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
         ],
     );
 }
