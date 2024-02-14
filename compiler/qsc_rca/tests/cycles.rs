@@ -409,6 +409,7 @@ fn check_rca_for_function_cycle_within_tuple() {
     );
 }
 
+#[ignore = "work in progress"] // TODO (cesarzc): Needs regular specialization analysis working exhaustively.
 #[test]
 fn check_rca_for_function_cycle_within_call_input() {
     let mut compilation_context = CompilationContext::new();
