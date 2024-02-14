@@ -8,6 +8,6 @@ Hadamard gate is one of the built-in gates in Q#, available in the `Microsoft.Qu
 It is open in any Q# source files by default, so you can use it right away.
 
 @[solution]({
-    "id": "qubit__plus_state_solution",
+    "id": "superposition__plus_state_solution",
     "codePath": "./solution.qs"
 })
