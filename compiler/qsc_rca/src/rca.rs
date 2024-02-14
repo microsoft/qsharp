@@ -5,8 +5,7 @@ use crate::{
     applications::{ApplicationInstance, ApplicationInstancesTable, LocalComputeKind},
     common::{
         aggregate_compute_kind, derive_callable_input_params, try_resolve_callee, Callee,
-        GlobalSpecId, InputParam, Local, LocalKind, PackageStoreLookupExtension, SpecFunctor,
-        SpecKind,
+        GlobalSpecId, InputParam, Local, LocalKind, SpecFunctor, SpecKind,
     },
     scaffolding::{ItemScaffolding, PackageScaffolding, PackageStoreScaffolding},
     ApplicationsTable, ComputeKind, ComputePropertiesLookup, QuantumProperties,
@@ -16,13 +15,12 @@ use itertools::Itertools;
 use qsc_fir::{
     fir::{
         BlockId, CallableDecl, CallableImpl, CallableKind, ExprId, ExprKind, Global, Ident,
-        LocalItemId, Mutability, PackageId, PackageLookup, PackageStore, PackageStoreLookup, Pat,
-        PatId, PatKind, Res, SpecDecl, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
+        Mutability, PackageId, PackageLookup, PackageStore, PackageStoreLookup, Pat, PatId,
+        PatKind, Res, SpecDecl, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
         StorePatId, StoreStmtId, StringComponent,
     },
     ty::{Prim, Ty},
 };
-use rustc_hash::FxHashSet;
 
 /// Performs runtime capabilities analysis (RCA) on a package.
 /// N.B. This function assumes specializations that are part of call cycles have already been analyzed. Otherwise, this
@@ -108,7 +106,7 @@ pub fn analyze_specialization_with_cyles(
     let package_scaffolding = package_store_scaffolding
         .get_mut(package_id)
         .expect("package scaffolding should exist");
-    let spec_decl = match specialization_id.specialization {
+    let spec_decl = match specialization_id.spec_kind {
         SpecKind::Body => &spec_impl.body,
         SpecKind::Adj => spec_impl
             .adj
@@ -305,7 +303,7 @@ fn analyze_spec(
             package_store_scaffolding,
         ),
         CallableImpl::Spec(spec_impl) => {
-            let spec_decl = match id.specialization {
+            let spec_decl = match id.spec_kind {
                 SpecKind::Body => &spec_impl.body,
                 SpecKind::Adj => spec_impl
                     .adj
@@ -536,10 +534,7 @@ fn bind_compute_kind_to_ident(
         .insert(ident.id, local_compute_kind);
 }
 
-fn create_compute_kind_for_call_with_dynamic_callee(
-    callee_expr_id: ExprId,
-    expr_type: &Ty,
-) -> ComputeKind {
+fn create_compute_kind_for_call_with_dynamic_callee(expr_type: &Ty) -> ComputeKind {
     let value_kind = if *expr_type == Ty::UNIT {
         ValueKind::Static
     } else {
@@ -568,7 +563,7 @@ fn create_compute_kind_for_call_with_spec_callee(
     // We need to split controls and specialization input arguments so we can use the right entry in the applications
     // table.
     let args_package = package_store.get_package(args_expr_id.package);
-    let (args_controls, args_input_id) =
+    let (_args_controls, args_input_id) =
         split_controls_and_input(args_expr_id.expr, &callee.spec_functor, args_package);
     let callee_input_pattern_id =
         StorePatId::from((callee_id.callable.package, callable_decl.input));
@@ -602,13 +597,17 @@ fn create_compute_kind_for_call_with_static_callee(
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) -> ComputeKind {
     // Try to resolve the callee.
+    let callee_expr_package = package_store
+        .get(callee_expr_id.package)
+        .expect("package should exist");
     let maybe_callee = try_resolve_callee(
-        callee_expr_id,
+        callee_expr_id.expr,
+        callee_expr_id.package,
+        callee_expr_package,
         &application_instance.locals_map,
-        package_store,
     );
     let Some(callee) = maybe_callee else {
-        return create_compute_kind_for_call_with_unresolved_callee(callee_expr_id.expr, expr_type);
+        return create_compute_kind_for_call_with_unresolved_callee(expr_type);
     };
 
     // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
@@ -651,10 +650,7 @@ fn create_compute_kind_for_call_with_udt_callee(
     }
 }
 
-fn create_compute_kind_for_call_with_unresolved_callee(
-    callee_expr_id: ExprId,
-    expr_type: &Ty,
-) -> ComputeKind {
+fn create_compute_kind_for_call_with_unresolved_callee(expr_type: &Ty) -> ComputeKind {
     let value_kind = if *expr_type == Ty::UNIT {
         ValueKind::Static
     } else {
@@ -913,9 +909,7 @@ fn determine_expr_call_compute_kind(
                     package_store,
                     package_store_scaffolding,
                 ),
-                ValueKind::Dynamic => {
-                    create_compute_kind_for_call_with_dynamic_callee(callee_expr_id.expr, expr_type)
-                }
+                ValueKind::Dynamic => create_compute_kind_for_call_with_dynamic_callee(expr_type),
             }
         }
     };

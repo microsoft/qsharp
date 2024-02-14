@@ -2,13 +2,14 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_params, initalize_locals_map, GlobalSpecId, Local, LocalKind, SpecKind,
+    derive_callable_input_params, initalize_locals_map, try_resolve_callee, GlobalSpecId, Local,
+    LocalKind, SpecKind,
 };
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Functor, Item, ItemId,
-        ItemKind, LocalItemId, Mutability, NodeId, Package, PackageId, PackageLookup, Pat, PatId,
-        PatKind, Res, SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
+        Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
+        LocalItemId, Mutability, NodeId, Package, PackageId, PackageLookup, Pat, PatId, PatKind,
+        SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent,
     },
     visit::Visitor,
 };
@@ -17,49 +18,43 @@ use std::collections::hash_map::Entry;
 
 #[derive(Default)]
 struct CallStack {
-    set: FxHashSet<CallableSpecializationSelector>,
-    stack: Vec<CallableSpecializationSelector>,
+    set: FxHashSet<LocalSpecId>,
+    stack: Vec<LocalSpecId>,
 }
 
 impl CallStack {
-    fn contains(&self, value: &CallableSpecializationSelector) -> bool {
+    fn contains(&self, value: &LocalSpecId) -> bool {
         self.set.contains(value)
     }
 
-    fn peak(&self) -> &CallableSpecializationSelector {
+    fn peak(&self) -> &LocalSpecId {
         self.stack.last().expect("stack should not be empty")
     }
 
-    fn pop(&mut self) -> CallableSpecializationSelector {
+    fn pop(&mut self) -> LocalSpecId {
         let popped = self.stack.pop().expect("stack should not be empty");
         self.set.remove(&popped);
         popped
     }
 
-    fn push(&mut self, value: CallableSpecializationSelector) {
+    fn push(&mut self, value: LocalSpecId) {
         self.set.insert(value);
         self.stack.push(value);
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-struct CallableSpecializationSelector {
+struct LocalSpecId {
     pub callable: LocalItemId,
-    pub specialization: SpecializationSelector,
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-struct SpecializationSelector {
-    pub adjoint: bool,
-    pub controlled: bool,
+    pub spec_kind: SpecKind,
 }
 
 struct CycleDetector<'a> {
     package_id: PackageId,
     package: &'a Package,
     stack: CallStack,
-    specializations_locals: FxHashMap<CallableSpecializationSelector, FxHashMap<NodeId, Local>>,
-    specializations_with_cycles: FxHashSet<CallableSpecializationSelector>,
+    specializations_locals: FxHashMap<LocalSpecId, FxHashMap<NodeId, Local>>,
+    specializations_with_cycles: FxHashSet<LocalSpecId>,
 }
 
 impl<'a> CycleDetector<'a> {
@@ -69,11 +64,11 @@ impl<'a> CycleDetector<'a> {
             package,
             stack: CallStack::default(),
             specializations_locals: FxHashMap::default(),
-            specializations_with_cycles: FxHashSet::<CallableSpecializationSelector>::default(),
+            specializations_with_cycles: FxHashSet::<LocalSpecId>::default(),
         }
     }
 
-    fn detect_specializations_with_cycles(&mut self) -> Vec<CallableSpecializationSelector> {
+    fn detect_specializations_with_cycles(&mut self) -> Vec<LocalSpecId> {
         self.visit_package(self.package);
         self.specializations_with_cycles.drain().collect()
     }
@@ -82,10 +77,10 @@ impl<'a> CycleDetector<'a> {
         let pat = self.get_pat(pat_id);
         match &pat.kind {
             PatKind::Bind(ident) => {
-                let callable_specialization_id = self.stack.peak();
+                let local_spec_id = self.stack.peak();
                 let locals_map = self
                     .specializations_locals
-                    .get_mut(callable_specialization_id)
+                    .get_mut(local_spec_id)
                     .expect("node map should exist");
                 let kind = match mutability {
                     Mutability::Immutable => LocalKind::Immutable(expr_id),
@@ -113,159 +108,55 @@ impl<'a> CycleDetector<'a> {
         }
     }
 
-    /// Uniquely resolves the callable specialization referenced in a callee expression.
-    fn resolve_callee(&self, expr_id: ExprId) -> Option<CallableSpecializationSelector> {
-        // Resolves a block callee.
-        let resolve_block = |block_id: BlockId| -> Option<CallableSpecializationSelector> {
-            let block = self.package.get_block(block_id);
-            if let Some(return_stmt_id) = block.stmts.last() {
-                let return_stmt = self.package.get_stmt(*return_stmt_id);
-                if let StmtKind::Expr(return_expr_id) = return_stmt.kind {
-                    self.resolve_callee(return_expr_id)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        };
-
-        // Resolves a closure callee.
-        let resolve_closure =
-            |local_item_id: LocalItemId| -> Option<CallableSpecializationSelector> {
-                Some(CallableSpecializationSelector {
-                    callable: local_item_id,
-                    specialization: SpecializationSelector::default(),
-                })
-            };
-
-        // Resolves a unary operator callee.
-        let resolve_un_op =
-            |operator: &UnOp, expr_id: ExprId| -> Option<CallableSpecializationSelector> {
-                let UnOp::Functor(functor) = operator else {
-                    panic!("unary operator is expected to be a functor for a callee expression")
-                };
-
-                let resolved_callee = self.resolve_callee(expr_id);
-                if let Some(callable_specialization) = resolved_callee {
-                    let specialization = match functor {
-                        Functor::Adj => SpecializationSelector {
-                            adjoint: !callable_specialization.specialization.adjoint,
-                            controlled: callable_specialization.specialization.controlled,
-                        },
-                        Functor::Ctl => SpecializationSelector {
-                            adjoint: callable_specialization.specialization.adjoint,
-                            // Once set to `true`, it remains as `true`.
-                            controlled: true,
-                        },
-                    };
-                    Some(CallableSpecializationSelector {
-                        callable: callable_specialization.callable,
-                        specialization,
-                    })
-                } else {
-                    None
-                }
-            };
-
-        // Resolves an item callee.
-        let resolve_item = |item_id: ItemId| -> Option<CallableSpecializationSelector> {
-            match item_id.package {
-                Some(package_id) => {
-                    if package_id == self.package_id {
-                        Some(CallableSpecializationSelector {
-                            callable: item_id.item,
-                            specialization: SpecializationSelector::default(),
-                        })
-                    } else {
-                        None
-                    }
-                }
-                // No package ID assumes the callee is in the same package than the caller.
-                None => Some(CallableSpecializationSelector {
-                    callable: item_id.item,
-                    specialization: SpecializationSelector::default(),
-                }),
-            }
-        };
-
-        // Resolves a local callee.
-        let resolve_local = |node_id: NodeId| -> Option<CallableSpecializationSelector> {
-            let callable_specialization_id = self.stack.peak();
-            let node_map = self
-                .specializations_locals
-                .get(callable_specialization_id)
-                .expect("node map should exist");
-            if let Some(callable_variable) = node_map.get(&node_id) {
-                match &callable_variable.kind {
-                    LocalKind::InputParam(_) | LocalKind::SpecInput | LocalKind::Mutable => None,
-                    LocalKind::Immutable(expr_id) => self.resolve_callee(*expr_id),
-                }
-            } else {
-                panic!("cannot determine callee from resolution")
-            }
-        };
-
-        let expr = self.get_expr(expr_id);
-        match &expr.kind {
-            ExprKind::Block(block_id) => resolve_block(*block_id),
-            ExprKind::Closure(_, local_item_id) => resolve_closure(*local_item_id),
-            ExprKind::UnOp(operator, expr_id) => resolve_un_op(operator, *expr_id),
-            ExprKind::Var(res, _) => match res {
-                Res::Item(item_id) => resolve_item(*item_id),
-                Res::Local(node_id) => resolve_local(*node_id),
-                Res::Err => panic!("resolution should not be error"),
-            },
-            // N.B. More complex callee expressions might require evaluation so we don't try to resolve them at compile
-            // time.
-            _ => None,
-        }
-    }
-
-    fn walk_callable_decl(
-        &mut self,
-        callable_specialization_selector: CallableSpecializationSelector,
-        callable_decl: &'a CallableDecl,
-    ) {
+    fn walk_callable_decl(&mut self, local_spec_id: LocalSpecId, callable_decl: &'a CallableDecl) {
         // We only need to go deeper for non-intrinsic callables.
         let CallableImpl::Spec(spec_impl) = &callable_decl.implementation else {
             return;
         };
 
-        let specialization_selector = callable_specialization_selector.specialization;
-        let spec_decl = if !specialization_selector.adjoint && !specialization_selector.controlled {
-            &spec_impl.body
-        } else if specialization_selector.adjoint && !specialization_selector.controlled {
-            spec_impl
+        let spec_decl = match local_spec_id.spec_kind {
+            SpecKind::Body => &spec_impl.body,
+            SpecKind::Adj => spec_impl
                 .adj
                 .as_ref()
-                .expect("adj specialization must exist")
-        } else if !specialization_selector.adjoint && specialization_selector.controlled {
-            spec_impl
+                .expect("adj specialization should exist"),
+            SpecKind::Ctl => spec_impl
                 .ctl
                 .as_ref()
-                .expect("ctl specialization must exist")
-        } else {
-            spec_impl
+                .expect("ctl specialization should exist"),
+            SpecKind::CtlAdj => spec_impl
                 .ctl_adj
                 .as_ref()
-                .expect("ctl_adj specialization must exist")
+                .expect("ctl_adj specialization should exist"),
         };
-
-        self.walk_spec_decl(callable_specialization_selector, spec_decl);
+        self.walk_spec_decl(local_spec_id, spec_decl);
     }
 
     fn walk_call_expr(&mut self, callee: ExprId, args: ExprId) {
         // Visit the arguments expression in case it triggers a call already in the stack.
         self.visit_expr(args);
 
-        // Visit the callee if it resolves to a concrete callable.
-        if let Some(callable_specialization_id) = self.resolve_callee(callee) {
-            let item = self.package.get_item(callable_specialization_id.callable);
+        // Visit the callee if it resolves to something.
+        let local_spec_id = self.stack.peak();
+        let locals_map = self
+            .specializations_locals
+            .get_mut(local_spec_id)
+            .expect("node map should exist");
+        let maybe_callee = try_resolve_callee(callee, self.package_id, self.package, locals_map);
+        if let Some(callee) = maybe_callee {
+            // We are not interested in visiting callables outside this package.
+            if callee.item.package != self.package_id {
+                return;
+            }
+            let item = self.package.get_item(callee.item.item);
             match &item.kind {
-                ItemKind::Callable(callable_decl) => {
-                    self.walk_callable_decl(callable_specialization_id, callable_decl)
-                }
+                ItemKind::Callable(callable_decl) => self.walk_callable_decl(
+                    LocalSpecId {
+                        callable: callee.item.item,
+                        spec_kind: SpecKind::from(&callee.spec_functor),
+                    },
+                    callable_decl,
+                ),
                 ItemKind::Namespace(_, _) => panic!("calls to namespaces are invalid"),
                 ItemKind::Ty(_, _) => {
                     // Ignore "calls" to types.
@@ -274,27 +165,17 @@ impl<'a> CycleDetector<'a> {
         }
     }
 
-    fn walk_spec_decl(
-        &mut self,
-        callable_specialization_id: CallableSpecializationSelector,
-        spec_decl: &'a SpecDecl,
-    ) {
+    fn walk_spec_decl(&mut self, local_spec_id: LocalSpecId, spec_decl: &'a SpecDecl) {
         // If the specialization is already in the stack, it means the callable has a cycle.
-        if self.stack.contains(&callable_specialization_id) {
-            self.specializations_with_cycles
-                .insert(callable_specialization_id);
+        if self.stack.contains(&local_spec_id) {
+            self.specializations_with_cycles.insert(local_spec_id);
             return;
         }
 
         // If this is the first time we are walking this specialization, create a node map for it.
-        if let Entry::Vacant(entry) = self
-            .specializations_locals
-            .entry(callable_specialization_id)
-        {
-            let ItemKind::Callable(callable_decl) = &self
-                .package
-                .get_item(callable_specialization_id.callable)
-                .kind
+        if let Entry::Vacant(entry) = self.specializations_locals.entry(local_spec_id) {
+            let ItemKind::Callable(callable_decl) =
+                &self.package.get_item(local_spec_id.callable).kind
             else {
                 panic!("item must be a callable");
             };
@@ -305,7 +186,7 @@ impl<'a> CycleDetector<'a> {
         }
 
         // Push the callable specialization to the stack, visit it and then pop it.
-        self.stack.push(callable_specialization_id);
+        self.stack.push(local_spec_id);
         self.visit_spec_decl(spec_decl);
         _ = self.stack.pop();
     }
@@ -426,12 +307,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
 
         // Visit the body specialization.
         self.walk_spec_decl(
-            CallableSpecializationSelector {
+            LocalSpecId {
                 callable: item.id,
-                specialization: SpecializationSelector {
-                    adjoint: false,
-                    controlled: false,
-                },
+                spec_kind: SpecKind::Body,
             },
             &spec_impl.body,
         );
@@ -439,12 +317,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         // Visit the adj specialization.
         if let Some(adj_decl) = &spec_impl.adj {
             self.walk_spec_decl(
-                CallableSpecializationSelector {
+                LocalSpecId {
                     callable: item.id,
-                    specialization: SpecializationSelector {
-                        adjoint: true,
-                        controlled: false,
-                    },
+                    spec_kind: SpecKind::Adj,
                 },
                 adj_decl,
             );
@@ -453,12 +328,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         // Visit the ctl specialization.
         if let Some(ctl_decl) = &spec_impl.ctl {
             self.walk_spec_decl(
-                CallableSpecializationSelector {
+                LocalSpecId {
                     callable: item.id,
-                    specialization: SpecializationSelector {
-                        adjoint: false,
-                        controlled: true,
-                    },
+                    spec_kind: SpecKind::Ctl,
                 },
                 ctl_decl,
             );
@@ -467,12 +339,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         // Visit the ctl_adj specialization.
         if let Some(ctl_adj_decl) = &spec_impl.ctl {
             self.walk_spec_decl(
-                CallableSpecializationSelector {
+                LocalSpecId {
                     callable: item.id,
-                    specialization: SpecializationSelector {
-                        adjoint: true,
-                        controlled: true,
-                    },
+                    spec_kind: SpecKind::CtlAdj,
                 },
                 ctl_adj_decl,
             );
@@ -512,24 +381,12 @@ pub fn detect_specializations_with_cycles(
     // Convert the package specialization IDs to global specialization IDs.
     specializations_with_cycles
         .iter()
-        .map(|callable_specialization_selector| {
-            let (is_adjoint, is_controlled) = (
-                callable_specialization_selector.specialization.adjoint,
-                callable_specialization_selector.specialization.controlled,
-            );
-            let specialization = match (is_adjoint, is_controlled) {
-                (false, false) => SpecKind::Body,
-                (true, false) => SpecKind::Adj,
-                (false, true) => SpecKind::Ctl,
-                (true, true) => SpecKind::CtlAdj,
-            };
-            GlobalSpecId {
-                callable: StoreItemId {
-                    package: package_id,
-                    item: callable_specialization_selector.callable,
-                },
-                specialization,
-            }
+        .map(|local_spec_id| GlobalSpecId {
+            callable: StoreItemId {
+                package: package_id,
+                item: local_spec_id.callable,
+            },
+            spec_kind: local_spec_id.spec_kind,
         })
         .collect()
 }

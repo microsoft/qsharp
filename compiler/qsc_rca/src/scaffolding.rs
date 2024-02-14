@@ -65,7 +65,7 @@ impl PackageStoreScaffolding {
                 ItemScaffolding::Specializations(specializations) => Some(specializations),
             })
             .and_then(|specializations| {
-                specializations.get(SpecializationIndex::from(id.specialization))
+                specializations.get(SpecializationIndex::from(id.spec_kind))
             })
     }
 
@@ -128,14 +128,14 @@ impl PackageStoreScaffolding {
         if let Some(item_scaffolding) = items.get_mut(id.callable.item) {
             if let ItemScaffolding::Specializations(specializations) = item_scaffolding {
                 // The item already exists but not the specialization.
-                specializations.insert(SpecializationIndex::from(id.specialization), value);
+                specializations.insert(SpecializationIndex::from(id.spec_kind), value);
             } else {
                 panic!("item should be a callable");
             }
         } else {
             // Insert both the specialization and the item.
             let mut specializations = IndexMap::new();
-            specializations.insert(SpecializationIndex::from(id.specialization), value);
+            specializations.insert(SpecializationIndex::from(id.spec_kind), value);
             items.insert(
                 id.callable.item,
                 ItemScaffolding::Specializations(specializations),
