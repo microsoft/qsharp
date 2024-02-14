@@ -545,6 +545,25 @@ fn function_decl_doc() {
 }
 
 #[test]
+fn doc_between_attr_and_keyword() {
+    check(
+        parse,
+        "@EntryPoint()
+        /// doc comment.
+        function Foo() : () {}",
+        &expect![[r#"
+            Item _id_ [0-69]:
+                Attr _id_ [0-13] (Ident _id_ [1-11] "EntryPoint"):
+                    Expr _id_ [11-13]: Unit
+                Callable _id_ [22-69] (Function):
+                    name: Ident _id_ [56-59] "Foo"
+                    input: Pat _id_ [59-61]: Unit
+                    output: Type _id_ [64-66]: Unit
+                    body: Block: Block _id_ [67-69]: <empty>"#]],
+    );
+}
+
+#[test]
 fn operation_decl() {
     check(
         parse,

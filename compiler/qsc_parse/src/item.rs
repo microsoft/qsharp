@@ -288,6 +288,7 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
 
 fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
+    let _doc = parse_doc(s);
     let kind = if token(s, TokenKind::Keyword(Keyword::Function)).is_ok() {
         CallableKind::Function
     } else if token(s, TokenKind::Keyword(Keyword::Operation)).is_ok() {
