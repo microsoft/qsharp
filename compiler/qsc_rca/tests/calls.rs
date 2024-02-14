@@ -23,7 +23,7 @@ fn check_rca_for_doubly_controlled_call_to_pauli_x() {
     let package_store_compute_properties = compilation_context.get_compute_properties();
     write_fir_store_to_files(&compilation_context.fir_store);
     write_compute_properties_to_files(package_store_compute_properties);
-    //check_last_statement_compute_propeties(package_store_compute_properties, &expect![r#""#]);
+    check_last_statement_compute_propeties(package_store_compute_properties, &expect![r#""#]);
 }
 
 #[ignore = "work in progress"]

@@ -563,7 +563,7 @@ fn create_compute_kind_for_call_with_spec_callee(
     // We need to split controls and specialization input arguments so we can use the right entry in the applications
     // table.
     let args_package = package_store.get_package(args_expr_id.package);
-    let (_args_controls, args_input_id) =
+    let (args_controls, args_input_id) =
         split_controls_and_input(args_expr_id.expr, &callee.spec_functor, args_package);
     let callee_input_pattern_id =
         StorePatId::from((callee_id.callable.package, callable_decl.input));
@@ -582,9 +582,19 @@ fn create_compute_kind_for_call_with_spec_callee(
         .collect();
 
     // Derive the compute kind based on the dynamism of input parameters.
-    let compute_kind =
+    let mut compute_kind =
         callee_applications_table.derive_application_compute_kind(&input_params_dynamism);
-    // TODO (cesarzc): incorportate dynamism of controls.
+
+    // Aggreagate runtime features from the qubit controls expressions.
+    for control_expr in args_controls {
+        let control_expr_compute_kind = application_instance
+            .exprs
+            .get(&control_expr)
+            .expect("control expression compute kind should exist");
+        compute_kind =
+            aggregate_compute_kind_runtime_features(compute_kind, control_expr_compute_kind);
+    }
+
     compute_kind
 }
 
@@ -914,14 +924,29 @@ fn determine_expr_call_compute_kind(
         }
     };
 
-    // If this call happens within an dynamic scope, then it uses the forward branching runtime feature.
+    // If this call happens there might be additional runtime features being used.
     if !application_instance.active_dynamic_scopes.is_empty() {
+        // Any call that happens within a dynamic scope uses the forward branching runtime feature.
         compute_kind = aggregate_compute_kind_runtime_features(
             compute_kind,
             &ComputeKind::with_runtime_features(
                 RuntimeFeatureFlags::ForwardBranchingOnDynamicValue,
             ),
-        )
+        );
+
+        // If the call expression type is either a result or a qubit, it uses the dynamic allocation runtime features.
+        if let Ty::Prim(Prim::Qubit) = expr_type {
+            compute_kind = aggregate_compute_kind_runtime_features(
+                compute_kind,
+                &ComputeKind::with_runtime_features(RuntimeFeatureFlags::DynamicQubitAllocation),
+            );
+        }
+        if let Ty::Prim(Prim::Result) = expr_type {
+            compute_kind = aggregate_compute_kind_runtime_features(
+                compute_kind,
+                &ComputeKind::with_runtime_features(RuntimeFeatureFlags::DynamicResultAllocation),
+            );
+        }
     }
 
     // Aggregate runtime features from the callee and args expressions.

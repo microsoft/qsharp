@@ -79,13 +79,14 @@ fn check_rca_for_static_qubit_var() {
         &expect![
             r#"
             ApplicationsTable:
-                inherent: Classical
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(0x0)
+                    value_kind: Static
                 dynamic_param_applications: <empty>"#
         ],
     );
 }
 
-#[ignore = "work in progress"]
 #[test]
 fn check_rca_for_dynamic_result_var() {
     let mut compilation_context = CompilationContext::new();
@@ -98,5 +99,15 @@ fn check_rca_for_dynamic_result_var() {
     let package_store_compute_properties = compilation_context.get_compute_properties();
     write_fir_store_to_files(&compilation_context.fir_store);
     write_compute_properties_to_files(package_store_compute_properties);
-    check_last_statement_compute_propeties(package_store_compute_properties, &expect![r#""#]);
+    check_last_statement_compute_propeties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsTable:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult)
+                    value_kind: Dynamic
+                dynamic_param_applications: <empty>"#
+        ],
+    );
 }

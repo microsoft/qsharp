@@ -461,6 +461,10 @@ bitflags! {
         const UdtConstructorUsesDynamicArg = 0b1000_0000_0000_0000_0000;
         /// Forward branching on dynamic value.
         const ForwardBranchingOnDynamicValue = 0b0001_0000_0000_0000_0000_0000;
+        /// Qubit allocation that happens within a dynamic context.
+        const DynamicQubitAllocation = 0b0010_0000_0000_0000_0000_0000;
+        /// Result allocation that happens within a .
+        const DynamicResultAllocation = 0b0100_0000_0000_0000_0000_0000;
     }
 }
 
@@ -527,6 +531,15 @@ impl RuntimeFeatureFlags {
         }
         if self.contains(RuntimeFeatureFlags::UdtConstructorUsesDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
+        if self.contains(RuntimeFeatureFlags::ForwardBranchingOnDynamicValue) {
+            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+        }
+        if self.contains(RuntimeFeatureFlags::DynamicQubitAllocation) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::DynamicResultAllocation) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         runtume_capabilities
     }

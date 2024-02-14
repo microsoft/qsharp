@@ -3,10 +3,7 @@
 
 pub mod common;
 
-use common::{
-    check_callable_compute_properties, write_compute_properties_to_files, write_fir_store_to_files,
-    CompilationContext,
-};
+use common::{check_callable_compute_properties, CompilationContext};
 use expect_test::expect;
 
 #[test]
