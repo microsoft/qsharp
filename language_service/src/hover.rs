@@ -5,11 +5,11 @@
 mod tests;
 
 use crate::compilation::Compilation;
-use crate::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Hover;
 use crate::qsc_utils::into_range;
 use qsc::ast::visit::Visitor;
+use qsc::display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, Span};
 use std::fmt::Display;

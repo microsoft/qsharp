@@ -10,6 +10,8 @@ pub mod incremental;
 pub mod interpret;
 pub mod target;
 
+pub use qsc_doc_gen::display;
+
 pub use qsc_frontend::compile::{
     CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
 };

@@ -4,12 +4,13 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::{Compilation, Lookup};
+use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
 use crate::qsc_utils::into_range;
 use crate::references::ReferenceFinder;
 use qsc::ast::visit::Visitor;
+use qsc::display::Lookup;
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::{ast, hir, resolve, Span};
 

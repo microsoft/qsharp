@@ -959,6 +959,7 @@ dependencies = [
  "qsc_ast",
  "qsc_codegen",
  "qsc_data_structures",
+ "qsc_doc_gen",
  "qsc_eval",
  "qsc_fir",
  "qsc_frontend",
@@ -1001,6 +1002,35 @@ version = "0.0.0"
 dependencies = [
  "expect-test",
  "miette",
+]
+
+[[package]]
+name = "qsc_doc_gen"
+version = "0.0.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "clap",
+ "enum-iterator",
+ "env_logger",
+ "expect-test",
+ "indoc",
+ "log",
+ "miette",
+ "num-bigint",
+ "num-complex",
+ "qsc_ast",
+ "qsc_codegen",
+ "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
+ "qsc_frontend",
+ "qsc_hir",
+ "qsc_passes",
+ "qsc_project",
+ "regex-lite",
+ "rustc-hash",
+ "thiserror",
 ]
 
 [[package]]

@@ -3,8 +3,9 @@
 
 use log::trace;
 use qsc::{
-    ast::{self},
+    ast,
     compile::{self, Error},
+    display::Lookup,
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position},
@@ -171,25 +172,6 @@ impl Compilation {
         self.user_package_id = new.user_package_id;
         self.errors = new.errors;
     }
-}
-
-pub(crate) trait Lookup {
-    fn get_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty>;
-    fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res>;
-    fn resolve_item_relative_to_user_package(
-        &self,
-        item_id: &hir::ItemId,
-    ) -> (&hir::Item, &hir::Package, hir::ItemId);
-    fn resolve_item_res(
-        &self,
-        local_package_id: PackageId,
-        res: &hir::Res,
-    ) -> (&hir::Item, hir::ItemId);
-    fn resolve_item(
-        &self,
-        local_package_id: PackageId,
-        item_id: &hir::ItemId,
-    ) -> (&hir::Item, &hir::Package, hir::ItemId);
 }
 
 impl Lookup for Compilation {

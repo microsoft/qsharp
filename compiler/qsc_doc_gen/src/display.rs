@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::compilation::{Compilation, Lookup};
-use qsc::{
-    ast,
-    hir::{self, ty::GenericParam},
+use qsc_ast::ast;
+use qsc_frontend::resolve;
+use qsc_hir::{
+    hir::{self, PackageId},
+    ty::{self, GenericParam},
 };
 use regex_lite::Regex;
 use std::{
@@ -12,24 +13,43 @@ use std::{
     rc::Rc,
 };
 
-pub(crate) struct CodeDisplay<'a> {
-    pub(crate) compilation: &'a Compilation,
+pub trait Lookup {
+    fn get_ty(&self, expr_id: ast::NodeId) -> Option<&ty::Ty>;
+    fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res>;
+    fn resolve_item_relative_to_user_package(
+        &self,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId);
+    fn resolve_item_res(
+        &self,
+        local_package_id: PackageId,
+        res: &hir::Res,
+    ) -> (&hir::Item, hir::ItemId);
+    fn resolve_item(
+        &self,
+        local_package_id: PackageId,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId);
+}
+
+pub struct CodeDisplay<'a> {
+    pub compilation: &'a dyn Lookup,
 }
 
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
-    pub(crate) fn hir_callable_decl(&self, decl: &'a hir::CallableDecl) -> impl Display + '_ {
+    pub fn hir_callable_decl(&self, decl: &'a hir::CallableDecl) -> impl Display + '_ {
         HirCallableDecl { decl }
     }
 
-    pub(crate) fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + '_ {
+    pub fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + '_ {
         AstCallableDecl {
             lookup: self.compilation,
             decl,
         }
     }
 
-    pub(crate) fn name_ty_id(&self, name: &'a str, ty_id: ast::NodeId) -> impl Display + '_ {
+    pub fn name_ty_id(&self, name: &'a str, ty_id: ast::NodeId) -> impl Display + '_ {
         NameTyId {
             lookup: self.compilation,
             name,
@@ -37,27 +57,23 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
-    pub(crate) fn ident_ty(&self, ident: &'a ast::Ident, ty: &'a ast::Ty) -> impl Display + '_ {
+    pub fn ident_ty(&self, ident: &'a ast::Ident, ty: &'a ast::Ty) -> impl Display + '_ {
         IdentTy { ident, ty }
     }
 
-    pub(crate) fn ident_ty_def(
-        &self,
-        ident: &'a ast::Ident,
-        def: &'a ast::TyDef,
-    ) -> impl Display + 'a {
+    pub fn ident_ty_def(&self, ident: &'a ast::Ident, def: &'a ast::TyDef) -> impl Display + 'a {
         IdentTyDef { ident, def }
     }
 
-    pub(crate) fn hir_udt(&self, udt: &'a hir::ty::Udt) -> impl Display + '_ {
+    pub fn hir_udt(&self, udt: &'a ty::Udt) -> impl Display + '_ {
         HirUdt { udt }
     }
 
-    pub(crate) fn hir_pat(&self, pat: &'a hir::Pat) -> impl Display + '_ {
+    pub fn hir_pat(&self, pat: &'a hir::Pat) -> impl Display + '_ {
         HirPat { pat }
     }
 
-    pub(crate) fn get_param_offset(&self, decl: &hir::CallableDecl) -> u32 {
+    pub fn get_param_offset(&self, decl: &hir::CallableDecl) -> u32 {
         HirCallableDecl { decl }.get_param_offset()
     }
 
@@ -79,7 +95,7 @@ impl<'a> Display for IdentTy<'a> {
 }
 
 struct NameTyId<'a> {
-    lookup: &'a Compilation,
+    lookup: &'a dyn Lookup,
     name: &'a str,
     ty_id: ast::NodeId,
 }
@@ -146,7 +162,7 @@ impl Display for HirCallableDecl<'_> {
 }
 
 struct AstCallableDecl<'a> {
-    lookup: &'a Compilation,
+    lookup: &'a dyn Lookup,
     decl: &'a ast::CallableDecl,
 }
 
@@ -218,7 +234,7 @@ impl<'a> Display for HirPat<'a> {
 }
 
 struct AstPat<'a> {
-    lookup: &'a Compilation,
+    lookup: &'a dyn Lookup,
     pat: &'a ast::Pat,
 }
 
@@ -305,7 +321,7 @@ impl<'a> Display for IdentTyDef<'a> {
 }
 
 struct HirUdt<'a> {
-    udt: &'a hir::ty::Udt,
+    udt: &'a ty::Udt,
 }
 
 impl<'a> Display for HirUdt<'a> {
@@ -321,18 +337,18 @@ struct UdtDef<'a> {
 }
 
 enum UdtDefKind<'a> {
-    SingleTy(&'a hir::ty::Ty),
+    SingleTy(&'a ty::Ty),
     TupleTy(Vec<UdtDef<'a>>),
 }
 
 impl<'a> UdtDef<'a> {
-    pub fn new(def: &'a hir::ty::UdtDef) -> Self {
+    pub fn new(def: &'a ty::UdtDef) -> Self {
         match &def.kind {
-            hir::ty::UdtDefKind::Field(field) => UdtDef {
+            ty::UdtDefKind::Field(field) => UdtDef {
                 name: field.name.as_ref().cloned(),
                 kind: UdtDefKind::SingleTy(&field.ty),
             },
-            hir::ty::UdtDefKind::Tuple(defs) => UdtDef {
+            ty::UdtDefKind::Tuple(defs) => UdtDef {
                 name: None,
                 kind: UdtDefKind::TupleTy(defs.iter().map(UdtDef::new).collect()),
             },
@@ -356,12 +372,12 @@ impl Display for UdtDef<'_> {
 }
 
 struct FunctorSet<'a> {
-    functor_set: &'a hir::ty::FunctorSet,
+    functor_set: &'a ty::FunctorSet,
 }
 
 impl<'a> Display for FunctorSet<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if *self.functor_set == hir::ty::FunctorSet::Value(hir::ty::FunctorSetValue::Empty) {
+        if *self.functor_set == ty::FunctorSet::Value(ty::FunctorSetValue::Empty) {
             Ok(())
         } else {
             write!(f, " is {}", self.functor_set)
@@ -370,12 +386,12 @@ impl<'a> Display for FunctorSet<'a> {
 }
 
 struct FunctorSetValue {
-    functors: hir::ty::FunctorSetValue,
+    functors: ty::FunctorSetValue,
 }
 
 impl Display for FunctorSetValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if let hir::ty::FunctorSetValue::Empty = self.functors {
+        if let ty::FunctorSetValue::Empty = self.functors {
             Ok(())
         } else {
             write!(f, " is {}", self.functors)
@@ -384,7 +400,7 @@ impl Display for FunctorSetValue {
 }
 
 struct TyId<'a> {
-    lookup: &'a Compilation,
+    lookup: &'a dyn Lookup,
     ty_id: ast::NodeId,
 }
 
@@ -522,21 +538,21 @@ fn display_type_params(generics: &[GenericParam]) -> String {
 // helpers that don't manipulate any strings
 //
 
-fn ast_callable_functors(callable: &ast::CallableDecl) -> hir::ty::FunctorSetValue {
+fn ast_callable_functors(callable: &ast::CallableDecl) -> ty::FunctorSetValue {
     let mut functors = callable
         .functors
         .as_ref()
-        .map_or(hir::ty::FunctorSetValue::Empty, |f| {
+        .map_or(ty::FunctorSetValue::Empty, |f| {
             eval_functor_expr(f.as_ref())
         });
 
     if let ast::CallableBody::Specs(specs) = callable.body.as_ref() {
         for spec in specs.iter() {
             let spec_functors = match spec.spec {
-                ast::Spec::Body => hir::ty::FunctorSetValue::Empty,
-                ast::Spec::Adj => hir::ty::FunctorSetValue::Adj,
-                ast::Spec::Ctl => hir::ty::FunctorSetValue::Ctl,
-                ast::Spec::CtlAdj => hir::ty::FunctorSetValue::CtlAdj,
+                ast::Spec::Body => ty::FunctorSetValue::Empty,
+                ast::Spec::Adj => ty::FunctorSetValue::Adj,
+                ast::Spec::Ctl => ty::FunctorSetValue::Ctl,
+                ast::Spec::CtlAdj => ty::FunctorSetValue::CtlAdj,
             };
             functors = functors.union(&spec_functors);
         }
@@ -545,7 +561,7 @@ fn ast_callable_functors(callable: &ast::CallableDecl) -> hir::ty::FunctorSetVal
     functors
 }
 
-fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
+fn eval_functor_expr(expr: &ast::FunctorExpr) -> ty::FunctorSetValue {
     match expr.kind.as_ref() {
         ast::FunctorExprKind::BinOp(op, lhs, rhs) => {
             let lhs_functors = eval_functor_expr(lhs);
@@ -555,8 +571,8 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
                 ast::SetOp::Intersect => lhs_functors.intersect(&rhs_functors),
             }
         }
-        ast::FunctorExprKind::Lit(ast::Functor::Adj) => hir::ty::FunctorSetValue::Adj,
-        ast::FunctorExprKind::Lit(ast::Functor::Ctl) => hir::ty::FunctorSetValue::Ctl,
+        ast::FunctorExprKind::Lit(ast::Functor::Adj) => ty::FunctorSetValue::Adj,
+        ast::FunctorExprKind::Lit(ast::Functor::Ctl) => ty::FunctorSetValue::Ctl,
         ast::FunctorExprKind::Paren(inner) => eval_functor_expr(inner),
     }
 }
@@ -565,7 +581,6 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> hir::ty::FunctorSetValue {
 // parsing functions for working with doc comments
 //
 
-#[cfg(test)]
 pub fn increase_header_level(doc: &str) -> String {
     let re = Regex::new(r"(?mi)^(#+)( [\s\S]+?)$").expect("Invalid regex");
     re.replace_all(doc, "$1#$2").to_string()

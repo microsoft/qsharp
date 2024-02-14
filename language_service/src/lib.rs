@@ -7,9 +7,6 @@
 mod compilation;
 pub mod completion;
 pub mod definition;
-mod display;
-#[cfg(test)]
-mod generate_docs;
 pub mod hover;
 mod name_locator;
 mod project_system;

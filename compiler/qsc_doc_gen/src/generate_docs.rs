@@ -5,19 +5,117 @@
 mod tests;
 
 use crate::display::{increase_header_level, parse_doc_for_summary};
-use crate::{compilation::Compilation, display::CodeDisplay};
+use crate::display::{CodeDisplay, Lookup};
 use chrono::Utc;
-use qsc::hir::hir::{Item, ItemKind, Package, Visibility};
+use qsc_ast::ast;
+use qsc_frontend::compile::{self, PackageStore, RuntimeCapabilityFlags};
+use qsc_frontend::resolve;
+use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
+use qsc_hir::{hir, ty};
 use rustc_hash::FxHashMap;
 use std::fmt::{Display, Formatter, Result};
 use std::fs;
 use std::rc::Rc;
 
 // Warning: this path gets deleted on each run. Use carefully!
-const GENERATED_DOCS_PATH: &str = "../npm/generated_docs";
+const GENERATED_DOCS_PATH: &str = "../../npm/generated_docs";
 
-pub(crate) fn generate_docs(compilation: &Compilation) {
-    let display = &CodeDisplay { compilation };
+/// Represents an immutable compilation state that can be used
+/// to implement language service features.
+#[derive(Debug)]
+pub(crate) struct Compilation {
+    /// Package store, containing the current package and all its dependencies.
+    pub package_store: PackageStore,
+}
+
+impl Compilation {
+    /// Creates a new `Compilation` by compiling sources.
+    pub(crate) fn new() -> Self {
+        let mut package_store = PackageStore::new(compile::core());
+        package_store.insert(compile::std(&package_store, RuntimeCapabilityFlags::all()));
+
+        Self { package_store }
+    }
+}
+
+impl Lookup for Compilation {
+    /// Looks up the type of a node in user code
+    fn get_ty(&self, id: ast::NodeId) -> Option<&ty::Ty> {
+        unimplemented!("Not needed for docs generation")
+    }
+
+    /// Looks up the resolution of a node in user code
+    fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res> {
+        unimplemented!("Not needed for docs generation")
+    }
+
+    /// Returns the hir `Item` node referred to by `item_id`,
+    /// along with the `Package` and `PackageId` for the package
+    /// that it was found in.
+    fn resolve_item_relative_to_user_package(
+        &self,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
+        unimplemented!("Not needed for docs generation")
+    }
+
+    /// Returns the hir `Item` node referred to by `res`.
+    /// `Res`s can resolve to external packages, and the references
+    /// are relative, so here we also need the
+    /// local `PackageId` that the `res` itself came from.
+    fn resolve_item_res(
+        &self,
+        local_package_id: PackageId,
+        res: &hir::Res,
+    ) -> (&hir::Item, hir::ItemId) {
+        match res {
+            hir::Res::Item(item_id) => {
+                let (item, _, resolved_item_id) = self.resolve_item(local_package_id, item_id);
+                (item, resolved_item_id)
+            }
+            _ => panic!("expected to find item"),
+        }
+    }
+
+    /// Returns the hir `Item` node referred to by `item_id`.
+    /// `ItemId`s can refer to external packages, and the references
+    /// are relative, so here we also need the local `PackageId`
+    /// that the `ItemId` originates from.
+    fn resolve_item(
+        &self,
+        local_package_id: PackageId,
+        item_id: &hir::ItemId,
+    ) -> (&hir::Item, &hir::Package, hir::ItemId) {
+        // If the `ItemId` contains a package id, use that.
+        // Lack of a package id means the item is in the
+        // same package as the one this `ItemId` reference
+        // came from. So use the local package id passed in.
+        let package_id = item_id.package.unwrap_or(local_package_id);
+        let package = &self
+            .package_store
+            .get(package_id)
+            .expect("package should exist in store")
+            .package;
+        (
+            package
+                .items
+                .get(item_id.item)
+                .expect("item id should exist"),
+            package,
+            hir::ItemId {
+                package: Some(package_id),
+                item: item_id.item,
+            },
+        )
+    }
+}
+
+pub(crate) fn generate_docs() {
+    let compilation = Compilation::new();
+
+    let display = &CodeDisplay {
+        compilation: &compilation,
+    };
 
     delete_existing_docs();
     fs::create_dir(GENERATED_DOCS_PATH).expect("Unable to create directory for generated docs");
@@ -188,8 +286,8 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay, date: String) -
             decl.name.name.clone(),
             display.hir_callable_decl(decl).to_string(),
             match &decl.kind {
-                qsc::hir::CallableKind::Function => MetadataKind::Function,
-                qsc::hir::CallableKind::Operation => MetadataKind::Operation,
+                CallableKind::Function => MetadataKind::Function,
+                CallableKind::Operation => MetadataKind::Operation,
             },
         )),
         ItemKind::Ty(ident, udt) => Some((

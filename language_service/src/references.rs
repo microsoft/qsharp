@@ -6,11 +6,12 @@ mod tests;
 
 use std::rc::Rc;
 
-use crate::compilation::{Compilation, Lookup};
+use crate::compilation::Compilation;
 use crate::name_locator::{Handler, Locator, LocatorContext};
 use crate::protocol::Location;
 use crate::qsc_utils::into_location;
 use qsc::ast::visit::{walk_callable_decl, walk_expr, walk_ty, Visitor};
+use qsc::display::Lookup;
 use qsc::hir::ty::Ty;
 use qsc::hir::{PackageId, Res};
 use qsc::line_column::{Encoding, Position};
