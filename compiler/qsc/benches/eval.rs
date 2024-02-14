@@ -144,6 +144,40 @@ pub fn array_literal(c: &mut Criterion) {
     });
 }
 
+pub fn large_nested_iteration(c: &mut Criterion) {
+    c.bench_function("Large nested iteration", |b| {
+        let sources = SourceMap::new(
+            [("none".into(), "".into())],
+            Some(
+                indoc! {"{
+                    mutable arr = [[0, size = 100], size = 100];
+                    for i in 0..99 {
+                        mutable inner = arr[i];
+                        for j in 0..99 {
+                            set inner w/= j <- j;
+                        }
+                        set arr w/= i <- inner;
+                    }
+                    arr
+                }"}
+                .into(),
+            ),
+        );
+        let mut evaluator = Interpreter::new(
+            true,
+            sources,
+            PackageType::Exe,
+            RuntimeCapabilityFlags::all(),
+        )
+        .expect("code should compile");
+        b.iter(move || {
+            let mut out = Vec::new();
+            let mut rec = GenericReceiver::new(&mut out);
+            assert!(evaluator.eval_entry(&mut rec).is_ok());
+        })
+    });
+}
+
 criterion_group!(
     benches,
     teleport,
@@ -151,6 +185,7 @@ criterion_group!(
     large_file,
     array_append,
     array_update,
-    array_literal
+    array_literal,
+    large_nested_iteration,
 );
 criterion_main!(benches);
