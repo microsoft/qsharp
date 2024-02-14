@@ -4,7 +4,6 @@
   "single_qubit_gates",
   "multi_qubit_systems",
   "multi_qubit_gates",
-  "superposition_kata",
   "single_qubit_measurements",
   "multi_qubit_measurements",
   "random_numbers",
