@@ -331,7 +331,6 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "solutionPath": "./prepare_basis_state/solution.md",
     "codePaths": [
         "../KatasLibrary.qs",
-        "./common.qs",
         "./prepare_basis_state/verification.qs"
     ]
 })
@@ -344,7 +343,6 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "solutionPath": "./prepare_superposition/solution.md",
     "codePaths": [
         "../KatasLibrary.qs",
-        "./common.qs",
         "./prepare_superposition/verification.qs"
     ]
 })
@@ -357,7 +355,6 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "solutionPath": "./prepare_with_real/solution.md",
     "codePaths": [
         "../KatasLibrary.qs",
-        "./common.qs",
         "./prepare_with_real/verification.qs"
     ]
 })
@@ -370,7 +367,6 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "solutionPath": "./prepare_with_complex/solution.md",
     "codePaths": [
         "../KatasLibrary.qs",
-        "./common.qs",
         "./prepare_with_complex/verification.qs"
     ]
 })
