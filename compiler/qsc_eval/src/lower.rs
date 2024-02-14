@@ -537,7 +537,7 @@ fn lower_functor_set(functors: &qsc_hir::ty::FunctorSet) -> qsc_fir::ty::Functor
         qsc_hir::ty::FunctorSet::Value(v) => {
             qsc_fir::ty::FunctorSet::Value(lower_functor_set_value(v))
         }
-        qsc_hir::ty::FunctorSet::Param(p) => {
+        qsc_hir::ty::FunctorSet::Param(p, _) => {
             qsc_fir::ty::FunctorSet::Param(ParamId::from(usize::from(p)))
         }
         qsc_hir::ty::FunctorSet::Infer(i) => {
