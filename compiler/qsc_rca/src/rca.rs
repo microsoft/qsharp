@@ -869,12 +869,48 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 }
 
+fn determine_expr_bin_op_compute_kind(
+    lhs_expr_id: StoreExprId,
+    rhs_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the LHS and RHS expressions.
+    simulate_expr(
+        lhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        rhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // The compute kind of a binary operator expression is the aggregation of its LHS and RHS expressions.
+    let mut compute_kind = application_instance
+        .exprs
+        .get(&lhs_expr_id.expr)
+        .expect("LHS expression compute kind should exist")
+        .clone();
+    let rhs_compute_kind = application_instance
+        .exprs
+        .get(&rhs_expr_id.expr)
+        .expect("RHS expression compute kind should exist");
+    compute_kind = aggregate_compute_kind(compute_kind, rhs_compute_kind);
+    compute_kind
+}
+
 fn determine_expr_block_compute_kind(
     block_id: StoreBlockId,
     application_instance: &mut ApplicationInstance,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) -> ComputeKind {
+    // The compute kind of the block is the same as the block expression.
     simulate_block(
         block_id,
         application_instance,
@@ -1053,7 +1089,7 @@ fn determine_expr_if_compute_kind(
 
     // If the expression's type is non-unit and any of the sub-expressions' value is dynamic, then the compute kind of
     // this expression is dynamic.
-    if *expr_type == Ty::UNIT && is_any_sub_expr_value_dynamic {
+    if *expr_type != Ty::UNIT && is_any_sub_expr_value_dynamic {
         compute_kind.aggregate_value_kind(ValueKind::Dynamic);
     }
     compute_kind
@@ -1438,6 +1474,13 @@ fn simulate_expr(
 ) {
     let expr = package_store.get_expr(id);
     let mut compute_kind = match &expr.kind {
+        ExprKind::BinOp(_, lhs_expr_id, rhs_expr_id) => determine_expr_bin_op_compute_kind(
+            (id.package, *lhs_expr_id).into(),
+            (id.package, *rhs_expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
         ExprKind::Block(block_id) => determine_expr_block_compute_kind(
             (id.package, *block_id).into(),
             application_instance,
