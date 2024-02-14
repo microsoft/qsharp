@@ -4,11 +4,12 @@
 use crate::{
     applications::{ApplicationInstance, ApplicationInstancesTable, LocalComputeKind},
     common::{
-        derive_callable_input_params, try_resolve_callee, Callee, GlobalSpecId, InputParam, Local,
-        LocalKind, PackageStoreLookupExtension, SpecFunctor, SpecKind,
+        aggregate_compute_kind, derive_callable_input_params, try_resolve_callee, Callee,
+        GlobalSpecId, InputParam, Local, LocalKind, PackageStoreLookupExtension, SpecFunctor,
+        SpecKind,
     },
     scaffolding::{ItemScaffolding, PackageScaffolding, PackageStoreScaffolding},
-    ApplicationsTable, ComputeKind, ComputePropertiesLookup, DynamismSource, QuantumProperties,
+    ApplicationsTable, ComputeKind, ComputePropertiesLookup, QuantumProperties,
     RuntimeFeatureFlags, ValueKind,
 };
 use itertools::Itertools;
@@ -133,75 +134,30 @@ pub fn analyze_specialization_with_cyles(
     package_store_scaffolding.insert_spec(specialization_id, applications_table);
 }
 
-/// Aggregates the compute kind of an expression to a base compute kind and returns the result of the aggregation.
 #[must_use]
-fn aggregate_compute_kind_from_expression(
-    base_compute_kind: ComputeKind,
-    expr_compute_kind_pair: (ExprId, &ComputeKind),
-) -> ComputeKind {
-    let (expr_id, expr_compute_kind) = expr_compute_kind_pair;
-    let ComputeKind::Quantum(expr_quantum_properties) = expr_compute_kind else {
+fn aggregate_compute_kind_runtime_features(basis: ComputeKind, delta: &ComputeKind) -> ComputeKind {
+    let ComputeKind::Quantum(delta_quantum_properties) = delta else {
         // A classical compute kind has nothing to aggregate so just return the base with no changes.
-        return base_compute_kind;
+        return basis;
     };
 
     // Determine the aggregated runtime features.
-    let aggregated_runtime_features = match base_compute_kind {
-        ComputeKind::Classical => expr_quantum_properties.runtime_features,
-        ComputeKind::Quantum(ref base_quantum_properties) => {
-            base_quantum_properties.runtime_features | expr_quantum_properties.runtime_features
-        }
-    };
-
-    // Determine the aggregated value kind.
-    let mut aggregated_dynamism_sources = FxHashSet::<DynamismSource>::default();
-    if let Some(base_dynamism_sources) = base_compute_kind.get_dynamism_sources() {
-        aggregated_dynamism_sources.extend(base_dynamism_sources);
-    }
-    if let ValueKind::Dynamic(_) = expr_quantum_properties.value_kind {
-        // Set the expression as a dynamism source for the aggregated dynamism sources.
-        _ = aggregated_dynamism_sources.insert(DynamismSource::Expr(expr_id));
-    }
-    let new_value_kind = if aggregated_dynamism_sources.is_empty() {
-        ValueKind::Static
-    } else {
-        ValueKind::Dynamic(aggregated_dynamism_sources)
-    };
-
-    // Return the aggregated compute kind.
-    ComputeKind::Quantum(QuantumProperties {
-        runtime_features: aggregated_runtime_features,
-        value_kind: new_value_kind,
-    })
-}
-
-#[must_use]
-fn aggregate_compute_kind_runtime_features(
-    base_compute_kind: ComputeKind,
-    delta_compute_kind: &ComputeKind,
-) -> ComputeKind {
-    let ComputeKind::Quantum(delta_quantum_properties) = delta_compute_kind else {
-        // A classical compute kind has nothing to aggregate so just return the base with no changes.
-        return base_compute_kind;
-    };
-
-    // Determine the aggregated runtime features.
-    let aggregated_runtime_features = match base_compute_kind {
+    let runtime_features = match basis {
         ComputeKind::Classical => delta_quantum_properties.runtime_features,
-        ComputeKind::Quantum(ref base_quantum_properties) => {
-            base_quantum_properties.runtime_features | delta_quantum_properties.runtime_features
+        ComputeKind::Quantum(ref basis_quantum_properties) => {
+            basis_quantum_properties.runtime_features | delta_quantum_properties.runtime_features
         }
     };
 
-    // The value kind remains the equivalent to the base's value kind.
-    let value_kind = match base_compute_kind {
+    // Use the value kind equivalent from the basis.
+    let value_kind = match basis {
         ComputeKind::Classical => ValueKind::Static,
-        ComputeKind::Quantum(base_quantum_properties) => base_quantum_properties.value_kind,
+        ComputeKind::Quantum(basis_quantum_properties) => basis_quantum_properties.value_kind,
     };
 
     // Return the aggregated compute kind.
     ComputeKind::Quantum(QuantumProperties {
-        runtime_features: aggregated_runtime_features,
+        runtime_features,
         value_kind,
     })
 }
@@ -587,10 +543,7 @@ fn create_compute_kind_for_call_with_dynamic_callee(
     let value_kind = if *expr_type == Ty::UNIT {
         ValueKind::Static
     } else {
-        // Assume a dynamic value kind if the output of the call expression is non-unit.
-        ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Expr(
-            callee_expr_id,
-        )]))
+        ValueKind::Dynamic
     };
     ComputeKind::Quantum(QuantumProperties {
         runtime_features: RuntimeFeatureFlags::DynamicCallee,
@@ -629,7 +582,7 @@ fn create_compute_kind_for_call_with_spec_callee(
                 .exprs
                 .get(expr_id)
                 .expect("expression compute kind should exist");
-            input_param_compute_kind.is_dynamic()
+            input_param_compute_kind.is_value_dynamic()
         })
         .collect();
 
@@ -689,11 +642,10 @@ fn create_compute_kind_for_call_with_udt_callee(
         ComputeKind::Classical => ComputeKind::Classical,
         ComputeKind::Quantum(quantum_properties) => match quantum_properties.value_kind {
             ValueKind::Static => ComputeKind::Quantum(QuantumProperties::default()),
-            ValueKind::Dynamic(_) => ComputeKind::Quantum(QuantumProperties {
-                runtime_features: RuntimeFeatureFlags::empty(),
-                value_kind: ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Expr(
-                    args_expr_id,
-                )])),
+            // If any argument to the UDT constructor is dynamic, then mark this runtime feature as being used.
+            ValueKind::Dynamic => ComputeKind::Quantum(QuantumProperties {
+                runtime_features: RuntimeFeatureFlags::UdtConstructorUsesDynamicArg,
+                value_kind: ValueKind::Dynamic,
             }),
         },
     }
@@ -707,11 +659,10 @@ fn create_compute_kind_for_call_with_unresolved_callee(
         ValueKind::Static
     } else {
         // Assume a dynamic value kind if the output of the call expression is non-unit.
-        ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Expr(
-            callee_expr_id,
-        )]))
+        ValueKind::Dynamic
     };
     ComputeKind::Quantum(QuantumProperties {
+        // Mark the runtime feature being used.
         runtime_features: RuntimeFeatureFlags::UnresolvedCallee,
         value_kind,
     })
@@ -729,7 +680,7 @@ fn create_cycled_function_specialization_applications_table(
         let value_kind = if *output_type == Ty::UNIT {
             ValueKind::Static
         } else {
-            ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Assumed]))
+            ValueKind::Dynamic
         };
 
         // Since cycled functions can be called with dynamic parameters, we assume that all capabilities are required
@@ -753,13 +704,12 @@ fn create_cycled_operation_specialization_applications_table(
     callable_input_params_count: usize,
     output_type: &Ty,
 ) -> ApplicationsTable {
-    // Since operations can allocate and measure qubits freely, we assume its compute kind is quantum and requires all
-    // capabilities (encompassed by the `CycledOperationSpecialization` runtime feature) and that their value is a
-    // source of dynamism if they have a non-unit output.
+    // Since operations can allocate and measure qubits freely, we assume its compute kind is quantum, requires all
+    // capabilities (encompassed by the `CycledOperation` runtime feature) and that their value kind is dynamic.
     let value_kind = if *output_type == Ty::UNIT {
         ValueKind::Static
     } else {
-        ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Assumed]))
+        ValueKind::Dynamic
     };
     let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
         runtime_features: RuntimeFeatureFlags::CycledOperation,
@@ -791,11 +741,11 @@ fn create_intrinsic_function_applications_table(
     for param in input_params {
         // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
         // the output of the function is dynamic. Therefore, for all dynamic parameters, if the function's output is
-        // non-unit it becomes a source of dynamism.
+        // non-unit their value kind is dynamic.
         let value_kind = if callable_decl.output == Ty::UNIT {
             ValueKind::Static
         } else {
-            ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Intrinsic]))
+            ValueKind::Dynamic
         };
 
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
@@ -825,7 +775,7 @@ fn create_instrinsic_operation_applications_table(
         if callable_decl.output == Ty::UNIT || callable_decl.output == Ty::Prim(Prim::Qubit) {
             ValueKind::Static
         } else {
-            ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Intrinsic]))
+            ValueKind::Dynamic
         };
 
     // The compute kind of intrinsic operations is always quantum.
@@ -843,7 +793,7 @@ fn create_instrinsic_operation_applications_table(
         let value_kind = if callable_decl.output == Ty::UNIT {
             ValueKind::Static
         } else {
-            ValueKind::Dynamic(FxHashSet::from_iter(vec![DynamismSource::Intrinsic]))
+            ValueKind::Dynamic
         };
 
         // The compute kind of intrinsic operations is always quantum.
@@ -963,12 +913,22 @@ fn determine_expr_call_compute_kind(
                     package_store,
                     package_store_scaffolding,
                 ),
-                ValueKind::Dynamic(_) => {
+                ValueKind::Dynamic => {
                     create_compute_kind_for_call_with_dynamic_callee(callee_expr_id.expr, expr_type)
                 }
             }
         }
     };
+
+    // If this call happens within an dynamic scope, then it uses the forward branching runtime feature.
+    if !application_instance.active_dynamic_scopes.is_empty() {
+        compute_kind = aggregate_compute_kind_runtime_features(
+            compute_kind,
+            &ComputeKind::with_runtime_features(
+                RuntimeFeatureFlags::ForwardBranchingOnDynamicValue,
+            ),
+        )
+    }
 
     // Aggregate runtime features from the callee and args expressions.
     compute_kind = aggregate_compute_kind_runtime_features(compute_kind, callee_expr_compute_kind);
@@ -1007,10 +967,7 @@ fn determine_expr_tuple_compute_kind(
             .expect("expression's compute kind should exist");
 
         // Aggregate the sub-expression's compute kind to the tuple's compute kind.
-        tuple_compute_kind = aggregate_compute_kind_from_expression(
-            tuple_compute_kind,
-            (*expr_id, expr_compute_kind),
-        );
+        tuple_compute_kind = aggregate_compute_kind(tuple_compute_kind, expr_compute_kind);
     }
 
     tuple_compute_kind
@@ -1047,12 +1004,12 @@ fn determine_stmt_expr_compute_kind(
         package_store_scaffolding,
     );
 
-    // Use the expression's compute kind as the basis for the statement's compute kind.
-    let expr_compute_kind = application_instance
+    // The statement's compute kind is the same as the expression's compute kind.
+    application_instance
         .exprs
         .get(&expr_id)
-        .expect("expression's compute kind should exist");
-    aggregate_compute_kind_from_expression(ComputeKind::Classical, (expr_id, expr_compute_kind))
+        .expect("expression's compute kind should exist")
+        .clone()
 }
 
 fn determine_stmt_local_compute_kind(
@@ -1326,7 +1283,7 @@ fn simulate_block(
 
         // We only have to update the block's value kind if the last statement's compute kind is quantum and dynamic.
         if let ComputeKind::Quantum(last_stmt_quantum_properties) = last_stmt_compute_kind {
-            if let ValueKind::Dynamic(_) = last_stmt_quantum_properties.value_kind {
+            if let ValueKind::Dynamic = last_stmt_quantum_properties.value_kind {
                 // If the block's last statement's compute kind is quantum, the block's compute kind must be quantum too.
                 let ComputeKind::Quantum(block_quantum_properties) = &mut block_compute_kind else {
                     panic!("block's compute kind should be quantum");
@@ -1338,9 +1295,7 @@ fn simulate_block(
                 };
 
                 // Set the last statement as a source of dynamism for the block.
-                block_quantum_properties.value_kind = ValueKind::Dynamic(FxHashSet::from_iter(
-                    vec![DynamismSource::Stmt(*last_stmt_id)],
-                ));
+                block_quantum_properties.value_kind = ValueKind::Dynamic;
             }
         }
     }
@@ -1384,7 +1339,7 @@ fn simulate_expr(
     // If the expression's compute kind is dynamic, then additional runtime features might be needed depending on the
     // expression's type.
     if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
-        if let ValueKind::Dynamic(_) = quantum_properties.value_kind {
+        if let ValueKind::Dynamic = quantum_properties.value_kind {
             quantum_properties.runtime_features |=
                 derive_runtime_features_for_dynamic_type(&expr.ty);
         }

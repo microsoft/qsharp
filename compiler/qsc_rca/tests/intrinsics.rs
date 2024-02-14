@@ -66,11 +66,11 @@ fn check_rca_for_quantum_qis_m_body() {
                 body: ApplicationsTable:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic: {Intrinsic}
+                        value_kind: Dynamic
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -93,7 +93,7 @@ fn check_rca_for_length() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicArray | UseOfDynamicGeneric)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -114,11 +114,11 @@ fn check_rca_for_quantum_qis_mresetz_body() {
                 body: ApplicationsTable:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic: {Intrinsic}
+                        value_kind: Dynamic
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -141,7 +141,7 @@ fn check_rca_for_int_as_double() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -164,7 +164,7 @@ fn check_rca_for_int_as_big_int() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -205,11 +205,11 @@ fn check_rca_for_check_zero() {
                 body: ApplicationsTable:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic: {Intrinsic}
+                        value_kind: Dynamic
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -255,7 +255,7 @@ fn check_rca_for_arc_cos() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -278,7 +278,7 @@ fn check_rca_for_arc_sin() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -301,7 +301,7 @@ fn check_rca_for_arc_tan() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -324,10 +324,10 @@ fn check_rca_for_arc_tan_2() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                         [1]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -350,7 +350,7 @@ fn check_rca_for_cos() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -373,7 +373,7 @@ fn check_rca_for_cosh() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -396,7 +396,7 @@ fn check_rca_for_sin() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -419,7 +419,7 @@ fn check_rca_for_sinh() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -442,7 +442,7 @@ fn check_rca_for_tan() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -465,7 +465,7 @@ fn check_rca_for_tanh() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -488,7 +488,7 @@ fn check_rca_for_sqrt() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -511,7 +511,7 @@ fn check_rca_for_log() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -534,7 +534,7 @@ fn check_rca_for_truncate() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1100,14 +1100,14 @@ fn check_rca_for_draw_random_int() {
                 body: ApplicationsTable:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic: {Intrinsic}
+                        value_kind: Dynamic
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                         [1]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1128,14 +1128,14 @@ fn check_rca_for_draw_random_double() {
                 body: ApplicationsTable:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic: {Intrinsic}
+                        value_kind: Dynamic
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                         [1]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1158,10 +1158,10 @@ fn check_rca_for_begin_estimate_caching() {
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicString)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                         [1]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic: {Intrinsic}
+                            value_kind: Dynamic
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#

@@ -1,17 +1,60 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::QuantumProperties;
 use indenter::Indented;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
         CallableDecl, ExprId, ExprKind, Functor, Global, ItemId, NodeId, PackageId, PackageStore,
-        PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, StoreExprId, StoreItemId, UnOp,
+        PackageStoreLookup, Pat, PatId, PatKind, Res, StoreExprId, StoreItemId, UnOp,
     },
     ty::Ty,
 };
 use rustc_hash::FxHashMap;
 use std::fmt::{Debug, Formatter};
+
+use crate::{ComputeKind, ValueKind};
+
+/// Aggregates two compute kind structures returning the resulting compute kind.
+#[must_use]
+pub fn aggregate_compute_kind(basis: ComputeKind, delta: &ComputeKind) -> ComputeKind {
+    let ComputeKind::Quantum(delta_quantum_properties) = delta else {
+        // A classical compute kind has nothing to aggregate so just return the base with no changes.
+        return basis;
+    };
+
+    // Determine the aggregated runtime features.
+    let runtime_features = match basis {
+        ComputeKind::Classical => delta_quantum_properties.runtime_features,
+        ComputeKind::Quantum(ref basis_quantum_properties) => {
+            basis_quantum_properties.runtime_features | delta_quantum_properties.runtime_features
+        }
+    };
+
+    // Determine the aggregated value kind.
+    let value_kind = match basis {
+        ComputeKind::Classical => delta_quantum_properties.value_kind,
+        ComputeKind::Quantum(basis_quantum_properties) => aggregate_value_kind(
+            basis_quantum_properties.value_kind,
+            &delta_quantum_properties.value_kind,
+        ),
+    };
+
+    // Return the aggregated compute kind.
+    ComputeKind::Quantum(QuantumProperties {
+        runtime_features,
+        value_kind,
+    })
+}
+
+#[must_use]
+pub fn aggregate_value_kind(basis: ValueKind, delta: &ValueKind) -> ValueKind {
+    match delta {
+        ValueKind::Static => basis,
+        ValueKind::Dynamic => ValueKind::Dynamic,
+    }
+}
 
 /// The index corresponding to an input parameter node.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

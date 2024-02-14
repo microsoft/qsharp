@@ -2,14 +2,16 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{initalize_locals_map, InputParam, InputParamIndex, Local, LocalKind, LocalsLookup},
+    common::{
+        aggregate_value_kind, initalize_locals_map, InputParam, InputParamIndex, Local, LocalKind,
+        LocalsLookup,
+    },
     scaffolding::PackageScaffolding,
-    ApplicationsTable, ComputeKind, DynamismSource, QuantumProperties, RuntimeFeatureFlags,
-    ValueKind,
+    ApplicationsTable, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StmtId};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
 pub struct ApplicationInstancesTable {
@@ -68,8 +70,9 @@ impl ApplicationInstancesTable {
         // Clear the locals since they are no longer needed.
         self.clear_locals();
 
-        // Collect the sources of dynamism (if any) from the return statements.
-        let (inherent_sources, dynamic_param_application_sources) = self.collect_dynamism_sources();
+        // Collect the value kind (if any) from the return expressions.
+        let (inherent_value_kind, dynamic_param_applications_value_kinds) =
+            self.collect_value_kinds();
 
         // Flush the compute properties to the package scaffolding
         self.flush_compute_properties(package_scaffolding);
@@ -83,23 +86,23 @@ impl ApplicationInstancesTable {
                 .expect("block applications table should exist")
                 .clone();
 
-            // Now aggregate the previously collected sources of dynamism.
+            // Now incorporate the previously collected value kinds.
             assert!(
                 applications_table.dynamic_param_applications.len()
-                    == dynamic_param_application_sources.len()
+                    == dynamic_param_applications_value_kinds.len()
             );
-            if let Some(inherent_sources) = inherent_sources {
+            if let Some(inherent_value_kind) = inherent_value_kind {
                 applications_table
                     .inherent
-                    .add_dynamism_sources(inherent_sources);
+                    .aggregate_value_kind(inherent_value_kind);
             }
             for (application, sources) in applications_table
                 .dynamic_param_applications
                 .iter_mut()
-                .zip(dynamic_param_application_sources)
+                .zip(dynamic_param_applications_value_kinds)
             {
-                if let Some(sources) = sources {
-                    application.add_dynamism_sources(sources);
+                if let Some(value_kind) = sources {
+                    application.aggregate_value_kind(value_kind);
                 }
             }
 
@@ -119,17 +122,12 @@ impl ApplicationInstancesTable {
             .for_each(|application_instance| application_instance.clear_locals());
     }
 
-    fn collect_dynamism_sources(
-        &mut self,
-    ) -> (
-        Option<FxHashSet<DynamismSource>>,
-        Vec<Option<FxHashSet<DynamismSource>>>,
-    ) {
-        let inherent = self.inherent.collect_dynamism_sources();
+    fn collect_value_kinds(&mut self) -> (Option<ValueKind>, Vec<Option<ValueKind>>) {
+        let inherent = self.inherent.collect_value_kind();
         let mut dynamic_param_applications =
-            Vec::<Option<FxHashSet<DynamismSource>>>::with_capacity(self.dynamic_params.len());
+            Vec::<Option<ValueKind>>::with_capacity(self.dynamic_params.len());
         for application_instance in self.dynamic_params.iter_mut() {
-            dynamic_param_applications.push(application_instance.collect_dynamism_sources());
+            dynamic_param_applications.push(application_instance.collect_value_kind());
         }
 
         (inherent, dynamic_param_applications)
@@ -275,9 +273,7 @@ impl ApplicationInstance {
                 if input_param_index == dynamic_param_index {
                     ComputeKind::Quantum(QuantumProperties {
                         runtime_features: RuntimeFeatureFlags::empty(),
-                        value_kind: ValueKind::Dynamic(FxHashSet::from_iter(vec![
-                            DynamismSource::Assumed,
-                        ])),
+                        value_kind: ValueKind::Dynamic,
                     })
                 } else {
                     ComputeKind::Classical
@@ -312,28 +308,34 @@ impl ApplicationInstance {
         self.is_settled = true;
     }
 
-    fn collect_dynamism_sources(&mut self) -> Option<FxHashSet<DynamismSource>> {
+    fn collect_value_kind(&mut self) -> Option<ValueKind> {
         // Cannot do this until the application instance has been settled, but not yet flushed.
         assert!(self.is_settled);
         assert!(!self.was_flushed);
 
-        // Collect the sources of dynamism from the values of all return expressions.
-        let mut all_dynamism_sources = FxHashSet::default();
+        // Go through each return expression aggregating their value kind (if any).
+        let mut value_kinds = Vec::<ValueKind>::new();
         for expr_id in self.return_expressions.drain(..) {
             let expr_compute_kind = self
                 .exprs
                 .get(&expr_id)
                 .expect("expression compute kind should exist");
-            if let Some(dynamism_sources) = expr_compute_kind.get_dynamism_sources() {
-                all_dynamism_sources.extend(dynamism_sources.iter());
+            if let ComputeKind::Quantum(quantum_properties) = expr_compute_kind {
+                value_kinds.push(quantum_properties.value_kind);
             }
         }
 
-        // Only return something if at least one source of dynamism was collected.
-        if all_dynamism_sources.is_empty() {
+        // Only return something if at least one return expression was quantum.
+        if value_kinds.is_empty() {
             None
         } else {
-            Some(all_dynamism_sources)
+            let value_kind = value_kinds.iter().fold(
+                ValueKind::Static,
+                |aggregated_value_kind, current_value_kind| {
+                    aggregate_value_kind(aggregated_value_kind, current_value_kind)
+                },
+            );
+            Some(value_kind)
         }
     }
 

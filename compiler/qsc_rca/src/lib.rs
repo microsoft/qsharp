@@ -10,17 +10,15 @@ mod cycle_detection;
 mod rca;
 mod scaffolding;
 
-use crate::common::set_indentation;
+use crate::common::{aggregate_compute_kind, aggregate_value_kind, set_indentation};
 use bitflags::bitflags;
 use indenter::indented;
-use itertools::Itertools;
 use qsc_data_structures::index_map::{IndexMap, Iter};
 use qsc_fir::fir::{
     BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
     StoreStmtId,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
-use rustc_hash::FxHashSet;
 use std::{
     cmp::Ord,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -334,70 +332,28 @@ impl Display for ComputeKind {
 }
 
 impl ComputeKind {
-    pub fn add_dynamism_sources(&mut self, new_sources: FxHashSet<DynamismSource>) {
-        let ComputeKind::Quantum(quantum_properties) = self else {
-            panic!("cannot add dynamism sources to classical compute kind");
+    pub fn aggregate_value_kind(&mut self, value_kind: ValueKind) {
+        let Self::Quantum(quantum_properties) = self else {
+            panic!("only quantum compute kinds can aggregate value kinds");
         };
 
-        if let ValueKind::Dynamic(dynamism_sources) = &mut quantum_properties.value_kind {
-            dynamism_sources.extend(new_sources);
-        } else {
-            quantum_properties.value_kind = ValueKind::Dynamic(new_sources);
-        };
+        quantum_properties.value_kind =
+            aggregate_value_kind(quantum_properties.value_kind, &value_kind);
     }
 
-    pub fn get_dynamism_sources(&self) -> Option<&FxHashSet<DynamismSource>> {
+    pub fn is_value_dynamic(&self) -> bool {
         match self {
-            ComputeKind::Classical => None,
-            ComputeKind::Quantum(quantum_properties) => match &quantum_properties.value_kind {
-                ValueKind::Static => None,
-                ValueKind::Dynamic(dynamism_sources) => Some(dynamism_sources),
+            Self::Classical => false,
+            Self::Quantum(quantum_properties) => match quantum_properties.value_kind {
+                ValueKind::Static => false,
+                ValueKind::Dynamic => true,
             },
         }
     }
 
-    pub fn is_dynamic(&self) -> bool {
-        self.get_dynamism_sources().is_some()
+    pub fn with_runtime_features(runtime_features: RuntimeFeatureFlags) -> Self {
+        Self::Quantum(QuantumProperties::with_runtime_features(runtime_features))
     }
-}
-
-#[must_use]
-fn aggregate_compute_kind(
-    base_compute_kind: ComputeKind,
-    delta_compute_kind: &ComputeKind,
-) -> ComputeKind {
-    let ComputeKind::Quantum(delta_quantum_properties) = delta_compute_kind else {
-        // A classical compute kind has nothing to aggregate so just return the base with no changes.
-        return base_compute_kind;
-    };
-
-    // Determine the aggregated runtime features.
-    let aggregated_runtime_features = match base_compute_kind {
-        ComputeKind::Classical => delta_quantum_properties.runtime_features,
-        ComputeKind::Quantum(ref base_quantum_properties) => {
-            base_quantum_properties.runtime_features | delta_quantum_properties.runtime_features
-        }
-    };
-
-    // Determine the aggregated value kind.
-    let value_kind = match &base_compute_kind {
-        ComputeKind::Classical => delta_quantum_properties.value_kind.clone(),
-        ComputeKind::Quantum(base_quantum_properties) => {
-            match &base_quantum_properties.value_kind {
-                ValueKind::Static => delta_quantum_properties.value_kind.clone(),
-                ValueKind::Dynamic(_) => match &delta_quantum_properties.value_kind {
-                    ValueKind::Static => base_quantum_properties.value_kind.clone(),
-                    ValueKind::Dynamic(_) => ValueKind::Dynamic(FxHashSet::default()),
-                },
-            }
-        }
-    };
-
-    // Return the aggregated compute kind.
-    ComputeKind::Quantum(QuantumProperties {
-        runtime_features: aggregated_runtime_features,
-        value_kind,
-    })
 }
 
 /// The quantum properties of a program element.
@@ -429,27 +385,26 @@ impl Display for QuantumProperties {
     }
 }
 
-#[derive(Clone, Debug)]
+impl QuantumProperties {
+    fn with_runtime_features(runtime_features: RuntimeFeatureFlags) -> Self {
+        Self {
+            runtime_features,
+            value_kind: ValueKind::Static,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub enum ValueKind {
     Static,
-    Dynamic(FxHashSet<DynamismSource>),
+    Dynamic,
 }
 
 impl Display for ValueKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
-            ValueKind::Dynamic(dynamism_sources) => {
-                write!(f, "Dynamic: ")?;
-                write!(f, "{{")?;
-                let mut first = true;
-                for source in dynamism_sources.iter().sorted() {
-                    if !first {
-                        _ = write!(f, ", ");
-                    }
-                    write!(f, "{source:?}")?;
-                    first = false;
-                }
-                write!(f, "}}")?;
+            ValueKind::Dynamic => {
+                write!(f, "Dynamic")?;
             }
             ValueKind::Static => {
                 write!(f, "Static")?;
@@ -502,6 +457,10 @@ bitflags! {
         const DynamicCallee = 0b0010_0000_0000_0000_0000;
         /// A callee expression could not be resolved to a specific callable.
         const UnresolvedCallee = 0b0100_0000_0000_0000_0000;
+        /// A UDT constructor was used with a dynamic argument(s).
+        const UdtConstructorUsesDynamicArg = 0b1000_0000_0000_0000_0000;
+        /// Forward branching on dynamic value.
+        const ForwardBranchingOnDynamicValue = 0b0001_0000_0000_0000_0000_0000;
     }
 }
 
@@ -566,30 +525,9 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::UnresolvedCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        runtume_capabilities
-    }
-}
-
-/// A source of dynamism.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum DynamismSource {
-    /// An intrinsic dynamism source.
-    Intrinsic,
-    /// An assumed dynamism source.
-    Assumed,
-    /// A dynamism source that comes from an expression.
-    Expr(ExprId),
-    /// A dynamism source that comes from a statement.
-    Stmt(StmtId),
-}
-
-impl Display for DynamismSource {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match &self {
-            DynamismSource::Intrinsic => write!(f, "Intrinsic",),
-            DynamismSource::Assumed => write!(f, "Assumed",),
-            DynamismSource::Expr(expr_id) => write!(f, "Expr: {}", expr_id),
-            DynamismSource::Stmt(stmt_id) => write!(f, "Stmt: {}", stmt_id),
+        if self.contains(RuntimeFeatureFlags::UdtConstructorUsesDynamicArg) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
+        runtume_capabilities
     }
 }
