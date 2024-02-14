@@ -158,7 +158,8 @@ fn get_latex_for_exponent(pi_num: i64, pi_den: i64) -> String {
     latex
 }
 
-fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, _qubit_count: usize) -> String {
+#[must_use]
+pub fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, _qubit_count: usize) -> String {
     let mut state_latex: String = "".into();
     let mut term_number: i64 = 0;
     for (basis, amplitude) in state {
@@ -180,8 +181,8 @@ fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, _qubit_count: usize) ->
                     if term_number > 1 {
                         state_latex += "+";
                     }
-                    state_latex += get_latex_for_algebraic(num, den, 1, false);
-                    state_latex += get_latex_for_exponent(pi_num, pi_den);
+                    state_latex += &get_latex_for_algebraic(num, den, 1, false);
+                    state_latex += &get_latex_for_exponent(pi_num, pi_den);
                 } else {
                     let (is_positive1, latex1) = recognize_nice_algebraic(real, true);
                     let (is_positive2, latex2) = recognize_nice_algebraic(imag, false);
@@ -195,17 +196,17 @@ fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, _qubit_count: usize) ->
                     } else {
                         "-"
                     };
-                    state_latex += "\\left( {latex1} {imag_sign} {latex2}i \\right)";
+                    state_latex += &format!("\\left( {latex1} {imag_sign} {latex2}i \\right)");
                 }
             } else {
                 // only real amplitude
                 let (is_positive, latex) = recognize_nice_algebraic(real, false);
                 if !is_positive {
-                    state_latex += "-"
+                    state_latex += "-";
                 } else if term_number > 1 {
-                    state_latex += "+"
+                    state_latex += "+";
                 }
-                state_latex += "{latex} \\ ";
+                state_latex += &format!("{latex} \\ ");
             }
         } else {
             // only imaginary amplitude
@@ -215,9 +216,9 @@ fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, _qubit_count: usize) ->
             } else if term_number > 1 {
                 state_latex += "+";
             }
-            state_latex += "{latex}i \\ ";
+            state_latex += &format!("{latex}i \\ ");
         }
-        state_latex += format!("|{basis}\\rangle");
+        state_latex += &format!("|{basis}\\rangle");
     }
 
     format!("$|\\psi\\rangle = {state_latex}$")
