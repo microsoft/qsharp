@@ -63,16 +63,15 @@ pub fn analyze_package(
 
 /// Performs runtime capabilities analysis (RCA) on a specialization that is part of a callable cycle.
 pub fn analyze_specialization_with_cyles(
-    specialization_id: GlobalSpecId,
+    spec_id: GlobalSpecId,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
     // This function is only called when a specialization has not already been analyzed.
     assert!(package_store_scaffolding
-        .find_specialization(specialization_id)
+        .find_specialization(spec_id)
         .is_none());
-    let Some(Global::Callable(callable)) = package_store.get_global(specialization_id.callable)
-    else {
+    let Some(Global::Callable(callable)) = package_store.get_global(spec_id.callable) else {
         panic!("global item should exist and it should be a global");
     };
 
@@ -83,7 +82,7 @@ pub fn analyze_specialization_with_cyles(
     let input_params = derive_callable_input_params(
         callable,
         &package_store
-            .get(specialization_id.callable.package)
+            .get(spec_id.callable.package)
             .expect("package should exist")
             .pats,
     );
@@ -101,12 +100,12 @@ pub fn analyze_specialization_with_cyles(
     };
 
     // Now propagate the applications table through the implementation block.
-    let package_id = specialization_id.callable.package;
+    let package_id = spec_id.callable.package;
     let package = package_store.get_package(package_id);
     let package_scaffolding = package_store_scaffolding
         .get_mut(package_id)
         .expect("package scaffolding should exist");
-    let spec_decl = match specialization_id.spec_kind {
+    let spec_decl = match spec_id.spec_kind {
         SpecKind::Body => &spec_impl.body,
         SpecKind::Adj => spec_impl
             .adj
@@ -129,7 +128,7 @@ pub fn analyze_specialization_with_cyles(
     );
 
     // Finally, update the package store scaffolding.
-    package_store_scaffolding.insert_spec(specialization_id, applications_table);
+    package_store_scaffolding.insert_spec(spec_id, applications_table);
 }
 
 #[must_use]
@@ -870,24 +869,40 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 }
 
+fn determine_expr_block_compute_kind(
+    block_id: StoreBlockId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    simulate_block(
+        block_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    application_instance
+        .blocks
+        .get(&block_id.block)
+        .expect("block compute kind should exist")
+        .clone()
+}
+
 fn determine_expr_call_compute_kind(
-    package_id: PackageId,
-    callee_expr_id: ExprId,
-    args_expr_id: ExprId,
+    callee_expr_id: StoreExprId,
+    args_expr_id: StoreExprId,
     expr_type: &Ty,
     application_instance: &mut ApplicationInstance,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) -> ComputeKind {
     // First, simulate the callee and arguments expressions.
-    let callee_expr_id = StoreExprId::from((package_id, callee_expr_id));
     simulate_expr(
         callee_expr_id,
         application_instance,
         package_store,
         package_store_scaffolding,
     );
-    let args_expr_id = StoreExprId::from((package_id, args_expr_id));
     simulate_expr(
         args_expr_id,
         application_instance,
@@ -955,14 +970,102 @@ fn determine_expr_call_compute_kind(
     compute_kind
 }
 
+fn determine_expr_if_compute_kind(
+    condition_expr_id: StoreExprId,
+    if_true_expr_id: StoreExprId,
+    if_false_expr_id: Option<StoreExprId>,
+    expr_type: &Ty,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate sub-expressions.
+    simulate_expr(
+        condition_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // If the condition sub-expression is dynamic, we push a new dynamic scope.
+    let condition_expr_compute_kind = application_instance
+        .exprs
+        .get(&condition_expr_id.expr)
+        .expect("condition expression compute kind should exist");
+    let within_dynamic_scope = condition_expr_compute_kind.is_value_dynamic();
+    if within_dynamic_scope {
+        application_instance
+            .active_dynamic_scopes
+            .push(condition_expr_id.expr);
+    }
+
+    // Simulate the branch expressions.
+    simulate_expr(
+        if_true_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    if let Some(if_false_expr_id) = if_false_expr_id {
+        simulate_expr(
+            if_false_expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+    }
+
+    // Pop the dynamic scope.
+    if within_dynamic_scope {
+        let dynamic_scope_expr_id = application_instance
+            .active_dynamic_scopes
+            .pop()
+            .expect("at least one dynamic scope should exist");
+        assert!(dynamic_scope_expr_id == condition_expr_id.expr);
+    }
+
+    // Aggregate the runtime features of the sub-expressions, as well as whether any of the sub-expressions's value is
+    // dynamic.
+    let mut compute_kind = ComputeKind::Classical;
+    let mut is_any_sub_expr_value_dynamic = false;
+    let condition_expr_compute_kind = application_instance
+        .exprs
+        .get(&condition_expr_id.expr)
+        .expect("condition expression compute kind should exist");
+    compute_kind =
+        aggregate_compute_kind_runtime_features(compute_kind, condition_expr_compute_kind);
+    is_any_sub_expr_value_dynamic |= condition_expr_compute_kind.is_value_dynamic();
+    let if_true_expr_compute_kind = application_instance
+        .exprs
+        .get(&if_true_expr_id.expr)
+        .expect("condition expression compute kind should exist");
+    compute_kind = aggregate_compute_kind_runtime_features(compute_kind, if_true_expr_compute_kind);
+    is_any_sub_expr_value_dynamic |= if_true_expr_compute_kind.is_value_dynamic();
+    if let Some(if_false_expr_id) = if_false_expr_id {
+        let if_false_expr_compute_kind = application_instance
+            .exprs
+            .get(&if_false_expr_id.expr)
+            .expect("condition expression compute kind should exist");
+        compute_kind =
+            aggregate_compute_kind_runtime_features(compute_kind, if_false_expr_compute_kind);
+        is_any_sub_expr_value_dynamic |= if_false_expr_compute_kind.is_value_dynamic();
+    }
+
+    // If the expression's type is non-unit and any of the sub-expressions' value is dynamic, then the compute kind of
+    // this expression is dynamic.
+    if *expr_type == Ty::UNIT && is_any_sub_expr_value_dynamic {
+        compute_kind.aggregate_value_kind(ValueKind::Dynamic);
+    }
+    compute_kind
+}
+
 fn determine_expr_lit_compute_kind() -> ComputeKind {
     // Literal expressions are purely classical.
     ComputeKind::Classical
 }
 
 fn determine_expr_tuple_compute_kind(
-    package_id: PackageId,
-    exprs: &Vec<ExprId>,
+    exprs: impl Iterator<Item = StoreExprId>,
     application_instance: &mut ApplicationInstance,
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
@@ -973,16 +1076,15 @@ fn determine_expr_tuple_compute_kind(
     // Go through each sub-expression in the tuple aggregating its runtime features and marking them as sources of
     // dynamism when applicable.
     for expr_id in exprs {
-        let store_expr_id = StoreExprId::from((package_id, *expr_id));
         simulate_expr(
-            store_expr_id,
+            expr_id,
             application_instance,
             package_store,
             package_store_scaffolding,
         );
         let expr_compute_kind = application_instance
             .exprs
-            .get(expr_id)
+            .get(&expr_id.expr)
             .expect("expression's compute kind should exist");
 
         // Aggregate the sub-expression's compute kind to the tuple's compute kind.
@@ -1267,6 +1369,9 @@ fn simulate_block(
     if package_store_scaffolding.find_block(id).is_some() {
         panic!("block is already analyzed");
     }
+    if application_instance.blocks.get(&id.block).is_some() {
+        panic!("block is already analyzed in application instance");
+    }
 
     // Initialize the block's compute kind.
     let block = package_store.get_block(id);
@@ -1333,19 +1438,34 @@ fn simulate_expr(
 ) {
     let expr = package_store.get_expr(id);
     let mut compute_kind = match &expr.kind {
+        ExprKind::Block(block_id) => determine_expr_block_compute_kind(
+            (id.package, *block_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
         ExprKind::Call(callee, args) => determine_expr_call_compute_kind(
-            id.package,
-            *callee,
-            *args,
+            (id.package, *callee).into(),
+            (id.package, *args).into(),
             &expr.ty,
             application_instance,
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::If(condition_expr_id, if_true_expr_id, if_false_expr_id) => {
+            determine_expr_if_compute_kind(
+                (id.package, *condition_expr_id).into(),
+                (id.package, *if_true_expr_id).into(),
+                if_false_expr_id.map(|e| StoreExprId::from((id.package, e))),
+                &expr.ty,
+                application_instance,
+                package_store,
+                package_store_scaffolding,
+            )
+        }
         ExprKind::Lit(_) => determine_expr_lit_compute_kind(),
         ExprKind::Tuple(exprs) => determine_expr_tuple_compute_kind(
-            id.package,
-            exprs,
+            exprs.iter().map(|e| StoreExprId::from((id.package, *e))),
             application_instance,
             package_store,
             package_store_scaffolding,

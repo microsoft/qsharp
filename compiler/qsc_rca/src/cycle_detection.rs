@@ -337,7 +337,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         }
 
         // Visit the ctl_adj specialization.
-        if let Some(ctl_adj_decl) = &spec_impl.ctl {
+        if let Some(ctl_adj_decl) = &spec_impl.ctl_adj {
             self.walk_spec_decl(
                 LocalSpecId {
                     callable: item.id,
