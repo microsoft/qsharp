@@ -1008,29 +1008,13 @@ dependencies = [
 name = "qsc_doc_gen"
 version = "0.0.0"
 dependencies = [
- "async-trait",
  "chrono",
- "clap",
- "enum-iterator",
- "env_logger",
  "expect-test",
- "indoc",
- "log",
- "miette",
- "num-bigint",
- "num-complex",
  "qsc_ast",
- "qsc_codegen",
- "qsc_data_structures",
- "qsc_eval",
- "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
- "qsc_passes",
- "qsc_project",
  "regex-lite",
  "rustc-hash",
- "thiserror",
 ]
 
 [[package]]
@@ -1068,13 +1052,10 @@ name = "qsc_frontend"
 version = "0.0.0"
 dependencies = [
  "bitflags 2.4.2",
- "enum-iterator",
  "expect-test",
  "indoc",
  "library",
  "miette",
- "num-bigint",
- "num-traits",
  "qsc_ast",
  "qsc_data_structures",
  "qsc_hir",
@@ -1182,8 +1163,6 @@ name = "qsls"
 version = "0.0.0"
 dependencies = [
  "async-trait",
- "chrono",
- "enum-iterator",
  "expect-test",
  "futures",
  "futures-util",
@@ -1192,7 +1171,6 @@ dependencies = [
  "miette",
  "qsc",
  "qsc_project",
- "regex-lite",
  "rustc-hash",
  "tokio",
 ]
@@ -1556,9 +1534,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.35.1"
+version = "1.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c89b4efa943be685f629b149f53829423f8f5531ea21249408e8e2f8671ec104"
+checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
 dependencies = [
  "backtrace",
  "pin-project-lite",

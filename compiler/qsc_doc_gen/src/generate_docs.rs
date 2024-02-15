@@ -17,15 +17,11 @@ use std::fmt::{Display, Formatter, Result};
 use std::rc::Rc;
 use std::sync::Arc;
 
-// Warning: this path gets deleted on each run. Use carefully!
-//const GENERATED_DOCS_PATH: &str = "../../npm/generated_docs";
-
-/// Represents an immutable compilation state that can be used
-/// to implement language service features.
+/// Represents an immutable compilation state.
 #[derive(Debug)]
-pub(crate) struct Compilation {
+struct Compilation {
     /// Package store, containing the current package and all its dependencies.
-    pub package_store: PackageStore,
+    package_store: PackageStore,
 }
 
 impl Compilation {
@@ -39,22 +35,17 @@ impl Compilation {
 }
 
 impl Lookup for Compilation {
-    /// Looks up the type of a node in user code
-    fn get_ty(&self, id: ast::NodeId) -> Option<&ty::Ty> {
+    fn get_ty(&self, _: ast::NodeId) -> Option<&ty::Ty> {
         unimplemented!("Not needed for docs generation")
     }
 
-    /// Looks up the resolution of a node in user code
-    fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res> {
+    fn get_res(&self, _: ast::NodeId) -> Option<&resolve::Res> {
         unimplemented!("Not needed for docs generation")
     }
 
-    /// Returns the hir `Item` node referred to by `item_id`,
-    /// along with the `Package` and `PackageId` for the package
-    /// that it was found in.
     fn resolve_item_relative_to_user_package(
         &self,
-        item_id: &hir::ItemId,
+        _: &hir::ItemId,
     ) -> (&hir::Item, &hir::Package, hir::ItemId) {
         unimplemented!("Not needed for docs generation")
     }
@@ -118,9 +109,6 @@ pub fn generate_docs() -> FxHashMap<Arc<str>, Arc<str>> {
         compilation: &compilation,
     };
 
-    // delete_existing_docs();
-    // fs::create_dir(GENERATED_DOCS_PATH).expect("Unable to create directory for generated docs");
-
     let mut toc: FxHashMap<Rc<str>, Vec<String>> = FxHashMap::default();
     for (_, unit) in &compilation.package_store {
         let package = &unit.package;
@@ -133,16 +121,8 @@ pub fn generate_docs() -> FxHashMap<Arc<str>, Arc<str>> {
 
     generate_toc(&toc, &mut file_map);
 
-    file_map.into_iter().collect()
+    file_map
 }
-
-// fn delete_existing_docs() {
-//     // Checks if the generated docs exist
-//     if fs::metadata(GENERATED_DOCS_PATH).is_ok() {
-//         // Warning, use this carefully!
-//         fs::remove_dir_all(GENERATED_DOCS_PATH).expect("Unable to remove existing docs");
-//     }
-// }
 
 fn generate_doc_for_item<'a>(
     package: &'a Package,
@@ -158,12 +138,6 @@ fn generate_doc_for_item<'a>(
     // Get namespace for item
     let ns = get_namespace(package, item)?;
 
-    // Create ns folder, if it doesn't exist
-    // let ns_dir = format!("{GENERATED_DOCS_PATH}/{ns}");
-    // if fs::metadata(&ns_dir).is_err() {
-    //     fs::create_dir(&ns_dir).expect("Unable to create directory for namespace");
-    // }
-
     // Get Date
     // Note: there might be a better way to do rounding with chrono instead of hardcoding the time
     let date = format!("{} 12:00:00 AM", Utc::now().date_naive().format("%m/%d/%Y"));
@@ -173,7 +147,6 @@ fn generate_doc_for_item<'a>(
     let file_name: Arc<str> = Arc::from(format!("{ns}/{title}.md").as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
     file_map.insert(file_name, file_content);
-    //fs::write(format!("{ns_dir}/{title}.md"), content).expect("Unable to write file");
 
     // Create toc line
     let line = format!("  - {{name: {title}, uid: {ns}.{title}}}");
@@ -343,6 +316,4 @@ fn generate_toc(
     let file_name: Arc<str> = Arc::from("toc.yml");
     let file_content: Arc<str> = Arc::from(content.as_str());
     file_map.insert(file_name, file_content);
-    // fs::write(format!("{GENERATED_DOCS_PATH}/toc.yml"), content)
-    //     .expect("Unable to create table of contents file");
 }

@@ -153,21 +153,6 @@ pub fn get_hir(code: &str) -> String {
     package.to_string()
 }
 
-#[wasm_bindgen]
-pub fn get_documentation_files(code: &str) -> DocFiles {
-    qsc::generate_docs::generate_docs()
-}
-
-serializable_type! {
-    DocFiles,
-    {
-        pub files: Vec<(Arc<str>, Arc<str>)>
-    },
-    r#"export interface IDocFiles {
-        files: [string, string][];
-    }"#
-}
-
 struct CallbackReceiver<F>
 where
     F: FnMut(&str),
