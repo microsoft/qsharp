@@ -975,6 +975,65 @@ fn determine_expr_assign_compute_kind(
     aggregate_compute_kind_runtime_features(ComputeKind::Classical, rhs_compute_kind)
 }
 
+fn determine_expr_assign_index_compute_kind(
+    lhs_expr_id: StoreExprId,
+    index_expr_id: StoreExprId,
+    rhs_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the LHS , index and RHS expressions.
+    simulate_expr(
+        lhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        index_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        rhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // Since this is an assignment, update the local variable on the LHS expression with the compute kind of the RHS
+    // expression and an additional runtime feature if the index is dynamic.
+    let index_compute_kind = application_instance
+        .exprs
+        .get(&index_expr_id.expr)
+        .expect("index expression compute kind should exist");
+    let rhs_compute_kind = application_instance
+        .exprs
+        .get(&rhs_expr_id.expr)
+        .expect("RHS expression compute kind should exist");
+    let mut update_compute_kind =
+        aggregate_compute_kind_runtime_features(ComputeKind::Classical, rhs_compute_kind);
+    if index_compute_kind.is_value_dynamic() {
+        update_compute_kind = aggregate_compute_kind_runtime_features(
+            update_compute_kind,
+            &ComputeKind::with_runtime_features(RuntimeFeatureFlags::UseOfDynamicIndex),
+        );
+    }
+
+    // Update the local variable compute kind.
+    let lhs_expr = package_store.get_expr(lhs_expr_id);
+    let ExprKind::Var(Res::Local(node_id), _) = &lhs_expr.kind else {
+        panic!("LHS expression should be a local");
+    };
+    application_instance
+        .locals_map
+        .aggregate_compute_kind(*node_id, &update_compute_kind);
+
+    update_compute_kind
+}
+
 fn determine_expr_assign_op_compute_kind(
     lhs_expr_id: StoreExprId,
     rhs_expr_id: StoreExprId,
@@ -1667,6 +1726,16 @@ fn simulate_expr(
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::AssignIndex(lhs_expr_id, index_expr_id, rhs_expr_id) => {
+            determine_expr_assign_index_compute_kind(
+                (id.package, *lhs_expr_id).into(),
+                (id.package, *index_expr_id).into(),
+                (id.package, *rhs_expr_id).into(),
+                application_instance,
+                package_store,
+                package_store_scaffolding,
+            )
+        }
         ExprKind::AssignOp(_, lhs_expr_id, rhs_expr_id) => determine_expr_assign_op_compute_kind(
             (id.package, *lhs_expr_id).into(),
             (id.package, *rhs_expr_id).into(),

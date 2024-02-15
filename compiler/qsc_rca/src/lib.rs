@@ -464,6 +464,8 @@ bitflags! {
         const DynamicQubitAllocation = 0b0010_0000_0000_0000_0000_0000;
         /// Result allocation that happens within a dynamic scope.
         const DynamicResultAllocation = 0b0100_0000_0000_0000_0000_0000;
+        /// Use of a dynamic index to access or update an array.
+        const UseOfDynamicIndex = 0b1000_0000_0000_0000_0000_0000;
     }
 }
 
@@ -535,6 +537,9 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::DynamicResultAllocation) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         runtume_capabilities
