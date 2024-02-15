@@ -111,7 +111,7 @@ impl Lookup for Compilation {
     }
 }
 
-pub(crate) fn generate_docs() -> FxHashMap<Arc<str>, Arc<str>> {
+pub fn generate_docs() -> Vec<(Arc<str>, Arc<str>)> {
     let compilation = Compilation::new();
     let mut file_map: FxHashMap<Arc<str>, Arc<str>> = FxHashMap::default();
 
@@ -134,7 +134,7 @@ pub(crate) fn generate_docs() -> FxHashMap<Arc<str>, Arc<str>> {
 
     generate_toc(&toc, &mut file_map);
 
-    file_map
+    file_map.into_iter().collect()
 }
 
 // fn delete_existing_docs() {

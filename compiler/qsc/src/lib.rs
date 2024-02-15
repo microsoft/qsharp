@@ -10,8 +10,6 @@ pub mod incremental;
 pub mod interpret;
 pub mod target;
 
-pub use qsc_doc_gen::display;
-
 pub use qsc_frontend::compile::{
     CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
 };
@@ -48,3 +46,5 @@ pub use qsc_eval::{
     backend::{Backend, SparseSim},
     output::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase},
 };
+
+pub use qsc_doc_gen::{display, generate_docs};
