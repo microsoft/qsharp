@@ -418,9 +418,8 @@ bitflags! {
     /// Runtime features represent anything a program can do that is more complex than executing quantum operations on
     /// statically allocated qubits and using constant arguments.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    // TODO (cesarzc): adjust bits.
     pub struct RuntimeFeatureFlags: u64 {
-        /// Use of a dynamic `Result`.
-        const UseOfDynamicResult = 0b0001;
         /// Use of a dynamic `Bool`.
         const UseOfDynamicBool = 0b0010;
         /// Use of a dynamic `Int`.
@@ -472,9 +471,6 @@ impl RuntimeFeatureFlags {
     /// Maps program contructs to runtime capabilities.
     pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
         let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
-        if self.contains(RuntimeFeatureFlags::UseOfDynamicResult) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
-        }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicBool) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }

@@ -829,7 +829,8 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
             Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
                 RuntimeFeatureFlags::UseOfDynamicRange
             }
-            Prim::Result => RuntimeFeatureFlags::UseOfDynamicResult,
+            // Results are inherently dynamic but they do not need special runtime features just to exist.
+            Prim::Result => RuntimeFeatureFlags::empty(),
             Prim::String => RuntimeFeatureFlags::UseOfDynamicString,
         }
     }

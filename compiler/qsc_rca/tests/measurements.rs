@@ -21,7 +21,7 @@ fn check_rca_for_static_single_measurement() {
             r#"
             ApplicationsTable:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult)
+                    runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Dynamic
                 dynamic_param_applications: <empty>"#
         ],
@@ -44,7 +44,7 @@ fn check_rca_for_static_single_measurement_and_reset() {
             r#"
             ApplicationsTable:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult)
+                    runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Dynamic
                 dynamic_param_applications: <empty>"#
         ],

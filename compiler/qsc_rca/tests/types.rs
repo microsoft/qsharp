@@ -20,7 +20,7 @@ fn check_rca_for_dynamic_result() {
             r#"
             ApplicationsTable:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult)
+                    runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Dynamic
                 dynamic_param_applications: <empty>"#
         ],
@@ -42,7 +42,7 @@ fn check_rca_for_dynamic_bool() {
             r#"
             ApplicationsTable:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult | UseOfDynamicBool)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                     value_kind: Dynamic
                 dynamic_param_applications: <empty>"#
         ],

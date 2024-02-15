@@ -105,7 +105,7 @@ fn check_rca_for_dynamic_result_var() {
             r#"
             ApplicationsTable:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult)
+                    runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Dynamic
                 dynamic_param_applications: <empty>"#
         ],
