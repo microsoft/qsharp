@@ -28,7 +28,8 @@ fn check_rca_for_bin_op_with_dynamic_lhs_and_classical_rhs() {
     compilation_context.update(
         r#"
         use q = Qubit();
-        M(q) != Zero"#);
+        M(q) != Zero"#,
+    );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_propeties(
         package_store_compute_properties,
@@ -49,7 +50,8 @@ fn check_rca_for_bin_op_with_classical_lhs_and_dynamic_rhs() {
     compilation_context.update(
         r#"
         use q = Qubit();
-        One == M(q)"#);
+        One == M(q)"#,
+    );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_propeties(
         package_store_compute_properties,
@@ -71,7 +73,8 @@ fn check_rca_for_bin_op_with_dynamic_lhs_and_dynamic_rhs() {
         r#"
         use (a, b) = (Qubit(), Qubit());
         let (c, d) = (M(a) == Zero, M(b) == Zero);
-        c and d"#);
+        c and d"#,
+    );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_propeties(
         package_store_compute_properties,
@@ -92,7 +95,8 @@ fn check_rca_for_nested_bin_ops_with_classic_operands() {
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
-        Sin(PI() / 2.0) ^ 2.0 + Cos(PI() / 2.0) ^ 2.0"#);
+        Sin(PI() / 2.0) ^ 2.0 + Cos(PI() / 2.0) ^ 2.0"#,
+    );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_propeties(
         package_store_compute_properties,
@@ -112,7 +116,8 @@ fn check_rca_for_nested_bin_ops_with_a_dynamic_operand() {
         r#"
         use q = Qubit();
         let i = M(q) == Zero ? 0 | 1;
-        i * 1 / 1"#);
+        i * 1 / 1"#,
+    );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_propeties(
         package_store_compute_properties,

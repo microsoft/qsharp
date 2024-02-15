@@ -12,7 +12,8 @@ fn check_rca_for_dynamic_result() {
     compilation_context.update(
         r#"
         use q = Qubit();
-        M(q)"#);
+        M(q)"#,
+    );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_propeties(
         package_store_compute_properties,
@@ -34,7 +35,8 @@ fn check_rca_for_dynamic_bool() {
         r#"
         open Microsoft.Quantum.Convert;
         use q = Qubit();
-        ResultAsBool(M(q))"#);
+        ResultAsBool(M(q))"#,
+    );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_propeties(
         package_store_compute_properties,
