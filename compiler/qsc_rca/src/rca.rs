@@ -1366,6 +1366,52 @@ fn determine_expr_if_compute_kind(
     compute_kind
 }
 
+fn determine_expr_index_compute_kind(
+    array_expr_id: StoreExprId,
+    index_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the array and index expressions.
+    simulate_expr(
+        array_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        index_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // We use the array expression runtime features as the basis for the compute kind of the whole index accessor
+    // expression.
+    let array_expr_compute_kind = application_instance
+        .exprs
+        .get(&array_expr_id.expr)
+        .expect("array expression compute kind should exist");
+    let mut compute_kind = match array_expr_compute_kind {
+        ComputeKind::Classical => ComputeKind::Classical,
+        ComputeKind::Quantum(quantum_properties) => ComputeKind::Quantum(QuantumProperties {
+            runtime_features: quantum_properties.runtime_features,
+            // Since we do not track the compute kind of individual array elements, we assume that any element is
+            // dynamic if the compute kind of the array is quantum.
+            value_kind: ValueKind::Dynamic,
+        }),
+    };
+
+    // Aggregate the index's compute kind before returning the index accessor expression compute kind.
+    let index_expr_compute_kind = application_instance
+        .exprs
+        .get(&index_expr_id.expr)
+        .expect("index expression compute kind should exist");
+    compute_kind = aggregate_compute_kind(compute_kind, index_expr_compute_kind);
+    compute_kind
+}
+
 fn determine_expr_lit_compute_kind() -> ComputeKind {
     // Literal expressions are purely classical.
     ComputeKind::Classical
@@ -1834,6 +1880,13 @@ fn simulate_expr(
                 package_store_scaffolding,
             )
         }
+        ExprKind::Index(array_expr_id, index_expr_id) => determine_expr_index_compute_kind(
+            (id.package, *array_expr_id).into(),
+            (id.package, *index_expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
         ExprKind::Lit(_) => determine_expr_lit_compute_kind(),
         ExprKind::Tuple(exprs) => determine_expr_tuple_compute_kind(
             exprs.iter().map(|e| StoreExprId::from((id.package, *e))),
