@@ -1555,6 +1555,26 @@ fn determine_expr_tuple_compute_kind(
     tuple_compute_kind
 }
 
+fn determine_expr_unop_compute_kind(
+    expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Just simulate the expression and return its compute kind.
+    simulate_expr(
+        expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    application_instance
+        .exprs
+        .get(&expr_id.expr)
+        .expect("compute kind for unary operator expression should exist")
+        .clone()
+}
+
 fn determine_expr_var_compute_kind(
     res: &Res,
     application_instance: &mut ApplicationInstance,
@@ -2024,6 +2044,12 @@ fn simulate_expr(
         ),
         ExprKind::Tuple(exprs) => determine_expr_tuple_compute_kind(
             exprs.iter().map(|e| StoreExprId::from((id.package, *e))),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        ExprKind::UnOp(_, expr_id) => determine_expr_unop_compute_kind(
+            (id.package, *expr_id).into(),
             application_instance,
             package_store,
             package_store_scaffolding,
