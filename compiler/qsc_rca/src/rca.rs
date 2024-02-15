@@ -1473,6 +1473,61 @@ fn determine_expr_range_compute_kind(
     compute_kind
 }
 
+fn determine_expr_return_compute_kind(
+    expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Just simulate the expression, add it to the application instance and return its compute kind.
+    simulate_expr(
+        expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    application_instance.return_expressions.push(expr_id.expr);
+    application_instance
+        .exprs
+        .get(&expr_id.expr)
+        .expect("compute kind for expression to use a field accessor on should exist")
+        .clone()
+}
+
+fn determine_expr_string_compute_kind(
+    package_id: PackageId,
+    string_components: &Vec<StringComponent>,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    let mut compute_kind = ComputeKind::Classical;
+
+    // Iterate through the string components aggregating the compute kind of each.
+    for component in string_components {
+        match component {
+            StringComponent::Expr(expr_id) => {
+                simulate_expr(
+                    (package_id, *expr_id).into(),
+                    application_instance,
+                    package_store,
+                    package_store_scaffolding,
+                );
+                let component_compute_kind = application_instance
+                    .exprs
+                    .get(expr_id)
+                    .expect("compute kind of component should exist");
+                compute_kind = aggregate_compute_kind(compute_kind, component_compute_kind);
+            }
+            StringComponent::Lit(_) => {
+                // Nothing to aggregate.
+            }
+        }
+    }
+
+    compute_kind
+}
+
 fn determine_expr_tuple_compute_kind(
     exprs: impl Iterator<Item = StoreExprId>,
     application_instance: &mut ApplicationInstance,
@@ -1954,6 +2009,19 @@ fn simulate_expr(
                 package_store_scaffolding,
             )
         }
+        ExprKind::Return(expr_id) => determine_expr_return_compute_kind(
+            (id.package, *expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        ExprKind::String(string_components) => determine_expr_string_compute_kind(
+            id.package,
+            string_components,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
         ExprKind::Tuple(exprs) => determine_expr_tuple_compute_kind(
             exprs.iter().map(|e| StoreExprId::from((id.package, *e))),
             application_instance,
