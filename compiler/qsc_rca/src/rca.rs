@@ -1682,6 +1682,60 @@ fn determine_expr_var_compute_kind(
     }
 }
 
+fn determine_expr_while_compute_kind(
+    condition_expr_id: StoreExprId,
+    block_id: StoreBlockId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the condition expression.
+    simulate_expr(
+        condition_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // If the condition expression is dynamic, we push a new dynamic scope and simulate the block within it.
+    let condition_expr_compute_kind = application_instance
+        .exprs
+        .get(&condition_expr_id.expr)
+        .expect("condition expression compute kind should exist")
+        .clone();
+    let within_dynamic_scope = condition_expr_compute_kind.is_value_dynamic();
+    if within_dynamic_scope {
+        application_instance
+            .active_dynamic_scopes
+            .push(condition_expr_id.expr);
+    }
+    simulate_block(
+        block_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    if within_dynamic_scope {
+        let dynamic_scope_expr_id = application_instance
+            .active_dynamic_scopes
+            .pop()
+            .expect("at least one dynamic scope should exist");
+        assert!(dynamic_scope_expr_id == condition_expr_id.expr);
+    }
+
+    // Return the aggregated runtime features of the condition expression and the block.
+    let block_compute_kind = application_instance
+        .blocks
+        .get(&block_id.block)
+        .expect("compute kind for block should exist");
+    let mut compute_kind = aggregate_compute_kind_runtime_features(
+        ComputeKind::Classical,
+        &condition_expr_compute_kind,
+    );
+    compute_kind = aggregate_compute_kind_runtime_features(compute_kind, block_compute_kind);
+    compute_kind
+}
+
 fn determine_stmt_expr_compute_kind(
     package_id: PackageId,
     expr_id: ExprId,
@@ -2165,8 +2219,13 @@ fn simulate_expr(
             )
         }
         ExprKind::Var(res, _) => determine_expr_var_compute_kind(res, application_instance),
-        // TODO (cesarzc): handle each case separately.
-        _ => ComputeKind::Classical,
+        ExprKind::While(condition_expr_id, block_id) => determine_expr_while_compute_kind(
+            (id.package, *condition_expr_id).into(),
+            (id.package, *block_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
     };
 
     // If the expression's compute kind is dynamic, then additional runtime features might be needed depending on the
