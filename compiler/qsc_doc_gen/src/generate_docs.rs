@@ -14,7 +14,6 @@ use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility}
 use qsc_hir::{hir, ty};
 use rustc_hash::FxHashMap;
 use std::fmt::{Display, Formatter, Result};
-use std::fs;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -111,7 +110,7 @@ impl Lookup for Compilation {
     }
 }
 
-pub fn generate_docs() -> Vec<(Arc<str>, Arc<str>)> {
+pub fn generate_docs() -> FxHashMap<Arc<str>, Arc<str>> {
     let compilation = Compilation::new();
     let mut file_map: FxHashMap<Arc<str>, Arc<str>> = FxHashMap::default();
 
@@ -173,7 +172,7 @@ fn generate_doc_for_item<'a>(
     let (title, content) = generate_file(&ns, item, display, date)?;
     let file_name: Arc<str> = Arc::from(format!("{ns}/{title}.md").as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
-    file_map.insert(file_name, file_content)?;
+    file_map.insert(file_name, file_content);
     //fs::write(format!("{ns_dir}/{title}.md"), content).expect("Unable to write file");
 
     // Create toc line
