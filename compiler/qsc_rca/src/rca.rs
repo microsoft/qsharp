@@ -891,12 +891,49 @@ fn determine_expr_array_compute_kind(
             .exprs
             .get(&expr_id.expr)
             .expect("expression's compute kind should exist");
-        array_compute_kind = aggregate_compute_kind_runtime_features(array_compute_kind, expr_compute_kind);
+        array_compute_kind =
+            aggregate_compute_kind_runtime_features(array_compute_kind, expr_compute_kind);
     }
 
     // The value kind of an array expression itself cannot be dynamic since its size is always known.
     assert!(!array_compute_kind.is_value_dynamic());
     array_compute_kind
+}
+
+fn determine_expr_array_repeat_compute_kind(
+    value_expr_id: StoreExprId,
+    size_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the value and size expressions.
+    simulate_expr(
+        value_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        size_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // Initialize the compute kind from the size expression (since this one determines whether the whole array is
+    // dynamic), and then aggregate the runtime features from the value.
+    let mut compute_kind = application_instance
+        .exprs
+        .get(&size_expr_id.expr)
+        .expect("compute kind for the size expression should exist")
+        .clone();
+    let value_expr_compute_kind = application_instance
+        .exprs
+        .get(&value_expr_id.expr)
+        .expect("compute kind for value expression should exist");
+    compute_kind = aggregate_compute_kind_runtime_features(compute_kind, value_expr_compute_kind);
+    compute_kind
 }
 
 fn determine_expr_bin_op_compute_kind(
@@ -1507,6 +1544,15 @@ fn simulate_expr(
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::ArrayRepeat(value_expr_id, size_expr_id) => {
+            determine_expr_array_repeat_compute_kind(
+                (id.package, *value_expr_id).into(),
+                (id.package, *size_expr_id).into(),
+                application_instance,
+                package_store,
+                package_store_scaffolding,
+            )
+        }
         ExprKind::BinOp(_, lhs_expr_id, rhs_expr_id) => determine_expr_bin_op_compute_kind(
             (id.package, *lhs_expr_id).into(),
             (id.package, *rhs_expr_id).into(),

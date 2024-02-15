@@ -53,7 +53,6 @@ fn check_rca_for_array_with_dynamic_bools() {
         use (a, b, c) = (Qubit(), Qubit(), Qubit());
         [ResultAsBool(M(a)), ResultAsBool(M(b)), ResultAsBool(M(c))]"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    // Even though results are dynamic, they do not require any special runtime features to exist.
     check_last_statement_compute_propeties(
         package_store_compute_properties,
         &expect![
