@@ -336,7 +336,6 @@ pub fn generate_docs() -> JsValue {
     let docs = qsc_doc_gen::generate_docs::generate_docs();
     let mut result: Vec<DocFile> = vec![];
 
-    // Create a JsObject with key value pairs
     for (name, contents) in docs {
         result.push(DocFile {
             filename: name.to_string(),
