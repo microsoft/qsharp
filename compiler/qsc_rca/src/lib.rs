@@ -260,10 +260,10 @@ impl Display for CallableComputeProperties {
 /// The compute properties associated to a callable or one of its elements.
 #[derive(Clone, Debug)]
 pub struct ApplicationsTable {
-    /// The inherent compute kind when all parameters are binded to static values.
+    /// The inherent compute kind when all parameters are bound to static values.
     pub inherent: ComputeKind,
     /// Each element in the vector represents the compute kind of a call application when the parameter associated
-    /// to the vector index is binded to a dynamic value.
+    /// to the vector index is bound to a dynamic value.
     pub dynamic_param_applications: Vec<ComputeKind>,
 }
 
@@ -421,57 +421,57 @@ bitflags! {
     /// Runtime features represent anything a program can do that is more complex than executing quantum operations on
     /// statically allocated qubits and using constant arguments.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct RuntimeFeatureFlags: u64 {
+    pub struct RuntimeFeatureFlags: u32 {
         /// Use of a dynamic `Bool`.
-        const UseOfDynamicBool = 0b0010;
+        const UseOfDynamicBool = 1 << 0;
         /// Use of a dynamic `Int`.
-        const UseOfDynamicInt = 0b0100;
+        const UseOfDynamicInt = 1 << 1;
         /// Use of a dynamic `Pauli`.
-        const UseOfDynamicPauli = 0b1000;
+        const UseOfDynamicPauli = 1 << 2;
         /// Use of a dynamic `Range`.
-        const UseOfDynamicRange = 0b0001_0000;
+        const UseOfDynamicRange = 1 << 3;
         /// Use of a dynamic `Double`.
-        const UseOfDynamicDouble = 0b010_0000;
+        const UseOfDynamicDouble = 1 << 4;
         /// Use of a dynamic `Qubit`.
-        const UseOfDynamicQubit = 0b0100_0000;
+        const UseOfDynamicQubit = 1 << 5;
         /// Use of a dynamic `BigInt`.
-        const UseOfDynamicBigInt = 0b1000_0000;
+        const UseOfDynamicBigInt = 1 << 6;
         /// Use of a dynamic `String`.
-        const UseOfDynamicString = 0b0001_0000_0000;
+        const UseOfDynamicString = 1 << 7;
         /// Use of a dynamic array.
-        const UseOfDynamicArray = 0b0010_0000_0000;
+        const UseOfDynamicArray = 1 << 8;
         /// Use of a dynamic tuple.
-        const UseOfDynamicTuple = 0b0100_0000_0000;
+        const UseOfDynamicTuple = 1 << 9;
         /// Use of a dynamic UDT.
-        const UseOfDynamicUdt = 0b1000_0000_0000;
+        const UseOfDynamicUdt = 1 << 10;
         /// Use of a dynamic arrow function.
-        const UseOfDynamicArrowFunction = 0b0001_0000_0000_0000;
+        const UseOfDynamicArrowFunction = 1 << 11;
         /// Use of a dynamic arrow operation.
-        const UseOfDynamicArrowOperation = 0b0010_0000_0000_0000;
+        const UseOfDynamicArrowOperation = 1 << 12;
         /// Use of a dynamic generic.
-        const UseOfDynamicGeneric = 0b0100_0000_0000_0000;
+        const UseOfDynamicGeneric = 1 << 13;
         /// A function with cycles used with a dynamic argument.
-        const CycledFunctionUsesDynamicArg = 0b1000_0000_0000_0000;
+        const CyclicFunctionUsesDynamicArg = 1 << 14;
         /// An operation specialization with cycles is used.
-        const CycledOperation = 0b0001_0000_0000_0000_0000;
+        const CyclicOperation = 1 << 15;
         /// A callee expression is dynamic.
-        const DynamicCallee = 0b0010_0000_0000_0000_0000;
+        const DynamicCallee = 1 << 16;
         /// A callee expression could not be resolved to a specific callable.
-        const UnresolvedCallee = 0b0100_0000_0000_0000_0000;
+        const UnresolvedCallee = 1 << 17;
         /// A UDT constructor was used with a dynamic argument(s).
-        const UdtConstructorUsesDynamicArg = 0b1000_0000_0000_0000_0000;
+        const UdtConstructorUsesDynamicArg = 1 << 18;
         /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 0b0001_0000_0000_0000_0000_0000;
+        const ForwardBranchingOnDynamicValue = 1 << 19;
         /// Qubit allocation that happens within a dynamic scope.
-        const DynamicQubitAllocation = 0b0010_0000_0000_0000_0000_0000;
+        const DynamicQubitAllocation = 1 << 20;
         /// Result allocation that happens within a dynamic scope.
-        const DynamicResultAllocation = 0b0100_0000_0000_0000_0000_0000;
+        const DynamicResultAllocation = 1 << 21;
         /// Use of a dynamic index to access or update an array.
-        const UseOfDynamicIndex = 0b1000_0000_0000_0000_0000_0000;
+        const UseOfDynamicIndex = 1 << 22;
         /// Use of a closure.
-        const Closure = 0b0001_0000_0000_0000_0000_0000_0000;
+        const Closure = 1 << 23;
         /// Use of a runtime failure.
-        const Failure = 0b0010_0000_0000_0000_0000_0000_0000;
+        const Failure = 1 << 24;
     }
 }
 
@@ -521,10 +521,10 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::UseOfDynamicGeneric) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::CycledFunctionUsesDynamicArg) {
+        if self.contains(RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::CycledOperation) {
+        if self.contains(RuntimeFeatureFlags::CyclicOperation) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::DynamicCallee) {

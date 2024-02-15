@@ -89,11 +89,11 @@ pub fn analyze_specialization_with_cyles(
 
     // Create compute properties differently depending on whether the callable is a function or an operation.
     let applications_table = match callable.kind {
-        CallableKind::Function => create_cycled_function_specialization_applications_table(
+        CallableKind::Function => create_cyclic_function_specialization_applications_table(
             input_params.len(),
             &callable.output,
         ),
-        CallableKind::Operation => create_cycled_operation_specialization_applications_table(
+        CallableKind::Operation => create_cyclic_operation_specialization_applications_table(
             input_params.len(),
             &callable.output,
         ),
@@ -668,11 +668,11 @@ fn create_compute_kind_for_call_with_unresolved_callee(expr_type: &Ty) -> Comput
     })
 }
 
-fn create_cycled_function_specialization_applications_table(
+fn create_cyclic_function_specialization_applications_table(
     callable_input_params_count: usize,
     output_type: &Ty,
 ) -> ApplicationsTable {
-    // Set the compute kind of the function for each parameter when it is binded to a dynamic value.
+    // Set the compute kind of the function for each parameter when it is bound to a dynamic value.
     let mut using_dynamic_param = Vec::new();
     for _ in 0..callable_input_params_count {
         // If any parameter is dynamic, we assume the value of a function with cycles is a a source of dynamism if its
@@ -683,11 +683,11 @@ fn create_cycled_function_specialization_applications_table(
             ValueKind::Dynamic
         };
 
-        // Since cycled functions can be called with dynamic parameters, we assume that all capabilities are required
-        // if the function is used with any dynamic parameter. The `CycledFunctionWithDynamicArg` feature conveys this
+        // Since cyclic functions can be called with dynamic parameters, we assume that all capabilities are required
+        // if the function is used with any dynamic parameter. The `CyclicFunctionWithDynamicArg` feature conveys this
         // assumption.
         let quantum_properties = QuantumProperties {
-            runtime_features: RuntimeFeatureFlags::CycledFunctionUsesDynamicArg,
+            runtime_features: RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg,
             value_kind,
         };
         using_dynamic_param.push(ComputeKind::Quantum(quantum_properties));
@@ -700,23 +700,23 @@ fn create_cycled_function_specialization_applications_table(
     }
 }
 
-fn create_cycled_operation_specialization_applications_table(
+fn create_cyclic_operation_specialization_applications_table(
     callable_input_params_count: usize,
     output_type: &Ty,
 ) -> ApplicationsTable {
     // Since operations can allocate and measure qubits freely, we assume its compute kind is quantum, requires all
-    // capabilities (encompassed by the `CycledOperation` runtime feature) and that their value kind is dynamic.
+    // capabilities (encompassed by the `CyclicOperation` runtime feature) and that their value kind is dynamic.
     let value_kind = if *output_type == Ty::UNIT {
         ValueKind::Static
     } else {
         ValueKind::Dynamic
     };
     let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
-        runtime_features: RuntimeFeatureFlags::CycledOperation,
+        runtime_features: RuntimeFeatureFlags::CyclicOperation,
         value_kind,
     });
 
-    // The compute kind of a cycled function when any of its parameters is binded to a dynamic value is the same as its
+    // The compute kind of a cyclic function when any of its parameters is bound to a dynamic value is the same as its
     // inherent compute kind.
     let mut using_dynamic_param = Vec::new();
     for _ in 0..callable_input_params_count {
@@ -749,7 +749,7 @@ fn create_intrinsic_function_applications_table(
         };
 
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
-            // When a parameter is binded to a dynamic value, its type contributes to the runtime features used by the
+            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
             // function application.
             runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
             value_kind,
@@ -798,7 +798,7 @@ fn create_instrinsic_operation_applications_table(
 
         // The compute kind of intrinsic operations is always quantum.
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
-            // When a parameter is binded to a dynamic value, its type contributes to the runtime features used by the
+            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
             // operation application.
             runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
             value_kind,
