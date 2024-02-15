@@ -466,6 +466,10 @@ bitflags! {
         const DynamicResultAllocation = 0b0100_0000_0000_0000_0000_0000;
         /// Use of a dynamic index to access or update an array.
         const UseOfDynamicIndex = 0b1000_0000_0000_0000_0000_0000;
+        /// Use of a closure.
+        const Closure = 0b0001_0000_0000_0000_0000_0000_0000;
+        /// Use of a runtime failure.
+        const Failure = 0b0010_0000_0000_0000_0000_0000_0000;
     }
 }
 
@@ -540,6 +544,12 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::Closure) {
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::Failure) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         runtume_capabilities

@@ -1232,6 +1232,51 @@ fn determine_expr_call_compute_kind(
     compute_kind
 }
 
+fn determine_expr_closure_compute_kind() -> ComputeKind {
+    ComputeKind::with_runtime_features(RuntimeFeatureFlags::Closure)
+}
+
+fn determine_expr_fail_compute_kind(
+    expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Just simulate the expression and return a compute kind with the failure runtime feature.
+    simulate_expr(
+        expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    ComputeKind::with_runtime_features(RuntimeFeatureFlags::Failure)
+}
+
+fn determine_expr_field_compute_kind(
+    expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Just simulate the expression and return its compute kind.
+    simulate_expr(
+        expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    application_instance
+        .exprs
+        .get(&expr_id.expr)
+        .expect("compute kind for expression to use a field accessor on should exist")
+        .clone()
+}
+
+fn determine_expr_hole_compute_kind() -> ComputeKind {
+    // Hole expressions are purely classical.
+    ComputeKind::Classical
+}
+
 fn determine_expr_if_compute_kind(
     condition_expr_id: StoreExprId,
     if_true_expr_id: StoreExprId,
@@ -1764,6 +1809,20 @@ fn simulate_expr(
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::Closure(_, _) => determine_expr_closure_compute_kind(),
+        ExprKind::Fail(expr_id) => determine_expr_fail_compute_kind(
+            (id.package, *expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        ExprKind::Field(expr_id, _) => determine_expr_field_compute_kind(
+            (id.package, *expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        ExprKind::Hole => determine_expr_hole_compute_kind(),
         ExprKind::If(condition_expr_id, if_true_expr_id, if_false_expr_id) => {
             determine_expr_if_compute_kind(
                 (id.package, *condition_expr_id).into(),
