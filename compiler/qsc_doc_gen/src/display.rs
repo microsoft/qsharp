@@ -13,18 +13,36 @@ use std::{
     rc::Rc,
 };
 
+/// Trait describing a struct capable of resolving various ids found in the AST and HIR.
 pub trait Lookup {
+    /// Looks up the type of a node in user code
     fn get_ty(&self, expr_id: ast::NodeId) -> Option<&ty::Ty>;
+
+    /// Looks up the resolution of a node in user code
     fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res>;
+
+    /// Returns the hir `Item` node referred to by `item_id`,
+    /// along with the `Package` and `PackageId` for the package
+    /// that it was found in.
     fn resolve_item_relative_to_user_package(
         &self,
         item_id: &hir::ItemId,
     ) -> (&hir::Item, &hir::Package, hir::ItemId);
+
+    /// Returns the hir `Item` node referred to by `res`.
+    /// `Res`s can resolve to external packages, and the references
+    /// are relative, so here we also need the
+    /// local `PackageId` that the `res` itself came from.
     fn resolve_item_res(
         &self,
         local_package_id: PackageId,
         res: &hir::Res,
     ) -> (&hir::Item, hir::ItemId);
+
+    /// Returns the hir `Item` node referred to by `item_id`.
+    /// `ItemId`s can refer to external packages, and the references
+    /// are relative, so here we also need the local `PackageId`
+    /// that the `ItemId` originates from.
     fn resolve_item(
         &self,
         local_package_id: PackageId,
@@ -581,11 +599,15 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> ty::FunctorSetValue {
 // parsing functions for working with doc comments
 //
 
+/// Takes a doc string from Q# and increases all of the markdown header levels by one level.
+/// i.e. `# Summary` becomes `## Summary`
 pub fn increase_header_level(doc: &str) -> String {
     let re = Regex::new(r"(?mi)^(#+)( [\s\S]+?)$").expect("Invalid regex");
     re.replace_all(doc, "$1#$2").to_string()
 }
 
+/// Takes a doc string from Q# and returns the contents of the `# Summary` section. If no
+/// such section can be found, returns the original doc string.
 pub fn parse_doc_for_summary(doc: &str) -> String {
     let re = Regex::new(r"(?mi)(?:^# Summary$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
     match re.captures(doc) {
@@ -601,6 +623,9 @@ pub fn parse_doc_for_summary(doc: &str) -> String {
     .to_string()
 }
 
+/// Takes a doc string from a Q# callable and the name of a parameter of
+/// that callable. Returns the description of that parameter found in the
+/// doc string. If no description is found, returns the empty string.
 pub fn parse_doc_for_param(doc: &str, param: &str) -> String {
     let re = Regex::new(r"(?mi)(?:^# Input$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
     let input = match re.captures(doc) {

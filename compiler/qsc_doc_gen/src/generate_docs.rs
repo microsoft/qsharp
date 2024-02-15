@@ -295,7 +295,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay, date: String) -
     })
 }
 
-// Generates the Table of Contents file, toc.yml
+/// Generates the Table of Contents file, toc.yml
 fn generate_toc(
     map: &FxHashMap<Rc<str>, Vec<String>>,
     file_map: &mut FxHashMap<Arc<str>, Arc<str>>,
