@@ -150,10 +150,11 @@ pub fn large_nested_iteration(c: &mut Criterion) {
             [("none".into(), "".into())],
             Some(
                 indoc! {"{
-                    mutable arr = [[0, size = 100], size = 100];
-                    for i in 0..99 {
+                    open Microsoft.Quantum.Arrays;
+                    mutable arr = [[0, size = 100], size = 1000];
+                    for i in IndexRange(arr) {
                         mutable inner = arr[i];
-                        for j in 0..99 {
+                        for j in IndexRange(inner) {
                             set inner w/= j <- j;
                         }
                         set arr w/= i <- inner;
