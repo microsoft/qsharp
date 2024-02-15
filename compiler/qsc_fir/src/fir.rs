@@ -210,6 +210,36 @@ fir_id!(ExprId);
 fir_id!(PatId);
 fir_id!(StmtId);
 
+/// A unique identifier for a local variable within a callable.
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct LocalVarId(u16);
+
+impl LocalVarId {
+    /// The successor of this ID.
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl Display for LocalVarId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl From<LocalVarId> for usize {
+    fn from(value: LocalVarId) -> Self {
+        value.0 as usize
+    }
+}
+
+impl From<usize> for LocalVarId {
+    fn from(value: usize) -> Self {
+        LocalVarId(value.try_into().expect("LocalVarId should fit into u32"))
+    }
+}
+
 /// A unique identifier for a package within a package store.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct PackageId(usize);
@@ -300,7 +330,7 @@ pub enum Res {
     /// A global item.
     Item(ItemId),
     /// A local variable.
-    Local(NodeId),
+    Local(LocalVarId),
 }
 
 impl Display for Res {
@@ -1006,7 +1036,7 @@ pub enum ExprKind {
     /// A call: `a(b)`.
     Call(ExprId, ExprId),
     /// A closure that fixes the vector of local variables as arguments to the callable item.
-    Closure(Vec<NodeId>, LocalItemId),
+    Closure(Vec<LocalVarId>, LocalItemId),
     /// A failure: `fail "message"`.
     Fail(ExprId),
     /// A field accessor: `a::F`.
@@ -1174,7 +1204,7 @@ fn display_call(mut indent: Indented<Formatter>, callable: ExprId, arg: ExprId) 
 
 fn display_closure(
     mut f: Indented<Formatter>,
-    args: &[NodeId],
+    args: &[LocalVarId],
     callable: LocalItemId,
 ) -> fmt::Result {
     f.write_str("Closure([")?;
@@ -1459,7 +1489,7 @@ impl Display for QubitInitKind {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
     /// The node ID.
-    pub id: NodeId,
+    pub id: LocalVarId,
     /// The span.
     pub span: Span,
     /// The identifier name.

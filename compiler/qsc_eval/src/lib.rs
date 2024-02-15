@@ -22,18 +22,17 @@ use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
+use qsc_data_structures::index_map::IndexMap;
 use qsc_data_structures::span::Span;
 use qsc_fir::fir::{
     self, BinOp, BlockId, CallableImpl, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
-    LocalItemId, Mutability, NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res,
-    StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
+    LocalItemId, LocalVarId, Mutability, PackageId, PackageStoreLookup, PatId, PatKind, PrimField,
+    Res, StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
 use rand::{rngs::StdRng, SeedableRng};
-use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
-    collections::hash_map::Entry,
     fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
@@ -276,7 +275,6 @@ pub struct VariableInfo {
     pub value: Value,
     pub name: Rc<str>,
     pub type_name: String,
-    pub id: NodeId,
     pub mutability: Mutability,
     pub span: Span,
 }
@@ -321,18 +319,15 @@ pub struct Env(Vec<Scope>);
 
 impl Env {
     #[must_use]
-    fn get(&self, id: NodeId) -> Option<&Variable> {
-        self.0
-            .iter()
-            .rev()
-            .find_map(|scope| scope.bindings.get(&id))
+    fn get(&self, id: LocalVarId) -> Option<&Variable> {
+        self.0.iter().rev().find_map(|scope| scope.bindings.get(id))
     }
 
-    fn get_mut(&mut self, id: NodeId) -> Option<&mut Variable> {
+    fn get_mut(&mut self, id: LocalVarId) -> Option<&mut Variable> {
         self.0
             .iter_mut()
             .rev()
-            .find_map(|scope| scope.bindings.get_mut(&id))
+            .find_map(|scope| scope.bindings.get_mut(id))
     }
 
     fn push_scope(&mut self, frame_id: usize) {
@@ -371,8 +366,7 @@ impl Env {
             .into_iter()
             .map(|bindings| {
                 bindings
-                    .map(|(id, var)| VariableInfo {
-                        id: *id,
+                    .map(|(_, var)| VariableInfo {
                         name: var.name.clone(),
                         type_name: var.value.type_name().to_string(),
                         value: var.value.clone(),
@@ -388,7 +382,7 @@ impl Env {
 
 #[derive(Default)]
 struct Scope {
-    bindings: FxHashMap<NodeId, Variable>,
+    bindings: IndexMap<LocalVarId, Variable>,
     frame_id: usize,
 }
 
@@ -969,7 +963,7 @@ impl State {
         let lhs = globals.get_expr((self.package, lhs).into());
         let rhs = self.pop_val();
         match (&lhs.kind, rhs) {
-            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+            (&ExprKind::Var(Res::Local(id), _), rhs) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     var.value.append_array(rhs);
                 }
@@ -1418,15 +1412,15 @@ impl State {
         match &pat.kind {
             PatKind::Bind(variable) => {
                 let scope = env.0.last_mut().expect("binding should have a scope");
-                match scope.bindings.entry(variable.id) {
-                    Entry::Vacant(entry) => entry.insert(Variable {
+                scope.bindings.insert(
+                    variable.id,
+                    Variable {
                         name: variable.name.clone(),
                         value: val,
                         mutability,
                         span: variable.span,
-                    }),
-                    Entry::Occupied(_) => panic!("duplicate binding"),
-                };
+                    },
+                );
             }
             PatKind::Discard => {}
             PatKind::Tuple(tup) => {
@@ -1449,7 +1443,7 @@ impl State {
         let lhs = globals.get_expr((self.package, lhs).into());
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => {}
-            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+            (&ExprKind::Var(Res::Local(id), _), rhs) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     var.value = rhs;
                 }
@@ -1479,7 +1473,7 @@ impl State {
     ) -> Result<(), Error> {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
-            &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
+            &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     var.value.update_array(index, rhs).map_err(|idx| {
                         Error::IndexOutOfRange(idx.try_into().expect("index should be valid"), span)
@@ -1507,7 +1501,7 @@ impl State {
     ) -> Result<(), Error> {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
-            &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
+            &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     let rhs = update.unwrap_array();
                     let Value::Array(arr) = &mut var.value else {
@@ -1619,8 +1613,8 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
             },
             FunctorApp::default(),
         ),
-        Res::Local(node) => env
-            .get(node)
+        Res::Local(id) => env
+            .get(id)
             .ok_or(Error::UnboundName(PackageSpan {
                 package: map_fir_package_to_hir(package),
                 span,
@@ -1643,7 +1637,7 @@ fn resolve_closure(
     env: &Env,
     package: PackageId,
     span: Span,
-    args: &[NodeId],
+    args: &[LocalVarId],
     callable: LocalItemId,
 ) -> Result<Value, Error> {
     let args: Option<_> = args
@@ -2090,7 +2084,7 @@ fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<
 
 fn is_updatable_in_place(env: &Env, expr: &Expr) -> bool {
     match &expr.kind {
-        ExprKind::Var(Res::Local(node), _) => match env.get(*node) {
+        ExprKind::Var(Res::Local(id), _) => match env.get(*id) {
             Some(var) if var.is_mutable() => match &var.value {
                 Value::Array(var) => Rc::weak_count(var) + Rc::strong_count(var) == 1,
                 _ => false,
