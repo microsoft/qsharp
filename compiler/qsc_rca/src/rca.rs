@@ -1417,6 +1417,62 @@ fn determine_expr_lit_compute_kind() -> ComputeKind {
     ComputeKind::Classical
 }
 
+fn determine_expr_range_compute_kind(
+    start_expr_id: Option<StoreExprId>,
+    step_expr_id: Option<StoreExprId>,
+    end_expr_id: Option<StoreExprId>,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    let mut compute_kind = ComputeKind::Classical;
+
+    // Simulate each sub-expression and aggregate their compute kind.
+    if let Some(start_expr_id) = start_expr_id {
+        simulate_expr(
+            start_expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        let start_expr_compute_kind = application_instance
+            .exprs
+            .get(&start_expr_id.expr)
+            .expect("start expression compute kind should exist");
+        compute_kind = aggregate_compute_kind(compute_kind, start_expr_compute_kind);
+    }
+
+    if let Some(step_expr_id) = step_expr_id {
+        simulate_expr(
+            step_expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        let step_expr_compute_kind = application_instance
+            .exprs
+            .get(&step_expr_id.expr)
+            .expect("start expression compute kind should exist");
+        compute_kind = aggregate_compute_kind(compute_kind, step_expr_compute_kind);
+    }
+
+    if let Some(end_expr_id) = end_expr_id {
+        simulate_expr(
+            end_expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        let end_expr_compute_kind = application_instance
+            .exprs
+            .get(&end_expr_id.expr)
+            .expect("start expression compute kind should exist");
+        compute_kind = aggregate_compute_kind(compute_kind, end_expr_compute_kind);
+    }
+
+    compute_kind
+}
+
 fn determine_expr_tuple_compute_kind(
     exprs: impl Iterator<Item = StoreExprId>,
     application_instance: &mut ApplicationInstance,
@@ -1888,6 +1944,16 @@ fn simulate_expr(
             package_store_scaffolding,
         ),
         ExprKind::Lit(_) => determine_expr_lit_compute_kind(),
+        ExprKind::Range(start_expr_id, step_expr_id, end_expr_id) => {
+            determine_expr_range_compute_kind(
+                start_expr_id.map(|e| StoreExprId::from((id.package, e))),
+                step_expr_id.map(|e| StoreExprId::from((id.package, e))),
+                end_expr_id.map(|e| StoreExprId::from((id.package, e))),
+                application_instance,
+                package_store,
+                package_store_scaffolding,
+            )
+        }
         ExprKind::Tuple(exprs) => determine_expr_tuple_compute_kind(
             exprs.iter().map(|e| StoreExprId::from((id.package, *e))),
             application_instance,
