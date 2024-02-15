@@ -936,6 +936,45 @@ fn determine_expr_array_repeat_compute_kind(
     compute_kind
 }
 
+fn determine_expr_assign_compute_kind(
+    lhs_expr_id: StoreExprId,
+    rhs_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the LHS and RHS expressions.
+    simulate_expr(
+        lhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        rhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // Since this is an assignment, well update the local variables on the LHS expression with the compute kind of the
+    // RHS expression.
+    let package = package_store.get_package(lhs_expr_id.package);
+    update_locals_compute_kind(
+        lhs_expr_id.expr,
+        rhs_expr_id.expr,
+        package,
+        application_instance,
+    );
+
+    // Finally, the compute kind of this expression is constructed from the RHS expression runtime features.
+    let rhs_compute_kind = application_instance
+        .exprs
+        .get(&rhs_expr_id.expr)
+        .expect("RHS expression compute kind should exist");
+    aggregate_compute_kind_runtime_features(ComputeKind::Classical, rhs_compute_kind)
+}
+
 fn determine_expr_bin_op_compute_kind(
     lhs_expr_id: StoreExprId,
     rhs_expr_id: StoreExprId,
@@ -1553,6 +1592,13 @@ fn simulate_expr(
                 package_store_scaffolding,
             )
         }
+        ExprKind::Assign(lhs_expr_id, rhs_expr_id) => determine_expr_assign_compute_kind(
+            (id.package, *lhs_expr_id).into(),
+            (id.package, *rhs_expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
         ExprKind::BinOp(_, lhs_expr_id, rhs_expr_id) => determine_expr_bin_op_compute_kind(
             (id.package, *lhs_expr_id).into(),
             (id.package, *rhs_expr_id).into(),
@@ -1672,4 +1718,43 @@ fn split_controls_and_input(
         }
     }
     (controls, remainder_expr_id)
+}
+
+fn update_locals_compute_kind(
+    lhs_expr_id: ExprId,
+    rhs_expr_id: ExprId,
+    package: &impl PackageLookup,
+    application_instance: &mut ApplicationInstance,
+) {
+    let lhs_expr = package.get_expr(lhs_expr_id);
+    let rhs_expr = package.get_expr(rhs_expr_id);
+    match &lhs_expr.kind {
+        ExprKind::Var(res, _) => {
+            let Res::Local(node_id) = res else {
+                panic!("expected a local variable");
+            };
+            let rhs_compute_kind = application_instance
+                .exprs
+                .get(&rhs_expr_id)
+                .expect("RHS compute kind should exist");
+            application_instance
+                .locals_map
+                .aggregate_compute_kind(*node_id, rhs_compute_kind);
+        }
+        ExprKind::Tuple(lhs_exprs) => {
+            let ExprKind::Tuple(rhs_exprs) = &rhs_expr.kind else {
+                panic!("expected a tuple");
+            };
+            assert!(lhs_exprs.len() == rhs_exprs.len());
+            for (lhs_expr_id, rhs_expr_id) in lhs_exprs.iter().zip(rhs_exprs.iter()) {
+                update_locals_compute_kind(
+                    *lhs_expr_id,
+                    *rhs_expr_id,
+                    package,
+                    application_instance,
+                );
+            }
+        }
+        _ => panic!("expected a local variable or a tuple"),
+    };
 }

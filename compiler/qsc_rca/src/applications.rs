@@ -3,8 +3,8 @@
 
 use crate::{
     common::{
-        aggregate_value_kind, initalize_locals_map, InputParam, InputParamIndex, Local, LocalKind,
-        LocalsLookup,
+        aggregate_compute_kind, aggregate_value_kind, initalize_locals_map, InputParam,
+        InputParamIndex, Local, LocalKind, LocalsLookup,
     },
     scaffolding::PackageScaffolding,
     ApplicationsTable, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
@@ -369,6 +369,15 @@ impl LocalsLookup for LocalsComputeKindMap {
 }
 
 impl LocalsComputeKindMap {
+    pub fn aggregate_compute_kind(&mut self, node_id: NodeId, delta: &ComputeKind) {
+        let local_compute_kind = self
+            .0
+            .get_mut(&node_id)
+            .expect("compute kind for local should exist");
+        local_compute_kind.compute_kind =
+            aggregate_compute_kind(local_compute_kind.compute_kind.clone(), delta);
+    }
+
     pub fn clear(&mut self) {
         self.0.clear();
     }
