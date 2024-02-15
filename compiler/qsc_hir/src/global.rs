@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Item, ItemId, ItemKind, ItemStatus, Package, PackageId, Visibility},
+    hir::{Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility},
     ty::Scheme,
 };
 use qsc_data_structures::index_map;
@@ -30,6 +30,7 @@ pub struct Ty {
 pub struct Term {
     pub id: ItemId,
     pub scheme: Scheme,
+    pub intrinsic: bool,
 }
 
 #[derive(Default)]
@@ -107,6 +108,7 @@ impl PackageIter<'_> {
                 kind: Kind::Term(Term {
                     id,
                     scheme: decl.scheme(),
+                    intrinsic: decl.body.body == SpecBody::Gen(SpecGen::Intrinsic),
                 }),
             }),
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
@@ -118,6 +120,7 @@ impl PackageIter<'_> {
                     kind: Kind::Term(Term {
                         id,
                         scheme: def.cons_scheme(id),
+                        intrinsic: false,
                     }),
                 });
 

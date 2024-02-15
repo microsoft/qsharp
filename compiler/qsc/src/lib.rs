@@ -8,6 +8,7 @@ pub mod compile;
 pub mod error;
 pub mod incremental;
 pub mod interpret;
+pub mod location;
 pub mod target;
 
 pub use qsc_frontend::compile::{

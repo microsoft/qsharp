@@ -639,6 +639,7 @@ checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 name = "library"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
  "indoc",
  "num-bigint",
  "qsc",
@@ -994,6 +995,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
+ "rustc-hash",
 ]
 
 [[package]]

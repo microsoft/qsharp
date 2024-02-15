@@ -365,14 +365,20 @@ export class QscDebugSession extends LoggingDebugSession {
     // This will be replaced when the interpreter
     // supports shots.
     for (let i = 0; i < args.shots; i++) {
-      const result = await this.debugService.evalContinue(
-        bps,
-        this.eventTarget,
-      );
-      if (result.id != StepResultId.Return) {
-        await this.endSession(`execution didn't run to completion`, -1);
+      try {
+        const result = await this.debugService.evalContinue(
+          bps,
+          this.eventTarget,
+        );
+        if (result.id != StepResultId.Return) {
+          await this.endSession(`execution didn't run to completion`, -1);
+          return;
+        }
+      } catch (e) {
+        await this.endSession(`ending session due to error: ${e}`, 1);
         return;
       }
+
       this.writeToDebugConsole(`Finished shot ${i + 1} of ${args.shots}`);
       // Reset the interpreter for the next shot.
       // The interactive interpreter doesn't do this automatically,

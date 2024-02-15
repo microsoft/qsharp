@@ -91,7 +91,9 @@ if (process.argv.includes("--serve")) {
   const servedir = join(thisDir, "public");
 
   // See https://esbuild.github.io/api/#serve
-  console.log("Starting the playground on http://localhost:5555");
+  console.log(
+    "Starting the playground on http://localhost:5555 (copy this URL to a browser to use the playground)",
+  );
   await ctx.serve({
     port: 5555,
     servedir,

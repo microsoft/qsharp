@@ -37,7 +37,7 @@ fn check_notebook(cells_with_markers: &[(&str, &str)], expect: &Expect) {
 
     let actual =
         get_hover(&compilation, &cell_uri, position, Encoding::Utf8).expect("Expected a hover.");
-    assert_eq!(&actual.span, &target_spans[0].1);
+    assert_eq!(&actual.span, &target_spans[0].range);
     expect.assert_eq(&actual.contents);
 }
 
@@ -1080,6 +1080,26 @@ fn callable_param_doc() {
             Doc string for `x`
             ### Note
             note for `x`
+        "#]],
+    );
+}
+
+#[test]
+fn callable_generic_functor_display() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo(op : (Qubit => Unit is Adj)) : Unit {}
+                operation Main() : Unit {
+                    ◉Fo↘o◉;
+                }
+            }
+        "},
+        &expect![[r#"
+            ```qsharp
+            Test
+            operation Foo(op : (Qubit => Unit is Adj)) : Unit
+            ```
         "#]],
     );
 }

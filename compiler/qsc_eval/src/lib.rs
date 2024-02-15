@@ -24,9 +24,9 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::span::Span;
 use qsc_fir::fir::{
-    self, BinOp, BlockId, CallableImpl, ExprId, ExprKind, Field, Functor, Global, Lit, LocalItemId,
-    Mutability, NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
-    StmtKind, StoreItemId, StringComponent, UnOp,
+    self, BinOp, BlockId, CallableImpl, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
+    LocalItemId, Mutability, NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res,
+    StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
 use rand::{rngs::StdRng, SeedableRng};
@@ -118,6 +118,11 @@ pub enum Error {
         #[label("callable has no implementation")] PackageSpan,
     ),
 
+    #[error("unsupported return type for intrinsic `{0}`")]
+    #[diagnostic(help("intrinsic callable return type should be `Unit`"))]
+    #[diagnostic(code("Qsc.Eval.UnsupportedIntrinsicType"))]
+    UnsupportedIntrinsicType(String, #[label] PackageSpan),
+
     #[error("program failed: {0}")]
     #[diagnostic(code("Qsc.Eval.UserFail"))]
     UserFail(String, #[label("explicit fail")] PackageSpan),
@@ -143,6 +148,7 @@ impl Error {
             | Error::ReleasedQubitNotZero(_, span)
             | Error::UnboundName(span)
             | Error::UnknownIntrinsic(_, span)
+            | Error::UnsupportedIntrinsicType(_, span)
             | Error::UserFail(_, span)
             | Error::InvalidArrayLength(_, span) => span,
         }
@@ -394,7 +400,7 @@ impl Default for Env {
 }
 
 enum Cont {
-    Action(Action),
+    Action,
     Expr(ExprId),
     Frame(usize),
     Scope,
@@ -428,7 +434,8 @@ enum Action {
 }
 
 pub struct State {
-    stack: Vec<Cont>,
+    cont_stack: Vec<Cont>,
+    action_stack: Vec<Action>,
     vals: Vec<Value>,
     package: PackageId,
     call_stack: CallStack,
@@ -444,7 +451,8 @@ impl State {
             None => RefCell::new(StdRng::from_entropy()),
         };
         Self {
-            stack: Vec::new(),
+            cont_stack: Vec::new(),
+            action_stack: Vec::new(),
             vals: Vec::new(),
             package,
             call_stack: CallStack::default(),
@@ -454,15 +462,21 @@ impl State {
     }
 
     fn pop_cont(&mut self) -> Option<Cont> {
-        self.stack.pop()
+        self.cont_stack.pop()
     }
 
     fn push_action(&mut self, action: Action) {
-        self.stack.push(Cont::Action(action));
+        self.cont_stack.push(Cont::Action);
+        self.action_stack.push(action);
     }
 
     fn push_expr(&mut self, expr: ExprId) {
-        self.stack.push(Cont::Expr(expr));
+        self.cont_stack.push(Cont::Expr(expr));
+    }
+
+    fn push_exprs(&mut self, exprs: &[ExprId]) {
+        self.cont_stack
+            .extend(exprs.iter().rev().map(|expr| Cont::Expr(*expr)));
     }
 
     fn push_frame(&mut self, id: StoreItemId, functor: FunctorApp) {
@@ -472,7 +486,7 @@ impl State {
             caller: self.package,
             functor,
         });
-        self.stack.push(Cont::Frame(self.vals.len()));
+        self.cont_stack.push(Cont::Frame(self.vals.len()));
         self.package = id.package;
     }
 
@@ -489,11 +503,11 @@ impl State {
 
     fn push_scope(&mut self, env: &mut Env) {
         env.push_scope(self.call_stack.len());
-        self.stack.push(Cont::Scope);
+        self.cont_stack.push(Cont::Scope);
     }
 
     fn push_stmt(&mut self, stmt: StmtId) {
-        self.stack.push(Cont::Stmt(stmt));
+        self.cont_stack.push(Cont::Stmt(stmt));
     }
 
     fn push_block(&mut self, env: &mut Env, globals: &impl PackageStoreLookup, block: BlockId) {
@@ -505,8 +519,8 @@ impl State {
         }
         if block.stmts.is_empty() {
             self.push_val(Value::unit());
-        } else {
-            self.pop_cont();
+        } else if let Some(Cont::Action) = self.pop_cont() {
+            self.action_stack.pop();
         }
     }
 
@@ -550,7 +564,8 @@ impl State {
 
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
-                Cont::Action(action) => {
+                Cont::Action => {
+                    let action = self.action_stack.pop().expect("action should be present");
                     self.cont_action(env, sim, globals, action, out)
                         .map_err(|e| (e, self.get_stack_frames()))?;
                     continue;
@@ -620,12 +635,12 @@ impl State {
             ExprKind::Array(arr) => self.cont_arr(arr),
             ExprKind::ArrayRepeat(item, size) => self.cont_arr_repeat(globals, *item, *size),
             ExprKind::Assign(lhs, rhs) => self.cont_assign(*lhs, *rhs),
-            ExprKind::AssignOp(op, lhs, rhs) => self.cont_assign_op(globals, *op, *lhs, *rhs),
+            ExprKind::AssignOp(op, lhs, rhs) => self.cont_assign_op(env, globals, *op, *lhs, *rhs),
             ExprKind::AssignField(record, field, replace) => {
                 self.cont_assign_field(*record, field, *replace);
             }
             ExprKind::AssignIndex(lhs, mid, rhs) => {
-                self.cont_assign_index(globals, *lhs, *mid, *rhs);
+                self.cont_assign_index(env, globals, *lhs, *mid, *rhs);
             }
             ExprKind::BinOp(op, lhs, rhs) => self.cont_binop(globals, *op, *rhs, *lhs),
             ExprKind::Block(block) => self.push_block(env, globals, *block),
@@ -664,16 +679,12 @@ impl State {
 
     fn cont_tup(&mut self, tup: &Vec<ExprId>) {
         self.push_action(Action::Tuple(tup.len()));
-        for tup_expr in tup.iter().rev() {
-            self.push_expr(*tup_expr);
-        }
+        self.push_exprs(tup);
     }
 
     fn cont_arr(&mut self, arr: &Vec<ExprId>) {
         self.push_action(Action::Array(arr.len()));
-        for entry in arr.iter().rev() {
-            self.push_expr(*entry);
-        }
+        self.push_exprs(arr);
     }
 
     fn cont_arr_repeat(&mut self, globals: &impl PackageStoreLookup, item: ExprId, size: ExprId) {
@@ -706,22 +717,21 @@ impl State {
 
     fn cont_assign_op(
         &mut self,
+        env: &Env,
         globals: &impl PackageStoreLookup,
         op: BinOp,
         lhs: ExprId,
         rhs: ExprId,
     ) {
-        // If we know the assign op is an array append, as in `set arr += other;`, we should perform it in-place.
-        if op == BinOp::Add
-            && matches!(
-                globals.get_expr((self.package, lhs).into()).ty,
-                Ty::Array(_)
-            )
-        {
-            self.push_action(Action::ArrayAppendInPlace(lhs));
-            self.push_expr(rhs);
-            self.push_val(Value::unit());
-            return;
+        // If we know the assign op is an array append, as in `set arr += other;`, we should attempt to perform it in-place.
+        if op == BinOp::Add {
+            let expr = globals.get_expr((self.package, lhs).into());
+            if matches!(expr.ty, Ty::Array(_)) && is_updatable_in_place(env, expr) {
+                self.push_action(Action::ArrayAppendInPlace(lhs));
+                self.push_expr(rhs);
+                self.push_val(Value::unit());
+                return;
+            }
         }
 
         self.push_action(Action::Assign(lhs));
@@ -737,16 +747,23 @@ impl State {
 
     fn cont_assign_index(
         &mut self,
+        env: &Env,
         globals: &impl PackageStoreLookup,
         lhs: ExprId,
         mid: ExprId,
         rhs: ExprId,
     ) {
-        let span = globals.get_expr((self.package, mid).into()).span;
-        self.push_action(Action::UpdateIndexInPlace(lhs, span));
-        self.push_expr(rhs);
-        self.push_expr(mid);
-        self.push_val(Value::unit());
+        if is_updatable_in_place(env, globals.get_expr((self.package, lhs).into())) {
+            let span = globals.get_expr((self.package, mid).into()).span;
+            self.push_action(Action::UpdateIndexInPlace(lhs, span));
+            self.push_expr(rhs);
+            self.push_expr(mid);
+            self.push_val(Value::unit());
+        } else {
+            self.push_action(Action::Assign(lhs));
+            self.update_index(globals, lhs, mid, rhs);
+            self.push_val(Value::unit());
+        }
     }
 
     fn cont_field(&mut self, expr: ExprId, field: &Field) {
@@ -905,8 +922,8 @@ impl State {
             Action::Assign(lhs) => self.eval_assign(env, globals, lhs)?,
             Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
             Action::Bind(pat, mutability) => self.eval_bind(env, globals, pat, mutability),
-            Action::Call(callee_span, args_span) => {
-                self.eval_call(env, sim, globals, callee_span, args_span, out)?;
+            Action::Call(callable_span, args_span) => {
+                self.eval_call(env, sim, globals, callable_span, args_span, out)?;
             }
             Action::Consume => {
                 self.pop_val();
@@ -1069,7 +1086,7 @@ impl State {
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl PackageStoreLookup,
-        callee_span: Span,
+        callable_span: Span,
         arg_span: Span,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
@@ -1080,7 +1097,6 @@ impl State {
             _ => panic!("value is not callable"),
         };
 
-        let callee_span = self.to_global_span(callee_span);
         let arg_span = self.to_global_span(arg_span);
 
         let callee = match globals.get_global(callee_id) {
@@ -1089,8 +1105,10 @@ impl State {
                 self.push_val(arg);
                 return Ok(());
             }
-            None => return Err(Error::UnboundName(callee_span)),
+            None => return Err(Error::UnboundName(self.to_global_span(callable_span))),
         };
+
+        let callee_span = self.to_global_span(callee.span);
 
         let spec = spec_from_functor_app(functor);
         self.push_frame(callee_id, functor);
@@ -1107,6 +1125,12 @@ impl State {
                     &mut self.rng.borrow_mut(),
                     out,
                 )?;
+                if val == Value::unit() && callee.output != Ty::UNIT {
+                    return Err(Error::UnsupportedIntrinsicType(
+                        callee.name.name.to_string(),
+                        callee_span,
+                    ));
+                }
                 self.push_val(val);
                 Ok(())
             }
@@ -1203,6 +1227,9 @@ impl State {
                     break;
                 }
                 Cont::Scope => env.leave_scope(),
+                Cont::Action => {
+                    self.action_stack.pop();
+                }
                 _ => {}
             }
         }
@@ -2058,5 +2085,18 @@ fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<
             Some(Value::Tuple(items?))
         }
         _ => None,
+    }
+}
+
+fn is_updatable_in_place(env: &Env, expr: &Expr) -> bool {
+    match &expr.kind {
+        ExprKind::Var(Res::Local(node), _) => match env.get(*node) {
+            Some(var) if var.is_mutable() => match &var.value {
+                Value::Array(var) => Rc::weak_count(var) + Rc::strong_count(var) == 1,
+                _ => false,
+            },
+            _ => false,
+        },
+        _ => false,
     }
 }

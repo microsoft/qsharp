@@ -114,9 +114,9 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    /// Collects the given list of control qubits into one or two of the given auxiliarly qubits, using
+    /// Collects the given list of control qubits into one or two of the given auxiliary qubits, using
     /// all but the last qubits in the auxiliary list as scratch qubits. The auxiliary list must be
-    /// big enough to accomodate the data, so it is usually smaller than controls list by number of
+    /// big enough to accommodate the data, so it is usually smaller than controls list by number of
     /// qubits needed for the eventual controlled unitary application. The passed adjustment value is
     /// used to ensure the right number of auxiliary qubits are processed.
     ///
