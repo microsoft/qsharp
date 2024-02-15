@@ -133,7 +133,7 @@ pub fn generate_docs() -> FxHashMap<Arc<str>, Arc<str>> {
 
     generate_toc(&toc, &mut file_map);
 
-    file_map
+    file_map.into_iter().collect()
 }
 
 // fn delete_existing_docs() {
