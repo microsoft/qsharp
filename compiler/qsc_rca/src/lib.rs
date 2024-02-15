@@ -461,9 +461,9 @@ bitflags! {
         const UdtConstructorUsesDynamicArg = 0b1000_0000_0000_0000_0000;
         /// Forward branching on dynamic value.
         const ForwardBranchingOnDynamicValue = 0b0001_0000_0000_0000_0000_0000;
-        /// Qubit allocation that happens within a dynamic context.
+        /// Qubit allocation that happens within a dynamic scope.
         const DynamicQubitAllocation = 0b0010_0000_0000_0000_0000_0000;
-        /// Result allocation that happens within a .
+        /// Result allocation that happens within a dynamic scope.
         const DynamicResultAllocation = 0b0100_0000_0000_0000_0000_0000;
     }
 }
