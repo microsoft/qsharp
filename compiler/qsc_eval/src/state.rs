@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use num_bigint::BigUint;
 use num_complex::{Complex, Complex64};
 
@@ -39,7 +42,7 @@ pub fn get_latex_for_state2(_state: Vec<(BigUint, Complex64)>, _qubit_count: usi
 
 #[must_use]
 fn is_significant(x: f64) -> bool {
-    x.abs() <= 1e-9
+    x.abs() > 1e-9
 }
 
 #[must_use]
@@ -140,26 +143,26 @@ fn get_latex_for_algebraic(numerator: i64, denominator: i64, root: i64, needs_1:
 }
 
 fn get_latex_for_exponent(pi_num: i64, pi_den: i64) -> String {
-    let mut latex: String = "e^{{".into();
+    let mut latex: String = "e^{".into();
     let mut abs_pi_num: i64 = pi_num;
     if pi_num < 0 {
         abs_pi_num = -pi_num;
         latex += "-";
     }
     if abs_pi_num != 1 {
-        latex += "{abs_pi_num}";
+        latex += &format!("{abs_pi_num}");
     }
     latex += " i \\pi ";
     if pi_den != 1 {
-        latex += " / {pi_den}";
+        latex += &format!(" / {pi_den}");
     }
-    latex += "}}";
+    latex += "}";
 
     latex
 }
 
 #[must_use]
-pub fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, _qubit_count: usize) -> String {
+pub fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
     let mut state_latex: String = "".into();
     let mut term_number: i64 = 0;
     for (basis, amplitude) in state {
@@ -218,7 +221,8 @@ pub fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, _qubit_count: usize
             }
             state_latex += &format!("{latex}i \\ ");
         }
-        state_latex += &format!("|{basis}\\rangle");
+        let basis_label = fmt_basis_state_label(&basis, qubit_count);
+        state_latex += &format!("|{basis_label}\\rangle");
     }
 
     format!("$|\\psi\\rangle = {state_latex}$")
