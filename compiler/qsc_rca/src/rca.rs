@@ -957,8 +957,8 @@ fn determine_expr_assign_compute_kind(
         package_store_scaffolding,
     );
 
-    // Since this is an assignment, well update the local variables on the LHS expression with the compute kind of the
-    // RHS expression.
+    // Since this is an assignment, update the local variables on the LHS expression with the compute kind of the RHS
+    // expression.
     let package = package_store.get_package(lhs_expr_id.package);
     update_locals_compute_kind(
         lhs_expr_id.expr,
@@ -973,6 +973,67 @@ fn determine_expr_assign_compute_kind(
         .get(&rhs_expr_id.expr)
         .expect("RHS expression compute kind should exist");
     aggregate_compute_kind_runtime_features(ComputeKind::Classical, rhs_compute_kind)
+}
+
+fn determine_expr_assign_op_compute_kind(
+    lhs_expr_id: StoreExprId,
+    rhs_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the LHS and RHS expressions.
+    simulate_expr(
+        lhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        rhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // Since this is an assignment, update the local variables on the LHS expression with the compute kind of the RHS
+    // expression. However, this is done slightly differently depending on whether the local is an array or not.
+    let rhs_expr = package_store.get_expr(rhs_expr_id);
+    let update_compute_kind = if let Ty::Array(_) = rhs_expr.ty {
+        // If this is an array concatenation within a dynamic scope, then its is considered a dynamic array.
+        let mut update_compute_kind = application_instance
+            .exprs
+            .get(&rhs_expr_id.expr)
+            .expect("RHS expression compute kind should exist")
+            .clone();
+        if !application_instance.active_dynamic_scopes.is_empty() {
+            update_compute_kind = aggregate_compute_kind(
+                update_compute_kind,
+                &ComputeKind::Quantum(QuantumProperties {
+                    runtime_features: RuntimeFeatureFlags::UseOfDynamicArray,
+                    value_kind: ValueKind::Dynamic,
+                }),
+            );
+        }
+        update_compute_kind
+    } else {
+        application_instance
+            .exprs
+            .get(&rhs_expr_id.expr)
+            .expect("RHS expression compute kind should exist")
+            .clone()
+    };
+
+    // Update the local variable compute kind.
+    let lhs_expr = package_store.get_expr(lhs_expr_id);
+    let ExprKind::Var(Res::Local(node_id), _) = &lhs_expr.kind else {
+        panic!("LHS expression should be a local");
+    };
+    application_instance
+        .locals_map
+        .aggregate_compute_kind(*node_id, &update_compute_kind);
+
+    update_compute_kind
 }
 
 fn determine_expr_bin_op_compute_kind(
@@ -1600,6 +1661,13 @@ fn simulate_expr(
             package_store_scaffolding,
         ),
         ExprKind::AssignField(lhs_expr_id, _, rhs_expr_id) => determine_expr_assign_compute_kind(
+            (id.package, *lhs_expr_id).into(),
+            (id.package, *rhs_expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
+        ExprKind::AssignOp(_, lhs_expr_id, rhs_expr_id) => determine_expr_assign_op_compute_kind(
             (id.package, *lhs_expr_id).into(),
             (id.package, *rhs_expr_id).into(),
             application_instance,
