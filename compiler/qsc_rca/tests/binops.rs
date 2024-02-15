@@ -3,7 +3,7 @@
 
 pub mod common;
 
-use common::{check_last_statement_compute_propeties, write_fir_store_to_files, CompilationContext};
+use common::{check_last_statement_compute_propeties, CompilationContext};
 use expect_test::expect;
 
 #[test]
