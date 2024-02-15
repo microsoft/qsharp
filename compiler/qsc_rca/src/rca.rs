@@ -1575,6 +1575,39 @@ fn determine_expr_unop_compute_kind(
         .clone()
 }
 
+fn determine_expr_update_field_compute_kind(
+    lhs_expr_id: StoreExprId,
+    rhs_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Simulate the LHS and RHS expressions, and return its aggregation.
+    simulate_expr(
+        lhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        rhs_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    let mut compute_kind = application_instance
+        .exprs
+        .get(&lhs_expr_id.expr)
+        .expect("compute kind for LHS expression should exist")
+        .clone();
+    let rhs_compute_kind = application_instance
+        .exprs
+        .get(&rhs_expr_id.expr)
+        .expect("compute kind for RHS expression should exist");
+    compute_kind = aggregate_compute_kind(compute_kind, rhs_compute_kind);
+    compute_kind
+}
+
 fn determine_expr_update_index_compute_kind(
     array_expr_id: StoreExprId,
     index_expr_id: StoreExprId,
@@ -2112,6 +2145,15 @@ fn simulate_expr(
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::UpdateField(lhs_expr_id, _, rhs_expr_id) => {
+            determine_expr_update_field_compute_kind(
+                (id.package, *lhs_expr_id).into(),
+                (id.package, *rhs_expr_id).into(),
+                application_instance,
+                package_store,
+                package_store_scaffolding,
+            )
+        }
         ExprKind::UpdateIndex(array_expr_id, index_expr_id, value_expr_id) => {
             determine_expr_update_index_compute_kind(
                 (id.package, *array_expr_id).into(),
