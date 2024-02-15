@@ -1575,6 +1575,64 @@ fn determine_expr_unop_compute_kind(
         .clone()
 }
 
+fn determine_expr_update_index_compute_kind(
+    array_expr_id: StoreExprId,
+    index_expr_id: StoreExprId,
+    value_expr_id: StoreExprId,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // First, simulate the LHS , index and RHS expressions.
+    simulate_expr(
+        array_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        index_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+    simulate_expr(
+        value_expr_id,
+        application_instance,
+        package_store,
+        package_store_scaffolding,
+    );
+
+    // The compute kind of an update index expression is the aggregation of all its sub-expressions, with some nuanced
+    // considerations. Use the array expression compute kind as the basis.
+    let mut compute_kind = application_instance
+        .exprs
+        .get(&array_expr_id.expr)
+        .expect("compute kind for array expression should exist")
+        .clone();
+
+    // Aggregate only the runtime features of the index and value compute kinds since we don't want to aggregate their
+    // value kinds. Their dynamism has no influence on whether the the resulting array is dynamic.
+    let index_expr_compute_kind = application_instance
+        .exprs
+        .get(&index_expr_id.expr)
+        .expect("index expression compute kind should exist");
+    compute_kind = aggregate_compute_kind_runtime_features(compute_kind, index_expr_compute_kind);
+    if index_expr_compute_kind.is_value_dynamic() {
+        compute_kind = aggregate_compute_kind_runtime_features(
+            compute_kind,
+            &ComputeKind::with_runtime_features(RuntimeFeatureFlags::UseOfDynamicIndex),
+        );
+    }
+    let value_expr_compute_kind = application_instance
+        .exprs
+        .get(&value_expr_id.expr)
+        .expect("value expression compute kind should exist");
+    compute_kind = aggregate_compute_kind_runtime_features(compute_kind, value_expr_compute_kind);
+
+    compute_kind
+}
+
 fn determine_expr_var_compute_kind(
     res: &Res,
     application_instance: &mut ApplicationInstance,
@@ -2054,6 +2112,16 @@ fn simulate_expr(
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::UpdateIndex(array_expr_id, index_expr_id, value_expr_id) => {
+            determine_expr_update_index_compute_kind(
+                (id.package, *array_expr_id).into(),
+                (id.package, *index_expr_id).into(),
+                (id.package, *value_expr_id).into(),
+                application_instance,
+                package_store,
+                package_store_scaffolding,
+            )
+        }
         ExprKind::Var(res, _) => determine_expr_var_compute_kind(res, application_instance),
         // TODO (cesarzc): handle each case separately.
         _ => ComputeKind::Classical,
