@@ -908,6 +908,7 @@ dependencies = [
  "qsc_hir",
  "qsc_passes",
  "qsc_project",
+ "qsc_rca",
  "rustc-hash",
  "thiserror",
 ]
@@ -1046,6 +1047,23 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "qsc_rca"
+version = "0.0.0"
+dependencies = [
+ "bitflags 2.4.2",
+ "expect-test",
+ "indenter",
+ "itertools",
+ "qsc",
+ "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
+ "qsc_frontend",
+ "qsc_passes",
+ "rustc-hash",
 ]
 
 [[package]]
