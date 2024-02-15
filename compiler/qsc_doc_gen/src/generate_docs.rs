@@ -6,7 +6,6 @@ mod tests;
 
 use crate::display::{increase_header_level, parse_doc_for_summary};
 use crate::display::{CodeDisplay, Lookup};
-use chrono::Utc;
 use qsc_ast::ast;
 use qsc_frontend::compile::{self, PackageStore, RuntimeCapabilityFlags};
 use qsc_frontend::resolve;
@@ -138,12 +137,8 @@ fn generate_doc_for_item<'a>(
     // Get namespace for item
     let ns = get_namespace(package, item)?;
 
-    // Get Date
-    // Note: there might be a better way to do rounding with chrono instead of hardcoding the time
-    let date = format!("{} 12:00:00 AM", Utc::now().date_naive().format("%m/%d/%Y"));
-
     // Add file
-    let (title, content) = generate_file(&ns, item, display, date)?;
+    let (title, content) = generate_file(&ns, item, display)?;
     let file_name: Arc<str> = Arc::from(format!("{ns}/{title}.md").as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
     file_map.insert(file_name, file_content);
@@ -177,13 +172,8 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn generate_file(
-    ns: &Rc<str>,
-    item: &Item,
-    display: &CodeDisplay,
-    date: String,
-) -> Option<(Rc<str>, String)> {
-    let metadata = get_metadata(ns.clone(), item, display, date)?;
+fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Rc<str>, String)> {
+    let metadata = get_metadata(ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
@@ -214,7 +204,6 @@ Namespace: [{ns}](xref:{ns})
 struct Metadata {
     uid: String,
     title: String,
-    date: String,
     topic: String,
     kind: MetadataKind,
     namespace: Rc<str>,
@@ -235,21 +224,14 @@ impl Display for Metadata {
             "---
 uid: {}
 title: {}
-ms.date: {}
+ms.date: {{TIMESTAMP}}
 ms.topic: {}
 qsharp.kind: {}
 qsharp.namespace: {}
 qsharp.name: {}
 qsharp.summary: {}
 ---",
-            self.uid,
-            self.title,
-            self.date,
-            self.topic,
-            kind,
-            self.namespace,
-            self.name,
-            self.summary
+            self.uid, self.title, self.topic, kind, self.namespace, self.name, self.summary
         )
     }
 }
@@ -260,7 +242,7 @@ enum MetadataKind {
     Udt,
 }
 
-fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay, date: String) -> Option<Metadata> {
+fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metadata> {
     let (name, signature, kind) = match &item.kind {
         ItemKind::Callable(decl) => Some((
             decl.name.name.clone(),
@@ -285,7 +267,6 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay, date: String) -
             MetadataKind::Operation => format!("{name} operation"),
             MetadataKind::Udt => format!("{name} user defined type"),
         },
-        date,
         topic: "managed-reference".to_string(),
         kind,
         namespace: ns,

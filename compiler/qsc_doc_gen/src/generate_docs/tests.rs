@@ -5,7 +5,6 @@
 
 use super::generate_docs;
 use expect_test::expect;
-use regex_lite::Regex;
 
 #[test]
 fn docs_generation() {
@@ -13,9 +12,6 @@ fn docs_generation() {
     let contents = files
         .get("Microsoft.Quantum.Core/Length.md")
         .expect("Could not file doc file for Length");
-
-    let re = Regex::new(r"(ms\.date: ).*(\n)").expect("Invalid regex");
-    let temp = re.replace(contents, "$1{TIMESTAMP}$2").to_string();
 
     expect![[r#"
         ---
@@ -47,5 +43,5 @@ fn docs_generation() {
         ## Output
         The total count of elements in an array.
     "#]]
-    .assert_eq(&temp);
+    .assert_eq(contents);
 }

@@ -26,6 +26,12 @@ if (!docs || !docs.length) {
   throw new Error("No docs generated");
 }
 
+var today = new Date();
+var dd = String(today.getDate()).padStart(2, "0");
+var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
+var yyyy = today.getFullYear();
+var today_str = mm + "/" + dd + "/" + yyyy + "12:00:00 AM";
+
 docs.forEach((doc) => {
   // If the filename contains a /, then we need to create the directory
   const parts = doc.filename.split("/");
@@ -50,7 +56,11 @@ docs.forEach((doc) => {
     default:
       throw new Error(`Invalid file path: ${doc.filename}`);
   }
-  writeFileSync(fullPath, doc.contents);
+  var contents = doc.contents.replace(
+    "ms.date: {TIMESTAMP}",
+    `ms.date: ${today_str}`,
+  );
+  writeFileSync(fullPath, contents);
 });
 
 console.log("Done");
