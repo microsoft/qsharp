@@ -869,6 +869,35 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 }
 
+fn determine_expr_array_compute_kind(
+    exprs: impl Iterator<Item = StoreExprId>,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Initialize the array's compute kind.
+    let mut array_compute_kind = ComputeKind::Classical;
+
+    // Go through each sub-expression in the tuple aggregating ONLY the runtime features.
+    for expr_id in exprs {
+        simulate_expr(
+            expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        let expr_compute_kind = application_instance
+            .exprs
+            .get(&expr_id.expr)
+            .expect("expression's compute kind should exist");
+        array_compute_kind = aggregate_compute_kind_runtime_features(array_compute_kind, expr_compute_kind);
+    }
+
+    // The value kind of an array expression itself cannot be dynamic since its size is always known.
+    assert!(!array_compute_kind.is_value_dynamic());
+    array_compute_kind
+}
+
 fn determine_expr_bin_op_compute_kind(
     lhs_expr_id: StoreExprId,
     rhs_expr_id: StoreExprId,
@@ -975,7 +1004,7 @@ fn determine_expr_call_compute_kind(
         }
     };
 
-    // If this call happens there might be additional runtime features being used.
+    // If this call happens within a dynamic scopre, there might be additional runtime features being used.
     if !application_instance.active_dynamic_scopes.is_empty() {
         // Any call that happens within a dynamic scope uses the forward branching runtime feature.
         compute_kind = aggregate_compute_kind_runtime_features(
@@ -1004,35 +1033,6 @@ fn determine_expr_call_compute_kind(
     compute_kind = aggregate_compute_kind_runtime_features(compute_kind, callee_expr_compute_kind);
     compute_kind = aggregate_compute_kind_runtime_features(compute_kind, callee_expr_compute_kind);
     compute_kind
-}
-
-fn determine_expr_container_compute_kind(
-    exprs: impl Iterator<Item = StoreExprId>,
-    application_instance: &mut ApplicationInstance,
-    package_store: &PackageStore,
-    package_store_scaffolding: &mut PackageStoreScaffolding,
-) -> ComputeKind {
-    // Initialize the container's compute kind.
-    let mut container_compute_kind = ComputeKind::Classical;
-
-    // Go through each sub-expression in the container aggregating them.
-    for expr_id in exprs {
-        simulate_expr(
-            expr_id,
-            application_instance,
-            package_store,
-            package_store_scaffolding,
-        );
-        let expr_compute_kind = application_instance
-            .exprs
-            .get(&expr_id.expr)
-            .expect("expression's compute kind should exist");
-
-        // Aggregate the sub-expression's compute kind to the container's compute kind.
-        container_compute_kind = aggregate_compute_kind(container_compute_kind, expr_compute_kind);
-    }
-
-    container_compute_kind
 }
 
 fn determine_expr_if_compute_kind(
@@ -1127,6 +1127,33 @@ fn determine_expr_if_compute_kind(
 fn determine_expr_lit_compute_kind() -> ComputeKind {
     // Literal expressions are purely classical.
     ComputeKind::Classical
+}
+
+fn determine_expr_tuple_compute_kind(
+    exprs: impl Iterator<Item = StoreExprId>,
+    application_instance: &mut ApplicationInstance,
+    package_store: &PackageStore,
+    package_store_scaffolding: &mut PackageStoreScaffolding,
+) -> ComputeKind {
+    // Initialize the tuple's compute kind.
+    let mut tuple_compute_kind = ComputeKind::Classical;
+
+    // Go through each sub-expression in the tuple aggregating them.
+    for expr_id in exprs {
+        simulate_expr(
+            expr_id,
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        );
+        let expr_compute_kind = application_instance
+            .exprs
+            .get(&expr_id.expr)
+            .expect("expression's compute kind should exist");
+        tuple_compute_kind = aggregate_compute_kind(tuple_compute_kind, expr_compute_kind);
+    }
+
+    tuple_compute_kind
 }
 
 fn determine_expr_var_compute_kind(
@@ -1473,7 +1500,7 @@ fn simulate_expr(
 ) {
     let expr = package_store.get_expr(id);
     let mut compute_kind = match &expr.kind {
-        ExprKind::Array(exprs) => determine_expr_container_compute_kind(
+        ExprKind::Array(exprs) => determine_expr_array_compute_kind(
             exprs.iter().map(|e| StoreExprId::from((id.package, *e))),
             application_instance,
             package_store,
@@ -1512,7 +1539,7 @@ fn simulate_expr(
             )
         }
         ExprKind::Lit(_) => determine_expr_lit_compute_kind(),
-        ExprKind::Tuple(exprs) => determine_expr_container_compute_kind(
+        ExprKind::Tuple(exprs) => determine_expr_tuple_compute_kind(
             exprs.iter().map(|e| StoreExprId::from((id.package, *e))),
             application_instance,
             package_store,

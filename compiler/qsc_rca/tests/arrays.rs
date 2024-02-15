@@ -36,8 +36,8 @@ fn check_rca_for_array_with_one_dynamic_element() {
             r#"
             ApplicationsTable:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult | UseOfDynamicArray)
-                    value_kind: Dynamic
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult)
+                    value_kind: Static
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -57,8 +57,8 @@ fn check_rca_for_array_with_dynamic_elements() {
             r#"
             ApplicationsTable:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult | UseOfDynamicArray)
-                    value_kind: Dynamic
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicResult)
+                    value_kind: Static
                 dynamic_param_applications: <empty>"#
         ],
     );
