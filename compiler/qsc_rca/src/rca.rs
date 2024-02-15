@@ -399,11 +399,6 @@ pub fn analyze_top_level_stmts(
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
-    // TODO (cesarzc): Temporary workaround while all statements are thoruoughly analyzed in std lib packages.
-    if id == PackageId::from(0) || id == PackageId::from(1) {
-        return;
-    }
-
     // Analyze top-level statements as if they were all part of a parameterless operation.
     let mut application_instances_table = ApplicationInstancesTable::parameterless();
     for stmt_id in top_level_stmts {
