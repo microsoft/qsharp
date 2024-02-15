@@ -1599,6 +1599,13 @@ fn simulate_expr(
             package_store,
             package_store_scaffolding,
         ),
+        ExprKind::AssignField(lhs_expr_id, _, rhs_expr_id) => determine_expr_assign_compute_kind(
+            (id.package, *lhs_expr_id).into(),
+            (id.package, *rhs_expr_id).into(),
+            application_instance,
+            package_store,
+            package_store_scaffolding,
+        ),
         ExprKind::BinOp(_, lhs_expr_id, rhs_expr_id) => determine_expr_bin_op_compute_kind(
             (id.package, *lhs_expr_id).into(),
             (id.package, *rhs_expr_id).into(),
