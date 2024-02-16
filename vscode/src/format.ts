@@ -3,6 +3,7 @@
 
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
+import { toVscodeRange } from "./common";
 
 export function createFormatProvider(languageService: ILanguageService) {
   return new QSharpFormatProvider(languageService);
@@ -19,10 +20,7 @@ class QSharpFormatProvider implements vscode.DocumentFormattingEditProvider {
     if (!lsEdits) return [];
     const edits = [];
     for (const edit of lsEdits) {
-      const referenceRange = new vscode.Range(
-        document.positionAt(edit.range.start),
-        document.positionAt(edit.range.end),
-      );
+      const referenceRange = toVscodeRange(edit.range);
       edits.push(new vscode.TextEdit(referenceRange, edit.newText));
     }
     return edits;

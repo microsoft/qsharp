@@ -11,5 +11,3 @@ pub mod incremental;
 mod lower;
 pub mod resolve;
 pub mod typeck;
-
-pub use qsc_parse::{formatter, RawToken, RawTokenKind};

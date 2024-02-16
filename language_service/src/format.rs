@@ -3,9 +3,9 @@
 
 use crate::{compilation::Compilation, protocol::TextEdit};
 
-use qsc::formatter::{format, Edit};
-use qsc::line_column::{Encoding, Range};
-use qsc::Span;
+// use qsc::formatter::{format, Edit};
+use qsc::line_column::{Encoding, Position, Range};
+// use qsc::Span;
 //use qsc::RawToken;
 //use qsc::RawTokenKind;
 //use regex_lite::Regex;
@@ -13,7 +13,7 @@ use qsc::Span;
 pub(crate) fn get_format_changes(
     compilation: &Compilation,
     source_name: &str,
-    offset: u32,
+    position: Position,
     encoding: Encoding,
 ) -> Vec<TextEdit> {
     let contents = compilation
@@ -24,24 +24,24 @@ pub(crate) fn get_format_changes(
         .contents
         .clone();
 
-    //let mut edits = vec![];
+    let mut edits = vec![];
 
     //let formatter = Formatter::new(&contents);
 
-    format(&contents)
-        .iter()
-        .map(|edit| TextEdit {
-            contents: edit.new_text.clone(),
-            span: Range::from_span(
-                encoding,
-                &contents,
-                &Span {
-                    start: edit.span.lo,
-                    end: edit.span.hi,
-                },
-            ),
-        })
-        .collect()
+    // format(&contents)
+    //     .iter()
+    //     .map(|edit| TextEdit {
+    //         contents: edit.new_text.clone(),
+    //         span: Range::from_span(
+    //             encoding,
+    //             &contents,
+    //             &Span {
+    //                 start: edit.span.lo,
+    //                 end: edit.span.hi,
+    //             },
+    //         ),
+    //     })
+    //     .collect()
 
     //let temp = edits.extend(RemoveTrailingWhitespace(&formatter.tokens, &contents));
 
@@ -53,7 +53,7 @@ pub(crate) fn get_format_changes(
     //     });
     // }
 
-    //edits
+    edits
 }
 
 // fn RemoveTrailingWhitespace(tokens: &[RawToken], contents: &str) -> Vec<TextEdit> {

@@ -163,21 +163,7 @@ export class QSharpLanguageService implements ILanguageService {
   }
 
   async getFormatChanges(documentUri: string): Promise<ITextEdit[]> {
-    const code = await this.loadFile(documentUri);
-
-    if (code === null) {
-      log.error(
-        `getFormatChanges: expected ${documentUri} to be in the document map`,
-      );
-      return [];
-    }
-    const results = this.languageService.get_format_changes(documentUri);
-    if (results && results.length > 0) {
-      for (const result of results) {
-        updateSpanFromUtf8ToUtf16(result.range, code);
-      }
-    }
-    return results;
+    return this.languageService.get_format_changes(documentUri);
   }
 
   async getHover(

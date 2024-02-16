@@ -231,7 +231,12 @@ impl LanguageService {
     /// LSP: textDocument/format
     #[must_use]
     pub fn get_format_changes(&self, uri: &str) -> Vec<TextEdit> {
-        self.document_op(format::get_format_changes, "get_format_changes", uri, 0)
+        self.document_op(
+            format::get_format_changes,
+            "get_format_changes",
+            uri,
+            Position { line: 0, column: 0 },
+        )
     }
 
     /// LSP: textDocument/hover
