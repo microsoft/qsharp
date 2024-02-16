@@ -11,7 +11,7 @@ use qsc::{
     line_column::{Encoding, Position},
     resolve,
     target::Profile,
-    CompileUnit, PackageStore, PackageType, SourceMap,
+    CompileUnit, PackageStore, PackageType, SourceMap, Span,
 };
 use std::sync::Arc;
 
@@ -152,6 +152,23 @@ impl Compilation {
         }
 
         source.offset + offset
+    }
+
+    /// Gets the span of the whole source file.
+    pub(crate) fn package_span_of_source(&self, source_name: &str) -> Span {
+        let unit = self.user_unit();
+
+        let source = unit
+            .sources
+            .find_by_name(source_name)
+            .expect("source should exist in the user source map");
+
+        let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
+
+        Span {
+            lo: source.offset,
+            hi: source.offset + len,
+        }
     }
 
     /// Regenerates the compilation with the same sources but the passed in workspace configuration options.

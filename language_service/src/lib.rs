@@ -4,6 +4,7 @@
 #![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
 #![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
+pub mod code_lens;
 mod compilation;
 pub mod completion;
 pub mod definition;
@@ -26,7 +27,7 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
-    CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
+    CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
     WorkspaceConfigurationUpdate,
 };
 use qsc::{
@@ -205,12 +206,12 @@ impl LanguageService {
         include_declaration: bool,
     ) -> Vec<Location> {
         self.document_op(
-            |position_encoding, compilation, uri, position| {
+            |compilation, uri, position, position_encoding| {
                 references::get_references(
-                    position_encoding,
                     compilation,
                     uri,
                     position,
+                    position_encoding,
                     include_declaration,
                 )
             },
@@ -249,25 +250,39 @@ impl LanguageService {
         self.document_op(rename::prepare_rename, "prepare_rename", uri, position)
     }
 
-    /// Executes an operation that takes a document uri and offset, using the current compilation for that document.
+    /// LSP: textDocument/codeLens
+    #[must_use]
+    pub fn get_code_lenses(&self, uri: &str) -> Vec<CodeLens> {
+        self.document_op(
+            |compilation, uri, (), position_encoding| {
+                code_lens::get_code_lenses(compilation, uri, position_encoding)
+            },
+            "get_code_lenses",
+            uri,
+            (),
+        )
+    }
+
+    /// Executes an operation that takes a document uri, using the current compilation for that document.
     /// All "read" operations should go through this method. This method will borrow the current
     /// compilation state to perform the request.
     ///
     /// If there are outstanding updates to the compilation in the update message queue,
     /// this method will still just return the current compilation state.
-    fn document_op<F, T>(&self, op: F, op_name: &str, uri: &str, position: Position) -> T
+    fn document_op<F, T, A>(&self, op: F, op_name: &str, uri: &str, arg: A) -> T
     where
-        F: Fn(&Compilation, &str, Position, Encoding) -> T,
+        F: Fn(&Compilation, &str, A, Encoding) -> T,
         T: Debug + Default,
+        A: Debug,
     {
-        trace!("{op_name}: uri: {uri}, position: {position:?}");
+        trace!("{op_name}: uri: {uri}, arg: {arg:?}");
 
         // Borrow must succeed here. If it doesn't succeed, a writer
         // (i.e. [`state::CompilationStateUpdater`]) must be holding a mutable reference across
         // an `await` point. Which it shouldn't be doing.
         let compilation_state = self.state.borrow();
         if let Some(compilation) = compilation_state.get_compilation(uri) {
-            let res = op(compilation, uri, position, self.position_encoding);
+            let res = op(compilation, uri, arg, self.position_encoding);
             trace!("{op_name} result: {res:?}");
             res
         } else {

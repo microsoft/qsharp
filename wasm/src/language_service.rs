@@ -266,6 +266,28 @@ impl LanguageService {
             .into()
         })
     }
+
+    pub fn get_code_lenses(&self, uri: &str) -> Vec<ICodeLens> {
+        let code_lenses = self.0.get_code_lenses(uri);
+        code_lenses
+            .into_iter()
+            .map(|lens| {
+                let range = lens.range.into();
+                let (command, args) = match lens.command {
+                    qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
+                    qsls::protocol::CodeLensCommand::Debug => ("debug", None),
+                    qsls::protocol::CodeLensCommand::Run => ("run", None),
+                    qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
+                };
+                CodeLens {
+                    range,
+                    command: command.to_string(),
+                    args,
+                }
+                .into()
+            })
+            .collect()
+    }
 }
 
 serializable_type! {
@@ -375,6 +397,22 @@ serializable_type! {
         label: [number, number];
         documentation: string;
     }"#
+}
+
+serializable_type! {
+    CodeLens,
+    {
+        range: Range,
+        command: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        args: Option<(String, String, String)>,
+    },
+    r#"export interface ICodeLens {
+        range: IRange;
+        command: "histogram" | "estimate" | "debug" | "run";
+        args?: [string, string, string];
+    }"#,
+    ICodeLens
 }
 
 serializable_type! {
