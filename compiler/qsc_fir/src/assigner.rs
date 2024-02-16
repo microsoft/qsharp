@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::fir::{BlockId, ExprId, NodeId, PatId, StmtId};
+use crate::fir::{BlockId, ExprId, LocalVarId, NodeId, PatId, StmtId};
 
 #[derive(Debug)]
 pub struct Assigner {
@@ -10,6 +10,7 @@ pub struct Assigner {
     next_expr: ExprId,
     next_pat: PatId,
     next_stmt: StmtId,
+    next_local: LocalVarId,
 }
 
 impl Assigner {
@@ -21,6 +22,7 @@ impl Assigner {
             next_expr: ExprId::default(),
             next_pat: PatId::default(),
             next_stmt: StmtId::default(),
+            next_local: LocalVarId::default(),
         }
     }
 
@@ -52,6 +54,16 @@ impl Assigner {
         let id = self.next_stmt;
         self.next_stmt = id.successor();
         id
+    }
+
+    pub fn next_local(&mut self) -> LocalVarId {
+        let id = self.next_local;
+        self.next_local = id.successor();
+        id
+    }
+
+    pub fn reset_local(&mut self) {
+        self.next_local = LocalVarId::default();
     }
 }
 
