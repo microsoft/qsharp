@@ -221,13 +221,10 @@ For example, the state $|0\rangle$ would be represented as follows:
 @[exercise]({
     "id": "qubit__learn_single_qubit_state",
     "title": "Learn the State of a Single Qubit Using DumpMachine",
-    "descriptionPath": "./learn_single_qubit_state/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./learn_single_qubit_state/Verification.qs"
-    ],
-    "placeholderSourcePath": "./learn_single_qubit_state/Placeholder.qs",
-    "solutionPath": "./learn_single_qubit_state/solution.md"
+    "path": "./learn_single_qubit_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({
@@ -236,6 +233,7 @@ For example, the state $|0\rangle$ would be represented as follows:
 })
 
 Congratulations! In this kata you learned the basics of qubits and qubit states. Here are a few key concepts to keep in mind:
+
 - A qubit is a basic unit of quantum information, analogous to a bit in classical computing.
 - Superposition is a quantum phenomenon where a qubit is in a combination of both 0 and 1 states. When measured, a qubit goes from being in superposition to one of the classical states.
 - A qubit can be represented as $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$, where $\alpha$ and $\beta$ are complex numbers and state vectors $|0\rangle$ and $|1\rangle$ are $0$ and $1$ states respectively.

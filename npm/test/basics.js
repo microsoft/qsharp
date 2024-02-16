@@ -282,11 +282,11 @@ test("getting_started kata is valid", async () => {
   await validateKata(kata, true, true, true);
 });
 
-//test("qubit kata is valid", async () => {
-//  const kata = await getKata("qubit");
-//  await validateKata(kata, true, true, true);
-//});
-//
+test("qubit kata is valid", async () => {
+  const kata = await getKata("qubit");
+  await validateKata(kata, true, true, true);
+});
+
 //test("single_qubit_gates kata is valid", async () => {
 //  const kata = await getKata("single_qubit_gates");
 //  await validateKata(kata, true, true, true);
