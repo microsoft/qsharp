@@ -66,13 +66,6 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.IntTooLarge"))]
     IntTooLarge(i64, #[label("this value is too large")] PackageSpan),
 
-    #[error("missing specialization: {0}")]
-    #[diagnostic(code("Qsc.Eval.MissingSpec"))]
-    MissingSpec(
-        String,
-        #[label("callable has no {0} specialization")] PackageSpan,
-    ),
-
     #[error("index out of range: {0}")]
     #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
     IndexOutOfRange(i64, #[label("out of range")] PackageSpan),
@@ -140,7 +133,6 @@ impl Error {
             | Error::IntTooLarge(_, span)
             | Error::InvalidRotationAngle(_, span)
             | Error::InvalidNegativeInt(_, span)
-            | Error::MissingSpec(_, span)
             | Error::OutputFail(span)
             | Error::QubitUniqueness(span)
             | Error::RangeStepZero(span)
@@ -1135,7 +1127,7 @@ impl State {
                     Spec::Ctl => specialized_implementation.ctl.as_ref(),
                     Spec::CtlAdj => specialized_implementation.ctl_adj.as_ref(),
                 }
-                .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?;
+                .expect("missing specialization should be a compilation error");
                 self.bind_args_for_spec(
                     env,
                     globals,
