@@ -2027,6 +2027,77 @@ fn multiple_definition_dropped_is_not_found() {
     );
 }
 
+#[test]
+fn disallow_duplicate_intrinsic() {
+    check(
+        indoc! {"
+            namespace A {
+                operation B() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace B {
+                operation B() : Unit {
+                    body intrinsic;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace item2 {
+                operation item3() : Unit {
+                    body intrinsic;
+                }
+            }
+
+            // DuplicateIntrinsic("B", Span { lo: 101, hi: 102 })
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
+    check(
+        indoc! {"
+            namespace A {
+                internal operation C() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace B {
+                operation C() : Unit {}
+            }
+            namespace B {
+                operation C() : Unit {
+                    body intrinsic;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                internal operation item1() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace item2 {
+                operation item3() : Unit {}
+            }
+            namespace item4 {
+                operation item5() : Unit {
+                    body intrinsic;
+                }
+            }
+
+            // Duplicate("C", "B", Span { lo: 154, hi: 155 })
+            // DuplicateIntrinsic("C", Span { lo: 154, hi: 155 })
+        "#]],
+    );
+}
+
 #[allow(clippy::cast_possible_truncation)]
 fn check_locals(input: &str, expect: &Expect) {
     let parts = input.split('↘').collect::<Vec<_>>();

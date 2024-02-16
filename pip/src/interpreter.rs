@@ -19,15 +19,15 @@ use pyo3::{
 use qsc::{
     fir,
     interpret::{
+        self,
         output::{Error, Receiver},
-        stateful, Value,
+        Value,
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
     PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
-use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
 #[pymodule]
@@ -63,7 +63,7 @@ pub(crate) enum TargetProfile {
 
 #[pyclass(unsendable)]
 pub(crate) struct Interpreter {
-    pub(crate) interpreter: stateful::Interpreter,
+    pub(crate) interpreter: interpret::Interpreter,
 }
 
 pub(crate) struct PyManifestDescriptor(ManifestDescriptor);
@@ -125,7 +125,7 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        match stateful::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
+        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -152,34 +152,36 @@ impl Interpreter {
         }
     }
 
+    /// Sets the quantum seed for the interpreter.
+    fn set_quantum_seed(&mut self, seed: Option<u64>) {
+        self.interpreter.set_quantum_seed(seed);
+    }
+
+    /// Sets the classical seed for the interpreter.
+    fn set_classical_seed(&mut self, seed: Option<u64>) {
+        self.interpreter.set_classical_seed(seed);
+    }
+
     /// Dumps the quantum state of the interpreter.
     /// Returns a tuple of (amplitudes, num_qubits), where amplitudes is a dictionary from integer indices to
     /// pairs of real and imaginary amplitudes.
     fn dump_machine(&mut self) -> StateDump {
         let (state, qubit_count) = self.interpreter.get_quantum_state();
-        StateDump(DisplayableState(
-            state.into_iter().collect::<FxHashMap<_, _>>(),
-            qubit_count,
-        ))
+        StateDump(DisplayableState(state, qubit_count))
     }
 
     fn run(
         &mut self,
         py: Python,
         entry_expr: &str,
-        shots: u32,
         callback: Option<PyObject>,
-    ) -> PyResult<Py<PyList>> {
+    ) -> PyResult<PyObject> {
         let mut receiver = OptionalCallbackReceiver { callback, py };
-        match self.interpreter.run(&mut receiver, entry_expr, shots) {
-            Ok(results) => Ok(PyList::new(
-                py,
-                results.into_iter().map(|res| match res {
-                    Ok(v) => ValueWrapper(v).into_py(py),
-                    Err(errors) => QSharpError::new_err(format_errors(errors)).into_py(py),
-                }),
-            )
-            .into_py(py)),
+        match self.interpreter.run(&mut receiver, entry_expr) {
+            Ok(result) => match result {
+                Ok(v) => Ok(ValueWrapper(v).into_py(py)),
+                Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+            },
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -234,7 +236,7 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(errors: Vec<stateful::Error>) -> String {
+fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
         .map(|e| {
@@ -254,8 +256,8 @@ fn format_errors(errors: Vec<stateful::Error>) -> String {
 }
 
 /// Additional help text for an error specific to the Python module
-fn python_help(error: &stateful::Error) -> Option<String> {
-    if matches!(error, stateful::Error::UnsupportedRuntimeCapabilities) {
+fn python_help(error: &interpret::Error) -> Option<String> {
+    if matches!(error, interpret::Error::UnsupportedRuntimeCapabilities) {
         Some("Unsupported target profile. Initialize Q# by running `qsharp.init(target_profile=qsharp.TargetProfile.Base)` before performing code generation.".into())
     } else {
         None
@@ -284,6 +286,13 @@ impl Output {
         match &self.0 {
             DisplayableOutput::State(state) => state.to_html(),
             DisplayableOutput::Message(msg) => format!("<p>{msg}</p>"),
+        }
+    }
+
+    fn state_dump(&self) -> Option<StateDump> {
+        match &self.0 {
+            DisplayableOutput::State(state) => Some(StateDump(state.clone())),
+            DisplayableOutput::Message(_) => None,
         }
     }
 }
@@ -323,7 +332,13 @@ impl StateDump {
     // Pass by value is needed for compatiblity with the pyo3 API.
     #[allow(clippy::needless_pass_by_value)]
     fn __getitem__(&self, key: BigUint) -> Option<(f64, f64)> {
-        self.0 .0.get(&key).map(|state| (state.re, state.im))
+        self.0 .0.iter().find_map(|state| {
+            if state.0 == key {
+                Some((state.1.re, state.1.im))
+            } else {
+                None
+            }
+        })
     }
 
     fn __len__(&self) -> usize {
@@ -446,7 +461,6 @@ impl Receiver for OptionalCallbackReceiver<'_> {
         qubit_count: usize,
     ) -> core::result::Result<(), Error> {
         if let Some(callback) = &self.callback {
-            let state = state.into_iter().collect::<FxHashMap<_, _>>();
             let out = DisplayableOutput::State(DisplayableState(state, qubit_count));
             callback
                 .call1(
@@ -504,7 +518,7 @@ impl IntoPyErr for Report {
     }
 }
 
-impl IntoPyErr for Vec<stateful::Error> {
+impl IntoPyErr for Vec<interpret::Error> {
     fn into_py_err(self) -> PyErr {
         let mut message = String::new();
         for error in self {

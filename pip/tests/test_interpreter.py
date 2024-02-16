@@ -34,7 +34,7 @@ def test_dump_output() -> None:
     def callback(output):
         nonlocal called
         called = True
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+        assert output.__repr__() == "STATE:\n|10⟩: 1.0000+0.0000𝑖"
 
     called = False
     value = e.interpret(
@@ -49,12 +49,30 @@ def test_dump_output() -> None:
     )
     assert called
 
+def test_quantum_seed() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.set_quantum_seed(42)
+    value1 = e.interpret("{ use qs = Qubit[16]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.set_quantum_seed(42)
+    value2 = e.interpret("{ use qs = Qubit[16]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    assert value1 == value2
+
+def test_classical_seed() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.set_classical_seed(42)
+    value1 = e.interpret("{ mutable res = []; for _ in 0..15{ set res += [Microsoft.Quantum.Random.DrawRandomInt(0, 100)]; }; res }")
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.set_classical_seed(42)
+    value2 = e.interpret("{ mutable res = []; for _ in 0..15{ set res += [Microsoft.Quantum.Random.DrawRandomInt(0, 100)]; }; res }")
+    assert value1 == value2
+
 
 def test_dump_machine() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
 
     def callback(output):
-        assert output.__repr__() == "STATE:\n|01⟩: 1.0000+0.0000𝑖"
+        assert output.__repr__() == "STATE:\n|10⟩: 1.0000+0.0000𝑖"
 
     value = e.interpret(
         """
@@ -68,11 +86,11 @@ def test_dump_machine() -> None:
     state_dump = e.dump_machine()
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
-    assert state_dump[1][0] == 1.0
-    assert state_dump[1][1] == 0.0
+    assert state_dump[2][0] == 1.0
+    assert state_dump[2][1] == 0.0
     state_dict = state_dump.get_dict()
-    assert state_dict[1][0] == 1.0
-    assert state_dict[1][1] == 0.0
+    assert state_dict[2][0] == 1.0
+    assert state_dict[2][1] == 0.0
 
 
 def test_error() -> None:
@@ -199,7 +217,9 @@ def test_run_with_shots() -> None:
     e.interpret('operation Foo() : Unit { Message("Hello, world!"); }', callback)
     assert called == 0
 
-    value = e.run("Foo()", 5, callback)
+    value = []
+    for _ in range(5):
+        value.append(e.run("Foo()", callback))
     assert called == 5
 
     assert value == [None, None, None, None, None]

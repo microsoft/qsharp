@@ -4,7 +4,7 @@
 /.github/workflows/fuzz.yml @billti @idavis @swernli
 /compiler @idavis @minestarks @swernli
 /fuzz  @billti @idavis @swernli
-/katas @billti @cesarzc @DmitryVasilevsky @sezna @swernli
+/katas @billti @cesarzc @DmitryVasilevsky @sezna @swernli @tcNickolas
 /jupyterlab @billti @idavis @minestarks
 /language_service @billti @idavis @minestarks @ScottCarda-MS
 /library @cesarzc @DmitryVasilevsky @swernli

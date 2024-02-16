@@ -42,9 +42,25 @@ import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import { initFileSystem } from "./memfs.js";
 import { getManifest, readFile, listDir } from "./projectSystem.js";
 import { createFormatProvider } from "./format.js";
+import {
+  Logging,
+  initLogForwarder,
+  initOutputWindowLogger,
+} from "./logging.js";
 
-export async function activate(context: vscode.ExtensionContext) {
-  initializeLogger();
+export async function activate(
+  context: vscode.ExtensionContext,
+): Promise<ExtensionApi> {
+  const api: ExtensionApi = {};
+
+  if (context.extensionMode === vscode.ExtensionMode.Test) {
+    // Don't log to the output window in tests, forward to a listener instead
+    api.logging = initLogForwarder();
+  } else {
+    // Direct logging to the output window
+    initOutputWindowLogger();
+  }
+
   log.info("Q# extension activating.");
   initTelemetry(context);
 
@@ -73,40 +89,13 @@ export async function activate(context: vscode.ExtensionContext) {
   initFileSystem(context);
 
   log.info("Q# extension activated.");
+
+  return api;
 }
 
-function initializeLogger() {
-  const output = vscode.window.createOutputChannel("Q#", { log: true });
-
-  // Override the global logger with functions that write to the output channel
-  log.error = output.error;
-  log.warn = output.warn;
-  log.info = output.info;
-  log.debug = output.debug;
-  log.trace = output.trace;
-
-  // The numerical log levels for VS Code and qsharp don't match.
-  function mapLogLevel(logLevel: vscode.LogLevel) {
-    switch (logLevel) {
-      case vscode.LogLevel.Off:
-        return "off";
-      case vscode.LogLevel.Trace:
-        return "trace";
-      case vscode.LogLevel.Debug:
-        return "debug";
-      case vscode.LogLevel.Info:
-        return "info";
-      case vscode.LogLevel.Warning:
-        return "warn";
-      case vscode.LogLevel.Error:
-        return "error";
-    }
-  }
-
-  log.setLogLevel(mapLogLevel(output.logLevel));
-  output.onDidChangeLogLevel((level) => {
-    log.setLogLevel(mapLogLevel(level));
-  });
+export interface ExtensionApi {
+  // Only available in test mode. Allows listening to extension log events.
+  logging?: Logging;
 }
 
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
@@ -117,10 +106,10 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
-      const documentType = isQsharpDocument(document)
-        ? QsharpDocumentType.Qsharp
-        : isQsharpNotebookCell(document)
+      const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
+        : isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
         : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(

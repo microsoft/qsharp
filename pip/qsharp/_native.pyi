@@ -57,17 +57,15 @@ class Interpreter:
         """
         ...
     def run(
-        self, entry_expr: str, shots: int, output_fn: Callable[[Output], None]
+        self, entry_expr: str, output_fn: Callable[[Output], None]
     ) -> Any:
         """
-        Runs the given Q# expressin for the given number of shots.
-        Each shot uses an independent instance of the simulator.
+        Runs the given Q# expression with an independent instance of the simulator.
 
         :param entry_expr: The entry expression.
-        :param shots: The number of shots to run.
         :param output_fn: A callback function that will be called with each output.
 
-        :returns values: A list of results or runtime errors.
+        :returns values: A result or runtime errors.
 
         :raises QSharpError: If there is an error interpreting the input.
         """
@@ -89,6 +87,22 @@ class Interpreter:
         :param params: The parameters to configure estimation.
 
         :returns resources: The estimated resources.
+        """
+        ...
+    def set_quantum_seed(self, seed: Optional[int]) -> None:
+        """
+        Sets the seed for the quantum random number generator.
+
+        :param seed: The seed to use for the quantum random number generator. If None,
+            the seed will be generated from entropy.
+        """
+        ...
+    def set_classical_seed(self, seed: Optional[int]) -> None:
+        """
+        Sets the seed for the classical random number generator.
+
+        :param seed: The seed to use for the classical random number generator. If None,
+            the seed will be generated from entropy.
         """
         ...
     def dump_machine(self) -> StateDump:
@@ -126,6 +140,7 @@ class Output:
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...
+    def state_dump(self) -> Optional[StateDump]: ...
 
 class StateDump:
     """

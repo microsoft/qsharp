@@ -107,8 +107,14 @@ def test_qsharp_estimation_with_multiple_params() -> None:
     params.items[2].error_budget = 0.333
     assert params.as_dict() == {
         "items": [
-            {"qubitParams": {"name": "qubit_gate_us_e3"}, "errorBudget": 0.333},
-            {"qubitParams": {"name": "qubit_gate_us_e4"}, "errorBudget": 0.333},
+            {
+                "qubitParams": {"name": "qubit_gate_us_e3"},
+                "errorBudget": 0.333,
+            },
+            {
+                "qubitParams": {"name": "qubit_gate_us_e4"},
+                "errorBudget": 0.333,
+            },
             {
                 "qubitParams": {"name": "qubit_maj_ns_e6"},
                 "qecScheme": {"name": "floquet_code"},

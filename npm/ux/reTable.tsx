@@ -2,40 +2,19 @@
 // Licensed under the MIT License.
 
 import { useState } from "preact/hooks";
-
-export type ReData = {
-  status: string;
-  jobParams: any;
-  physicalCounts: any;
-  physicalCountsFormatted: any;
-  logicalQubit: any;
-  tfactory: any;
-  errorBudget: any;
-  logicalCounts: any;
-  reportData: {
-    groups: {
-      title: string;
-      alwaysVisible: boolean;
-      entries: {
-        path: string;
-        label: string;
-        description: string;
-        explanation: string;
-      }[];
-    }[];
-    assumptions: string[];
-  };
-  new: boolean;
-};
+import { SingleEstimateResult } from "./data.js";
+import { CreateReport } from "./report.js";
 
 export function ReTable(props: {
   mdRenderer: (input: string) => string;
-  estimatesData: ReData;
+  estimatesData: SingleEstimateResult;
 }) {
   const [showDetail, setShowDetail] = useState(false);
   const toggleDetail = () => {
     setShowDetail(!showDetail);
   };
+
+  const reportData = CreateReport(props.estimatesData);
 
   return (
     <div>
@@ -48,7 +27,7 @@ export function ReTable(props: {
         />
         <label htmlFor="showDetail"> Show detailed rows</label>
       </div>
-      {props.estimatesData.reportData.groups.map((group) => {
+      {reportData.groups.map((group) => {
         return (
           <details className="estimate-details">
             <summary>
@@ -101,7 +80,7 @@ export function ReTable(props: {
           <strong>Assumptions</strong>
         </summary>
         <ul className="estimate-table">
-          {props.estimatesData.reportData.assumptions.map((assumption) => (
+          {reportData.assumptions.map((assumption) => (
             <li
               className="estimate-assumption"
               dangerouslySetInnerHTML={{ __html: props.mdRenderer(assumption) }}

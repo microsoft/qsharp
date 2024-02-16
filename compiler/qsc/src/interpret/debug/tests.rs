@@ -10,7 +10,7 @@ use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 use std::io::Cursor;
 
-use crate::interpret::stateful::{self, InterpretResult, Interpreter};
+use crate::interpret::{Error, InterpretResult, Interpreter};
 
 fn line(interpreter: &mut Interpreter, line: impl AsRef<str>) -> (InterpretResult, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
@@ -21,7 +21,7 @@ fn line(interpreter: &mut Interpreter, line: impl AsRef<str>) -> (InterpretResul
     )
 }
 
-fn eval(interpreter: &mut stateful::Interpreter) -> (Result<Value, Vec<stateful::Error>>, String) {
+fn eval(interpreter: &mut Interpreter) -> (Result<Value, Vec<Error>>, String) {
     let mut cursor = Cursor::new(Vec::<u8>::new());
     let mut receiver = CursorReceiver::new(&mut cursor);
     (interpreter.eval_entry(&mut receiver), receiver.dump())

@@ -3,60 +3,79 @@
 
 import * as vscode from "vscode";
 import { assert } from "chai";
+import { activateExtension, waitForCondition } from "../extensionUtils";
 
-suite("Q# Notebook Tests", () => {
+suite("Q# Notebook Tests", function suite() {
   const workspaceFolder =
     vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
   assert(workspaceFolder, "Expecting an open folder");
 
   const workspaceFolderUri = workspaceFolder.uri;
 
+  this.beforeAll(async () => {
+    await activateExtension();
+  });
+
   test("Cell language is set to Q#", async () => {
-    await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
       vscode.Uri.joinPath(workspaceFolderUri, "test-no-lang-metadata.ipynb"),
     );
 
     // Test if the cell with the %%qsharp magic has been detected
     // and its language switched to qsharp. We can only expect this to happen
-    // after the notebook has happened, and the document handlers
+    // after the notebook has been opened, and the document handlers
     // have been invoked, but of course there is no callback for that.
     // So we just verify the notebook has been updated with the qsharp
     // language id within 50ms (If we start exceeding this timeout for some
     // reason, it's enough of a user-perceptible delay that we're probably
     // better off disabling this behavior, rather than suddenly change the
     // cell language from under the user after a delay).
-    await new Promise<void>((resolve, reject) => {
-      let done = false;
-      setTimeout(() => {
-        if (!done) {
-          reject(new Error("timed out waiting for a Q# code cell"));
-        }
-      }, 50);
-
-      vscode.workspace.onDidChangeNotebookDocument((event) => {
-        if (!done && hasQSharpCell(event.notebook)) {
-          done = true;
-          resolve();
-        }
-      });
-
-      // in case the notebook updates have already occurred by the time we get here
-      if (hasQSharpCell(notebook)) {
-        done = true;
-        resolve();
-      }
-
-      function hasQSharpCell(notebook) {
-        return notebook
+    await waitForCondition(
+      () =>
+        !!notebook
           .getCells()
-          .find((cell) => cell.document.languageId === "qsharp");
-      }
-    });
+          .find((cell) => cell.document.languageId === "qsharp"),
+      vscode.workspace.onDidChangeNotebookDocument,
+      50,
+      "timed out waiting for a Q# code cell",
+    );
+  });
+
+  test("Cell language is set back to Python", async () => {
+    const notebook = await vscode.workspace.openNotebookDocument(
+      vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
+    );
+
+    await vscode.window.showNotebookDocument(notebook);
+
+    assert.equal(
+      vscode.window.activeNotebookEditor?.notebook.uri.toString(),
+      notebook.uri.toString(),
+    );
+
+    const oldLength = notebook.getCells().length;
+
+    // Add a new cell at the bottom of the notebook
+    await vscode.commands.executeCommand("notebook.focusBottom");
+    await vscode.commands.executeCommand("notebook.cell.insertCodeCellBelow");
+
+    // There should be an additional cell in the notebook and it should be Python
+    await waitForCondition(
+      () => {
+        const cellsAfter = notebook.getCells();
+        return (
+          cellsAfter.length === oldLength + 1 &&
+          notebook.getCells()[cellsAfter.length - 1].document.languageId ===
+            "python"
+        );
+      },
+      vscode.workspace.onDidChangeNotebookDocument,
+      50,
+      "timed out waiting for a Python code cell",
+    );
   });
 
   test("Diagnostics", async () => {
-    await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
       vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
     );
@@ -72,7 +91,6 @@ suite("Q# Notebook Tests", () => {
   });
 
   test("Definition", async () => {
-    await activate();
     const notebook = await vscode.workspace.openNotebookDocument(
       vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
     );
@@ -95,9 +113,3 @@ suite("Q# Notebook Tests", () => {
     assert.equal(location.range.start.character, 10);
   });
 });
-
-async function activate() {
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const ext = vscode.extensions.getExtension("quantum.qsharp-lang-vscode-dev")!;
-  await ext.activate();
-}

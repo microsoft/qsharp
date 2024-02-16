@@ -3,16 +3,17 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::assigner::Assigner;
-use qsc_fir::fir::{Block, Expr, Pat, Stmt};
+use qsc_fir::fir::{Block, CallableImpl, Expr, Pat, SpecImpl, Stmt};
 use qsc_fir::{
     fir::{self, BlockId, ExprId, LocalItemId, PatId, StmtId},
     ty::{Arrow, InferFunctorId, ParamId, Ty},
 };
-use qsc_hir::hir;
+use qsc_hir::hir::{self, SpecBody, SpecGen};
 use std::{clone::Clone, rc::Rc};
 
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
+    locals: IndexMap<hir::NodeId, fir::LocalVarId>,
     exprs: IndexMap<ExprId, Expr>,
     pats: IndexMap<PatId, Pat>,
     stmts: IndexMap<StmtId, Stmt>,
@@ -31,6 +32,7 @@ impl Lowerer {
     pub fn new() -> Self {
         Self {
             nodes: IndexMap::new(),
+            locals: IndexMap::new(),
             exprs: IndexMap::new(),
             pats: IndexMap::new(),
             stmts: IndexMap::new(),
@@ -157,14 +159,31 @@ impl Lowerer {
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
         let input = self.lower_pat(&decl.input);
-
         let generics = lower_generics(&decl.generics);
         let output = self.lower_ty(&decl.output);
         let functors = lower_functors(decl.functors);
-        let body = self.lower_spec_decl(&decl.body);
-        let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
-        let ctl = decl.ctl.as_ref().map(|f| self.lower_spec_decl(f));
-        let ctl_adj = decl.ctl_adj.as_ref().map(|f| self.lower_spec_decl(f));
+        let implementation = if decl.body.body == SpecBody::Gen(SpecGen::Intrinsic) {
+            assert!(
+                !(decl.adj.is_some() || decl.ctl.is_some() || decl.ctl_adj.is_some()),
+                "intrinsic callables should not have specializations"
+            );
+            CallableImpl::Intrinsic
+        } else {
+            let body = self.lower_spec_decl(&decl.body);
+            let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
+            let ctl = decl.ctl.as_ref().map(|f| self.lower_spec_decl(f));
+            let ctl_adj = decl.ctl_adj.as_ref().map(|f| self.lower_spec_decl(f));
+            let specialized_implementation = SpecImpl {
+                body,
+                adj,
+                ctl,
+                ctl_adj,
+            };
+            CallableImpl::Spec(specialized_implementation)
+        };
+
+        self.assigner.reset_local();
+        self.locals.clear();
 
         fir::CallableDecl {
             id,
@@ -175,30 +194,21 @@ impl Lowerer {
             input,
             output,
             functors,
-            body,
-            adj,
-            ctl,
-            ctl_adj,
+            implementation,
         }
     }
 
     fn lower_spec_decl(&mut self, decl: &hir::SpecDecl) -> fir::SpecDecl {
+        let SpecBody::Impl(pat, block) = &decl.body else {
+            panic!("if a SpecDecl is some, then it must be an implementation");
+        };
+        let input = pat.as_ref().map(|p| self.lower_spec_decl_pat(p));
+        let block = self.lower_block(block);
         fir::SpecDecl {
             id: self.lower_id(decl.id),
             span: decl.span,
-            body: match &decl.body {
-                hir::SpecBody::Gen(gen) => fir::SpecBody::Gen(match gen {
-                    hir::SpecGen::Auto => fir::SpecGen::Auto,
-                    hir::SpecGen::Distribute => fir::SpecGen::Distribute,
-                    hir::SpecGen::Intrinsic => fir::SpecGen::Intrinsic,
-                    hir::SpecGen::Invert => fir::SpecGen::Invert,
-                    hir::SpecGen::Slf => fir::SpecGen::Slf,
-                }),
-                hir::SpecBody::Impl(input, block) => fir::SpecBody::Impl(
-                    input.as_ref().map(|i| self.lower_spec_decl_pat(i)),
-                    self.lower_block(block),
-                ),
-            },
+            block,
+            input,
         }
     }
 
@@ -243,12 +253,9 @@ impl Lowerer {
                 self.lower_pat(pat),
                 self.lower_expr(expr),
             ),
-            hir::StmtKind::Qubit(source, pat, init, block) => fir::StmtKind::Qubit(
-                lower_qubit_source(*source),
-                self.lower_pat(pat),
-                self.lower_qubit_init(init),
-                block.as_ref().map(|b| self.lower_block(b)),
-            ),
+            hir::StmtKind::Qubit(_, _, _, _) => {
+                panic!("qubit statements should have been eliminated by passes");
+            }
             hir::StmtKind::Semi(expr) => fir::StmtKind::Semi(self.lower_expr(expr)),
         };
         let stmt = fir::Stmt {
@@ -329,7 +336,7 @@ impl Lowerer {
                 fir::ExprKind::While(self.lower_expr(cond), self.lower_block(body))
             }
             hir::ExprKind::Closure(ids, id) => {
-                let ids = ids.iter().map(|id| self.lower_id(*id)).collect();
+                let ids = ids.iter().map(|id| self.lower_local_id(*id)).collect();
                 fir::ExprKind::Closure(ids, lower_local_item_id(*id))
             }
             hir::ExprKind::String(components) => fir::ExprKind::String(
@@ -403,26 +410,6 @@ impl Lowerer {
         id
     }
 
-    fn lower_qubit_init(&mut self, init: &hir::QubitInit) -> fir::QubitInit {
-        let id = self.lower_id(init.id);
-        let ty = self.lower_ty(&init.ty);
-        let kind = match &init.kind {
-            hir::QubitInitKind::Array(length) => fir::QubitInitKind::Array(self.lower_expr(length)),
-            hir::QubitInitKind::Single => fir::QubitInitKind::Single,
-            hir::QubitInitKind::Tuple(items) => {
-                fir::QubitInitKind::Tuple(items.iter().map(|i| self.lower_qubit_init(i)).collect())
-            }
-            hir::QubitInitKind::Err => unreachable!("error qubit init should not be present"),
-        };
-
-        fir::QubitInit {
-            id,
-            span: init.span,
-            ty,
-            kind,
-        }
-    }
-
     fn lower_id(&mut self, id: hir::NodeId) -> fir::NodeId {
         self.nodes.get(id).copied().unwrap_or_else(|| {
             let new_id = self.assigner.next_node();
@@ -431,17 +418,25 @@ impl Lowerer {
         })
     }
 
+    fn lower_local_id(&mut self, id: hir::NodeId) -> fir::LocalVarId {
+        self.locals.get(id).copied().unwrap_or_else(|| {
+            let new_id = self.assigner.next_local();
+            self.locals.insert(id, new_id);
+            new_id
+        })
+    }
+
     fn lower_res(&mut self, res: &hir::Res) -> fir::Res {
         match res {
             hir::Res::Item(item) => fir::Res::Item(lower_item_id(item)),
-            hir::Res::Local(node) => fir::Res::Local(self.lower_id(*node)),
+            hir::Res::Local(node) => fir::Res::Local(self.lower_local_id(*node)),
             hir::Res::Err => fir::Res::Err,
         }
     }
 
     fn lower_ident(&mut self, ident: &hir::Ident) -> fir::Ident {
         fir::Ident {
-            id: self.lower_id(ident.id),
+            id: self.lower_local_id(ident.id),
             span: ident.span,
             name: ident.name.clone(),
         }
@@ -555,7 +550,7 @@ fn lower_functor_set(functors: &qsc_hir::ty::FunctorSet) -> qsc_fir::ty::Functor
         qsc_hir::ty::FunctorSet::Value(v) => {
             qsc_fir::ty::FunctorSet::Value(lower_functor_set_value(v))
         }
-        qsc_hir::ty::FunctorSet::Param(p) => {
+        qsc_hir::ty::FunctorSet::Param(p, _) => {
             qsc_fir::ty::FunctorSet::Param(ParamId::from(usize::from(p)))
         }
         qsc_hir::ty::FunctorSet::Infer(i) => {
@@ -675,13 +670,6 @@ fn lower_functor(functor: hir::Functor) -> fir::Functor {
     match functor {
         hir::Functor::Adj => fir::Functor::Adj,
         hir::Functor::Ctl => fir::Functor::Ctl,
-    }
-}
-
-fn lower_qubit_source(functor: hir::QubitSource) -> fir::QubitSource {
-    match functor {
-        hir::QubitSource::Dirty => fir::QubitSource::Dirty,
-        hir::QubitSource::Fresh => fir::QubitSource::Fresh,
     }
 }
 

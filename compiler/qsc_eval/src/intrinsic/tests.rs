@@ -134,10 +134,6 @@ impl Backend for CustomSim {
         self.sim.qubit_is_zero(q)
     }
 
-    fn reinit(&mut self) {
-        self.sim.reinit();
-    }
-
     fn custom_intrinsic(&mut self, name: &str, arg: Value) -> Option<Result<Value, String>> {
         match name {
             "Add1" => Some(Ok(Value::Int(arg.unwrap_int() + 1))),
@@ -253,7 +249,7 @@ fn dump_machine() {
         "Microsoft.Quantum.Diagnostics.DumpMachine()",
         &expect![[r#"
             STATE:
-            |0⟩: 1+0i
+            |0⟩: 1.0000+0.0000𝑖
         "#]],
     );
 }
@@ -268,7 +264,7 @@ fn dump_machine_qubit_count() {
         }"},
         &expect![[r#"
             STATE:
-            |0000⟩: 1+0i
+            |0000⟩: 1.0000+0.0000𝑖
         "#]],
     );
 }
@@ -285,7 +281,7 @@ fn dump_machine_endianness() {
         }"},
         &expect![[r#"
             STATE:
-            |0010⟩: 1+0i
+            |0100⟩: 1.0000+0.0000𝑖
         "#]],
     );
 }
@@ -1049,7 +1045,7 @@ fn qubit_nested_bind_not_released() {
         }"},
         &expect![[r#"
             STATE:
-            |10⟩: 1+0i
+            |01⟩: 1.0000+0.0000𝑖
         "#]],
     );
 }

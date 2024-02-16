@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{self, CallableDecl, Ident, NodeId, TopLevelNode},
+    ast::{self, CallableBody, CallableDecl, Ident, NodeId, SpecBody, SpecGen, TopLevelNode},
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -83,6 +83,13 @@ pub(super) enum Error {
     #[diagnostic(help("a name cannot shadow another name in the same pattern"))]
     #[diagnostic(code("Qsc.Resolve.DuplicateBinding"))]
     DuplicateBinding(String, #[label] Span),
+
+    #[error("duplicate intrinsic `{0}`")]
+    #[diagnostic(help(
+        "each callable declared as `body intrinsic` must have a globally unique name"
+    ))]
+    #[diagnostic(code("Qsc.Resolve.DuplicateIntrinsic"))]
+    DuplicateIntrinsic(String, #[label] Span),
 
     #[error("`{0}` not found")]
     #[diagnostic(code("Qsc.Resolve.NotFound"))]
@@ -233,6 +240,7 @@ pub struct GlobalScope {
     tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
     terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
     namespaces: FxHashSet<Rc<str>>,
+    intrinsics: FxHashSet<Rc<str>>,
 }
 
 impl GlobalScope {
@@ -750,6 +758,7 @@ impl GlobalTable {
                 tys,
                 terms: FxHashMap::default(),
                 namespaces: FxHashSet::default(),
+                intrinsics: FxHashSet::default(),
             },
         }
     }
@@ -780,27 +789,34 @@ impl GlobalTable {
     }
 
     pub(super) fn add_external_package(&mut self, id: PackageId, package: &hir::Package) {
-        for global in global::iter_package(Some(id), package)
-            .filter(|global| global.visibility == hir::Visibility::Public)
-        {
-            match global.kind {
-                global::Kind::Ty(ty) => {
+        for global in global::iter_package(Some(id), package).filter(|global| {
+            global.visibility == hir::Visibility::Public
+                || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
+        }) {
+            match (global.kind, global.visibility) {
+                (global::Kind::Ty(ty), hir::Visibility::Public) => {
                     self.scope
                         .tys
                         .entry(global.namespace)
                         .or_default()
                         .insert(global.name, Res::Item(ty.id, global.status));
                 }
-                global::Kind::Term(term) => {
-                    self.scope
-                        .terms
-                        .entry(global.namespace)
-                        .or_default()
-                        .insert(global.name, Res::Item(term.id, global.status));
+                (global::Kind::Term(term), visibility) => {
+                    if visibility == hir::Visibility::Public {
+                        self.scope
+                            .terms
+                            .entry(global.namespace)
+                            .or_default()
+                            .insert(global.name.clone(), Res::Item(term.id, global.status));
+                    }
+                    if term.intrinsic {
+                        self.scope.intrinsics.insert(global.name);
+                    }
                 }
-                global::Kind::Namespace => {
+                (global::Kind::Namespace, hir::Visibility::Public) => {
                     self.scope.namespaces.insert(global.name);
                 }
+                (_, hir::Visibility::Internal) => {}
             }
         }
     }
@@ -828,7 +844,7 @@ fn bind_global_items(
             item,
         ) {
             Ok(()) => {}
-            Err(error) => errors.push(error),
+            Err(mut e) => errors.append(&mut e),
         }
     }
 }
@@ -881,28 +897,41 @@ fn bind_global_item(
     namespace: &Rc<str>,
     next_id: impl FnOnce() -> ItemId,
     item: &ast::Item,
-) -> Result<(), Error> {
+) -> Result<(), Vec<Error>> {
     match &*item.kind {
         ast::ItemKind::Callable(decl) => {
             let item_id = next_id();
             let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
             let res = Res::Item(item_id, status);
             names.insert(decl.name.id, res);
+            let mut errors = Vec::new();
             match scope
                 .terms
                 .entry(Rc::clone(namespace))
                 .or_default()
                 .entry(Rc::clone(&decl.name.name))
             {
-                Entry::Occupied(_) => Err(Error::Duplicate(
+                Entry::Occupied(_) => errors.push(Error::Duplicate(
                     decl.name.name.to_string(),
                     namespace.to_string(),
                     decl.name.span,
                 )),
                 Entry::Vacant(entry) => {
                     entry.insert(res);
-                    Ok(())
                 }
+            }
+
+            if decl_is_intrinsic(decl) && !scope.intrinsics.insert(Rc::clone(&decl.name.name)) {
+                errors.push(Error::DuplicateIntrinsic(
+                    decl.name.name.to_string(),
+                    decl.name.span,
+                ));
+            }
+
+            if errors.is_empty() {
+                Ok(())
+            } else {
+                Err(errors)
             }
         }
         ast::ItemKind::Ty(name, _) => {
@@ -922,11 +951,11 @@ fn bind_global_item(
                     .or_default()
                     .entry(Rc::clone(&name.name)),
             ) {
-                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(Error::Duplicate(
+                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(vec![Error::Duplicate(
                     name.name.to_string(),
                     namespace.to_string(),
                     name.span,
-                )),
+                )]),
                 (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
                     term_entry.insert(res);
                     ty_entry.insert(res);
@@ -935,6 +964,16 @@ fn bind_global_item(
             }
         }
         ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
+    }
+}
+
+fn decl_is_intrinsic(decl: &ast::CallableDecl) -> bool {
+    if let CallableBody::Specs(specs) = decl.body.as_ref() {
+        specs
+            .iter()
+            .any(|spec| matches!(spec.body, SpecBody::Gen(SpecGen::Intrinsic)))
+    } else {
+        false
     }
 }
 

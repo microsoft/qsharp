@@ -4,13 +4,14 @@
 use crate::{
     diagnostic::VSDiagnostic,
     into_async_rust_fn_with,
+    line_column::{ILocation, IPosition, Location, Position, Range},
     project_system::{
         get_manifest_transformer, list_directory_transformer, read_file_transformer,
         GetManifestCallback, ListDirectoryCallback, ReadFileCallback,
     },
     serializable_type,
 };
-use qsc::{self, target::Profile, PackageType};
+use qsc::{self, line_column::Encoding, target::Profile, PackageType};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -26,7 +27,7 @@ impl LanguageService {
     #[wasm_bindgen(constructor)]
     #[allow(clippy::new_without_default)] // wasm-bindgen requires constructor to be explicitly defined
     pub fn new() -> Self {
-        LanguageService(qsls::LanguageService::default())
+        LanguageService(qsls::LanguageService::new(Encoding::Utf16))
     }
 
     pub fn start_background_work(
@@ -134,8 +135,9 @@ impl LanguageService {
         self.0.close_notebook_document(notebook_uri);
     }
 
-    pub fn get_completions(&self, uri: &str, offset: u32) -> ICompletionList {
-        let completion_list = self.0.get_completions(uri, offset);
+    pub fn get_completions(&self, uri: &str, position: IPosition) -> ICompletionList {
+        let position: Position = position.into();
+        let completion_list = self.0.get_completions(uri, position.into());
         CompletionList {
             items: completion_list
                 .items
@@ -158,10 +160,7 @@ impl LanguageService {
                         edits
                             .into_iter()
                             .map(|(span, text)| TextEdit {
-                                range: Span {
-                                    start: span.start,
-                                    end: span.end,
-                                },
+                                range: span.into(),
                                 newText: text,
                             })
                             .collect()
@@ -172,39 +171,25 @@ impl LanguageService {
         .into()
     }
 
-    pub fn get_definition(&self, uri: &str, offset: u32) -> Option<ILocation> {
-        let definition = self.0.get_definition(uri, offset);
-        definition.map(|definition| {
-            Location {
-                source: definition.source,
-                span: Span {
-                    start: definition.span.start,
-                    end: definition.span.end,
-                },
-            }
-            .into()
-        })
+    pub fn get_definition(&self, uri: &str, position: IPosition) -> Option<ILocation> {
+        let position: Position = position.into();
+        let definition = self.0.get_definition(uri, position.into());
+        definition.map(|definition| Location::from(definition).into())
     }
 
     pub fn get_references(
         &self,
         uri: &str,
-        offset: u32,
+        position: IPosition,
         include_declaration: bool,
     ) -> Vec<ILocation> {
-        let locations = self.0.get_references(uri, offset, include_declaration);
+        let position: Position = position.into();
+        let locations = self
+            .0
+            .get_references(uri, position.into(), include_declaration);
         locations
             .into_iter()
-            .map(|loc| {
-                Location {
-                    source: loc.source,
-                    span: Span {
-                        start: loc.span.start,
-                        end: loc.span.end,
-                    },
-                }
-                .into()
-            })
+            .map(|loc| Location::from(loc).into())
             .collect()
     }
 
@@ -225,22 +210,21 @@ impl LanguageService {
             .collect()
     }
 
-    pub fn get_hover(&self, uri: &str, offset: u32) -> Option<IHover> {
-        let hover = self.0.get_hover(uri, offset);
+    pub fn get_hover(&self, uri: &str, position: IPosition) -> Option<IHover> {
+        let position: Position = position.into();
+        let hover = self.0.get_hover(uri, position.into());
         hover.map(|hover| {
             Hover {
                 contents: hover.contents,
-                span: Span {
-                    start: hover.span.start,
-                    end: hover.span.end,
-                },
+                span: hover.span.into(),
             }
             .into()
         })
     }
 
-    pub fn get_signature_help(&self, uri: &str, offset: u32) -> Option<ISignatureHelp> {
-        let sig_help = self.0.get_signature_help(uri, offset);
+    pub fn get_signature_help(&self, uri: &str, position: IPosition) -> Option<ISignatureHelp> {
+        let position: Position = position.into();
+        let sig_help = self.0.get_signature_help(uri, position.into());
         sig_help.map(|sig_help| {
             SignatureHelp {
                 signatures: sig_help
@@ -253,10 +237,7 @@ impl LanguageService {
                             .parameters
                             .into_iter()
                             .map(|param| ParameterInformation {
-                                label: Span {
-                                    start: param.label.start,
-                                    end: param.label.end,
-                                },
+                                label: param.label,
                                 documentation: param.documentation.unwrap_or_default(),
                             })
                             .collect(),
@@ -269,18 +250,19 @@ impl LanguageService {
         })
     }
 
-    pub fn get_rename(&self, uri: &str, offset: u32, new_name: &str) -> IWorkspaceEdit {
-        let locations = self.0.get_rename(uri, offset);
+    pub fn get_rename(&self, uri: &str, position: IPosition, new_name: &str) -> IWorkspaceEdit {
+        let position: Position = position.into();
+        let locations = self.0.get_rename(uri, position.into());
 
         let mut renames: FxHashMap<String, Vec<TextEdit>> = FxHashMap::default();
         locations.into_iter().for_each(|l| {
-            renames.entry(l.source).or_default().push(TextEdit {
-                range: Span {
-                    start: l.span.start,
-                    end: l.span.end,
-                },
-                newText: new_name.to_string(),
-            })
+            renames
+                .entry(l.source.to_string())
+                .or_default()
+                .push(TextEdit {
+                    range: l.range.into(),
+                    newText: new_name.to_string(),
+                })
         });
 
         let workspace_edit = WorkspaceEdit {
@@ -290,14 +272,12 @@ impl LanguageService {
         workspace_edit.into()
     }
 
-    pub fn prepare_rename(&self, uri: &str, offset: u32) -> Option<ITextEdit> {
-        let result = self.0.prepare_rename(uri, offset);
+    pub fn prepare_rename(&self, uri: &str, position: IPosition) -> Option<ITextEdit> {
+        let position: Position = position.into();
+        let result = self.0.prepare_rename(uri, position.into());
         result.map(|r| {
             TextEdit {
-                range: Span {
-                    start: r.0.start,
-                    end: r.0.end,
-                },
+                range: r.0.into(),
                 newText: r.1,
             }
             .into()
@@ -350,11 +330,11 @@ serializable_type! {
 serializable_type! {
     TextEdit,
     {
-        pub range: Span,
+        pub range: Range,
         pub newText: String,
     },
     r#"export interface ITextEdit {
-        range: ISpan;
+        range: IRange;
         newText: string;
     }"#,
     ITextEdit
@@ -364,26 +344,13 @@ serializable_type! {
     Hover,
     {
         pub contents: String,
-        pub span: Span,
+        pub span: Range,
     },
     r#"export interface IHover {
         contents: string;
-        span: ISpan
+        span: IRange
     }"#,
     IHover
-}
-
-serializable_type! {
-    Location,
-    {
-        pub source: String,
-        pub span: Span,
-    },
-    r#"export interface ILocation {
-        source: string;
-        span: ISpan;
-    }"#,
-    ILocation
 }
 
 serializable_type! {
@@ -418,11 +385,11 @@ serializable_type! {
 serializable_type! {
     ParameterInformation,
     {
-        label: Span,
+        label: (u32,u32),
         documentation: String,
     },
     r#"export interface IParameterInformation {
-        label: ISpan;
+        label: [number, number];
         documentation: string;
     }"#
 }
@@ -436,18 +403,6 @@ serializable_type! {
         changes: [string, ITextEdit[]][];
     }"#,
     IWorkspaceEdit
-}
-
-serializable_type! {
-    Span,
-    {
-        pub start: u32,
-        pub end: u32,
-    },
-    r#"export interface ISpan {
-        start: number;
-        end: number;
-    }"#
 }
 
 serializable_type! {

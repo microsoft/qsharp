@@ -1051,3 +1051,55 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
     "#]]
     .assert_debug_eq(&unit.errors);
 }
+
+#[test]
+fn duplicate_intrinsic_from_dependency() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo {
+                    operation Bar() : Unit { body intrinsic; }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let mut store = PackageStore::new(super::core());
+    let lib = compile(&store, &[], lib_sources, RuntimeCapabilityFlags::all());
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
+    let lib = store.insert(lib);
+
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Test {
+                    operation Bar() : Unit { body intrinsic; }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let unit = compile(&store, &[lib], sources, RuntimeCapabilityFlags::all());
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    DuplicateIntrinsic(
+                        "Bar",
+                        Span {
+                            lo: 31,
+                            hi: 34,
+                        },
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}

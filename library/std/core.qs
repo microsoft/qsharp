@@ -82,4 +82,24 @@ namespace Microsoft.Quantum.Core {
         let start = r::Start + ((r::End - r::Start) / r::Step) * r::Step;
         start..-r::Step..r::Start
     }
+
+    /// # Summary
+    /// Returns true if and only if the input range is empty.
+    ///
+    /// # Input
+    /// ## rng
+    /// Any range
+    ///
+    /// # Output
+    /// True, if and only if `rng` is empty
+    ///
+    /// # Remark
+    /// This function needs to check at most one range index
+    /// to determine whether the range is empty.
+    function IsRangeEmpty(rng : Range) : Bool {
+        for idx in rng {
+            return false;
+        }
+        return true;
+    }
 }

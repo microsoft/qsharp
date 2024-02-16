@@ -22,16 +22,17 @@ use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
+use qsc_data_structures::index_map::IndexMap;
 use qsc_data_structures::span::Span;
 use qsc_fir::fir::{
-    self, BinOp, BlockId, ExprId, ExprKind, Field, Functor, Global, Lit, LocalItemId, Mutability,
-    NodeId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, SpecBody, SpecGen,
-    StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
+    self, BinOp, BlockId, CallableImpl, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
+    LocalItemId, LocalVarId, Mutability, PackageId, PackageStoreLookup, PatId, PatKind, PrimField,
+    Res, StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
-use rustc_hash::FxHashMap;
+use rand::{rngs::StdRng, SeedableRng};
 use std::{
-    collections::hash_map::Entry,
+    cell::RefCell,
     fmt::{self, Display, Formatter, Write},
     iter,
     ops::Neg,
@@ -64,13 +65,6 @@ pub enum Error {
     #[error("integer too large for operation")]
     #[diagnostic(code("Qsc.Eval.IntTooLarge"))]
     IntTooLarge(i64, #[label("this value is too large")] PackageSpan),
-
-    #[error("missing specialization: {0}")]
-    #[diagnostic(code("Qsc.Eval.MissingSpec"))]
-    MissingSpec(
-        String,
-        #[label("callable has no {0} specialization")] PackageSpan,
-    ),
 
     #[error("index out of range: {0}")]
     #[diagnostic(code("Qsc.Eval.IndexOutOfRange"))]
@@ -116,6 +110,11 @@ pub enum Error {
         #[label("callable has no implementation")] PackageSpan,
     ),
 
+    #[error("unsupported return type for intrinsic `{0}`")]
+    #[diagnostic(help("intrinsic callable return type should be `Unit`"))]
+    #[diagnostic(code("Qsc.Eval.UnsupportedIntrinsicType"))]
+    UnsupportedIntrinsicType(String, #[label] PackageSpan),
+
     #[error("program failed: {0}")]
     #[diagnostic(code("Qsc.Eval.UserFail"))]
     UserFail(String, #[label("explicit fail")] PackageSpan),
@@ -134,13 +133,13 @@ impl Error {
             | Error::IntTooLarge(_, span)
             | Error::InvalidRotationAngle(_, span)
             | Error::InvalidNegativeInt(_, span)
-            | Error::MissingSpec(_, span)
             | Error::OutputFail(span)
             | Error::QubitUniqueness(span)
             | Error::RangeStepZero(span)
             | Error::ReleasedQubitNotZero(_, span)
             | Error::UnboundName(span)
             | Error::UnknownIntrinsic(_, span)
+            | Error::UnsupportedIntrinsicType(_, span)
             | Error::UserFail(_, span)
             | Error::InvalidArrayLength(_, span) => span,
         }
@@ -170,45 +169,47 @@ impl Display for Spec {
     }
 }
 
-/// Evaluates the given expr with the given context.
-/// # Errors
-/// Returns the first error encountered during execution.
-/// # Panics
-/// On internal error where no result is returned.
-pub fn eval_expr(
-    state: &mut State,
-    expr: ExprId,
-    globals: &impl PackageStoreLookup,
-    env: &mut Env,
-    sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    out: &mut impl Receiver,
-) -> Result<Value, (Error, Vec<Frame>)> {
-    state.push_expr(expr);
-    let res = state.eval(globals, env, sim, out, &[], StepAction::Continue)?;
-    let StepResult::Return(value) = res else {
-        panic!("eval_expr should always return a value");
-    };
-    Ok(value)
+/// An id either representing a statement or an expression to be evaluated.
+#[derive(Clone, Copy)]
+pub enum EvalId {
+    Expr(ExprId),
+    Stmt(StmtId),
 }
 
-/// Evaluates the given stmt with the given context.
+impl From<ExprId> for EvalId {
+    fn from(expr: ExprId) -> Self {
+        Self::Expr(expr)
+    }
+}
+
+impl From<StmtId> for EvalId {
+    fn from(stmt: StmtId) -> Self {
+        Self::Stmt(stmt)
+    }
+}
+
+/// Evaluates the given code with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
 /// # Panics
 /// On internal error where no result is returned.
-pub fn eval_stmt(
-    stmt: StmtId,
+pub fn eval(
+    package: PackageId,
+    seed: Option<u64>,
+    id: EvalId,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-    package: PackageId,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package);
-    state.push_stmt(stmt);
+    let mut state = State::new(package, seed);
+    match id {
+        EvalId::Expr(expr) => state.push_expr(expr),
+        EvalId::Stmt(stmt) => state.push_stmt(stmt),
+    }
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
-        panic!("eval_stmt should always return a value");
+        panic!("eval should always return a value");
     };
     Ok(value)
 }
@@ -266,7 +267,6 @@ pub struct VariableInfo {
     pub value: Value,
     pub name: Rc<str>,
     pub type_name: String,
-    pub id: NodeId,
     pub mutability: Mutability,
     pub span: Span,
 }
@@ -307,23 +307,19 @@ impl Range {
     }
 }
 
-#[derive(Default)]
 pub struct Env(Vec<Scope>);
 
 impl Env {
     #[must_use]
-    fn get(&self, id: NodeId) -> Option<&Variable> {
-        self.0
-            .iter()
-            .rev()
-            .find_map(|scope| scope.bindings.get(&id))
+    fn get(&self, id: LocalVarId) -> Option<&Variable> {
+        self.0.iter().rev().find_map(|scope| scope.bindings.get(id))
     }
 
-    fn get_mut(&mut self, id: NodeId) -> Option<&mut Variable> {
+    fn get_mut(&mut self, id: LocalVarId) -> Option<&mut Variable> {
         self.0
             .iter_mut()
             .rev()
-            .find_map(|scope| scope.bindings.get_mut(&id))
+            .find_map(|scope| scope.bindings.get_mut(id))
     }
 
     fn push_scope(&mut self, frame_id: usize) {
@@ -362,8 +358,7 @@ impl Env {
             .into_iter()
             .map(|bindings| {
                 bindings
-                    .map(|(id, var)| VariableInfo {
-                        id: *id,
+                    .map(|(_, var)| VariableInfo {
                         name: var.name.clone(),
                         type_name: var.value.type_name().to_string(),
                         value: var.value.clone(),
@@ -379,19 +374,19 @@ impl Env {
 
 #[derive(Default)]
 struct Scope {
-    bindings: FxHashMap<NodeId, Variable>,
+    bindings: IndexMap<LocalVarId, Variable>,
     frame_id: usize,
 }
 
-impl Env {
+impl Default for Env {
     #[must_use]
-    pub fn with_empty_scope() -> Self {
+    fn default() -> Self {
         Self(vec![Scope::default()])
     }
 }
 
 enum Cont {
-    Action(Action),
+    Action,
     Expr(ExprId),
     Frame(usize),
     Scope,
@@ -425,35 +420,49 @@ enum Action {
 }
 
 pub struct State {
-    stack: Vec<Cont>,
+    cont_stack: Vec<Cont>,
+    action_stack: Vec<Action>,
     vals: Vec<Value>,
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
+    rng: RefCell<StdRng>,
 }
 
 impl State {
     #[must_use]
-    pub fn new(package: PackageId) -> Self {
+    pub fn new(package: PackageId, classical_seed: Option<u64>) -> Self {
+        let rng = match classical_seed {
+            Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
+            None => RefCell::new(StdRng::from_entropy()),
+        };
         Self {
-            stack: Vec::new(),
+            cont_stack: Vec::new(),
+            action_stack: Vec::new(),
             vals: Vec::new(),
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
+            rng,
         }
     }
 
     fn pop_cont(&mut self) -> Option<Cont> {
-        self.stack.pop()
+        self.cont_stack.pop()
     }
 
     fn push_action(&mut self, action: Action) {
-        self.stack.push(Cont::Action(action));
+        self.cont_stack.push(Cont::Action);
+        self.action_stack.push(action);
     }
 
     fn push_expr(&mut self, expr: ExprId) {
-        self.stack.push(Cont::Expr(expr));
+        self.cont_stack.push(Cont::Expr(expr));
+    }
+
+    fn push_exprs(&mut self, exprs: &[ExprId]) {
+        self.cont_stack
+            .extend(exprs.iter().rev().map(|expr| Cont::Expr(*expr)));
     }
 
     fn push_frame(&mut self, id: StoreItemId, functor: FunctorApp) {
@@ -463,7 +472,7 @@ impl State {
             caller: self.package,
             functor,
         });
-        self.stack.push(Cont::Frame(self.vals.len()));
+        self.cont_stack.push(Cont::Frame(self.vals.len()));
         self.package = id.package;
     }
 
@@ -480,11 +489,11 @@ impl State {
 
     fn push_scope(&mut self, env: &mut Env) {
         env.push_scope(self.call_stack.len());
-        self.stack.push(Cont::Scope);
+        self.cont_stack.push(Cont::Scope);
     }
 
     fn push_stmt(&mut self, stmt: StmtId) {
-        self.stack.push(Cont::Stmt(stmt));
+        self.cont_stack.push(Cont::Stmt(stmt));
     }
 
     fn push_block(&mut self, env: &mut Env, globals: &impl PackageStoreLookup, block: BlockId) {
@@ -496,8 +505,8 @@ impl State {
         }
         if block.stmts.is_empty() {
             self.push_val(Value::unit());
-        } else {
-            self.pop_cont();
+        } else if let Some(Cont::Action) = self.pop_cont() {
+            self.action_stack.pop();
         }
     }
 
@@ -541,7 +550,8 @@ impl State {
 
         while let Some(cont) = self.pop_cont() {
             let res = match cont {
-                Cont::Action(action) => {
+                Cont::Action => {
+                    let action = self.action_stack.pop().expect("action should be present");
                     self.cont_action(env, sim, globals, action, out)
                         .map_err(|e| (e, self.get_stack_frames()))?;
                     continue;
@@ -611,12 +621,12 @@ impl State {
             ExprKind::Array(arr) => self.cont_arr(arr),
             ExprKind::ArrayRepeat(item, size) => self.cont_arr_repeat(globals, *item, *size),
             ExprKind::Assign(lhs, rhs) => self.cont_assign(*lhs, *rhs),
-            ExprKind::AssignOp(op, lhs, rhs) => self.cont_assign_op(globals, *op, *lhs, *rhs),
+            ExprKind::AssignOp(op, lhs, rhs) => self.cont_assign_op(env, globals, *op, *lhs, *rhs),
             ExprKind::AssignField(record, field, replace) => {
                 self.cont_assign_field(*record, field, *replace);
             }
             ExprKind::AssignIndex(lhs, mid, rhs) => {
-                self.cont_assign_index(globals, *lhs, *mid, *rhs);
+                self.cont_assign_index(env, globals, *lhs, *mid, *rhs);
             }
             ExprKind::BinOp(op, lhs, rhs) => self.cont_binop(globals, *op, *rhs, *lhs),
             ExprKind::Block(block) => self.push_block(env, globals, *block),
@@ -655,16 +665,12 @@ impl State {
 
     fn cont_tup(&mut self, tup: &Vec<ExprId>) {
         self.push_action(Action::Tuple(tup.len()));
-        for tup_expr in tup.iter().rev() {
-            self.push_expr(*tup_expr);
-        }
+        self.push_exprs(tup);
     }
 
     fn cont_arr(&mut self, arr: &Vec<ExprId>) {
         self.push_action(Action::Array(arr.len()));
-        for entry in arr.iter().rev() {
-            self.push_expr(*entry);
-        }
+        self.push_exprs(arr);
     }
 
     fn cont_arr_repeat(&mut self, globals: &impl PackageStoreLookup, item: ExprId, size: ExprId) {
@@ -697,22 +703,21 @@ impl State {
 
     fn cont_assign_op(
         &mut self,
+        env: &Env,
         globals: &impl PackageStoreLookup,
         op: BinOp,
         lhs: ExprId,
         rhs: ExprId,
     ) {
-        // If we know the assign op is an array append, as in `set arr += other;`, we should perform it in-place.
-        if op == BinOp::Add
-            && matches!(
-                globals.get_expr((self.package, lhs).into()).ty,
-                Ty::Array(_)
-            )
-        {
-            self.push_action(Action::ArrayAppendInPlace(lhs));
-            self.push_expr(rhs);
-            self.push_val(Value::unit());
-            return;
+        // If we know the assign op is an array append, as in `set arr += other;`, we should attempt to perform it in-place.
+        if op == BinOp::Add {
+            let expr = globals.get_expr((self.package, lhs).into());
+            if matches!(expr.ty, Ty::Array(_)) && is_updatable_in_place(env, expr) {
+                self.push_action(Action::ArrayAppendInPlace(lhs));
+                self.push_expr(rhs);
+                self.push_val(Value::unit());
+                return;
+            }
         }
 
         self.push_action(Action::Assign(lhs));
@@ -728,16 +733,23 @@ impl State {
 
     fn cont_assign_index(
         &mut self,
+        env: &Env,
         globals: &impl PackageStoreLookup,
         lhs: ExprId,
         mid: ExprId,
         rhs: ExprId,
     ) {
-        let span = globals.get_expr((self.package, mid).into()).span;
-        self.push_action(Action::UpdateIndexInPlace(lhs, span));
-        self.push_expr(rhs);
-        self.push_expr(mid);
-        self.push_val(Value::unit());
+        if is_updatable_in_place(env, globals.get_expr((self.package, lhs).into())) {
+            let span = globals.get_expr((self.package, mid).into()).span;
+            self.push_action(Action::UpdateIndexInPlace(lhs, span));
+            self.push_expr(rhs);
+            self.push_expr(mid);
+            self.push_val(Value::unit());
+        } else {
+            self.push_action(Action::Assign(lhs));
+            self.update_index(globals, lhs, mid, rhs);
+            self.push_val(Value::unit());
+        }
     }
 
     fn cont_field(&mut self, expr: ExprId, field: &Field) {
@@ -871,7 +883,6 @@ impl State {
                 self.push_expr(*expr);
                 self.push_val(Value::unit());
             }
-            StmtKind::Qubit(..) => panic!("qubit use-stmt should be eliminated by passes"),
             StmtKind::Semi(expr) => {
                 self.push_action(Action::Consume);
                 self.push_expr(*expr);
@@ -897,8 +908,8 @@ impl State {
             Action::Assign(lhs) => self.eval_assign(env, globals, lhs)?,
             Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
             Action::Bind(pat, mutability) => self.eval_bind(env, globals, pat, mutability),
-            Action::Call(callee_span, args_span) => {
-                self.eval_call(env, sim, globals, callee_span, args_span, out)?;
+            Action::Call(callable_span, args_span) => {
+                self.eval_call(env, sim, globals, callable_span, args_span, out)?;
             }
             Action::Consume => {
                 self.pop_val();
@@ -944,7 +955,7 @@ impl State {
         let lhs = globals.get_expr((self.package, lhs).into());
         let rhs = self.pop_val();
         match (&lhs.kind, rhs) {
-            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+            (&ExprKind::Var(Res::Local(id), _), rhs) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     var.value.append_array(rhs);
                 }
@@ -1061,7 +1072,7 @@ impl State {
         env: &mut Env,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl PackageStoreLookup,
-        callee_span: Span,
+        callable_span: Span,
         arg_span: Span,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
@@ -1072,7 +1083,6 @@ impl State {
             _ => panic!("value is not callable"),
         };
 
-        let callee_span = self.to_global_span(callee_span);
         let arg_span = self.to_global_span(arg_span);
 
         let callee = match globals.get_global(callee_id) {
@@ -1081,41 +1091,55 @@ impl State {
                 self.push_val(arg);
                 return Ok(());
             }
-            None => return Err(Error::UnboundName(callee_span)),
+            None => return Err(Error::UnboundName(self.to_global_span(callable_span))),
         };
+
+        let callee_span = self.to_global_span(callee.span);
 
         let spec = spec_from_functor_app(functor);
         self.push_frame(callee_id, functor);
         self.push_scope(env);
-        let block_body = &match spec {
-            Spec::Body => Some(&callee.body),
-            Spec::Adj => callee.adj.as_ref(),
-            Spec::Ctl => callee.ctl.as_ref(),
-            Spec::CtlAdj => callee.ctl_adj.as_ref(),
-        }
-        .ok_or(Error::MissingSpec(spec.to_string(), callee_span))?
-        .body;
-        match block_body {
-            SpecBody::Impl(input, body_block) => {
+        match &callee.implementation {
+            CallableImpl::Intrinsic => {
+                let name = &callee.name.name;
+                let val = intrinsic::call(
+                    name,
+                    callee_span,
+                    arg,
+                    arg_span,
+                    sim,
+                    &mut self.rng.borrow_mut(),
+                    out,
+                )?;
+                if val == Value::unit() && callee.output != Ty::UNIT {
+                    return Err(Error::UnsupportedIntrinsicType(
+                        callee.name.name.to_string(),
+                        callee_span,
+                    ));
+                }
+                self.push_val(val);
+                Ok(())
+            }
+            CallableImpl::Spec(specialized_implementation) => {
+                let spec_decl = match spec {
+                    Spec::Body => Some(&specialized_implementation.body),
+                    Spec::Adj => specialized_implementation.adj.as_ref(),
+                    Spec::Ctl => specialized_implementation.ctl.as_ref(),
+                    Spec::CtlAdj => specialized_implementation.ctl_adj.as_ref(),
+                }
+                .expect("missing specialization should be a compilation error");
                 self.bind_args_for_spec(
                     env,
                     globals,
                     callee.input,
-                    *input,
+                    spec_decl.input,
                     arg,
                     functor.controlled,
                     fixed_args,
                 );
-                self.push_block(env, globals, *body_block);
+                self.push_block(env, globals, spec_decl.block);
                 Ok(())
             }
-            SpecBody::Gen(SpecGen::Intrinsic) => {
-                let name = &callee.name.name;
-                let val = intrinsic::call(name, callee_span, arg, arg_span, sim, out)?;
-                self.push_val(val);
-                Ok(())
-            }
-            SpecBody::Gen(_) => Err(Error::MissingSpec(spec.to_string(), callee_span)),
         }
     }
 
@@ -1189,6 +1213,9 @@ impl State {
                     break;
                 }
                 Cont::Scope => env.leave_scope(),
+                Cont::Action => {
+                    self.action_stack.pop();
+                }
                 _ => {}
             }
         }
@@ -1377,15 +1404,15 @@ impl State {
         match &pat.kind {
             PatKind::Bind(variable) => {
                 let scope = env.0.last_mut().expect("binding should have a scope");
-                match scope.bindings.entry(variable.id) {
-                    Entry::Vacant(entry) => entry.insert(Variable {
+                scope.bindings.insert(
+                    variable.id,
+                    Variable {
                         name: variable.name.clone(),
                         value: val,
                         mutability,
                         span: variable.span,
-                    }),
-                    Entry::Occupied(_) => panic!("duplicate binding"),
-                };
+                    },
+                );
             }
             PatKind::Discard => {}
             PatKind::Tuple(tup) => {
@@ -1408,7 +1435,7 @@ impl State {
         let lhs = globals.get_expr((self.package, lhs).into());
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => {}
-            (&ExprKind::Var(Res::Local(node), _), rhs) => match env.get_mut(node) {
+            (&ExprKind::Var(Res::Local(id), _), rhs) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     var.value = rhs;
                 }
@@ -1438,7 +1465,7 @@ impl State {
     ) -> Result<(), Error> {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
-            &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
+            &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     var.value.update_array(index, rhs).map_err(|idx| {
                         Error::IndexOutOfRange(idx.try_into().expect("index should be valid"), span)
@@ -1466,7 +1493,7 @@ impl State {
     ) -> Result<(), Error> {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
-            &ExprKind::Var(Res::Local(node), _) => match env.get_mut(node) {
+            &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
                 Some(var) if var.is_mutable() => {
                     let rhs = update.unwrap_array();
                     let Value::Array(arr) = &mut var.value else {
@@ -1578,8 +1605,8 @@ fn resolve_binding(env: &Env, package: PackageId, res: Res, span: Span) -> Resul
             },
             FunctorApp::default(),
         ),
-        Res::Local(node) => env
-            .get(node)
+        Res::Local(id) => env
+            .get(id)
             .ok_or(Error::UnboundName(PackageSpan {
                 package: map_fir_package_to_hir(package),
                 span,
@@ -1602,7 +1629,7 @@ fn resolve_closure(
     env: &Env,
     package: PackageId,
     span: Span,
-    args: &[NodeId],
+    args: &[LocalVarId],
     callable: LocalItemId,
 ) -> Result<Value, Error> {
     let args: Option<_> = args
@@ -2044,5 +2071,18 @@ fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<
             Some(Value::Tuple(items?))
         }
         _ => None,
+    }
+}
+
+fn is_updatable_in_place(env: &Env, expr: &Expr) -> bool {
+    match &expr.kind {
+        ExprKind::Var(Res::Local(id), _) => match env.get(*id) {
+            Some(var) if var.is_mutable() => match &var.value {
+                Value::Array(var) => Rc::weak_count(var) + Rc::strong_count(var) == 1,
+                _ => false,
+            },
+            _ => false,
+        },
+        _ => false,
     }
 }

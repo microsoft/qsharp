@@ -5,10 +5,10 @@
 
 use super::get_references;
 use crate::{
-    protocol,
     test_utils::{
         compile_notebook_with_fake_stdlib_and_markers, compile_with_fake_stdlib_and_markers,
     },
+    Encoding,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
@@ -16,8 +16,15 @@ use indoc::indoc;
 /// Asserts that the reference locations given at the cursor position matches the expected reference locations.
 /// The cursor position is indicated by a `↘` marker in the source text.
 fn check_with_std(source_with_markers: &str, expect: &Expect) {
-    let (compilation, cursor_offset, _) = compile_with_fake_stdlib_and_markers(source_with_markers);
-    let actual = get_references(&compilation, "<source>", cursor_offset, true);
+    let (compilation, cursor_position, _) =
+        compile_with_fake_stdlib_and_markers(source_with_markers);
+    let actual = get_references(
+        &compilation,
+        "<source>",
+        cursor_position,
+        Encoding::Utf8,
+        true,
+    );
     expect.assert_debug_eq(&actual);
 }
 
@@ -25,12 +32,18 @@ fn check_with_std(source_with_markers: &str, expect: &Expect) {
 /// The cursor position is indicated by a `↘` marker in the source text.
 /// The expected reference location ranges are indicated by `◉` markers in the source text.
 fn check(source_with_markers: &str, include_declaration: bool) {
-    let (compilation, cursor_offset, target_spans) =
+    let (compilation, cursor_position, target_spans) =
         compile_with_fake_stdlib_and_markers(source_with_markers);
-    let actual = get_references(&compilation, "<source>", cursor_offset, include_declaration)
-        .into_iter()
-        .map(|l| l.span)
-        .collect::<Vec<_>>();
+    let actual = get_references(
+        &compilation,
+        "<source>",
+        cursor_position,
+        Encoding::Utf8,
+        include_declaration,
+    )
+    .into_iter()
+    .map(|l| l.range)
+    .collect::<Vec<_>>();
     for target in &target_spans {
         assert!(
             actual.contains(target),
@@ -49,18 +62,15 @@ fn check_exclude_decl(source_with_markers: &str) {
 }
 
 fn check_notebook_exclude_decl(cells_with_markers: &[(&str, &str)]) {
-    let (compilation, cell_uri, offset, target_spans) =
+    let (compilation, cell_uri, position, target_spans) =
         compile_notebook_with_fake_stdlib_and_markers(cells_with_markers);
 
-    let actual = get_references(&compilation, &cell_uri, offset, false)
+    let actual = get_references(&compilation, &cell_uri, position, Encoding::Utf8, false)
         .into_iter()
         .collect::<Vec<_>>();
     for target in &target_spans {
         assert!(
-            actual.contains(&protocol::Location {
-                source: target.0.clone(),
-                span: target.1
-            }),
+            actual.contains(target),
             "expected {actual:?} to contain {target:?}"
         );
     }
@@ -84,23 +94,41 @@ fn std_callable_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Span {
-                        start: 49,
-                        end: 53,
+                    range: Range {
+                        start: Position {
+                            line: 1,
+                            column: 26,
+                        },
+                        end: Position {
+                            line: 1,
+                            column: 30,
+                        },
                     },
                 },
                 Location {
                     source: "<source>",
-                    span: Span {
-                        start: 75,
-                        end: 79,
+                    range: Range {
+                        start: Position {
+                            line: 3,
+                            column: 8,
+                        },
+                        end: Position {
+                            line: 3,
+                            column: 12,
+                        },
                     },
                 },
                 Location {
                     source: "<source>",
-                    span: Span {
-                        start: 110,
-                        end: 114,
+                    range: Range {
+                        start: Position {
+                            line: 5,
+                            column: 8,
+                        },
+                        end: Position {
+                            line: 5,
+                            column: 12,
+                        },
                     },
                 },
             ]
@@ -223,16 +251,28 @@ fn std_udt_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Span {
-                        start: 211,
-                        end: 214,
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 24,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 27,
+                        },
                     },
                 },
                 Location {
                     source: "<source>",
-                    span: Span {
-                        start: 60,
-                        end: 63,
+                    range: Range {
+                        start: Position {
+                            line: 2,
+                            column: 22,
+                        },
+                        end: Position {
+                            line: 2,
+                            column: 25,
+                        },
                     },
                 },
             ]
@@ -301,16 +341,28 @@ fn std_field_ref() {
             [
                 Location {
                     source: "qsharp-library-source:<std>",
-                    span: Span {
-                        start: 218,
-                        end: 219,
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 31,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 32,
+                        },
                     },
                 },
                 Location {
                     source: "<source>",
-                    span: Span {
-                        start: 119,
-                        end: 120,
+                    range: Range {
+                        start: Position {
+                            line: 4,
+                            column: 23,
+                        },
+                        end: Position {
+                            line: 4,
+                            column: 24,
+                        },
                     },
                 },
             ]

@@ -74,7 +74,12 @@ jobs:
     name: Build and test
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-14]
+        is_pr:
+          - ${{ github.event_name == 'pull_request' }}
+        exclude:
+          - os: macos-14
+            is_pr: true
 
     runs-on: ${{matrix.os}}
 
@@ -89,8 +94,8 @@ jobs:
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Add additional Rust targets
         run: |
-          rustup target add aarch64-apple-darwin
-        if: matrix.os == 'macos-latest'
+          rustup target add x86_64-apple-darwin
+        if: matrix.os == 'macos-14'
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -105,11 +110,15 @@ jobs:
 
   integration-tests:
     name: Integration tests
-    if: ${{ ! github.event.pull_request }}
     timeout-minutes: 15
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-14]
+        is_pr:
+          - ${{ github.event_name == 'pull_request' }}
+        exclude:
+          - os: macos-14
+            is_pr: true
 
     runs-on: ${{matrix.os}}
 
@@ -124,8 +133,8 @@ jobs:
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Add additional Rust targets
         run: |
-          rustup target add aarch64-apple-darwin
-        if: matrix.os == 'macos-latest'
+          rustup target add x86_64-apple-darwin
+        if: matrix.os == 'macos-14'
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ env.PYTHON_VERSION }}
@@ -136,11 +145,14 @@ jobs:
       - name: Prereqs
         run: python ./prereqs.py --install
       - name: Run integration tests
-        run: python ./build.py --no-check --no-test --wasm --npm --vscode --integration-tests
+        run: python ./build.py --no-check --no-test --wasm --npm --vscode --pip --widgets --integration-tests
 
   runBenchmark:
     name: run benchmark
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v3
       - uses: boa-dev/criterion-compare-action@v3
@@ -152,6 +164,9 @@ jobs:
   runMemoryProfile:
     name: run memory profile
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v2
         with:
@@ -179,17 +194,31 @@ jobs:
         with:
           script: |
             if (${{ env.BRANCH_MEASUREMENT }} !== ${{ env.MAIN_MEASUREMENT }}) {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: `_Change in memory usage detected by benchmark._
-              ## Memory Report for ${{ github.sha }}
-              | Test                        | This Branch | On Main  |
-              |-----------------------------|-------------|----------|
-              | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes |`
-              })
+              try {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: `_Change in memory usage detected by benchmark._
+                ## Memory Report for ${{ github.sha }}
+                | Test                        | This Branch | On Main  |
+                |-----------------------------|-------------|----------|
+                | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes |`
+                })
+              } catch (err) {
+                core.warning(`Failed writing comment on GitHub issue: ${err}`)
+              }
             } else {
               console.log("no change in memory usage detected by benchmark");
             }
         if: ${{ github.base_ref != null }}
+
+  status-check:
+    name: Status Check
+    needs: [format, clippy, web-check, build, integration-tests, runBenchmark, runMemoryProfile]
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - run: |
+          echo "::error Build failed"
+          exit 1
