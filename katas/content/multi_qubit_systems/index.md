@@ -331,7 +331,7 @@ In the following exercises you will learn to prepare separable quantum states by
 You will only need knowledge from the Single-Qubit Gates kata for that.
 
 > In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`.
-Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation. -->
+Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_basis_state",

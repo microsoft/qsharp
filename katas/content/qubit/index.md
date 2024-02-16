@@ -158,14 +158,6 @@ That being said, when you run Q# code on a quantum simulator instead of a physic
 
 The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently. The `use` statement allocates a qubit (or multiple) that can be used until the end of the scope in which the statement was used: `use q = Qubit();` allocates a qubit and binds it to the variable `q`.
 
-> An alternative syntax for qubit allocation defines the explicit scope in which the allocated qubits are available:
-> ```
-use q = Qubit() {
-    // The qubit is only available within this scope.
-    // ...
-}
-// The qubit is no longer available here.
-
 Freshly allocated qubits start out in state $|0\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\rangle$, it will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
 
 ## Visualizing Quantum State
