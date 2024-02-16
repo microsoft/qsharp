@@ -6,7 +6,7 @@
 //! unique identifiers by a later stage.
 
 mod expr;
-//pub mod formatter;
+pub mod formatter;
 mod item;
 mod keyword;
 mod lex;
