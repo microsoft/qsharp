@@ -444,3 +444,21 @@ fn test_runtime_error_default_span() {
     expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","message":"runtime error: program failed: Cannot allocate qubit array with a negative length","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"related":[{"location":{"source":"core/qir.qs","span":{"end":{"character":69,"line":14},"start":{"character":12,"line":14}}},"message":"explicit fail"}],"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
+
+#[test]
+fn test_doc_gen() {
+    let docs = qsc_doc_gen::generate_docs::generate_docs();
+    assert!(docs.len() > 100);
+    for (name, contents) in docs {
+        // filename will be something like "Microsoft.Quantum.Canon/ApplyToEachC.md"
+        let filename = name.to_string();
+        // Text is the full markdown including initial metadata inside '---' blocks
+        let text = contents.to_string();
+        if filename.eq("toc.yml") {
+            assert!(text.contains("uid: Microsoft.Quantum.Core"));
+        } else {
+            assert!(filename.ends_with(".md"));
+            assert!(text.starts_with("---\n"));
+        }
+    }
+}

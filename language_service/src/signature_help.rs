@@ -5,8 +5,7 @@
 mod tests;
 
 use crate::{
-    compilation::{Compilation, Lookup},
-    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay},
+    compilation::Compilation,
     protocol::{ParameterInformation, SignatureHelp, SignatureInformation},
     qsc_utils::{span_contains, span_touches},
     Encoding,
@@ -16,6 +15,7 @@ use qsc::{
         self,
         visit::{walk_expr, walk_item, Visitor},
     },
+    display::{parse_doc_for_param, parse_doc_for_summary, CodeDisplay, Lookup},
     hir,
     line_column::{Position, Range},
     resolve, Span,

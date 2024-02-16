@@ -21,6 +21,7 @@ use qsc::{
 use qsc_codegen::qir_base::generate_qir;
 use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
 use resource_estimator::{self as re, estimate_entry};
+use serde::Serialize;
 use serde_json::json;
 use std::{collections::BTreeSet, fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
@@ -363,6 +364,27 @@ pub fn check_exercise_solution(
     check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     })
+}
+
+#[derive(Serialize)]
+struct DocFile {
+    filename: String,
+    contents: String,
+}
+
+#[wasm_bindgen]
+pub fn generate_docs() -> JsValue {
+    let docs = qsc_doc_gen::generate_docs::generate_docs();
+    let mut result: Vec<DocFile> = vec![];
+
+    for (name, contents) in docs {
+        result.push(DocFile {
+            filename: name.to_string(),
+            contents: contents.to_string(),
+        });
+    }
+
+    serde_wasm_bindgen::to_value(&result).expect("Serializing docs should succeed")
 }
 
 #[wasm_bindgen(typescript_custom_section)]

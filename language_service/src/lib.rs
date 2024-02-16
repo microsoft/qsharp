@@ -7,7 +7,6 @@
 mod compilation;
 pub mod completion;
 pub mod definition;
-mod display;
 pub mod hover;
 mod name_locator;
 mod project_system;

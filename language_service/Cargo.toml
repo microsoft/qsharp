@@ -20,8 +20,6 @@ log = { workspace = true }
 miette = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 rustc-hash = { workspace = true }
-enum-iterator = { workspace = true }
-regex-lite = { workspace = true }
 qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
 async-trait = { workspace = true }
 qsc_data_structures = { path = "../compiler/qsc_data_structures" }

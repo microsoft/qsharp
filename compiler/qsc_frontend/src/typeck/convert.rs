@@ -203,7 +203,7 @@ fn synthesize_functor_params(next_param: &mut ParamId, ty: &mut Ty) -> Vec<Gener
         Ty::Arrow(arrow) => match arrow.functors {
             FunctorSet::Value(functors) if arrow.kind == hir::CallableKind::Operation => {
                 let param = GenericParam::Functor(functors);
-                arrow.functors = FunctorSet::Param(*next_param);
+                arrow.functors = FunctorSet::Param(*next_param, functors);
                 *next_param = next_param.successor();
                 vec![param]
             }
