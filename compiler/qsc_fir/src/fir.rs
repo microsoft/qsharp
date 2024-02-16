@@ -209,36 +209,7 @@ fir_id!(BlockId);
 fir_id!(ExprId);
 fir_id!(PatId);
 fir_id!(StmtId);
-
-/// A unique identifier for a local variable within a callable.
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct LocalVarId(u16);
-
-impl LocalVarId {
-    /// The successor of this ID.
-    #[must_use]
-    pub fn successor(self) -> Self {
-        Self(self.0 + 1)
-    }
-}
-
-impl Display for LocalVarId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        Display::fmt(&self.0, f)
-    }
-}
-
-impl From<LocalVarId> for usize {
-    fn from(value: LocalVarId) -> Self {
-        value.0 as usize
-    }
-}
-
-impl From<usize> for LocalVarId {
-    fn from(value: usize) -> Self {
-        LocalVarId(value.try_into().expect("LocalVarId should fit into u32"))
-    }
-}
+fir_id!(LocalVarId);
 
 /// A unique identifier for a package within a package store.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
