@@ -14,6 +14,7 @@ __pycache__/
 /katas/**/*.md
 /library/
 /npm/dist/
+/npm/docs/
 /npm/lib/
 /npm/src/*.generated.ts
 /pip/src/**/*.html
