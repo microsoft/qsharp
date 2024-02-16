@@ -67,8 +67,8 @@ impl Iterator for ConcreteTokenIterator<'_> {
                     hi: next_lo,
                 };
                 let concrete = match raw_token.kind {
-                    crate::RawTokenKind::Comment(_) => ConcreteToken::Comment(span),
-                    crate::RawTokenKind::Whitespace => ConcreteToken::WhiteSpace(span),
+                    raw::TokenKind::Comment(_) => ConcreteToken::Comment(span),
+                    raw::TokenKind::Whitespace => ConcreteToken::WhiteSpace(span),
                     _ => panic!("only comments and whitespace should be non-compilable tokens"), // Todo: might need better handling
                 };
                 Some(concrete)

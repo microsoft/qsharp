@@ -3,7 +3,7 @@
 
 use crate::{compilation::Compilation, protocol::TextEdit};
 
-// use qsc::formatter::{format, Edit};
+use qsc::formatter::{format, Edit};
 use qsc::line_column::{Encoding, Position, Range};
 // use qsc::Span;
 //use qsc::RawToken;

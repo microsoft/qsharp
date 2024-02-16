@@ -11,6 +11,8 @@ pub mod interpret;
 pub mod location;
 pub mod target;
 
+pub use qsc_frontend::formatter;
+
 pub use qsc_frontend::compile::{
     CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
 };
