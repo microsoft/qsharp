@@ -293,20 +293,20 @@ $$|\psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
 This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the Single-Qubit Gates kata.
 
 These demos use the function `DumpMachine` to print the state of the quantum simulator.
-When dealing with multi-qubit systems, `DumpMachine` prints information about each basis state that has a non-zero amplitude, one basis state per row, same as it does for single-qubit systems. 
+When dealing with multi-qubit systems, `DumpMachine` prints information about each basis state that has a non-zero amplitude, one basis state per row, the same as it does for single-qubit systems. 
 The basis states are represented as bit strings, one bit per the qubit allocated, with the leftmost bit corresponding 
 to the qubit that was allocated the earliest. (If the qubits were allocated at once as an array, the leftmost bit corresponds 
 to the first element of the array.)
 
 @[example]({"id": "multi_qubit_systems__multi_qubit_systems_demo", "codePath": "./examples/MultiQubitSystems.qs"})
 
-> You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before releasing them at the end of the `use` block.
+> You might have noticed that we've been "resetting" the qubits at the end of our demos, that is, returning them to $|0\rangle$ state. Q# requires you to return your qubits into the $|0\rangle$ state before they are released at the end of their scope.
 > The reason for this is entanglement.
 >
 > Consider running a program on a quantum computer: the number of qubits is very limited, and you want to reuse the released qubits in other parts of the program.
 If they are not in zero state by that time, they can potentially be still entangled with the qubits which are not yet released, thus operations you perform on them can affect the state of other parts of the program, causing erroneous and hard to debug behavior.
 >
-> Resetting the qubits to zero state automatically when they go outside the scope of their `use` block is dangerous as well: if they were entangled with others, measuring them to reset them can affect the state of the unreleased qubits, and thus change the results of the program - without the developer noticing this.
+> Resetting the qubits to zero state automatically when they go outside the scope of the block they were allocated in is dangerous as well: if they were entangled with others, measuring them to reset them can affect the state of the unreleased qubits, and thus change the results of the program - without the developer noticing this.
 >
 > The requirement that the qubits should be in zero state before they can be released aims to remind the developer to double-check that all necessary information has been properly extracted from the qubits, and that they are not entangled with unreleased qubits any more.
 
