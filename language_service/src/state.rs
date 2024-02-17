@@ -119,6 +119,12 @@ pub(super) struct CompilationStateUpdater<'a> {
     get_manifest: AsyncFunction<'a, String, Option<qsc_project::ManifestDescriptor>>,
 }
 
+struct LoadManifestResult {
+    compilation_uri: Arc<str>,
+    sources: Vec<(Arc<str>, Arc<str>)>,
+    language_features: LanguageFeatures,
+}
+
 impl<'a> CompilationStateUpdater<'a> {
     pub fn new(
         state: Rc<RefCell<CompilationState>>,
@@ -157,13 +163,17 @@ impl<'a> CompilationStateUpdater<'a> {
 
         let project = self.load_manifest(&doc_uri).await;
 
-        let (compilation_uri, sources, language_features) = project.unwrap_or_else(|| {
+        let LoadManifestResult {
+            compilation_uri,
+            sources,
+            language_features,
+        } = project.unwrap_or_else(|| {
             // If we are in single file mode, use the file's path as the compilation identifier.
-            (
-                doc_uri.clone(),
-                vec![(doc_uri.clone(), text.clone())],
-                LanguageFeatures::default(),
-            )
+            LoadManifestResult {
+                compilation_uri: doc_uri.clone(),
+                sources: vec![(doc_uri.clone(), text.clone())],
+                language_features: LanguageFeatures::default(),
+            }
         });
 
         let prev_compilation_uri = self.with_state_mut(|state| {
@@ -196,19 +206,16 @@ impl<'a> CompilationStateUpdater<'a> {
     /// Attempts to resolve a manifest for the given document uri.
     /// If a manifest is found, returns the manifest uri along
     /// with the sources for the project
-    async fn load_manifest(
-        &self,
-        doc_uri: &Arc<str>,
-    ) -> Option<(Arc<str>, Vec<(Arc<str>, Arc<str>)>, LanguageFeatures)> {
+    async fn load_manifest(&self, doc_uri: &Arc<str>) -> Option<LoadManifestResult> {
         let manifest = (self.get_manifest)(doc_uri.to_string()).await;
         if let Some(ref manifest) = manifest {
             let res = self.load_project(manifest).await;
             match res {
-                Ok(o) => Some((
-                    manifest.compilation_uri(),
-                    o.sources,
-                    manifest.manifest.language_features,
-                )),
+                Ok(o) => Some(LoadManifestResult {
+                    compilation_uri: manifest.compilation_uri(),
+                    sources: o.sources,
+                    language_features: manifest.manifest.language_features,
+                }),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
                     None
@@ -267,8 +274,13 @@ impl<'a> CompilationStateUpdater<'a> {
             // If the project is still open, update it so that it
             // uses the disk contents instead of the open buffer contents
             // for this document
-            if let Some(project) = project {
-                self.insert_buffer_aware_compilation(project.1, &project.0, project.2);
+            if let Some(LoadManifestResult {
+                sources,
+                compilation_uri,
+                language_features,
+            }) = project
+            {
+                self.insert_buffer_aware_compilation(sources, &compilation_uri, language_features);
             }
         }
 
