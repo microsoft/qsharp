@@ -71,7 +71,7 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         source_map,
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     )
     .expect("Failed to compile base environment.");
 
@@ -146,7 +146,7 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         source_map,
         PackageType::Exe,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     )
     .expect("Failed to compile base environment.");
 

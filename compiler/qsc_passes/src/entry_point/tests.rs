@@ -16,7 +16,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
         &[],
         sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 

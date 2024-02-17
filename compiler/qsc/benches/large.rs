@@ -21,7 +21,7 @@ pub fn large_file(c: &mut Criterion) {
                 sources,
                 PackageType::Exe,
                 RuntimeCapabilityFlags::all(),
-                LanguageFeatures::none(),
+                LanguageFeatures::default(),
             );
             assert!(reports.is_empty());
         })

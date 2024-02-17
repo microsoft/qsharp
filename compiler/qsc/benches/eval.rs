@@ -21,7 +21,7 @@ pub fn teleport(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            LanguageFeatures::default(),
         )
         .expect("code should compile");
         b.iter(move || {
@@ -40,7 +40,7 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            LanguageFeatures::default(),
         )
         .expect("code should compile");
         b.iter(move || {
@@ -59,7 +59,7 @@ pub fn large_file(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            LanguageFeatures::default(),
         )
         .expect("code should compile");
         b.iter(move || {
@@ -90,7 +90,7 @@ pub fn array_append(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            LanguageFeatures::default(),
         )
         .expect("code should compile");
         b.iter(move || {
@@ -121,7 +121,7 @@ pub fn array_update(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            LanguageFeatures::default(),
         )
         .expect("code should compile");
         b.iter(move || {
@@ -140,7 +140,7 @@ pub fn array_literal(c: &mut Criterion) {
             sources,
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
-            LanguageFeatures::none(),
+            LanguageFeatures::default(),
         )
         .expect("code should compile");
         b.iter(move || {

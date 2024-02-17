@@ -163,7 +163,7 @@ impl<'a> CompilationStateUpdater<'a> {
             (
                 doc_uri.clone(),
                 vec![(doc_uri.clone(), text.clone())],
-                LanguageFeatures::none(),
+                LanguageFeatures::default(),
             )
         });
 
@@ -208,7 +208,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 Ok(o) => Some((
                     manifest.compilation_uri(),
                     o.sources,
-                    manifest.manifest.language_features.clone(),
+                    manifest.manifest.language_features,
                 )),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
@@ -253,7 +253,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 compilation_uri.clone(),
                 (
                     compilation,
-                    PartialConfiguration::from_language_features(language_features.clone()),
+                    PartialConfiguration::from_language_features(language_features),
                 ),
             );
         });
@@ -347,7 +347,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     (Arc::from(cell_uri), Arc::from(cell_contents))
                 }),
                 configuration.target_profile,
-                (notebook_configuration.language_features.unwrap_or_default()),
+                notebook_configuration.language_features.unwrap_or_default(),
             );
 
             state.compilations.insert(
@@ -452,7 +452,6 @@ impl<'a> CompilationStateUpdater<'a> {
                     merge_configurations(package_specific_configuration, &self.configuration);
                 let language_features = package_specific_configuration
                     .language_features
-                    .clone()
                     .unwrap_or_default();
                 compilation.recompile(
                     configuration.package_type,

@@ -20,7 +20,7 @@ fn one_callable() {
         &store,
         vec![],
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let unit = compiler
         .compile_fragments(
@@ -128,7 +128,7 @@ fn one_statement() {
         &store,
         vec![],
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let unit = compiler
         .compile_fragments(
@@ -191,7 +191,7 @@ fn parse_error() {
         &store,
         vec![],
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let errors = compiler
         .compile_fragments(&mut CompileUnit::default(), "test_1", "}}", fail_on_error)
@@ -236,7 +236,7 @@ fn conditional_compilation_not_available() {
         &store,
         vec![],
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let errors = compiler
         .compile_fragments(
@@ -266,7 +266,7 @@ fn errors_across_multiple_lines() {
         &store,
         [std_id],
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let mut unit = CompileUnit::default();
     compiler
@@ -335,7 +335,7 @@ fn continue_after_parse_error() {
         &store,
         vec![],
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let mut errors = Vec::new();
 
@@ -411,7 +411,7 @@ fn continue_after_lower_error() {
         &store,
         vec![],
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let mut unit = CompileUnit::default();
 

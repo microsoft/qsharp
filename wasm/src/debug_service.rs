@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use std::collections::BTreeSet;
+
 use std::str::FromStr;
 
 use qsc::fir::StmtId;

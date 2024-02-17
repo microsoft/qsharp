@@ -52,7 +52,7 @@ pub fn test_expression_with_lib_and_profile(
         sources,
         PackageType::Exe,
         profile.into(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     )
     .expect("test should compile");
     let result = interpreter

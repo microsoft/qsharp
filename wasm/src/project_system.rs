@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use js_sys::JsString;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
-use std::collections::BTreeSet;
+
 use std::iter::FromIterator;
 use std::{path::PathBuf, sync::Arc};
 use wasm_bindgen::prelude::*;
@@ -186,7 +186,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
         },
         _ => Default::default(),
 
-    }.into();
+    };
 
     log::trace!("found manifest at {manifest_dir:?}");
 

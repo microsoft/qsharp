@@ -134,7 +134,7 @@ impl Interpreter {
             sources,
             package_type,
             capabilities,
-            language_features.clone(),
+            language_features,
         )
         .map_err(into_errors)?;
 

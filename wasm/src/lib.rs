@@ -295,7 +295,7 @@ pub fn run(
             let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
         },
         shots,
-        language_features.into(),
+        language_features,
     ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),

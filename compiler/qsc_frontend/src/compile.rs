@@ -418,7 +418,7 @@ pub fn core() -> CompileUnit {
         &[],
         sources,
         RuntimeCapabilityFlags::empty(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
@@ -442,7 +442,7 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
         &[PackageId::CORE],
         sources,
         capabilities,
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit

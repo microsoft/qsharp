@@ -105,8 +105,6 @@ fn main() -> miette::Result<ExitCode> {
         }
     }
 
-    features.check_compatibility()?;
-
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
     let (unit, errors) = compile(

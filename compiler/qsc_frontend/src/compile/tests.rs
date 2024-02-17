@@ -3,8 +3,6 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use std::collections::BTreeSet;
-
 use crate::compile::RuntimeCapabilityFlags;
 
 use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
@@ -61,7 +59,7 @@ fn default_compile(sources: SourceMap) -> CompileUnit {
         &[],
         sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     )
 }
 
@@ -443,7 +441,7 @@ fn package_dependency() {
         &[],
         sources1,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
@@ -467,7 +465,7 @@ fn package_dependency() {
         &[package1],
         sources2,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
@@ -516,7 +514,7 @@ fn package_dependency_internal_error() {
         &[],
         sources1,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
@@ -540,7 +538,7 @@ fn package_dependency_internal_error() {
         &[package1],
         sources2,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
 
     let errors: Vec<_> = unit2
@@ -596,7 +594,7 @@ fn package_dependency_udt() {
         &[],
         sources1,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
@@ -620,7 +618,7 @@ fn package_dependency_udt() {
         &[package1],
         sources2,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
@@ -671,7 +669,7 @@ fn package_dependency_nested_udt() {
         &[],
         sources1,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
     let package1 = store.insert(unit1);
@@ -700,7 +698,7 @@ fn package_dependency_nested_udt() {
         &[package1],
         sources2,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
 
@@ -780,7 +778,7 @@ fn std_dependency() {
         &[std],
         sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
@@ -812,7 +810,7 @@ fn std_dependency_base_profile() {
         &[std],
         sources,
         RuntimeCapabilityFlags::empty(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
@@ -840,7 +838,7 @@ fn introduce_prelude_ambiguity() {
         &[std],
         sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     let errors: Vec<Error> = unit.errors;
     assert!(
@@ -929,7 +927,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         &[],
         lib_sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
     let lib = store.insert(lib);
@@ -954,7 +952,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         &[lib],
         sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     expect![[r#"
         [
@@ -1066,7 +1064,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         &[],
         lib_sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
     let lib = store.insert(lib);
@@ -1095,7 +1093,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         &[lib],
         sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     expect![[r#"
         []
@@ -1124,7 +1122,7 @@ fn duplicate_intrinsic_from_dependency() {
         &[],
         lib_sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
     let lib = store.insert(lib);
@@ -1147,7 +1145,7 @@ fn duplicate_intrinsic_from_dependency() {
         &[lib],
         sources,
         RuntimeCapabilityFlags::all(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     expect![[r#"
         [
@@ -1251,7 +1249,7 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         &[std],
         sources,
         RuntimeCapabilityFlags::empty(),
-        LanguageFeatures::none(),
+        LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
 }
