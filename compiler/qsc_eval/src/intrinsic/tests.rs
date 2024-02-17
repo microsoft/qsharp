@@ -331,6 +331,7 @@ fn dump_register_subset_entangled_within_subset_is_separable() {
             Microsoft.Quantum.Diagnostics.DumpRegister([q1, q3]);
             Reset(q1);
             Reset(q2);
+            Reset(q3);
         }"},
         &expect![[r#"
             STATE:
