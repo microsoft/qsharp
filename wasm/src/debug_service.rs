@@ -1,14 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-
 use std::str::FromStr;
 
 use qsc::fir::StmtId;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
-use qsc::{fmt_complex, target::Profile};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc::{fmt_complex, target::Profile, LanguageFeatures};
 
 use crate::line_column::Range;
 use crate::{get_source_map, serializable_type, CallbackReceiver};

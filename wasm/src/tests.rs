@@ -3,8 +3,7 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::{interpret, SourceMap};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc::{interpret, LanguageFeatures, SourceMap};
 
 use super::run_internal_with_features;
 

@@ -13,7 +13,7 @@ use qsc::{
     PackageType, SourceContents, SourceMap, SourceName,
 };
 
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc::LanguageFeatures;
 
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
 

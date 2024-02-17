@@ -2,8 +2,7 @@
 // Licensed under the MIT License.
 
 use qsc::line_column::Range;
-use qsc::{compile::Error, target::Profile, PackageType};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 
 /// A change to the workspace configuration
 #[derive(Clone, Debug, Default, Copy)]

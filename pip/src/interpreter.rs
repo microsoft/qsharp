@@ -25,11 +25,10 @@ use qsc::{
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
-    PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap,
 };
-use qsc_data_structures::language_features::LanguageFeatures;
 use resource_estimator::{self as re, estimate_expr};
-use std::{fmt::Write};
+use std::fmt::Write;
 
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {

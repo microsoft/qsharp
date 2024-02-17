@@ -11,8 +11,7 @@ use crate::{
     },
     serializable_type,
 };
-use qsc::{self, line_column::Encoding, target::Profile, PackageType};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc::{self, line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};

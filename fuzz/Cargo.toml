@@ -15,7 +15,6 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = { workspace = true, optional = true }
 qsc = { path = "../compiler/qsc" }
-qsc_data_structures = { path = "../compiler/qsc_data_structures" }
 
 [features]
 do_fuzz = [ "dep:libfuzzer-sys" ]

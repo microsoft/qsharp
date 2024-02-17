@@ -3,7 +3,7 @@
 
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc::LanguageFeatures;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 
 use std::iter::FromIterator;

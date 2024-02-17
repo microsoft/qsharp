@@ -129,14 +129,8 @@ impl Interpreter {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = fir::PackageStore::new();
 
-        let compiler = Compiler::new(
-            std,
-            sources,
-            package_type,
-            capabilities,
-            language_features,
-        )
-        .map_err(into_errors)?;
+        let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
+            .map_err(into_errors)?;
 
         for (id, unit) in compiler.package_store() {
             fir_store.insert(

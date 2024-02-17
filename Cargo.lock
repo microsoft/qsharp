@@ -440,7 +440,6 @@ version = "0.0.0"
 dependencies = [
  "libfuzzer-sys",
  "qsc",
- "qsc_data_structures",
 ]
 
 [[package]]
@@ -553,7 +552,6 @@ name = "katas"
 version = "0.0.0"
 dependencies = [
  "qsc",
- "qsc_data_structures",
 ]
 
 [[package]]
@@ -587,7 +585,6 @@ dependencies = [
  "indoc",
  "num-bigint",
  "qsc",
- "qsc_data_structures",
 ]
 
 [[package]]
@@ -1082,7 +1079,6 @@ dependencies = [
  "num-complex",
  "qsc",
  "qsc_codegen",
- "qsc_data_structures",
  "qsc_doc_gen",
  "qsc_project",
  "qsls",
@@ -1104,7 +1100,6 @@ dependencies = [
  "num-complex",
  "pyo3",
  "qsc",
- "qsc_data_structures",
  "resource_estimator",
  "rustc-hash",
 ]
@@ -1121,7 +1116,6 @@ dependencies = [
  "log",
  "miette",
  "qsc",
- "qsc_data_structures",
  "qsc_project",
  "rustc-hash",
  "tokio",
@@ -1247,7 +1241,6 @@ dependencies = [
  "num-complex",
  "probability",
  "qsc",
- "qsc_data_structures",
  "rand",
  "regex-lite",
  "rustc-hash",

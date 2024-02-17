@@ -11,9 +11,8 @@ use qsc::{
     line_column::{Encoding, Position},
     resolve,
     target::Profile,
-    CompileUnit, PackageStore, PackageType, SourceMap,
+    CompileUnit, LanguageFeatures, PackageStore, PackageType, SourceMap,
 };
-use qsc_data_structures::language_features::LanguageFeatures;
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used

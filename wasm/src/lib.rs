@@ -16,10 +16,9 @@ use qsc::{
         output::{self, Receiver},
     },
     target::Profile,
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
+    LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
 use qsc_codegen::qir_base::generate_qir;
-use qsc_data_structures::language_features::LanguageFeatures;
 use resource_estimator::{self as re, estimate_entry};
 use serde::Serialize;
 use serde_json::json;

@@ -19,9 +19,8 @@ use indoc::indoc;
 use qsc::{
     interpret::{GenericReceiver, Interpreter, Value},
     target::Profile,
-    PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap,
 };
-use qsc_data_structures::language_features::LanguageFeatures;
 
 /// # Panics
 ///

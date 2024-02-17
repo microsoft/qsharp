@@ -13,7 +13,6 @@ indoc = { workspace = true }
 num-bigint = { workspace = true }
 expect-test = { workspace = true }
 qsc = { path = "../compiler/qsc" }
-qsc_data_structures = { path = "../compiler/qsc_data_structures" }
 
 [lib]
 doctest = false

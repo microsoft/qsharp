@@ -11,9 +11,8 @@ use qsc::{
     line_column::{Encoding, Position, Range},
     location::Location,
     target::Profile,
-    PackageStore, PackageType, SourceMap, Span,
+    LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
 };
-use qsc_data_structures::language_features::LanguageFeatures;
 
 pub(crate) fn compile_with_fake_stdlib_and_markers(
     source_with_markers: &str,
