@@ -510,10 +510,10 @@ Let's see what happens to various two-qubit states after the parity measurement.
 $$
 Z \otimes Z =
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\
-    0 & -1 & 0 & 0 \\\
-    0 & 0 & -1 & 0 \\\
-    0 & 0 & 0 & 1 \\\
+    1 & 0 & 0 & 0 \\\ 
+    0 & -1 & 0 & 0 \\\ 
+    0 & 0 & -1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
 \end{bmatrix}
 $$
 
@@ -521,10 +521,10 @@ When this transformation is applied to a basis state $|00\rangle$, we get
 
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\
-    0 & -1 & 0 & 0 \\\
-    0 & 0 & -1 & 0 \\\
-    0 & 0 & 0 & 1 \\\
+    1 & 0 & 0 & 0 \\\ 
+    0 & -1 & 0 & 0 \\\ 
+    0 & 0 & -1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
 \end{bmatrix}
 \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} =
 \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}
@@ -540,10 +540,10 @@ Now, what happens if we apply a $Z \otimes Z$ measurement to a superposition sta
 
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\
-    0 & -1 & 0 & 0 \\\
-    0 & 0 & -1 & 0 \\\
-    0 & 0 & 0 & 1 \\\
+    1 & 0 & 0 & 0 \\\ 
+    0 & -1 & 0 & 0 \\\ 
+    0 & 0 & -1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
 \end{bmatrix}
 \begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix} =
 \begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix}

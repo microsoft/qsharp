@@ -42,9 +42,9 @@ $$
 X \otimes I =
 \begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\\ 0 & 1 \end{bmatrix} =
 \begin{bmatrix}
-    0 & 0 & 1 & 0 \\\
-    0 & 0 & 0 & 1 \\\
-    1 & 0 & 0 & 0 \\\
+    0 & 0 & 1 & 0 \\\ 
+    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\\ 
     0 & 1 & 0 & 0
 \end{bmatrix}
 $$
@@ -56,9 +56,9 @@ $$
 X \otimes H =
 \begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} =
 \frac{1}{\sqrt{2}}\begin{bmatrix}
-    0 & 0 & 1 & 1 \\\
-    0 & 0 & 1 & -1 \\\
-    1 & 1 & 0 & 0 \\\
+    0 & 0 & 1 & 1 \\\ 
+    0 & 0 & 1 & -1 \\\ 
+    1 & 1 & 0 & 0 \\\ 
     1 & -1 & 0 & 0
 \end{bmatrix}
 $$
@@ -178,10 +178,10 @@ $$|00\rangle(0) + |01\rangle(0) + |10\rangle(0) + |11\rangle(1) = |11\rangle$$
 In general case, a $4\\times4$ matrix that describes a 2-qubit gate
 $$A =
 \begin{bmatrix}
-    a_{00} & a_{01} & a_{02} & a_{03} \\\
-    a_{10} & a_{11} & a_{12} & a_{13} \\\
-    a_{20} & a_{21} & a_{22} & a_{23} \\\
-    a_{30} & a_{31} & a_{32} & a_{33} \\\
+    a_{00} & a_{01} & a_{02} & a_{03} \\\ 
+    a_{10} & a_{11} & a_{12} & a_{13} \\\ 
+    a_{20} & a_{21} & a_{22} & a_{23} \\\ 
+    a_{30} & a_{31} & a_{32} & a_{33} \\\ 
 \end{bmatrix}
 $$
 
@@ -284,7 +284,7 @@ Take 3 qubits in an arbitrary state $|\psi\rangle = x_{000} |000\rangle + x_{001
 
 We can apply the `CNOT` gate on 1st and 3rd qubits, with the 1st qubit as control and the 3rd qubit as target. Let's label the 3-qubit gate that describes the effect of this on the whole system as `CINOT`. The `CINOT` ignores the 2nd qubit (leaves it unchanged) and applies the `CNOT` gate as specified above.
 
-## Q #
+## Q#
 
 In Q# we describe the operation as the sequence of gates that are applied to the qubits, regardless of whether the qubits are adjacent or not.
 
@@ -307,13 +307,13 @@ $$x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\ran
 $\text{CINOT}$ can also be represented in matrix form as a $2^3 \times 2^3$ matrix:
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 $$
@@ -321,13 +321,13 @@ $$
 Applying $\text{CINOT}$ to $|\psi\rangle$ gives us
 $$
 \text{CINOT} \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 \begin{bmatrix}
@@ -377,6 +377,7 @@ $$\text{CINOT} = (\text{SWAP} \otimes I)(I \otimes \text{CNOT})(\text{SWAP} \oti
 > However, when implementing the unitary $\text{SWAP} \otimes I$ in Q#, we need only to call `SWAP(qs[0], qs[1])` - the remaining qubit `qs[2]` will not change, which is equivalent to applying an implicit identity gate.
 >
 > We can also spell out all gates applied explicitly (this makes for a much longer code, though):
+>
 > ```qsharp
 >
 operation CINOT (qs: Qubit[]) : Unit {
@@ -484,13 +485,13 @@ The simplest example of this is the **Toffoli gate**, or `CCNOT` (controlled con
 
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 $$
@@ -509,6 +510,7 @@ For example, an **anti-controlled** `U` gate (sometimes called **zero-controlled
 It is also possible to define control conditions in other bases, for example, applying the gate if the control qubit is in the $|+\rangle$ state.
 
 All the variants of controlled gates can be expressed in terms of the controls described in previous sections, using the following sequence of steps:
+
 - First, apply a transformation on control qubits that will transform the state you want to use as control into the $|1...1\rangle$ state.
 - Apply the regular controlled version of the gate.
 - Finally, undo the transformation on control qubits from the first step using the adjoint version of it.
@@ -579,6 +581,7 @@ The sequence of steps that implement this variant are:
 })
 
 Congratulations! You have completed the series of introductory katas. In this kata you learned how to apply quantum gates to multi-qubit systems. Here are a few key concepts to keep in mind:
+
 - Multi-qubit gates are constructed as the tensor products of gates that affect individual qubits of the system.
 - CNOT gate is a type of controlled gate that acts on two qubits. If the control qubit is in state $\ket{1}$, it applies the $X$ gate to the target qubit, otherwise it does nothing.
 - In Q#, controlled gates are applied using the `Controlled` functor.
