@@ -303,10 +303,10 @@ test("multi_qubit_gates kata is valid", async () => {
 });
 
 // This test is commented because the superposition kata is still a work in progress.
-//test("superposition_kata kata is valid", async () => {
-//  const kata = await getKata("superposition_kata");
-//  await validateKata(kata, true, true, true);
-//});
+// test("superposition_kata kata is valid", async () => {
+//   const kata = await getKata("superposition_kata");
+//   await validateKata(kata, true, true, true);
+// });
 
 test("single_qubit_measurements is valid", async () => {
   const kata = await getKata("single_qubit_measurements");
