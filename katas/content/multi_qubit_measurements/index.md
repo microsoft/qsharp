@@ -190,7 +190,7 @@ The amplitudes of the computational basis states after the transformation are th
 
 @[example]({
     "id": "multi_qubit_measurements__multi_qubit_probabilities_2_example",
-    "codePath": "./multi_qubit_probabilities.qs"
+    "codePath": "./MultiQubitProbabilities.qs"
 })
 
 ## Measuring Each Qubit in a System Sequentially
@@ -220,7 +220,7 @@ The simulated probabilities will be different for each run of `DemoBasisMeasurem
 
 @[example]({
     "id": "multi_qubit_measurements__measuring_one_at_a_time",
-    "codePath": "./measuring_one.qs"
+    "codePath": "./MeasuringOne.qs"
 })
 
 ## Using Full Measurements to Identify the State of the System
@@ -337,7 +337,7 @@ The simulated and theoretical measurement probabilities are not expected to matc
 
 @[example]({
     "id": "multi_qubit_measurements__partial_measurements_demo",
-    "codePath": "./partial_measurements_demo.qs"
+    "codePath": "./PartialMeasurementsDemo.qs"
 })
 
 ## Using Partial Measurements to Identify the State of the System

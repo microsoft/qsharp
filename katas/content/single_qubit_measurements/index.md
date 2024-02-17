@@ -111,7 +111,7 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
     "path": "./distinguish_0_and_1/",
     "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
@@ -141,7 +141,7 @@ The probabilities of outcomes $\ket{b_0}$ and $\ket{b_1}$ will be defined as $|c
     "path": "./distinguish_plus_and_minus/",
     "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
@@ -302,7 +302,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
     "path": "./distinguish_orthogonal_states_1/",
     "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
@@ -312,7 +312,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
     "path": "./distinguish_orthogonal_states_2/",
     "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
@@ -322,7 +322,7 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
     "path": "./a_b_basis_measurements/",
     "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
