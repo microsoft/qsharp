@@ -338,7 +338,6 @@ fn dump_register_subset_entangled_within_subset_is_separable() {
             |11⟩: 0.7071+0.0000𝑖
         "#]],
     );
-
 }
 
 #[test]
@@ -414,7 +413,6 @@ fn dump_register_qubits_reorder_output() {
             |101⟩: 0.7071+0.0000𝑖
         "#]],
     );
-
 }
 
 #[test]
@@ -428,7 +426,6 @@ fn dump_register_qubits_not_unique_fails() {
         }"},
         &expect!["qubits in invocation are not unique"],
     );
-
 }
 
 #[test]
