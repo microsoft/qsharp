@@ -4,5 +4,5 @@ We'll generate an $N$-bit random number by calling the `RandomNBits` operation, 
 
 @[solution]({
     "id": "random_numbers__random_number_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })

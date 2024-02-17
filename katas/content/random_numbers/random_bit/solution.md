@@ -19,5 +19,5 @@ Now, both 0 and 1 measurement outcomes occur with equal probablity of $|\frac{1}
 
 @[solution]({
     "id": "random_numbers__random_bit_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })
