@@ -120,3 +120,17 @@ pub struct NotebookMetadata {
     pub target_profile: Option<Profile>,
     pub language_features: LanguageFeatures,
 }
+
+#[derive(Debug)]
+pub struct CodeLens {
+    pub range: Range,
+    pub command: CodeLensCommand,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CodeLensCommand {
+    Histogram,
+    Debug,
+    Run,
+    Estimate,
+}

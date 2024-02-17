@@ -1,7 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math;
 
     operation ThreeQuartersPiPhase(q : Qubit) : Unit is Adj + Ctl {
         S(q);
@@ -18,10 +17,12 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("The solution was incorrect for at least one test case.");
-            use target = Qubit[1];
-            ShowQuantumStateComparison(target, solution, reference);
-            ResetAll(target);
+            Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " +
+                "is expected to have.");
+            use initial = Qubit(); // |0〉
+            Ry(ArcTan2(0.8, 0.6) * 2.0, initial); // 0.6|0〉 + 0.8|1〉
+            ShowQuantumStateComparison([initial], solution, reference);
+            Reset(initial);
         }
         isCorrect
     }

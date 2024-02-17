@@ -211,10 +211,10 @@ $$X|-\rangle = -|-\rangle$$
 
 Here's what the decomposition looks like:
 $$X = |+\rangle\langle+| - |-\rangle\langle-| =$$
-$$\frac{1}{2}\big[\big(|0\rangle + |1\rangle\big)\big(\langle0| + \langle1|\big) - \big(|0\rangle - |1\rangle\big)\big(\langle0| - \langle1|\big)\big] =$$
-$$\frac{1}{2}\big(|0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| + |1\rangle\langle1| - |0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| - |1\rangle\langle1|\big) =$$
-$$\frac{1}{2}\big(2|0\rangle\langle1| + 2|1\rangle\langle0|\big) =$$
-$$|0\rangle\langle1| + |1\rangle\langle0|$$
+$$= \frac{1}{2}\big[\big(|0\rangle + |1\rangle\big)\big(\langle0| + \langle1|\big) - \big(|0\rangle - |1\rangle\big)\big(\langle0| - \langle1|\big)\big] =$$
+$$= \frac{1}{2}\big(|0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| + |1\rangle\langle1| - |0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| - |1\rangle\langle1|\big) =$$
+$$= \frac{1}{2}\big(2|0\rangle\langle1| + 2|1\rangle\langle0|\big) =$$
+$$= |0\rangle\langle1| + |1\rangle\langle0|$$
 
 @[section]({
     "id": "single_qubit_gates__important_gates",
@@ -310,11 +310,11 @@ Here are several properties of the Pauli gates that are easy to verify and conve
     "title": "Pauli Gates in Q#"
 })
 
-The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
+The following example contains code demonstrating how to apply gates in Q#. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
 In the previous kata we discussed that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
 
-The same principle applies to successive qubit gates. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$ because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
+The same principle applies to applying several gates in a row to a qubit. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$, because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
 
 ```qsharp
 X(q);
@@ -592,6 +592,6 @@ Congratulations!  In this kata you learned the matrix and the ket-bra representa
 * The effect of a gate applied to a qubit can be calculated by multiplying the corresponding matrix by the state vector of the qubit.
 * Applying several quantum gates in sequence is equivalent to performing several matrix multiplications.
 * Any square matrix can be represented as a linear combination of the outer products of vectors. The outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
-* Pauli gates, phase shift gates, and rotation gates are examples of single-qubit gates. All of them are available in Q#.
+* Pauli gates, identity and Hadamard gates, phase shift gates, and rotation gates are examples of single-qubit gates. All of them are available in Q#.
 
-Next, you will learn about multi-qubit systems and the multi-qubit gates in the “Multi-Qubit Systems” kata.
+Next, you will learn about multi-qubit systems in the “Multi-Qubit Systems” kata.
