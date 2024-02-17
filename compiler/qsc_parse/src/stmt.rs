@@ -111,10 +111,10 @@ fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = parse_qubit_init(s)?;
-    let block = if !s.contains_language_feature(LanguageFeatures::V2PreviewSyntax) {
-        opt(s, parse_block)?
-    } else {
+    let block = if s.contains_language_feature(LanguageFeatures::V2PreviewSyntax) {
         None
+    } else {
+        opt(s, parse_block)?
     };
 
     if block.is_none() {

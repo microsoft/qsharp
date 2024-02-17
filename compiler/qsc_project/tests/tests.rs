@@ -35,9 +35,7 @@ fn basic_manifest() {
                         "Microsoft",
                     ),
                     license: None,
-                    language_features: LanguageFeatures(
-                        {},
-                    ),
+                    language_features: [],
                 },
             }"#]],
     )
@@ -68,9 +66,7 @@ fn circular_imports() {
                         "Microsoft",
                     ),
                     license: None,
-                    language_features: LanguageFeatures(
-                        {},
-                    ),
+                    language_features: [],
                 },
             }"#]],
     )
@@ -101,9 +97,7 @@ fn different_files_same_manifest() {
                         "Microsoft",
                     ),
                     license: None,
-                    language_features: LanguageFeatures(
-                        {},
-                    ),
+                    language_features: [],
                 },
             }"#]],
     )
@@ -124,9 +118,7 @@ fn empty_manifest() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    language_features: LanguageFeatures(
-                        {},
-                    ),
+                    language_features: [],
                 },
             }"#]],
     )
@@ -159,9 +151,7 @@ fn folder_structure() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    language_features: LanguageFeatures(
-                        {},
-                    ),
+                    language_features: [],
                 },
             }"#]],
     )
@@ -189,9 +179,7 @@ fn hidden_files() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    language_features: LanguageFeatures(
-                        {},
-                    ),
+                    language_features: [],
                 },
             }"#]],
     )
@@ -223,9 +211,7 @@ fn peer_file() {
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    language_features: LanguageFeatures(
-                        {},
-                    ),
+                    language_features: [],
                 },
             }"#]],
     )
@@ -240,17 +226,15 @@ fn language_feature() {
                 sources: [
                     (
                         "language_feature/src/Project.qs",
-                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n        use (q1, q2) = Qubit[2] { };\n    }\n}\n",
+                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n        use qs = Qubit[2] { };\n    }\n}\n",
                     ),
                 ],
                 manifest: Manifest {
                     author: None,
                     license: None,
-                    language_features: LanguageFeatures(
-                        {
-                            V2PreviewSyntax,
-                        },
-                    ),
+                    language_features: [
+                        "v2-preview-syntax",
+                    ],
                 },
             }"#]],
     )

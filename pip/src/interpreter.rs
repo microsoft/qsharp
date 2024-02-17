@@ -82,7 +82,6 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             .downcast::<PyDict>()?;
 
         let language_features = get_dict_opt_list_string(manifest, "features")?;
-        let language_features = LanguageFeatures::from_iter(language_features);
 
         Ok(Self(ManifestDescriptor {
             manifest: Manifest {

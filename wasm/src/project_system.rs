@@ -3,7 +3,6 @@
 
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc::LanguageFeatures;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 
 use std::iter::FromIterator;
@@ -172,7 +171,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
     let language_features = match js_sys::Reflect::get(&js_val, &JsValue::from_str("languageFeatures"))
     {
         Ok(v) => match v.dyn_into::<js_sys::Array>()  {
-            Ok(arr) => LanguageFeatures::from_iter(arr
+            Ok(arr) => arr
                 .into_iter()
                 .map(|x| {
                     x.as_string().unwrap_or_else(|| {
@@ -181,7 +180,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
                             x
                         )
                     })
-                })),
+                }).collect::<Vec<_>>(),
                 Err(_) => Default::default(),
         },
         _ => Default::default(),

@@ -214,7 +214,11 @@ impl<'a> CompilationStateUpdater<'a> {
                 Ok(o) => Some(LoadManifestResult {
                     compilation_uri: manifest.compilation_uri(),
                     sources: o.sources,
-                    language_features: manifest.manifest.language_features,
+                    language_features: manifest
+                        .manifest
+                        .language_features
+                        .iter()
+                        .collect::<LanguageFeatures>(),
                 }),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");

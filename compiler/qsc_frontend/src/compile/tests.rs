@@ -1164,6 +1164,7 @@ fn duplicate_intrinsic_from_dependency() {
     "#]]
     .assert_debug_eq(&unit.errors);
 }
+
 #[test]
 fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
     let mut store = PackageStore::new(super::core());
@@ -1219,6 +1220,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
     "#]]
     .assert_debug_eq(&unit.errors);
 }
+
 #[test]
 fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
     let mut store = PackageStore::new(super::core());

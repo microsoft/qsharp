@@ -1054,7 +1054,6 @@ dependencies = [
  "async-trait",
  "expect-test",
  "miette",
- "qsc_data_structures",
  "qsc_project",
  "regex-lite",
  "serde",

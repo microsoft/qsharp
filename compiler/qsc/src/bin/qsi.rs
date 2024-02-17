@@ -96,7 +96,9 @@ fn main() -> miette::Result<ExitCode> {
 
             sources.append(&mut project_sources);
 
-            features.merge(manifest.manifest.language_features);
+            features.merge(LanguageFeatures::from_iter(
+                manifest.manifest.language_features,
+            ));
         }
     }
     if cli.exec {

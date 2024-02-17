@@ -9,7 +9,6 @@ use std::{
     fs::{self, DirEntry, FileType},
 };
 
-use qsc_data_structures::language_features::LanguageFeatures;
 use serde::Deserialize;
 use std::{path::PathBuf, sync::Arc};
 
@@ -22,7 +21,7 @@ pub struct Manifest {
     pub author: Option<String>,
     pub license: Option<String>,
     #[serde(default)]
-    pub language_features: LanguageFeatures,
+    pub language_features: Vec<String>,
 }
 
 /// Describes the contents and location of a Q# manifest file.
