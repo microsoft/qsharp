@@ -287,6 +287,151 @@ fn dump_machine_endianness() {
 }
 
 #[test]
+fn dump_register_all_qubits() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[4];
+            X(qs[1]);
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs);
+            X(qs[1]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0100⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn dump_register_subset_qubits() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[4];
+            X(qs[1]);
+            Microsoft.Quantum.Diagnostics.DumpRegister([qs[1], qs[2]]);
+            X(qs[1]);
+        }"},
+        &expect![[r#"
+            STATE:
+            |10⟩: 1.0000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn dump_register_subset_entangled_within_subset_is_separable() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
+            H(q1);
+            CNOT(q1, q3);
+            Microsoft.Quantum.Diagnostics.DumpRegister([q1, q3]);
+            Reset(q1);
+            Reset(q2);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 0.7071+0.0000𝑖
+            |11⟩: 0.7071+0.0000𝑖
+        "#]],
+    );
+
+}
+
+#[test]
+fn dump_register_subset_entangled_with_other_qubits_not_separable() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use (q1, q2, q3) = (Qubit(), Qubit(), Qubit());
+            H(q1);
+            CNOT(q1, q3);
+            Microsoft.Quantum.Diagnostics.DumpRegister([q1, q2]);
+        }"},
+        &expect!["qubits are not separable"],
+    );
+}
+
+#[test]
+fn dump_register_other_qubits_superposition_is_separable() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[3];
+            H(qs[0]);
+            H(qs[2]);
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs[...1]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 0.7071+0.0000𝑖
+            |10⟩: 0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn dump_register_other_qubits_one_state_is_separable() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[3];
+            H(qs[0]);
+            X(qs[2]);
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs[...1]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00⟩: 0.7071+0.0000𝑖
+            |10⟩: 0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn dump_register_qubits_reorder_output() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[5];
+            H(qs[0]);
+            X(qs[2]);
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs[2..-1...]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00100⟩: 0.7071+0.0000𝑖
+            |10100⟩: 0.7071+0.0000𝑖
+            STATE:
+            |100⟩: 0.7071+0.0000𝑖
+            |101⟩: 0.7071+0.0000𝑖
+        "#]],
+    );
+
+}
+
+#[test]
+fn dump_register_qubits_not_unique_fails() {
+    check_intrinsic_result(
+        "",
+        indoc! {"{
+            use qs = Qubit[3];
+            H(qs[0]);
+            Microsoft.Quantum.Diagnostics.DumpRegister([qs[0], qs[0]]);
+        }"},
+        &expect!["qubits in invocation are not unique"],
+    );
+
+}
+
+#[test]
 fn message() {
     check_intrinsic_output(
         "",
