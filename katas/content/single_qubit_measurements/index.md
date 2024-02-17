@@ -88,7 +88,7 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
 
 @[example]({
     "id": "single_qubit_measurements__implementing_measurement_demo",
-    "codePath": "./implementing_measurement/example.qs"
+    "codePath": "./implementing_measurement/Example.qs"
 })
 
 @[section]({
@@ -100,7 +100,7 @@ The following code demonstrates that the theoretical and experimental values of 
 
 @[example]({
     "id": "single_qubit_measurements__measurement_statistics_demo",
-    "codePath": "./measurement_statistics/example.qs"
+    "codePath": "./measurement_statistics/Example.qs"
 })
 
 Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states and discuss the general case of arbitrary basis measurements later in the kata.
