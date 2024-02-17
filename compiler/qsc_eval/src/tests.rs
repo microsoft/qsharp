@@ -64,7 +64,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         &[std_id],
         sources,
         RuntimeCapabilityFlags::all(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(

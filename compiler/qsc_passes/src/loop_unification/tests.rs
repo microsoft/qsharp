@@ -19,7 +19,7 @@ fn check(file: &str, expect: &Expect) {
         &[],
         sources,
         RuntimeCapabilityFlags::all(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     LoopUni {

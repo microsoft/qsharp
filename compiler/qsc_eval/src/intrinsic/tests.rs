@@ -169,7 +169,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         &[std_id],
         sources,
         RuntimeCapabilityFlags::all(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty());
     assert!(run_default_passes(

@@ -47,7 +47,7 @@ impl Compilation {
         sources: &[(Arc<str>, Arc<str>)],
         package_type: PackageType,
         target_profile: Profile,
-        language_features: &LanguageFeatures,
+        language_features: LanguageFeatures,
     ) -> Self {
         if sources.len() == 1 {
             trace!("compiling single-file document {}", sources[0].0);
@@ -84,7 +84,7 @@ impl Compilation {
     pub(crate) fn new_notebook<I>(
         cells: I,
         target_profile: Profile,
-        language_features: &LanguageFeatures,
+        language_features: LanguageFeatures,
     ) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
@@ -167,7 +167,7 @@ impl Compilation {
         &mut self,
         package_type: PackageType,
         target_profile: Profile,
-        language_features: &LanguageFeatures,
+        language_features: LanguageFeatures,
     ) {
         let sources = self
             .user_unit()

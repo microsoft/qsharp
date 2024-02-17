@@ -27,7 +27,7 @@ use qsc::{
     target::Profile,
     PackageType, SourceMap,
 };
-use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
+use qsc_data_structures::language_features::LanguageFeatures;
 use resource_estimator::{self as re, estimate_expr};
 use std::{collections::BTreeSet, fmt::Write};
 
@@ -83,14 +83,7 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             .downcast::<PyDict>()?;
 
         let language_features = get_dict_opt_list_string(manifest, "features")?;
-        let language_features: LanguageFeatures = match language_features
-            .iter()
-            .map(|f| LanguageFeature::try_parse(f))
-            .collect::<std::result::Result<BTreeSet<_>, _>>()
-        {
-            Ok(features) => features.into(),
-            Err(e) => return Err(QSharpError::new_err(e.to_string())),
-        };
+        let language_features = LanguageFeatures::from_iter(language_features);
 
         Ok(Self(ManifestDescriptor {
             manifest: Manifest {
@@ -140,22 +133,14 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        let language_features = language_features
-            .iter()
-            .map(|f| LanguageFeature::try_parse(f))
-            .collect::<std::result::Result<BTreeSet<_>, _>>();
-
-        let language_features = match language_features {
-            Ok(features) => features.into(),
-            Err(e) => return Err(QSharpError::new_err(e.to_string())),
-        };
+        let language_features = LanguageFeatures::from_iter(language_features);
 
         match interpret::Interpreter::new(
             true,
             sources,
             PackageType::Lib,
             target.into(),
-            &language_features,
+            language_features,
         ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),

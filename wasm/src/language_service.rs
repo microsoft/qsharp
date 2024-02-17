@@ -12,11 +12,11 @@ use crate::{
     serializable_type,
 };
 use qsc::{self, line_column::Encoding, target::Profile, PackageType};
-use qsc_data_structures::language_features::LanguageFeature;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeSet, str::FromStr};
+use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 
@@ -125,16 +125,9 @@ impl LanguageService {
                 target_profile: notebook_metadata
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
-                language_features: match notebook_metadata.languageFeatures.map(|features| {
-                    features
-                        .into_iter()
-                        .map(|s| LanguageFeature::try_parse(&s))
-                        .collect::<Result<BTreeSet<_>, _>>()
-                }) {
-                    Some(Ok(features)) => features.into(),
-                    None => BTreeSet::default().into(),
-                    Some(Err(e)) => panic!("invalid language feature {e:?}"),
-                },
+                language_features: LanguageFeatures::from_iter(
+                    notebook_metadata.languageFeatures.unwrap_or_default(),
+                ),
             },
             cells
                 .iter()

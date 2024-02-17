@@ -189,7 +189,7 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.insert_buffer_aware_compilation(sources, &compilation_uri, &language_features);
+        self.insert_buffer_aware_compilation(sources, &compilation_uri, language_features);
 
         self.publish_diagnostics();
     }
@@ -229,7 +229,7 @@ impl<'a> CompilationStateUpdater<'a> {
         &mut self,
         mut sources: Vec<(Arc<str>, Arc<str>)>,
         compilation_uri: &Arc<str>,
-        language_features: &LanguageFeatures,
+        language_features: LanguageFeatures,
     ) {
         self.with_state_mut(|state| {
             // replace source with one from memory if it exists
@@ -269,7 +269,7 @@ impl<'a> CompilationStateUpdater<'a> {
             // uses the disk contents instead of the open buffer contents
             // for this document
             if let Some(project) = project {
-                self.insert_buffer_aware_compilation(project.1, &project.0, &project.2);
+                self.insert_buffer_aware_compilation(project.1, &project.0, project.2);
             }
         }
 
@@ -347,10 +347,7 @@ impl<'a> CompilationStateUpdater<'a> {
                     (Arc::from(cell_uri), Arc::from(cell_contents))
                 }),
                 configuration.target_profile,
-                &(notebook_configuration
-                    .language_features
-                    .clone()
-                    .unwrap_or_default()),
+                (notebook_configuration.language_features.unwrap_or_default()),
             );
 
             state.compilations.insert(
@@ -460,7 +457,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 compilation.recompile(
                     configuration.package_type,
                     configuration.target_profile,
-                    &language_features,
+                    language_features,
                 );
             }
         });

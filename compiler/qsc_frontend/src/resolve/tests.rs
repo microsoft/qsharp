@@ -72,7 +72,7 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn resolve_names(input: &str) -> String {
-    let (package, names, _, errors) = compile(input, &LanguageFeatures::none());
+    let (package, names, _, errors) = compile(input, LanguageFeatures::none());
     let mut renamer = Renamer::new(&names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
@@ -88,7 +88,7 @@ fn resolve_names(input: &str) -> String {
 
 fn compile(
     input: &str,
-    language_features: &LanguageFeatures,
+    language_features: LanguageFeatures,
 ) -> (Package, Names, Locals, Vec<Error>) {
     let (namespaces, parse_errors) = qsc_parse::namespaces(input, language_features);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
@@ -2112,7 +2112,7 @@ fn check_locals(input: &str, expect: &Expect) {
     let cursor_offset = parts[0].len() as u32;
     let source = parts.join("");
 
-    let (_, _, locals, _) = compile(&source, &LanguageFeatures::none());
+    let (_, _, locals, _) = compile(&source, LanguageFeatures::none());
 
     let locals = locals.get_all_at_offset(cursor_offset);
     let actual = locals.iter().fold(String::new(), |mut output, l| {

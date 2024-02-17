@@ -3,7 +3,7 @@
 
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc_data_structures::language_features::LanguageFeature;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 use std::collections::BTreeSet;
 use std::iter::FromIterator;
@@ -172,7 +172,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
     let language_features = match js_sys::Reflect::get(&js_val, &JsValue::from_str("languageFeatures"))
     {
         Ok(v) => match v.dyn_into::<js_sys::Array>()  {
-            Ok(arr) => arr
+            Ok(arr) => LanguageFeatures::from_iter(arr
                 .into_iter()
                 .map(|x| {
                     x.as_string().unwrap_or_else(|| {
@@ -181,16 +181,10 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
                             x
                         )
                     })
-                })
-                .map(|x| LanguageFeature::try_parse(&x))
-                .filter_map(|x| match x {
-                    Ok(x) => Some(x),
-                    Err(_) => None,
-                })
-                .collect::<BTreeSet<_>>(),
-            Err(_) => BTreeSet::default(),
+                })),
+                Err(_) => Default::default(),
         },
-        _ => BTreeSet::default(),
+        _ => Default::default(),
 
     }.into();
 

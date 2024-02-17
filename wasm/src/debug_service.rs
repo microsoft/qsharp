@@ -8,7 +8,7 @@ use qsc::fir::StmtId;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
 use qsc::{fmt_complex, target::Profile};
-use qsc_data_structures::language_features::{self, LanguageFeature};
+use qsc_data_structures::language_features::LanguageFeatures;
 
 use crate::line_column::Range;
 use crate::{get_source_map, serializable_type, CallbackReceiver};
@@ -39,15 +39,8 @@ impl DebugService {
         let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
-        let features: BTreeSet<LanguageFeature> = match language_features
-            .iter()
-            .map(|f| language_features::LanguageFeature::try_parse(f))
-            .collect()
-        {
-            Ok(features) => features,
-            Err(e) => panic!("Invalid language feature: {}", e),
-        };
-        match Debugger::new(source_map, target.into(), Encoding::Utf16, &features.into()) {
+        let features = LanguageFeatures::from_iter(language_features);
+        match Debugger::new(source_map, target.into(), Encoding::Utf16, features) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 match self.debugger_mut().set_entry() {

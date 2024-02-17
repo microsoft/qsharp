@@ -34,7 +34,7 @@ fn check(block_str: &str, expect: &Expect) {
         &[std],
         SourceMap::new([], Some(block_str.into())),
         RuntimeCapabilityFlags::all(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 

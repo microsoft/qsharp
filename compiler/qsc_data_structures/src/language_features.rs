@@ -1,30 +1,20 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use clap::ValueEnum;
+use bitflags::bitflags;
 use serde::Deserialize;
-use std::collections::BTreeSet;
-#[derive(Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Copy)]
-#[serde(rename_all = "kebab-case")]
-pub enum LanguageFeature {
-    /// This language feature enables experimental syntax that will likely be stabilized in the next major version.
-    /// It may include removals of outdated syntax and introductions of new syntax.
-    V2PreviewSyntax,
-}
 
-impl LanguageFeature {
-    pub fn try_parse(s: &str) -> Result<Self, UnrecognizedLanguageFeature> {
-        match s {
-            "v2-preview-syntax" => Ok(LanguageFeature::V2PreviewSyntax),
-            _ => Err(UnrecognizedLanguageFeature::msg(format!(
-                "Unrecognized language feature: {s}"
-            ))),
-        }
+#[derive(Deserialize, Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Copy)]
+pub struct LanguageFeatures(u8);
+
+bitflags! {
+    impl LanguageFeatures: u8 {
+        const V2PreviewSyntax = 0b1;
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct LanguageFeatures(BTreeSet<LanguageFeature>);
+// #[derive(Debug, Clone, Deserialize, Default)]
+// pub struct LanguageFeatures(BTreeSet<LanguageFeature>);
 pub type LanguageFeatureIncompatibility = miette::ErrReport;
 pub type UnrecognizedLanguageFeature = miette::ErrReport;
 
@@ -38,39 +28,30 @@ impl LanguageFeatures {
 
     #[must_use]
     pub fn none() -> Self {
-        Self(BTreeSet::default())
+        Self(0)
     }
 
-    pub fn merge(&mut self, other: impl Into<BTreeSet<LanguageFeature>>) {
-        self.0.append(&mut other.into());
-    }
-
-    #[must_use]
-    pub fn contains(&self, feat: LanguageFeature) -> bool {
-        self.0.contains(&feat)
-    }
-}
-impl From<LanguageFeatures> for BTreeSet<LanguageFeature> {
-    fn from(val: LanguageFeatures) -> Self {
-        val.0
-    }
-}
-impl From<BTreeSet<LanguageFeature>> for LanguageFeatures {
-    fn from(val: BTreeSet<LanguageFeature>) -> Self {
-        LanguageFeatures(val)
+    pub fn merge(&mut self, other: impl Into<LanguageFeatures>) {
+        self.0 = self.0 | other.into().0
     }
 }
 
-impl ValueEnum for LanguageFeature {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[LanguageFeature::V2PreviewSyntax]
+impl Default for LanguageFeatures {
+    fn default() -> Self {
+        LanguageFeatures::empty()
     }
+}
 
-    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
-        match self {
-            LanguageFeature::V2PreviewSyntax => {
-                Some(clap::builder::PossibleValue::new("v2-preview-syntax"))
+impl<'a, I> FromIterator<I> for LanguageFeatures
+where
+    I: AsRef<str>,
+{
+    fn from_iter<T: IntoIterator<Item = I>>(iter: T) -> Self {
+        iter.into_iter().fold(LanguageFeatures::empty(), |acc, x| {
+            acc | match x.as_ref() {
+                "v2-preview-syntax" => LanguageFeatures::V2PreviewSyntax,
+                _ => LanguageFeatures::empty(),
             }
-        }
+        })
     }
 }

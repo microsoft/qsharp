@@ -16,7 +16,7 @@ fn check(file: &str, expect: &Expect) {
         &[],
         sources,
         RuntimeCapabilityFlags::all(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     ReplaceQubitAllocation::new(store.core(), &mut unit.assigner).visit_package(&mut unit.package);

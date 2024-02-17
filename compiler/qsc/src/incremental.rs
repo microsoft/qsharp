@@ -55,7 +55,7 @@ impl Compiler {
             sources,
             package_type,
             capabilities,
-            &language_features,
+            language_features,
         );
         if !errors.is_empty() {
             return Err(errors);

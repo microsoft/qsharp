@@ -255,7 +255,7 @@ mod tests {
             sources,
             package_type,
             capabilities,
-            &LanguageFeatures::none(),
+            LanguageFeatures::none(),
         );
         let user_package_id = store.insert(unit);
 

@@ -102,7 +102,7 @@ impl<T, F: FnMut(&mut ParserContext) -> Result<T>> Parser<T> for F {}
 
 pub fn namespaces(
     input: &str,
-    language_features: &LanguageFeatures,
+    language_features: LanguageFeatures,
 ) -> (Vec<Namespace>, Vec<Error>) {
     let mut scanner = ParserContext::new(input, language_features.clone());
     match item::parse_namespaces(&mut scanner) {
@@ -117,7 +117,7 @@ pub fn namespaces(
 
 pub fn top_level_nodes(
     input: &str,
-    language_features: &LanguageFeatures,
+    language_features: LanguageFeatures,
 ) -> (Vec<TopLevelNode>, Vec<Error>) {
     let mut scanner = ParserContext::new(input, language_features.clone());
     match item::parse_top_level_nodes(&mut scanner) {
@@ -130,7 +130,7 @@ pub fn top_level_nodes(
     }
 }
 
-pub fn expr(input: &str, language_features: &LanguageFeatures) -> (Box<Expr>, Vec<Error>) {
+pub fn expr(input: &str, language_features: LanguageFeatures) -> (Box<Expr>, Vec<Error>) {
     let mut scanner = ParserContext::new(input, language_features.clone());
     match expr::expr_eof(&mut scanner) {
         Ok(expr) => (expr, scanner.into_errors()),

@@ -9,7 +9,7 @@ use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_codegen::qir_base;
-use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
     compile::{PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName},
     error::WithSource,
@@ -18,7 +18,6 @@ use qsc_hir::hir::{Package, PackageId};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
-    collections::BTreeSet,
     concat, fs,
     io::{self, Read},
     path::{Path, PathBuf},
@@ -60,7 +59,7 @@ struct Cli {
 
     /// Language features to compile with
     #[arg(short, long)]
-    features: Vec<LanguageFeature>,
+    features: Vec<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -85,7 +84,7 @@ fn main() -> miette::Result<ExitCode> {
         dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
     }
 
-    let mut features: LanguageFeatures = BTreeSet::from_iter(cli.features).into();
+    let mut features = LanguageFeatures::from_iter(cli.features);
 
     let mut sources = cli
         .sources
@@ -116,7 +115,7 @@ fn main() -> miette::Result<ExitCode> {
         sources,
         package_type,
         capabilities,
-        &features,
+        features,
     );
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");

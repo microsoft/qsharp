@@ -20,7 +20,7 @@ use crate::{
 use qsc_ast::ast::{
     Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
-use qsc_data_structures::{language_features::LanguageFeature, span::Span};
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
@@ -111,7 +111,7 @@ fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = parse_qubit_init(s)?;
-    let block = if !s.contains_language_feature(LanguageFeature::V2PreviewSyntax) {
+    let block = if !s.contains_language_feature(LanguageFeatures::V2PreviewSyntax) {
         opt(s, parse_block)?
     } else {
         None

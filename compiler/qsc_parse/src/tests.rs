@@ -4,8 +4,8 @@
 use super::{scan::ParserContext, Parser};
 use crate::prim::FinalSep;
 use expect_test::Expect;
-use qsc_data_structures::language_features::LanguageFeature;
-use std::{collections::BTreeSet, fmt::Display, vec};
+use qsc_data_structures::language_features::LanguageFeatures;
+use std::fmt::Display;
 
 pub(super) fn check<T: Display>(parser: impl Parser<T>, input: &str, expect: &Expect) {
     check_map(parser, input, expect, ToString::to_string);
@@ -67,13 +67,7 @@ fn check_map_v2_preview<T>(
     expect: &Expect,
     f: impl FnOnce(&T) -> String,
 ) {
-    let mut scanner = ParserContext::new(
-        input,
-        vec![LanguageFeature::V2PreviewSyntax]
-            .into_iter()
-            .collect::<BTreeSet<_>>()
-            .into(),
-    );
+    let mut scanner = ParserContext::new(input, LanguageFeatures::V2PreviewSyntax);
     let result = parser(&mut scanner);
     let errors = scanner.into_errors();
     match result {

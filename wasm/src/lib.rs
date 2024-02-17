@@ -19,11 +19,11 @@ use qsc::{
     PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
 use qsc_codegen::qir_base::generate_qir;
-use qsc_data_structures::language_features::{LanguageFeature, LanguageFeatures};
+use qsc_data_structures::language_features::LanguageFeatures;
 use resource_estimator::{self as re, estimate_entry};
 use serde::Serialize;
 use serde_json::json;
-use std::{collections::BTreeSet, fmt::Write, sync::Arc};
+use std::{fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 mod debug_service;
@@ -73,13 +73,9 @@ pub fn get_qir(
     sources: Vec<js_sys::Array>,
     language_features: Vec<String>,
 ) -> Result<String, String> {
-    let language_features = language_features
-        .into_iter()
-        .map(|f: String| LanguageFeature::try_parse(&f))
-        .collect::<Result<BTreeSet<LanguageFeature>, _>>()
-        .map_err(|e| e.to_string())?;
+    let language_features = LanguageFeatures::from_iter(language_features);
     let sources = get_source_map(sources, None);
-    _get_qir(sources, language_features.into())
+    _get_qir(sources, language_features)
 }
 
 // allows testing without wasm bindings.
@@ -95,7 +91,7 @@ fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<S
         sources,
         PackageType::Exe,
         Profile::Base.into(),
-        &language_features,
+        language_features,
     );
 
     // Ensure it compiles before trying to add it to the store.
@@ -118,18 +114,14 @@ pub fn get_estimates(
 ) -> Result<String, String> {
     let sources = get_source_map(sources, None);
 
-    let language_features = language_features
-        .into_iter()
-        .map(|f: String| LanguageFeature::try_parse(&f))
-        .collect::<Result<BTreeSet<LanguageFeature>, _>>()
-        .map_err(|e| e.to_string())?;
+    let language_features = LanguageFeatures::from_iter(language_features);
 
     let mut interpreter = interpret::Interpreter::new(
         true,
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
-        &language_features.into(),
+        language_features,
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -160,11 +152,7 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 
 #[wasm_bindgen]
 pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
-    let language_features = language_features
-        .into_iter()
-        .map(|f: String| LanguageFeature::try_parse(&f))
-        .collect::<Result<BTreeSet<LanguageFeature>, _>>()
-        .map_err(|e| e.to_string())?;
+    let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
@@ -173,7 +161,7 @@ pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, Str
             sources,
             PackageType::Exe,
             Profile::Unrestricted.into(),
-            &language_features.into(),
+            language_features,
         );
         unit.package
     });
@@ -251,7 +239,7 @@ where
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
-        &language_features,
+        language_features,
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {
@@ -297,11 +285,7 @@ pub fn run(
         return Err(JsError::new("Events callback function must be provided").into());
     }
 
-    let language_features = language_features
-        .into_iter()
-        .map(|f: String| LanguageFeature::try_parse(&f))
-        .collect::<Result<BTreeSet<LanguageFeature>, _>>()
-        .map_err(|e| e.to_string())?;
+    let language_features = LanguageFeatures::from_iter(language_features);
 
     let sources = get_source_map(sources, Some(expr.into()));
     match run_internal_with_features(

@@ -6,10 +6,7 @@ use crate::{
     lex::{Lexer, Token, TokenKind},
     ErrorKind,
 };
-use qsc_data_structures::{
-    language_features::{LanguageFeature, LanguageFeatures},
-    span::Span,
-};
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 #[derive(Debug)]
 pub(super) struct NoBarrierError;
@@ -83,7 +80,7 @@ impl<'a> ParserContext<'a> {
         self.scanner.into_errors()
     }
 
-    pub(crate) fn contains_language_feature(&self, feat: LanguageFeature) -> bool {
+    pub(crate) fn contains_language_feature(&self, feat: LanguageFeatures) -> bool {
         self.language_features.contains(feat)
     }
 }

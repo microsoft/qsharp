@@ -36,7 +36,7 @@ pub fn check_solution(
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     )?;
     interpreter.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {

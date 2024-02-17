@@ -119,7 +119,7 @@ impl Compiler {
             &mut unit.sources,
             source_name,
             source_contents,
-            &self.language_features,
+            self.language_features,
         );
 
         accumulate_errors(parse_errors)?;
@@ -159,7 +159,7 @@ impl Compiler {
             &mut unit.sources,
             source_name,
             source_contents,
-            &self.language_features,
+            self.language_features,
         );
 
         if !parse_errors.is_empty() {
@@ -264,7 +264,7 @@ impl Compiler {
         sources: &mut SourceMap,
         source_name: &str,
         source_contents: &str,
-        language_features: &LanguageFeatures,
+        language_features: LanguageFeatures,
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
 
@@ -293,7 +293,7 @@ impl Compiler {
         sources: &mut SourceMap,
         source_name: &str,
         source_contents: &str,
-        features: &LanguageFeatures,
+        features: LanguageFeatures,
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
 

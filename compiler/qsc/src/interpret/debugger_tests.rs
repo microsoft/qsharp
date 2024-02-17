@@ -133,7 +133,7 @@ mod given_debugger {
                 sources,
                 RuntimeCapabilityFlags::all(),
                 Encoding::Utf8,
-                &LanguageFeatures::none(),
+                LanguageFeatures::none(),
             )?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
@@ -157,7 +157,7 @@ mod given_debugger {
                 sources,
                 RuntimeCapabilityFlags::all(),
                 Encoding::Utf8,
-                &LanguageFeatures::none(),
+                LanguageFeatures::none(),
             )?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
@@ -177,7 +177,7 @@ mod given_debugger {
                 sources,
                 RuntimeCapabilityFlags::all(),
                 Encoding::Utf8,
-                &LanguageFeatures::none(),
+                LanguageFeatures::none(),
             )?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
@@ -204,7 +204,7 @@ mod given_debugger {
                 sources,
                 RuntimeCapabilityFlags::all(),
                 Encoding::Utf8,
-                &LanguageFeatures::none(),
+                LanguageFeatures::none(),
             )?;
             debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");

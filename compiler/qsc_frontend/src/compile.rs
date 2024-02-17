@@ -343,7 +343,7 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     capabilities: RuntimeCapabilityFlags,
-    language_features: &LanguageFeatures,
+    language_features: LanguageFeatures,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources, language_features);
 
@@ -418,7 +418,7 @@ pub fn core() -> CompileUnit {
         &[],
         sources,
         RuntimeCapabilityFlags::empty(),
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
@@ -442,7 +442,7 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
         &[PackageId::CORE],
         sources,
         capabilities,
-        &LanguageFeatures::none(),
+        LanguageFeatures::none(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
@@ -450,7 +450,7 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
 
 fn parse_all(
     sources: &SourceMap,
-    features: &LanguageFeatures,
+    features: LanguageFeatures,
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
