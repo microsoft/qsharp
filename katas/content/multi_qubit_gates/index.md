@@ -379,7 +379,6 @@ $$\text{CINOT} = (\text{SWAP} \otimes I)(I \otimes \text{CNOT})(\text{SWAP} \oti
 > We can also spell out all gates applied explicitly (this makes for a much longer code, though):
 >
 > ```qsharp
->
 operation CINOT (qs: Qubit[]) : Unit {
     // First step
     SWAP(qs[0], qs[1]);
