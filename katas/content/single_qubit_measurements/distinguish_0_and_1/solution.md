@@ -5,5 +5,5 @@ In Q# the operation <a href="https://docs.microsoft.com/qsharp/api/qsharp/micros
 @[solution]({
 "id": "single_qubit_measurements__distinguish_0_and_1_solution",
 "exerciseId": "distinguish_0_and_1",
-"codePath": "solution.qs"
+"codePath": "Solution.qs"
 })

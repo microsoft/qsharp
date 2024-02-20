@@ -28,5 +28,5 @@ The `Ry` operation applies a given rotation about the $Y$-axis (i.e., in the $ZX
 
 @[solution]({
     "id": "random_numbers__weighted_random_bit_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })

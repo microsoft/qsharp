@@ -8,5 +8,5 @@ Note that since `Measure` operation generally works with multiple qubits to perf
 @[solution]({
     "id": "single_qubit_measurements__distinguish_plus_and_minus_solution",
     "exerciseId": "distinguish_plus_and_minus",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })

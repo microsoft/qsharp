@@ -4,5 +4,5 @@ Since the maximum value of the number written with N bits is $2^N - 1$, we don't
 
 @[solution]({
     "id": "random_numbers__random_n_bits_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })

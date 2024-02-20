@@ -11,5 +11,5 @@ In Q#, the operation <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp
 
 @[solution]({
 "id": "multi_qubit_measurements__joint_measurements_solution",
-"codePath": "solution.qs"
+"codePath": "Solution.qs"
 })

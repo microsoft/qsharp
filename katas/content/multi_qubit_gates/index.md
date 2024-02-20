@@ -8,11 +8,13 @@
 This kata continues the introduction to quantum gates, focusing on applying quantum gates to multi-qubit systems.
 
 **This kata covers the following topics:**
+
 - Applying quantum gates to a part of the system
 - `CNOT` and `SWAP` gates
 - Controlled gates
 
 **What you should know to start working on this kata:**
+
 - Basic linear algebra
 - The concept of qubit and multi-qubit systems
 - Single-qubit and multi-qubit quantum gates
@@ -72,13 +74,10 @@ It is more complex when a multi-qubit gate is applied to a subset of qubits that
 @[exercise]({
     "id": "multi_qubit_gates__compound_gate",
     "title": "Compound Gate",
-    "descriptionPath": "./compound_gate/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./compound_gate/Verification.qs"
-    ],
-    "placeholderSourcePath": "./compound_gate/Placeholder.qs",
-    "solutionPath": "./compound_gate/solution.md"
+    "path": "./compound_gate/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({
@@ -128,13 +127,10 @@ The `CNOT` gate is self-adjoint: applying it for the second time reverses its ef
 @[exercise]({
     "id": "multi_qubit_gates__preparing_bell_state",
     "title": "Preparing a Bell State",
-    "descriptionPath": "./preparing_bell_state/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./preparing_bell_state/Verification.qs"
-    ],
-    "placeholderSourcePath": "./preparing_bell_state/Placeholder.qs",
-    "solutionPath": "./preparing_bell_state/solution.md"
+    "path": "./preparing_bell_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({
@@ -159,11 +155,11 @@ $$
 \begin{bmatrix} 0 \\\ 1 \\\ 0 \\\ 0 \end{bmatrix}\begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} +
 \begin{bmatrix} 0 \\\ 0 \\\ 1 \\\ 0 \end{bmatrix}\begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix} +
 \begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}\begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix} =
-$$ 
 $$
-\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} + 
-\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} + 
-\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} + 
+$$
+\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} +
+\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} +
+\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} +
 \begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 1 & 0 \\\ \end{bmatrix} =
 $$
 $$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \\\ \end{bmatrix}$$
@@ -171,7 +167,7 @@ $$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 
 This representation can be used to carry out calculations in Dirac notation without ever switching back to matrix representation:
 
 $$
-\text{CNOT}|10\rangle = 
+\text{CNOT}|10\rangle =
 \big(|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10|\big)|10\rangle =$$
 $$|00\rangle\langle00|10\rangle + |01\rangle\langle01|10\rangle + |10\rangle\langle11|10\rangle + |11\rangle\langle10|10\rangle =$$
 $$|00\rangle\big(\langle00|10\rangle\big) + |01\rangle\big(\langle01|10\rangle\big) + |10\rangle\big(\langle11|10\rangle\big) + |11\rangle\big(\langle10|10\rangle\big) =$$
@@ -222,8 +218,9 @@ $$A = \sum_{i=0}^{2^N-1} x_i|\psi_i\rangle\langle\psi_i|$$
 
 Let's use our `CNOT` gate as a simple example.
 The $\\text{CNOT}$ gate has four eigenvectors.
- * Two, as we can clearly see, are computational basis states $|00\rangle$ and $|01\rangle$ with eigen values $1$ and $1$, respectively (the basis states that are not affected by the gate).
- * The other two are $|1\rangle \otimes |+\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle + |11\rangle\big)$ and $|1\rangle \otimes |-\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle - |11\rangle\big)$ with eigenvalues $1$ and $-1$, respectively:
+
+- Two, as we can clearly see, are computational basis states $|00\rangle$ and $|01\rangle$ with eigen values $1$ and $1$, respectively (the basis states that are not affected by the gate).
+- The other two are $|1\rangle \otimes |+\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle + |11\rangle\big)$ and $|1\rangle \otimes |-\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle - |11\rangle\big)$ with eigenvalues $1$ and $-1$, respectively:
 
 $$\text{CNOT}|00\rangle = |00\rangle$$
 $$\text{CNOT}|01\rangle = |01\rangle$$
@@ -270,13 +267,10 @@ The `SWAP` gate acts on two qubits, and, as the name implies, swaps their quantu
 @[exercise]({
     "id": "multi_qubit_gates__qubit_swap",
     "title": "Qubit SWAP",
-    "descriptionPath": "./qubit_swap/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./qubit_swap/Verification.qs"
-    ],
-    "placeholderSourcePath": "./qubit_swap/Placeholder.qs",
-    "solutionPath": "./qubit_swap/solution.md"
+    "path": "./qubit_swap/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({
@@ -355,18 +349,21 @@ However, as $N$ gets larger, creating a full size matrix can be extremely unwiel
 These can be represented as applying the following gates on the 3 qubits.
 
 1. $\text{SWAP} \otimes I$
+
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{100}|010\rangle + x_{101}|011\rangle +
 x_{010}|100\rangle + x_{011}|101\rangle + x_{110}|110\rangle + x_{111}|111\rangle
 $$
 
 2. $I \otimes \text{CNOT}$
+
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{101}|010\rangle + x_{100}|011\rangle +
 x_{010}|100\\rangle + x_{011}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
 $$
 
 3. $\text{SWAP} \otimes I$
+
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle +
 x_{101}|100\rangle + x_{100}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
@@ -380,6 +377,7 @@ $$\text{CINOT} = (\text{SWAP} \otimes I)(I \otimes \text{CNOT})(\text{SWAP} \oti
 > However, when implementing the unitary $\text{SWAP} \otimes I$ in Q#, we need only to call `SWAP(qs[0], qs[1])` - the remaining qubit `qs[2]` will not change, which is equivalent to applying an implicit identity gate.
 >
 > We can also spell out all gates applied explicitly (this makes for a much longer code, though):
+>
 > ```qsharp
 operation CINOT (qs: Qubit[]) : Unit {
     // First step
@@ -467,13 +465,10 @@ In other cases, you'll need to define the controlled version of an operation man
 @[exercise]({
     "id": "multi_qubit_gates__controlled_rotation",
     "title": "Controlled Rotation",
-    "descriptionPath": "./controlled_rotation/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./controlled_rotation/Verification.qs"
-    ],
-    "placeholderSourcePath": "./controlled_rotation/Placeholder.qs",
-    "solutionPath": "./controlled_rotation/solution.md"
+    "path": "./controlled_rotation/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({
@@ -513,9 +508,10 @@ For example, an **anti-controlled** `U` gate (sometimes called **zero-controlled
 It is also possible to define control conditions in other bases, for example, applying the gate if the control qubit is in the $|+\rangle$ state.
 
 All the variants of controlled gates can be expressed in terms of the controls described in previous sections, using the following sequence of steps:
-* First, apply a transformation on control qubits that will transform the state you want to use as control into the $|1...1\rangle$ state.
-* Apply the regular controlled version of the gate.
-* Finally, undo the transformation on control qubits from the first step using the adjoint version of it.
+
+- First, apply a transformation on control qubits that will transform the state you want to use as control into the $|1...1\rangle$ state.
+- Apply the regular controlled version of the gate.
+- Finally, undo the transformation on control qubits from the first step using the adjoint version of it.
 
 > Why do we need this last step? Remember that controlled gates are defined in terms of their effect on the basis states:
 > we apply the gate on the target qubit if and only if the control qubit is in the state we want to control on, and we don't change the state of the control qubit at all.
@@ -548,6 +544,7 @@ All the variants of controlled gates can be expressed in terms of the controls d
 </table>
 
 > Let's apply the anti-controlled `X` gate to the $|00\rangle$ state step by step:
+>
 > 1. Transform the state of the control qubit to $|1\rangle$: we can do that by applying the $X$ gate to the first qubit:
 > $$|00\rangle \rightarrow |10\rangle$$
 > 2. Apply the regular `CNOT` gate:
@@ -562,6 +559,7 @@ Finally, let's take a look at a very useful operation <a href="https://docs.micr
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
 
 The sequence of steps that implement this variant are:
+
 1. Apply the `X` gate to each control qubit that corresponds to a `false` element of the bit mask (in the example, that's just the second qubit). After this, if the control qubits started in the $|10\rangle$ state, they'll end up in the $|11\rangle$ state, and if they started in any other state, they'll end up in any state but $|11\rangle$.
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
@@ -569,13 +567,10 @@ The sequence of steps that implement this variant are:
 @[exercise]({
     "id": "multi_qubit_gates__arbitrary_controls",
     "title": "Arbitrary Controls",
-    "descriptionPath": "./arbitrary_controls/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./arbitrary_controls/Verification.qs"
-    ],
-    "placeholderSourcePath": "./arbitrary_controls/Placeholder.qs",
-    "solutionPath": "./arbitrary_controls/solution.md"
+    "path": "./arbitrary_controls/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({
@@ -583,10 +578,11 @@ The sequence of steps that implement this variant are:
     "title": "Conclusion"
 })
 
-Congratulations! You have completed the series of introductory katas. In this kata you learned how to apply quantum gates to multi-qubit systems. Here are a few key concepts to keep in mind: 
-* Multi-qubit gates are constructed as the tensor products of gates that affect individual qubits of the system.
-* CNOT gate is a type of controlled gate that acts on two qubits. If the control qubit is in state $\ket{1}$, it applies the $X$ gate to the target qubit, otherwise it does nothing.
-* In Q#, controlled gates are applied using the `Controlled` functor.
-* In Q# you can apply a sequence of multi-qubit gates, regardless of whether the qubits are adjacent or not.
+Congratulations! You have completed the series of introductory katas. In this kata you learned how to apply quantum gates to multi-qubit systems. Here are a few key concepts to keep in mind:
 
-Next, you will learn about quantum measurements in the "Measurements in Single-Qubit Systems" kata. 
+- Multi-qubit gates are constructed as the tensor products of gates that affect individual qubits of the system.
+- CNOT gate is a type of controlled gate that acts on two qubits. If the control qubit is in state $\ket{1}$, it applies the $X$ gate to the target qubit, otherwise it does nothing.
+- In Q#, controlled gates are applied using the `Controlled` functor.
+- In Q# you can apply a sequence of multi-qubit gates, regardless of whether the qubits are adjacent or not.
+
+Next, you will learn about quantum measurements in the "Measurements in Single-Qubit Systems" kata.
