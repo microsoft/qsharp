@@ -211,10 +211,10 @@ $$X|-\rangle = -|-\rangle$$
 
 Here's what the decomposition looks like:
 $$X = |+\rangle\langle+| - |-\rangle\langle-| =$$
-$$\frac{1}{2}\big[\big(|0\rangle + |1\rangle\big)\big(\langle0| + \langle1|\big) - \big(|0\rangle - |1\rangle\big)\big(\langle0| - \langle1|\big)\big] =$$
-$$\frac{1}{2}\big(|0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| + |1\rangle\langle1| - |0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| - |1\rangle\langle1|\big) =$$
-$$\frac{1}{2}\big(2|0\rangle\langle1| + 2|1\rangle\langle0|\big) =$$
-$$|0\rangle\langle1| + |1\rangle\langle0|$$
+$$= \frac{1}{2}\big[\big(|0\rangle + |1\rangle\big)\big(\langle0| + \langle1|\big) - \big(|0\rangle - |1\rangle\big)\big(\langle0| - \langle1|\big)\big] =$$
+$$= \frac{1}{2}\big(|0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| + |1\rangle\langle1| - |0\rangle\langle0| + |0\rangle\langle1| + |1\rangle\langle0| - |1\rangle\langle1|\big) =$$
+$$= \frac{1}{2}\big(2|0\rangle\langle1| + 2|1\rangle\langle0|\big) =$$
+$$= |0\rangle\langle1| + |1\rangle\langle0|$$
 
 @[section]({
     "id": "single_qubit_gates__important_gates",
@@ -247,7 +247,6 @@ The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pau
     <th>Ket-Bra</th>
     <th>Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
     <th>Applying to basis states</th>
-    <th>Q# Documentation</th>
   </tr>
   <tr>
     <td>$X$</td>
@@ -262,7 +261,6 @@ The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pau
       $X|i\rangle = i|-i\rangle$<br>
       $X|-i\rangle = -i|i\rangle$
     </td>
-    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.x" target="_blank">X</a></td>
   </tr>
   <tr>
     <td>$Y$</td>
@@ -277,7 +275,6 @@ The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pau
       $Y|i\rangle = |i\rangle$<br>
       $Y|-i\rangle = -|-i\rangle$<br>
     </td>
-    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.y" target="_blank">Y</a></td>
   </tr>
   <tr>
     <td>$Z$</td>
@@ -292,7 +289,6 @@ The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pau
       $Z|i\rangle = |-i\rangle$<br>
       $Z|-i\rangle = |i\rangle$<br>
     </td>
-    <td><a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.z" target="_blank">Z</a></td>
   </tr>
 </table>
 
@@ -314,18 +310,18 @@ Here are several properties of the Pauli gates that are easy to verify and conve
     "title": "Pauli Gates in Q#"
 })
 
-The following example contains code demonstrating how to apply gates in Q#, using the Pauli $X$ gate as an example. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
+The following example contains code demonstrating how to apply gates in Q#. It sets up a series of quantum states, and then shows the result of applying the $X$ gate to each one.
 
 In the previous kata we discussed that qubit state in Q# cannot be directly assigned or accessed. The same logic is extended to quantum gates: applying a gate to a qubit modifies the internal state of that qubit, but doesn't return the resulting state of the qubit. This is why we never assign the output of these gates to any variables in this demo - they don't produce any output.
 
-The same principle applies to successive qubit gates. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$ because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
+The same principle applies to applying several gates in a row to a qubit. In the mathematical notation, applying an $X$ gate followed by a $Z$ gate to a state $|\psi\rangle$ is denoted as $Z(X(|\psi\rangle))$, because the result of applying a gate to a state is another state. In Q#, applying a gate doesn't return anything, so you can't use its output as an input to another gate - something like `Z(X(q))` will not produce the expected result. Instead, to apply several gates to the same qubit, you need to call them separately in the order in which they are applied:
 
 ```qsharp
 X(q);
 Z(q);
 ```
 
-All the basic gates we will be covering in this kata are part of the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic" target="_blank">Intrinsic</a> namespace. We're also using the function <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine" target="_blank">DumpMachine</a> to print the state of the quantum simulator.
+All the basic gates we will be covering in this kata are part of the Intrinsic namespace. We're also using the function DumpMachine to print the state of the quantum simulator.
 
 @[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
@@ -365,6 +361,61 @@ All the basic gates we will be covering in this kata are part of the <a href="ht
     "solutionPath": "./sign_flip_on_zero/solution.md"
 })
 
+@[section]({
+    "id": "identity_gate",
+    "title": "Identity Gate"
+})
+
+The identity gate is mostly here for completeness, at least for now. It will come in handy when dealing with multi-qubit systems and multi-qubit gates. It is represented by the identity matrix, and does not affect the state of the qubit.
+  
+<table>
+<tr>
+<th>Gate</th>
+<th>Matrix</th>
+<th>Ket-Bra</th>
+<th>Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
+</tr>
+<tr>
+<td>$I$</td>
+<td>$\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}$</td>
+<td>$|0\rangle\langle0| + |1\rangle\langle1|$</td>
+<td>$I|\psi\rangle = |\psi\rangle$</td>
+</tr>
+</table>
+
+@[section]({
+    "id": "hadamard_gate",
+    "title": "Hadamard Gate"
+})
+
+The **Hadamard** gate is an extremely important quantum gate. Unlike the previous gates, applying the Hadamard gate to a qubit in a computational basis state puts that qubit into a superposition.
+Like the Pauli gates, the Hadamard gate is self-adjoint.
+
+<table>
+<tr>
+<th>Gate</th>
+<th>Matrix</th>
+<th>Ket-Bra</th>
+<th>Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
+<th>Applying to basis states</th>
+</tr>
+<tr>
+<td>$H$</td>
+<td>$\begin{bmatrix} \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$</td>
+<td>$|0\rangle\langle+| + |1\rangle\langle-|$</td>
+<td>$H|\psi\rangle = \alpha|+\rangle + \beta|-\rangle = \frac{\alpha + \beta}{\sqrt{2}}|0\rangle + \frac{\alpha - \beta}{\sqrt{2}}|1\rangle$</td>
+<td>$H|0\rangle = |+\rangle$ <br>
+$H|1\rangle = |-\rangle$ <br>
+$H|+\rangle = |0\rangle$ <br>
+$H|-\rangle = |1\rangle$ <br>
+$H|i\rangle = e^{i\pi/4}|-i\rangle$ <br>
+$H|-i\rangle = e^{-i\pi/4}|i\rangle $ <br>
+</tr>
+</table>
+
+> As a reminder, $e^{i\pi/4} = \frac{1}{\sqrt2} (1 + i)$ and $e^{-i\pi/4} = \frac{1}{\sqrt2} (1 - i)$. This is an application of Euler's formula, $e^{i\theta} = \cos \theta + i\sin \theta$, where $\theta$ is measured in radians.
+> See this [Wikipedia article](https://en.wikipedia.org/wiki/Euler%27s_formula) for an explanation of Euler's formula and/or [this video](https://youtu.be/v0YEaeIClKY) for a more intuitive explanation.
+
 @[exercise]({
     "id": "single_qubit_gates__prepare_minus",
     "title": "Prepare Minus",
@@ -391,11 +442,10 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
     <th>Ket-Bra</th>
     <th>Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
     <th>Applying to basis states</th>
-    <th>Q# Documentation</th>
-  </tr>
+    </tr>
   <tr>
     <td>$S$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\\ 0 & i \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}$</td>
     <td>$|0\rangle\langle0| + i|1\rangle\langle1|$</td>
     <td>$S|\psi\rangle = \alpha|0\rangle + i\beta|1\rangle$</td>
     <td>
@@ -406,8 +456,7 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
       $S|i\rangle = |-\rangle$<br>
       $S|-i\rangle = |+\rangle$<br>
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.s" target="_blank">S</a></td>
-  </tr>
+    </tr>
   <tr>
     <td>$T$</td>
     <td>$\begin{bmatrix} 1 & 0 \\\ 0 & e^{i\pi/4} \end{bmatrix}$</td>
@@ -417,7 +466,6 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
       $T|0\rangle = |0\rangle$<br>
       $T|1\rangle = e^{i\pi/4}|1\rangle$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.t" target="_blank">T</a></td>
   </tr>
 </table>
 
@@ -455,18 +503,20 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
     <th>Matrix</th>
     <th>Applying to $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$</th>
     <th>Applying to basis states</th>
-    <th>Q# Documentation</th>
-  </tr>
+   </tr>
   <tr>
     <td>$R_x(\theta)$</td>
-    <td>$\begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
+    <td>
+    $$
+    \begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}
+    $$
+    </td>
     <td>$R_x(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - i\beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} - i\alpha\sin\frac{\theta}{2})|1\rangle$</td>
     <td>
       $R_x(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle - i\sin\frac{\theta}{2}|1\rangle$<br>
       $R_x(\theta)|1\rangle = \cos\frac{\theta}{2}|1\rangle - i\sin\frac{\theta}{2}|0\rangle$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rx" target="_blank">Rx</a></td>
-  </tr>
+   </tr>
   <tr>
     <td>$R_y(\theta)$</td>
     <td>$\begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
@@ -475,8 +525,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
       $R_y(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle + \sin\frac{\theta}{2}|1\rangle$<br>
       $R_y(\theta)|1\rangle = \cos\frac{\theta}{2}|1\rangle - \sin\frac{\theta}{2}|0\rangle$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.ry" target="_blank">Ry</a></td>
-  </tr>
+    </tr>
   <tr>
     <td>$R_z(\theta)$</td>
     <td>$\begin{bmatrix} e^{-i\theta/2} & 0 \\\ 0 & e^{i\theta/2} \end{bmatrix}$</td>
@@ -485,7 +534,6 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
       $R_z(\theta)|0\rangle = e^{-i\theta/2}|0\rangle$<br>
       $R_z(\theta)|1\rangle = e^{i\theta/2}|1\rangle$
     </td>
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.rz" target="_blank">Rz</a></td>
   </tr>
   <tr>
     <td>$R_1(\theta)$</td>
@@ -495,11 +543,10 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
       $R_1(\theta)|0\rangle = |0\rangle$<br>
       $R_1(\theta)|1\rangle = e^{i\theta}|1\rangle$
     </td>  
-    <td><a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.r1" target="_blank">R1</a></td>
   </tr>
 </table>
 
-You have already encountered some special cases of the $R_1$ gate: 
+You have already encountered some special cases of the $R_1$ gate:
 
 $$T = R_1(\frac{\pi}{4}), S = R_1(\frac{\pi}{2}), Z = R_1(\pi)$$
 
@@ -545,6 +592,6 @@ Congratulations!  In this kata you learned the matrix and the ket-bra representa
 * The effect of a gate applied to a qubit can be calculated by multiplying the corresponding matrix by the state vector of the qubit.
 * Applying several quantum gates in sequence is equivalent to performing several matrix multiplications.
 * Any square matrix can be represented as a linear combination of the outer products of vectors. The outer product is the matrix product of $|\phi\rangle$ and $\langle\psi|$, denoted as $|\phi\rangle\langle\psi|$.
-* Pauli gates, phase shift gates, and rotation gates are examples of single-qubit gates. All of them are available in Q#.
+* Pauli gates, identity and Hadamard gates, phase shift gates, and rotation gates are examples of single-qubit gates. All of them are available in Q#.
 
-Next, you will learn about multi-qubit systems and the multi-qubit gates in the “Multi-Qubit Systems” kata.
+Next, you will learn about multi-qubit systems in the “Multi-Qubit Systems” kata.

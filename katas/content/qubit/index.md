@@ -12,7 +12,7 @@ This kata introduces you to one of the core concepts in quantum computing - the 
 - The concept of a qubit
 - Superposition
 - Vector representation of qubit states
-- Dirac notation
+- Dirac notation for single-qubit states
 - Relative and global phase
 - `Qubit` data type in Q#
 - Visualizing the quantum state using `DumpMachine`
@@ -29,7 +29,7 @@ This kata introduces you to one of the core concepts in quantum computing - the 
 
 The basic building block of a classical computer is the bit - a single memory cell that is either in state $0$ or in state $1$. Similarly, the basic building block of a quantum computer is the quantum bit, or **qubit**. Like the classical bit, a qubit can be in state $0$ or in state $1$. Unlike the classical bit, however, the qubit isn't limited to just those two states - it may also be in a combination, or **superposition** of those states.
 
-> A common misconception about quantum computing is that a qubit is always in state $1$ or state $0$, we just don't know which one until we "measure" it. That is not the case. A qubit in a superposition is in a linear combination of the states 0 and 1. When a qubit is measured, it is forced to collapse into one state or the other - in other words, measuring a qubit is a drastic process that changes its initial state.
+> A common misconception about quantum computing is that a qubit is always in state $1$ or state $0$, we just don't know which one until we "measure" it. That is not the case. A qubit in a superposition is in a linear combination of the states 0 and 1. When a qubit is measured, it is forced to collapse into one state or the other - in other words, measuring a qubit is an irreversible process that changes its initial state.
 
 ## Matrix Representation
 
@@ -50,7 +50,7 @@ Likewise, a qubit in state $1$ would be represented by this vector:
 
 $$\begin{bmatrix} 0 \\\ 1 \end{bmatrix}$$
 
-Note that you can use scalar multiplication and vector addition to express any qubit state $\begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$ as a sum of these two vectors with certain probability amplitudes $\alpha$ and $\beta$, known as linear combination.
+Note that you can use scalar multiplication and vector addition to express any qubit state $\begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$ as a sum of these two vectors with certain weights $\alpha$ and $\beta$, known as linear combination.
 
 $$
 \begin{bmatrix} \alpha \\\ \beta \\end{bmatrix} =
@@ -110,11 +110,11 @@ These two kets represent basis states, so they can be used to represent any othe
 
 $$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
-Dirac notation is not only restricted to vectors $0$ and $1$, but it can be used to represent any arbitrary vector. For example the vector $\psi$ can be written as:
+Dirac notation is not only restricted to vectors $0$ and $1$; it can be used to represent any vector, simiar to how variable names are used in algebra. For example, we can call the state above "the state $\psi$" and write it as:
 
 $$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$$
 
-Other examples of vector states represented in Dirac notation are:
+Several ket symbols have a generally accepted use, so you will see them often:
 
 <table>
     <tr>
@@ -135,9 +135,13 @@ We will learn more about Dirac notation in the next katas, as we introduce quant
     "title": "Relative and Global Phase"
 })
 
-Complex numbers have a parameter called the phase. If a complex number $z = x + iy$ is written in polar form $z = re^{i\theta}$, its phase is $\theta$ where $\theta = tan^{-1}(\frac{y}{x})$.
+Complex numbers have a parameter called the phase. If a complex number $z = x + iy$ is written in polar form $z = re^{i\theta}$, its phase is $\theta$, where $\theta = \atan2(y, x)$.
 
-The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$. If you do the math, you see that $\theta = tan^{-1}(1) = \frac{\pi}{4}$. Thus, the phase of $|0\rangle$ is $\frac{\pi}{4}$, and the phase of $|1\rangle$ is $-\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
+> `atan2` is a useful function available in most programming languages. It takes two arguments and returns an angle $\theta$
+> between $-\pi$ and $\pi$ that has $\cos \theta = x$ and $\sin \theta = y$. Unlike using $\tan^{-1}(\frac{y}{x})$, `atan2` computes 
+> the correct quadrant for the angle, since it preserves information about the signs of both sine and cosine of the angle.
+
+The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$. If you do the math, you see that the phase of $|0\rangle$ is $\atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $|1\rangle$ is $\atan2(\frac12, -\frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
 
 Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha|0\rangle + \beta|1\rangle$ has the same relative phase as $e^{i\theta}\big(\alpha|0\rangle + \beta|1\rangle\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
 
@@ -152,7 +156,7 @@ In Q#, qubits are represented by the `Qubit` data type. On a physical quantum co
 
 That being said, when you run Q# code on a quantum simulator instead of a physical quantum computer, you can use diagnostic functions that allow you to peek at the state of the quantum system. This is very useful both for learning and for debugging small Q# programs.
 
-The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently.
+The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently. The `use` statement allocates a qubit (or multiple) that can be used until the end of the scope in which the statement was used: `use q = Qubit();` allocates a qubit and binds it to the variable `q`.
 
 Freshly allocated qubits start out in state $|0\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\rangle$, it will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
 
@@ -173,7 +177,7 @@ You would need to run the program repeatedly up to this point, perform a measure
 However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state. 
 You can take advantage of this to do some non-physical things, such as peeking at the internals of the quantum system to observe its exact state without disturbing it!
 
-The <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics.dumpmachine" target="_blank">`DumpMachine`</a> function from the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.diagnostics" target="_blank">`Microsoft.Quantum.Diagnostics namespace`</a> allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase, and remember that global phase does not have any physical meaning. When using `DumpMachine`, you may see that all probability amplitudes are multiplied by some complex number compared to the state you're expecting.
+The `DumpMachine` function from the `Microsoft.Quantum.Diagnostics` namespace allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase, and remember that global phase does not have any physical meaning. When using `DumpMachine`, you may see that all probability amplitudes are multiplied by some complex number compared to the state you're expecting.
 
 ### Demo: DumpMachine For Single-Qubit Systems
 
@@ -217,7 +221,7 @@ For example, the state $|0\rangle$ would be represented as follows:
 
 @[exercise]({
     "id": "qubit__learn_single_qubit_state",
-    "title": "Learn the State of a Single Qubit",
+    "title": "Learn the State of a Single Qubit Using DumpMachine",
     "descriptionPath": "./learn_single_qubit_state/index.md",
     "codePaths": [
         "../KatasLibrary.qs",
@@ -227,37 +231,6 @@ For example, the state $|0\rangle$ would be represented as follows:
     "solutionPath": "./learn_single_qubit_state/solution.md"
 })
 
-@[section]({
-    "id": "qubit__visualizing_multi_qubit",
-    "title": "Display the Quantum State of a Multi-Qubit Program"
-})
-
-Now let's take a look at the general case: a program that acts on $N$ qubits. 
-The state of the quantum system used by this program can be represented as a complex vector of length $2^N$, or, using Dirac notation,
-
-$$\begin{bmatrix} x_0 \\\ x_1 \\\ \vdots \\\ x_{2^N-1}\end{bmatrix} = \sum_{k = 0}^{2^N-1} x_k |k\rangle$$
-
-Same as in the single-qubit case, `DumpMachine` allows you to see the amplitudes $x_k$ for all basis states $|k\rangle$ directly.
-
-> Note the use of an integer in the ket notation instead of a bit string with one bit per qubit. 
-`DumpMachine` uses big-endian to convert bit strings to integers in the ket notation.
-We will learn more details on endianness in the "Multi-Qubit Systems" kata.
-
-## Demo: DumpMachine for Multi-Qubit Systems
-
-@[example]({"id": "qubit__multi_qubit_dump_machine_demo", "codePath": "./examples/MultiQubitDumpMachineDemo.qs"})
-
-@[exercise]({
-    "id": "qubit__learn_basis_state_amplitudes",
-    "title": "Learn Basis State Amplitudes",
-    "descriptionPath": "./learn_basis_state_amplitudes/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./learn_basis_state_amplitudes/Verification.qs"
-    ],
-    "placeholderSourcePath": "./learn_basis_state_amplitudes/Placeholder.qs",
-    "solutionPath": "./learn_basis_state_amplitudes/solution.md"
-})
 
 @[section]({
     "id": "qubit__conclusion",

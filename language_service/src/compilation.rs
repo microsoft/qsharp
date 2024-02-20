@@ -3,14 +3,15 @@
 
 use log::trace;
 use qsc::{
-    ast::{self},
+    ast,
     compile::{self, Error},
+    display::Lookup,
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position},
     resolve,
     target::Profile,
-    CompileUnit, PackageStore, PackageType, SourceMap,
+    CompileUnit, PackageStore, PackageType, SourceMap, Span,
 };
 use std::sync::Arc;
 
@@ -153,6 +154,23 @@ impl Compilation {
         source.offset + offset
     }
 
+    /// Gets the span of the whole source file.
+    pub(crate) fn package_span_of_source(&self, source_name: &str) -> Span {
+        let unit = self.user_unit();
+
+        let source = unit
+            .sources
+            .find_by_name(source_name)
+            .expect("source should exist in the user source map");
+
+        let len = u32::try_from(source.contents.len()).expect("source length should fit into u32");
+
+        Span {
+            lo: source.offset,
+            hi: source.offset + len,
+        }
+    }
+
     /// Regenerates the compilation with the same sources but the passed in workspace configuration options.
     pub fn recompile(&mut self, package_type: PackageType, target_profile: Profile) {
         let sources = self
@@ -171,25 +189,6 @@ impl Compilation {
         self.user_package_id = new.user_package_id;
         self.errors = new.errors;
     }
-}
-
-pub(crate) trait Lookup {
-    fn get_ty(&self, expr_id: ast::NodeId) -> Option<&hir::ty::Ty>;
-    fn get_res(&self, id: ast::NodeId) -> Option<&resolve::Res>;
-    fn resolve_item_relative_to_user_package(
-        &self,
-        item_id: &hir::ItemId,
-    ) -> (&hir::Item, &hir::Package, hir::ItemId);
-    fn resolve_item_res(
-        &self,
-        local_package_id: PackageId,
-        res: &hir::Res,
-    ) -> (&hir::Item, hir::ItemId);
-    fn resolve_item(
-        &self,
-        local_package_id: PackageId,
-        item_id: &hir::ItemId,
-    ) -> (&hir::Item, &hir::Package, hir::ItemId);
 }
 
 impl Lookup for Compilation {

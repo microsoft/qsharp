@@ -1,4 +1,4 @@
-**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}$.
+**Input:** A two-qubit system in the basis state $|00\rangle = \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}$.
 
 **Goal:** Transform the system into the state $\frac{1}{\sqrt2}\big(|00\rangle - |01\rangle\big) = \frac{1}{\sqrt2}\begin{bmatrix} 1 \\\ -1 \\\ 0 \\\ 0 \end{bmatrix}$.
 
