@@ -390,7 +390,6 @@ operation CINOT (qs: Qubit[]) : Unit {
     SWAP(qs[0], qs[1]);
     I(qs[2]);
 }
-
 ```
 
 @[section]({
