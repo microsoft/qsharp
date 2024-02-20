@@ -22,21 +22,21 @@ pub enum LintLevel {
     /// The lint is effectively disabled.
     Allow,
     /// The lint will be treated as a warning.
-    Warn,
+    Warning,
     /// The lint will be treated as a warning and cannot be overriden by the user.
-    ForceWarn,
+    ForceWarning,
     /// The lint will be treated as an error.
-    Deny,
+    Error,
     /// The lint will be treated as an error and cannot be overriden by the user.
-    ForceDeny,
+    ForceError,
 }
 
 impl Display for LintLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let level = match self {
             LintLevel::Allow => "",
-            LintLevel::Warn | LintLevel::ForceWarn => "warning",
-            LintLevel::Deny | LintLevel::ForceDeny => "error",
+            LintLevel::Warning | LintLevel::ForceWarning => "warning",
+            LintLevel::Error | LintLevel::ForceError => "error",
         };
 
         write!(f, "{level}")

@@ -98,8 +98,8 @@ impl Diagnostic for Error {
     fn severity(&self) -> Option<miette::Severity> {
         match self.0.level {
             LintLevel::Allow => None,
-            LintLevel::Warn | LintLevel::ForceWarn => Some(miette::Severity::Warning),
-            LintLevel::Deny | LintLevel::ForceDeny => Some(miette::Severity::Error),
+            LintLevel::Warning | LintLevel::ForceWarning => Some(miette::Severity::Warning),
+            LintLevel::Error | LintLevel::ForceError => Some(miette::Severity::Error),
         }
     }
 

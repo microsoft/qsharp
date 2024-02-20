@@ -11,10 +11,14 @@ use qsc_ast::{
 
 declare_lint!(
     DoubleParens,
-    LintLevel::Warn,
+    LintLevel::Warning,
     "unnecesary double parentheses"
 );
-declare_lint!(DivisionByZero, LintLevel::Deny, "attempt to divide by zero");
+declare_lint!(
+    DivisionByZero,
+    LintLevel::Error,
+    "attempt to divide by zero"
+);
 
 impl AstLintPass for DoubleParens {
     fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
