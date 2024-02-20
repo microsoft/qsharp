@@ -7,7 +7,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
   const eventTarget = new QscEventTarget(false);
 
   eventTarget.addEventListener("Message", (evt) => {
-    out(`Message: ${evt.detail}`);
+    out(`${evt.detail}`);
   });
 
   eventTarget.addEventListener("DumpMachine", (evt) => {
