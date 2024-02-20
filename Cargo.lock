@@ -991,6 +991,7 @@ dependencies = [
  "qsc_ast",
  "qsc_data_structures",
  "qsc_hir",
+ "qsc_linter",
  "qsc_parse",
  "rustc-hash",
  "thiserror",
@@ -1010,17 +1011,14 @@ dependencies = [
 name = "qsc_linter"
 version = "0.0.0"
 dependencies = [
- "indenter",
- "num-bigint",
- "qsc",
+ "miette",
  "qsc_ast",
  "qsc_data_structures",
  "qsc_fir",
- "qsc_frontend",
  "qsc_hir",
  "qsc_parse",
- "qsc_passes",
  "rustc-hash",
+ "thiserror",
 ]
 
 [[package]]

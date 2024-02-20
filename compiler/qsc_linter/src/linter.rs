@@ -1,13 +1,13 @@
 pub(crate) mod ast;
 pub(crate) mod hir;
 
-use qsc::Span;
 use qsc_ast::ast::NodeId;
+use qsc_data_structures::span::Span;
 use std::fmt::Display;
 
 /// A lint emited by the linter.
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Lint {
     pub node_id: NodeId,
     pub span: Span,
@@ -17,7 +17,7 @@ pub struct Lint {
 
 /// A lint level. This defines if a lint will be treated as a warning or an error,
 /// and if the lint level can be overriden by the user.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LintLevel {
     /// The lint is effectively disabled.
     Allow,

@@ -9,17 +9,16 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-indenter = { workspace = true }
-num-bigint = { workspace = true }
-qsc = { path = "../qsc" }
+# indenter = { workspace = true }
+# num-bigint = { workspace = true }
+miette = { workspace = true }
 qsc_ast = { path = "../qsc_ast" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
-qsc_frontend = { path = "../qsc_frontend" }
 qsc_parse = { path = "../qsc_parse" }
-qsc_passes = { path = "../qsc_passes" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 rustc-hash = { workspace = true }
+thiserror = { workspace = true }
 
 [lib]
 doctest = false
