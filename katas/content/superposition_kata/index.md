@@ -26,55 +26,42 @@ This kata is designed to get you familiar with the concept of superposition and 
 @[exercise]({
     "id": "superposition__plus_state",
     "title": "The Plus State",
-    "descriptionPath": "./plus_state/index.md",
-    "codePaths": [
+    "path": "./plus_state/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./plus_state/verification.qs"
-    ],
-    "placeholderSourcePath": "./plus_state/placeholder.qs",
-    "solutionPath": "./plus_state/solution.md"
+        "./Common.qs"
+    ]
 })
 
 @[exercise]({
     "id": "superposition__minus_state",
     "title": "The Minus State",
-    "descriptionPath": "./minus_state/index.md",
-    "codePaths": [
+    "path": "./minus_state/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./minus_state/verification.qs"
-    ],
-    "placeholderSourcePath": "./minus_state/placeholder.qs",
-    "solutionPath": "./minus_state/solution.md"
+        "./Common.qs"
+    ]
 })
 
 @[exercise]({
     "id": "superposition__even_sup_two_qubits",
     "title": "Even superposition of all basis vectors on two qubits",
-    "descriptionPath": "./even_sup_two_qubits/index.md",
-    "codePaths": [
+    "path": "./even_sup_two_qubits/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./even_sup_two_qubits/verification.qs"
-    ],
-    "placeholderSourcePath": "./even_sup_two_qubits/placeholder.qs",
-    "solutionPath": "./even_sup_two_qubits/solution.md"
+        "./Common.qs"
+    ]
 })
 
 @[exercise]({
     "id": "superposition__even_sup_two_qubits_phase_flip",
     "title": "Even superposition of all basis vectors on two qubits",
-    "descriptionPath": "./even_sup_two_qubits_phase_flip/index.md",
-    "codePaths": [
+    "path": "./even_sup_two_qubits_phase_flip/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./even_sup_two_qubits_phase_flip/verification.qs"
-    ],
-    "placeholderSourcePath": "./even_sup_two_qubits_phase_flip/placeholder.qs",
-    "solutionPath": "./even_sup_two_qubits_phase_flip/solution.md"
+        "./Common.qs"
+    ]
 })
-
 
 @[section]({
     "id": "superposition__uneven_superpositions",
@@ -88,4 +75,4 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 Congratulations! In this kata you learned to use the basic quantum computing gates to prepare quantum states. Here are a few key concepts to keep in mind:
 
-* TODO
+- TODO

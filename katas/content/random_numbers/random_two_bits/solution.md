@@ -3,5 +3,5 @@ We can generate two random bits by calling the `RandomBit` operation twice, mult
 
 @[solution]({
     "id": "random_numbers__random_two_bits_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })

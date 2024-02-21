@@ -22,5 +22,5 @@ $$ \begin{bmatrix} 1 & 0 \\\ 0 & e^{i\pi/4} \end{bmatrix} \cdot \frac{1}{\sqrt2}
 
 @[solution]({
 "id": "multi_qubit_systems__prepare_with_complex_solution",
-"codePath": "solution.qs"
+"codePath": "Solution.qs"
 })

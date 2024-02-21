@@ -2,5 +2,5 @@ Since the state of the first qubit is different in these states ($\ket +$ and $\
 
 @[solution]({
     "id": "multi_qubit_measurements__partial_measurements_for_system_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })
