@@ -1,6 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::display::join;
+use std::{
+    fmt::{self, Display, Formatter},
+    iter,
+};
+
+/// A functor application.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct FunctorApp {
     /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
