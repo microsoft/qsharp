@@ -16,11 +16,11 @@ namespace Kata.Verification {
 
         // Calculate the expected values based on the rotation angle.
         // We convert |00⟩ + |10⟩ to |0⟩ Ry(1.0)|0⟩ + |1⟩ Ry(2.0)|0⟩, so
-        // * the amplitude of |1⟩ = |10⟩ is 1st amp of Ry(2.0)|0⟩
-        // * the amplitude of |2⟩ = |01⟩ is 2nd amp of Ry(1.0)|0⟩
+        // * the amplitude of |01⟩ is 2nd amp of Ry(1.0)|0⟩
+        // * the amplitude of |10⟩ is 1st amp of Ry(2.0)|0⟩
         let (x1_exp, x2_exp) = (
-            1.0/Sqrt(2.0) * Cos(0.5 * 2.0),
-            1.0/Sqrt(2.0) * Sin(0.5 * 1.0));
+            1.0/Sqrt(2.0) * Sin(0.5 * 1.0),
+            1.0/Sqrt(2.0) * Cos(0.5 * 2.0));
 
         let isCorrect =
             (AbsD(x1 - x1_exp) <= 0.001) and

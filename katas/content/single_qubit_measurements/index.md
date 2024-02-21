@@ -88,7 +88,7 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
 
 @[example]({
     "id": "single_qubit_measurements__implementing_measurement_demo",
-    "codePath": "./implementing_measurement/example.qs"
+    "codePath": "./implementing_measurement/Example.qs"
 })
 
 @[section]({
@@ -100,7 +100,7 @@ The following code demonstrates that the theoretical and experimental values of 
 
 @[example]({
     "id": "single_qubit_measurements__measurement_statistics_demo",
-    "codePath": "./measurement_statistics/example.qs"
+    "codePath": "./measurement_statistics/Example.qs"
 })
 
 Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states and discuss the general case of arbitrary basis measurements later in the kata.
@@ -108,13 +108,10 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_0_and_1",
     "title": "Distinguish |0〉 and |1〉",
-    "descriptionPath": "./distinguish_0_and_1/index.md",
-    "placeholderSourcePath": "./distinguish_0_and_1/placeholder.qs",
-    "solutionPath": "./distinguish_0_and_1/solution.md",
-    "codePaths": [
+    "path": "./distinguish_0_and_1/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_0_and_1/verification.qs"
+        "./Common.qs"
     ]
 })
 
@@ -141,13 +138,10 @@ The probabilities of outcomes $\ket{b_0}$ and $\ket{b_1}$ will be defined as $|c
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_plus_and_minus",
     "title": "Distinguish |+〉 and |-〉",
-    "descriptionPath": "./distinguish_plus_and_minus/index.md",
-    "placeholderSourcePath": "./distinguish_plus_and_minus/placeholder.qs",
-    "solutionPath": "./distinguish_plus_and_minus/solution.md",
-    "codePaths": [
+    "path": "./distinguish_plus_and_minus/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_plus_and_minus/verification.qs"
+        "./Common.qs"
     ]
 })
 
@@ -210,6 +204,7 @@ A measurement in an orthogonal basis $\{ \ket{b_0}, \ket{b_1}\}$ is described by
 - Measuring a qubit in a state $\ket \psi$ is done by picking one of these projection operators at random.
 - Projection $P_0$ is chosen with probability $|P_0 \ket{\psi}|^2$, and the projector $P_1$ is chosen with probability $|P_1\ket{\psi}|^2.$
 - If projector $P_0$ is chosen, the post-measurement state of the qubit is given by
+
 $$
 \frac1{|P_0 \ket{\psi}|}P_0 \ket\psi,
 $$
@@ -304,39 +299,30 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_1",
     "title": "Distinguishing Orthogonal States: 1",
-    "descriptionPath": "./distinguish_orthogonal_states_1/index.md",
-    "placeholderSourcePath": "./distinguish_orthogonal_states_1/placeholder.qs",
-    "solutionPath": "./distinguish_orthogonal_states_1/solution.md",
-    "codePaths": [
+    "path": "./distinguish_orthogonal_states_1/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_orthogonal_states_1/verification.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_2",
     "title": "Distinguishing Orthogonal States: 2",
-    "descriptionPath": "./distinguish_orthogonal_states_2/index.md",
-    "placeholderSourcePath": "./distinguish_orthogonal_states_2/placeholder.qs",
-    "solutionPath": "./distinguish_orthogonal_states_2/solution.md",
-    "codePaths": [
+    "path": "./distinguish_orthogonal_states_2/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_orthogonal_states_2/verification.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "single_qubit_measurements__a_b_basis_measurements",
     "title": "Measurement in the |A〉, |B〉 Basis",
-    "descriptionPath": "./a_b_basis_measurements/index.md",
-    "placeholderSourcePath": "./a_b_basis_measurements/placeholder.qs",
-    "solutionPath": "./a_b_basis_measurements/solution.md",
-    "codePaths": [
+    "path": "./a_b_basis_measurements/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./a_b_basis_measurements/verification.qs"
+        "./Common.qs"
     ]
 })
 
@@ -346,9 +332,10 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 })
 
 Congratulations! In this kata you learned how to apply measurements on single-qubit systems. Here are a few key concepts to keep in mind:
-* Measurements are always done in an orthogonal basis. By default, we choose the computational basis $\lbrace \ket{0}, \ket{1} \rbrace$.
-* Measurements are represented as projector operators, which are matrices.
-* Unlike quantum gates, measurements are neither unitary nor reversible. When we measure a qubit, the state of the qubit collapses to one of the basis states, and the initial state is lost. 
-* In Q#, you can implement measurements in the computational basis using the `M` operation, and in the Pauli basis using the `Measure` operation. 
+
+- Measurements are always done in an orthogonal basis. By default, we choose the computational basis $\lbrace \ket{0}, \ket{1} \rbrace$.
+- Measurements are represented as projector operators, which are matrices.
+- Unlike quantum gates, measurements are neither unitary nor reversible. When we measure a qubit, the state of the qubit collapses to one of the basis states, and the initial state is lost.
+- In Q#, you can implement measurements in the computational basis using the `M` operation, and in the Pauli basis using the `Measure` operation.
 
 Next, you will learn about measurements in multi-qubit systems in the "Measurements in Multi-Qubit Systems" kata.

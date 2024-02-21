@@ -47,3 +47,5 @@ pub use qsc_eval::{
     backend::{Backend, SparseSim},
     output::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase},
 };
+
+pub use qsc_doc_gen::{display, generate_docs};

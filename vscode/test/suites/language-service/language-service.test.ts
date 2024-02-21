@@ -107,4 +107,19 @@ suite("Q# Language Service Tests", function suite() {
       "function Message(msg : String)",
     );
   });
+
+  test("Code Lens", async () => {
+    const doc = await vscode.workspace.openTextDocument(docUri);
+
+    const actualCodeLenses = (await vscode.commands.executeCommand(
+      "vscode.executeCodeLensProvider",
+      docUri,
+    )) as vscode.CodeLens[];
+
+    assert.lengthOf(actualCodeLenses, 4);
+
+    for (const lens of actualCodeLenses) {
+      assert.include(doc.getText(lens.range), "operation Test()");
+    }
+  });
 });

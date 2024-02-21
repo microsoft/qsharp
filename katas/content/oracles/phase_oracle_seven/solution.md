@@ -1,6 +1,6 @@
 @[solution]({
     "id": "oracles__phase_oracle_seven_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })
 
 Consider how the oracle acts on two basis states:

@@ -1,6 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
+    open Microsoft.Quantum.Math;
 
     operation GlobalPhaseI(q : Qubit) : Unit is Adj + Ctl {
         X(q);
@@ -18,11 +18,12 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect it " +
+            Message("Hint: examine the effect your solution has on the state 0.6|0〉 + 0.8|1〉 and compare it with the effect it " +
                 "is expected to have.");
-            use target = Qubit[1]; // |0〉
-            ShowQuantumStateComparison(target, solution, reference);
-            ResetAll(target);
+            use initial = Qubit(); // |0〉
+            Ry(ArcTan2(0.8, 0.6) * 2.0, initial); // 0.6|0〉 + 0.8|1〉
+            ShowQuantumStateComparison([initial], solution, reference);
+            Reset(initial);
         }
         isCorrect
     }
