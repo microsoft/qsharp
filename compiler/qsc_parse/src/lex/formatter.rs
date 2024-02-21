@@ -87,7 +87,9 @@ pub fn format(code: &str) -> Vec<Edit> {
 
                 // if the token is a }, decrease the indent level
                 if let ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)) = one.kind {
-                    indent_level -= 1;
+                    if indent_level > 0 {
+                        indent_level -= 1;
+                    }
                 }
 
                 if let ConcreteTokenKind::WhiteSpace = one.kind {
@@ -150,12 +152,31 @@ fn apply_rule(
     // if the right is a close brace, the indent level should be one less
     let indent_level = if let ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)) = right.kind
     {
-        indent_level - 1
+        if indent_level > 0 {
+            indent_level - 1
+        } else {
+            indent_level
+        }
     } else {
         indent_level
     };
 
     match (&left.kind, &right.kind) {
+        (
+            ConcreteTokenKind::Cooked(TokenKind::Open(l)),
+            ConcreteTokenKind::Cooked(TokenKind::Close(r)),
+        ) if l == r => {
+            let new_whitespace = "";
+            if whitespace != new_whitespace {
+                edits.push(Edit {
+                    span: Span {
+                        lo: left.span.hi,
+                        hi: right.span.lo,
+                    },
+                    new_text: new_whitespace.to_string(),
+                });
+            }
+        }
         (ConcreteTokenKind::Comment, _) => {
             // fix indentation
             // and fix trailing spaces on the left comment
@@ -345,7 +366,8 @@ mod tests {
 
     #[test]
     fn test_formatting_2() {
-        let code = "/// # Sample
+        let code = indoc! {r#"
+        /// # Sample
         /// Joint Measurement
         ///
         /// # Description
@@ -386,8 +408,11 @@ mod tests {
                 return (parityResult, [firstQubitResult, secondQubitResult]);
             }
         }
-        ";
+        "#};
         let edits = super::format(code);
-        expect![[r#""#]].assert_debug_eq(&edits);
+        expect![[r#"
+            []
+        "#]]
+        .assert_debug_eq(&edits);
     }
 }
