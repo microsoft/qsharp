@@ -13,7 +13,7 @@ namespace Kata.Verification {
 
             Message($"Test passed for min = {min} and max = {max}");
         }
-        Message("All tests passed.");
+        Message("Correct!");
         true
     }
 }

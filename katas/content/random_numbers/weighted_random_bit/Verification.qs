@@ -13,7 +13,7 @@ namespace Kata.Verification {
             }
             Message($"Test passed for generating zero with {x*100.0}% probability");
         }
-        Message("All tests passed.");
+        Message("Correct!");
         true
     }
 
