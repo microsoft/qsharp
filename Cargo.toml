@@ -4,6 +4,7 @@ members = [
     "compiler/qsc_ast",
     "compiler/qsc_codegen",
     "compiler/qsc_data_structures",
+    "compiler/qsc_doc_gen",
     "compiler/qsc_eval",
     "compiler/qsc_fir",
     "compiler/qsc_frontend",

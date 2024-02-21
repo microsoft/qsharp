@@ -24,6 +24,7 @@ const requests: MethodMap<ILanguageService> = {
   getSignatureHelp: "request",
   getRename: "request",
   prepareRename: "request",
+  getCodeLenses: "request",
   dispose: "request",
   addEventListener: "addEventListener",
   removeEventListener: "removeEventListener",

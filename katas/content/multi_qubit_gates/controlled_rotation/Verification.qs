@@ -16,13 +16,12 @@ namespace Kata.Verification {
             let reference = register => ControlledRotation(register, angle);
             if not CheckOperationsEquivalence(solution, reference, 2) {
                 Message("Incorrect.");
-                Message("At least one test case did not pass");
+                Message($"The test case for theta={angle} did not pass");
                 return false;
             }
         }
 
         Message("Correct!");
-        Message("All test cases passed.");
         true
     }
 }

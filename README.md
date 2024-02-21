@@ -12,6 +12,7 @@ This repository contains tooling for the Q# language, specifically:
 - **[npm](./npm/)**: Q# npm package
 - **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
+- **[resource_estimator](./resource_estimator)**: Implementation for the Azure Quantum Resource Estimator
 - **[vscode](./vscode/)**: Visual Studio Code extension
 - **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
 - **[widgets](./widgets)**: The Q# Jupyter widgets Python package

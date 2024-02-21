@@ -15,16 +15,14 @@ namespace Kata.Verification {
                     let reference = register => QubitSwap(register, index1, index2);
                     if not CheckOperationsEquivalence(solution, reference, N) {
                         Message("Incorrect.");
-                        Message("At least one test case did not pass");
+                        Message($"Swapping qubits {index1} and {index2} out of $N$ didn't have the expected effect.");
                         return false;
                     }
-
                 }
             }
         }
 
         Message("Correct!");
-        Message("All test cases passed.");
         true
     }
 }
