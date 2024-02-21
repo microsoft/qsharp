@@ -216,7 +216,7 @@ impl Display for Metadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let kind = match &self.kind {
             MetadataKind::Function => "function",
-            MetadataKind::Operation => "opeartion",
+            MetadataKind::Operation => "operation",
             MetadataKind::Udt => "udt",
         };
         write!(
