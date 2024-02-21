@@ -356,6 +356,7 @@ pub fn compile(
     AstValidator::default().visit_package(&ast_package);
     let mut ast_lints: Vec<Error> = qsc_linter::run_ast_lints(&ast_package)
         .into_iter()
+        .filter(|lint| !matches!(lint.level, qsc_linter::LintLevel::Allow))
         .map(|lint| Error(ErrorKind::Lint(qsc_linter::Error(lint))))
         .collect();
 
@@ -376,6 +377,7 @@ pub fn compile(
     let lower_errors = lowerer.drain_errors();
     let mut hir_lints: Vec<Error> = qsc_linter::run_hir_lints(&hir_package)
         .into_iter()
+        .filter(|lint| !matches!(lint.level, qsc_linter::LintLevel::Allow))
         .map(|lint| Error(ErrorKind::Lint(qsc_linter::Error(lint))))
         .collect();
 
