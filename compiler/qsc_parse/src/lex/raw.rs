@@ -171,6 +171,7 @@ pub enum CommentKind {
 pub struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
     interpolation: u8,
+    starting_offset: u32,
 }
 
 impl<'a> Lexer<'a> {
@@ -178,6 +179,15 @@ impl<'a> Lexer<'a> {
         Self {
             chars: input.char_indices().peekable(),
             interpolation: 0,
+            starting_offset: 0,
+        }
+    }
+
+    pub fn new_with_starting_offset(input: &'a str, starting_offset: u32) -> Self {
+        Self {
+            chars: input.char_indices().peekable(),
+            interpolation: 0,
+            starting_offset,
         }
     }
 
@@ -388,9 +398,10 @@ impl Iterator for Lexer<'_> {
                 .or_else(|| single(c).map(TokenKind::Single))
                 .unwrap_or(TokenKind::Unknown)
         };
+        let offset: u32 = offset.try_into().expect("offset should fit into u32");
         Some(Token {
             kind,
-            offset: offset.try_into().expect("offset should fit into u32"),
+            offset: offset + self.starting_offset,
         })
     }
 }

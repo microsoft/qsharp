@@ -7,21 +7,31 @@ use qsc_data_structures::span::Span;
 
 use super::{cooked, raw};
 
-enum ConcreteToken {
+pub(super) enum ConcreteToken {
     Cooked(cooked::Token),
     Error(cooked::Error),
     WhiteSpace(Span),
     Comment(Span),
 }
 
-struct ConcreteTokenIterator<'a> {
+pub(super) struct ConcreteTokenIterator<'a> {
     code: &'a str,
     cooked_tokens: Peekable<cooked::Lexer<'a>>,
     non_compilation_tokens: Peekable<raw::Lexer<'a>>,
 }
 
+impl ConcreteToken {
+    pub(super) fn get_span(&self) -> Span {
+        match self {
+            ConcreteToken::Cooked(cooked) => cooked.span,
+            ConcreteToken::Error(err) => err.get_span(),
+            ConcreteToken::WhiteSpace(span) | ConcreteToken::Comment(span) => *span,
+        }
+    }
+}
+
 impl<'a> ConcreteTokenIterator<'a> {
-    fn new(code: &'a str) -> Self {
+    pub(super) fn new(code: &'a str) -> Self {
         Self {
             code,
             cooked_tokens: cooked::Lexer::new(code).peekable(),
@@ -30,10 +40,12 @@ impl<'a> ConcreteTokenIterator<'a> {
     }
 
     fn get_tokens_from_span(&mut self, lo: u32, hi: u32) {
+        let starting_offset = lo;
         let lo = lo as usize;
         let hi = hi as usize;
         if let Some(slice) = self.code.get(lo..hi) {
-            self.non_compilation_tokens = raw::Lexer::new(slice).peekable();
+            self.non_compilation_tokens =
+                raw::Lexer::new_with_starting_offset(slice, starting_offset).peekable();
         }
     }
 

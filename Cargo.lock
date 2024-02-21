@@ -1023,6 +1023,7 @@ version = "0.0.0"
 dependencies = [
  "enum-iterator",
  "expect-test",
+ "indoc",
  "miette",
  "num-bigint",
  "num-traits",

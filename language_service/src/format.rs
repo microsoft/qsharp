@@ -24,24 +24,17 @@ pub(crate) fn get_format_changes(
         .contents
         .clone();
 
-    let mut edits = vec![];
+    //let mut edits = vec![];
 
     //let formatter = Formatter::new(&contents);
 
-    // format(&contents)
-    //     .iter()
-    //     .map(|edit| TextEdit {
-    //         contents: edit.new_text.clone(),
-    //         span: Range::from_span(
-    //             encoding,
-    //             &contents,
-    //             &Span {
-    //                 start: edit.span.lo,
-    //                 end: edit.span.hi,
-    //             },
-    //         ),
-    //     })
-    //     .collect()
+    format(&contents)
+        .iter()
+        .map(|edit| TextEdit {
+            contents: edit.new_text.clone(),
+            span: Range::from_span(encoding, &contents, &edit.span),
+        })
+        .collect()
 
     //let temp = edits.extend(RemoveTrailingWhitespace(&formatter.tokens, &contents));
 
@@ -53,7 +46,7 @@ pub(crate) fn get_format_changes(
     //     });
     // }
 
-    edits
+    //edits
 }
 
 // fn RemoveTrailingWhitespace(tokens: &[RawToken], contents: &str) -> Vec<TextEdit> {
