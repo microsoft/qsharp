@@ -19,47 +19,25 @@ pub struct Edit {
     pub new_text: String,
 }
 
+impl Edit {
+    fn new(lo: u32, hi: u32, new_text: &str) -> Self {
+        Self {
+            span: Span { lo, hi },
+            new_text: new_text.to_string(),
+        }
+    }
+
+    fn new_with_span(span: Span, new_text: &str) -> Self {
+        Self {
+            span,
+            new_text: new_text.to_string(),
+        }
+    }
+}
+
 fn make_indent_string(level: usize) -> String {
     "    ".repeat(level)
 }
-
-// #[derive(Clone, Copy)]
-// struct SpannedToken {
-//     pub kind: TokenKind,
-//     pub span: Span,
-// }
-
-// struct SpannedTokenIterator<'a> {
-//     code: &'a str,
-//     tokens: Peekable<Lexer<'a>>,
-// }
-
-// impl<'a> SpannedTokenIterator<'a> {
-//     fn new(code: &'a str) -> Self {
-//         Self {
-//             code,
-//             tokens: Lexer::new(code).peekable(),
-//         }
-//     }
-// }
-
-// impl Iterator for SpannedTokenIterator<'_> {
-//     type Item = SpannedToken;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let token = self.tokens.next()?;
-//         let next = self.tokens.peek();
-//         Some(SpannedToken {
-//             kind: token.kind,
-//             span: Span {
-//                 lo: token.offset,
-//                 hi: next
-//                     .map(|t| t.offset)
-//                     .unwrap_or_else(|| self.code.len() as u32),
-//             },
-//         })
-//     }
-// }
 
 pub fn format(code: &str) -> Vec<Edit> {
     let tokens = concrete::ConcreteTokenIterator::new(code);
@@ -87,6 +65,7 @@ pub fn format(code: &str) -> Vec<Edit> {
 
                 // if the token is a }, decrease the indent level
                 if let ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)) = one.kind {
+                    #[allow(clippy::implicit_saturating_sub)]
                     if indent_level > 0 {
                         indent_level -= 1;
                     }
@@ -168,13 +147,7 @@ fn apply_rule(
         ) if l == r => {
             let new_whitespace = "";
             if whitespace != new_whitespace {
-                edits.push(Edit {
-                    span: Span {
-                        lo: left.span.hi,
-                        hi: right.span.lo,
-                    },
-                    new_text: new_whitespace.to_string(),
-                });
+                edits.push(Edit::new(left.span.hi, right.span.lo, new_whitespace));
             }
         }
         (ConcreteTokenKind::Comment, _) => {
@@ -183,23 +156,18 @@ fn apply_rule(
             let comment_contents = get_token_contents(code, left);
             let new_comment_contents = comment_contents.trim_end();
             if comment_contents != new_comment_contents {
-                edits.push(Edit {
-                    span: left.span,
-                    new_text: new_comment_contents.to_string(),
-                });
+                edits.push(Edit::new_with_span(left.span, new_comment_contents));
             }
 
             // if the middle whitespace contains a new line, we need to
             // fix the indentation
             let new_whitespace = fix_whitespace(whitespace, indent_level);
             if whitespace != new_whitespace {
-                edits.push(Edit {
-                    span: Span {
-                        lo: left.span.hi,
-                        hi: right.span.lo,
-                    },
-                    new_text: new_whitespace.to_string(),
-                });
+                edits.push(Edit::new(
+                    left.span.hi,
+                    right.span.lo,
+                    new_whitespace.as_str(),
+                ));
             }
         }
         (ConcreteTokenKind::Cooked(TokenKind::Open(Delim::Brace)), _) => {
@@ -208,23 +176,18 @@ fn apply_rule(
             let contents = get_token_contents(code, left);
             let new_contents = contents.trim_end();
             if contents != new_contents {
-                edits.push(Edit {
-                    span: left.span,
-                    new_text: new_contents.to_string(),
-                });
+                edits.push(Edit::new_with_span(left.span, new_contents));
             }
 
             // if the middle whitespace contains a new line, we need to
             // fix the indentation
             let new_whitespace = fix_whitespace(whitespace, indent_level);
             if whitespace != new_whitespace {
-                edits.push(Edit {
-                    span: Span {
-                        lo: left.span.hi,
-                        hi: right.span.lo,
-                    },
-                    new_text: new_whitespace.to_string(),
-                });
+                edits.push(Edit::new(
+                    left.span.hi,
+                    right.span.lo,
+                    new_whitespace.as_str(),
+                ));
             }
         }
         (ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)), _) => {
@@ -233,23 +196,18 @@ fn apply_rule(
             let contents = get_token_contents(code, left);
             let new_contents = contents.trim_end();
             if contents != new_contents {
-                edits.push(Edit {
-                    span: left.span,
-                    new_text: new_contents.to_string(),
-                });
+                edits.push(Edit::new_with_span(left.span, new_contents));
             }
 
             // if the middle whitespace contains a new line, we need to
             // fix the indentation
             let new_whitespace = fix_whitespace(whitespace, indent_level);
             if whitespace != new_whitespace {
-                edits.push(Edit {
-                    span: Span {
-                        lo: left.span.hi,
-                        hi: right.span.lo,
-                    },
-                    new_text: new_whitespace.to_string(),
-                });
+                edits.push(Edit::new(
+                    left.span.hi,
+                    right.span.lo,
+                    new_whitespace.as_str(),
+                ));
             }
         }
         (ConcreteTokenKind::Cooked(cooked_left), ConcreteTokenKind::Cooked(cooked_right)) => {
@@ -263,13 +221,7 @@ fn apply_rule(
                     let old_whitespace = whitespace;
                     let new_whitespace = " ";
                     if old_whitespace != new_whitespace {
-                        edits.push(Edit {
-                            span: Span {
-                                lo: left.span.hi,
-                                hi: right.span.lo,
-                            },
-                            new_text: new_whitespace.to_string(),
-                        });
+                        edits.push(Edit::new(left.span.hi, right.span.lo, new_whitespace));
                     }
                 }
                 (TokenKind::Ident, TokenKind::Open(Delim::Paren))
@@ -278,13 +230,7 @@ fn apply_rule(
                     let old_whitespace = whitespace;
                     let new_whitespace = "";
                     if old_whitespace != new_whitespace {
-                        edits.push(Edit {
-                            span: Span {
-                                lo: left.span.hi,
-                                hi: right.span.lo,
-                            },
-                            new_text: new_whitespace.to_string(),
-                        });
+                        edits.push(Edit::new(left.span.hi, right.span.lo, new_whitespace));
                     }
                 }
                 _ => {}
