@@ -351,14 +351,14 @@ x_{000}|000\rangle + x_{001}|001\rangle + x_{100}|010\rangle + x_{101}|011\rangl
 x_{010}|100\rangle + x_{011}|101\rangle + x_{110}|110\rangle + x_{111}|111\rangle
 $$
 
-1. $I \otimes CNOT$
+2. $I \otimes CNOT$
 
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{101}|010\rangle + x_{100}|011\rangle +
 x_{010}|100\\rangle + x_{011}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
 $$
 
-1. $SWAP \otimes I$
+3. $SWAP \otimes I$
 
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle +
