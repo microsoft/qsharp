@@ -76,7 +76,7 @@ pub fn format(code: &str) -> Vec<Edit> {
                     continue;
                 } else if let ConcreteTokenKind::WhiteSpace = two.kind {
                     // whitespace in the middle
-                    apply_rule(
+                    apply_rules(
                         one,
                         get_token_contents(code, two),
                         three,
@@ -85,7 +85,7 @@ pub fn format(code: &str) -> Vec<Edit> {
                     )
                 } else {
                     // one, two are adjacent tokens with no whitespace in the middle
-                    apply_rule(one, "", two, code, indent_level)
+                    apply_rules(one, "", two, code, indent_level)
                 }
             }
             _ => {
@@ -118,7 +118,7 @@ fn fix_whitespace(whitespace: &str, indent_level: usize) -> String {
     new
 }
 
-fn apply_rule(
+fn apply_rules(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
@@ -145,93 +145,43 @@ fn apply_rule(
             ConcreteTokenKind::Cooked(TokenKind::Open(l)),
             ConcreteTokenKind::Cooked(TokenKind::Close(r)),
         ) if l == r => {
-            let new_whitespace = "";
-            if whitespace != new_whitespace {
-                edits.push(Edit::new(left.span.hi, right.span.lo, new_whitespace));
-            }
+            rule_no_space(left, whitespace, right, &mut edits);
         }
         (ConcreteTokenKind::Comment, _) => {
-            // fix indentation
-            // and fix trailing spaces on the left comment
-            let comment_contents = get_token_contents(code, left);
-            let new_comment_contents = comment_contents.trim_end();
-            if comment_contents != new_comment_contents {
-                edits.push(Edit::new_with_span(left.span, new_comment_contents));
-            }
-
-            // if the middle whitespace contains a new line, we need to
-            // fix the indentation
-            let new_whitespace = fix_whitespace(whitespace, indent_level);
-            if whitespace != new_whitespace {
-                edits.push(Edit::new(
-                    left.span.hi,
-                    right.span.lo,
-                    new_whitespace.as_str(),
-                ));
-            }
+            rule_trim_comments(left, &mut edits, code);
+            rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
+        (ConcreteTokenKind::Cooked(TokenKind::Semi), _) => match &right.kind {
+            ConcreteTokenKind::Comment => {
+                if whitespace.contains('\n') {
+                    rule_indentation(left, whitespace, right, &mut edits, indent_level)
+                }
+            }
+            _ => {
+                rule_indentation(left, whitespace, right, &mut edits, indent_level);
+            }
+        },
         (ConcreteTokenKind::Cooked(TokenKind::Open(Delim::Brace)), _) => {
-            // fix indentation
-            // and fix trailing spaces on the left
-            let contents = get_token_contents(code, left);
-            let new_contents = contents.trim_end();
-            if contents != new_contents {
-                edits.push(Edit::new_with_span(left.span, new_contents));
-            }
-
-            // if the middle whitespace contains a new line, we need to
-            // fix the indentation
-            let new_whitespace = fix_whitespace(whitespace, indent_level);
-            if whitespace != new_whitespace {
-                edits.push(Edit::new(
-                    left.span.hi,
-                    right.span.lo,
-                    new_whitespace.as_str(),
-                ));
-            }
+            rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)), _) => {
-            // fix indentation
-            // and fix trailing spaces on the left
-            let contents = get_token_contents(code, left);
-            let new_contents = contents.trim_end();
-            if contents != new_contents {
-                edits.push(Edit::new_with_span(left.span, new_contents));
-            }
-
-            // if the middle whitespace contains a new line, we need to
-            // fix the indentation
-            let new_whitespace = fix_whitespace(whitespace, indent_level);
-            if whitespace != new_whitespace {
-                edits.push(Edit::new(
-                    left.span.hi,
-                    right.span.lo,
-                    new_whitespace.as_str(),
-                ));
-            }
+            rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (ConcreteTokenKind::Cooked(cooked_left), ConcreteTokenKind::Cooked(cooked_right)) => {
             match (cooked_left, cooked_right) {
                 (TokenKind::Ident, TokenKind::Ident)
-                | (TokenKind::Keyword(_), TokenKind::Ident) =>
-                //| (TokenKind::Single(Single::Colon), TokenKind::Ident)
-                //| (TokenKind::Ident, TokenKind::Single(_))
-                {
-                    // Put exactly one space in the middle
-                    let old_whitespace = whitespace;
-                    let new_whitespace = " ";
-                    if old_whitespace != new_whitespace {
-                        edits.push(Edit::new(left.span.hi, right.span.lo, new_whitespace));
-                    }
+                | (TokenKind::Keyword(_), TokenKind::Ident)
+                | (TokenKind::Ident, TokenKind::Colon)
+                | (TokenKind::Colon, TokenKind::Ident)
+                | (TokenKind::Comma, _) => {
+                    rule_single_space(left, whitespace, right, &mut edits);
                 }
                 (TokenKind::Ident, TokenKind::Open(Delim::Paren))
-                | (TokenKind::Ident, TokenKind::Open(Delim::Bracket)) => {
-                    // Put no space in the middle
-                    let old_whitespace = whitespace;
-                    let new_whitespace = "";
-                    if old_whitespace != new_whitespace {
-                        edits.push(Edit::new(left.span.hi, right.span.lo, new_whitespace));
-                    }
+                | (TokenKind::Ident, TokenKind::Open(Delim::Bracket))
+                | (TokenKind::Ident, TokenKind::Comma)
+                | (TokenKind::Open(_), _)
+                | (_, TokenKind::Close(_)) => {
+                    rule_no_space(left, whitespace, right, &mut edits);
                 }
                 _ => {}
             }
@@ -244,6 +194,56 @@ fn apply_rule(
         &code[left.span.lo as usize..right.span.hi as usize]
     );
     edits
+}
+
+fn rule_no_space(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<Edit>,
+) {
+    if whitespace != "" {
+        edits.push(Edit::new(left.span.hi, right.span.lo, ""));
+    }
+}
+
+fn rule_single_space(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<Edit>,
+) {
+    if whitespace != " " {
+        edits.push(Edit::new(left.span.hi, right.span.lo, " "));
+    }
+}
+
+fn rule_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
+    // fix trailing spaces on the comment
+    let comment_contents = get_token_contents(code, left);
+    let new_comment_contents = comment_contents.trim_end();
+    if comment_contents != new_comment_contents {
+        edits.push(Edit::new_with_span(left.span, new_comment_contents));
+    }
+}
+
+fn rule_indentation(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<Edit>,
+    indent_level: usize,
+) {
+    // if the middle whitespace contains a new line, we need to
+    // fix the indentation
+    let new_whitespace = fix_whitespace(whitespace, indent_level);
+    if whitespace != new_whitespace {
+        edits.push(Edit::new(
+            left.span.hi,
+            right.span.lo,
+            new_whitespace.as_str(),
+        ));
+    }
 }
 
 fn get_token_contents<'a>(code: &'a str, token: &ConcreteToken) -> &'a str {
