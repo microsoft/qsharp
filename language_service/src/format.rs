@@ -3,7 +3,7 @@
 
 use crate::{compilation::Compilation, protocol::TextEdit};
 
-use qsc::formatter::{format, Edit};
+use qsc::formatter::format;
 use qsc::line_column::{Encoding, Position, Range};
 // use qsc::Span;
 //use qsc::RawToken;
@@ -13,7 +13,7 @@ use qsc::line_column::{Encoding, Position, Range};
 pub(crate) fn get_format_changes(
     compilation: &Compilation,
     source_name: &str,
-    position: Position,
+    _position: Position,
     encoding: Encoding,
 ) -> Vec<TextEdit> {
     let contents = compilation

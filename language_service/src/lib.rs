@@ -36,14 +36,7 @@ use qsc::{
 };
 use qsc_project::JSFileEntry;
 use state::{CompilationState, CompilationStateUpdater};
-use std::{
-    cell::RefCell,
-    fmt::{format, Debug},
-    future::Future,
-    pin::Pin,
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, fmt::Debug, future::Future, pin::Pin, rc::Rc, sync::Arc};
 
 pub struct LanguageService {
     /// All [`Position`]s and [`Range`]s will be mapped using this encoding.

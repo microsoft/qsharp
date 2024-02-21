@@ -3,6 +3,8 @@
 
 //use std::iter::Peekable;
 
+use crate::keyword::Keyword;
+
 use super::{
     concrete::{self, ConcreteToken, ConcreteTokenKind},
     //raw::{Lexer, Single, TokenKind},
@@ -154,15 +156,32 @@ fn apply_rules(
         (ConcreteTokenKind::Cooked(TokenKind::Semi), _) => match &right.kind {
             ConcreteTokenKind::Comment => {
                 if whitespace.contains('\n') {
-                    rule_indentation(left, whitespace, right, &mut edits, indent_level)
+                    rule_indentation(left, whitespace, right, &mut edits, indent_level);
                 }
             }
             _ => {
                 rule_indentation(left, whitespace, right, &mut edits, indent_level);
             }
         },
+        (_, ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace))) => {
+            rule_indentation(left, whitespace, right, &mut edits, indent_level);
+        }
+        (
+            _,
+            ConcreteTokenKind::Cooked(TokenKind::Keyword(
+                Keyword::Operation | Keyword::Function | Keyword::Newtype | Keyword::Namespace,
+            )),
+        ) => {
+            rule_indentation(left, whitespace, right, &mut edits, indent_level);
+        }
         (ConcreteTokenKind::Cooked(TokenKind::Open(Delim::Brace)), _) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
+        }
+        (
+            ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)),
+            ConcreteTokenKind::Cooked(TokenKind::Semi),
+        ) => {
+            rule_no_space(left, whitespace, right, &mut edits);
         }
         (ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)), _) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
@@ -171,8 +190,8 @@ fn apply_rules(
             match (cooked_left, cooked_right) {
                 (TokenKind::Ident, TokenKind::Ident)
                 | (TokenKind::Keyword(_), TokenKind::Ident)
-                | (TokenKind::Ident, TokenKind::Colon)
-                | (TokenKind::Colon, TokenKind::Ident)
+                | (_, TokenKind::Colon)
+                | (TokenKind::Colon, _)
                 | (TokenKind::Comma, _) => {
                     rule_single_space(left, whitespace, right, &mut edits);
                 }
@@ -202,7 +221,7 @@ fn rule_no_space(
     right: &ConcreteToken,
     edits: &mut Vec<Edit>,
 ) {
-    if whitespace != "" {
+    if !whitespace.is_empty() {
         edits.push(Edit::new(left.span.hi, right.span.lo, ""));
     }
 }
