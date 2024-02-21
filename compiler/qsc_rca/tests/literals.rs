@@ -15,7 +15,7 @@ fn check_rca_for_big_int_literal() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -31,7 +31,7 @@ fn check_rca_for_bool_literal() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -47,7 +47,7 @@ fn check_rca_for_double_literal() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -63,7 +63,7 @@ fn check_rca_for_pauli_literal() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -79,7 +79,7 @@ fn check_rca_for_result_literal() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],

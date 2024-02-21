@@ -7,20 +7,20 @@ use crate::{
         InputParamIndex, Local, LocalKind, LocalsLookup,
     },
     scaffolding::PackageScaffolding,
-    ApplicationsTable, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
+    ApplicationsGenerator, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StmtId};
 use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
-pub struct ApplicationInstancesTable {
+pub struct GeneratorSet {
     pub inherent: ApplicationInstance,
     pub dynamic_params: Vec<ApplicationInstance>,
     is_settled: bool,
 }
 
-impl ApplicationInstancesTable {
+impl GeneratorSet {
     pub fn from_spec(
         spec_decl: &SpecDecl,
         input_params: &Vec<InputParam>,
@@ -58,7 +58,7 @@ impl ApplicationInstancesTable {
         &mut self,
         package_scaffolding: &mut PackageScaffolding,
         main_block: Option<BlockId>,
-    ) -> Option<ApplicationsTable> {
+    ) -> Option<ApplicationsGenerator> {
         // We can close only if this structure is not yet settled and if all the internal application instances are
         // already settled.
         assert!(!self.is_settled);
@@ -147,13 +147,13 @@ impl ApplicationInstancesTable {
                     .expect("block should exist in application instance");
                 dynamic_param_applications.push(block_compute_kind);
             }
-            let block_applications_table = ApplicationsTable {
+            let block_applications_generator = ApplicationsGenerator {
                 inherent: inherent_compute_kind,
                 dynamic_param_applications,
             };
             package_scaffolding
                 .blocks
-                .insert(block_id, block_applications_table);
+                .insert(block_id, block_applications_generator);
         }
 
         // Flush statements.
@@ -167,13 +167,13 @@ impl ApplicationInstancesTable {
                     .expect("statement should exist in application instance");
                 dynamic_param_applications.push(stmt_compute_kind);
             }
-            let stmt_applications_table = ApplicationsTable {
+            let stmt_applications_generator = ApplicationsGenerator {
                 inherent: inherent_compute_kind,
                 dynamic_param_applications,
             };
             package_scaffolding
                 .stmts
-                .insert(stmt_id, stmt_applications_table);
+                .insert(stmt_id, stmt_applications_generator);
         }
 
         // Flush expressions.
@@ -187,13 +187,13 @@ impl ApplicationInstancesTable {
                     .expect("statement should exist in application instance");
                 dynamic_param_applications.push(expr_compute_kind);
             }
-            let expr_applications_table = ApplicationsTable {
+            let expr_applications_generator = ApplicationsGenerator {
                 inherent: inherent_compute_kind,
                 dynamic_param_applications,
             };
             package_scaffolding
                 .exprs
-                .insert(expr_id, expr_applications_table);
+                .insert(expr_id, expr_applications_generator);
         }
 
         // Mark individual application instances as flushed.

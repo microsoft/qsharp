@@ -31,22 +31,22 @@ pub use crate::analyzer::Analyzer;
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {
-    /// Searches for the compute properties of a block with the specified ID.
-    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsTable>;
-    /// Searches for the compute properties of an expression with the specified ID.
-    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsTable>;
+    /// Searches for the applications generator of a block with the specified ID.
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsGenerator>;
+    /// Searches for the applications generator of an expression with the specified ID.
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsGenerator>;
     /// Searches for the compute properties of an item with the specified ID.
     fn find_item(&self, id: StoreItemId) -> Option<&ItemComputeProperties>;
-    /// Searches for the compute properties of a statement with the specified ID.
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsTable>;
-    /// Gets the compute properties of a block.
-    fn get_block(&self, id: StoreBlockId) -> &ApplicationsTable;
-    /// Gets the compute properties of an expression.
-    fn get_expr(&self, id: StoreExprId) -> &ApplicationsTable;
+    /// Searches for the applications generator of a statement with the specified ID.
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGenerator>;
+    /// Gets the applications generator of a block.
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationsGenerator;
+    /// Gets the applications generator of an expression.
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationsGenerator;
     /// Gets the compute properties of an item.
     fn get_item(&self, id: StoreItemId) -> &ItemComputeProperties;
-    /// Gets the compute properties of a statement.
-    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsTable;
+    /// Gets the applications generator of a statement.
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGenerator;
 }
 
 /// The compute properties of a package store.
@@ -54,12 +54,12 @@ pub trait ComputePropertiesLookup {
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
-    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsTable> {
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsGenerator> {
         self.get(id.package)
             .and_then(|package| package.blocks.get(id.block))
     }
 
-    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsTable> {
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsGenerator> {
         self.get(id.package)
             .and_then(|package| package.exprs.get(id.expr))
     }
@@ -69,17 +69,17 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .and_then(|package| package.items.get(id.item))
     }
 
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsTable> {
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGenerator> {
         self.get(id.package)
             .and_then(|package| package.stmts.get(id.stmt))
     }
 
-    fn get_block(&self, id: StoreBlockId) -> &ApplicationsTable {
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationsGenerator {
         self.find_block(id)
             .expect("block compute properties should exist")
     }
 
-    fn get_expr(&self, id: StoreExprId) -> &ApplicationsTable {
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationsGenerator {
         self.find_expr(id)
             .expect("expression compute properties should exist")
     }
@@ -89,7 +89,7 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .expect("item compute properties should exist")
     }
 
-    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsTable {
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGenerator {
         self.find_stmt(id)
             .expect("statement compute properties should exist")
     }
@@ -104,14 +104,14 @@ impl PackageStoreComputeProperties {
         self.0.get_mut(id)
     }
 
-    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsTable) {
+    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsGenerator) {
         self.get_mut(id.package)
             .expect("package should exist")
             .blocks
             .insert(id.block, value);
     }
 
-    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsTable) {
+    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsGenerator) {
         self.get_mut(id.package)
             .expect("package should exist")
             .exprs
@@ -125,7 +125,7 @@ impl PackageStoreComputeProperties {
             .insert(id.item, value);
     }
 
-    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationsTable) {
+    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationsGenerator) {
         self.get_mut(id.package)
             .expect("package should exist")
             .stmts
@@ -142,12 +142,12 @@ impl PackageStoreComputeProperties {
 pub struct PackageComputeProperties {
     /// The compute properties of the package items.
     pub items: IndexMap<LocalItemId, ItemComputeProperties>,
-    /// The compute properties of the package blocks.
-    pub blocks: IndexMap<BlockId, ApplicationsTable>,
-    /// The compute properties of the package statements.
-    pub stmts: IndexMap<StmtId, ApplicationsTable>,
-    /// The compute properties of the package expressions.
-    pub exprs: IndexMap<ExprId, ApplicationsTable>,
+    /// The applications generators of the package blocks.
+    pub blocks: IndexMap<BlockId, ApplicationsGenerator>,
+    /// The applications generators of the package statements.
+    pub stmts: IndexMap<StmtId, ApplicationsGenerator>,
+    /// The applications generators of the package expressions.
+    pub exprs: IndexMap<ExprId, ApplicationsGenerator>,
 }
 
 impl Default for PackageComputeProperties {
@@ -225,14 +225,14 @@ impl Display for ItemComputeProperties {
 /// The compute properties of a callable.
 #[derive(Debug)]
 pub struct CallableComputeProperties {
-    /// The compute properties of the callable body.
-    pub body: ApplicationsTable,
-    /// The compute properties of the adjoint specialization.
-    pub adj: Option<ApplicationsTable>,
-    /// The compute properties of the controlled specialization.
-    pub ctl: Option<ApplicationsTable>,
-    /// The compute properties of the controlled adjoint specialization.
-    pub ctl_adj: Option<ApplicationsTable>,
+    /// The applications generator for the callable's body.
+    pub body: ApplicationsGenerator,
+    /// The applications generator for the callable's adjoint specialization.
+    pub adj: Option<ApplicationsGenerator>,
+    /// The applications generator for the callable's controlled specialization.
+    pub ctl: Option<ApplicationsGenerator>,
+    /// The applications generator for the callable's controlled adjoint specialization.
+    pub ctl_adj: Option<ApplicationsGenerator>,
 }
 
 impl Display for CallableComputeProperties {
@@ -257,17 +257,19 @@ impl Display for CallableComputeProperties {
     }
 }
 
-/// The compute properties associated to a callable or one of its elements.
+/// A set of compute properties associated to a callable or one of its elements, from which the properties of any 
+/// particular call application can be derived.
 #[derive(Clone, Debug)]
-pub struct ApplicationsTable {
-    /// The inherent compute kind when all parameters are bound to static values.
+pub struct ApplicationsGenerator {
+    /// The inherent compute kind of a program element, which is determined by binding all the parameters it depends on
+    /// to static values.
     pub inherent: ComputeKind,
-    /// Each element in the vector represents the compute kind of a call application when the parameter associated
-    /// to the vector index is bound to a dynamic value.
+    /// Each element in the vector represents the compute kind of a call application when the parameter associated to
+    /// the vector index is bound to a dynamic value.
     pub dynamic_param_applications: Vec<ComputeKind>,
 }
 
-impl ApplicationsTable {
+impl ApplicationsGenerator {
     pub fn new(params_count: usize) -> Self {
         Self {
             inherent: ComputeKind::Classical,
@@ -276,10 +278,10 @@ impl ApplicationsTable {
     }
 }
 
-impl Display for ApplicationsTable {
+impl Display for ApplicationsGenerator {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "ApplicationsTable:",)?;
+        write!(indent, "ApplicationsGenerator:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\ninherent: {}", self.inherent)?;
         write!(indent, "\ndynamic_param_applications:")?;
@@ -297,7 +299,7 @@ impl Display for ApplicationsTable {
     }
 }
 
-impl ApplicationsTable {
+impl ApplicationsGenerator {
     pub fn derive_application_compute_kind(
         &self,
         input_params_dynamism: &Vec<bool>,

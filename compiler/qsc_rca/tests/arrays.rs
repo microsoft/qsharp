@@ -15,7 +15,7 @@ fn check_rca_for_array_with_classical_elements() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -36,7 +36,7 @@ fn check_rca_for_array_with_dynamic_results() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Static
@@ -59,7 +59,7 @@ fn check_rca_for_array_with_dynamic_bools() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                     value_kind: Static
@@ -77,7 +77,7 @@ fn check_rca_for_array_repeat_with_classical_value_and_classical_size() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -97,7 +97,7 @@ fn check_rca_for_array_repeat_with_dynamic_result_value_and_classical_size() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Static
@@ -120,7 +120,7 @@ fn check_rca_for_array_repeat_with_dynamic_bool_value_and_classical_size() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                     value_kind: Static
@@ -143,7 +143,7 @@ fn check_rca_for_array_repeat_with_classical_value_and_dynamic_size() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicArray)
                     value_kind: Dynamic
@@ -169,7 +169,7 @@ fn check_rca_for_array_repeat_with_dynamic_double_value_and_dynamic_size() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicDouble | UseOfDynamicArray)
                     value_kind: Dynamic

@@ -15,7 +15,7 @@ fn check_rca_for_static_single_qubit_allcation() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Static

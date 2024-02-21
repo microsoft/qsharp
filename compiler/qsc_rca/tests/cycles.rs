@@ -23,7 +23,7 @@ fn check_rca_for_one_function_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -56,7 +56,7 @@ fn check_rca_for_two_functions_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -75,7 +75,7 @@ fn check_rca_for_two_functions_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -110,7 +110,7 @@ fn check_rca_for_three_functions_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -128,7 +128,7 @@ fn check_rca_for_three_functions_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -146,7 +146,7 @@ fn check_rca_for_three_functions_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -176,7 +176,7 @@ fn check_rca_for_indirect_function_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -208,7 +208,7 @@ fn check_rca_for_indirect_chain_function_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -238,7 +238,7 @@ fn check_rca_for_indirect_tuple_function_cycle() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -268,7 +268,7 @@ fn check_rca_for_function_cycle_within_binding() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -299,7 +299,7 @@ fn check_rca_for_function_cycle_within_assignment() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -328,7 +328,7 @@ fn check_rca_for_function_cycle_within_return() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -358,7 +358,7 @@ fn check_rca_for_function_cycle_within_tuple() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -413,7 +413,7 @@ fn check_rca_for_function_cycle_within_call_input() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -449,7 +449,7 @@ fn check_rca_for_function_cycle_within_if_block() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -482,7 +482,7 @@ fn check_rca_for_function_cycle_within_if_condition() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -514,7 +514,7 @@ fn check_rca_for_function_cycle_within_for_block() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -546,7 +546,7 @@ fn check_rca_for_function_cycle_within_while_block() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -577,7 +577,7 @@ fn check_rca_for_function_cycle_within_while_condition() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -606,7 +606,7 @@ fn check_rca_for_multi_param_recursive_bool_function() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -641,7 +641,7 @@ fn check_rca_for_multi_param_recursive_unit_function() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -676,7 +676,7 @@ fn check_rca_for_result_recursive_operation() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Dynamic
@@ -707,7 +707,7 @@ fn check_rca_for_multi_param_result_recursive_operation() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Dynamic
@@ -747,7 +747,7 @@ fn check_rca_for_operation_body_recursion() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Static
@@ -783,7 +783,7 @@ fn check_rca_for_operation_body_adj_recursion() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Static
@@ -791,7 +791,7 @@ fn check_rca_for_operation_body_adj_recursion() {
                         [0]: Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(CyclicOperation)
                             value_kind: Static
-                adj: ApplicationsTable:
+                adj: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Static
@@ -826,7 +826,7 @@ fn check_rca_for_operation_body_ctl_recursion() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Static
@@ -835,7 +835,7 @@ fn check_rca_for_operation_body_ctl_recursion() {
                             runtime_features: RuntimeFeatureFlags(CyclicOperation)
                             value_kind: Static
                 adj: <none>
-                ctl: ApplicationsTable:
+                ctl: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Static
@@ -869,7 +869,7 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsTable:
+                body: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Static
@@ -878,7 +878,7 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
                             runtime_features: RuntimeFeatureFlags(CyclicOperation)
                             value_kind: Static
                 adj: <none>
-                ctl: ApplicationsTable:
+                ctl: ApplicationsGenerator:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(CyclicOperation)
                         value_kind: Static

@@ -15,7 +15,7 @@ fn check_rca_for_callable_var() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -35,7 +35,7 @@ fn check_rca_for_udt_var() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -55,7 +55,7 @@ fn check_rca_for_static_int_var() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -75,7 +75,7 @@ fn check_rca_for_static_qubit_var() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Static
@@ -98,7 +98,7 @@ fn check_rca_for_dynamic_result_var() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Dynamic

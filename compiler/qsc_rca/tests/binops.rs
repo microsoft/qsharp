@@ -15,7 +15,7 @@ fn check_rca_for_bin_op_with_classical_lhs_and_classical_rhs() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -35,7 +35,7 @@ fn check_rca_for_bin_op_with_dynamic_lhs_and_classical_rhs() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                     value_kind: Dynamic
@@ -57,7 +57,7 @@ fn check_rca_for_bin_op_with_classical_lhs_and_dynamic_rhs() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                     value_kind: Dynamic
@@ -80,7 +80,7 @@ fn check_rca_for_bin_op_with_dynamic_lhs_and_dynamic_rhs() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                     value_kind: Dynamic
@@ -102,7 +102,7 @@ fn check_rca_for_nested_bin_ops_with_classic_operands() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -123,7 +123,7 @@ fn check_rca_for_nested_bin_ops_with_a_dynamic_operand() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
                     value_kind: Dynamic

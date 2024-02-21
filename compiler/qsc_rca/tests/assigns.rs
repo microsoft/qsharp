@@ -20,7 +20,7 @@ fn check_rca_for_classical_int_assign_to_local() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -42,7 +42,7 @@ fn check_rca_for_dynamic_result_assign_to_local() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Dynamic
@@ -67,7 +67,7 @@ fn check_rca_for_dynamic_bool_assign_to_local() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                     value_kind: Dynamic

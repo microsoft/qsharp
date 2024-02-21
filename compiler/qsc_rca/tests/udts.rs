@@ -19,7 +19,7 @@ fn check_rca_for_udt_constructor_with_classical_values() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -41,7 +41,7 @@ fn check_rca_for_udt_constructor_with_a_dynamic_value() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicUdt | UdtConstructorUsesDynamicArg)
                     value_kind: Dynamic
@@ -65,7 +65,7 @@ fn check_rca_for_udt_field_update_with_classical_value() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -89,7 +89,7 @@ fn check_rca_for_udt_field_update_with_dynamic_value() {
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsTable:
+            ApplicationsGenerator:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | UseOfDynamicUdt)
                     value_kind: Dynamic
