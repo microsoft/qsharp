@@ -1,7 +1,6 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
+    open Microsoft.Quantum.Math;
 
     operation CompoundGate (qs : Qubit[]) : Unit is Adj + Ctl {
         S(qs[0]);
@@ -12,18 +11,21 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = Kata.CompoundGate;
         let reference = CompoundGate;
-        let isCorrect = CheckOperationsEquivalence(solution, reference, 3);
+        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 3);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            Message("Hint: examine how your solution transforms the |000〉 state and compare it with the expected " +
+            Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                 "transformation");
-            use target = Qubit[3]; // |000〉
-            ShowQuantumStateComparison(target, solution, reference);
-            ResetAll(target);
+            use initial = Qubit[3]; // |000〉
+            Ry(ArcTan2(0.8, 0.6) * 2.0, initial[0]);
+            Ry(ArcTan2(0.7, 0.4) * 2.0, initial[1]);
+            Ry(ArcTan2(0.6, 0.5) * 2.0, initial[2]);
+            ShowQuantumStateComparison(initial, solution, reference);
+            ResetAll(initial);
         }
 
         isCorrect

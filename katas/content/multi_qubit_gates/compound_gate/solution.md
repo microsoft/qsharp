@@ -1,4 +1,4 @@
-One way to represent a multi-qubit transformation is to use the tensor product of gates acting on subsets of qubits. For example, if you have 2 qubits, applying the **Z** gate on the first qubit and the **X** gate on the second qubit will create this matrix:\n",
+One way to represent a multi-qubit transformation is to use the tensor product of gates acting on subsets of qubits. For example, if you have 2 qubits, applying the $Z$ gate on the first qubit and the $X$ gate on the second qubit will create this matrix:
 
 $$
 Z \otimes X =
@@ -8,7 +8,7 @@ $$
 
 With this in mind, let's see how to reverse engineer the target matrix above to find the 3 gates which, acting on individual qubits, together form the target transformation.
 
-Start by noticing that the top right and bottom left quadrants of the target matrix are filled with $0$'s, and the bottom right quadrant equals to the top left one, multiplied by $i$. This hints at applying the `S` gate to the first qubit:
+Start by noticing that the top right and bottom left quadrants of the target matrix are filled with $0$'s, and the bottom right quadrant equals to the top left one, multiplied by $i$. This hints at applying the $S$ gate to the first qubit:
 
 $$
 Q =

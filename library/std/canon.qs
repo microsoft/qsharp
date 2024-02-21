@@ -253,7 +253,7 @@ namespace Microsoft.Quantum.Canon {
     /// Array of qubits whose parity is to be computed and stored.
     ///
     /// # Remarks
-    /// This operation transforms the state of its input asd
+    /// This operation transforms the state of its input as
     /// $$
     /// \begin{align}
     ///     \ket{q_0} \ket{q_1} \cdots \ket{q_{n - 1}} & \mapsto

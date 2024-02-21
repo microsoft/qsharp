@@ -8,5 +8,5 @@ Applying an **X** gate to a qubit in the $|0\rangle$ state transforms the qubit 
 
 @[solution]({
 "id": "multi_qubit_systems__prepare_basis_state_solution",
-"codePath": "solution.qs"
+"codePath": "Solution.qs"
 })
