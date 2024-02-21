@@ -4,7 +4,7 @@
 //use std::iter::Peekable;
 
 use super::{
-    concrete::{self, ConcreteToken},
+    concrete::{self, ConcreteToken, ConcreteTokenKind},
     //raw::{Lexer, Single, TokenKind},
     Delim,
     TokenKind,
@@ -81,23 +81,19 @@ pub fn format(code: &str) -> Vec<Edit> {
         let mut edits_for_triple = match (&one, &two, &three) {
             (Some(one), Some(two), Some(three)) => {
                 // if the token is a {, increase the indent level
-                if let ConcreteToken::Cooked(cooked) = one {
-                    if cooked.kind == TokenKind::Open(Delim::Brace) {
-                        indent_level += 1;
-                    }
+                if let ConcreteTokenKind::Cooked(TokenKind::Open(Delim::Brace)) = one.kind {
+                    indent_level += 1;
                 }
 
                 // if the token is a }, decrease the indent level
-                if let ConcreteToken::Cooked(cooked) = one {
-                    if cooked.kind == TokenKind::Close(Delim::Brace) {
-                        indent_level -= 1;
-                    }
+                if let ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)) = one.kind {
+                    indent_level -= 1;
                 }
 
-                if let ConcreteToken::WhiteSpace(_) = one {
+                if let ConcreteTokenKind::WhiteSpace = one.kind {
                     // first token is whitespace, continue scanning
                     continue;
-                } else if let ConcreteToken::WhiteSpace(_) = two {
+                } else if let ConcreteTokenKind::WhiteSpace = two.kind {
                     // whitespace in the middle
                     apply_rule(
                         one,
@@ -152,25 +148,22 @@ fn apply_rule(
     // when we get here, neither left nor right should be whitespace
 
     // if the right is a close brace, the indent level should be one less
-    let indent_level = if let ConcreteToken::Cooked(cooked) = right {
-        if let TokenKind::Close(Delim::Brace) = cooked.kind {
-            indent_level - 1
-        } else {
-            indent_level
-        }
+    let indent_level = if let ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)) = right.kind
+    {
+        indent_level - 1
     } else {
         indent_level
     };
 
-    match (&left, &right) {
-        (ConcreteToken::Comment(span), _) => {
+    match (&left.kind, &right.kind) {
+        (ConcreteTokenKind::Comment, _) => {
             // fix indentation
             // and fix trailing spaces on the left comment
             let comment_contents = get_token_contents(code, left);
             let new_comment_contents = comment_contents.trim_end();
             if comment_contents != new_comment_contents {
                 edits.push(Edit {
-                    span: *span,
+                    span: left.span,
                     new_text: new_comment_contents.to_string(),
                 });
             }
@@ -181,24 +174,21 @@ fn apply_rule(
             if whitespace != new_whitespace {
                 edits.push(Edit {
                     span: Span {
-                        lo: left.get_span().hi,
-                        hi: right.get_span().lo,
+                        lo: left.span.hi,
+                        hi: right.span.lo,
                     },
                     new_text: new_whitespace.to_string(),
                 });
             }
         }
-        (ConcreteToken::Cooked(cooked_left), _)
-            if matches!(cooked_left.kind, TokenKind::Open(Delim::Brace)) =>
-        {
-            let span = cooked_left.span;
+        (ConcreteTokenKind::Cooked(TokenKind::Open(Delim::Brace)), _) => {
             // fix indentation
             // and fix trailing spaces on the left
             let contents = get_token_contents(code, left);
             let new_contents = contents.trim_end();
             if contents != new_contents {
                 edits.push(Edit {
-                    span,
+                    span: left.span,
                     new_text: new_contents.to_string(),
                 });
             }
@@ -209,24 +199,21 @@ fn apply_rule(
             if whitespace != new_whitespace {
                 edits.push(Edit {
                     span: Span {
-                        lo: left.get_span().hi,
-                        hi: right.get_span().lo,
+                        lo: left.span.hi,
+                        hi: right.span.lo,
                     },
                     new_text: new_whitespace.to_string(),
                 });
             }
         }
-        (ConcreteToken::Cooked(cooked_left), _)
-            if matches!(cooked_left.kind, TokenKind::Close(Delim::Brace)) =>
-        {
-            let span = cooked_left.span;
+        (ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)), _) => {
             // fix indentation
             // and fix trailing spaces on the left
             let contents = get_token_contents(code, left);
             let new_contents = contents.trim_end();
             if contents != new_contents {
                 edits.push(Edit {
-                    span,
+                    span: left.span,
                     new_text: new_contents.to_string(),
                 });
             }
@@ -237,15 +224,15 @@ fn apply_rule(
             if whitespace != new_whitespace {
                 edits.push(Edit {
                     span: Span {
-                        lo: left.get_span().hi,
-                        hi: right.get_span().lo,
+                        lo: left.span.hi,
+                        hi: right.span.lo,
                     },
                     new_text: new_whitespace.to_string(),
                 });
             }
         }
-        (ConcreteToken::Cooked(cooked_left), ConcreteToken::Cooked(cooked_right)) => {
-            match (cooked_left.kind, cooked_right.kind) {
+        (ConcreteTokenKind::Cooked(cooked_left), ConcreteTokenKind::Cooked(cooked_right)) => {
+            match (cooked_left, cooked_right) {
                 (TokenKind::Ident, TokenKind::Ident)
                 | (TokenKind::Keyword(_), TokenKind::Ident) =>
                 //| (TokenKind::Single(Single::Colon), TokenKind::Ident)
@@ -257,8 +244,8 @@ fn apply_rule(
                     if old_whitespace != new_whitespace {
                         edits.push(Edit {
                             span: Span {
-                                lo: left.get_span().hi,
-                                hi: right.get_span().lo,
+                                lo: left.span.hi,
+                                hi: right.span.lo,
                             },
                             new_text: new_whitespace.to_string(),
                         });
@@ -272,8 +259,8 @@ fn apply_rule(
                     if old_whitespace != new_whitespace {
                         edits.push(Edit {
                             span: Span {
-                                lo: left.get_span().hi,
-                                hi: right.get_span().lo,
+                                lo: left.span.hi,
+                                hi: right.span.lo,
                             },
                             new_text: new_whitespace.to_string(),
                         });
@@ -287,18 +274,13 @@ fn apply_rule(
 
     println!(
         "edits for `{}` : {edits:?}",
-        &code[left.get_span().lo as usize..right.get_span().hi as usize]
+        &code[left.span.lo as usize..right.span.hi as usize]
     );
     edits
 }
 
 fn get_token_contents<'a>(code: &'a str, token: &ConcreteToken) -> &'a str {
-    let span = match token {
-        ConcreteToken::Cooked(cooked) => cooked.span,
-        ConcreteToken::Error(err) => err.get_span(),
-        ConcreteToken::WhiteSpace(span) | ConcreteToken::Comment(span) => *span,
-    };
-    &code[span.lo as usize..span.hi as usize]
+    &code[token.span.lo as usize..token.span.hi as usize]
 }
 
 #[cfg(test)]

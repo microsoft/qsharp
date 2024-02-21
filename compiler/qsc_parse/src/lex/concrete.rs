@@ -7,11 +7,16 @@ use qsc_data_structures::span::Span;
 
 use super::{cooked, raw};
 
-pub(super) enum ConcreteToken {
-    Cooked(cooked::Token),
+pub(super) struct ConcreteToken {
+    pub kind: ConcreteTokenKind,
+    pub span: Span,
+}
+
+pub(super) enum ConcreteTokenKind {
+    Cooked(cooked::TokenKind),
     Error(cooked::Error),
-    WhiteSpace(Span),
-    Comment(Span),
+    WhiteSpace,
+    Comment,
 }
 
 pub(super) struct ConcreteTokenIterator<'a> {
@@ -20,15 +25,15 @@ pub(super) struct ConcreteTokenIterator<'a> {
     non_compilation_tokens: Peekable<raw::Lexer<'a>>,
 }
 
-impl ConcreteToken {
-    pub(super) fn get_span(&self) -> Span {
-        match self {
-            ConcreteToken::Cooked(cooked) => cooked.span,
-            ConcreteToken::Error(err) => err.get_span(),
-            ConcreteToken::WhiteSpace(span) | ConcreteToken::Comment(span) => *span,
-        }
-    }
-}
+// impl ConcreteToken {
+//     pub(super) fn get_span(&self) -> Span {
+//         match self {
+//             ConcreteToken::Cooked(cooked) => cooked.span,
+//             ConcreteToken::Error(err) => err.get_span(),
+//             ConcreteToken::WhiteSpace(span) | ConcreteToken::Comment(span) => *span,
+//         }
+//     }
+// }
 
 impl<'a> ConcreteTokenIterator<'a> {
     pub(super) fn new(code: &'a str) -> Self {
@@ -79,8 +84,14 @@ impl Iterator for ConcreteTokenIterator<'_> {
                     hi: next_lo,
                 };
                 let concrete = match raw_token.kind {
-                    raw::TokenKind::Comment(_) => ConcreteToken::Comment(span),
-                    raw::TokenKind::Whitespace => ConcreteToken::WhiteSpace(span),
+                    raw::TokenKind::Comment(_) => ConcreteToken {
+                        kind: ConcreteTokenKind::Comment,
+                        span,
+                    },
+                    raw::TokenKind::Whitespace => ConcreteToken {
+                        kind: ConcreteTokenKind::WhiteSpace,
+                        span,
+                    },
                     _ => panic!("only comments and whitespace should be non-compilable tokens"), // Todo: might need better handling
                 };
                 Some(concrete)
@@ -89,12 +100,19 @@ impl Iterator for ConcreteTokenIterator<'_> {
                 Ok(token) => {
                     let next_lo = self.get_next_lo();
                     self.get_tokens_from_span(token.span.hi, next_lo);
-                    Some(ConcreteToken::Cooked(token))
+                    Some(ConcreteToken {
+                        kind: ConcreteTokenKind::Cooked(token.kind),
+                        span: token.span,
+                    })
                 }
                 Err(err) => {
                     let next_lo = self.get_next_lo();
-                    self.get_tokens_from_span(err.get_span().hi, next_lo);
-                    Some(ConcreteToken::Error(err))
+                    let span = err.get_span();
+                    self.get_tokens_from_span(span.hi, next_lo);
+                    Some(ConcreteToken {
+                        kind: ConcreteTokenKind::Error(err),
+                        span,
+                    })
                 }
             },
         }
