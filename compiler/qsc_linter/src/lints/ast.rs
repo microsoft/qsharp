@@ -16,7 +16,7 @@ declare_lint!(
 );
 declare_lint!(
     DivisionByZero,
-    LintLevel::Error,
+    LintLevel::Allow,
     "attempt to divide by zero"
 );
 
