@@ -2,18 +2,23 @@
 // Licensed under the MIT License.
 
 import type {
-  IBreakpointSpan,
   DebugService,
+  IBreakpointSpan,
+  IQuantumState,
   IStackFrame,
   IStructStepResult,
   IVariable,
-  IQuantumState,
 } from "../../lib/node/qsc_wasm.cjs";
 import { TargetProfile } from "../browser.js";
 import { eventStringToMsg } from "../compiler/common.js";
-import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
+import {
+  IQscEventTarget,
+  QscEventData,
+  QscEvents,
+  makeEvent,
+} from "../compiler/events.js";
 import { log } from "../log.js";
-import { IServiceProxy } from "../worker-proxy.js";
+import { IServiceProxy, ServiceProtocol } from "../workers/common.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
@@ -153,3 +158,24 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
   log.debug("worker dispatching event " + JSON.stringify(qscEvent));
   eventTarget.dispatchEvent(qscEvent);
 }
+
+/** The protocol definition to allow running the debugger in a worker. */
+export const debugServiceProtocol: ServiceProtocol<
+  IDebugService,
+  QscEventData
+> = {
+  class: QSharpDebugService,
+  methods: {
+    loadSource: "request",
+    getBreakpoints: "request",
+    getLocalVariables: "request",
+    captureQuantumState: "request",
+    getStackFrames: "request",
+    evalContinue: "requestWithProgress",
+    evalNext: "requestWithProgress",
+    evalStepIn: "requestWithProgress",
+    evalStepOut: "requestWithProgress",
+    dispose: "request",
+  },
+  eventNames: ["DumpMachine", "Message", "Result"],
+};
