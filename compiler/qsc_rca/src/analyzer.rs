@@ -16,9 +16,9 @@ pub struct Analyzer {
 }
 
 impl Analyzer {
-    /// Creates a new runtime capabilities analyzer for a package store. The provided package store is analyzed when a
-    /// new analyzer is created, which makes this a computationally intensive operation.
-    pub fn new(package_store: &PackageStore) -> Self {
+    /// Initializes a new runtime capabilities analyzer for a package store by analyzing the provided package store,
+    /// which makes this a computationally intensive operation.
+    pub fn init_and_analyze(package_store: &PackageStore) -> Self {
         let mut scaffolding = PackageStoreScaffolding::default();
         scaffolding.initialize_packages(package_store);
 

@@ -55,7 +55,7 @@ impl Default for CompilationContext {
         .expect("should be able to create a new compiler");
         let mut lowerer = Lowerer::new();
         let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
-        let analyzer = Analyzer::new(&fir_store);
+        let analyzer = Analyzer::init_and_analyze(&fir_store);
         Self {
             compiler,
             fir_store,

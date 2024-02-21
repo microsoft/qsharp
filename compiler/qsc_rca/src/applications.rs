@@ -74,7 +74,7 @@ impl ApplicationsGeneratorSetBuilder {
         }
 
         // Save the compute properties to the package.
-        Self::flush_to_package(
+        Self::save_applications_generator_sets(
             &mut inherent_application_compute_properties,
             &mut dynamic_param_applications_compute_properties,
             package_scaffolding,
@@ -115,7 +115,7 @@ impl ApplicationsGeneratorSetBuilder {
         close_output
     }
 
-    fn flush_to_package(
+    fn save_applications_generator_sets(
         inherent_application_compute_properties: &mut ApplicationInstanceComputeProperties,
         dynamic_param_applications_compute_properties: &mut Vec<
             ApplicationInstanceComputeProperties,
