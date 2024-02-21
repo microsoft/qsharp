@@ -2,13 +2,13 @@
 // Licensed under the MIT License.
 
 use crate::{
-    applications::{ApplicationInstance, GeneratorSet, LocalComputeKind},
+    applications::{ApplicationInstance, ApplicationsGeneratorSetBuilder, LocalComputeKind},
     common::{
         aggregate_compute_kind, derive_callable_input_params, try_resolve_callee, Callee,
         GlobalSpecId, InputParam, Local, LocalKind, SpecFunctor, SpecKind,
     },
     scaffolding::{ItemScaffolding, PackageScaffolding, PackageStoreScaffolding},
-    ApplicationsGenerator, ComputeKind, ComputePropertiesLookup, QuantumProperties,
+    ApplicationsGeneratorSet, ComputeKind, ComputePropertiesLookup, QuantumProperties,
     RuntimeFeatureFlags, ValueKind,
 };
 use itertools::Itertools;
@@ -89,14 +89,16 @@ pub fn analyze_specialization_with_cyles(
 
     // Create compute properties differently depending on whether the callable is a function or an operation.
     let applications_table = match callable.kind {
-        CallableKind::Function => create_cyclic_function_specialization_applications_generator(
+        CallableKind::Function => create_cyclic_function_specialization_applications_generator_set(
             input_params.len(),
             &callable.output,
         ),
-        CallableKind::Operation => create_cyclic_operation_specialization_applications_generator(
-            input_params.len(),
-            &callable.output,
-        ),
+        CallableKind::Operation => {
+            create_cyclic_operation_specialization_applications_generator_set(
+                input_params.len(),
+                &callable.output,
+            )
+        }
     };
 
     // Now propagate the applications table through the implementation block.
@@ -120,7 +122,7 @@ pub fn analyze_specialization_with_cyles(
             .as_ref()
             .expect("ctl_adj specializatiob should exist"),
     };
-    propagate_applications_generator_through_block(
+    propagate_applications_generator_set_through_block(
         spec_decl.block,
         &applications_table,
         package,
@@ -209,10 +211,10 @@ fn analyze_intrinsic_callable(
     // Create an applications table depending on whether the callable is a function or an operation.
     let applications_table = match callable.kind {
         CallableKind::Function => {
-            create_intrinsic_function_applications_generator(callable, input_params)
+            create_intrinsic_function_applications_generator_set(callable, input_params)
         }
         CallableKind::Operation => {
-            create_instrinsic_operation_applications_generator(callable, input_params)
+            create_instrinsic_operation_applications_generator_set(callable, input_params)
         }
     };
     package_store_scaffolding.insert_spec(body_specialization_id, applications_table);
@@ -356,41 +358,41 @@ fn analyze_spec_decl(
 
     // Then we analyze the block which implements the specialization by simulating callable applications.
     let block_id = (id.callable.package, spec_decl.block).into();
-    let mut application_instances_table =
-        GeneratorSet::from_spec(spec_decl, callable_input_params, package_patterns);
+    let mut builder = ApplicationsGeneratorSetBuilder::from_spec(
+        spec_decl,
+        callable_input_params,
+        package_patterns,
+    );
 
     // First, we simulate the inherent application, in which all arguments are static.
     simulate_block(
         block_id,
-        &mut application_instances_table.inherent,
+        &mut builder.inherent,
         package_store,
         package_store_scaffolding,
     );
-    application_instances_table.inherent.settle();
 
     // Then, we simulate an application for each imput parameter, in which we consider it dynamic.
-    for application_instance in application_instances_table.dynamic_params.iter_mut() {
+    for application_instance in builder.dynamic_param_applications.iter_mut() {
         simulate_block(
             block_id,
             application_instance,
             package_store,
             package_store_scaffolding,
         );
-        application_instance.settle();
     }
 
-    // Now that we have all the application instances for the block that implements the specialization, we can close the
-    // application instances for the specialization, which will save all the analysis to the package store scaffolding
-    // and will return the applications table corresponding to the specialization.
+    // Now that we have all the application instances for the block that implements the specialization, we can save them
+    // to the package, which will return the applications generator set of the specialization.
     let package_scaffolding = package_store_scaffolding
         .get_mut(id.callable.package)
         .expect("package scaffolding should exist");
-    let specialization_applications_table = application_instances_table
-        .close(package_scaffolding, Some(block_id.block))
-        .expect("applications table should be some");
+    let specialization_applications_generator_set = builder
+        .save_to_package(package_scaffolding, Some(block_id.block))
+        .expect("applications generator set should be some");
 
     // Finally, we insert the applications table to the scaffolding data structure.
-    package_store_scaffolding.insert_spec(id, specialization_applications_table);
+    package_store_scaffolding.insert_spec(id, specialization_applications_generator_set);
 }
 
 pub fn analyze_top_level_stmts(
@@ -400,22 +402,21 @@ pub fn analyze_top_level_stmts(
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
     // Analyze top-level statements as if they were all part of a parameterless operation.
-    let mut application_instances_table = GeneratorSet::parameterless();
+    let mut builder = ApplicationsGeneratorSetBuilder::with_no_dynamic_param_applications();
     for stmt_id in top_level_stmts {
         simulate_stmt(
             (id, *stmt_id).into(),
-            &mut application_instances_table.inherent,
+            &mut builder.inherent,
             package_store,
             package_store_scaffolding,
         );
     }
-    application_instances_table.inherent.settle();
 
     // Closing the application instances saves the analysis to the corresponding package scaffolding.
     let package_scaffolding = package_store_scaffolding
         .get_mut(id)
         .expect("package scaffolding should exist");
-    _ = application_instances_table.close(package_scaffolding, None);
+    _ = builder.save_to_package(package_scaffolding, None);
 }
 
 fn bind_expr_compute_kind_to_pattern(
@@ -429,11 +430,7 @@ fn bind_expr_compute_kind_to_pattern(
     let pat = package.get_pat(pat_id);
     match &pat.kind {
         PatKind::Bind(ident) => {
-            let compute_kind = application_instance
-                .exprs
-                .get(&expr_id)
-                .expect("expression's compute kind should exist")
-                .clone();
+            let compute_kind = application_instance.get_expr_compute_kind(expr_id).clone();
             let local_kind = match mutability {
                 Mutability::Immutable => LocalKind::Immutable(expr_id),
                 Mutability::Mutable => LocalKind::Mutable,
@@ -478,11 +475,7 @@ fn bind_fixed_expr_compute_kind_to_pattern(
     let pat = package.get_pat(pat_id);
     match &pat.kind {
         PatKind::Bind(ident) => {
-            let compute_kind = application_instance
-                .exprs
-                .get(&expr_id)
-                .expect("expression's compute kind should exist")
-                .clone();
+            let compute_kind = application_instance.get_expr_compute_kind(expr_id).clone();
             let local_kind = match mutability {
                 Mutability::Immutable => LocalKind::Immutable(expr_id),
                 Mutability::Mutable => LocalKind::Mutable,
@@ -567,10 +560,7 @@ fn create_compute_kind_for_call_with_spec_callee(
     let input_params_dynamism: Vec<bool> = input_param_exprs
         .iter()
         .map(|expr_id| {
-            let input_param_compute_kind = application_instance
-                .exprs
-                .get(expr_id)
-                .expect("expression compute kind should exist");
+            let input_param_compute_kind = application_instance.get_expr_compute_kind(*expr_id);
             input_param_compute_kind.is_value_dynamic()
         })
         .collect();
@@ -581,10 +571,7 @@ fn create_compute_kind_for_call_with_spec_callee(
 
     // Aggreagate runtime features from the qubit controls expressions.
     for control_expr in args_controls {
-        let control_expr_compute_kind = application_instance
-            .exprs
-            .get(&control_expr)
-            .expect("control expression compute kind should exist");
+        let control_expr_compute_kind = application_instance.get_expr_compute_kind(control_expr);
         compute_kind =
             aggregate_compute_kind_runtime_features(compute_kind, control_expr_compute_kind);
     }
@@ -637,10 +624,7 @@ fn create_compute_kind_for_call_with_udt_callee(
     args_expr_id: ExprId,
     application_instance: &ApplicationInstance,
 ) -> ComputeKind {
-    let args_expr_compute_kind = application_instance
-        .exprs
-        .get(&args_expr_id)
-        .expect("expression compute kind should exist");
+    let args_expr_compute_kind = application_instance.get_expr_compute_kind(args_expr_id);
     match args_expr_compute_kind {
         ComputeKind::Classical => ComputeKind::Classical,
         ComputeKind::Quantum(quantum_properties) => match quantum_properties.value_kind {
@@ -668,10 +652,10 @@ fn create_compute_kind_for_call_with_unresolved_callee(expr_type: &Ty) -> Comput
     })
 }
 
-fn create_cyclic_function_specialization_applications_generator(
+fn create_cyclic_function_specialization_applications_generator_set(
     callable_input_params_count: usize,
     output_type: &Ty,
-) -> ApplicationsGenerator {
+) -> ApplicationsGeneratorSet {
     // Set the compute kind of the function for each parameter when it is bound to a dynamic value.
     let mut using_dynamic_param = Vec::new();
     for _ in 0..callable_input_params_count {
@@ -683,9 +667,8 @@ fn create_cyclic_function_specialization_applications_generator(
             ValueKind::Dynamic
         };
 
-        // Since cyclic functions can be called with dynamic parameters, we assume that all capabilities are required
-        // if the function is used with any dynamic parameter. The `CyclicFunctionWithDynamicArg` feature conveys this
-        // assumption.
+        // Since using cyclic functions with dynamic parameters requires advanced runtime capabilities, we use a runtime
+        // feature for these cases.
         let quantum_properties = QuantumProperties {
             runtime_features: RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg,
             value_kind,
@@ -693,17 +676,17 @@ fn create_cyclic_function_specialization_applications_generator(
         using_dynamic_param.push(ComputeKind::Quantum(quantum_properties));
     }
 
-    ApplicationsGenerator {
+    ApplicationsGeneratorSet {
         // Functions are inherently classically pure.
         inherent: ComputeKind::Classical,
         dynamic_param_applications: using_dynamic_param,
     }
 }
 
-fn create_cyclic_operation_specialization_applications_generator(
+fn create_cyclic_operation_specialization_applications_generator_set(
     callable_input_params_count: usize,
     output_type: &Ty,
-) -> ApplicationsGenerator {
+) -> ApplicationsGeneratorSet {
     // Since operations can allocate and measure qubits freely, we assume its compute kind is quantum, requires all
     // capabilities (encompassed by the `CyclicOperation` runtime feature) and that their value kind is dynamic.
     let value_kind = if *output_type == Ty::UNIT {
@@ -723,17 +706,16 @@ fn create_cyclic_operation_specialization_applications_generator(
         using_dynamic_param.push(inherent_compute_kind.clone());
     }
 
-    // Finally, create the applications table.
-    ApplicationsGenerator {
+    ApplicationsGeneratorSet {
         inherent: inherent_compute_kind,
         dynamic_param_applications: using_dynamic_param,
     }
 }
 
-fn create_intrinsic_function_applications_generator(
+fn create_intrinsic_function_applications_generator_set(
     callable_decl: &CallableDecl,
     input_params: &Vec<InputParam>,
-) -> ApplicationsGenerator {
+) -> ApplicationsGeneratorSet {
     assert!(matches!(callable_decl.kind, CallableKind::Function));
 
     // Determine the compute kind for all dynamic parameter applications.
@@ -757,17 +739,17 @@ fn create_intrinsic_function_applications_generator(
         dynamic_param_applications.push(param_compute_kind);
     }
 
-    ApplicationsGenerator {
+    ApplicationsGeneratorSet {
         // Functions are inherently classical.
         inherent: ComputeKind::Classical,
         dynamic_param_applications,
     }
 }
 
-fn create_instrinsic_operation_applications_generator(
+fn create_instrinsic_operation_applications_generator_set(
     callable_decl: &CallableDecl,
     input_params: &Vec<InputParam>,
-) -> ApplicationsGenerator {
+) -> ApplicationsGeneratorSet {
     assert!(matches!(callable_decl.kind, CallableKind::Operation));
 
     // The value kind of intrinsic operations is inherently dynamic if their output is not `Unit` or `Qubit`.
@@ -806,7 +788,7 @@ fn create_instrinsic_operation_applications_generator(
         dynamic_param_applications.push(param_compute_kind);
     }
 
-    ApplicationsGenerator {
+    ApplicationsGeneratorSet {
         inherent: inherent_compute_kind,
         dynamic_param_applications,
     }
@@ -882,10 +864,7 @@ fn determine_expr_array_compute_kind(
             package_store,
             package_store_scaffolding,
         );
-        let expr_compute_kind = application_instance
-            .exprs
-            .get(&expr_id.expr)
-            .expect("expression's compute kind should exist");
+        let expr_compute_kind = application_instance.get_expr_compute_kind(expr_id.expr);
         array_compute_kind =
             aggregate_compute_kind_runtime_features(array_compute_kind, expr_compute_kind);
     }
@@ -919,14 +898,9 @@ fn determine_expr_array_repeat_compute_kind(
     // Initialize the compute kind from the size expression (since this one determines whether the whole array is
     // dynamic), and then aggregate the runtime features from the value.
     let mut compute_kind = application_instance
-        .exprs
-        .get(&size_expr_id.expr)
-        .expect("compute kind for the size expression should exist")
+        .get_expr_compute_kind(size_expr_id.expr)
         .clone();
-    let value_expr_compute_kind = application_instance
-        .exprs
-        .get(&value_expr_id.expr)
-        .expect("compute kind for value expression should exist");
+    let value_expr_compute_kind = application_instance.get_expr_compute_kind(value_expr_id.expr);
     compute_kind = aggregate_compute_kind_runtime_features(compute_kind, value_expr_compute_kind);
     compute_kind
 }
@@ -963,10 +937,7 @@ fn determine_expr_assign_compute_kind(
     );
 
     // Finally, the compute kind of this expression is constructed from the RHS expression runtime features.
-    let rhs_compute_kind = application_instance
-        .exprs
-        .get(&rhs_expr_id.expr)
-        .expect("RHS expression compute kind should exist");
+    let rhs_compute_kind = application_instance.get_expr_compute_kind(rhs_expr_id.expr);
     aggregate_compute_kind_runtime_features(ComputeKind::Classical, rhs_compute_kind)
 }
 
@@ -1000,14 +971,8 @@ fn determine_expr_assign_index_compute_kind(
 
     // Since this is an assignment, update the local variable on the LHS expression with the compute kind of the RHS
     // expression and an additional runtime feature if the index is dynamic.
-    let index_compute_kind = application_instance
-        .exprs
-        .get(&index_expr_id.expr)
-        .expect("index expression compute kind should exist");
-    let rhs_compute_kind = application_instance
-        .exprs
-        .get(&rhs_expr_id.expr)
-        .expect("RHS expression compute kind should exist");
+    let index_compute_kind = application_instance.get_expr_compute_kind(index_expr_id.expr);
+    let rhs_compute_kind = application_instance.get_expr_compute_kind(rhs_expr_id.expr);
     let mut update_compute_kind =
         aggregate_compute_kind_runtime_features(ComputeKind::Classical, rhs_compute_kind);
     if index_compute_kind.is_value_dynamic() {
@@ -1056,9 +1021,7 @@ fn determine_expr_assign_op_compute_kind(
     let update_compute_kind = if let Ty::Array(_) = rhs_expr.ty {
         // If this is an array concatenation within a dynamic scope, then its is considered a dynamic array.
         let mut update_compute_kind = application_instance
-            .exprs
-            .get(&rhs_expr_id.expr)
-            .expect("RHS expression compute kind should exist")
+            .get_expr_compute_kind(rhs_expr_id.expr)
             .clone();
         if !application_instance.active_dynamic_scopes.is_empty() {
             update_compute_kind = aggregate_compute_kind(
@@ -1072,9 +1035,7 @@ fn determine_expr_assign_op_compute_kind(
         update_compute_kind
     } else {
         application_instance
-            .exprs
-            .get(&rhs_expr_id.expr)
-            .expect("RHS expression compute kind should exist")
+            .get_expr_compute_kind(rhs_expr_id.expr)
             .clone()
     };
 
@@ -1113,14 +1074,9 @@ fn determine_expr_bin_op_compute_kind(
 
     // The compute kind of a binary operator expression is the aggregation of its LHS and RHS expressions.
     let mut compute_kind = application_instance
-        .exprs
-        .get(&lhs_expr_id.expr)
-        .expect("LHS expression compute kind should exist")
+        .get_expr_compute_kind(lhs_expr_id.expr)
         .clone();
-    let rhs_compute_kind = application_instance
-        .exprs
-        .get(&rhs_expr_id.expr)
-        .expect("RHS expression compute kind should exist");
+    let rhs_compute_kind = application_instance.get_expr_compute_kind(rhs_expr_id.expr);
     compute_kind = aggregate_compute_kind(compute_kind, rhs_compute_kind);
     compute_kind
 }
@@ -1139,9 +1095,7 @@ fn determine_expr_block_compute_kind(
         package_store_scaffolding,
     );
     application_instance
-        .blocks
-        .get(&block_id.block)
-        .expect("block compute kind should exist")
+        .get_block_compute_kind(block_id.block)
         .clone()
 }
 
@@ -1168,10 +1122,7 @@ fn determine_expr_call_compute_kind(
     );
 
     // Get the compute kind of the callee expression and based on it create the compute kind for the call expression.
-    let callee_expr_compute_kind = application_instance
-        .exprs
-        .get(&callee_expr_id.expr)
-        .expect("compute kind should exist");
+    let callee_expr_compute_kind = application_instance.get_expr_compute_kind(callee_expr_id.expr);
     let mut compute_kind = match callee_expr_compute_kind {
         ComputeKind::Classical => create_compute_kind_for_call_with_static_callee(
             callee_expr_id,
@@ -1261,9 +1212,7 @@ fn determine_expr_field_compute_kind(
         package_store_scaffolding,
     );
     application_instance
-        .exprs
-        .get(&expr_id.expr)
-        .expect("compute kind for expression to use a field accessor on should exist")
+        .get_expr_compute_kind(expr_id.expr)
         .clone()
 }
 
@@ -1290,10 +1239,8 @@ fn determine_expr_if_compute_kind(
     );
 
     // If the condition sub-expression is dynamic, we push a new dynamic scope.
-    let condition_expr_compute_kind = application_instance
-        .exprs
-        .get(&condition_expr_id.expr)
-        .expect("condition expression compute kind should exist");
+    let condition_expr_compute_kind =
+        application_instance.get_expr_compute_kind(condition_expr_id.expr);
     let within_dynamic_scope = condition_expr_compute_kind.is_value_dynamic();
     if within_dynamic_scope {
         application_instance
@@ -1330,24 +1277,18 @@ fn determine_expr_if_compute_kind(
     // dynamic.
     let mut compute_kind = ComputeKind::Classical;
     let mut is_any_sub_expr_value_dynamic = false;
-    let condition_expr_compute_kind = application_instance
-        .exprs
-        .get(&condition_expr_id.expr)
-        .expect("condition expression compute kind should exist");
+    let condition_expr_compute_kind =
+        application_instance.get_expr_compute_kind(condition_expr_id.expr);
     compute_kind =
         aggregate_compute_kind_runtime_features(compute_kind, condition_expr_compute_kind);
     is_any_sub_expr_value_dynamic |= condition_expr_compute_kind.is_value_dynamic();
-    let if_true_expr_compute_kind = application_instance
-        .exprs
-        .get(&if_true_expr_id.expr)
-        .expect("condition expression compute kind should exist");
+    let if_true_expr_compute_kind =
+        application_instance.get_expr_compute_kind(if_true_expr_id.expr);
     compute_kind = aggregate_compute_kind_runtime_features(compute_kind, if_true_expr_compute_kind);
     is_any_sub_expr_value_dynamic |= if_true_expr_compute_kind.is_value_dynamic();
     if let Some(if_false_expr_id) = if_false_expr_id {
-        let if_false_expr_compute_kind = application_instance
-            .exprs
-            .get(&if_false_expr_id.expr)
-            .expect("condition expression compute kind should exist");
+        let if_false_expr_compute_kind =
+            application_instance.get_expr_compute_kind(if_false_expr_id.expr);
         compute_kind =
             aggregate_compute_kind_runtime_features(compute_kind, if_false_expr_compute_kind);
         is_any_sub_expr_value_dynamic |= if_false_expr_compute_kind.is_value_dynamic();
@@ -1384,10 +1325,7 @@ fn determine_expr_index_compute_kind(
 
     // We use the array expression runtime features as the basis for the compute kind of the whole index accessor
     // expression.
-    let array_expr_compute_kind = application_instance
-        .exprs
-        .get(&array_expr_id.expr)
-        .expect("array expression compute kind should exist");
+    let array_expr_compute_kind = application_instance.get_expr_compute_kind(array_expr_id.expr);
     let mut compute_kind = match array_expr_compute_kind {
         ComputeKind::Classical => ComputeKind::Classical,
         ComputeKind::Quantum(quantum_properties) => ComputeKind::Quantum(QuantumProperties {
@@ -1399,10 +1337,7 @@ fn determine_expr_index_compute_kind(
     };
 
     // Aggregate the index's compute kind before returning the index accessor expression compute kind.
-    let index_expr_compute_kind = application_instance
-        .exprs
-        .get(&index_expr_id.expr)
-        .expect("index expression compute kind should exist");
+    let index_expr_compute_kind = application_instance.get_expr_compute_kind(index_expr_id.expr);
     compute_kind = aggregate_compute_kind(compute_kind, index_expr_compute_kind);
     compute_kind
 }
@@ -1430,10 +1365,8 @@ fn determine_expr_range_compute_kind(
             package_store,
             package_store_scaffolding,
         );
-        let start_expr_compute_kind = application_instance
-            .exprs
-            .get(&start_expr_id.expr)
-            .expect("start expression compute kind should exist");
+        let start_expr_compute_kind =
+            application_instance.get_expr_compute_kind(start_expr_id.expr);
         compute_kind = aggregate_compute_kind(compute_kind, start_expr_compute_kind);
     }
 
@@ -1444,10 +1377,7 @@ fn determine_expr_range_compute_kind(
             package_store,
             package_store_scaffolding,
         );
-        let step_expr_compute_kind = application_instance
-            .exprs
-            .get(&step_expr_id.expr)
-            .expect("start expression compute kind should exist");
+        let step_expr_compute_kind = application_instance.get_expr_compute_kind(step_expr_id.expr);
         compute_kind = aggregate_compute_kind(compute_kind, step_expr_compute_kind);
     }
 
@@ -1458,10 +1388,7 @@ fn determine_expr_range_compute_kind(
             package_store,
             package_store_scaffolding,
         );
-        let end_expr_compute_kind = application_instance
-            .exprs
-            .get(&end_expr_id.expr)
-            .expect("start expression compute kind should exist");
+        let end_expr_compute_kind = application_instance.get_expr_compute_kind(end_expr_id.expr);
         compute_kind = aggregate_compute_kind(compute_kind, end_expr_compute_kind);
     }
 
@@ -1483,9 +1410,7 @@ fn determine_expr_return_compute_kind(
     );
     application_instance.return_expressions.push(expr_id.expr);
     application_instance
-        .exprs
-        .get(&expr_id.expr)
-        .expect("compute kind for expression to use a field accessor on should exist")
+        .get_expr_compute_kind(expr_id.expr)
         .clone()
 }
 
@@ -1508,10 +1433,7 @@ fn determine_expr_string_compute_kind(
                     package_store,
                     package_store_scaffolding,
                 );
-                let component_compute_kind = application_instance
-                    .exprs
-                    .get(expr_id)
-                    .expect("compute kind of component should exist");
+                let component_compute_kind = application_instance.get_expr_compute_kind(*expr_id);
                 compute_kind = aggregate_compute_kind(compute_kind, component_compute_kind);
             }
             StringComponent::Lit(_) => {
@@ -1540,10 +1462,7 @@ fn determine_expr_tuple_compute_kind(
             package_store,
             package_store_scaffolding,
         );
-        let expr_compute_kind = application_instance
-            .exprs
-            .get(&expr_id.expr)
-            .expect("expression's compute kind should exist");
+        let expr_compute_kind = application_instance.get_expr_compute_kind(expr_id.expr);
         tuple_compute_kind = aggregate_compute_kind(tuple_compute_kind, expr_compute_kind);
     }
 
@@ -1564,9 +1483,7 @@ fn determine_expr_unop_compute_kind(
         package_store_scaffolding,
     );
     application_instance
-        .exprs
-        .get(&expr_id.expr)
-        .expect("compute kind for unary operator expression should exist")
+        .get_expr_compute_kind(expr_id.expr)
         .clone()
 }
 
@@ -1591,14 +1508,9 @@ fn determine_expr_update_field_compute_kind(
         package_store_scaffolding,
     );
     let mut compute_kind = application_instance
-        .exprs
-        .get(&lhs_expr_id.expr)
-        .expect("compute kind for LHS expression should exist")
+        .get_expr_compute_kind(lhs_expr_id.expr)
         .clone();
-    let rhs_compute_kind = application_instance
-        .exprs
-        .get(&rhs_expr_id.expr)
-        .expect("compute kind for RHS expression should exist");
+    let rhs_compute_kind = application_instance.get_expr_compute_kind(rhs_expr_id.expr);
     compute_kind = aggregate_compute_kind(compute_kind, rhs_compute_kind);
     compute_kind
 }
@@ -1634,17 +1546,12 @@ fn determine_expr_update_index_compute_kind(
     // The compute kind of an update index expression is the aggregation of all its sub-expressions, with some nuanced
     // considerations. Use the array expression compute kind as the basis.
     let mut compute_kind = application_instance
-        .exprs
-        .get(&array_expr_id.expr)
-        .expect("compute kind for array expression should exist")
+        .get_expr_compute_kind(array_expr_id.expr)
         .clone();
 
     // Aggregate only the runtime features of the index and value compute kinds since we don't want to aggregate their
     // value kinds. Their dynamism has no influence on whether the the resulting array is dynamic.
-    let index_expr_compute_kind = application_instance
-        .exprs
-        .get(&index_expr_id.expr)
-        .expect("index expression compute kind should exist");
+    let index_expr_compute_kind = application_instance.get_expr_compute_kind(index_expr_id.expr);
     compute_kind = aggregate_compute_kind_runtime_features(compute_kind, index_expr_compute_kind);
     if index_expr_compute_kind.is_value_dynamic() {
         compute_kind = aggregate_compute_kind_runtime_features(
@@ -1652,10 +1559,7 @@ fn determine_expr_update_index_compute_kind(
             &ComputeKind::with_runtime_features(RuntimeFeatureFlags::UseOfDynamicIndex),
         );
     }
-    let value_expr_compute_kind = application_instance
-        .exprs
-        .get(&value_expr_id.expr)
-        .expect("value expression compute kind should exist");
+    let value_expr_compute_kind = application_instance.get_expr_compute_kind(value_expr_id.expr);
     compute_kind = aggregate_compute_kind_runtime_features(compute_kind, value_expr_compute_kind);
 
     compute_kind
@@ -1694,9 +1598,7 @@ fn determine_expr_while_compute_kind(
 
     // If the condition expression is dynamic, we push a new dynamic scope and simulate the block within it.
     let condition_expr_compute_kind = application_instance
-        .exprs
-        .get(&condition_expr_id.expr)
-        .expect("condition expression compute kind should exist")
+        .get_expr_compute_kind(condition_expr_id.expr)
         .clone();
     let within_dynamic_scope = condition_expr_compute_kind.is_value_dynamic();
     if within_dynamic_scope {
@@ -1719,10 +1621,7 @@ fn determine_expr_while_compute_kind(
     }
 
     // Return the aggregated runtime features of the condition expression and the block.
-    let block_compute_kind = application_instance
-        .blocks
-        .get(&block_id.block)
-        .expect("compute kind for block should exist");
+    let block_compute_kind = application_instance.get_block_compute_kind(block_id.block);
     let mut compute_kind = aggregate_compute_kind_runtime_features(
         ComputeKind::Classical,
         &condition_expr_compute_kind,
@@ -1747,11 +1646,7 @@ fn determine_stmt_expr_compute_kind(
     );
 
     // The statement's compute kind is the same as the expression's compute kind.
-    application_instance
-        .exprs
-        .get(&expr_id)
-        .expect("expression's compute kind should exist")
-        .clone()
+    application_instance.get_expr_compute_kind(expr_id).clone()
 }
 
 fn determine_stmt_local_compute_kind(
@@ -1777,10 +1672,7 @@ fn determine_stmt_local_compute_kind(
 
     // Use the expression's compute kind to construct the statement's compute kind, only using using the expression's
     // runtime features since the value is meaningless for local (binding) statements.
-    let expr_compute_kind = application_instance
-        .exprs
-        .get(&expr_id)
-        .expect("expression's compute kind should exist");
+    let expr_compute_kind = application_instance.get_expr_compute_kind(expr_id);
     aggregate_compute_kind_runtime_features(ComputeKind::Classical, expr_compute_kind)
 }
 
@@ -1801,31 +1693,28 @@ fn determine_stmt_semi_compute_kind(
 
     // Use the expression's compute kind to construct the statement's compute kind, only using using the expression's
     // runtime features since the value is meaningless for semicolon statements.
-    let expr_compute_kind = application_instance
-        .exprs
-        .get(&expr_id)
-        .expect("expression's compute kind should exist");
+    let expr_compute_kind = application_instance.get_expr_compute_kind(expr_id);
     aggregate_compute_kind_runtime_features(ComputeKind::Classical, expr_compute_kind)
 }
 
-fn propagate_applications_generator_through_block(
+fn propagate_applications_generator_set_through_block(
     block_id: BlockId,
-    applications_generator: &ApplicationsGenerator,
+    applications_generator_set: &ApplicationsGeneratorSet,
     package: &impl PackageLookup,
     package_scaffolding: &mut PackageScaffolding,
 ) {
     let block = package.get_block(block_id);
     for stmt_id in &block.stmts {
-        propagate_applications_generator_through_stmt(
+        propagate_applications_generator_set_through_stmt(
             *stmt_id,
-            applications_generator,
+            applications_generator_set,
             package,
             package_scaffolding,
         );
     }
     package_scaffolding
         .blocks
-        .insert(block_id, applications_generator.clone());
+        .insert(block_id, applications_generator_set.clone());
 }
 
 fn map_input_param_exprs(
@@ -1857,17 +1746,17 @@ fn map_input_param_exprs(
     }
 }
 
-fn propagate_applications_generator_through_expr(
+fn propagate_applications_generator_set_through_expr(
     expr_id: ExprId,
-    applications_generator: &ApplicationsGenerator,
+    applications_generator_set: &ApplicationsGeneratorSet,
     package: &impl PackageLookup,
     package_scaffolding: &mut PackageScaffolding,
 ) {
     // Convenience closures to make this function more succint.
     let mut propagate_expr = |id: ExprId| {
-        propagate_applications_generator_through_expr(
+        propagate_applications_generator_set_through_expr(
             id,
-            applications_generator,
+            applications_generator_set,
             package,
             package_scaffolding,
         );
@@ -1896,9 +1785,9 @@ fn propagate_applications_generator_through_expr(
             propagate_expr(*index);
             propagate_expr(*replace);
         }
-        ExprKind::Block(block) => propagate_applications_generator_through_block(
+        ExprKind::Block(block) => propagate_applications_generator_set_through_block(
             *block,
-            applications_generator,
+            applications_generator_set,
             package,
             package_scaffolding,
         ),
@@ -1941,9 +1830,9 @@ fn propagate_applications_generator_through_expr(
         ExprKind::Tuple(exprs) => exprs.iter().for_each(|e| propagate_expr(*e)),
         ExprKind::While(cond, block) => {
             propagate_expr(*cond);
-            propagate_applications_generator_through_block(
+            propagate_applications_generator_set_through_block(
                 *block,
-                applications_generator,
+                applications_generator_set,
                 package,
                 package_scaffolding,
             );
@@ -1954,21 +1843,21 @@ fn propagate_applications_generator_through_expr(
     // Insert the applications table.
     package_scaffolding
         .exprs
-        .insert(expr_id, applications_generator.clone());
+        .insert(expr_id, applications_generator_set.clone());
 }
 
-fn propagate_applications_generator_through_stmt(
+fn propagate_applications_generator_set_through_stmt(
     stmt_id: StmtId,
-    applications_generator: &ApplicationsGenerator,
+    applications_generator_set: &ApplicationsGeneratorSet,
     package: &impl PackageLookup,
     package_scaffolding: &mut PackageScaffolding,
 ) {
     let stmt = package.get_stmt(stmt_id);
     match stmt.kind {
         StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) | StmtKind::Local(_, _, expr_id) => {
-            propagate_applications_generator_through_expr(
+            propagate_applications_generator_set_through_expr(
                 expr_id,
-                applications_generator,
+                applications_generator_set,
                 package,
                 package_scaffolding,
             )
@@ -1977,7 +1866,7 @@ fn propagate_applications_generator_through_stmt(
     }
     package_scaffolding
         .stmts
-        .insert(stmt_id, applications_generator.clone())
+        .insert(stmt_id, applications_generator_set.clone())
 }
 
 fn simulate_block(
@@ -1987,11 +1876,12 @@ fn simulate_block(
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
     // This function is only called when a block has not already been analyzed.
-    if package_store_scaffolding.find_block(id).is_some() {
-        panic!("block is already analyzed");
-    }
-    if application_instance.blocks.get(&id.block).is_some() {
-        panic!("block is already analyzed in application instance");
+    if package_store_scaffolding.find_block(id).is_some()
+        || application_instance
+            .find_block_compute_kind(id.block)
+            .is_some()
+    {
+        panic!("block has already been analyzed");
     }
 
     // Initialize the block's compute kind.
@@ -2007,10 +1897,7 @@ fn simulate_block(
             package_store,
             package_store_scaffolding,
         );
-        let stmt_compute_kind = application_instance
-            .stmts
-            .get(stmt_id)
-            .expect("statement's compute kind should exist");
+        let stmt_compute_kind = application_instance.get_stmt_compute_kind(*stmt_id);
         block_compute_kind =
             aggregate_compute_kind_runtime_features(block_compute_kind, stmt_compute_kind);
     }
@@ -2021,10 +1908,7 @@ fn simulate_block(
             .stmts
             .last()
             .expect("block should have at least one statement");
-        let last_stmt_compute_kind = application_instance
-            .stmts
-            .get(last_stmt_id)
-            .expect("statement's compute kind should exist");
+        let last_stmt_compute_kind = application_instance.get_stmt_compute_kind(*last_stmt_id);
 
         // We only have to update the block's value kind if the last statement's compute kind is quantum and dynamic.
         if let ComputeKind::Quantum(last_stmt_quantum_properties) = last_stmt_compute_kind {
@@ -2046,9 +1930,7 @@ fn simulate_block(
     }
 
     // Finally, we insert the block's compute kind to the application instance.
-    application_instance
-        .blocks
-        .insert(id.block, block_compute_kind);
+    application_instance.insert_block_compute_kind(id.block, block_compute_kind);
 }
 
 fn simulate_expr(
@@ -2233,7 +2115,7 @@ fn simulate_expr(
     }
 
     // Finally, insert the expresion's compute kind in the application instance.
-    application_instance.exprs.insert(id.expr, compute_kind);
+    application_instance.insert_expr_compute_kind(id.expr, compute_kind);
 }
 
 fn simulate_stmt(
@@ -2276,7 +2158,7 @@ fn simulate_stmt(
     };
 
     // Insert the statements's compute kind into the application instance.
-    application_instance.stmts.insert(id.stmt, compute_kind);
+    application_instance.insert_stmt_compute_kind(id.stmt, compute_kind);
 }
 
 fn split_controls_and_input(
@@ -2314,12 +2196,11 @@ fn update_locals_compute_kind(
                 panic!("expected a local variable");
             };
             let rhs_compute_kind = application_instance
-                .exprs
-                .get(&rhs_expr_id)
-                .expect("RHS compute kind should exist");
+                .get_expr_compute_kind(rhs_expr_id)
+                .clone();
             application_instance
                 .locals_map
-                .aggregate_compute_kind(*node_id, rhs_compute_kind);
+                .aggregate_compute_kind(*node_id, &rhs_compute_kind);
         }
         ExprKind::Tuple(lhs_exprs) => {
             let ExprKind::Tuple(rhs_exprs) = &rhs_expr.kind else {

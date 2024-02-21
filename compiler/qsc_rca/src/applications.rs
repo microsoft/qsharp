@@ -7,20 +7,22 @@ use crate::{
         InputParamIndex, Local, LocalKind, LocalsLookup,
     },
     scaffolding::PackageScaffolding,
-    ApplicationsGenerator, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
+    ApplicationsGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StmtId};
 use rustc_hash::FxHashMap;
 
+/// Auxiliary data structure used to build multiple related application generator sets from a individual application
+/// instances.
 #[derive(Debug)]
-pub struct GeneratorSet {
+pub struct ApplicationsGeneratorSetBuilder {
     pub inherent: ApplicationInstance,
-    pub dynamic_params: Vec<ApplicationInstance>,
-    is_settled: bool,
+    pub dynamic_param_applications: Vec<ApplicationInstance>,
 }
 
-impl GeneratorSet {
+impl ApplicationsGeneratorSetBuilder {
+    /// Creates a new builder from a specialization.
     pub fn from_spec(
         spec_decl: &SpecDecl,
         input_params: &Vec<InputParam>,
@@ -40,167 +42,150 @@ impl GeneratorSet {
 
         Self {
             inherent,
-            dynamic_params,
-            is_settled: false,
+            dynamic_param_applications: dynamic_params,
         }
     }
 
-    pub fn parameterless() -> Self {
+    /// Creates a new builder with no dynamic parameter applications.
+    pub fn with_no_dynamic_param_applications() -> Self {
         let inherent = ApplicationInstance::new(&Vec::new(), None, None);
         Self {
             inherent,
-            dynamic_params: Vec::new(),
-            is_settled: false,
+            dynamic_param_applications: Vec::new(),
         }
     }
 
-    pub fn close(
-        &mut self,
+    /// Saves the contents of the builder to the package.
+    /// If a main block ID is provided, it returns the applications generator set representing the block.
+    pub fn save_to_package(
+        self,
         package_scaffolding: &mut PackageScaffolding,
         main_block: Option<BlockId>,
-    ) -> Option<ApplicationsGenerator> {
-        // We can close only if this structure is not yet settled and if all the internal application instances are
-        // already settled.
-        assert!(!self.is_settled);
-        assert!(self.inherent.is_settled);
-        self.dynamic_params
-            .iter()
-            .for_each(|application_instance| assert!(application_instance.is_settled));
+    ) -> Option<ApplicationsGeneratorSet> {
+        // Get the compute properties of the inherent application instance and the dynamic parameter applications.
+        let input_params_count = self.dynamic_param_applications.len();
+        let mut inherent_application_compute_properties = self.inherent.close();
+        let mut dynamic_param_applications_compute_properties =
+            Vec::<ApplicationInstanceComputeProperties>::with_capacity(input_params_count);
+        for application_instance in self.dynamic_param_applications {
+            let application_instance_compute_properties = application_instance.close();
+            dynamic_param_applications_compute_properties
+                .push(application_instance_compute_properties);
+        }
 
-        // Clear the locals since they are no longer needed.
-        self.clear_locals();
+        // Save the compute properties to the package.
+        Self::flush_to_package(
+            &mut inherent_application_compute_properties,
+            &mut dynamic_param_applications_compute_properties,
+            package_scaffolding,
+        );
 
-        // Collect the value kind (if any) from the return expressions.
-        let (inherent_value_kind, dynamic_param_applications_value_kinds) =
-            self.collect_value_kinds();
-
-        // Flush the compute properties to the package scaffolding
-        self.flush_compute_properties(package_scaffolding);
-
-        // If a main block was provided, create an applications table that represents the specialization based on the
-        // applications table of the main block.
+        // If a main block was provided, create an applications generator that represents the specialization based on
+        // the applications generator of the main block.
         let close_output = main_block.map(|main_block_id| {
-            let mut applications_table = package_scaffolding
+            let mut applications_generator = package_scaffolding
                 .blocks
                 .get(main_block_id)
-                .expect("block applications table should exist")
+                .expect("block applications generator should exist")
                 .clone();
-
-            // Now incorporate the previously collected value kinds.
             assert!(
-                applications_table.dynamic_param_applications.len()
-                    == dynamic_param_applications_value_kinds.len()
+                applications_generator.dynamic_param_applications.len()
+                    == dynamic_param_applications_compute_properties.len()
             );
-            if let Some(inherent_value_kind) = inherent_value_kind {
-                applications_table
+            if let Some(inherent_value_kind) = inherent_application_compute_properties.value_kind {
+                applications_generator
                     .inherent
                     .aggregate_value_kind(inherent_value_kind);
             }
-            for (application, sources) in applications_table
-                .dynamic_param_applications
-                .iter_mut()
-                .zip(dynamic_param_applications_value_kinds)
+            for (application_compute_kind, application_instance_compute_properties) in
+                applications_generator
+                    .dynamic_param_applications
+                    .iter_mut()
+                    .zip(dynamic_param_applications_compute_properties)
             {
-                if let Some(value_kind) = sources {
-                    application.aggregate_value_kind(value_kind);
+                if let Some(value_kind) = application_instance_compute_properties.value_kind {
+                    application_compute_kind.aggregate_value_kind(value_kind);
                 }
             }
 
             // Return the applications table with the updated dynamism sources.
-            applications_table
+            applications_generator
         });
 
-        // Mark the struct as settled and return the applications table that represents it.
-        self.is_settled = true;
         close_output
     }
 
-    fn clear_locals(&mut self) {
-        self.inherent.clear_locals();
-        self.dynamic_params
-            .iter_mut()
-            .for_each(|application_instance| application_instance.clear_locals());
-    }
+    fn flush_to_package(
+        inherent_application_compute_properties: &mut ApplicationInstanceComputeProperties,
+        dynamic_param_applications_compute_properties: &mut Vec<
+            ApplicationInstanceComputeProperties,
+        >,
+        package_scaffolding: &mut PackageScaffolding,
+    ) {
+        let input_params_count = dynamic_param_applications_compute_properties.len();
 
-    fn collect_value_kinds(&mut self) -> (Option<ValueKind>, Vec<Option<ValueKind>>) {
-        let inherent = self.inherent.collect_value_kind();
-        let mut dynamic_param_applications =
-            Vec::<Option<ValueKind>>::with_capacity(self.dynamic_params.len());
-        for application_instance in self.dynamic_params.iter_mut() {
-            dynamic_param_applications.push(application_instance.collect_value_kind());
-        }
-
-        (inherent, dynamic_param_applications)
-    }
-
-    fn flush_compute_properties(&mut self, package_scaffolding: &mut PackageScaffolding) {
-        let input_params_count = self.dynamic_params.len();
-
-        // Flush blocks.
-        for (block_id, inherent_compute_kind) in self.inherent.blocks.drain() {
-            let mut dynamic_param_applications =
+        // Save an applications generator set for each block using their compute properties.
+        for (block_id, block_inherent_compute_kind) in
+            inherent_application_compute_properties.blocks.drain()
+        {
+            let mut block_dynamic_param_applications =
                 Vec::<ComputeKind>::with_capacity(input_params_count);
-            for application_instance in self.dynamic_params.iter_mut() {
-                let block_compute_kind = application_instance
-                    .blocks
-                    .remove(&block_id)
-                    .expect("block should exist in application instance");
-                dynamic_param_applications.push(block_compute_kind);
+            for application_instance_compute_properties in
+                dynamic_param_applications_compute_properties.iter_mut()
+            {
+                let compute_kind = application_instance_compute_properties.remove_block(block_id);
+                block_dynamic_param_applications.push(compute_kind);
             }
-            let block_applications_generator = ApplicationsGenerator {
-                inherent: inherent_compute_kind,
-                dynamic_param_applications,
+            let block_applications_generator_set = ApplicationsGeneratorSet {
+                inherent: block_inherent_compute_kind,
+                dynamic_param_applications: block_dynamic_param_applications,
             };
             package_scaffolding
                 .blocks
-                .insert(block_id, block_applications_generator);
+                .insert(block_id, block_applications_generator_set);
         }
 
-        // Flush statements.
-        for (stmt_id, inherent_compute_kind) in self.inherent.stmts.drain() {
-            let mut dynamic_param_applications =
+        // Save an applications generator set for each statement using their compute properties.
+        for (stmt_id, stmt_inherent_compute_kind) in
+            inherent_application_compute_properties.stmts.drain()
+        {
+            let mut stmt_dynamic_param_applications =
                 Vec::<ComputeKind>::with_capacity(input_params_count);
-            for application_instance in self.dynamic_params.iter_mut() {
-                let stmt_compute_kind = application_instance
-                    .stmts
-                    .remove(&stmt_id)
-                    .expect("statement should exist in application instance");
-                dynamic_param_applications.push(stmt_compute_kind);
+            for application_instance_compute_properties in
+                dynamic_param_applications_compute_properties.iter_mut()
+            {
+                let compute_kind = application_instance_compute_properties.remove_stmt(stmt_id);
+                stmt_dynamic_param_applications.push(compute_kind);
             }
-            let stmt_applications_generator = ApplicationsGenerator {
-                inherent: inherent_compute_kind,
-                dynamic_param_applications,
+            let stmt_applications_generator_set = ApplicationsGeneratorSet {
+                inherent: stmt_inherent_compute_kind,
+                dynamic_param_applications: stmt_dynamic_param_applications,
             };
             package_scaffolding
                 .stmts
-                .insert(stmt_id, stmt_applications_generator);
+                .insert(stmt_id, stmt_applications_generator_set);
         }
 
-        // Flush expressions.
-        for (expr_id, inherent_compute_kind) in self.inherent.exprs.drain() {
-            let mut dynamic_param_applications =
+        // Save an applications generator set for each expression using their compute properties.
+        for (expr_id, expr_inherent_compute_kind) in
+            inherent_application_compute_properties.exprs.drain()
+        {
+            let mut expr_dynamic_param_applications =
                 Vec::<ComputeKind>::with_capacity(input_params_count);
-            for application_instance in self.dynamic_params.iter_mut() {
-                let expr_compute_kind = application_instance
-                    .exprs
-                    .remove(&expr_id)
-                    .expect("statement should exist in application instance");
-                dynamic_param_applications.push(expr_compute_kind);
+            for application_instance_compute_properties in
+                dynamic_param_applications_compute_properties.iter_mut()
+            {
+                let compute_kind = application_instance_compute_properties.remove_expr(expr_id);
+                expr_dynamic_param_applications.push(compute_kind);
             }
-            let expr_applications_generator = ApplicationsGenerator {
-                inherent: inherent_compute_kind,
-                dynamic_param_applications,
+            let expr_applications_generator_set = ApplicationsGeneratorSet {
+                inherent: expr_inherent_compute_kind,
+                dynamic_param_applications: expr_dynamic_param_applications,
             };
             package_scaffolding
                 .exprs
-                .insert(expr_id, expr_applications_generator);
+                .insert(expr_id, expr_applications_generator_set);
         }
-
-        // Mark individual application instances as flushed.
-        self.inherent.mark_flushed();
-        self.dynamic_params
-            .iter_mut()
-            .for_each(|application_instance| application_instance.mark_flushed());
     }
 }
 
@@ -230,20 +215,53 @@ pub struct ApplicationInstance {
     /// The return expressions througout the application instance.
     pub return_expressions: Vec<ExprId>,
     /// The compute kind of the blocks related to the application instance.
-    pub blocks: FxHashMap<BlockId, ComputeKind>,
+    blocks: FxHashMap<BlockId, ComputeKind>,
     /// The compute kind of the statements related to the application instance.
-    pub stmts: FxHashMap<StmtId, ComputeKind>,
+    stmts: FxHashMap<StmtId, ComputeKind>,
     /// The compute kind of the expressions related to the application instance.
-    pub exprs: FxHashMap<ExprId, ComputeKind>,
-    /// Whether the application instance analysis has been completed.
-    /// This is used to verify that its contents are not used in a partial state.
-    is_settled: bool,
-    /// Whether the application instance's compute properties has been flushed.
-    /// This is used to verify that its contents are not used in a partial state.
-    was_flushed: bool,
+    exprs: FxHashMap<ExprId, ComputeKind>,
 }
 
 impl ApplicationInstance {
+    pub fn find_block_compute_kind(&self, id: BlockId) -> Option<&ComputeKind> {
+        self.blocks.get(&id)
+    }
+
+    pub fn find_expr_compute_kind(&self, id: ExprId) -> Option<&ComputeKind> {
+        self.exprs.get(&id)
+    }
+
+    pub fn find_stmt_compute_kind(&self, id: StmtId) -> Option<&ComputeKind> {
+        self.stmts.get(&id)
+    }
+
+    pub fn get_block_compute_kind(&self, id: BlockId) -> &ComputeKind {
+        self.find_block_compute_kind(id)
+            .expect("block compute kind should exist in application instance")
+    }
+
+    pub fn get_expr_compute_kind(&self, id: ExprId) -> &ComputeKind {
+        self.find_expr_compute_kind(id)
+            .expect("expression compute kind should exist in application instance")
+    }
+
+    pub fn get_stmt_compute_kind(&self, id: StmtId) -> &ComputeKind {
+        self.find_stmt_compute_kind(id)
+            .expect("expression compute kind should exist in application instance")
+    }
+
+    pub fn insert_block_compute_kind(&mut self, id: BlockId, value: ComputeKind) {
+        self.blocks.insert(id, value);
+    }
+
+    pub fn insert_expr_compute_kind(&mut self, id: ExprId, value: ComputeKind) {
+        self.exprs.insert(id, value);
+    }
+
+    pub fn insert_stmt_compute_kind(&mut self, id: StmtId, value: ComputeKind) {
+        self.stmts.insert(id, value);
+    }
+
     fn new(
         input_params: &Vec<InputParam>,
         dynamic_param_index: Option<InputParamIndex>,
@@ -297,25 +315,14 @@ impl ApplicationInstance {
             blocks: FxHashMap::default(),
             stmts: FxHashMap::default(),
             exprs: FxHashMap::default(),
-            is_settled: false,
-            was_flushed: false,
         }
     }
 
-    pub fn settle(&mut self) {
-        // Cannot settle an application instance while there are active dynamic scopes.
-        assert!(self.active_dynamic_scopes.is_empty());
-        self.is_settled = true;
-    }
-
-    fn collect_value_kind(&mut self) -> Option<ValueKind> {
-        // Cannot do this until the application instance has been settled, but not yet flushed.
-        assert!(self.is_settled);
-        assert!(!self.was_flushed);
-
-        // Go through each return expression aggregating their value kind (if any).
+    fn close(self) -> ApplicationInstanceComputeProperties {
+        // Determine the value kind of the application instance by going through each return expression aggregating
+        // their value kind (if any).
         let mut value_kinds = Vec::<ValueKind>::new();
-        for expr_id in self.return_expressions.drain(..) {
+        for expr_id in self.return_expressions {
             let expr_compute_kind = self
                 .exprs
                 .get(&expr_id)
@@ -325,8 +332,8 @@ impl ApplicationInstance {
             }
         }
 
-        // Only return something if at least one return expression was quantum.
-        if value_kinds.is_empty() {
+        // The application instance has a value kind only if one of its return expressions was quantum.
+        let value_kind = if value_kinds.is_empty() {
             None
         } else {
             let value_kind = value_kinds.iter().fold(
@@ -336,24 +343,41 @@ impl ApplicationInstance {
                 },
             );
             Some(value_kind)
+        };
+
+        ApplicationInstanceComputeProperties {
+            blocks: self.blocks,
+            stmts: self.stmts,
+            exprs: self.exprs,
+            value_kind,
         }
     }
+}
 
-    fn clear_locals(&mut self) {
-        // Cannot clear locals until the application instance has been settled.
-        assert!(self.is_settled);
-        self.locals_map.clear();
+struct ApplicationInstanceComputeProperties {
+    blocks: FxHashMap<BlockId, ComputeKind>,
+    stmts: FxHashMap<StmtId, ComputeKind>,
+    exprs: FxHashMap<ExprId, ComputeKind>,
+    value_kind: Option<ValueKind>,
+}
+
+impl ApplicationInstanceComputeProperties {
+    fn remove_block(&mut self, id: BlockId) -> ComputeKind {
+        self.blocks.remove(&id).expect(
+            "block to be removed should exist in the compute properties of the application instance",
+        )
     }
 
-    fn mark_flushed(&mut self) {
-        // Cannot mark as flushed until the application instance has been settled, no return expressions remain and all
-        // compute kind maps are empty.
-        assert!(self.is_settled);
-        assert!(self.return_expressions.is_empty());
-        assert!(self.blocks.is_empty());
-        assert!(self.stmts.is_empty());
-        assert!(self.exprs.is_empty());
-        self.was_flushed = true;
+    fn remove_stmt(&mut self, id: StmtId) -> ComputeKind {
+        self.stmts.remove(&id).expect(
+            "statement to be removed should exist in the compute properties of the application instance",
+        )
+    }
+
+    fn remove_expr(&mut self, id: ExprId) -> ComputeKind {
+        self.exprs.remove(&id).expect(
+            "expression to be removed should exist in the compute properties of the application instance",
+        )
     }
 }
 
@@ -376,10 +400,6 @@ impl LocalsComputeKindMap {
             .expect("compute kind for local should exist");
         local_compute_kind.compute_kind =
             aggregate_compute_kind(local_compute_kind.compute_kind.clone(), delta);
-    }
-
-    pub fn clear(&mut self) {
-        self.0.clear();
     }
 
     pub fn find_compute_kind(&self, node_id: NodeId) -> Option<&ComputeKind> {

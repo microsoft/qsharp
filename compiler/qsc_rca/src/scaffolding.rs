@@ -3,8 +3,8 @@
 
 use crate::{
     common::{GlobalSpecId, SpecKind},
-    ApplicationsGenerator, CallableComputeProperties, ComputePropertiesLookup, ItemComputeProperties,
-    PackageComputeProperties, PackageStoreComputeProperties,
+    ApplicationsGeneratorSet, CallableComputeProperties, ComputePropertiesLookup,
+    ItemComputeProperties, PackageComputeProperties, PackageStoreComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{
@@ -17,12 +17,12 @@ use qsc_fir::fir::{
 pub struct PackageStoreScaffolding(IndexMap<PackageId, PackageScaffolding>);
 
 impl ComputePropertiesLookup for PackageStoreScaffolding {
-    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsGenerator> {
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsGeneratorSet> {
         self.get(id.package)
             .and_then(|package| package.blocks.get(id.block))
     }
 
-    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsGenerator> {
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsGeneratorSet> {
         self.get(id.package)
             .and_then(|package| package.exprs.get(id.expr))
     }
@@ -31,17 +31,17 @@ impl ComputePropertiesLookup for PackageStoreScaffolding {
         panic!("not implemented")
     }
 
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGenerator> {
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGeneratorSet> {
         self.get(id.package)
             .and_then(|package| package.stmts.get(id.stmt))
     }
 
-    fn get_block(&self, id: StoreBlockId) -> &ApplicationsGenerator {
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationsGeneratorSet {
         self.find_block(id)
             .expect("block compute properties should exist")
     }
 
-    fn get_expr(&self, id: StoreExprId) -> &ApplicationsGenerator {
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationsGeneratorSet {
         self.find_expr(id)
             .expect("expression compute properties should exist")
     }
@@ -50,14 +50,14 @@ impl ComputePropertiesLookup for PackageStoreScaffolding {
         panic!("not implemented")
     }
 
-    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGenerator {
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGeneratorSet {
         self.find_stmt(id)
             .expect("statement compute properties should exist")
     }
 }
 
 impl PackageStoreScaffolding {
-    pub fn find_specialization(&self, id: GlobalSpecId) -> Option<&ApplicationsGenerator> {
+    pub fn find_specialization(&self, id: GlobalSpecId) -> Option<&ApplicationsGeneratorSet> {
         self.get(id.callable.package)
             .and_then(|package| package.items.get(id.callable.item))
             .and_then(|item_scaffolding| match item_scaffolding {
@@ -98,7 +98,7 @@ impl PackageStoreScaffolding {
         self.0.get_mut(id)
     }
 
-    pub fn get_spec(&self, id: GlobalSpecId) -> &ApplicationsGenerator {
+    pub fn get_spec(&self, id: GlobalSpecId) -> &ApplicationsGeneratorSet {
         self.find_specialization(id)
             .expect("specialization should exist")
     }
@@ -120,7 +120,7 @@ impl PackageStoreScaffolding {
             .insert(id.item, value);
     }
 
-    pub fn insert_spec(&mut self, id: GlobalSpecId, value: ApplicationsGenerator) {
+    pub fn insert_spec(&mut self, id: GlobalSpecId, value: ApplicationsGeneratorSet) {
         let items = &mut self
             .get_mut(id.callable.package)
             .expect("package should exist")
@@ -172,12 +172,12 @@ impl PackageStoreScaffolding {
 pub struct PackageScaffolding {
     /// The compute properties of the package items.
     pub items: IndexMap<LocalItemId, ItemScaffolding>,
-    /// The applications generators of the package blocks.
-    pub blocks: IndexMap<BlockId, ApplicationsGenerator>,
-    /// The applications generators of the package statements.
-    pub stmts: IndexMap<StmtId, ApplicationsGenerator>,
-    /// The applications generators of the package expressions.
-    pub exprs: IndexMap<ExprId, ApplicationsGenerator>,
+    /// The applications generator sets of the package blocks.
+    pub blocks: IndexMap<BlockId, ApplicationsGeneratorSet>,
+    /// The applications generator sets of the package statements.
+    pub stmts: IndexMap<StmtId, ApplicationsGeneratorSet>,
+    /// The applications generator sets of the package expressions.
+    pub exprs: IndexMap<ExprId, ApplicationsGeneratorSet>,
 }
 
 /// Scaffolding used to build the compute properties of an item.
@@ -250,7 +250,7 @@ impl From<SpecializationIndex> for SpecKind {
     }
 }
 
-pub type SpecializationsScaffolding = IndexMap<SpecializationIndex, ApplicationsGenerator>;
+pub type SpecializationsScaffolding = IndexMap<SpecializationIndex, ApplicationsGeneratorSet>;
 
 impl From<CallableComputeProperties> for SpecializationsScaffolding {
     fn from(value: CallableComputeProperties) -> Self {
@@ -272,10 +272,10 @@ impl From<CallableComputeProperties> for SpecializationsScaffolding {
 impl From<SpecializationsScaffolding> for CallableComputeProperties {
     fn from(value: SpecializationsScaffolding) -> Self {
         let (mut body, mut adj, mut ctl, mut ctl_adj) = (
-            Option::<ApplicationsGenerator>::default(),
-            Option::<ApplicationsGenerator>::default(),
-            Option::<ApplicationsGenerator>::default(),
-            Option::<ApplicationsGenerator>::default(),
+            Option::<ApplicationsGeneratorSet>::default(),
+            Option::<ApplicationsGeneratorSet>::default(),
+            Option::<ApplicationsGeneratorSet>::default(),
+            Option::<ApplicationsGeneratorSet>::default(),
         );
         for (specialization_index, applications_table) in value {
             match SpecKind::from(specialization_index) {
