@@ -10,7 +10,7 @@ use crate::{
     ApplicationsGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{BlockId, ExprId, NodeId, Pat, PatId, PatKind, SpecDecl, StmtId};
+use qsc_fir::fir::{BlockId, ExprId, LocalVarId, Pat, PatId, PatKind, SpecDecl, StmtId};
 use rustc_hash::FxHashMap;
 
 /// Auxiliary data structure used to build multiple related application generator sets from a individual application
@@ -194,7 +194,7 @@ fn derive_spec_input(spec_decl: &SpecDecl, pats: &IndexMap<PatId, Pat>) -> Optio
         let pat = pats.get(pat_id).expect("pat should exist");
         match &pat.kind {
             PatKind::Bind(ident) => Some(Local {
-                node: ident.id,
+                var: ident.id,
                 pat: pat_id,
                 ty: pat.ty.clone(),
                 kind: LocalKind::SpecInput,
@@ -273,7 +273,7 @@ impl ApplicationInstance {
             // Specialization inputs are currently only used for controls, whose compute properties are handled at
             // the call expression, so just use classical compute kind here for when controls are explicitly used.
             locals_map.insert(
-                spec_input_local.node,
+                spec_input_local.var,
                 LocalComputeKind {
                     local: spec_input_local.clone(),
                     compute_kind: ComputeKind::Classical,
@@ -382,39 +382,39 @@ impl ApplicationInstanceComputeProperties {
 }
 
 #[derive(Debug, Default)]
-pub struct LocalsComputeKindMap(FxHashMap<NodeId, LocalComputeKind>);
+pub struct LocalsComputeKindMap(FxHashMap<LocalVarId, LocalComputeKind>);
 
 impl LocalsLookup for LocalsComputeKindMap {
-    fn find(&self, node_id: NodeId) -> Option<&Local> {
+    fn find(&self, local_var_id: LocalVarId) -> Option<&Local> {
         self.0
-            .get(&node_id)
+            .get(&local_var_id)
             .map(|local_compute_kind| &local_compute_kind.local)
     }
 }
 
 impl LocalsComputeKindMap {
-    pub fn aggregate_compute_kind(&mut self, node_id: NodeId, delta: &ComputeKind) {
+    pub fn aggregate_compute_kind(&mut self, local_var_id: LocalVarId, delta: &ComputeKind) {
         let local_compute_kind = self
             .0
-            .get_mut(&node_id)
+            .get_mut(&local_var_id)
             .expect("compute kind for local should exist");
         local_compute_kind.compute_kind =
             aggregate_compute_kind(local_compute_kind.compute_kind.clone(), delta);
     }
 
-    pub fn find_compute_kind(&self, node_id: NodeId) -> Option<&ComputeKind> {
+    pub fn find_compute_kind(&self, local_var_id: LocalVarId) -> Option<&ComputeKind> {
         self.0
-            .get(&node_id)
+            .get(&local_var_id)
             .map(|local_compute_kind| &local_compute_kind.compute_kind)
     }
 
-    pub fn get_compute_kind(&self, node_id: NodeId) -> &ComputeKind {
-        self.find_compute_kind(node_id)
+    pub fn get_compute_kind(&self, local_var_id: LocalVarId) -> &ComputeKind {
+        self.find_compute_kind(local_var_id)
             .expect("compute kind for local should exist")
     }
 
-    pub fn insert(&mut self, node_id: NodeId, value: LocalComputeKind) {
-        self.0.insert(node_id, value);
+    pub fn insert(&mut self, local_var_id: LocalVarId, value: LocalComputeKind) {
+        self.0.insert(local_var_id, value);
     }
 }
 

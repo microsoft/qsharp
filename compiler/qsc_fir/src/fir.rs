@@ -450,8 +450,6 @@ pub trait PackageStoreLookup {
     fn get_expr(&self, id: StoreExprId) -> &Expr;
     /// Gets a global.
     fn get_global(&self, id: StoreItemId) -> Option<Global>;
-    /// Gets a package.
-    fn get_package(&self, id: PackageId) -> &Package;
     /// Gets a pat.
     fn get_pat(&self, id: StorePatId) -> &Pat;
     /// Gets a statement.
@@ -473,10 +471,6 @@ impl PackageStoreLookup for PackageStore {
 
     fn get_global(&self, id: StoreItemId) -> Option<Global> {
         self.get(id.package).get_global(id.item)
-    }
-
-    fn get_package(&self, id: PackageId) -> &Package {
-        self.get(id).expect("Package not found")
     }
 
     fn get_pat(&self, id: StorePatId) -> &Pat {

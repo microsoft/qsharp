@@ -32,10 +32,7 @@ impl CompilationContext {
             .compile_fragments_fail_fast("rca-test", source)
             .expect("code should compile");
         let package_id = map_hir_package_to_fir(self.compiler.package_id());
-        let fir_package = self
-            .fir_store
-            .get_mut(package_id)
-            .expect("package should exist");
+        let fir_package = self.fir_store.get_mut(package_id);
         self.lowerer
             .lower_and_update_package(fir_package, &increment.hir);
         self.compiler.update(increment);

@@ -8,8 +8,8 @@ use crate::common::{
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
-        LocalItemId, Mutability, NodeId, Package, PackageId, PackageLookup, Pat, PatId, PatKind,
-        SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent,
+        LocalItemId, LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId,
+        PatKind, SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent,
     },
     visit::Visitor,
 };
@@ -53,7 +53,7 @@ struct CycleDetector<'a> {
     package_id: PackageId,
     package: &'a Package,
     stack: CallStack,
-    specializations_locals: FxHashMap<LocalSpecId, FxHashMap<NodeId, Local>>,
+    specializations_locals: FxHashMap<LocalSpecId, FxHashMap<LocalVarId, Local>>,
     specializations_with_cycles: FxHashSet<LocalSpecId>,
 }
 
@@ -90,7 +90,7 @@ impl<'a> CycleDetector<'a> {
                     ident.id,
                     Local {
                         pat: pat_id,
-                        node: ident.id,
+                        var: ident.id,
                         ty: pat.ty.clone(),
                         kind,
                     },

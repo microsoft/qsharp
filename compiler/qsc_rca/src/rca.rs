@@ -30,7 +30,7 @@ pub fn analyze_package(
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
-    let package = package_store.get(id).expect("package should exist");
+    let package = package_store.get(id);
 
     // Analyze all top-level items.
     for (item_id, _) in &package.items {
@@ -79,13 +79,8 @@ pub fn analyze_specialization_with_cyles(
         panic!("callable implementation should not be intrinsic");
     };
 
-    let input_params = derive_callable_input_params(
-        callable,
-        &package_store
-            .get(spec_id.callable.package)
-            .expect("package should exist")
-            .pats,
-    );
+    let input_params =
+        derive_callable_input_params(callable, &package_store.get(spec_id.callable.package).pats);
 
     // Create compute properties differently depending on whether the callable is a function or an operation.
     let applications_table = match callable.kind {
@@ -103,7 +98,7 @@ pub fn analyze_specialization_with_cyles(
 
     // Now propagate the applications table through the implementation block.
     let package_id = spec_id.callable.package;
-    let package = package_store.get_package(package_id);
+    let package = package_store.get(package_id);
     let package_scaffolding = package_store_scaffolding
         .get_mut(package_id)
         .expect("package scaffolding should exist");
@@ -168,13 +163,7 @@ fn analyze_callable(
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
     // Analyze the callable depending on its type.
-    let input_params = derive_callable_input_params(
-        callable,
-        &package_store
-            .get(id.package)
-            .expect("package should exist")
-            .pats,
-    );
+    let input_params = derive_callable_input_params(callable, &package_store.get(id.package).pats);
     match callable.implementation {
         CallableImpl::Intrinsic => {
             analyze_intrinsic_callable(id, callable, &input_params, package_store_scaffolding)
@@ -321,10 +310,7 @@ fn analyze_spec(
             };
             let callable_input_params = derive_callable_input_params(
                 callable_decl,
-                &package_store
-                    .get(id.callable.package)
-                    .expect("package should exist")
-                    .pats,
+                &package_store.get(id.callable.package).pats,
             );
             analyze_spec_decl(
                 id,
@@ -351,10 +337,7 @@ fn analyze_spec_decl(
 
     // We expand the input map for controlled specializations, which have its own additional input (the control qubit
     // register).
-    let package_patterns = &package_store
-        .get(id.callable.package)
-        .expect("package should exist")
-        .pats;
+    let package_patterns = &package_store.get(id.callable.package).pats;
 
     // Then we analyze the block which implements the specialization by simulating callable applications.
     let block_id = (id.callable.package, spec_decl.block).into();
@@ -507,7 +490,7 @@ fn bind_compute_kind_to_ident(
     application_instance: &mut ApplicationInstance,
 ) {
     let local = Local {
-        node: ident.id,
+        var: ident.id,
         pat: pat.id,
         ty: pat.ty.clone(),
         kind: local_kind,
@@ -549,7 +532,7 @@ fn create_compute_kind_for_call_with_spec_callee(
 
     // We need to split controls and specialization input arguments so we can use the right entry in the applications
     // table.
-    let args_package = package_store.get_package(args_expr_id.package);
+    let args_package = package_store.get(args_expr_id.package);
     let (args_controls, args_input_id) =
         split_controls_and_input(args_expr_id.expr, &callee.spec_functor, args_package);
     let callee_input_pattern_id =
@@ -588,9 +571,7 @@ fn create_compute_kind_for_call_with_static_callee(
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) -> ComputeKind {
     // Try to resolve the callee.
-    let callee_expr_package = package_store
-        .get(callee_expr_id.package)
-        .expect("package should exist");
+    let callee_expr_package = package_store.get(callee_expr_id.package);
     let maybe_callee = try_resolve_callee(
         callee_expr_id.expr,
         callee_expr_id.package,
@@ -928,7 +909,7 @@ fn determine_expr_assign_compute_kind(
 
     // Since this is an assignment, update the local variables on the LHS expression with the compute kind of the RHS
     // expression.
-    let package = package_store.get_package(lhs_expr_id.package);
+    let package = package_store.get(lhs_expr_id.package);
     update_locals_compute_kind(
         lhs_expr_id.expr,
         rhs_expr_id.expr,
@@ -1667,7 +1648,7 @@ fn determine_stmt_local_compute_kind(
     );
 
     // Bind the expression's compute kind to the pattern.
-    let package = package_store.get(package_id).expect("package should exist");
+    let package = package_store.get(package_id);
     bind_expr_compute_kind_to_pattern(mutability, pat_id, expr_id, package, application_instance);
 
     // Use the expression's compute kind to construct the statement's compute kind, only using using the expression's

@@ -68,7 +68,7 @@ impl Analyzer {
 
         // Re-analyze the package.
         let mut package_store_scaffolding = PackageStoreScaffolding::default();
-        let package = package_store.get(package_id).expect("package should exist");
+        let package = package_store.get(package_id);
         package_store_scaffolding.take(&mut self.compute_properties);
 
         // First, analyze callables with cycles for the package being updated.

@@ -6,7 +6,7 @@ use indenter::Indented;
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        CallableDecl, ExprId, ExprKind, Functor, ItemId, NodeId, PackageId, PackageLookup, Pat,
+        CallableDecl, ExprId, ExprKind, Functor, ItemId, LocalVarId, PackageId, PackageLookup, Pat,
         PatId, PatKind, Res, StoreItemId, UnOp,
     },
     ty::Ty,
@@ -66,7 +66,7 @@ pub struct InputParam {
     pub index: InputParamIndex,
     pub pat: PatId,
     pub ty: Ty,
-    pub node: Option<NodeId>,
+    pub var: Option<LocalVarId>,
 }
 
 pub fn derive_callable_input_params(
@@ -82,13 +82,13 @@ pub fn derive_callable_input_params(
                 index: param_index,
                 pat: element.pat,
                 ty: element.ty.clone(),
-                node: None,
+                var: None,
             }),
-            InputPatternElementKind::Node(node_id) => Some(InputParam {
+            InputPatternElementKind::Ident(local_var_id) => Some(InputParam {
                 index: param_index,
                 pat: element.pat,
                 ty: element.ty.clone(),
-                node: Some(*node_id),
+                var: Some(*local_var_id),
             }),
             InputPatternElementKind::Tuple(_) => None,
         };
@@ -105,7 +105,7 @@ pub fn derive_callable_input_params(
 /// A represenation of a local symbol.
 #[derive(Clone, Debug)]
 pub struct Local {
-    pub node: NodeId,
+    pub var: LocalVarId,
     pub pat: PatId,
     pub ty: Ty,
     pub kind: LocalKind,
@@ -125,27 +125,27 @@ pub enum LocalKind {
 }
 
 pub trait LocalsLookup {
-    fn find(&self, node_id: NodeId) -> Option<&Local>;
+    fn find(&self, local_var_id: LocalVarId) -> Option<&Local>;
 
-    fn get(&self, node_id: NodeId) -> &Local {
-        self.find(node_id).expect("local should exist")
+    fn get(&self, local_var_id: LocalVarId) -> &Local {
+        self.find(local_var_id).expect("local should exist")
     }
 }
 
-impl LocalsLookup for FxHashMap<NodeId, Local> {
-    fn find(&self, node_id: NodeId) -> Option<&Local> {
-        self.get(&node_id)
+impl LocalsLookup for FxHashMap<LocalVarId, Local> {
+    fn find(&self, local_var_id: LocalVarId) -> Option<&Local> {
+        self.get(&local_var_id)
     }
 }
 
-pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<NodeId, Local> {
-    let mut locals_map = FxHashMap::<NodeId, Local>::default();
+pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<LocalVarId, Local> {
+    let mut locals_map = FxHashMap::<LocalVarId, Local>::default();
     for param in input_params {
-        if let Some(node) = param.node {
+        if let Some(id) = param.var {
             locals_map.insert(
-                node,
+                id,
                 Local {
-                    node,
+                    var: id,
                     pat: param.pat,
                     ty: param.ty.clone(),
                     kind: LocalKind::InputParam(param.index),
@@ -204,7 +204,7 @@ struct InputPatternElement {
 #[derive(Debug)]
 enum InputPatternElementKind {
     Discard,
-    Node(NodeId),
+    Ident(LocalVarId),
     Tuple(Vec<PatId>),
 }
 
@@ -223,7 +223,7 @@ fn derive_callable_input_pattern_elements(
                 vec![InputPatternElement {
                     pat: pat_id,
                     ty: pat.ty.clone(),
-                    kind: InputPatternElementKind::Node(ident.id),
+                    kind: InputPatternElementKind::Ident(ident.id),
                 }]
             }
             PatKind::Tuple(tuple_pats) => {
@@ -277,8 +277,8 @@ pub fn try_resolve_callee(
         }
         ExprKind::Var(res, _) => match res {
             Res::Item(item_id) => resolve_item_callee(package_id, *item_id),
-            Res::Local(node_id) => {
-                try_resolve_local_callee(*node_id, package_id, package, locals_map)
+            Res::Local(local_var_id) => {
+                try_resolve_local_callee(*local_var_id, package_id, package, locals_map)
             }
             Res::Err => panic!("callee resolution should not be an error"),
         },
@@ -297,18 +297,20 @@ fn resolve_item_callee(call_package_id: PackageId, item_id: ItemId) -> Option<Ca
 }
 
 fn try_resolve_local_callee(
-    node_id: NodeId,
+    local_var_id: LocalVarId,
     package_id: PackageId,
     package: &impl PackageLookup,
     locals_map: &impl LocalsLookup,
 ) -> Option<Callee> {
     // This is a best effort attempt to resolve a callee.
-    locals_map.find(node_id).and_then(|local| match local.kind {
-        LocalKind::Immutable(expr_id) => {
-            try_resolve_callee(expr_id, package_id, package, locals_map)
-        }
-        _ => None,
-    })
+    locals_map
+        .find(local_var_id)
+        .and_then(|local| match local.kind {
+            LocalKind::Immutable(expr_id) => {
+                try_resolve_callee(expr_id, package_id, package, locals_map)
+            }
+            _ => None,
+        })
 }
 
 fn try_resolve_un_op_callee(
