@@ -263,8 +263,8 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
 
     let azure_name = ns.replace("Microsoft.", "Azure.");
     let summary = parse_doc_for_summary(&item.doc)
-        .replace("\r\n", "")
-        .replace('\n', "");
+        .replace("\r\n", " ")
+        .replace('\n', " ");
 
     Some(Metadata {
         uid: format!("{azure_name}.{name}"),
