@@ -6,6 +6,9 @@
 //! execution on a quantum kernel and does not consider these elements when determining the capabilities. Additionally,
 //! this implementation also provides details on why the program requires each capability.
 
+#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
+
 mod analyzer;
 mod applications;
 mod common;
@@ -95,11 +98,22 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
     }
 }
 
+impl<'a> IntoIterator for &'a PackageStoreComputeProperties {
+    type IntoIter = qsc_data_structures::index_map::Iter<'a, PackageId, PackageComputeProperties>;
+    type Item = (PackageId, &'a PackageComputeProperties);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 impl PackageStoreComputeProperties {
+    #[must_use]
     pub fn get(&self, id: PackageId) -> Option<&PackageComputeProperties> {
         self.0.get(id)
     }
 
+    #[must_use]
     pub fn get_mut(&mut self, id: PackageId) -> Option<&mut PackageComputeProperties> {
         self.0.get_mut(id)
     }
@@ -132,6 +146,7 @@ impl PackageStoreComputeProperties {
             .insert(id.stmt, value);
     }
 
+    #[must_use]
     pub fn iter(&self) -> Iter<PackageId, PackageComputeProperties> {
         self.0.iter()
     }
@@ -215,7 +230,7 @@ impl Display for ItemComputeProperties {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self {
             ItemComputeProperties::Callable(callable_compute_properties) => {
-                write!(f, "Callable: {}", callable_compute_properties)
+                write!(f, "Callable: {callable_compute_properties}")
             }
             ItemComputeProperties::NonCallable => write!(f, "NonCallable"),
         }
@@ -280,10 +295,10 @@ impl Display for ApplicationsGeneratorSet {
             write!(indent, " <empty>")?;
         } else {
             indent = set_indentation(indent, 2);
-            for (para_index, param_compute_kind) in
+            for (param_index, param_compute_kind) in
                 self.dynamic_param_applications.iter().enumerate()
             {
-                write!(indent, "\n[{}]: {}", para_index, param_compute_kind)?;
+                write!(indent, "\n[{param_index}]: {param_compute_kind}")?;
             }
         }
         Ok(())
@@ -291,18 +306,19 @@ impl Display for ApplicationsGeneratorSet {
 }
 
 impl ApplicationsGeneratorSet {
+    #[must_use]
     pub fn derive_application_compute_kind(
         &self,
         input_params_dynamism: &Vec<bool>,
     ) -> ComputeKind {
         assert!(self.dynamic_param_applications.len() == input_params_dynamism.len());
-        let mut compute_kind = self.inherent.clone();
+        let mut compute_kind = self.inherent;
         for (is_dynamic, dynamic_param_application) in input_params_dynamism
             .iter()
             .zip(self.dynamic_param_applications.iter())
         {
             if *is_dynamic {
-                compute_kind = aggregate_compute_kind(compute_kind, dynamic_param_application);
+                compute_kind = aggregate_compute_kind(compute_kind, *dynamic_param_application);
             }
         }
         compute_kind
@@ -318,9 +334,7 @@ pub enum ComputeKind {
 impl Display for ComputeKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
-            ComputeKind::Quantum(quantum_properties) => {
-                write!(f, "Quantum: {}", quantum_properties)?
-            }
+            ComputeKind::Quantum(quantum_properties) => write!(f, "Quantum: {quantum_properties}")?,
             ComputeKind::Classical => write!(f, "Classical")?,
         };
         Ok(())
@@ -334,9 +348,10 @@ impl ComputeKind {
         };
 
         quantum_properties.value_kind =
-            aggregate_value_kind(quantum_properties.value_kind, &value_kind);
+            aggregate_value_kind(quantum_properties.value_kind, value_kind);
     }
 
+    #[must_use]
     pub fn is_value_dynamic(&self) -> bool {
         match self {
             Self::Classical => false,
@@ -347,6 +362,7 @@ impl ComputeKind {
         }
     }
 
+    #[must_use]
     pub fn with_runtime_features(runtime_features: RuntimeFeatureFlags) -> Self {
         Self::Quantum(QuantumProperties::with_runtime_features(runtime_features))
     }
@@ -470,6 +486,7 @@ bitflags! {
 
 impl RuntimeFeatureFlags {
     /// Maps program contructs to runtime capabilities.
+    #[must_use]
     pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
         let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
         if self.contains(RuntimeFeatureFlags::UseOfDynamicBool) {

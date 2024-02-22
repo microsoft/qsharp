@@ -6,22 +6,22 @@ use crate::{
         aggregate_compute_kind, aggregate_value_kind, initialize_locals_map, InputParam,
         InputParamIndex, Local, LocalKind, LocalsLookup,
     },
-    scaffolding::PackageScaffolding,
+    scaffolding::PackageComputeProperties,
     ApplicationsGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, LocalVarId, Pat, PatId, PatKind, SpecDecl, StmtId};
 use rustc_hash::FxHashMap;
 
-/// Auxiliary data structure used to build multiple related application generator sets from a individual application
+/// Auxiliary data structure used to build multiple related application generator sets from individual application
 /// instances.
 #[derive(Debug)]
-pub struct ApplicationsGeneratorSetBuilder {
+pub struct GeneratorSetsBuilder {
     pub inherent: ApplicationInstance,
     pub dynamic_param_applications: Vec<ApplicationInstance>,
 }
 
-impl ApplicationsGeneratorSetBuilder {
+impl GeneratorSetsBuilder {
     /// Creates a new builder from a specialization.
     pub fn from_spec(
         spec_decl: &SpecDecl,
@@ -55,11 +55,11 @@ impl ApplicationsGeneratorSetBuilder {
         }
     }
 
-    /// Saves the contents of the builder to the package.
+    /// Saves the contents of the builder to the package compute properties data structure.
     /// If a main block ID is provided, it returns the applications generator set representing the block.
-    pub fn save_to_package(
+    pub fn save_to_package_compute_properties(
         self,
-        package_scaffolding: &mut PackageScaffolding,
+        package_compute_properties: &mut PackageComputeProperties,
         main_block: Option<BlockId>,
     ) -> Option<ApplicationsGeneratorSet> {
         // Get the compute properties of the inherent application instance and the dynamic parameter applications.
@@ -74,16 +74,16 @@ impl ApplicationsGeneratorSetBuilder {
         }
 
         // Save the compute properties to the package.
-        Self::save_applications_generator_sets(
+        Self::save_application_generator_sets(
             &mut inherent_application_compute_properties,
             &mut dynamic_param_applications_compute_properties,
-            package_scaffolding,
+            package_compute_properties,
         );
 
         // If a main block was provided, create an applications generator that represents the specialization based on
         // the applications generator of the main block.
         let close_output = main_block.map(|main_block_id| {
-            let mut applications_generator = package_scaffolding
+            let mut applications_generator = package_compute_properties
                 .blocks
                 .get(main_block_id)
                 .expect("block applications generator should exist")
@@ -115,12 +115,12 @@ impl ApplicationsGeneratorSetBuilder {
         close_output
     }
 
-    fn save_applications_generator_sets(
+    fn save_application_generator_sets(
         inherent_application_compute_properties: &mut ApplicationInstanceComputeProperties,
         dynamic_param_applications_compute_properties: &mut Vec<
             ApplicationInstanceComputeProperties,
         >,
-        package_scaffolding: &mut PackageScaffolding,
+        package_compute_properties: &mut PackageComputeProperties,
     ) {
         let input_params_count = dynamic_param_applications_compute_properties.len();
 
@@ -140,7 +140,7 @@ impl ApplicationsGeneratorSetBuilder {
                 inherent: block_inherent_compute_kind,
                 dynamic_param_applications: block_dynamic_param_applications,
             };
-            package_scaffolding
+            package_compute_properties
                 .blocks
                 .insert(block_id, block_applications_generator_set);
         }
@@ -161,7 +161,7 @@ impl ApplicationsGeneratorSetBuilder {
                 inherent: stmt_inherent_compute_kind,
                 dynamic_param_applications: stmt_dynamic_param_applications,
             };
-            package_scaffolding
+            package_compute_properties
                 .stmts
                 .insert(stmt_id, stmt_applications_generator_set);
         }
@@ -182,7 +182,7 @@ impl ApplicationsGeneratorSetBuilder {
                 inherent: expr_inherent_compute_kind,
                 dynamic_param_applications: expr_dynamic_param_applications,
             };
-            package_scaffolding
+            package_compute_properties
                 .exprs
                 .insert(expr_id, expr_applications_generator_set);
         }
@@ -339,7 +339,7 @@ impl ApplicationInstance {
             let value_kind = value_kinds.iter().fold(
                 ValueKind::Static,
                 |aggregated_value_kind, current_value_kind| {
-                    aggregate_value_kind(aggregated_value_kind, current_value_kind)
+                    aggregate_value_kind(aggregated_value_kind, *current_value_kind)
                 },
             );
             Some(value_kind)
@@ -393,13 +393,13 @@ impl LocalsLookup for LocalsComputeKindMap {
 }
 
 impl LocalsComputeKindMap {
-    pub fn aggregate_compute_kind(&mut self, local_var_id: LocalVarId, delta: &ComputeKind) {
+    pub fn aggregate_compute_kind(&mut self, local_var_id: LocalVarId, delta: ComputeKind) {
         let local_compute_kind = self
             .0
             .get_mut(&local_var_id)
             .expect("compute kind for local should exist");
         local_compute_kind.compute_kind =
-            aggregate_compute_kind(local_compute_kind.compute_kind.clone(), delta);
+            aggregate_compute_kind(local_compute_kind.compute_kind, delta);
     }
 
     pub fn find_compute_kind(&self, local_var_id: LocalVarId) -> Option<&ComputeKind> {

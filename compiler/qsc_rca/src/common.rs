@@ -18,7 +18,7 @@ use crate::{ComputeKind, ValueKind};
 
 /// Aggregates two compute kind structures returning the resulting compute kind.
 #[must_use]
-pub fn aggregate_compute_kind(basis: ComputeKind, delta: &ComputeKind) -> ComputeKind {
+pub fn aggregate_compute_kind(basis: ComputeKind, delta: ComputeKind) -> ComputeKind {
     let ComputeKind::Quantum(delta_quantum_properties) = delta else {
         // A classical compute kind has nothing to aggregate so just return the base with no changes.
         return basis;
@@ -37,7 +37,7 @@ pub fn aggregate_compute_kind(basis: ComputeKind, delta: &ComputeKind) -> Comput
         ComputeKind::Classical => delta_quantum_properties.value_kind,
         ComputeKind::Quantum(basis_quantum_properties) => aggregate_value_kind(
             basis_quantum_properties.value_kind,
-            &delta_quantum_properties.value_kind,
+            delta_quantum_properties.value_kind,
         ),
     };
 
@@ -49,7 +49,7 @@ pub fn aggregate_compute_kind(basis: ComputeKind, delta: &ComputeKind) -> Comput
 }
 
 #[must_use]
-pub fn aggregate_value_kind(basis: ValueKind, delta: &ValueKind) -> ValueKind {
+pub fn aggregate_value_kind(basis: ValueKind, delta: ValueKind) -> ValueKind {
     match delta {
         ValueKind::Static => basis,
         ValueKind::Dynamic => ValueKind::Dynamic,
@@ -266,7 +266,7 @@ pub fn try_resolve_callee(
             try_resolve_un_op_callee(*operator, *operand_expr_id, package_id, package, locals_map)
         }
         ExprKind::Var(res, _) => match res {
-            Res::Item(item_id) => resolve_item_callee(package_id, *item_id),
+            Res::Item(item_id) => Some(resolve_item_callee(package_id, *item_id)),
             Res::Local(local_var_id) => {
                 try_resolve_local_callee(*local_var_id, package_id, package, locals_map)
             }
@@ -277,12 +277,12 @@ pub fn try_resolve_callee(
     }
 }
 
-fn resolve_item_callee(call_package_id: PackageId, item_id: ItemId) -> Option<Callee> {
+fn resolve_item_callee(call_package_id: PackageId, item_id: ItemId) -> Callee {
     let package_id = item_id.package.unwrap_or(call_package_id);
-    Some(Callee {
+    Callee {
         item: (package_id, item_id.item).into(),
         functor_app: FunctorApp::default(),
-    })
+    }
 }
 
 fn try_resolve_local_callee(

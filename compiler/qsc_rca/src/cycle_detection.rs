@@ -365,9 +365,9 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             StmtKind::Item(_) => {}
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => self.visit_expr(*expr_id),
             StmtKind::Local(mutability, pat_id, expr_id) => {
-                self.walk_local_stmt(*mutability, *pat_id, *expr_id)
+                self.walk_local_stmt(*mutability, *pat_id, *expr_id);
             }
-        }
+        };
     }
 }
 
