@@ -178,13 +178,14 @@ fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Rc
     let doc = increase_header_level(&item.doc);
     let title = &metadata.title;
     let sig = &metadata.signature;
+    let azure_name = ns.replace("Microsoft.", "Azure.");
 
     let content = format!(
         "{metadata}
 
 # {title}
 
-Namespace: [{ns}](xref:{ns})
+Namespace: [{ns}](xref:{azure_name})
 
 ```qsharp
 {sig}
@@ -260,8 +261,13 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
         ItemKind::Namespace(_, _) => None,
     }?;
 
+    let azure_name = ns.replace("Microsoft.", "Azure.");
+    let summary = parse_doc_for_summary(&item.doc)
+        .replace("\r\n", "")
+        .replace('\n', "");
+
     Some(Metadata {
-        uid: format!("{ns}.{name}"),
+        uid: format!("{azure_name}.{name}"),
         title: match &kind {
             MetadataKind::Function => format!("{name} function"),
             MetadataKind::Operation => format!("{name} operation"),
@@ -271,7 +277,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
         kind,
         namespace: ns,
         name,
-        summary: parse_doc_for_summary(&item.doc),
+        summary,
         signature,
     })
 }

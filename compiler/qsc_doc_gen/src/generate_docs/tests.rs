@@ -15,7 +15,7 @@ fn docs_generation() {
 
     expect![[r#"
         ---
-        uid: Microsoft.Quantum.Core.Length
+        uid: Azure.Quantum.Core.Length
         title: Length function
         ms.date: {TIMESTAMP}
         ms.topic: managed-reference
@@ -27,7 +27,7 @@ fn docs_generation() {
 
         # Length function
 
-        Namespace: [Microsoft.Quantum.Core](xref:Microsoft.Quantum.Core)
+        Namespace: [Microsoft.Quantum.Core](xref:Azure.Quantum.Core)
 
         ```qsharp
         function Length<'T>(a : 'T[]) : Int
