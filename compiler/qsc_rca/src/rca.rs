@@ -1880,9 +1880,7 @@ fn simulate_block(
                 };
 
                 // The block's value kind must be static since this is the first time a value kind is set.
-                let ValueKind::Static = block_quantum_properties.value_kind else {
-                    panic!("block's value kind should be static");
-                };
+                assert!(block_quantum_properties.value_kind == ValueKind::Static, "block's value kind should be static");
 
                 // Set the last statement as a source of dynamism for the block.
                 block_quantum_properties.value_kind = ValueKind::Dynamic;
