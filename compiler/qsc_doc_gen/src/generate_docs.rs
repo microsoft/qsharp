@@ -292,7 +292,8 @@ fn generate_toc(map: &mut FxHashMap<Rc<str>, Vec<String>>, files: &mut Files) {
         .map(|(namespace, lines)| {
             lines.sort_unstable();
             let items_str = lines.join("\n");
-            let content = format!("- items:\n{items_str}\n  name: {namespace}\n  uid: {namespace}");
+            let content =
+                format!("- items:\n{items_str}\n  name: {namespace}\n  uid: Qdk.{namespace}");
             (namespace, content)
         })
         .collect::<Vec<_>>();
