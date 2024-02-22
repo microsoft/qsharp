@@ -140,14 +140,14 @@ fn generate_doc_for_item<'a>(
     let ns = get_namespace(package, item)?;
 
     // Add file
-    let (title, metadata, content) = generate_file(&ns, item, display)?;
-    let file_name: Arc<str> = Arc::from(format!("{ns}/{title}.md").as_str());
-    let file_metadata: Arc<str> = Arc::from(metadata.as_str());
+    let (metadata, content) = generate_file(&ns, item, display)?;
+    let file_name: Arc<str> = Arc::from(format!("{ns}/{}.md", metadata.name).as_str());
+    let file_metadata: Arc<str> = Arc::from(metadata.to_string().as_str());
     let file_content: Arc<str> = Arc::from(content.as_str());
     files.push((file_name, file_metadata, file_content));
 
     // Create toc line
-    let line = format!("  - {{name: {title}, uid: Qdk.{ns}.{title}}}");
+    let line = format!("  - {{name: {}, uid: {}}}", metadata.name, metadata.uid);
 
     // Return (ns, line)
     Some((ns.clone(), line))
@@ -175,11 +175,7 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
     }
 }
 
-fn generate_file(
-    ns: &Rc<str>,
-    item: &Item,
-    display: &CodeDisplay,
-) -> Option<(Rc<str>, String, String)> {
+fn generate_file(ns: &Rc<str>, item: &Item, display: &CodeDisplay) -> Option<(Metadata, String)> {
     let metadata = get_metadata(ns.clone(), item, display)?;
 
     let doc = increase_header_level(&item.doc);
@@ -203,7 +199,7 @@ Namespace: {ns}
         format!("{content}\n{doc}\n")
     };
 
-    Some((metadata.name.clone(), metadata.to_string(), content))
+    Some((metadata, content))
 }
 
 struct Metadata {
