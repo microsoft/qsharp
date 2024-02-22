@@ -147,7 +147,7 @@ fn generate_doc_for_item<'a>(
     files.push((file_name, file_metadata, file_content));
 
     // Create toc line
-    let line = format!("  - {{name: {title}, uid: {ns}.{title}}}");
+    let line = format!("  - {{name: {title}, uid: Qdk.{ns}.{title}}}");
 
     // Return (ns, line)
     Some((ns.clone(), line))
