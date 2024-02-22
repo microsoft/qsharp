@@ -3,8 +3,10 @@
 
 use crate::estimates::{Error, ErrorCorrection};
 
-use serde::Serialize;
-use std::{fmt::Debug, rc::Rc};
+use std::{
+    fmt::{Debug, Display},
+    rc::Rc,
+};
 
 /// Logical qubit model.
 ///
@@ -12,37 +14,30 @@ use std::{fmt::Debug, rc::Rc};
 /// protocol.  Construction methods are provided that take as additional input
 /// the code distance, or alternatively the target error rate from which the
 /// code distance is computed.
-#[derive(Serialize)]
-#[serde(rename_all(serialize = "camelCase"))]
-pub struct LogicalQubit<P> {
-    #[serde(skip_serializing)]
-    physical_qubit: Rc<P>,
-    code_distance: u64,
+pub struct LogicalQubit<E: ErrorCorrection> {
+    physical_qubit: Rc<E::Qubit>,
+    code_parameter: E::Parameter,
     physical_qubits: u64,
     logical_cycle_time: u64,
     logical_error_rate: f64,
 }
 
-impl<P> LogicalQubit<P> {
-    pub fn new(
-        ftp: &impl ErrorCorrection<Qubit = P>,
-        code_distance: u64,
-        qubit: Rc<P>,
-    ) -> Result<Self, Error> {
+impl<E: ErrorCorrection> LogicalQubit<E> {
+    pub fn new(ftp: &E, code_parameter: E::Parameter, qubit: Rc<E::Qubit>) -> Result<Self, Error> {
         // safe to convert here because we check for negative values before
         let physical_qubits = ftp
-            .physical_qubits_per_logical_qubit(code_distance)
+            .physical_qubits_per_logical_qubit(&code_parameter)
             .map_err(Error::PhysicalQubitComputationFailed)?;
         let logical_cycle_time = ftp
-            .logical_cycle_time(&qubit, code_distance)
+            .logical_cycle_time(&qubit, &code_parameter)
             .map_err(Error::LogicalCycleTimeComputationFailed)?;
         let logical_error_rate = ftp
-            .logical_failure_probability(&qubit, code_distance)
+            .logical_error_rate(&qubit, &code_parameter)
             .map_err(Error::LogicalFailureProbabilityFailed)?;
 
         Ok(Self {
             physical_qubit: qubit,
-            code_distance,
+            code_parameter,
             physical_qubits,
             logical_cycle_time,
             logical_error_rate,
@@ -50,13 +45,13 @@ impl<P> LogicalQubit<P> {
     }
 
     /// Returns a reference to the logical qubit's underlying physical qubit model.
-    pub fn physical_qubit(&self) -> &P {
+    pub fn physical_qubit(&self) -> &E::Qubit {
         &self.physical_qubit
     }
 
     /// Returns the code distance.
-    pub fn code_distance(&self) -> u64 {
-        self.code_distance
+    pub fn code_parameter(&self) -> &E::Parameter {
+        &self.code_parameter
     }
 
     /// Returns the number of physical qubits to encode the logical qubit.
@@ -80,8 +75,11 @@ impl<P> LogicalQubit<P> {
     }
 }
 
-impl<P> Debug for LogicalQubit<P> {
+impl<E: ErrorCorrection> Debug for LogicalQubit<E>
+where
+    E::Parameter: Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "LQubit(d={})", self.code_distance())
+        write!(f, "LQubit(d={})", self.code_parameter())
     }
 }

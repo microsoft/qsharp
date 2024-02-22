@@ -17,9 +17,10 @@ use super::super::{
     compiled_expression::CompiledExpression,
     error::IO::{self, CannotParseJSON},
 };
+use super::Protocol;
 
 pub enum TFactoryQubit<'a> {
-    Logical(&'a LogicalQubit<PhysicalQubit>),
+    Logical(&'a LogicalQubit<Protocol>),
     Physical(&'a PhysicalQubit),
 }
 
@@ -71,7 +72,7 @@ impl<'a> TFactoryQubit<'a> {
 
     pub fn code_distance(&self) -> u64 {
         match self {
-            Self::Logical(qubit) => qubit.code_distance(),
+            Self::Logical(qubit) => *qubit.code_parameter(),
             Self::Physical(_) => 1,
         }
     }
@@ -616,7 +617,7 @@ impl TFactory {
         TFactoryBuildStatus::Success
     }
 
-    pub fn default(logical_qubit: &LogicalQubit<PhysicalQubit>) -> Self {
+    pub fn default(logical_qubit: &LogicalQubit<Protocol>) -> Self {
         let tfactory_qubit = TFactoryQubit::Logical(logical_qubit);
         let template = TFactoryDistillationUnitTemplate::create_trivial_distillation_unit_1_to_1();
         let unit = TFactoryDistillationUnit::by_template(&template, &tfactory_qubit);
@@ -744,6 +745,8 @@ impl TFactory {
 }
 
 impl Factory for TFactory {
+    type Parameter = u64;
+
     fn physical_qubits(&self) -> u64 {
         self.rounds
             .iter()

@@ -80,4 +80,11 @@ pub enum Error {
     #[error("The logical failure probability cannot be computed: {0}")]
     #[diagnostic(code("Qsc.Estimates.LogicalFailureProbabilityFailed"))]
     LogicalFailureProbabilityFailed(String),
+    /// The code distance cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("The code distance cannot be computed: {0}")]
+    #[diagnostic(code("Qsc.Estimates.CodeDistanceFailed"))]
+    CodeDistanceFailed(String),
 }
