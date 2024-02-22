@@ -33,7 +33,7 @@ impl<E: ErrorCorrection> LogicalQubit<E> {
             .map_err(Error::LogicalCycleTimeComputationFailed)?;
         let logical_error_rate = ftp
             .logical_error_rate(&qubit, &code_parameter)
-            .map_err(Error::LogicalFailureProbabilityFailed)?;
+            .map_err(Error::LogicalErrorRateComputationFailed)?;
 
         Ok(Self {
             physical_qubit: qubit,

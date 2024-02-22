@@ -773,7 +773,7 @@ impl Factory for TFactory {
         last_round.compute_num_output_ts(failure_probability)
     }
 
-    fn max_code_distance(&self) -> u64 {
+    fn max_code_parameter(&self) -> u64 {
         self.code_distance_per_round().last().copied().unwrap_or(0)
     }
 }

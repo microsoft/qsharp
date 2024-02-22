@@ -42,10 +42,10 @@ pub trait ErrorCorrection {
         qubit: &Self::Qubit,
         required_logical_error_rate: f64,
     ) -> Result<Self::Parameter, String> {
-        for distance in self.code_parameter_range(None) {
-            if let Ok(probability) = self.logical_error_rate(qubit, &distance) {
+        for parameter in self.code_parameter_range(None) {
+            if let Ok(probability) = self.logical_error_rate(qubit, &parameter) {
                 if probability <= required_logical_error_rate {
-                    return Ok(distance);
+                    return Ok(parameter);
                 }
             }
         }
@@ -67,7 +67,7 @@ pub trait FactoryBuilder<E: ErrorCorrection> {
         ftp: &E,
         qubit: &Rc<E::Qubit>,
         output_error_rate: f64,
-        max_code_distance: &E::Parameter,
+        max_code_parameter: &E::Parameter,
     ) -> Vec<Self::Factory>;
 }
 
@@ -81,10 +81,10 @@ pub trait Factory {
     fn normalized_volume(&self) -> f64 {
         ((self.physical_qubits() * self.duration()) as f64) / (self.num_output_states() as f64)
     }
-    /// The code distance of a factory; if multiple code distances are used
-    /// (e.g., due to multiple rounds or multiple distances in a logical patch),
-    /// the maximum is returned.
-    fn max_code_distance(&self) -> Self::Parameter;
+    /// The maximum code parameter setting for a magic state factory. This is
+    /// used to constrain the search space, when looking for magic state
+    /// factories.
+    fn max_code_parameter(&self) -> Self::Parameter;
 }
 
 pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F: Factory, L: Overhead + Clone> {
@@ -351,10 +351,10 @@ where
             / (self.layout_overhead.logical_qubits() * num_cycles_required_by_layout_overhead)
                 as f64;
 
-        let min_code_distance = self
+        let min_code_parameter = self
             .ftp
             .compute_code_parameter(&self.qubit, required_logical_qubit_error_rate)
-            .map_err(Error::CodeDistanceFailed)?;
+            .map_err(Error::CodeParameterComputationFailed)?;
 
         if self
             .layout_overhead
@@ -362,7 +362,7 @@ where
             == 0
         {
             let logical_qubit =
-                LogicalQubit::new(&self.ftp, min_code_distance, self.qubit.clone())?;
+                LogicalQubit::new(&self.ftp, min_code_parameter, self.qubit.clone())?;
 
             return Ok(vec![PhysicalResourceEstimationResult::new(
                 self,
@@ -379,23 +379,22 @@ where
             Population::<Point2D<PhysicalResourceEstimationResult<E, Builder::Factory, L>>>::new();
 
         let mut last_factories: Vec<Builder::Factory> = Vec::new();
-        let mut last_code_distance = None;
+        let mut last_code_parameter = None;
 
-        for code_distance in self
+        for code_parameter in self
             .ftp
-            .code_parameter_range(Some(&min_code_distance))
+            .code_parameter_range(Some(&min_code_parameter))
             .collect::<Vec<_>>()
             .into_iter()
             .rev()
         {
-            // for code_distance in (min_code_distance..=max_odd_code_distance).rev().step_by(2) {
             let logical_qubit =
-                LogicalQubit::new(&self.ftp, code_distance.clone(), self.qubit.clone())?;
+                LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
 
             let allowed_logical_qubit_error_rate = self
                 .ftp
-                .logical_error_rate(&self.qubit, &code_distance)
-                .map_err(Error::LogicalFailureProbabilityFailed)?;
+                .logical_error_rate(&self.qubit, &code_parameter)
+                .map_err(Error::LogicalErrorRateComputationFailed)?;
 
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * allowed_logical_qubit_error_rate))
@@ -407,23 +406,23 @@ where
 
             let max_num_cycles_allowed = max_num_cycles_allowed_by_error_rate;
 
-            // The initial value for the last code distance
-            // is max_code_distance + 1 which is larger than any code distance in the loop.
-            // This ensures that the first code distance is always tried.
-            // After that, the last code distance governs the reuse of T-factory.
-            if last_code_distance
+            // The initial value for the last code parameter is `None`. This
+            // ensures that the first code parameter is always tried. After
+            // that, the last code parameter governs the reuse of the magic
+            // state factory.
+            if last_code_parameter
                 .as_ref()
-                .map(|d| *d > code_distance)
+                .map(|d| *d > code_parameter)
                 .unwrap_or(true)
             {
                 last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
                     required_logical_magic_state_error_rate,
-                    &code_distance,
+                    &code_parameter,
                 );
 
-                last_code_distance = Some(Self::find_highest_code_distance(&last_factories));
+                last_code_parameter = Some(Self::find_highest_code_parameter(&last_factories));
             }
 
             if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
@@ -457,7 +456,7 @@ where
 
                     let result = PhysicalResourceEstimationResult::new(
                         self,
-                        LogicalQubit::new(&self.ftp, code_distance.clone(), self.qubit.clone())?,
+                        LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?,
                         num_cycles,
                         Some(factory.clone()),
                         num_tfactories,
@@ -508,13 +507,13 @@ where
             let required_logical_qubit_error_rate = self.error_budget.logical()
                 / ((self.layout_overhead.logical_qubits()) * num_cycles) as f64;
 
-            let code_distance = self
+            let code_parameter = self
                 .ftp
                 .compute_code_parameter(&self.qubit, required_logical_qubit_error_rate)
-                .map_err(Error::CodeDistanceFailed)?;
+                .map_err(Error::CodeParameterComputationFailed)?;
 
             let logical_qubit =
-                LogicalQubit::new(&self.ftp, code_distance.clone(), self.qubit.clone())?;
+                LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
 
             let num_magic_states_per_rotation = self
                 .layout_overhead
@@ -550,19 +549,19 @@ where
 
             let max_allowed_error_rate = self
                 .ftp
-                .logical_error_rate(&self.qubit, &code_distance)
-                .map_err(Error::LogicalFailureProbabilityFailed)?;
-            let max_allowed_num_cycles_for_code_distance = (self.error_budget.logical()
+                .logical_error_rate(&self.qubit, &code_parameter)
+                .map_err(Error::LogicalErrorRateComputationFailed)?;
+            let max_allowed_num_cycles_for_code_parameter = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * max_allowed_error_rate))
                 .floor() as u64;
 
             if !factories.is_empty() {
                 if let Some((factory, num_cycles_required, num_factories)) = self
-                    .try_pick_factory_for_code_distance_and_max_factories(
+                    .try_pick_factory_for_code_parameter_and_max_factories(
                         &factories,
                         &logical_qubit,
                         num_cycles,
-                        max_allowed_num_cycles_for_code_distance,
+                        max_allowed_num_cycles_for_code_parameter,
                     )
                 {
                     num_cycles = num_cycles_required;
@@ -576,7 +575,7 @@ where
                 }
             }
 
-            num_cycles = max_allowed_num_cycles_for_code_distance + 1;
+            num_cycles = max_allowed_num_cycles_for_code_parameter + 1;
         };
 
         Ok(PhysicalResourceEstimationResult::new(
@@ -590,12 +589,12 @@ where
         ))
     }
 
-    fn try_pick_factory_for_code_distance_and_max_factories(
+    fn try_pick_factory_for_code_parameter_and_max_factories(
         &self,
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E>,
         num_cycles: u64,
-        max_allowed_num_cycles_for_code_distance: u64,
+        max_allowed_num_cycles_for_code_parameter: u64,
     ) -> Option<(Builder::Factory, u64, u64)> {
         if let Some(factory) = self
             .try_pick_factory_below_or_equal_max_duration_under_max_factories(
@@ -608,13 +607,13 @@ where
             return Some((factory, num_cycles, num_tfactories));
         }
         if let Some((factory, num_cycles_required)) = self
-            .try_find_factory_for_code_distance_duration_and_max_factories(
+            .try_find_factory_for_code_parameter_duration_and_max_factories(
                 factories,
                 logical_qubit,
-                max_allowed_num_cycles_for_code_distance,
+                max_allowed_num_cycles_for_code_parameter,
             )
         {
-            if num_cycles_required <= max_allowed_num_cycles_for_code_distance {
+            if num_cycles_required <= max_allowed_num_cycles_for_code_parameter {
                 let num_tfactories =
                     self.num_factories(logical_qubit, &factory, num_cycles_required);
                 return Some((factory, num_cycles_required, num_tfactories));
@@ -648,10 +647,10 @@ where
             / ((self.layout_overhead.logical_qubits() * num_cycles_required_by_layout_overhead)
                 as f64);
 
-        let min_code_distance = self
+        let min_code_parameter = self
             .ftp
             .compute_code_parameter(&self.qubit, required_logical_qubit_error_rate)
-            .map_err(Error::CodeDistanceFailed)?;
+            .map_err(Error::CodeParameterComputationFailed)?;
 
         if self
             .layout_overhead
@@ -659,7 +658,7 @@ where
             == 0
         {
             let logical_qubit =
-                LogicalQubit::new(&self.ftp, min_code_distance, self.qubit.clone())?;
+                LogicalQubit::new(&self.ftp, min_code_parameter, self.qubit.clone())?;
 
             if num_cycles_required_by_layout_overhead * (logical_qubit.logical_cycle_time())
                 <= (max_duration_in_nanoseconds)
@@ -682,17 +681,17 @@ where
         > = None;
 
         let mut last_factories: Vec<Builder::Factory> = Vec::new();
-        let mut last_code_distance = None;
+        let mut last_code_parameter = None;
 
-        for code_distance in self
+        for code_parameter in self
             .ftp
-            .code_parameter_range(Some(&min_code_distance))
+            .code_parameter_range(Some(&min_code_parameter))
             .collect::<Vec<_>>()
             .into_iter()
             .rev()
         {
             let logical_qubit =
-                LogicalQubit::new(&self.ftp, code_distance.clone(), self.qubit.clone())?;
+                LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
 
             let max_num_cycles_allowed_by_duration = ((max_duration_in_nanoseconds as f64)
                 / logical_qubit.logical_cycle_time() as f64)
@@ -703,8 +702,8 @@ where
 
             let allowed_logical_qubit_error_rate = self
                 .ftp
-                .logical_error_rate(&self.qubit, &code_distance)
-                .map_err(Error::LogicalFailureProbabilityFailed)?;
+                .logical_error_rate(&self.qubit, &code_parameter)
+                .map_err(Error::LogicalErrorRateComputationFailed)?;
 
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64 * allowed_logical_qubit_error_rate))
@@ -717,23 +716,23 @@ where
             let max_num_cycles_allowed =
                 max_num_cycles_allowed_by_duration.min(max_num_cycles_allowed_by_error_rate);
 
-            // The initial value for the last code distance
-            // is max_code_distance + 1 which is larger than any code distance in the loop.
-            // This ensures that the first code distance is always tried.
-            // After that, the last code distance governs the reuse of T-factory.
-            if last_code_distance
+            // The initial value for the last code parameter is `None`. This
+            // ensures that the first code parameter is always tried. After
+            // that, the last code parameter governs the reuse of the magic
+            // state factory.
+            if last_code_parameter
                 .as_ref()
-                .map(|d| *d > code_distance)
+                .map(|d| *d > code_parameter)
                 .unwrap_or(true)
             {
                 last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
                     required_logical_magic_state_error_rate,
-                    &code_distance,
+                    &code_parameter,
                 );
 
-                last_code_distance = Some(Self::find_highest_code_distance(&last_factories));
+                last_code_parameter = Some(Self::find_highest_code_parameter(&last_factories));
             }
 
             if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
@@ -814,10 +813,10 @@ where
             / ((self.layout_overhead.logical_qubits()) * min_num_cycles_required_by_layout_overhead)
                 as f64;
 
-        let min_code_distance = self
+        let min_code_parameter = self
             .ftp
             .compute_code_parameter(&self.qubit, required_logical_qubit_error_rate)
-            .map_err(Error::CodeDistanceFailed)?;
+            .map_err(Error::CodeParameterComputationFailed)?;
 
         if self
             .layout_overhead
@@ -825,7 +824,7 @@ where
             == 0
         {
             let logical_qubit =
-                LogicalQubit::new(&self.ftp, min_code_distance, self.qubit.clone())?;
+                LogicalQubit::new(&self.ftp, min_code_parameter, self.qubit.clone())?;
             if self.layout_overhead.logical_qubits() * logical_qubit.physical_qubits()
                 <= max_num_qubits
             {
@@ -847,17 +846,17 @@ where
         > = None;
 
         let mut last_factories: Vec<Builder::Factory> = Vec::new();
-        let mut last_code_distance = None;
+        let mut last_code_parameter = None;
 
-        for code_distance in self
+        for code_parameter in self
             .ftp
-            .code_parameter_range(Some(&min_code_distance))
+            .code_parameter_range(Some(&min_code_parameter))
             .collect::<Vec<_>>()
             .into_iter()
             .rev()
         {
             let logical_qubit =
-                LogicalQubit::new(&self.ftp, code_distance.clone(), self.qubit.clone())?;
+                LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?;
 
             let physical_qubits_for_algorithm =
                 self.layout_overhead.logical_qubits() * logical_qubit.physical_qubits();
@@ -869,8 +868,8 @@ where
 
             let min_allowed_logical_qubit_error_rate = self
                 .ftp
-                .logical_error_rate(&self.qubit, &code_distance)
-                .map_err(Error::LogicalFailureProbabilityFailed)?;
+                .logical_error_rate(&self.qubit, &code_parameter)
+                .map_err(Error::LogicalErrorRateComputationFailed)?;
             let max_num_cycles_allowed_by_error_rate = (self.error_budget.logical()
                 / (self.layout_overhead.logical_qubits() as f64
                     * min_allowed_logical_qubit_error_rate))
@@ -880,23 +879,23 @@ where
                 continue;
             }
 
-            // The initial value for the last code distance
-            // is max_code_distance + 1 which is larger than any code distance in the loop.
-            // This ensures that the first code distance is always tried.
-            // After that, the last code distance governs the reuse of T-factory.
-            if last_code_distance
+            // The initial value for the last code parameter is `None`. This
+            // ensures that the first code parameter is always tried. After
+            // that, the last code parameter governs the reuse of the magic
+            // state factory.
+            if last_code_parameter
                 .as_ref()
-                .map(|d| *d > code_distance)
+                .map(|d| *d > code_parameter)
                 .unwrap_or(true)
             {
                 last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
                     required_logical_magic_state_error_rate,
-                    &code_distance,
+                    &code_parameter,
                 );
 
-                last_code_distance = Some(Self::find_highest_code_distance(&last_factories));
+                last_code_parameter = Some(Self::find_highest_code_parameter(&last_factories));
             }
 
             if let Some(factory) = Self::try_pick_factory_below_or_equal_num_qubits(
@@ -1029,17 +1028,17 @@ where
             .cloned()
     }
 
-    fn try_find_factory_for_code_distance_duration_and_max_factories(
+    fn try_find_factory_for_code_parameter_duration_and_max_factories(
         &self,
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E>,
-        max_allowed_num_cycles_for_code_distance: u64,
+        max_allowed_num_cycles_for_code_parameter: u64,
     ) -> Option<(Builder::Factory, u64)> {
         if let Some(max_factories) = self.max_factories {
             return self.try_pick_factory_with_num_cycles_and_max_factories(
                 factories,
                 logical_qubit,
-                max_allowed_num_cycles_for_code_distance,
+                max_allowed_num_cycles_for_code_parameter,
                 max_factories,
             );
         }
@@ -1047,7 +1046,7 @@ where
         Self::try_pick_factory_with_num_cycles(
             factories,
             logical_qubit,
-            max_allowed_num_cycles_for_code_distance,
+            max_allowed_num_cycles_for_code_parameter,
         )
     }
 
@@ -1055,7 +1054,7 @@ where
         &self,
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E>,
-        max_allowed_num_cycles_for_code_distance: u64,
+        max_allowed_num_cycles_for_code_parameter: u64,
         max_tfactories: u64,
     ) -> Option<(Builder::Factory, u64)> {
         factories
@@ -1076,7 +1075,7 @@ where
                     .ceil() as u64;
                 (factory.clone(), num)
             })
-            .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_distance)
+            .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_parameter)
             .min_by(|(p, num_p), (q, num_q)| {
                 let comp1 = p
                     .normalized_volume()
@@ -1095,7 +1094,7 @@ where
     fn try_pick_factory_with_num_cycles(
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E>,
-        max_allowed_num_cycles_for_code_distance: u64,
+        max_allowed_num_cycles_for_code_parameter: u64,
     ) -> Option<(Builder::Factory, u64)> {
         factories
             .iter()
@@ -1104,7 +1103,7 @@ where
                     .ceil() as u64;
                 (factory.clone(), num)
             })
-            .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_distance)
+            .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_parameter)
             .min_by(|(p, _), (q, _)| {
                 p.normalized_volume()
                     .partial_cmp(&q.normalized_volume())
@@ -1112,10 +1111,10 @@ where
             })
     }
 
-    fn find_highest_code_distance(factories: &[Builder::Factory]) -> E::Parameter {
+    fn find_highest_code_parameter(factories: &[Builder::Factory]) -> E::Parameter {
         factories
             .iter()
-            .map(|p| p.max_code_distance())
+            .map(|p| p.max_code_parameter())
             .max()
             .unwrap_or_default()
     }
