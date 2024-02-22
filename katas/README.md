@@ -20,10 +20,14 @@ Macros are meant to insert interactive elements into the content defined through
 The following macros are available for katas composition:
 - @[exercise]: Used to create Q# code exercises that we can be automatically verified.
     - id: Unique identifier for the exercise.
-    - descriptionPath: Path to a markdown file that contains the description of the exercise.
-    - placeholderSourcePath: Path to a Q# file. It contains Q# code which is used as template code that helps the user to start implementing a solution.
-    - codePaths: Q# file paths. This code is not shown to the user but is built with the user code. Verification code in one of these files. The @EntryPoint operation is called to check the solution (eventually, for the convention is to call Kata.Verification.CheckSolution).
-    - solutionPath: Path to a markdown file that contains a “reference solution” – text with at least one code solution that solves the exercise. It can have more than one code solution.
+    - title: Title that will be displayed for the exercise.
+    - path: Path to a folder that contains the description of the exercise. This folder should contain the following files:
+        - `index.md`: the Markdown description of the exercise.
+        - `Placeholder.qs`: the Q# code that is given to the learner to start with.
+        - `Verification.qs`: the Q# code that checks whether the learner's solution is correct.
+        - `solution.md`: the Markdown description of the solution(s) to the exercise.
+        - `Solution.qs`: the Q# code that contains a "reference solution" described in `solution.md`. 
+    - qsDependencies: Q# file paths used in addition to `Verification.qs`. This code is not shown to the learner but is used to build the learner's code. The @EntryPoint operation is called to check the solution (eventually, for the convention is to call Kata.Verification.CheckSolution).
 - @[question]: Used to create theoretical/analytical questions that are not automatically verified.
     - id: Unique identifier for the question.
     - descriptionPath: Path a markdown file that contains the description of the question. 

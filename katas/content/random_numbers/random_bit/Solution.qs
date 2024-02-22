@@ -1,14 +1,14 @@
 namespace Kata {
+    open Microsoft.Quantum.Measurement;
     operation RandomBit() : Int {
         // Allocate single qubit.
         use q = Qubit();
 
-        // Set qubit in superposition state.
+        // Convert the qubit state to |+>.
         H(q);
 
-        // Measuring the qubit and reset.
-        let result = M(q);
-        Reset(q);
+        // Measure the qubit and reset it to |0>.
+        let result = MResetZ(q);
 
         // Return integer value of result.
         if result == One {

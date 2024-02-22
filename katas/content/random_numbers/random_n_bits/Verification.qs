@@ -14,7 +14,7 @@ namespace Kata.Verification {
             }
             Message($"Test passed for N = {N}");
         }
-        Message("All tests passed.");
+        Message("Correct!");
         true
     }
 

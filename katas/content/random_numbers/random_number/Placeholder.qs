@@ -1,26 +1,24 @@
 namespace Kata {
+    open Microsoft.Quantum.Measurement;
+
     operation RandomNumberInRange(min : Int, max : Int) : Int {
         // Implement your solution here...
 
         return -1;
     }
 
-    // You can use this operation to implement your solution.
+    // You can use the operations defined in the earlier exercises to implement your solution.
     operation RandomBit() : Int {
-        // Allocate single qubit.
         use q = Qubit();
-
-        // Set qubit in superposition state.
         H(q);
+        return MResetZ(q) == Zero ? 0 | 1;
+    }
 
-        // Measuring the qubit and reset.
-        let result = M(q);
-        Reset(q);
-
-        // Return integer value of result.
-        if result == One {
-            return 1;
+    operation RandomNBits(N : Int) : Int {
+        mutable result = 0;
+        for i in 0 .. N - 1 {
+            set result = result * 2 + RandomBit();
         }
-        return 0;
+        return result;
     }
 }
