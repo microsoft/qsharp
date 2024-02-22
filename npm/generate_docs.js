@@ -59,7 +59,7 @@ docs.forEach((doc) => {
   }
   var contents =
     doc.metadata.replace("ms.date: {TIMESTAMP}", `ms.date: ${today_str}`) +
-    "\n" +
+    "\n\n" +
     doc.contents;
   writeFileSync(fullPath, contents);
 });

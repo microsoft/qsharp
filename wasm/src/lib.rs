@@ -337,7 +337,7 @@ pub fn generate_docs() -> JsValue {
     let docs = qsc_doc_gen::generate_docs::generate_docs();
     let mut result: Vec<DocFile> = vec![];
 
-    for (name, (metadata, contents)) in docs {
+    for (name, metadata, contents) in docs {
         result.push(DocFile {
             filename: name.to_string(),
             metadata: metadata.to_string(),
