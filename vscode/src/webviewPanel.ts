@@ -349,13 +349,13 @@ export function registerWebViewCommands(context: ExtensionContext) {
         );
         const start = performance.now();
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
-        await worker.run(
+        const config = {
           sources,
-          "",
-          parseInt(numberOfShots),
+          expr: "",
+          shots: parseInt(numberOfShots),
           languageFeatures,
-          evtTarget,
-        );
+        };
+        await worker.run(config, evtTarget);
         sendTelemetryEvent(
           EventType.HistogramEnd,
           { associationId },

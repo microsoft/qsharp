@@ -16,13 +16,14 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
   getHir(code: string, language_features: string[]): Promise<string>;
+  /** @deprecated -- switch to using `ProgramConfig`-based overload **/
   run(
     sources: [string, string][],
     expr: string,
     shots: number,
-    language_features: string[],
     eventHandler: IQscEventTarget,
   ): Promise<void>;
+  run(config: ProgramConfig, eventHandler: IQscEventTarget): Promise<void>;
   getQir(
     sources: [string, string][],
     language_features: string[],
@@ -38,6 +39,18 @@ export interface ICompiler {
     eventHandler: IQscEventTarget,
   ): Promise<boolean>;
 }
+
+/** Type definition for the configuration of a program. */
+export type ProgramConfig = {
+  /** An array of source objects, each containing a name and contents. */
+  sources: [string, string][];
+  /** The entry expression to be evaluated. */
+  expr: string;
+  /** The number of shots to be performed in the quantum simulation. */
+  shots: number;
+  /** An array of language features to be opted in to in this compilation. */
+  language_features?: string[];
+};
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
 export type ICompilerWorker = ICompiler & IServiceProxy;
@@ -94,21 +107,40 @@ export class Compiler implements ICompiler {
   }
 
   async run(
-    sources: [string, string][],
-    expr: string,
-    shots: number,
-    language_features: string[],
-    eventHandler: IQscEventTarget,
+    sourcesOrConfig: [string, string][] | ProgramConfig,
+    exprOrEventHandler: string | IQscEventTarget,
+    maybeShots?: number,
+    maybeEventHandler?: IQscEventTarget,
   ): Promise<void> {
+    let sources;
+    let expr;
+    let shots;
+    let eventHandler: IQscEventTarget | undefined;
+    let languageFeatures: string[] = [];
+
+    if (Array.isArray(sourcesOrConfig)) {
+      // this is the deprecated API
+      sources = sourcesOrConfig as [string, string][];
+      expr = exprOrEventHandler as string;
+      shots = maybeShots;
+      eventHandler = maybeEventHandler as IQscEventTarget;
+    } else {
+      // this is the new API
+      sources = sourcesOrConfig.sources;
+      expr = sourcesOrConfig.expr;
+      shots = sourcesOrConfig.shots;
+      eventHandler = exprOrEventHandler as IQscEventTarget;
+      languageFeatures = sourcesOrConfig.language_features || [];
+    }
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
     // may reject without all shots running or events firing.
     this.wasm.run(
       sources,
       expr,
-      (msg: string) => onCompilerEvent(msg, eventHandler),
-      shots,
-      language_features,
+      (msg: string) => onCompilerEvent(msg, eventHandler!),
+      shots!,
+      languageFeatures,
     );
   }
 
