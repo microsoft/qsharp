@@ -86,7 +86,7 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
 
 > If you run this code multiple times, you will notice that whenever the measurement outcome is $1$, the post-measurement state of the qubit is $\ket 1$, and similarly for outcome $0$ the final state is $\ket{0}$. This is in line with our expectation that after the measurement the wave function 'collapses' to the corresponding state.
 
-An alternative way to implement a computational basis measurement is `MResetZ` operation that measures the qubit and resets it to the $\ket{0}$ state. Remember that Q# requires you to reset all qubits to $\ket{0}$ before releasing them, so if you don't need to use the qubit after you measure it, it is convenient to use `MResetZ` right away rather than do the measurement using `M` and follow it with a separate call to `Reset`.
+An alternative way to implement a computational basis measurement is using the `MResetZ` operation that measures the qubit and resets it to the $\ket{0}$ state. Remember that Q# requires you to reset all qubits to $\ket{0}$ before releasing them, so if you don't need to use the qubit after you measure it, it is convenient to use `MResetZ` right away rather than do the measurement using `M` and follow it with a separate call to `Reset`.
 
 @[example]({
     "id": "single_qubit_measurements__implementing_measurement_demo",
