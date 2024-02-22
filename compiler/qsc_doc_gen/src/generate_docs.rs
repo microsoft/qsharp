@@ -270,7 +270,7 @@ fn get_metadata(ns: Rc<str>, item: &Item, display: &CodeDisplay) -> Option<Metad
         .replace('\n', " ");
 
     Some(Metadata {
-        uid: format!("qdk.{ns}.{name}"),
+        uid: format!("Qdk.{ns}.{name}"),
         title: match &kind {
             MetadataKind::Function => format!("{name} function"),
             MetadataKind::Operation => format!("{name} operation"),
