@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_params, initalize_locals_map, try_resolve_callee, FunctorAppExt,
+    derive_callable_input_params, initialize_locals_map, try_resolve_callee, FunctorAppExt,
     GlobalSpecId, Local, LocalKind,
 };
 use qsc_fir::{
@@ -182,7 +182,7 @@ impl<'a> CycleDetector<'a> {
             };
 
             let input_params = derive_callable_input_params(callable_decl, &self.package.pats);
-            let locals_map = initalize_locals_map(&input_params);
+            let locals_map = initialize_locals_map(&input_params);
             entry.insert(locals_map);
         }
 

@@ -110,7 +110,7 @@ pub fn check_callable_compute_properties(
     expect.assert_eq(&callable_compute_properties.to_string());
 }
 
-pub fn check_last_statement_compute_propeties(
+pub fn check_last_statement_compute_properties(
     package_store_compute_properties: &PackageStoreComputeProperties,
     expect: &Expect,
 ) {

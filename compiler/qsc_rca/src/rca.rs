@@ -24,7 +24,7 @@ use qsc_fir::{
 };
 
 /// Performs runtime capabilities analysis (RCA) on a package.
-/// N.B. This function assumes specializations that are part of call cycles have already been analyzed. Otherwise, this
+/// This function assumes specializations that are part of call cycles have already been analyzed. Otherwise, this
 /// function will get stuck in an infinite analysis loop.
 pub fn analyze_package(
     id: PackageId,
@@ -229,7 +229,7 @@ fn analyze_non_intrinsic_callable(
     package_store: &PackageStore,
     package_store_scaffolding: &mut PackageStoreScaffolding,
 ) {
-    // This function is not meant for instrinsics.
+    // This function is not meant for intrinsics.
     let CallableImpl::Spec(implementation) = &callable.implementation else {
         panic!("callable is assumed to have a specialized implementation");
     };
@@ -823,7 +823,7 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
         Ty::Param(_) => RuntimeFeatureFlags::UseOfDynamicGeneric,
         Ty::Prim(prim) => intrinsic_runtime_features_from_primitive_type(prim),
         Ty::Tuple(tuple) => intrinsic_runtime_features_from_tuple(tuple),
-        // N.B. Runtime features can be more nuanced by taking into account the contained types.
+        // Runtime features can be more nuanced by taking into account the contained types.
         Ty::Udt(_) => RuntimeFeatureFlags::UseOfDynamicUdt,
         Ty::Err => panic!("cannot derive runtime features for `Err` type"),
     }
@@ -2152,14 +2152,12 @@ fn split_controls_and_input(
     let mut remainder_expr_id = args_expr_id;
     for _ in 0..functor_app.controlled {
         let expr = package.get_expr(remainder_expr_id);
-        match &expr.kind {
-            ExprKind::Tuple(pats) => {
-                assert!(pats.len() == 2);
-                controls.push(pats[0]);
-                remainder_expr_id = pats[1];
-            }
-            _ => panic!("expected tuple expression"),
-        }
+        let ExprKind::Tuple(pats) = &expr.kind else {
+            panic!("expected tuple expression");
+        };
+        assert!(pats.len() == 2);
+        controls.push(pats[0]);
+        remainder_expr_id = pats[1];
     }
     (controls, remainder_expr_id)
 }

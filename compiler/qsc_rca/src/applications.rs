@@ -3,7 +3,7 @@
 
 use crate::{
     common::{
-        aggregate_compute_kind, aggregate_value_kind, initalize_locals_map, InputParam,
+        aggregate_compute_kind, aggregate_value_kind, initialize_locals_map, InputParam,
         InputParamIndex, Local, LocalKind, LocalsLookup,
     },
     scaffolding::PackageScaffolding,
@@ -212,7 +212,7 @@ pub struct ApplicationInstance {
     pub locals_map: LocalsComputeKindMap,
     /// The currently active dynamic scopes in the application instance.
     pub active_dynamic_scopes: Vec<ExprId>,
-    /// The return expressions througout the application instance.
+    /// The return expressions throughout the application instance.
     pub return_expressions: Vec<ExprId>,
     /// The compute kind of the blocks related to the application instance.
     blocks: FxHashMap<BlockId, ComputeKind>,
@@ -280,7 +280,7 @@ impl ApplicationInstance {
                 },
             );
         }
-        let mut unprocessed_locals_map = initalize_locals_map(input_params);
+        let mut unprocessed_locals_map = initialize_locals_map(input_params);
         for (node_id, local) in unprocessed_locals_map.drain() {
             let LocalKind::InputParam(input_param_index) = local.kind else {
                 panic!("only input parameters are expected");

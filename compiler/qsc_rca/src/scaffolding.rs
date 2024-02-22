@@ -31,7 +31,7 @@ impl ComputePropertiesLookup for PackageStoreScaffolding {
     }
 
     fn find_item(&self, _: StoreItemId) -> Option<&ItemComputeProperties> {
-        panic!("not implemented")
+        unimplemented!()
     }
 
     fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGeneratorSet> {
@@ -50,7 +50,7 @@ impl ComputePropertiesLookup for PackageStoreScaffolding {
     }
 
     fn get_item(&self, _: StoreItemId) -> &ItemComputeProperties {
-        panic!("not implemented")
+        unimplemented!()
     }
 
     fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGeneratorSet {
@@ -230,6 +230,18 @@ impl From<usize> for SpecializationIndex {
     }
 }
 
+impl From<SpecializationIndex> for FunctorSetValue {
+    fn from(value: SpecializationIndex) -> Self {
+        match value {
+            SpecializationIndex(0) => Self::Empty,
+            SpecializationIndex(1) => Self::Adj,
+            SpecializationIndex(2) => Self::Ctl,
+            SpecializationIndex(3) => Self::CtlAdj,
+            _ => panic!("invalid specialization index"),
+        }
+    }
+}
+
 impl From<FunctorSetValue> for SpecializationIndex {
     fn from(value: FunctorSetValue) -> Self {
         match value {
@@ -237,18 +249,6 @@ impl From<FunctorSetValue> for SpecializationIndex {
             FunctorSetValue::Adj => SpecializationIndex(1),
             FunctorSetValue::Ctl => SpecializationIndex(2),
             FunctorSetValue::CtlAdj => SpecializationIndex(3),
-        }
-    }
-}
-
-impl Into<FunctorSetValue> for SpecializationIndex {
-    fn into(self) -> FunctorSetValue {
-        match self {
-            SpecializationIndex(0) => FunctorSetValue::Empty,
-            SpecializationIndex(1) => FunctorSetValue::Adj,
-            SpecializationIndex(2) => FunctorSetValue::Ctl,
-            SpecializationIndex(3) => FunctorSetValue::CtlAdj,
-            _ => panic!("invalid specialization index"),
         }
     }
 }

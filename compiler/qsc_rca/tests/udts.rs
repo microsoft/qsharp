@@ -3,7 +3,7 @@
 
 pub mod common;
 
-use common::{check_last_statement_compute_propeties, CompilationContext};
+use common::{check_last_statement_compute_properties, CompilationContext};
 use expect_test::expect;
 
 #[test]
@@ -15,11 +15,11 @@ fn check_rca_for_udt_constructor_with_classical_values() {
         Complex(0.0, 0.0)"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -37,11 +37,11 @@ fn check_rca_for_udt_constructor_with_a_dynamic_value() {
         Complex(r, 0.0)"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicUdt | UdtConstructorUsesDynamicArg)
                     value_kind: Dynamic
@@ -61,11 +61,11 @@ fn check_rca_for_udt_field_update_with_classical_value() {
         c"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -85,11 +85,11 @@ fn check_rca_for_udt_field_update_with_dynamic_value() {
         c"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | UseOfDynamicUdt)
                     value_kind: Dynamic

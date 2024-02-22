@@ -272,7 +272,7 @@ pub struct ApplicationsGeneratorSet {
 impl Display for ApplicationsGeneratorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "ApplicationsGenerator:",)?;
+        write!(indent, "ApplicationsGeneratorSet:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\ninherent: {}", self.inherent)?;
         write!(indent, "\ndynamic_param_applications:")?;
@@ -309,7 +309,7 @@ impl ApplicationsGeneratorSet {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum ComputeKind {
     Classical,
     Quantum(QuantumProperties),
@@ -353,7 +353,7 @@ impl ComputeKind {
 }
 
 /// The quantum properties of a program element.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct QuantumProperties {
     /// The runtime features used by the program element.
     pub runtime_features: RuntimeFeatureFlags,

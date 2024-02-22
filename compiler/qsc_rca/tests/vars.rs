@@ -3,7 +3,7 @@
 
 pub mod common;
 
-use common::{check_last_statement_compute_propeties, CompilationContext};
+use common::{check_last_statement_compute_properties, CompilationContext};
 use expect_test::expect;
 
 #[test]
@@ -11,11 +11,11 @@ fn check_rca_for_callable_var() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(r#"H"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -31,11 +31,11 @@ fn check_rca_for_udt_var() {
             Complex"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -51,11 +51,11 @@ fn check_rca_for_static_int_var() {
             a"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -71,11 +71,11 @@ fn check_rca_for_static_qubit_var() {
             q"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Static
@@ -94,11 +94,11 @@ fn check_rca_for_dynamic_result_var() {
             r"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
                     value_kind: Dynamic

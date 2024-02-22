@@ -138,7 +138,7 @@ impl LocalsLookup for FxHashMap<LocalVarId, Local> {
     }
 }
 
-pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<LocalVarId, Local> {
+pub fn initialize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<LocalVarId, Local> {
     let mut locals_map = FxHashMap::<LocalVarId, Local>::default();
     for param in input_params {
         if let Some(id) = param.var {
@@ -272,8 +272,7 @@ pub fn try_resolve_callee(
             }
             Res::Err => panic!("callee resolution should not be an error"),
         },
-        // N.B. More complex callee expressions might require evaluation so we don't try to resolve them at compile
-        // time.
+        // More complex callee expressions might require evaluation so we don't try to resolve them at compile time.
         _ => None,
     }
 }

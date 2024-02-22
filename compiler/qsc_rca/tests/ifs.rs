@@ -4,7 +4,7 @@
 pub mod common;
 
 use common::{
-    check_callable_compute_properties, check_last_statement_compute_propeties, CompilationContext,
+    check_callable_compute_properties, check_last_statement_compute_properties, CompilationContext,
 };
 use expect_test::expect;
 
@@ -27,7 +27,7 @@ fn check_rca_for_if_stmt_with_classic_condition_and_classic_if_true_block() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications: <empty>
                 adj: <none>
@@ -57,7 +57,7 @@ fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
                         value_kind: Static
@@ -82,11 +82,11 @@ fn check_rca_for_if_else_expr_with_classic_condition_and_classic_branch_blocks()
         i"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Classical
                 dynamic_param_applications: <empty>"#
         ],
@@ -107,11 +107,11 @@ fn check_rca_for_if_else_expr_with_dynamic_condition_and_classic_branch_blocks()
         i"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_propeties(
+    check_last_statement_compute_properties(
         package_store_compute_properties,
         &expect![
             r#"
-            ApplicationsGenerator:
+            ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
                     value_kind: Dynamic

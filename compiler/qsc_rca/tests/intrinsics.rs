@@ -16,7 +16,7 @@ fn check_rca_for_quantum_rt_qubit_allocate() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -38,7 +38,7 @@ fn check_rca_for_quantum_rt_qubit_release() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -63,7 +63,7 @@ fn check_rca_for_quantum_qis_m_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Dynamic
@@ -88,7 +88,7 @@ fn check_rca_for_length() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -111,7 +111,7 @@ fn check_rca_for_quantum_qis_mresetz_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Dynamic
@@ -136,7 +136,7 @@ fn check_rca_for_int_as_double() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -159,7 +159,7 @@ fn check_rca_for_int_as_big_int() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -182,7 +182,7 @@ fn check_rca_for_dump_machine() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications: <empty>
                 adj: <none>
@@ -202,7 +202,7 @@ fn check_rca_for_check_zero() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Dynamic
@@ -227,7 +227,7 @@ fn check_rca_for_message() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -250,7 +250,7 @@ fn check_rca_for_arc_cos() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -273,7 +273,7 @@ fn check_rca_for_arc_sin() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -296,7 +296,7 @@ fn check_rca_for_arc_tan() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -319,7 +319,7 @@ fn check_rca_for_arc_tan_2() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -345,7 +345,7 @@ fn check_rca_for_cos() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -368,7 +368,7 @@ fn check_rca_for_cosh() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -391,7 +391,7 @@ fn check_rca_for_sin() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -414,7 +414,7 @@ fn check_rca_for_sinh() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -437,7 +437,7 @@ fn check_rca_for_tan() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -460,7 +460,7 @@ fn check_rca_for_tanh() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -483,7 +483,7 @@ fn check_rca_for_sqrt() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -506,7 +506,7 @@ fn check_rca_for_log() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -529,7 +529,7 @@ fn check_rca_for_truncate() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -552,7 +552,7 @@ fn check_rca_for_quantum_qis_ccx_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -583,7 +583,7 @@ fn check_rca_for_quantum_qis_cx_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -611,7 +611,7 @@ fn check_rca_for_quantum_qis_cy_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -639,7 +639,7 @@ fn check_rca_for_quantum_qis_cz_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -667,7 +667,7 @@ fn check_rca_for_quantum_qis_rx_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -695,7 +695,7 @@ fn check_rca_for_quantum_qis_rxx_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -726,7 +726,7 @@ fn check_rca_for_quantum_qis_ry_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -754,7 +754,7 @@ fn check_rca_for_quantum_qis_ryy_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -785,7 +785,7 @@ fn check_rca_for_quantum_qis_rz_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -813,7 +813,7 @@ fn check_rca_for_quantum_qis_rzz_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -844,7 +844,7 @@ fn check_rca_for_quantum_qis_h_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -869,7 +869,7 @@ fn check_rca_for_quantum_qis_s_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -894,7 +894,7 @@ fn check_rca_for_quantum_qis_s_adj() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -919,7 +919,7 @@ fn check_rca_for_quantum_qis_t_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -944,7 +944,7 @@ fn check_rca_for_quantum_qis_t_adj() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -969,7 +969,7 @@ fn check_rca_for_quantum_qis_x_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -994,7 +994,7 @@ fn check_rca_for_quantum_qis_y_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -1019,7 +1019,7 @@ fn check_rca_for_quantum_qis_z_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -1044,7 +1044,7 @@ fn check_rca_for_quantum_qis_swap_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -1072,7 +1072,7 @@ fn check_rca_for_quantum_qis_reset_body() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -1097,7 +1097,7 @@ fn check_rca_for_draw_random_int() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Dynamic
@@ -1125,7 +1125,7 @@ fn check_rca_for_draw_random_double() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Dynamic
@@ -1153,7 +1153,7 @@ fn check_rca_for_begin_estimate_caching() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
                         [0]: Quantum: QuantumProperties:
@@ -1179,7 +1179,7 @@ fn check_rca_for_end_estimate_caching() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications: <empty>
                 adj: <none>
@@ -1199,7 +1199,7 @@ fn check_rca_for_account_for_estimates_internal() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -1230,7 +1230,7 @@ fn check_rca_for_begin_repeat_estimates_internal() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
@@ -1255,7 +1255,7 @@ fn check_rca_for_end_repeat_estimates_internal() {
         &expect![
             r#"
             Callable: CallableComputeProperties:
-                body: ApplicationsGenerator:
+                body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
                         value_kind: Static
