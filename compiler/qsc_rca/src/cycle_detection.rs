@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_params, initalize_locals_map, try_resolve_callee, GlobalSpecId, Local,
-    LocalKind, SpecKind,
+    derive_callable_input_params, initalize_locals_map, try_resolve_callee, FunctorAppExt,
+    GlobalSpecId, Local, LocalKind,
 };
 use qsc_fir::{
     fir::{
@@ -11,6 +11,7 @@ use qsc_fir::{
         LocalItemId, LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId,
         PatKind, SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent,
     },
+    ty::FunctorSetValue,
     visit::Visitor,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -46,7 +47,7 @@ impl CallStack {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 struct LocalSpecId {
     pub callable: LocalItemId,
-    pub spec_kind: SpecKind,
+    pub functor_set_value: FunctorSetValue,
 }
 
 struct CycleDetector<'a> {
@@ -114,17 +115,17 @@ impl<'a> CycleDetector<'a> {
             return;
         };
 
-        let spec_decl = match local_spec_id.spec_kind {
-            SpecKind::Body => &spec_impl.body,
-            SpecKind::Adj => spec_impl
+        let spec_decl = match local_spec_id.functor_set_value {
+            FunctorSetValue::Empty => &spec_impl.body,
+            FunctorSetValue::Adj => spec_impl
                 .adj
                 .as_ref()
                 .expect("adj specialization should exist"),
-            SpecKind::Ctl => spec_impl
+            FunctorSetValue::Ctl => spec_impl
                 .ctl
                 .as_ref()
                 .expect("ctl specialization should exist"),
-            SpecKind::CtlAdj => spec_impl
+            FunctorSetValue::CtlAdj => spec_impl
                 .ctl_adj
                 .as_ref()
                 .expect("ctl_adj specialization should exist"),
@@ -153,7 +154,7 @@ impl<'a> CycleDetector<'a> {
                 ItemKind::Callable(callable_decl) => self.walk_callable_decl(
                     LocalSpecId {
                         callable: callee.item.item,
-                        spec_kind: SpecKind::from(&callee.spec_functor),
+                        functor_set_value: callee.functor_app.functor_set_value(),
                     },
                     callable_decl,
                 ),
@@ -309,7 +310,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         self.walk_spec_decl(
             LocalSpecId {
                 callable: item.id,
-                spec_kind: SpecKind::Body,
+                functor_set_value: FunctorSetValue::Empty,
             },
             &spec_impl.body,
         );
@@ -319,7 +320,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             self.walk_spec_decl(
                 LocalSpecId {
                     callable: item.id,
-                    spec_kind: SpecKind::Adj,
+                    functor_set_value: FunctorSetValue::Adj,
                 },
                 adj_decl,
             );
@@ -330,7 +331,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             self.walk_spec_decl(
                 LocalSpecId {
                     callable: item.id,
-                    spec_kind: SpecKind::Ctl,
+                    functor_set_value: FunctorSetValue::Ctl,
                 },
                 ctl_decl,
             );
@@ -341,7 +342,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
             self.walk_spec_decl(
                 LocalSpecId {
                     callable: item.id,
-                    spec_kind: SpecKind::CtlAdj,
+                    functor_set_value: FunctorSetValue::CtlAdj,
                 },
                 ctl_adj_decl,
             );
@@ -386,7 +387,7 @@ pub fn detect_specializations_with_cycles(
                 package: package_id,
                 item: local_spec_id.callable,
             },
-            spec_kind: local_spec_id.spec_kind,
+            functor_set_value: local_spec_id.functor_set_value,
         })
         .collect()
 }

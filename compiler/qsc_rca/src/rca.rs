@@ -5,13 +5,14 @@ use crate::{
     applications::{ApplicationInstance, ApplicationsGeneratorSetBuilder, LocalComputeKind},
     common::{
         aggregate_compute_kind, derive_callable_input_params, try_resolve_callee, Callee,
-        GlobalSpecId, InputParam, Local, LocalKind, SpecFunctor, SpecKind,
+        FunctorAppExt, GlobalSpecId, InputParam, Local, LocalKind,
     },
     scaffolding::{ItemScaffolding, PackageScaffolding, PackageStoreScaffolding},
     ApplicationsGeneratorSet, ComputeKind, ComputePropertiesLookup, QuantumProperties,
     RuntimeFeatureFlags, ValueKind,
 };
 use itertools::Itertools;
+use qsc_data_structures::functors::FunctorApp;
 use qsc_fir::{
     fir::{
         BlockId, CallableDecl, CallableImpl, CallableKind, ExprId, ExprKind, Global, Ident,
@@ -19,7 +20,7 @@ use qsc_fir::{
         PatKind, Res, SpecDecl, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
         StorePatId, StoreStmtId, StringComponent,
     },
-    ty::{Prim, Ty},
+    ty::{FunctorSetValue, Prim, Ty},
 };
 
 /// Performs runtime capabilities analysis (RCA) on a package.
@@ -102,17 +103,17 @@ pub fn analyze_specialization_with_cyles(
     let package_scaffolding = package_store_scaffolding
         .get_mut(package_id)
         .expect("package scaffolding should exist");
-    let spec_decl = match spec_id.spec_kind {
-        SpecKind::Body => &spec_impl.body,
-        SpecKind::Adj => spec_impl
+    let spec_decl = match spec_id.functor_set_value {
+        FunctorSetValue::Empty => &spec_impl.body,
+        FunctorSetValue::Adj => spec_impl
             .adj
             .as_ref()
             .expect("adj specialization should exist"),
-        SpecKind::Ctl => spec_impl
+        FunctorSetValue::Ctl => spec_impl
             .ctl
             .as_ref()
             .expect("ctl specialization should exist"),
-        SpecKind::CtlAdj => spec_impl
+        FunctorSetValue::CtlAdj => spec_impl
             .ctl_adj
             .as_ref()
             .expect("ctl_adj specializatiob should exist"),
@@ -186,7 +187,7 @@ fn analyze_intrinsic_callable(
 ) {
     // If an entry for the specialization already exists, there is nothing left to do. Note that intrinsic callables
     // only have a body specialization.
-    let body_specialization_id = GlobalSpecId::from((id, SpecKind::Body));
+    let body_specialization_id = GlobalSpecId::from((id, FunctorSetValue::Empty));
     if package_store_scaffolding
         .find_specialization(body_specialization_id)
         .is_some()
@@ -235,7 +236,7 @@ fn analyze_non_intrinsic_callable(
 
     // Analyze each one of the specializations.
     analyze_spec_decl(
-        (id, SpecKind::Body).into(),
+        (id, FunctorSetValue::Empty).into(),
         &implementation.body,
         input_params,
         package_store,
@@ -244,7 +245,7 @@ fn analyze_non_intrinsic_callable(
 
     if let Some(adj_spec) = &implementation.adj {
         analyze_spec_decl(
-            (id, SpecKind::Adj).into(),
+            (id, FunctorSetValue::Adj).into(),
             adj_spec,
             input_params,
             package_store,
@@ -254,7 +255,7 @@ fn analyze_non_intrinsic_callable(
 
     if let Some(ctl_spec) = &implementation.ctl {
         analyze_spec_decl(
-            (id, SpecKind::Ctl).into(),
+            (id, FunctorSetValue::Ctl).into(),
             ctl_spec,
             input_params,
             package_store,
@@ -264,7 +265,7 @@ fn analyze_non_intrinsic_callable(
 
     if let Some(ctl_adj_spec) = &implementation.ctl_adj {
         analyze_spec_decl(
-            (id, SpecKind::CtlAdj).into(),
+            (id, FunctorSetValue::CtlAdj).into(),
             ctl_adj_spec,
             input_params,
             package_store,
@@ -293,17 +294,17 @@ fn analyze_spec(
             package_store_scaffolding,
         ),
         CallableImpl::Spec(spec_impl) => {
-            let spec_decl = match id.spec_kind {
-                SpecKind::Body => &spec_impl.body,
-                SpecKind::Adj => spec_impl
+            let spec_decl = match id.functor_set_value {
+                FunctorSetValue::Empty => &spec_impl.body,
+                FunctorSetValue::Adj => spec_impl
                     .adj
                     .as_ref()
                     .expect("adj specialization should exist"),
-                SpecKind::Ctl => spec_impl
+                FunctorSetValue::Ctl => spec_impl
                     .ctl
                     .as_ref()
                     .expect("ctl specialization should exist"),
-                SpecKind::CtlAdj => spec_impl
+                FunctorSetValue::CtlAdj => spec_impl
                     .ctl_adj
                     .as_ref()
                     .expect("ctladj specialization should exist"),
@@ -526,7 +527,7 @@ fn create_compute_kind_for_call_with_spec_callee(
 ) -> ComputeKind {
     // Now that we know the callee, we can use its applications table to determine the compute kind of the call
     // expression.
-    let callee_id = GlobalSpecId::from((callee.item, SpecKind::from(&callee.spec_functor)));
+    let callee_id = GlobalSpecId::from((callee.item, callee.functor_app.functor_set_value()));
     analyze_spec(callee_id, package_store, package_store_scaffolding);
     let callee_applications_table = package_store_scaffolding.get_spec(callee_id);
 
@@ -534,7 +535,7 @@ fn create_compute_kind_for_call_with_spec_callee(
     // table.
     let args_package = package_store.get(args_expr_id.package);
     let (args_controls, args_input_id) =
-        split_controls_and_input(args_expr_id.expr, &callee.spec_functor, args_package);
+        split_controls_and_input(args_expr_id.expr, &callee.functor_app, args_package);
     let callee_input_pattern_id =
         StorePatId::from((callee_id.callable.package, callable_decl.input));
     let args_input_id = StoreExprId::from((args_expr_id.package, args_input_id));
@@ -2144,12 +2145,12 @@ fn simulate_stmt(
 
 fn split_controls_and_input(
     args_expr_id: ExprId,
-    spec_functor: &SpecFunctor,
+    functor_app: &FunctorApp,
     package: &impl PackageLookup,
 ) -> (Vec<ExprId>, ExprId) {
     let mut controls = Vec::new();
     let mut remainder_expr_id = args_expr_id;
-    for _ in 0..spec_functor.controlled {
+    for _ in 0..functor_app.controlled {
         let expr = package.get_expr(remainder_expr_id);
         match &expr.kind {
             ExprKind::Tuple(pats) => {

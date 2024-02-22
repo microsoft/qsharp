@@ -3,13 +3,13 @@
 
 use crate::QuantumProperties;
 use indenter::Indented;
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
     fir::{
         CallableDecl, ExprId, ExprKind, Functor, ItemId, LocalVarId, PackageId, PackageLookup, Pat,
         PatId, PatKind, Res, StoreItemId, UnOp,
     },
-    ty::Ty,
+    ty::{FunctorSetValue, Ty},
 };
 use rustc_hash::FxHashMap;
 use std::fmt::{Debug, Formatter};
@@ -159,35 +159,31 @@ pub fn initalize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<LocalVa
 #[derive(Clone, Copy, Debug)]
 pub struct GlobalSpecId {
     pub callable: StoreItemId,
-    pub spec_kind: SpecKind,
+    pub functor_set_value: FunctorSetValue,
 }
 
-impl From<(StoreItemId, SpecKind)> for GlobalSpecId {
-    fn from(value: (StoreItemId, SpecKind)) -> Self {
+impl From<(StoreItemId, FunctorSetValue)> for GlobalSpecId {
+    fn from(value: (StoreItemId, FunctorSetValue)) -> Self {
         Self {
             callable: value.0,
-            spec_kind: value.1,
+            functor_set_value: value.1,
         }
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum SpecKind {
-    Body,
-    Adj,
-    Ctl,
-    CtlAdj,
+pub trait FunctorAppExt {
+    fn functor_set_value(&self) -> FunctorSetValue;
 }
 
-impl From<&SpecFunctor> for SpecKind {
-    fn from(value: &SpecFunctor) -> Self {
-        let adjoint = value.adjoint;
-        let controlled = value.controlled > 0;
+impl FunctorAppExt for FunctorApp {
+    fn functor_set_value(&self) -> FunctorSetValue {
+        let adjoint = self.adjoint;
+        let controlled = self.controlled > 0;
         match (adjoint, controlled) {
-            (false, false) => Self::Body,
-            (true, false) => Self::Adj,
-            (false, true) => Self::Ctl,
-            (true, true) => Self::CtlAdj,
+            (false, false) => FunctorSetValue::Empty,
+            (true, false) => FunctorSetValue::Adj,
+            (false, true) => FunctorSetValue::Ctl,
+            (true, true) => FunctorSetValue::CtlAdj,
         }
     }
 }
@@ -252,13 +248,7 @@ fn derive_callable_input_pattern_elements(
 #[derive(Debug)]
 pub struct Callee {
     pub item: StoreItemId,
-    pub spec_functor: SpecFunctor,
-}
-
-#[derive(Debug, Default)]
-pub struct SpecFunctor {
-    pub adjoint: bool,
-    pub controlled: u8,
+    pub functor_app: FunctorApp,
 }
 
 /// Tries to uniquely resolve the callable specialization referenced in a callee expression.
@@ -292,7 +282,7 @@ fn resolve_item_callee(call_package_id: PackageId, item_id: ItemId) -> Option<Ca
     let package_id = item_id.package.unwrap_or(call_package_id);
     Some(Callee {
         item: (package_id, item_id.item).into(),
-        spec_functor: SpecFunctor::default(),
+        functor_app: FunctorApp::default(),
     })
 }
 
@@ -327,18 +317,18 @@ fn try_resolve_un_op_callee(
 
     try_resolve_callee(expr_id, package_id, package, locals_map).map(|callee| {
         let spec_functor = match functor_operator {
-            Functor::Adj => SpecFunctor {
-                adjoint: !callee.spec_functor.adjoint,
-                controlled: callee.spec_functor.controlled,
+            Functor::Adj => FunctorApp {
+                adjoint: !callee.functor_app.adjoint,
+                controlled: callee.functor_app.controlled,
             },
-            Functor::Ctl => SpecFunctor {
-                adjoint: callee.spec_functor.adjoint,
-                controlled: callee.spec_functor.controlled + 1,
+            Functor::Ctl => FunctorApp {
+                adjoint: callee.functor_app.adjoint,
+                controlled: callee.functor_app.controlled + 1,
             },
         };
         Callee {
             item: callee.item,
-            spec_functor,
+            functor_app: spec_functor,
         }
     })
 }

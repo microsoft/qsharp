@@ -2,14 +2,17 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{GlobalSpecId, SpecKind},
-    ApplicationsGeneratorSet, CallableComputeProperties, ComputePropertiesLookup,
-    ItemComputeProperties, PackageComputeProperties, PackageStoreComputeProperties,
+    common::GlobalSpecId, ApplicationsGeneratorSet, CallableComputeProperties,
+    ComputePropertiesLookup, ItemComputeProperties, PackageComputeProperties,
+    PackageStoreComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{
-    BlockId, ExprId, LocalItemId, PackageId, PackageStore, StmtId, StoreBlockId, StoreExprId,
-    StoreItemId, StoreStmtId,
+use qsc_fir::{
+    fir::{
+        BlockId, ExprId, LocalItemId, PackageId, PackageStore, StmtId, StoreBlockId, StoreExprId,
+        StoreItemId, StoreStmtId,
+    },
+    ty::FunctorSetValue,
 };
 
 /// Scaffolding used to build the package store compute properties.
@@ -65,7 +68,7 @@ impl PackageStoreScaffolding {
                 ItemScaffolding::Specializations(specializations) => Some(specializations),
             })
             .and_then(|specializations| {
-                specializations.get(SpecializationIndex::from(id.spec_kind))
+                specializations.get(SpecializationIndex::from(id.functor_set_value))
             })
     }
 
@@ -128,14 +131,14 @@ impl PackageStoreScaffolding {
         if let Some(item_scaffolding) = items.get_mut(id.callable.item) {
             if let ItemScaffolding::Specializations(specializations) = item_scaffolding {
                 // The item already exists but not the specialization.
-                specializations.insert(SpecializationIndex::from(id.spec_kind), value);
+                specializations.insert(SpecializationIndex::from(id.functor_set_value), value);
             } else {
                 panic!("item should be a callable");
             }
         } else {
             // Insert both the specialization and the item.
             let mut specializations = IndexMap::new();
-            specializations.insert(SpecializationIndex::from(id.spec_kind), value);
+            specializations.insert(SpecializationIndex::from(id.functor_set_value), value);
             items.insert(
                 id.callable.item,
                 ItemScaffolding::Specializations(specializations),
@@ -227,24 +230,24 @@ impl From<usize> for SpecializationIndex {
     }
 }
 
-impl From<SpecKind> for SpecializationIndex {
-    fn from(specialization_kind: SpecKind) -> Self {
-        match specialization_kind {
-            SpecKind::Body => SpecializationIndex(0),
-            SpecKind::Adj => SpecializationIndex(1),
-            SpecKind::Ctl => SpecializationIndex(2),
-            SpecKind::CtlAdj => SpecializationIndex(3),
+impl From<FunctorSetValue> for SpecializationIndex {
+    fn from(value: FunctorSetValue) -> Self {
+        match value {
+            FunctorSetValue::Empty => SpecializationIndex(0),
+            FunctorSetValue::Adj => SpecializationIndex(1),
+            FunctorSetValue::Ctl => SpecializationIndex(2),
+            FunctorSetValue::CtlAdj => SpecializationIndex(3),
         }
     }
 }
 
-impl From<SpecializationIndex> for SpecKind {
-    fn from(value: SpecializationIndex) -> Self {
-        match value {
-            SpecializationIndex(0) => Self::Body,
-            SpecializationIndex(1) => Self::Adj,
-            SpecializationIndex(2) => Self::Ctl,
-            SpecializationIndex(3) => Self::CtlAdj,
+impl Into<FunctorSetValue> for SpecializationIndex {
+    fn into(self) -> FunctorSetValue {
+        match self {
+            SpecializationIndex(0) => FunctorSetValue::Empty,
+            SpecializationIndex(1) => FunctorSetValue::Adj,
+            SpecializationIndex(2) => FunctorSetValue::Ctl,
+            SpecializationIndex(3) => FunctorSetValue::CtlAdj,
             _ => panic!("invalid specialization index"),
         }
     }
@@ -255,15 +258,15 @@ pub type SpecializationsScaffolding = IndexMap<SpecializationIndex, Applications
 impl From<CallableComputeProperties> for SpecializationsScaffolding {
     fn from(value: CallableComputeProperties) -> Self {
         let mut specializations = SpecializationsScaffolding::default();
-        specializations.insert(SpecKind::Body.into(), value.body);
+        specializations.insert(FunctorSetValue::Empty.into(), value.body);
         if let Some(adj_applications_table) = value.adj {
-            specializations.insert(SpecKind::Adj.into(), adj_applications_table);
+            specializations.insert(FunctorSetValue::Adj.into(), adj_applications_table);
         }
         if let Some(ctl_applications_table) = value.ctl {
-            specializations.insert(SpecKind::Ctl.into(), ctl_applications_table);
+            specializations.insert(FunctorSetValue::Ctl.into(), ctl_applications_table);
         }
         if let Some(ctl_adj_applications_table) = value.ctl_adj {
-            specializations.insert(SpecKind::CtlAdj.into(), ctl_adj_applications_table);
+            specializations.insert(FunctorSetValue::CtlAdj.into(), ctl_adj_applications_table);
         }
         specializations
     }
@@ -278,11 +281,11 @@ impl From<SpecializationsScaffolding> for CallableComputeProperties {
             Option::<ApplicationsGeneratorSet>::default(),
         );
         for (specialization_index, applications_table) in value {
-            match SpecKind::from(specialization_index) {
-                SpecKind::Body => body = Some(applications_table),
-                SpecKind::Adj => adj = Some(applications_table),
-                SpecKind::Ctl => ctl = Some(applications_table),
-                SpecKind::CtlAdj => ctl_adj = Some(applications_table),
+            match specialization_index.into() {
+                FunctorSetValue::Empty => body = Some(applications_table),
+                FunctorSetValue::Adj => adj = Some(applications_table),
+                FunctorSetValue::Ctl => ctl = Some(applications_table),
+                FunctorSetValue::CtlAdj => ctl_adj = Some(applications_table),
             };
         }
 
