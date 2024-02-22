@@ -20,7 +20,9 @@ namespace Kata.Verification {
             ["|+⟩", "|-⟩"],
             false);
         if isCorrect {
-            Message("All tests passed.");
+            Message("Correct!");
+        } else {
+            Message("Incorrect.");
         }
         isCorrect
     }
