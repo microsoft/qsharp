@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::GlobalSpecId, ApplicationsGeneratorSet, CallableComputeProperties,
+    common::GlobalSpecId, ApplicationGeneratorSet, CallableComputeProperties,
     ComputePropertiesLookup,
 };
 use qsc_data_structures::index_map::IndexMap;
@@ -19,11 +19,11 @@ use qsc_fir::{
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
-    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsGeneratorSet> {
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package).blocks.get(id.block)
     }
 
-    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsGeneratorSet> {
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package).exprs.get(id.expr)
     }
 
@@ -31,16 +31,16 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
         unimplemented!()
     }
 
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGeneratorSet> {
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package).stmts.get(id.stmt)
     }
 
-    fn get_block(&self, id: StoreBlockId) -> &ApplicationsGeneratorSet {
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationGeneratorSet {
         self.find_block(id)
             .expect("block compute properties should exist")
     }
 
-    fn get_expr(&self, id: StoreExprId) -> &ApplicationsGeneratorSet {
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationGeneratorSet {
         self.find_expr(id)
             .expect("expression compute properties should exist")
     }
@@ -49,14 +49,14 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
         unimplemented!()
     }
 
-    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGeneratorSet {
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationGeneratorSet {
         self.find_stmt(id)
             .expect("statement compute properties should exist")
     }
 }
 
 impl PackageStoreComputeProperties {
-    pub fn find_specialization(&self, id: GlobalSpecId) -> Option<&ApplicationsGeneratorSet> {
+    pub fn find_specialization(&self, id: GlobalSpecId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.callable.package)
             .items
             .get(id.callable.item)
@@ -105,7 +105,7 @@ impl PackageStoreComputeProperties {
             .expect("package compute properties should be present in store")
     }
 
-    pub fn get_spec(&self, id: GlobalSpecId) -> &ApplicationsGeneratorSet {
+    pub fn get_spec(&self, id: GlobalSpecId) -> &ApplicationGeneratorSet {
         self.find_specialization(id)
             .expect("specialization should exist")
     }
@@ -124,7 +124,7 @@ impl PackageStoreComputeProperties {
         self.get_mut(id.package).items.insert(id.item, value);
     }
 
-    pub fn insert_spec(&mut self, id: GlobalSpecId, value: ApplicationsGeneratorSet) {
+    pub fn insert_spec(&mut self, id: GlobalSpecId, value: ApplicationGeneratorSet) {
         let items = &mut self.get_mut(id.callable.package).items;
         if let Some(item_compute_properties) = items.get_mut(id.callable.item) {
             if let ItemComputeProperties::Specializations(specializations) = item_compute_properties
@@ -178,12 +178,12 @@ impl PackageStoreComputeProperties {
 pub struct PackageComputeProperties {
     /// The compute properties of the package items.
     pub items: IndexMap<LocalItemId, ItemComputeProperties>,
-    /// The applications generator sets of the package blocks.
-    pub blocks: IndexMap<BlockId, ApplicationsGeneratorSet>,
-    /// The applications generator sets of the package statements.
-    pub stmts: IndexMap<StmtId, ApplicationsGeneratorSet>,
-    /// The applications generator sets of the package expressions.
-    pub exprs: IndexMap<ExprId, ApplicationsGeneratorSet>,
+    /// The application generator sets of the package blocks.
+    pub blocks: IndexMap<BlockId, ApplicationGeneratorSet>,
+    /// The application generator sets of the package statements.
+    pub stmts: IndexMap<StmtId, ApplicationGeneratorSet>,
+    /// The application generator sets of the package expressions.
+    pub exprs: IndexMap<ExprId, ApplicationGeneratorSet>,
 }
 
 /// Scaffolding used to build the compute properties of an item.
@@ -258,7 +258,7 @@ impl From<FunctorSetValue> for SpecializationIndex {
     }
 }
 
-pub type SpecializationsComputeProperties = IndexMap<SpecializationIndex, ApplicationsGeneratorSet>;
+pub type SpecializationsComputeProperties = IndexMap<SpecializationIndex, ApplicationGeneratorSet>;
 
 impl From<CallableComputeProperties> for SpecializationsComputeProperties {
     fn from(value: CallableComputeProperties) -> Self {
@@ -280,10 +280,10 @@ impl From<CallableComputeProperties> for SpecializationsComputeProperties {
 impl From<SpecializationsComputeProperties> for CallableComputeProperties {
     fn from(value: SpecializationsComputeProperties) -> Self {
         let (mut body, mut adj, mut ctl, mut ctl_adj) = (
-            Option::<ApplicationsGeneratorSet>::default(),
-            Option::<ApplicationsGeneratorSet>::default(),
-            Option::<ApplicationsGeneratorSet>::default(),
-            Option::<ApplicationsGeneratorSet>::default(),
+            Option::<ApplicationGeneratorSet>::default(),
+            Option::<ApplicationGeneratorSet>::default(),
+            Option::<ApplicationGeneratorSet>::default(),
+            Option::<ApplicationGeneratorSet>::default(),
         );
         for (specialization_index, applications_table) in value {
             match specialization_index.into() {

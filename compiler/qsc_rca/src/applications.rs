@@ -7,7 +7,7 @@ use crate::{
         InputParamIndex, Local, LocalKind, LocalsLookup,
     },
     scaffolding::PackageComputeProperties,
-    ApplicationsGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
+    ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, LocalVarId, Pat, PatId, PatKind, SpecDecl, StmtId};
@@ -61,7 +61,7 @@ impl GeneratorSetsBuilder {
         self,
         package_compute_properties: &mut PackageComputeProperties,
         main_block: Option<BlockId>,
-    ) -> Option<ApplicationsGeneratorSet> {
+    ) -> Option<ApplicationGeneratorSet> {
         // Get the compute properties of the inherent application instance and the dynamic parameter applications.
         let input_params_count = self.dynamic_param_applications.len();
         let mut inherent_application_compute_properties = self.inherent.close();
@@ -136,13 +136,13 @@ impl GeneratorSetsBuilder {
                 let compute_kind = application_instance_compute_properties.remove_block(block_id);
                 block_dynamic_param_applications.push(compute_kind);
             }
-            let block_applications_generator_set = ApplicationsGeneratorSet {
+            let application_generator_set = ApplicationGeneratorSet {
                 inherent: block_inherent_compute_kind,
                 dynamic_param_applications: block_dynamic_param_applications,
             };
             package_compute_properties
                 .blocks
-                .insert(block_id, block_applications_generator_set);
+                .insert(block_id, application_generator_set);
         }
 
         // Save an applications generator set for each statement using their compute properties.
@@ -157,13 +157,13 @@ impl GeneratorSetsBuilder {
                 let compute_kind = application_instance_compute_properties.remove_stmt(stmt_id);
                 stmt_dynamic_param_applications.push(compute_kind);
             }
-            let stmt_applications_generator_set = ApplicationsGeneratorSet {
+            let application_generator_set = ApplicationGeneratorSet {
                 inherent: stmt_inherent_compute_kind,
                 dynamic_param_applications: stmt_dynamic_param_applications,
             };
             package_compute_properties
                 .stmts
-                .insert(stmt_id, stmt_applications_generator_set);
+                .insert(stmt_id, application_generator_set);
         }
 
         // Save an applications generator set for each expression using their compute properties.
@@ -178,13 +178,13 @@ impl GeneratorSetsBuilder {
                 let compute_kind = application_instance_compute_properties.remove_expr(expr_id);
                 expr_dynamic_param_applications.push(compute_kind);
             }
-            let expr_applications_generator_set = ApplicationsGeneratorSet {
+            let application_generator_set = ApplicationGeneratorSet {
                 inherent: expr_inherent_compute_kind,
                 dynamic_param_applications: expr_dynamic_param_applications,
             };
             package_compute_properties
                 .exprs
-                .insert(expr_id, expr_applications_generator_set);
+                .insert(expr_id, application_generator_set);
         }
     }
 }

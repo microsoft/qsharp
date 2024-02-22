@@ -34,22 +34,22 @@ pub use crate::analyzer::Analyzer;
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {
-    /// Searches for the applications generator set of a block with the specified ID.
-    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsGeneratorSet>;
-    /// Searches for the applications generator set of an expression with the specified ID.
-    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsGeneratorSet>;
+    /// Searches for the application generator set of a block with the specified ID.
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationGeneratorSet>;
+    /// Searches for the application generator set of an expression with the specified ID.
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationGeneratorSet>;
     /// Searches for the compute properties of an item with the specified ID.
     fn find_item(&self, id: StoreItemId) -> Option<&ItemComputeProperties>;
-    /// Searches for the applications generator set of a statement with the specified ID.
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGeneratorSet>;
-    /// Gets the applications generator set of a block.
-    fn get_block(&self, id: StoreBlockId) -> &ApplicationsGeneratorSet;
-    /// Gets the applications generator set of an expression.
-    fn get_expr(&self, id: StoreExprId) -> &ApplicationsGeneratorSet;
+    /// Searches for the application generator set of a statement with the specified ID.
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationGeneratorSet>;
+    /// Gets the application generator set of a block.
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationGeneratorSet;
+    /// Gets the application generator set of an expression.
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationGeneratorSet;
     /// Gets the compute properties of an item.
     fn get_item(&self, id: StoreItemId) -> &ItemComputeProperties;
-    /// Gets the applications generator set of a statement.
-    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGeneratorSet;
+    /// Gets the application generator set of a statement.
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationGeneratorSet;
 }
 
 /// The compute properties of a package store.
@@ -57,12 +57,12 @@ pub trait ComputePropertiesLookup {
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
-    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationsGeneratorSet> {
+    fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package)
             .and_then(|package| package.blocks.get(id.block))
     }
 
-    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationsGeneratorSet> {
+    fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package)
             .and_then(|package| package.exprs.get(id.expr))
     }
@@ -72,17 +72,17 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .and_then(|package| package.items.get(id.item))
     }
 
-    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationsGeneratorSet> {
+    fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package)
             .and_then(|package| package.stmts.get(id.stmt))
     }
 
-    fn get_block(&self, id: StoreBlockId) -> &ApplicationsGeneratorSet {
+    fn get_block(&self, id: StoreBlockId) -> &ApplicationGeneratorSet {
         self.find_block(id)
             .expect("block compute properties should exist")
     }
 
-    fn get_expr(&self, id: StoreExprId) -> &ApplicationsGeneratorSet {
+    fn get_expr(&self, id: StoreExprId) -> &ApplicationGeneratorSet {
         self.find_expr(id)
             .expect("expression compute properties should exist")
     }
@@ -92,7 +92,7 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .expect("item compute properties should exist")
     }
 
-    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationsGeneratorSet {
+    fn get_stmt(&self, id: StoreStmtId) -> &ApplicationGeneratorSet {
         self.find_stmt(id)
             .expect("statement compute properties should exist")
     }
@@ -118,14 +118,14 @@ impl PackageStoreComputeProperties {
         self.0.get_mut(id)
     }
 
-    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationsGeneratorSet) {
+    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationGeneratorSet) {
         self.get_mut(id.package)
             .expect("package should exist")
             .blocks
             .insert(id.block, value);
     }
 
-    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationsGeneratorSet) {
+    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationGeneratorSet) {
         self.get_mut(id.package)
             .expect("package should exist")
             .exprs
@@ -139,7 +139,7 @@ impl PackageStoreComputeProperties {
             .insert(id.item, value);
     }
 
-    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationsGeneratorSet) {
+    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationGeneratorSet) {
         self.get_mut(id.package)
             .expect("package should exist")
             .stmts
@@ -157,12 +157,12 @@ impl PackageStoreComputeProperties {
 pub struct PackageComputeProperties {
     /// The compute properties of the package items.
     pub items: IndexMap<LocalItemId, ItemComputeProperties>,
-    /// The applications generator sets of the package blocks.
-    pub blocks: IndexMap<BlockId, ApplicationsGeneratorSet>,
-    /// The applications generator sets of the package statements.
-    pub stmts: IndexMap<StmtId, ApplicationsGeneratorSet>,
-    /// The applications generator sets of the package expressions.
-    pub exprs: IndexMap<ExprId, ApplicationsGeneratorSet>,
+    /// The application generator sets of the package blocks.
+    pub blocks: IndexMap<BlockId, ApplicationGeneratorSet>,
+    /// The application generator sets of the package statements.
+    pub stmts: IndexMap<StmtId, ApplicationGeneratorSet>,
+    /// The application generator sets of the package expressions.
+    pub exprs: IndexMap<ExprId, ApplicationGeneratorSet>,
 }
 
 impl Default for PackageComputeProperties {
@@ -240,14 +240,14 @@ impl Display for ItemComputeProperties {
 /// The compute properties of a callable.
 #[derive(Debug)]
 pub struct CallableComputeProperties {
-    /// The applications generator set for the callable's body.
-    pub body: ApplicationsGeneratorSet,
-    /// The applications generator set for the callable's adjoint specialization.
-    pub adj: Option<ApplicationsGeneratorSet>,
-    /// The applications generator set for the callable's controlled specialization.
-    pub ctl: Option<ApplicationsGeneratorSet>,
-    /// The applications generator set for the callable's controlled adjoint specialization.
-    pub ctl_adj: Option<ApplicationsGeneratorSet>,
+    /// The application generator set for the callable's body.
+    pub body: ApplicationGeneratorSet,
+    /// The application generator set for the callable's adjoint specialization.
+    pub adj: Option<ApplicationGeneratorSet>,
+    /// The application generator set for the callable's controlled specialization.
+    pub ctl: Option<ApplicationGeneratorSet>,
+    /// The application generator set for the callable's controlled adjoint specialization.
+    pub ctl_adj: Option<ApplicationGeneratorSet>,
 }
 
 impl Display for CallableComputeProperties {
@@ -275,7 +275,7 @@ impl Display for CallableComputeProperties {
 /// A set of compute properties associated to a callable or one of its elements, from which the properties of any
 /// particular call application can be derived.
 #[derive(Clone, Debug)]
-pub struct ApplicationsGeneratorSet {
+pub struct ApplicationGeneratorSet {
     /// The inherent compute kind of a program element, which is determined by binding all the parameters it depends on
     /// to static values.
     pub inherent: ComputeKind,
@@ -284,7 +284,7 @@ pub struct ApplicationsGeneratorSet {
     pub dynamic_param_applications: Vec<ComputeKind>,
 }
 
-impl Display for ApplicationsGeneratorSet {
+impl Display for ApplicationGeneratorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "ApplicationsGeneratorSet:",)?;
@@ -305,7 +305,7 @@ impl Display for ApplicationsGeneratorSet {
     }
 }
 
-impl ApplicationsGeneratorSet {
+impl ApplicationGeneratorSet {
     #[must_use]
     pub fn derive_application_compute_kind(
         &self,

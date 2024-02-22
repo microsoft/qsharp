@@ -8,7 +8,7 @@ use crate::{
         FunctorAppExt, GlobalSpecId, InputParam, Local, LocalKind,
     },
     scaffolding::{ItemComputeProperties, PackageComputeProperties, PackageStoreComputeProperties},
-    ApplicationsGeneratorSet, ComputeKind, ComputePropertiesLookup, QuantumProperties,
+    ApplicationGeneratorSet, ComputeKind, ComputePropertiesLookup, QuantumProperties,
     RuntimeFeatureFlags, ValueKind,
 };
 use itertools::Itertools;
@@ -85,12 +85,12 @@ pub fn analyze_specialization_with_cyles(
 
     // Create compute properties differently depending on whether the callable is a function or an operation.
     let applications_table = match callable.kind {
-        CallableKind::Function => create_cyclic_function_specialization_applications_generator_set(
+        CallableKind::Function => create_cyclic_function_specialization_application_generator_set(
             input_params.len(),
             &callable.output,
         ),
         CallableKind::Operation => {
-            create_cyclic_operation_specialization_applications_generator_set(
+            create_cyclic_operation_specialization_application_generator_set(
                 input_params.len(),
                 &callable.output,
             )
@@ -116,7 +116,7 @@ pub fn analyze_specialization_with_cyles(
             .as_ref()
             .expect("ctl_adj specializatiob should exist"),
     };
-    propagate_applications_generator_set_through_block(
+    propagate_application_generator_set_through_block(
         spec_decl.block,
         &applications_table,
         package,
@@ -204,10 +204,10 @@ fn analyze_intrinsic_callable(
     // Create an applications table depending on whether the callable is a function or an operation.
     let applications_table = match callable.kind {
         CallableKind::Function => {
-            create_intrinsic_function_applications_generator_set(callable, input_params)
+            create_intrinsic_function_application_generator_set(callable, input_params)
         }
         CallableKind::Operation => {
-            create_instrinsic_operation_applications_generator_set(callable, input_params)
+            create_instrinsic_operation_application_generator_set(callable, input_params)
         }
     };
     package_store_compute_properties.insert_spec(body_specialization_id, applications_table);
@@ -638,10 +638,10 @@ fn create_compute_kind_for_call_with_unresolved_callee(expr_type: &Ty) -> Comput
     })
 }
 
-fn create_cyclic_function_specialization_applications_generator_set(
+fn create_cyclic_function_specialization_application_generator_set(
     callable_input_params_count: usize,
     output_type: &Ty,
-) -> ApplicationsGeneratorSet {
+) -> ApplicationGeneratorSet {
     // Set the compute kind of the function for each parameter when it is bound to a dynamic value.
     let mut using_dynamic_param = Vec::new();
     for _ in 0..callable_input_params_count {
@@ -662,17 +662,17 @@ fn create_cyclic_function_specialization_applications_generator_set(
         using_dynamic_param.push(ComputeKind::Quantum(quantum_properties));
     }
 
-    ApplicationsGeneratorSet {
+    ApplicationGeneratorSet {
         // Functions are inherently classically pure.
         inherent: ComputeKind::Classical,
         dynamic_param_applications: using_dynamic_param,
     }
 }
 
-fn create_cyclic_operation_specialization_applications_generator_set(
+fn create_cyclic_operation_specialization_application_generator_set(
     callable_input_params_count: usize,
     output_type: &Ty,
-) -> ApplicationsGeneratorSet {
+) -> ApplicationGeneratorSet {
     // Since operations can allocate and measure qubits freely, we assume its compute kind is quantum, requires all
     // capabilities (encompassed by the `CyclicOperation` runtime feature) and that their value kind is dynamic.
     let value_kind = if *output_type == Ty::UNIT {
@@ -692,16 +692,16 @@ fn create_cyclic_operation_specialization_applications_generator_set(
         using_dynamic_param.push(inherent_compute_kind);
     }
 
-    ApplicationsGeneratorSet {
+    ApplicationGeneratorSet {
         inherent: inherent_compute_kind,
         dynamic_param_applications: using_dynamic_param,
     }
 }
 
-fn create_intrinsic_function_applications_generator_set(
+fn create_intrinsic_function_application_generator_set(
     callable_decl: &CallableDecl,
     input_params: &Vec<InputParam>,
-) -> ApplicationsGeneratorSet {
+) -> ApplicationGeneratorSet {
     assert!(matches!(callable_decl.kind, CallableKind::Function));
 
     // Determine the compute kind for all dynamic parameter applications.
@@ -725,17 +725,17 @@ fn create_intrinsic_function_applications_generator_set(
         dynamic_param_applications.push(param_compute_kind);
     }
 
-    ApplicationsGeneratorSet {
+    ApplicationGeneratorSet {
         // Functions are inherently classical.
         inherent: ComputeKind::Classical,
         dynamic_param_applications,
     }
 }
 
-fn create_instrinsic_operation_applications_generator_set(
+fn create_instrinsic_operation_application_generator_set(
     callable_decl: &CallableDecl,
     input_params: &Vec<InputParam>,
-) -> ApplicationsGeneratorSet {
+) -> ApplicationGeneratorSet {
     assert!(matches!(callable_decl.kind, CallableKind::Operation));
 
     // The value kind of intrinsic operations is inherently dynamic if their output is not `Unit` or `Qubit`.
@@ -774,7 +774,7 @@ fn create_instrinsic_operation_applications_generator_set(
         dynamic_param_applications.push(param_compute_kind);
     }
 
-    ApplicationsGeneratorSet {
+    ApplicationGeneratorSet {
         inherent: inherent_compute_kind,
         dynamic_param_applications,
     }
@@ -1658,24 +1658,24 @@ fn determine_stmt_semi_compute_kind(
     aggregate_compute_kind_runtime_features(ComputeKind::Classical, *expr_compute_kind)
 }
 
-fn propagate_applications_generator_set_through_block(
+fn propagate_application_generator_set_through_block(
     block_id: BlockId,
-    applications_generator_set: &ApplicationsGeneratorSet,
+    application_generator_set: &ApplicationGeneratorSet,
     package: &impl PackageLookup,
     package_compute_properties: &mut PackageComputeProperties,
 ) {
     let block = package.get_block(block_id);
     for stmt_id in &block.stmts {
-        propagate_applications_generator_set_through_stmt(
+        propagate_application_generator_set_through_stmt(
             *stmt_id,
-            applications_generator_set,
+            application_generator_set,
             package,
             package_compute_properties,
         );
     }
     package_compute_properties
         .blocks
-        .insert(block_id, applications_generator_set.clone());
+        .insert(block_id, application_generator_set.clone());
 }
 
 fn map_input_param_exprs(
@@ -1707,17 +1707,17 @@ fn map_input_param_exprs(
     }
 }
 
-fn propagate_applications_generator_set_through_expr(
+fn propagate_application_generator_set_through_expr(
     expr_id: ExprId,
-    applications_generator_set: &ApplicationsGeneratorSet,
+    application_generator_set: &ApplicationGeneratorSet,
     package: &impl PackageLookup,
     package_compute_properties: &mut PackageComputeProperties,
 ) {
     // Convenience closures to make this function more succint.
     let mut propagate_expr = |id: ExprId| {
-        propagate_applications_generator_set_through_expr(
+        propagate_application_generator_set_through_expr(
             id,
-            applications_generator_set,
+            application_generator_set,
             package,
             package_compute_properties,
         );
@@ -1746,9 +1746,9 @@ fn propagate_applications_generator_set_through_expr(
             propagate_expr(*index);
             propagate_expr(*replace);
         }
-        ExprKind::Block(block) => propagate_applications_generator_set_through_block(
+        ExprKind::Block(block) => propagate_application_generator_set_through_block(
             *block,
-            applications_generator_set,
+            application_generator_set,
             package,
             package_compute_properties,
         ),
@@ -1791,9 +1791,9 @@ fn propagate_applications_generator_set_through_expr(
         ExprKind::Tuple(exprs) => exprs.iter().for_each(|e| propagate_expr(*e)),
         ExprKind::While(cond, block) => {
             propagate_expr(*cond);
-            propagate_applications_generator_set_through_block(
+            propagate_application_generator_set_through_block(
                 *block,
-                applications_generator_set,
+                application_generator_set,
                 package,
                 package_compute_properties,
             );
@@ -1804,21 +1804,21 @@ fn propagate_applications_generator_set_through_expr(
     // Insert the applications table.
     package_compute_properties
         .exprs
-        .insert(expr_id, applications_generator_set.clone());
+        .insert(expr_id, application_generator_set.clone());
 }
 
-fn propagate_applications_generator_set_through_stmt(
+fn propagate_application_generator_set_through_stmt(
     stmt_id: StmtId,
-    applications_generator_set: &ApplicationsGeneratorSet,
+    application_generator_set: &ApplicationGeneratorSet,
     package: &impl PackageLookup,
     package_compute_properties: &mut PackageComputeProperties,
 ) {
     let stmt = package.get_stmt(stmt_id);
     match stmt.kind {
         StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) | StmtKind::Local(_, _, expr_id) => {
-            propagate_applications_generator_set_through_expr(
+            propagate_application_generator_set_through_expr(
                 expr_id,
-                applications_generator_set,
+                application_generator_set,
                 package,
                 package_compute_properties,
             );
@@ -1827,7 +1827,7 @@ fn propagate_applications_generator_set_through_stmt(
     }
     package_compute_properties
         .stmts
-        .insert(stmt_id, applications_generator_set.clone());
+        .insert(stmt_id, application_generator_set.clone());
 }
 
 fn simulate_block(
