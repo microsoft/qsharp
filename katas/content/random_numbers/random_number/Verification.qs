@@ -10,8 +10,6 @@ namespace Kata.Verification {
             if not isCorrect {
                 return false;
             }
-
-            Message($"Test passed for min = {min} and max = {max}");
         }
         Message("Correct!");
         true

@@ -11,7 +11,6 @@ namespace Kata.Verification {
             if not isCorrect {
                 return false;
             }
-            Message($"Test passed for generating zero with {x*100.0}% probability");
         }
         Message("Correct!");
         true
