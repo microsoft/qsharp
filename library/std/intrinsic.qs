@@ -157,7 +157,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     \begin{bmatrix}
     ///         1 & 1 \\\\
     ///         1 & -1
-    ///     \end{bmatrix}.
+    ///     \end{bmatrix}
     /// \end{align}
     /// $$
     operation H(qubit : Qubit) : Unit is Adj + Ctl {
