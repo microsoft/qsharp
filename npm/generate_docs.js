@@ -17,9 +17,10 @@ if (!existsSync(docsDirPath)) {
 }
 
 // 'filename' will be of the format 'namespace/api.md' (except for 'toc.yaml')
-// 'contents' will contain the full markdown expected
+// 'metadata' will be the metadata that will appear at the top of the file
+// 'contents' will contain the non-metadata markdown expected
 
-/** @type {Array<{filename: string; contents: string}>} */
+/** @type {Array<{filename: string; metadata: string; contents: string}>} */
 const docs = generate_docs();
 
 if (!docs || !docs.length) {
@@ -56,10 +57,10 @@ docs.forEach((doc) => {
     default:
       throw new Error(`Invalid file path: ${doc.filename}`);
   }
-  var contents = doc.contents.replace(
-    "ms.date: {TIMESTAMP}",
-    `ms.date: ${today_str}`,
-  );
+  var contents =
+    doc.metadata.replace("ms.date: {TIMESTAMP}", `ms.date: ${today_str}`) +
+    "\n\n" +
+    doc.contents;
   writeFileSync(fullPath, contents);
 });
 
