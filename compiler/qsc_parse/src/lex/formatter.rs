@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//use std::iter::Peekable;
-
 use crate::keyword::Keyword;
 
 use super::{
@@ -12,6 +10,9 @@ use super::{
     TokenKind,
 };
 use qsc_data_structures::span::Span;
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug)]
 pub struct Edit {
@@ -25,13 +26,6 @@ impl Edit {
     fn new(lo: u32, hi: u32, new_text: &str) -> Self {
         Self {
             span: Span { lo, hi },
-            new_text: new_text.to_string(),
-        }
-    }
-
-    fn new_with_span(span: Span, new_text: &str) -> Self {
-        Self {
-            span,
             new_text: new_text.to_string(),
         }
     }
@@ -88,6 +82,16 @@ pub fn format(code: &str) -> Vec<Edit> {
                 } else {
                     // one, two are adjacent tokens with no whitespace in the middle
                     apply_rules(one, "", two, code, indent_level)
+                }
+            }
+            (None, None, Some(three)) => {
+                let temp = format!("{:?}", three.kind);
+
+                // Remove any whitespace at the start of a file
+                if ConcreteTokenKind::WhiteSpace == three.kind {
+                    vec![Edit::new(three.span.hi, three.span.lo, "")]
+                } else {
+                    vec![]
                 }
             }
             _ => {
@@ -149,7 +153,7 @@ fn apply_rules(
         ) if l == r => {
             rule_no_space(left, whitespace, right, &mut edits);
         }
-        (ConcreteTokenKind::Comment, _) => {
+        (ConcreteTokenKind::Comment | ConcreteTokenKind::Cooked(TokenKind::DocComment), _) => {
             rule_trim_comments(left, &mut edits, code);
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
@@ -242,7 +246,7 @@ fn rule_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
     let comment_contents = get_token_contents(code, left);
     let new_comment_contents = comment_contents.trim_end();
     if comment_contents != new_comment_contents {
-        edits.push(Edit::new_with_span(left.span, new_comment_contents));
+        edits.push(Edit::new(left.span.lo, left.span.hi, new_comment_contents));
     }
 }
 
@@ -267,117 +271,4 @@ fn rule_indentation(
 
 fn get_token_contents<'a>(code: &'a str, token: &ConcreteToken) -> &'a str {
     &code[token.span.lo as usize..token.span.hi as usize]
-}
-
-#[cfg(test)]
-mod tests {
-    use expect_test::expect;
-    use indoc::indoc;
-
-    #[test]
-    fn test_formatting() {
-        let code = "operation   Foo   ()";
-        let edits = super::format(code);
-        expect![[r#"
-            [
-                Edit {
-                    span: Span {
-                        lo: 9,
-                        hi: 12,
-                    },
-                    new_text: " ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 15,
-                        hi: 18,
-                    },
-                    new_text: "",
-                },
-            ]
-        "#]]
-        .assert_debug_eq(&edits);
-    }
-
-    #[test]
-    fn test_braces() {
-        let code = indoc! {r#"
-        operation Foo() : Unit {}
-        operation Bar() : Unit {
-            operation Baz() : Unit {}
-        }
-        "#};
-        let edits = super::format(code);
-        expect![[r#"
-            [
-                Edit {
-                    span: Span {
-                        lo: 24,
-                        hi: 24,
-                    },
-                    new_text: "\n",
-                },
-                Edit {
-                    span: Span {
-                        lo: 79,
-                        hi: 79,
-                    },
-                    new_text: "\n    ",
-                },
-            ]
-        "#]]
-        .assert_debug_eq(&edits);
-    }
-
-    #[test]
-    fn test_formatting_2() {
-        let code = indoc! {r#"
-        /// # Sample
-        /// Joint Measurement
-        ///
-        /// # Description
-        /// Joint measurements, also known as Pauli measurements, are a generalization
-        /// of 2-outcome measurements to multiple qubits and other bases.
-        namespace Sample {
-            open Microsoft.Quantum.Diagnostics;
-
-            @EntryPoint()
-            operation Main() : (Result, Result[]) {
-                // Prepare an entangled state.
-                use qs = Qubit[2];  // |00〉
-                H(qs[0]);           // 1/sqrt(2)(|00〉 + |10〉)
-                CNOT(qs[0], qs[1]); // 1/sqrt(2)(|00〉 + |11〉)
-
-                // Show the quantum state before performing the joint measurement.
-                DumpMachine();
-
-                // The below code uses a joint measurement as a way to check the parity
-                // of the first two qubits. In this case, the parity measurement result
-                // will always be `Zero`.
-                // Notice how the state was not collapsed by the joint measurement.
-                let parityResult = Measure([PauliZ, PauliZ], qs[...1]);
-                DumpMachine();
-
-                // However, if we perform a measurement just on the first qubit, we can
-                // see how the state collapses.
-                let firstQubitResult = M(qs[0]);
-                DumpMachine();
-
-                // Measuring the last qubit does not change the quantum state
-                // since the state of the second qubit collapsed when the first qubit
-                // was measured because they were entangled.
-                let secondQubitResult = M(qs[1]);
-                DumpMachine();
-
-                ResetAll(qs);
-                return (parityResult, [firstQubitResult, secondQubitResult]);
-            }
-        }
-        "#};
-        let edits = super::format(code);
-        expect![[r#"
-            []
-        "#]]
-        .assert_debug_eq(&edits);
-    }
 }

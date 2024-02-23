@@ -12,6 +12,7 @@ pub(super) struct ConcreteToken {
     pub span: Span,
 }
 
+#[derive(PartialEq)]
 pub(super) enum ConcreteTokenKind {
     Cooked(cooked::TokenKind),
     Error(cooked::Error),
@@ -24,16 +25,6 @@ pub(super) struct ConcreteTokenIterator<'a> {
     cooked_tokens: Peekable<cooked::Lexer<'a>>,
     non_compilation_tokens: Peekable<raw::Lexer<'a>>,
 }
-
-// impl ConcreteToken {
-//     pub(super) fn get_span(&self) -> Span {
-//         match self {
-//             ConcreteToken::Cooked(cooked) => cooked.span,
-//             ConcreteToken::Error(err) => err.get_span(),
-//             ConcreteToken::WhiteSpace(span) | ConcreteToken::Comment(span) => *span,
-//         }
-//     }
-// }
 
 impl<'a> ConcreteTokenIterator<'a> {
     pub(super) fn new(code: &'a str) -> Self {
