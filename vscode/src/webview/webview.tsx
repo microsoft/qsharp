@@ -13,6 +13,7 @@ import { HelpPage } from "./help";
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
+import { BlochSphere } from "./bloch";
 const md = markdownIt();
 md.use(mk);
 
@@ -41,10 +42,12 @@ type EstimatesState = {
 type State =
   | { viewType: "loading" }
   | { viewType: "help" }
+  | { viewType: "bloch" }
   | HistogramState
   | EstimatesState;
 const loadingState: State = { viewType: "loading" };
 const helpState: State = { viewType: "help" };
+const blochState: State = { viewType: "bloch" };
 let state: State = loadingState;
 
 function main() {
@@ -100,6 +103,9 @@ function onMessage(event: any) {
       break;
     case "help":
       state = helpState;
+      break;
+    case "bloch":
+      state = blochState;
       break;
     default:
       console.error("Unknown command: ", message.command);
@@ -157,6 +163,8 @@ function App({ state }: { state: State }) {
       );
     case "help":
       return <HelpPage />;
+    case "bloch":
+      return <BlochSphere />;
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;

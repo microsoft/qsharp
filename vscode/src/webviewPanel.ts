@@ -282,6 +282,15 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 
   context.subscriptions.push(
+    commands.registerCommand("qsharp-vscode.showBloch", async () => {
+      const message = {
+        command: "bloch",
+      };
+      sendMessageToPanel("bloch", true, message);
+    }),
+  );
+
+  context.subscriptions.push(
     commands.registerCommand("qsharp-vscode.showHistogram", async () => {
       const associationId = getRandomGuid();
       sendTelemetryEvent(EventType.TriggerHistogram, { associationId }, {});
@@ -360,7 +369,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 }
 
-type PanelType = "histogram" | "estimates" | "help";
+type PanelType = "histogram" | "estimates" | "help" | "bloch";
 
 const panelTypeToPanel: Record<
   PanelType,
@@ -369,6 +378,7 @@ const panelTypeToPanel: Record<
   histogram: { title: "Q# Histogram", panel: undefined, state: {} },
   estimates: { title: "Q# Estimates", panel: undefined, state: {} },
   help: { title: "Q# Help", panel: undefined, state: {} },
+  bloch: { title: "Bloch Sphere", panel: undefined, state: {} },
 };
 
 function sendMessageToPanel(
@@ -500,6 +510,7 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
     if (
       panelType !== "estimates" &&
       panelType !== "histogram" &&
+      panelType !== "bloch" &&
       panelType !== "help"
     ) {
       // If it was loading when closed, that's fine

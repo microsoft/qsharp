@@ -170,6 +170,10 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.showBloch",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
         },
@@ -263,6 +267,11 @@
       {
         "command": "qsharp-vscode.showHelp",
         "title": "Help",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showBloch",
+        "title": "Bloch sphere",
         "category": "Q#"
       },
       {
