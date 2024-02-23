@@ -13,7 +13,7 @@ This will include measuring a single qubit in a multi-qubit system, as well as m
 
 - Measuring a single qubit in a multi-qubit system
 - Measuring multiple qubits simultaneously
-- How to implement such measurements in Q#
+- Implementing different kinds of measurements in Q#
 
 **What you should know to start working on this kata:**
 
@@ -25,10 +25,7 @@ This will include measuring a single qubit in a multi-qubit system, as well as m
 $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
 
-@[section]({
-    "id": "multi_qubit_measurements__types_of_measurements",
-    "title": "Types of Measurements"
-})
+## Types of Measurements
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
 
@@ -38,9 +35,12 @@ There are several types of measurements you can perform on an $n$-qubit system (
 
 We will discuss these concepts in the same order as in the list above.
 
-## Full Measurements: Measurements in Multi-Qubit Bases
+@[section]({
+    "id": "multi_qubit_measurements__full_measurements_lesson",
+    "title": "Full Measurements: Measurements in Multi-Qubit Bases"
+})
 
-Consider a system consisting of $n\geq1$ qubits. The wave function of such a system belongs to a vector space of dimension $2^n$. Thus, the vector space is spanned by an orthogonal basis, such as the computational basis which consists of the vectors $|0\dotsc0\rangle, \dotsc, |1\dotsc 1\rangle$. For generality, we consider an arbitrary orthonormal basis, which we denote by $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$.
+Consider a system consisting of $n\geq1$ qubits. The wave function of such a system belongs to a vector space of dimension $2^n$. Thus, the vector space is spanned by an orthogonal basis, such as the computational basis which consists of the vectors $|0\dotsc0\rangle, \dotsc, |1\dotsc 1\rangle$. For generality, we consider an arbitrary orthonormal basis, which we denote by $\\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \\}$.
 
 Then, the state $|\psi\rangle$ of the multi-qubit system can be expressed as a linear combination of the $2^n$ basis vectors $|b_i\rangle$. That is, there exist complex numbers $c_0,c_1,\dotsc, c_{2^n-1}$ such that
 
@@ -48,7 +48,7 @@ $$
 |\psi\rangle = \sum_{i=0}^{2^n-1} c_i|b_i\rangle \equiv \begin{pmatrix} c_0 \\\ c_1 \\\ \vdots \\\ c_{2^n-1} \end{pmatrix}
 $$
 
-In line with the usual convention, we choose the wave function to be normalized, so that $|c_0|^2 + \dotsc + |c_{2^n-1}|^2 =1$. Then, a quantum measurement in the $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$ basis satisfies the following rules:
+In line with the usual convention, we choose the wave function to be normalized, so that $|c_0|^2 + \dotsc + |c_{2^n-1}|^2 =1$. Then, a quantum measurement in the basis $\\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \\}$ satisfies the following rules:
 
 - The measurement outcome $b_i$ occurs with probability $|c_i|^2$.
 - Whenever the measurement outcome is $b_i$, the wave function collapses to the state $|b_i\rangle$. That is, the post-measurement state of the system is equal to $|b_i\rangle$.
@@ -70,12 +70,17 @@ This can be summarized in the following table:
 
 > Similar to measurements in single-qubit systems, the assumption of normalization of the original wave function is required in order to ensure that the sum of all the outcome probabilities is 1.
 
-## Multi-Qubit Measurement Outcome Probabilities I
+## 🔎 Analyze
 
-Suppose that a two-qubit system is known to be in the following state:
+### Multi-Qubit Measurement Outcome Probabilities I
+
+You are given a two-qubit system in the following state:
 $$\ket \psi =  \frac{1}{3}\ket {00} + \frac{2}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
 If all the qubits are measured simultaneously in the computational basis, what are the outcome probabilities?
+
+<details>
+<summary><b>Solution</b></summary>
 
 The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^2 + \left(\frac{2}{3}\right)^2 + \left(\frac{2}{3}\right)^2 = 1$. Hence, the probabilities of measuring each of the computational basis states is simply the square of the absolute value of the corresponding coefficients. That is, the probabilities of measuring $00$, $01$ and $11$ are $\frac{1}{9}$, $\frac{4}{9}$ and $\frac{4}{9}$, respectively, and the probability of measuring the basis state $10$ that is not part of the superposition is $0$:
 
@@ -103,25 +108,26 @@ The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^
 </table>
 </details>
 
-## Multi-Qubit Measurement Outcome Probabilities II
+### Multi-Qubit Measurement Outcome Probabilities II
 
-Suppose that a two-qubit system is known to be in the following state:
+You are given a two-qubit system in the following state:
 $$\ket \psi = \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
-If all the qubits are measured simultaneously in the Pauli X basis, that is, in the $\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\}$ basis, what are the outcome probabilities?
+If all the qubits are measured simultaneously in the Pauli X basis, that is, in the $\\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\\}$ basis, what are the outcome probabilities?
 
-### Analytical Solution
+<details>
+<summary><b>Analytical Solution</b></summary>
 
 Using the expressions $|0\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle + |-\rangle \big)$ and $|1\rangle = \frac{1}{\sqrt{2}} \big( |+\rangle - |-\rangle \big)$, we first express $|\psi\rangle$ in the Pauli X basis. This gives us
-$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
+$$\ket \psi =  \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11} =$$
 
-$$= \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] + \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} - \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big]$$
+$$= \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} + \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] + \frac{2}{3} \big[ \frac{1}{\sqrt{2}}\big(\ket{+} - \ket{-}\big) \otimes \frac{1}{\sqrt{2}} \big(\ket{+} - \ket{-}\big) \big] =$$
 
-$$= \frac{1}{3} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{6} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] + \frac{1}{3} \big[ \big(\ket{+} - \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big]$$
+$$= \frac{1}{3} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} + \ket{-}\big) \big] + \frac{1}{6} \big[ \big(\ket{+} + \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] + \frac{1}{3} \big[ \big(\ket{+} - \ket{-}\big) \otimes \big(\ket{+} - \ket{-}\big) \big] =$$
 
-$$= \frac{1}{3} \big[ \ket{++} + \ket{+-} + \ket{-+} + \ket{--} \big] + \frac{1}{6} \big[ \ket{++} - \ket{+-} + \ket{-+} - \ket{--} \big] + \frac{1}{3} \big[ \ket{++} - \ket{+-} - \ket{-+} + \ket{--} \big]$$
+$$= \frac{1}{3} \big[ \ket{++} + \ket{+-} + \ket{-+} + \ket{--} \big] + \frac{1}{6} \big[ \ket{++} - \ket{+-} + \ket{-+} - \ket{--} \big] + \frac{1}{3} \big[ \ket{++} - \ket{+-} - \ket{-+} + \ket{--} \big] =$$
 
-$$= (\frac{1}{3} + \frac{1}{6} + \frac{1}{3})\ket{++} + (\frac{1}{3} - \frac{1}{6} - \frac{1}{3})\ket{+-} + (\frac{1}{3} + \frac{1}{6} - \frac{1}{3})\ket{-+} + (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--}$$
+$$= (\frac{1}{3} + \frac{1}{6} + \frac{1}{3})\ket{++} + (\frac{1}{3} - \frac{1}{6} - \frac{1}{3})\ket{+-} + (\frac{1}{3} + \frac{1}{6} - \frac{1}{3})\ket{-+} + (\frac{1}{3} - \frac{1}{6} + \frac{1}{3})\ket{--} =$$
 
 $$= \frac{5}{6}\ket{++} - \frac{1}{6}\ket{+-} + \frac{1}{6}\ket{-+} + \frac{1}{2}\ket{--}$$
 
@@ -149,7 +155,10 @@ After this, the probabilities of measuring each of the four basis vectors is giv
     </tr>
 </table>
 
-### Code-Based Solution
+</details>
+
+<details>
+<summary><b>Code-Based Solution</b></summary>
 
 We can also use Q# to solve this problem. It can be achieved in three steps:
 
@@ -186,12 +195,15 @@ The amplitudes of the computational basis states after the transformation are th
 >$$\frac 2 3 \ket {00} + {\big (} \frac 1 {\sqrt 5} \ket {0} + \frac 2 {\sqrt 5} \ket {1} {\big )} \frac {\sqrt 5} 3 \ket {1}$$
 >This representation tells us how we should rotate individual qubits.
 >
->Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a CNOT gate and a controlled $R_y$ gate to achieve the same result.
+>Notice that we start by rotating the second qubit, as this gives a simpler implementation. If we started by rotating the first qubit, we would need to use a $CNOT$ gate and a controlled $R_y$ gate to achieve the same result.
 
 @[example]({
     "id": "multi_qubit_measurements__multi_qubit_probabilities_2_example",
-    "codePath": "./MultiQubitProbabilities.qs"
+    "codePath": "./examples/MultiQubitProbabilities.qs"
 })
+
+</details>
+
 
 ## Measuring Each Qubit in a System Sequentially
 
@@ -201,8 +213,8 @@ In practice, this is implemented by measuring all the qubits one after another. 
 
 This can be generalized to measurements in other bases, such as the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$, and the bases for larger numbers of qubits.
 
-> Note that measurement of all qubits sequentially can only be done in orthogonal bases $\{ \ket{b_i}\}$, such that each $\ket{b_i}$ is a tensor product state. That is, each $\ket{b_i}$ must be of the form $\ket{v_0} \otimes \ket{v_1} \dotsc \otimes \ket{v_{n-1}}$, with each $\ket{v_j}$ being a single-qubit basis state.
-For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$ each basis state is a tensor product of states $\ket{+}$ and $\ket{-}$, which form a single-qubit basis state.
+> Note that measurement of all qubits sequentially can only be done in orthogonal bases $\\{ \ket{b_i}\\}$, such that each $\ket{b_i}$ is a **tensor product state**. That is, each $\ket{b_i}$ must be of the form $\ket{v_0} \otimes \ket{v_1} \dotsc \otimes \ket{v_{n-1}}$, with each $\ket{v_j}$ being a single-qubit basis state.
+For example, for the two-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$ each basis state is a tensor product of states $\ket{+}$ and $\ket{-}$, which form a single-qubit basis state.
 >
 > Measuring in orthogonal bases which contain states which are not tensor product states, such as the Bell basis, are trickier to implement, and require appropriate unitary rotations in addition to measuring all qubits one after another.
 > We will not discuss such measurements in this kata.
@@ -214,16 +226,17 @@ For example, for the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{-
     "title": "Measurement Statistics for Qubit-By-Qubit Full Measurement"
 })
 
-This demo illustrates the equivalence of the measurement probabilities for simultaneous measurement on all qubits, and measurements on each of the qubits executed one after another. Using the wave function from exercise 1 above as an example, we show that the measurement probabilities obtained using the `M` operation in Q# are the same as those expected theoretically for exercise 1.
+This demo illustrates the equivalence of the measurement probabilities for simultaneous measurement on all qubits, and measurements on each of the qubits executed one after another. We show that the measurement probabilities obtained using the `M` operation in Q# are the same as those expected theoretically, using the two-qubit state from the first exercise as an example:
+
+$$\ket \psi =  \frac{1}{3}\ket {00} + \frac{2}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
 The simulated probabilities will be different for each run of `DemoBasisMeasurement`. The simulated and theoretical probabilities are not expected to be identical, since measurements are probabilistic. However, we expect the values to be similar, and the simulated probabilities to approach the theoretical probabilities as the parameter `numRuns` is increased.
 
 @[example]({
     "id": "multi_qubit_measurements__measuring_one_at_a_time",
-    "codePath": "./MeasuringOne.qs"
+    "codePath": "./examples/MeasuringOne.qs"
 })
 
-## Using Full Measurements to Identify the State of the System
 
 Full measurements can also be used to identify the state of the system, if it is guaranteed to be in one of several possible orthogonal states.
 
@@ -337,7 +350,7 @@ The simulated and theoretical measurement probabilities are not expected to matc
 
 @[example]({
     "id": "multi_qubit_measurements__partial_measurements_demo",
-    "codePath": "./PartialMeasurementsDemo.qs"
+    "codePath": "./examples/PartialMeasurementsDemo.qs"
 })
 
 ## Using Partial Measurements to Identify the State of the System
