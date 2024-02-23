@@ -196,38 +196,68 @@ fn correct_indentation() {
 }
 
 #[test]
-fn test_braces() {
-    let code = indoc! {r#"
-        operation Foo() : Unit {}
-        operation Bar() : Unit {
-            operation Baz() : Unit {}
+fn correct_empty_delimiters() {
+    check(
+        indoc! {r#"
+        operation Foo() : Unit {
         }
-        "#};
-    let edits = super::format(code);
-    expect![[r#"
+        operation Bar() : Unit {
+            operation Baz() : Unit {   }
+            let x = {
+
+            };
+            let y : Int[] = [ ];
+            let z = (
+
+             );
+        }
+        "#},
+        &expect![[r#"
             [
                 Edit {
                     span: Span {
                         lo: 24,
-                        hi: 24,
+                        hi: 25,
                     },
-                    new_text: "\n",
+                    new_text: "",
                 },
                 Edit {
                     span: Span {
-                        lo: 79,
-                        hi: 79,
+                        lo: 80,
+                        hi: 83,
                     },
-                    new_text: "\n    ",
+                    new_text: "",
+                },
+                Edit {
+                    span: Span {
+                        lo: 98,
+                        hi: 104,
+                    },
+                    new_text: "",
+                },
+                Edit {
+                    span: Span {
+                        lo: 128,
+                        hi: 129,
+                    },
+                    new_text: "",
+                },
+                Edit {
+                    span: Span {
+                        lo: 145,
+                        hi: 152,
+                    },
+                    new_text: "",
                 },
             ]
-        "#]]
-    .assert_debug_eq(&edits);
+        "#]],
+    );
 }
 
 #[test]
-fn test_formatting_2() {
-    let code = indoc! {r#"
+fn test_sample() {
+    check(
+        indoc! {r#"
         /// # Sample
         /// Joint Measurement
         ///
@@ -269,10 +299,9 @@ fn test_formatting_2() {
                 return (parityResult, [firstQubitResult, secondQubitResult]);
             }
         }
-        "#};
-    let edits = super::format(code);
-    expect![[r#"
+        "#},
+        &expect![[r#"
             []
-        "#]]
-    .assert_debug_eq(&edits);
+        "#]],
+    );
 }
