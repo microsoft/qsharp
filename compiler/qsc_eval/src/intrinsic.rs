@@ -53,9 +53,8 @@ pub(crate) fn call(
                 return Err(Error::QubitUniqueness(arg_span));
             }
             let (state, qubit_count) = sim.capture_quantum_state();
-            let Some(state) = utils::split_state(&qubits, state, qubit_count) else {
-                return Err(Error::QubitsNotSeparable(arg_span));
-            };
+            let state = utils::split_state(&qubits, state, qubit_count)
+                .map_err(|()| Error::QubitsNotSeparable(arg_span))?;
             match out.state(state, qubits.len()) {
                 Ok(()) => Ok(Value::unit()),
                 Err(_) => Err(Error::OutputFail(name_span)),
