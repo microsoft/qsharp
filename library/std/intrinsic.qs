@@ -160,8 +160,6 @@ namespace Microsoft.Quantum.Intrinsic {
     ///     \end{bmatrix}.
     /// \end{align}
     /// $$
-    /// where $P_i$ is the $i$th element of `paulis`, and where
-    /// $N = $`Length(paulis)`.
     operation H(qubit : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__h__body(qubit);
