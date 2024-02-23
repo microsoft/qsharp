@@ -15,7 +15,7 @@ use qsc_fir::{
 };
 
 /// Scaffolding used to build the package store compute properties.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
@@ -69,6 +69,7 @@ impl PackageStoreComputeProperties {
             })
     }
 
+    // TODO (cesarzc): might not be needed.
     pub fn flush(
         &mut self,
         package_store_compute_properties: &mut crate::PackageStoreComputeProperties,
@@ -110,14 +111,40 @@ impl PackageStoreComputeProperties {
             .expect("specialization should exist")
     }
 
-    pub fn initialize_packages(&mut self, package_store: &fir::PackageStore) {
+    pub fn init(package_store: &fir::PackageStore) -> Self {
+        let mut packages = IndexMap::<PackageId, PackageComputeProperties>::default();
         for (package_id, _) in package_store {
-            self.insert(package_id, PackageComputeProperties::default());
+            packages.insert(package_id, PackageComputeProperties::default());
         }
+        Self(packages)
     }
 
-    pub fn insert(&mut self, id: PackageId, value: PackageComputeProperties) {
-        self.0.insert(id, value);
+    pub fn init_and_populate(
+        package_store_compute_properties: &mut crate::PackageStoreComputeProperties,
+    ) -> Self {
+        let mut packages_scaffolding = IndexMap::<PackageId, PackageComputeProperties>::default();
+        for (package_id, mut package_compute_properties) in
+            package_store_compute_properties.0.drain()
+        {
+            let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
+            package_compute_properties.items.drain().for_each(
+                |(item_id, item_compute_properties)| {
+                    let item_compute_properties =
+                        ItemComputeProperties::from(item_compute_properties);
+                    items.insert(item_id, item_compute_properties);
+                },
+            );
+
+            let package_compute_properties = PackageComputeProperties {
+                items,
+                blocks: package_compute_properties.blocks,
+                stmts: package_compute_properties.stmts,
+                exprs: package_compute_properties.exprs,
+            };
+            packages_scaffolding.insert(package_id, package_compute_properties);
+        }
+
+        Self(packages_scaffolding)
     }
 
     pub fn insert_item(&mut self, id: StoreItemId, value: ItemComputeProperties) {
@@ -142,33 +169,6 @@ impl PackageStoreComputeProperties {
                 id.callable.item,
                 ItemComputeProperties::Specializations(specializations),
             );
-        }
-    }
-
-    pub fn take(
-        &mut self,
-        package_store_compute_properties: &mut crate::PackageStoreComputeProperties,
-    ) {
-        assert!(self.0.is_empty());
-        for (package_id, mut package_compute_properties) in
-            package_store_compute_properties.0.drain()
-        {
-            let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
-            package_compute_properties.items.drain().for_each(
-                |(item_id, item_compute_properties)| {
-                    let item_compute_properties =
-                        ItemComputeProperties::from(item_compute_properties);
-                    items.insert(item_id, item_compute_properties);
-                },
-            );
-
-            let package_compute_properties = PackageComputeProperties {
-                items,
-                blocks: package_compute_properties.blocks,
-                stmts: package_compute_properties.stmts,
-                exprs: package_compute_properties.exprs,
-            };
-            self.0.insert(package_id, package_compute_properties);
         }
     }
 }

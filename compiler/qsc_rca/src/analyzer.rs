@@ -20,8 +20,7 @@ impl Analyzer {
     /// which makes this a computationally intensive operation.
     #[must_use]
     pub fn init_and_analyze(package_store: &PackageStore) -> Self {
-        let mut scaffolding = scaffolding::PackageStoreComputeProperties::default();
-        scaffolding.initialize_packages(package_store);
+        let mut scaffolding = scaffolding::PackageStoreComputeProperties::init(package_store);
 
         // First, we need to analyze the callable specializations with cycles. Otherwise, we cannot safely analyze the
         // rest of the items without causing an infinite analysis loop.
@@ -67,11 +66,13 @@ impl Analyzer {
         package_compute_properties.clear();
 
         // Re-analyze the package.
-        let mut package_store_scaffolding = scaffolding::PackageStoreComputeProperties::default();
-        let package = package_store.get(package_id);
-        package_store_scaffolding.take(&mut self.compute_properties);
+        let mut package_store_scaffolding =
+            scaffolding::PackageStoreComputeProperties::init_and_populate(
+                &mut self.compute_properties,
+            );
 
         // First, analyze callables with cycles for the package being updated.
+        let package = package_store.get(package_id);
         let specializations_with_cycles = detect_specializations_with_cycles(package_id, package);
         for specialization_id in &specializations_with_cycles {
             analyze_specialization_with_cyles(
@@ -84,5 +85,42 @@ impl Analyzer {
         // Analyze the remaining items.
         analyze_package(package_id, package_store, &mut package_store_scaffolding);
         package_store_scaffolding.flush(&mut self.compute_properties);
+    }
+}
+
+pub struct RCA<'a> {
+    package_store: &'a PackageStore,
+    package_store_compute_properties: scaffolding::PackageStoreComputeProperties,
+}
+
+impl<'a> RCA<'a> {
+    pub fn init(package_store: &'a PackageStore) -> Self {
+        Self {
+            package_store,
+            package_store_compute_properties: scaffolding::PackageStoreComputeProperties::init(
+                package_store,
+            ),
+        }
+    }
+
+    pub fn init_with_compute_properties(
+        package_store: &'a PackageStore,
+        _package_store_compute_properties: PackageStoreComputeProperties,
+    ) -> Self {
+        Self {
+            package_store,
+            // TODO (cesarzc): use the provided package store compute properties.
+            package_store_compute_properties: scaffolding::PackageStoreComputeProperties::init(
+                package_store,
+            ),
+        }
+    }
+
+    pub fn analyze_all(self) -> PackageStoreComputeProperties {
+        unimplemented!()
+    }
+
+    pub fn analyze_package(self, package_id: PackageId) -> PackageStoreComputeProperties {
+        unimplemented!()
     }
 }

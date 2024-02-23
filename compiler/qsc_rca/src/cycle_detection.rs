@@ -17,6 +17,12 @@ use qsc_fir::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct LocalSpecId {
+    pub callable: LocalItemId,
+    pub functor_set_value: FunctorSetValue,
+}
+
 #[derive(Default)]
 struct CallStack {
     set: FxHashSet<LocalSpecId>,
@@ -42,12 +48,6 @@ impl CallStack {
         self.set.insert(value);
         self.stack.push(value);
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-struct LocalSpecId {
-    pub callable: LocalItemId,
-    pub functor_set_value: FunctorSetValue,
 }
 
 struct CycleDetector<'a> {
