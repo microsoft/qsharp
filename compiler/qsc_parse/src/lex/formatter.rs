@@ -5,9 +5,7 @@ use crate::keyword::Keyword;
 
 use super::{
     concrete::{self, ConcreteToken, ConcreteTokenKind},
-    //raw::{Lexer, Single, TokenKind},
-    Delim,
-    TokenKind,
+    Delim, TokenKind,
 };
 use qsc_data_structures::span::Span;
 
