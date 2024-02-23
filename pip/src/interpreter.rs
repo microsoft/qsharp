@@ -564,6 +564,6 @@ fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
         .collect::<std::result::Result<Vec<String>, _>>()
     {
         Ok(list) => Ok(list),
-        Err(e) => Err(QSharpError::new_err(e.to_string())),
+        Err(e) => Err(e.into()),
     }
 }

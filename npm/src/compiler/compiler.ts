@@ -15,8 +15,13 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
-  getHir(code: string, language_features?: string[]): Promise<string>;
-  /** @deprecated -- switch to using `ProgramConfig`-based overload **/
+  getHir(code: string, languageFeatures?: string[]): Promise<string>;
+  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
+   * all arguments separately, pass an object with named properties. This change was made
+   * for the sake of extensibility and future-compatibility. Note that only the new API
+   * supports passing guage features. If you need to pass language features, you must use
+   * the new API.
+   **/
   run(
     sources: [string, string][],
     expr: string,
@@ -26,12 +31,12 @@ export interface ICompiler {
   run(config: ProgramConfig, eventHandler: IQscEventTarget): Promise<void>;
   getQir(
     sources: [string, string][],
-    language_features?: string[],
+    languageFeatures?: string[],
   ): Promise<string>;
   getEstimates(
     sources: [string, string][],
     params: string,
-    language_features?: string[],
+    languageFeatures?: string[],
   ): Promise<string>;
   checkExerciseSolution(
     user_code: string,
@@ -49,7 +54,7 @@ export type ProgramConfig = {
   /** The number of shots to be performed in the quantum simulation. */
   shots: number;
   /** An array of language features to be opted in to in this compilation. */
-  language_features?: string[];
+  languageFeatures?: string[];
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -89,21 +94,21 @@ export class Compiler implements ICompiler {
 
   async getQir(
     sources: [string, string][],
-    language_features: string[],
+    languageFeatures: string[],
   ): Promise<string> {
-    return this.wasm.get_qir(sources, language_features);
+    return this.wasm.get_qir(sources, languageFeatures);
   }
 
   async getEstimates(
     sources: [string, string][],
     params: string,
-    language_features: string[],
+    languageFeatures: string[],
   ): Promise<string> {
-    return this.wasm.get_estimates(sources, params, language_features);
+    return this.wasm.get_estimates(sources, params, languageFeatures);
   }
 
-  async getHir(code: string, language_features: string[]): Promise<string> {
-    return this.wasm.get_hir(code, language_features);
+  async getHir(code: string, languageFeatures: string[]): Promise<string> {
+    return this.wasm.get_hir(code, languageFeatures);
   }
 
   async run(
@@ -120,17 +125,17 @@ export class Compiler implements ICompiler {
 
     if (Array.isArray(sourcesOrConfig)) {
       // this is the deprecated API
-      sources = sourcesOrConfig as [string, string][];
+      sources = sourcesOrConfig;
       expr = exprOrEventHandler as string;
       shots = maybeShots;
-      eventHandler = maybeEventHandler as IQscEventTarget;
+      eventHandler = maybeEventHandler;
     } else {
       // this is the new API
       sources = sourcesOrConfig.sources;
       expr = sourcesOrConfig.expr;
       shots = sourcesOrConfig.shots;
       eventHandler = exprOrEventHandler as IQscEventTarget;
-      languageFeatures = sourcesOrConfig.language_features || [];
+      languageFeatures = sourcesOrConfig.languageFeatures || [];
     }
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
     // entry expression or similar), it may throw on run. The caller should expect this promise
