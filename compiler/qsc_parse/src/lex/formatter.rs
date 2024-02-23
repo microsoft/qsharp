@@ -85,11 +85,9 @@ pub fn format(code: &str) -> Vec<Edit> {
                 }
             }
             (None, None, Some(three)) => {
-                let temp = format!("{:?}", three.kind);
-
                 // Remove any whitespace at the start of a file
-                if ConcreteTokenKind::WhiteSpace == three.kind {
-                    vec![Edit::new(three.span.hi, three.span.lo, "")]
+                if three.span.lo != 0 {
+                    vec![Edit::new(0, three.span.lo, "")]
                 } else {
                     vec![]
                 }

@@ -35,7 +35,57 @@ fn test_formatting() {
 }
 
 #[test]
-fn test_indentation() {
+fn remove_trailing_spaces() {
+    let extra_spaces = "    ";
+    let input = format!(
+        "/// Doc Comment with trailing spaces{extra_spaces}
+operation Foo() : Unit {{
+    // Comment with trailing spaces{extra_spaces}
+    let x = 3;   // In-line comment with trailing spaces{extra_spaces}
+    let y = 4;{extra_spaces}
+}}
+"
+    );
+
+    check(
+        input.as_str(),
+        &expect![[r#"
+            [
+                Edit {
+                    span: Span {
+                        lo: 0,
+                        hi: 40,
+                    },
+                    new_text: "/// Doc Comment with trailing spaces",
+                },
+                Edit {
+                    span: Span {
+                        lo: 70,
+                        hi: 105,
+                    },
+                    new_text: "// Comment with trailing spaces",
+                },
+                Edit {
+                    span: Span {
+                        lo: 123,
+                        hi: 166,
+                    },
+                    new_text: "// In-line comment with trailing spaces",
+                },
+                Edit {
+                    span: Span {
+                        lo: 181,
+                        hi: 186,
+                    },
+                    new_text: "\n",
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn correct_indentation() {
     check(
         r#"
     /// First
@@ -56,6 +106,13 @@ fn test_indentation() {
 "#,
         &expect![[r#"
             [
+                Edit {
+                    span: Span {
+                        lo: 0,
+                        hi: 5,
+                    },
+                    new_text: "",
+                },
                 Edit {
                     span: Span {
                         lo: 25,

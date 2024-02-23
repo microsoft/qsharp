@@ -12,7 +12,7 @@ pub(super) struct ConcreteToken {
     pub span: Span,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(super) enum ConcreteTokenKind {
     Cooked(cooked::TokenKind),
     Error(cooked::Error),
