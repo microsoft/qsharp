@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.Diagnostics {
     ///
     /// # Example
     /// When run on the sparse-state simulator, the following snippet dumps
-    /// the Bell state $(\ket{00} + \ket{11}) / \sqrt{2}$ to the console:
+    /// the Bell state (|00〉 + |11〉 ) / √2 to the console:
     /// ```qsharp
     /// use left = Qubit();
     /// use right = Qubit();
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.Diagnostics {
     ///
     /// # Example
     /// When run on the sparse-state simulator, the following snippet dumps
-    /// the Bell state $(\ket{00} + \ket{11}) / \sqrt{2}$ to the console:
+    /// the Bell state (|00〉 + |11〉 ) / √2 to the console:
     /// ```qsharp
     /// use left = Qubit();
     /// use right = Qubit();
