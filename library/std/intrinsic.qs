@@ -152,7 +152,12 @@ namespace Microsoft.Quantum.Intrinsic {
     /// # Remarks
     /// $$
     /// \begin{align}
-    ///     e^{i \theta [P_0 \otimes P_1 \cdots P_{N-1}]},
+    ///     H \mathrel{:=}
+    ///     \frac{1}{\sqrt{2}}
+    ///     \begin{bmatrix}
+    ///         1 & 1 \\\\
+    ///         1 & -1
+    ///     \end{bmatrix}.
     /// \end{align}
     /// $$
     /// where $P_i$ is the $i$th element of `paulis`, and where
