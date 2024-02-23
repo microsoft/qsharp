@@ -15,7 +15,7 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
-  getHir(code: string, language_features: string[]): Promise<string>;
+  getHir(code: string, language_features?: string[]): Promise<string>;
   /** @deprecated -- switch to using `ProgramConfig`-based overload **/
   run(
     sources: [string, string][],
@@ -26,12 +26,12 @@ export interface ICompiler {
   run(config: ProgramConfig, eventHandler: IQscEventTarget): Promise<void>;
   getQir(
     sources: [string, string][],
-    language_features: string[],
+    language_features?: string[],
   ): Promise<string>;
   getEstimates(
     sources: [string, string][],
     params: string,
-    language_features: string[],
+    language_features?: string[],
   ): Promise<string>;
   checkExerciseSolution(
     user_code: string,
