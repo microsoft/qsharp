@@ -462,46 +462,37 @@ pub struct PackageStore(IndexMap<PackageId, Package>);
 
 impl PackageStoreLookup for PackageStore {
     fn get_block(&self, id: StoreBlockId) -> &Block {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_block(id.block)
+        self.get(id.package).get_block(id.block)
     }
 
     fn get_expr(&self, id: StoreExprId) -> &Expr {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_expr(id.expr)
+        self.get(id.package).get_expr(id.expr)
     }
 
     fn get_global(&self, id: StoreItemId) -> Option<Global> {
-        self.get(id.package)
-            .and_then(|package| package.get_global(id.item))
+        self.get(id.package).get_global(id.item)
     }
 
     fn get_pat(&self, id: StorePatId) -> &Pat {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_pat(id.pat)
+        self.get(id.package).get_pat(id.pat)
     }
 
     fn get_stmt(&self, id: StoreStmtId) -> &Stmt {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_stmt(id.stmt)
+        self.get(id.package).get_stmt(id.stmt)
     }
 }
 
 impl PackageStore {
     /// Gets a package from the store.
     #[must_use]
-    pub fn get(&self, id: PackageId) -> Option<&Package> {
-        self.0.get(id)
+    pub fn get(&self, id: PackageId) -> &Package {
+        self.0.get(id).expect("store should have package")
     }
 
     /// Gets a mutable package from the store.
     #[must_use]
-    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut Package> {
-        self.0.get_mut(id)
+    pub fn get_mut(&mut self, id: PackageId) -> &mut Package {
+        self.0.get_mut(id).expect("store should have package")
     }
 
     /// Inserts a package to the store.

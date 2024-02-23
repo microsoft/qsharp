@@ -129,7 +129,6 @@ Several ket symbols have a generally accepted use, so you will see them often:
 
 We will learn more about Dirac notation in the next katas, as we introduce quantum gates and multi-qubit systems.
 
-
 @[section]({
     "id": "qubit__relative_and_global_phase",
     "title": "Relative and Global Phase"
@@ -138,7 +137,7 @@ We will learn more about Dirac notation in the next katas, as we introduce quant
 Complex numbers have a parameter called the phase. If a complex number $z = x + iy$ is written in polar form $z = re^{i\theta}$, its phase is $\theta$, where $\theta = \atan2(y, x)$.
 
 > `atan2` is a useful function available in most programming languages. It takes two arguments and returns an angle $\theta$
-> between $-\pi$ and $\pi$ that has $\cos \theta = x$ and $\sin \theta = y$. Unlike using $\tan^{-1}(\frac{y}{x})$, `atan2` computes 
+> between $-\pi$ and $\pi$ that has $\cos \theta = x$ and $\sin \theta = y$. Unlike using $\tan^{-1}(\frac{y}{x})$, `atan2` computes
 > the correct quadrant for the angle, since it preserves information about the signs of both sine and cosine of the angle.
 
 The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$. If you do the math, you see that the phase of $|0\rangle$ is $\atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $|1\rangle$ is $\atan2(\frac12, -\frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
@@ -166,15 +165,15 @@ Before we continue, let's learn some techniques to visualize the quantum state o
 
 ### Display the Quantum State of a Single-Qubit Program
 
-Let's start with a simple scenario: a program that acts on a single qubit. 
+Let's start with a simple scenario: a program that acts on a single qubit.
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
 
 $$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
-If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation. 
+If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation.
 You would need to run the program repeatedly up to this point, perform a measurement on the system, and aggregate the results of multiple measurements to estimate $\alpha$ and $\beta$.
 
-However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state. 
+However, at the early stages of quantum program development the program typically runs on a simulator - a classical program which simulates the behavior of a small quantum system while having complete information about its internal state.
 You can take advantage of this to do some non-physical things, such as peeking at the internals of the quantum system to observe its exact state without disturbing it!
 
 The `DumpMachine` function from the `Microsoft.Quantum.Diagnostics` namespace allows you to do exactly that. The output of `DumpMachine` is accurate up to a global phase, and remember that global phase does not have any physical meaning. When using `DumpMachine`, you may see that all probability amplitudes are multiplied by some complex number compared to the state you're expecting.
@@ -222,15 +221,11 @@ For example, the state $|0\rangle$ would be represented as follows:
 @[exercise]({
     "id": "qubit__learn_single_qubit_state",
     "title": "Learn the State of a Single Qubit Using DumpMachine",
-    "descriptionPath": "./learn_single_qubit_state/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./learn_single_qubit_state/Verification.qs"
-    ],
-    "placeholderSourcePath": "./learn_single_qubit_state/Placeholder.qs",
-    "solutionPath": "./learn_single_qubit_state/solution.md"
+    "path": "./learn_single_qubit_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
-
 
 @[section]({
     "id": "qubit__conclusion",
@@ -238,7 +233,8 @@ For example, the state $|0\rangle$ would be represented as follows:
 })
 
 Congratulations! In this kata you learned the basics of qubits and qubit states. Here are a few key concepts to keep in mind:
-* A qubit is a basic unit of quantum information, analogous to a bit in classical computing.
-* Superposition is a quantum phenomenon where a qubit is in a combination of both 0 and 1 states. When measured, a qubit goes from being in superposition to one of the classical states.
-* A qubit can be represented as $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$, where $\alpha$ and $\beta$ are complex numbers and state vectors $|0\rangle$ and $|1\rangle$ are $0$ and $1$ states respectively.
-* In Q#, qubits are represented by the `Qubit` data type. When simulating a quantum program, you can use `DumpMachine` to inspect the state of a qubit without disturbing it.
+
+- A qubit is a basic unit of quantum information, analogous to a bit in classical computing.
+- Superposition is a quantum phenomenon where a qubit is in a combination of both 0 and 1 states. When measured, a qubit goes from being in superposition to one of the classical states.
+- A qubit can be represented as $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$, where $\alpha$ and $\beta$ are complex numbers and state vectors $|0\rangle$ and $|1\rangle$ are $0$ and $1$ states respectively.
+- In Q#, qubits are represented by the `Qubit` data type. When simulating a quantum program, you can use `DumpMachine` to inspect the state of a qubit without disturbing it.

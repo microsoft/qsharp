@@ -15,15 +15,14 @@ pub mod lower;
 pub mod output;
 pub mod val;
 
-use crate::val::{FunctorApp, Value};
+use crate::val::Value;
 use backend::Backend;
 use debug::{map_fir_package_to_hir, CallStack, Frame};
 use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
 use output::Receiver;
-use qsc_data_structures::index_map::IndexMap;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
     self, BinOp, BlockId, CallableImpl, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
     LocalItemId, LocalVarId, Mutability, PackageId, PackageStoreLookup, PatId, PatKind, PrimField,

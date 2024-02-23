@@ -19,9 +19,9 @@ namespace QuantumDynamics {
     @EntryPoint()
     operation Main() : Unit {
         // n : Int, m : Int, t: Double, u : Double, tstep : Double
-        
-        let n = 30;
-        let m = 30;
+
+        let n = 10;
+        let m = 10;
 
         let J = 1.0;
         let g = 1.0;
@@ -36,11 +36,11 @@ namespace QuantumDynamics {
     /// The function below creates a sequence containing the rotation angles that will be applied with the two operators used in the expansion of the Trotter-Suzuki formula.
     /// # Input
     /// ## p (Double) : Constant used for fourth-order formulas
-    /// 
+    ///
     /// ## dt (Double) : Time-step used to compute rotation angles
-    /// 
+    ///
     /// ## J (Double) : coefficient for 2-qubit interactions
-    /// 
+    ///
     /// ## g (Double) : coefficient for transverse field
     ///
     /// # Output
@@ -59,7 +59,7 @@ namespace QuantumDynamics {
         let val4 = g*(1.0 - 4.0*p)*dt/2.0;
 
         for i in 0..len1 {
-            
+
             if (i % 2 == 0) {
                 set values w/= i <- val1;
             }
@@ -93,11 +93,11 @@ namespace QuantumDynamics {
     /// Applies e^-iX(theta) on all qubits in the 2D lattice as part of simulating the transverse field in the Ising model
     /// # Input
     /// ## n (Int) : Lattice size for an n x n lattice
-    /// 
+    ///
     /// ## qArr (Qubit[][]) : Array of qubits representing the lattice
-    /// 
+    ///
     /// ## theta (Double) : The angle/time-step for which the unitary simulation is done.
-    /// 
+    ///
     operation ApplyAllX(n : Int, qArr : Qubit[][], theta : Double) : Unit {
         // This applies `Rx` with an angle of `2.0 * theta` to all qubits in `qs`
         // using partial application
@@ -110,11 +110,11 @@ namespace QuantumDynamics {
     /// Applies e^-iP(theta) where P = Z o Z as part of the repulsion terms.
     /// # Input
     /// ## n, m (Int, Int) : Lattice sizes for an n x m lattice
-    /// 
+    ///
     /// ## qArr (Qubit[]) : Array of qubits representing the lattice
-    /// 
+    ///
     /// ## theta (Double) : The angle/time-step for which unitary simulation is done.
-    /// 
+    ///
     /// ## dir (Bool) : Direction is true for vertical direction.
     ///
     /// ## grp (Bool) : Group is true for odd starting indices
@@ -140,9 +140,9 @@ namespace QuantumDynamics {
     /// The main function that takes in various parameters and calls the operations needed to simulate fourth order Trotterizatiuon of the Ising Hamiltonian for a given time-step
     /// # Input
     /// ## N1, N2 (Int, Int) : Lattice sizes for an N1 x N2 lattice
-    /// 
+    ///
     /// ## J (Double) : coefficient for 2-qubit interactions
-    /// 
+    ///
     /// ## g (Double) : coefficient for transverse field
     ///
     /// ## totTime (Double) : The total time-step for which unitary simulation is done.
@@ -150,7 +150,7 @@ namespace QuantumDynamics {
     /// ## dt (Double) : The time the simulation is done for each timestep
     ///
     operation IsingModel2DSim(N1 : Int, N2 : Int, J : Double, g : Double, totTime : Double, dt : Double) : Unit {
-        
+
         use qs = Qubit[N1*N2];
         let qubitArray = Chunks(N2, qs); // qubits are re-arranged to be in an N1 x N2 array
 
