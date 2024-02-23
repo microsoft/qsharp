@@ -45,6 +45,80 @@ pub fn split_state(
         .collect())
 }
 
+fn compute_mask(qubit_count: usize, qubits: &[usize]) -> (BigUint, BigUint) {
+    let mut dump_mask = BigUint::zero();
+    let mut other_mask = BigUint::zero();
+    for q in 0..qubit_count {
+        // Note that the qubit order is reversed to match the order of the qubits in the state.
+        if qubits.contains(&q) {
+            dump_mask.set_bit((qubit_count - q - 1) as u64, true);
+        } else {
+            other_mask.set_bit((qubit_count - q - 1) as u64, true);
+        }
+    }
+    (dump_mask, other_mask)
+}
+
+fn collect_split_state(
+    state: &FxHashMap<BigUint, Complex64>,
+    dump_mask: &BigUint,
+    other_mask: &BigUint,
+    dump_state: &mut FxHashMap<BigUint, Complex64>,
+    other_state: &mut FxHashMap<BigUint, Complex64>,
+) -> Result<f64, ()> {
+    let mut state_iter = state.iter();
+    let (base_label, base_val) = state_iter.next().expect("state should never be empty");
+    let dump_base_label = base_label & dump_mask;
+    let other_base_label = base_label & other_mask;
+    let mut dump_norm = 1.0_f64;
+
+    // Start with an amplitude of 1 in the first expected split states. This becomes the basis
+    // of the split later, but will get normalized as part of collecting the remaining states.
+    dump_state.insert(dump_base_label.clone(), Complex64::one());
+    other_state.insert(other_base_label.clone(), Complex64::one());
+
+    for (curr_label, curr_val) in state_iter {
+        let dump_label = curr_label & dump_mask;
+        let other_label = curr_label & other_mask;
+
+        // If either the state identified by the dump mask or the state identified by the other mask
+        // is None, that means it has zero amplitude and we can conclude the state is not separable.
+        let Some(dump_val) = state.get(&(&dump_label | &other_base_label)) else {
+            return Err(());
+        };
+        let Some(other_val) = state.get(&(&dump_base_label | &other_label)) else {
+            return Err(());
+        };
+
+        if !(dump_val * other_val - base_val * curr_val)
+            .norm()
+            .is_nearly_zero()
+        {
+            // Coefficients are not equal, so the state is not separable.
+            return Err(());
+        }
+
+        if let Entry::Vacant(entry) = dump_state.entry(dump_label) {
+            // When capturing the amplitude for the dump state, we must divide out the amplitude for the other
+            // state, and vice-versa below.
+            let amplitude = curr_val / other_val;
+            let norm = amplitude.norm();
+            if !norm.is_nearly_zero() {
+                entry.insert(amplitude);
+                dump_norm += norm;
+            }
+        }
+        if let Entry::Vacant(entry) = other_state.entry(other_label) {
+            let amplitude = curr_val / dump_val;
+            let norm = amplitude.norm();
+            if !norm.is_nearly_zero() {
+                entry.insert(amplitude);
+            }
+        }
+    }
+    Ok(dump_norm)
+}
+
 fn normalize_and_reorder(
     val: Complex64,
     dump_norm: f64,
@@ -69,74 +143,6 @@ fn normalize_and_reorder(
 
         Some((new_label, new_val))
     }
-}
-
-fn collect_split_state(
-    state: &FxHashMap<BigUint, Complex64>,
-    dump_mask: &BigUint,
-    other_mask: &BigUint,
-    dump_state: &mut FxHashMap<BigUint, Complex64>,
-    other_state: &mut FxHashMap<BigUint, Complex64>,
-) -> Result<f64, ()> {
-    let mut state_iter = state.iter();
-    let (base_label, base_val) = state_iter.next().expect("state should never be empty");
-    let dump_base_label = base_label & dump_mask;
-    let other_base_label = base_label & other_mask;
-    let mut dump_norm = 1.0_f64;
-    dump_state.insert(dump_base_label.clone(), Complex64::one());
-    other_state.insert(other_base_label.clone(), Complex64::one());
-    for (curr_label, curr_val) in state_iter {
-        let dump_label = curr_label & dump_mask;
-        let other_label = curr_label & other_mask;
-
-        // If either the state identified by the dump mask or the state identified by the other mask
-        // is None, that means it has zero amplitude and we can conclude the state is not separable.
-        let Some(dump_val) = state.get(&(&dump_label | &other_base_label)) else {
-            return Err(());
-        };
-        let Some(other_val) = state.get(&(&dump_base_label | &other_label)) else {
-            return Err(());
-        };
-
-        if !(dump_val * other_val - base_val * curr_val)
-            .norm()
-            .is_nearly_zero()
-        {
-            // Coefficients are not equal, so the state is not separable.
-            return Err(());
-        }
-
-        if let Entry::Vacant(entry) = dump_state.entry(dump_label) {
-            let amplitude = curr_val / other_val;
-            let norm = amplitude.norm();
-            if !norm.is_nearly_zero() {
-                entry.insert(amplitude);
-                dump_norm += norm;
-            }
-        }
-        if let Entry::Vacant(entry) = other_state.entry(other_label) {
-            let amplitude = curr_val / dump_val;
-            let norm = amplitude.norm();
-            if !norm.is_nearly_zero() {
-                entry.insert(amplitude);
-            }
-        }
-    }
-    Ok(dump_norm)
-}
-
-fn compute_mask(qubit_count: usize, qubits: &[usize]) -> (BigUint, BigUint) {
-    let mut dump_mask = BigUint::zero();
-    let mut other_mask = BigUint::zero();
-    for q in 0..qubit_count {
-        // Note that the qubit order is reversed to match the order of the qubits in the state.
-        if qubits.contains(&q) {
-            dump_mask.set_bit((qubit_count - q - 1) as u64, true);
-        } else {
-            other_mask.set_bit((qubit_count - q - 1) as u64, true);
-        }
-    }
-    (dump_mask, other_mask)
 }
 
 trait NearlyZero {
