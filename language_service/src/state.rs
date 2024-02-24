@@ -66,6 +66,7 @@ struct OpenDocument {
 struct Configuration {
     pub target_profile: Profile,
     pub package_type: PackageType,
+    pub language_features: LanguageFeatures,
 }
 
 impl Default for Configuration {
@@ -73,6 +74,7 @@ impl Default for Configuration {
         Self {
             target_profile: Profile::Unrestricted,
             package_type: PackageType::Exe,
+            language_features: LanguageFeatures::default(),
         }
     }
 }
@@ -565,5 +567,8 @@ fn merge_configurations(
         package_type: compilation_overrides
             .package_type
             .unwrap_or(workspace_scope.package_type),
+        language_features: compilation_overrides
+            .language_features
+            .unwrap_or(workspace_scope.language_features),
     }
 }
