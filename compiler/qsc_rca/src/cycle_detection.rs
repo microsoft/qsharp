@@ -3,13 +3,13 @@
 
 use crate::common::{
     derive_callable_input_params, initialize_locals_map, try_resolve_callee, FunctorAppExt,
-    GlobalSpecId, Local, LocalKind,
+    GlobalSpecId, Local, LocalKind, LocalSpecId,
 };
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
-        LocalItemId, LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId,
-        PatKind, SpecDecl, Stmt, StmtId, StmtKind, StoreItemId, StringComponent,
+        LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId, PatKind, SpecDecl,
+        Stmt, StmtId, StmtKind, StoreItemId, StringComponent,
     },
     ty::FunctorSetValue,
     visit::Visitor,
@@ -17,40 +17,7 @@ use qsc_fir::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct LocalSpecId {
-    pub callable: LocalItemId,
-    pub functor_set_value: FunctorSetValue,
-}
-
-#[derive(Default)]
-struct CallStack {
-    set: FxHashSet<LocalSpecId>,
-    stack: Vec<LocalSpecId>,
-}
-
-impl CallStack {
-    fn contains(&self, value: &LocalSpecId) -> bool {
-        self.set.contains(value)
-    }
-
-    fn peak(&self) -> &LocalSpecId {
-        self.stack.last().expect("stack should not be empty")
-    }
-
-    fn pop(&mut self) -> LocalSpecId {
-        let popped = self.stack.pop().expect("stack should not be empty");
-        self.set.remove(&popped);
-        popped
-    }
-
-    fn push(&mut self, value: LocalSpecId) {
-        self.set.insert(value);
-        self.stack.push(value);
-    }
-}
-
-struct CycleDetector<'a> {
+pub struct CycleDetector<'a> {
     package_id: PackageId,
     package: &'a Package,
     stack: CallStack,
@@ -59,7 +26,7 @@ struct CycleDetector<'a> {
 }
 
 impl<'a> CycleDetector<'a> {
-    fn new(package_id: PackageId, package: &'a Package) -> Self {
+    pub fn new(package_id: PackageId, package: &'a Package) -> Self {
         Self {
             package_id,
             package,
@@ -69,7 +36,8 @@ impl<'a> CycleDetector<'a> {
         }
     }
 
-    fn detect_specializations_with_cycles(&mut self) -> Vec<LocalSpecId> {
+    // TODO (cesarzc): should probably receive self.
+    pub fn detect_specializations_with_cycles(&mut self) -> Vec<LocalSpecId> {
         self.visit_package(self.package);
         self.specializations_with_cycles.drain().collect()
     }
@@ -228,6 +196,7 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         panic!("visiting a callable declaration through this method is unexpected");
     }
 
+    // TODO (cesarzc): there might be a better way of doing this.
     fn visit_expr(&mut self, expr_id: ExprId) {
         let expr = self.get_expr(expr_id);
         match &expr.kind {
@@ -371,6 +340,34 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
     }
 }
 
+#[derive(Default)]
+struct CallStack {
+    set: FxHashSet<LocalSpecId>,
+    stack: Vec<LocalSpecId>,
+}
+
+impl CallStack {
+    fn contains(&self, value: &LocalSpecId) -> bool {
+        self.set.contains(value)
+    }
+
+    fn peak(&self) -> &LocalSpecId {
+        self.stack.last().expect("stack should not be empty")
+    }
+
+    fn pop(&mut self) -> LocalSpecId {
+        let popped = self.stack.pop().expect("stack should not be empty");
+        self.set.remove(&popped);
+        popped
+    }
+
+    fn push(&mut self, value: LocalSpecId) {
+        self.set.insert(value);
+        self.stack.push(value);
+    }
+}
+
+// TODO (cesarzc): remove since it might not be needed anymore.
 pub fn detect_specializations_with_cycles(
     package_id: PackageId,
     package: &Package,

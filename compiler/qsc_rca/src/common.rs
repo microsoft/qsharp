@@ -6,8 +6,8 @@ use indenter::Indented;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
     fir::{
-        CallableDecl, ExprId, ExprKind, Functor, ItemId, LocalVarId, PackageId, PackageLookup, Pat,
-        PatId, PatKind, Res, StoreItemId, UnOp,
+        CallableDecl, ExprId, ExprKind, Functor, ItemId, LocalItemId, LocalVarId, PackageId,
+        PackageLookup, Pat, PatId, PatKind, Res, StoreItemId, UnOp,
     },
     ty::{FunctorSetValue, Ty},
 };
@@ -156,12 +156,28 @@ pub fn initialize_locals_map(input_params: &Vec<InputParam>) -> FxHashMap<LocalV
     locals_map
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct LocalSpecId {
+    pub callable: LocalItemId,
+    pub functor_set_value: FunctorSetValue,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct GlobalSpecId {
     pub callable: StoreItemId,
     pub functor_set_value: FunctorSetValue,
 }
 
+impl From<(PackageId, LocalSpecId)> for GlobalSpecId {
+    fn from(value: (PackageId, LocalSpecId)) -> Self {
+        Self {
+            callable: (value.0, value.1.callable).into(),
+            functor_set_value: value.1.functor_set_value,
+        }
+    }
+}
+
+// TODO (cesarzc): might not be needed anymore.
 impl From<(StoreItemId, FunctorSetValue)> for GlobalSpecId {
     fn from(value: (StoreItemId, FunctorSetValue)) -> Self {
         Self {

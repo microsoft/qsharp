@@ -147,6 +147,14 @@ impl PackageStoreComputeProperties {
         Self(packages_scaffolding)
     }
 
+    pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationGeneratorSet) {
+        self.get_mut(id.package).blocks.insert(id.block, value);
+    }
+
+    pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationGeneratorSet) {
+        self.get_mut(id.package).exprs.insert(id.expr, value);
+    }
+
     pub fn insert_item(&mut self, id: StoreItemId, value: ItemComputeProperties) {
         self.get_mut(id.package).items.insert(id.item, value);
     }
@@ -170,6 +178,10 @@ impl PackageStoreComputeProperties {
                 ItemComputeProperties::Specializations(specializations),
             );
         }
+    }
+
+    pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationGeneratorSet) {
+        self.get_mut(id.package).stmts.insert(id.stmt, value);
     }
 }
 
