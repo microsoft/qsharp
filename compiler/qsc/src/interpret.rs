@@ -12,6 +12,7 @@ mod debugger_tests;
 pub use qsc_eval::{
     debug::Frame,
     output::{self, GenericReceiver},
+    val::Result,
     val::Value,
     StepAction, StepResult,
 };
@@ -112,7 +113,7 @@ pub struct Interpreter {
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub type InterpretResult = Result<Value, Vec<Error>>;
+pub type InterpretResult = std::result::Result<Value, Vec<Error>>;
 
 impl Interpreter {
     /// Creates a new incremental compiler, compiling the passed in sources.
@@ -123,7 +124,7 @@ impl Interpreter {
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
-    ) -> Result<Self, Vec<Error>> {
+    ) -> std::result::Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = fir::PackageStore::new();
 
@@ -166,7 +167,10 @@ impl Interpreter {
     /// Executes the entry expression until the end of execution.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> Result<Value, Vec<Error>> {
+    pub fn eval_entry(
+        &mut self,
+        receiver: &mut impl Receiver,
+    ) -> std::result::Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
         eval(
             self.source_package,
@@ -186,7 +190,7 @@ impl Interpreter {
         &mut self,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
-    ) -> Result<Value, Vec<Error>> {
+    ) -> std::result::Result<Value, Vec<Error>> {
         let expr = self.get_entry_expr()?;
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -203,7 +207,7 @@ impl Interpreter {
         )
     }
 
-    fn get_entry_expr(&self) -> Result<ExprId, Vec<Error>> {
+    fn get_entry_expr(&self) -> std::result::Result<ExprId, Vec<Error>> {
         let unit = self.fir_store.get(self.source_package);
         if let Some(entry) = unit.entry {
             return Ok(entry);
@@ -261,7 +265,7 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
         expr: &str,
-    ) -> Result<InterpretResult, Vec<Error>> {
+    ) -> std::result::Result<InterpretResult, Vec<Error>> {
         self.run_with_sim(&mut SparseSim::new(), receiver, expr)
     }
 
@@ -272,7 +276,7 @@ impl Interpreter {
 
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
-    pub fn qirgen(&mut self, expr: &str) -> Result<String, Vec<Error>> {
+    pub fn qirgen(&mut self, expr: &str) -> std::result::Result<String, Vec<Error>> {
         if self.capabilities != RuntimeCapabilityFlags::empty() {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
@@ -293,7 +297,7 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
         expr: &str,
-    ) -> Result<InterpretResult, Vec<Error>> {
+    ) -> std::result::Result<InterpretResult, Vec<Error>> {
         let stmt_id = self.compile_expr_to_stmt(expr)?;
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -311,7 +315,7 @@ impl Interpreter {
         ))
     }
 
-    fn compile_expr_to_stmt(&mut self, expr: &str) -> Result<StmtId, Vec<Error>> {
+    fn compile_expr_to_stmt(&mut self, expr: &str) -> std::result::Result<StmtId, Vec<Error>> {
         let increment = self.compiler.compile_expr(expr).map_err(into_errors)?;
 
         let stmts = self.lower(&increment);
@@ -359,7 +363,7 @@ impl Debugger {
         sources: SourceMap,
         capabilities: RuntimeCapabilityFlags,
         position_encoding: Encoding,
-    ) -> Result<Self, Vec<Error>> {
+    ) -> std::result::Result<Self, Vec<Error>> {
         let interpreter = Interpreter::new(true, sources, PackageType::Exe, capabilities)?;
         let source_package_id = interpreter.source_package;
         Ok(Self {
@@ -374,7 +378,7 @@ impl Debugger {
     /// a step action the system is already in the correct state.
     /// # Errors
     /// Returns a vector of errors if loading the entry point fails.
-    pub fn set_entry(&mut self) -> Result<(), Vec<Error>> {
+    pub fn set_entry(&mut self) -> std::result::Result<(), Vec<Error>> {
         let expr = self.interpreter.get_entry_expr()?;
         qsc_eval::eval_push_expr(&mut self.state, expr);
         Ok(())
@@ -388,7 +392,7 @@ impl Debugger {
         receiver: &mut impl Receiver,
         breakpoints: &[StmtId],
         step: StepAction,
-    ) -> Result<StepResult, Vec<Error>> {
+    ) -> std::result::Result<StepResult, Vec<Error>> {
         self.state
             .eval(
                 &self.interpreter.fir_store,
