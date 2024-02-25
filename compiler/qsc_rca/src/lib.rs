@@ -32,7 +32,7 @@ use std::{
     fmt::{self, Debug, Display, Formatter, Write},
 };
 
-pub use crate::analyzer::Analyzer;
+pub use crate::analyzer::{Analyzer, RCA};
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {
@@ -55,28 +55,24 @@ pub trait ComputePropertiesLookup {
 }
 
 /// The compute properties of a package store.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
     fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationGeneratorSet> {
-        self.get(id.package)
-            .and_then(|package| package.blocks.get(id.block))
+        self.get(id.package).blocks.get(id.block)
     }
 
     fn find_expr(&self, id: StoreExprId) -> Option<&ApplicationGeneratorSet> {
-        self.get(id.package)
-            .and_then(|package| package.exprs.get(id.expr))
+        self.get(id.package).exprs.get(id.expr)
     }
 
     fn find_item(&self, id: StoreItemId) -> Option<&ItemComputeProperties> {
-        self.get(id.package)
-            .and_then(|package| package.items.get(id.item))
+        self.get(id.package).items.get(id.item)
     }
 
     fn find_stmt(&self, id: StoreStmtId) -> Option<&ApplicationGeneratorSet> {
-        self.get(id.package)
-            .and_then(|package| package.stmts.get(id.stmt))
+        self.get(id.package).stmts.get(id.stmt)
     }
 
     fn get_block(&self, id: StoreBlockId) -> &ApplicationGeneratorSet {
@@ -111,41 +107,29 @@ impl<'a> IntoIterator for &'a PackageStoreComputeProperties {
 
 impl PackageStoreComputeProperties {
     #[must_use]
-    pub fn get(&self, id: PackageId) -> Option<&PackageComputeProperties> {
-        self.0.get(id)
+    pub fn get(&self, id: PackageId) -> &PackageComputeProperties {
+        self.0.get(id).expect("package should exist")
     }
 
     #[must_use]
-    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut PackageComputeProperties> {
-        self.0.get_mut(id)
+    pub fn get_mut(&mut self, id: PackageId) -> &mut PackageComputeProperties {
+        self.0.get_mut(id).expect("package should exist")
     }
 
     pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationGeneratorSet) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .blocks
-            .insert(id.block, value);
+        self.get_mut(id.package).blocks.insert(id.block, value);
     }
 
     pub fn insert_expr(&mut self, id: StoreExprId, value: ApplicationGeneratorSet) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .exprs
-            .insert(id.expr, value);
+        self.get_mut(id.package).exprs.insert(id.expr, value);
     }
 
     pub fn insert_item(&mut self, id: StoreItemId, value: ItemComputeProperties) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .items
-            .insert(id.item, value);
+        self.get_mut(id.package).items.insert(id.item, value);
     }
 
     pub fn insert_stmt(&mut self, id: StoreStmtId, value: ApplicationGeneratorSet) {
-        self.get_mut(id.package)
-            .expect("package should exist")
-            .stmts
-            .insert(id.stmt, value);
+        self.get_mut(id.package).stmts.insert(id.stmt, value);
     }
 
     #[must_use]
@@ -155,7 +139,7 @@ impl PackageStoreComputeProperties {
 }
 
 /// The compute properties of a package.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PackageComputeProperties {
     /// The compute properties of the package items.
     pub items: IndexMap<LocalItemId, ItemComputeProperties>,
@@ -220,7 +204,7 @@ impl PackageComputeProperties {
 }
 
 /// The compute properties of an item.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ItemComputeProperties {
     /// The compute properties of a callable.
     Callable(CallableComputeProperties),
@@ -240,7 +224,7 @@ impl Display for ItemComputeProperties {
 }
 
 /// The compute properties of a callable.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CallableComputeProperties {
     /// The application generator set for the callable's body.
     pub body: ApplicationGeneratorSet,

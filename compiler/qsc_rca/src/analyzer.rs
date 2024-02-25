@@ -4,8 +4,8 @@
 use crate::{
     cycle_detection::detect_specializations_with_cycles,
     rca::{analyze_package, analyze_specialization_with_cyles},
-    scaffolding::{self},
-    PackageStoreComputeProperties,
+    rca_cyclic_callables::{self, CyclicCallablesAnalyzer},
+    scaffolding, PackageStoreComputeProperties,
 };
 use qsc_fir::fir::{PackageId, PackageStore};
 
@@ -43,7 +43,7 @@ impl Analyzer {
 
         // Once everything has been analyzed, flush everything to the package store compute properties.
         let mut compute_properties = PackageStoreComputeProperties::default();
-        scaffolding.flush(&mut compute_properties);
+        scaffolding.save(&mut compute_properties);
         Self { compute_properties }
     }
 
@@ -84,43 +84,48 @@ impl Analyzer {
 
         // Analyze the remaining items.
         analyze_package(package_id, package_store, &mut package_store_scaffolding);
-        package_store_scaffolding.flush(&mut self.compute_properties);
+        package_store_scaffolding.save(&mut self.compute_properties);
     }
 }
 
 pub struct RCA<'a> {
     package_store: &'a PackageStore,
-    package_store_compute_properties: scaffolding::PackageStoreComputeProperties,
+    scaffolding: scaffolding::PackageStoreComputeProperties,
 }
 
 impl<'a> RCA<'a> {
+    #[must_use]
     pub fn init(package_store: &'a PackageStore) -> Self {
         Self {
             package_store,
-            package_store_compute_properties: scaffolding::PackageStoreComputeProperties::init(
-                package_store,
-            ),
+            scaffolding: scaffolding::PackageStoreComputeProperties::init(package_store),
         }
     }
 
+    #[must_use]
     pub fn init_with_compute_properties(
         package_store: &'a PackageStore,
-        _package_store_compute_properties: PackageStoreComputeProperties,
+        package_store_compute_properties: PackageStoreComputeProperties,
     ) -> Self {
         Self {
             package_store,
-            // TODO (cesarzc): use the provided package store compute properties.
-            package_store_compute_properties: scaffolding::PackageStoreComputeProperties::init(
-                package_store,
-            ),
+            scaffolding: package_store_compute_properties.into(),
         }
     }
 
+    #[must_use]
     pub fn analyze_all(self) -> PackageStoreComputeProperties {
-        unimplemented!()
+        let cyclic_callables_analyzer =
+            CyclicCallablesAnalyzer::new(self.package_store, self.scaffolding);
+        let scaffolding = cyclic_callables_analyzer.analyze_all();
+        scaffolding.into()
     }
 
+    #[must_use]
     pub fn analyze_package(self, package_id: PackageId) -> PackageStoreComputeProperties {
-        unimplemented!()
+        let cyclic_callables_analyzer =
+            CyclicCallablesAnalyzer::new(self.package_store, self.scaffolding);
+        let scaffolding = cyclic_callables_analyzer.analyze_package(package_id);
+        scaffolding.into()
     }
 }

@@ -18,6 +18,51 @@ use qsc_fir::{
 #[derive(Debug)]
 pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
 
+impl From<crate::PackageStoreComputeProperties> for PackageStoreComputeProperties {
+    fn from(value: crate::PackageStoreComputeProperties) -> Self {
+        let mut scaffolding = IndexMap::<PackageId, PackageComputeProperties>::default();
+        for (package_id, package_compute_properties) in value.0 {
+            let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
+            for (item_id, item_compute_properties) in package_compute_properties.items {
+                let item_scaffolding = ItemComputeProperties::from(item_compute_properties);
+                items.insert(item_id, item_scaffolding);
+            }
+            let package_compute_properties = PackageComputeProperties {
+                items,
+                blocks: package_compute_properties.blocks,
+                stmts: package_compute_properties.stmts,
+                exprs: package_compute_properties.exprs,
+            };
+            scaffolding.insert(package_id, package_compute_properties);
+        }
+
+        Self(scaffolding)
+    }
+}
+
+impl From<PackageStoreComputeProperties> for crate::PackageStoreComputeProperties {
+    fn from(value: PackageStoreComputeProperties) -> Self {
+        let mut package_store_compute_properties =
+            IndexMap::<PackageId, crate::PackageComputeProperties>::default();
+        for (package_id, package_scaffolding) in value.0 {
+            let mut items = IndexMap::<LocalItemId, crate::ItemComputeProperties>::new();
+            for (item_id, item_scaffolding) in package_scaffolding.items {
+                let item_compute_properties = crate::ItemComputeProperties::from(item_scaffolding);
+                items.insert(item_id, item_compute_properties);
+            }
+
+            let package_compute_properties = crate::PackageComputeProperties {
+                items,
+                blocks: package_scaffolding.blocks,
+                stmts: package_scaffolding.stmts,
+                exprs: package_scaffolding.exprs,
+            };
+            package_store_compute_properties.insert(package_id, package_compute_properties);
+        }
+        Self(package_store_compute_properties)
+    }
+}
+
 impl ComputePropertiesLookup for PackageStoreComputeProperties {
     fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package).blocks.get(id.block)
@@ -69,8 +114,8 @@ impl PackageStoreComputeProperties {
             })
     }
 
-    // TODO (cesarzc): might not be needed.
-    pub fn flush(
+    // TODO (cesarzc): might not be needed anymore.
+    pub fn save(
         &mut self,
         package_store_compute_properties: &mut crate::PackageStoreComputeProperties,
     ) {
@@ -119,6 +164,7 @@ impl PackageStoreComputeProperties {
         Self(packages)
     }
 
+    // TODO (cesarzc): might not be needed anymore.
     pub fn init_and_populate(
         package_store_compute_properties: &mut crate::PackageStoreComputeProperties,
     ) -> Self {

@@ -8,11 +8,12 @@ use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
-use qsc_rca::{Analyzer, ComputePropertiesLookup, PackageStoreComputeProperties};
+use qsc_rca::{Analyzer, ComputePropertiesLookup, PackageStoreComputeProperties, RCA};
 
 pub struct CompilationContext {
     pub compiler: Compiler,
     pub fir_store: PackageStore,
+    pub compute_properties: PackageStoreComputeProperties,
     analyzer: Analyzer,
     lowerer: Lowerer,
 }
@@ -24,6 +25,7 @@ impl CompilationContext {
 
     pub fn get_compute_properties(&self) -> &PackageStoreComputeProperties {
         self.analyzer.get_package_store_compute_properties()
+        //&self.compute_properties
     }
 
     pub fn update(&mut self, source: &str) {
@@ -38,6 +40,13 @@ impl CompilationContext {
         self.compiler.update(increment);
         self.analyzer
             .update_package_compute_properties(package_id, &self.fir_store);
+
+        // Clear the compute properties of the package to update.
+        let package_compute_properties = self.compute_properties.get_mut(package_id);
+        package_compute_properties.clear();
+        let rca =
+            RCA::init_with_compute_properties(&self.fir_store, self.compute_properties.clone());
+        self.compute_properties = rca.analyze_package(package_id);
     }
 }
 
@@ -53,11 +62,14 @@ impl Default for CompilationContext {
         let mut lowerer = Lowerer::new();
         let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
         let analyzer = Analyzer::init_and_analyze(&fir_store);
+        let rca = RCA::init(&fir_store);
+        let compute_properties = rca.analyze_all();
         Self {
             compiler,
             fir_store,
             analyzer,
             lowerer,
+            compute_properties,
         }
     }
 }
@@ -120,9 +132,7 @@ pub fn check_last_statement_compute_properties(
         .sorted()
         .last()
         .expect("at least one package should exist");
-    let package_compute_properties = package_store_compute_properties
-        .get(last_package_id)
-        .expect("package should exist");
+    let package_compute_properties = package_store_compute_properties.get(last_package_id);
     let last_statement_id = package_compute_properties
         .stmts
         .iter()
