@@ -4,7 +4,8 @@
 use crate::{
     cycle_detection::detect_specializations_with_cycles,
     rca::{analyze_package, analyze_specialization_with_cyles},
-    rca_cyclic_callables::{self, CyclicCallablesAnalyzer},
+    rca_core::CoreAnalyzer,
+    rca_cyclic_callables::CyclicCallablesAnalyzer,
     scaffolding, PackageStoreComputeProperties,
 };
 use qsc_fir::fir::{PackageId, PackageStore};
@@ -115,17 +116,25 @@ impl<'a> RCA<'a> {
 
     #[must_use]
     pub fn analyze_all(self) -> PackageStoreComputeProperties {
+        // First, we need to analyze the callable specializations with cycles. Otherwise, we cannot safely analyze the
+        // rest of the items without causing an infinite analysis loop.
         let cyclic_callables_analyzer =
             CyclicCallablesAnalyzer::new(self.package_store, self.scaffolding);
         let scaffolding = cyclic_callables_analyzer.analyze_all();
-        scaffolding.into()
+
+        // Now we can safely analyze the rest of the items.
+        let core_analyzer = CoreAnalyzer::new(self.package_store, scaffolding);
+        core_analyzer.analyze_all().into()
     }
 
     #[must_use]
     pub fn analyze_package(self, package_id: PackageId) -> PackageStoreComputeProperties {
+        // Even when analyzing just one package we need to first analyze cyclic callables and then the rest of the items
+        // to avoid an infinite analysis loop.
         let cyclic_callables_analyzer =
             CyclicCallablesAnalyzer::new(self.package_store, self.scaffolding);
         let scaffolding = cyclic_callables_analyzer.analyze_package(package_id);
-        scaffolding.into()
+        let core_analyzer = CoreAnalyzer::new(self.package_store, scaffolding);
+        core_analyzer.analyze_package(package_id).into()
     }
 }
