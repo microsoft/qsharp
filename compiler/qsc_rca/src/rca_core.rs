@@ -2,15 +2,17 @@
 // Licensed under the MIT License.
 
 use crate::{
+    applications::{ApplicationInstance, ApplicationInstanceIndex, GeneratorSetsBuilder},
     common::{derive_callable_input_params, GlobalSpecId, InputParam},
     scaffolding::{ItemComputeProperties, PackageStoreComputeProperties},
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
+use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, Item, ItemKind,
-        Package, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, Stmt, StmtId,
-        StoreItemId,
+        Package, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl, Stmt,
+        StmtId, StoreItemId,
     },
     ty::{FunctorSetValue, Prim, Ty},
     visit::Visitor,
@@ -51,10 +53,20 @@ impl<'a> CoreAnalyzer<'a> {
 
     // Analyzes the currently active callable assuming it is intrinsic.
     fn analyze_intrinsic_callable(&mut self) {
+        // Check whether the callable has already been analyzed.
         let current_callable_context = self.get_current_callable_context();
-        let decl_info = current_callable_context.get_decl_info();
+        let body_specialization_id =
+            GlobalSpecId::from((current_callable_context.id, FunctorSetValue::Empty));
+        if self
+            .package_store_compute_properties
+            .find_specialization(body_specialization_id)
+            .is_some()
+        {
+            return;
+        }
 
         // Determine the application generator set depending on whether the callable is a function or an operation.
+        let decl_info = current_callable_context.get_decl_context();
         let application_generator_set = match decl_info.kind {
             CallableKind::Function => {
                 determine_intrinsic_function_application_generator_set(decl_info)
@@ -65,8 +77,6 @@ impl<'a> CoreAnalyzer<'a> {
         };
 
         // Insert the generator set in the entry corresponding to the body specialization of the callable.
-        let body_specialization_id =
-            GlobalSpecId::from((current_callable_context.id, FunctorSetValue::Empty));
         self.package_store_compute_properties
             .insert_spec(body_specialization_id, application_generator_set);
     }
@@ -79,6 +89,26 @@ impl<'a> CoreAnalyzer<'a> {
             .pop()
             .expect("at least one package should be active");
         assert!(package_id == popped_package_id);
+    }
+
+    fn analyze_spec_decl(&mut self, decl: &'a SpecDecl, functor_set_value: FunctorSetValue) {
+        // Set the context for the specialization declaration, visit it and then clear the context to get the results
+        // of the analysis.
+        let package_id = self.get_current_package();
+        let pats = &self.package_store.get(package_id).pats;
+        self.get_current_callable_context_mut()
+            .set_current_spec_context(decl, functor_set_value, pats);
+        self.visit_spec_decl(decl);
+        let spec_context = self
+            .get_current_callable_context_mut()
+            .clear_current_spec_context();
+        assert!(spec_context.functor_set_value == functor_set_value);
+
+        // Save the analysis to the corresponding package compute properties.
+        let package_compute_properties = self.package_store_compute_properties.get_mut(package_id);
+        spec_context
+            .builder
+            .save_to_package_compute_properties(package_compute_properties, Some(decl.block));
     }
 
     fn get_current_callable_context(&self) -> &CallableContext {
@@ -122,6 +152,37 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
         self.package_store.get_stmt((package_id, id).into())
     }
 
+    fn visit_block(&mut self, block_id: BlockId) {
+        // Visiting a block always happens in the context of an application instance.
+        let block = self.get_block(block_id);
+
+        // Visit each statement in the block and aggregate its compute kind.
+        let mut block_compute_kind = ComputeKind::Classical;
+        for stmt_id in &block.stmts {
+            // Visiting a statement performs its analysis for the current application instance.
+            self.visit_stmt(*stmt_id);
+
+            // Now, we can query the statement's compute kind and aggregate it to the block's compute kind.
+            let application_instance = self
+                .get_current_callable_context()
+                .get_current_spec_context()
+                .get_current_application_instance();
+            let stmt_compute_kind = application_instance.get_stmt_compute_kind(*stmt_id);
+            block_compute_kind =
+                aggregate_compute_kind_runtime_features(block_compute_kind, *stmt_compute_kind);
+        }
+
+        // Update the block's value kind if its non-unit.
+        // TODO (cesarzc): implement this part.
+
+        // Finally, insert the block's compute kind to the application instance.
+        let application_instance = self
+            .get_current_callable_context_mut()
+            .get_current_spec_context_mut()
+            .get_current_application_instance_mut();
+        application_instance.insert_block_compute_kind(block_id, block_compute_kind);
+    }
+
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
         let package_id = self.get_current_package();
 
@@ -129,7 +190,7 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
         let input_params =
             derive_callable_input_params(decl, &self.package_store.get(package_id).pats);
         let current_callable_context = self.get_current_callable_context_mut();
-        current_callable_context.set_decl_info(decl.kind, input_params, decl.output.clone());
+        current_callable_context.set_decl_context(decl.kind, input_params, decl.output.clone());
         self.visit_callable_impl(&decl.implementation);
     }
 
@@ -171,35 +232,108 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
     fn visit_pat(&mut self, _: PatId) {
         // Do nothing.
     }
+
+    fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
+        // Determine the compute properties of the specialization by visiting the implementation block configured for
+        // each application instance in the generator set.
+        let input_param_count = self.get_current_callable_context().get_input_params().len();
+        let start_index = -1i32;
+        let end_index = i32::try_from(input_param_count).expect("could not compute end index");
+        let applications = (start_index..end_index).map(ApplicationInstanceIndex::from);
+        for application_index in applications {
+            self.get_current_callable_context_mut()
+                .get_current_spec_context_mut()
+                .set_current_application_index(application_index);
+            self.visit_block(decl.block);
+            let cleared_index = self
+                .get_current_callable_context_mut()
+                .get_current_spec_context_mut()
+                .clear_current_application_index();
+            assert!(cleared_index == application_index);
+        }
+    }
+
+    fn visit_spec_impl(&mut self, spec_impl: &'a SpecImpl) {
+        self.analyze_spec_decl(&spec_impl.body, FunctorSetValue::Empty);
+        spec_impl
+            .adj
+            .iter()
+            .for_each(|spec_decl| self.analyze_spec_decl(spec_decl, FunctorSetValue::Adj));
+        spec_impl
+            .ctl
+            .iter()
+            .for_each(|spec_decl| self.analyze_spec_decl(spec_decl, FunctorSetValue::Ctl));
+        spec_impl
+            .ctl_adj
+            .iter()
+            .for_each(|spec_decl| self.analyze_spec_decl(spec_decl, FunctorSetValue::CtlAdj));
+    }
 }
 
 struct CallableContext {
     pub id: StoreItemId,
-    decl_info: Option<CallableDeclContext>,
+    decl_context: Option<CallableDeclContext>,
+    current_spec_context: Option<SpecDeclContext>,
 }
 
 impl CallableContext {
     pub fn new(id: StoreItemId) -> Self {
         Self {
             id,
-            decl_info: None,
+            decl_context: None,
+            current_spec_context: None,
         }
     }
 
-    pub fn get_decl_info(&self) -> &CallableDeclContext {
-        self.decl_info
+    pub fn clear_current_spec_context(&mut self) -> SpecDeclContext {
+        self.current_spec_context
+            .take()
+            .expect("current specialization context has already been cleared")
+    }
+
+    pub fn get_current_spec_context(&self) -> &SpecDeclContext {
+        self.current_spec_context
+            .as_ref()
+            .expect("current specialization context is not set")
+    }
+
+    pub fn get_current_spec_context_mut(&mut self) -> &mut SpecDeclContext {
+        self.current_spec_context
+            .as_mut()
+            .expect("current specialization context is not set")
+    }
+
+    pub fn get_decl_context(&self) -> &CallableDeclContext {
+        self.decl_context
             .as_ref()
             .expect("callable declaration context should not be none")
     }
 
-    pub fn set_decl_info(
+    pub fn get_input_params(&self) -> &Vec<InputParam> {
+        &self.get_decl_context().input_params
+    }
+
+    pub fn set_current_spec_context(
+        &mut self,
+        spec_decl: &SpecDecl,
+        functor_set_value: FunctorSetValue,
+        pats: &IndexMap<PatId, Pat>,
+    ) {
+        assert!(self.current_spec_context.is_none());
+        let input_params = self.get_input_params();
+        let spec_decl_context =
+            SpecDeclContext::new(spec_decl, functor_set_value, input_params, pats);
+        self.current_spec_context = Some(spec_decl_context);
+    }
+
+    pub fn set_decl_context(
         &mut self,
         kind: CallableKind,
         input_params: Vec<InputParam>,
         output_type: Ty,
     ) {
-        assert!(self.decl_info.is_none());
-        self.decl_info = Some(CallableDeclContext {
+        assert!(self.decl_context.is_none());
+        self.decl_context = Some(CallableDeclContext {
             kind,
             input_params,
             output_type,
@@ -211,6 +345,82 @@ struct CallableDeclContext {
     pub kind: CallableKind,
     pub input_params: Vec<InputParam>,
     pub output_type: Ty,
+}
+
+struct SpecDeclContext {
+    functor_set_value: FunctorSetValue,
+    builder: GeneratorSetsBuilder,
+    current_application_index: Option<ApplicationInstanceIndex>,
+}
+
+impl SpecDeclContext {
+    pub fn new(
+        spec_decl: &SpecDecl,
+        functor_set_value: FunctorSetValue,
+        input_params: &Vec<InputParam>,
+        pats: &IndexMap<PatId, Pat>,
+    ) -> Self {
+        let builder = GeneratorSetsBuilder::from_spec(spec_decl, input_params, pats);
+        Self {
+            functor_set_value,
+            builder,
+            current_application_index: None,
+        }
+    }
+
+    fn clear_current_application_index(&mut self) -> ApplicationInstanceIndex {
+        self.current_application_index
+            .take()
+            .expect("appication instance index is not set")
+    }
+
+    fn get_current_application_index(&self) -> ApplicationInstanceIndex {
+        self.current_application_index
+            .expect("application instance index is not set")
+    }
+
+    pub fn get_current_application_instance(&self) -> &ApplicationInstance {
+        let index = self.get_current_application_index();
+        self.builder.get_application_instance(index)
+    }
+
+    pub fn get_current_application_instance_mut(&mut self) -> &mut ApplicationInstance {
+        let index = self.get_current_application_index();
+        self.builder.get_application_instance_mut(index)
+    }
+
+    fn set_current_application_index(&mut self, index: ApplicationInstanceIndex) {
+        assert!(self.current_application_index.is_none());
+        self.current_application_index = Some(index);
+    }
+}
+
+#[must_use]
+fn aggregate_compute_kind_runtime_features(basis: ComputeKind, delta: ComputeKind) -> ComputeKind {
+    let ComputeKind::Quantum(delta_quantum_properties) = delta else {
+        // A classical compute kind has nothing to aggregate so just return the base with no changes.
+        return basis;
+    };
+
+    // Determine the aggregated runtime features.
+    let runtime_features = match basis {
+        ComputeKind::Classical => delta_quantum_properties.runtime_features,
+        ComputeKind::Quantum(ref basis_quantum_properties) => {
+            basis_quantum_properties.runtime_features | delta_quantum_properties.runtime_features
+        }
+    };
+
+    // Use the value kind equivalent from the basis.
+    let value_kind = match basis {
+        ComputeKind::Classical => ValueKind::Static,
+        ComputeKind::Quantum(basis_quantum_properties) => basis_quantum_properties.value_kind,
+    };
+
+    // Return the aggregated compute kind.
+    ComputeKind::Quantum(QuantumProperties {
+        runtime_features,
+        value_kind,
+    })
 }
 
 fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {

@@ -12,6 +12,7 @@ use crate::{
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::fir::{BlockId, ExprId, LocalVarId, Pat, PatId, PatKind, SpecDecl, StmtId};
 use rustc_hash::FxHashMap;
+use std::convert::{From, TryFrom};
 
 /// Auxiliary data structure used to build multiple related application generator sets from individual application
 /// instances.
@@ -44,6 +45,36 @@ impl GeneratorSetsBuilder {
             inherent,
             dynamic_param_applications: dynamic_params,
         }
+    }
+
+    pub fn get_application_instance(
+        &self,
+        index: ApplicationInstanceIndex,
+    ) -> &ApplicationInstance {
+        let index_as_int = i32::from(index);
+        if index_as_int < 0 {
+            assert!(index_as_int == -1);
+            return &self.inherent;
+        }
+
+        self.dynamic_param_applications
+            .get(usize::try_from(index_as_int).expect("index should be valid"))
+            .expect("application instance at index does not exist")
+    }
+
+    pub fn get_application_instance_mut(
+        &mut self,
+        index: ApplicationInstanceIndex,
+    ) -> &mut ApplicationInstance {
+        let index_as_int = i32::from(index);
+        if index_as_int < 0 {
+            assert!(index_as_int == -1);
+            return &mut self.inherent;
+        }
+
+        self.dynamic_param_applications
+            .get_mut(usize::try_from(index_as_int).expect("index should be valid"))
+            .expect("application instance at index does not exist")
     }
 
     /// Creates a new builder with no dynamic parameter applications.
@@ -203,6 +234,21 @@ fn derive_spec_input(spec_decl: &SpecDecl, pats: &IndexMap<PatId, Pat>) -> Optio
             PatKind::Tuple(_) => panic!("expected specialization input pattern"),
         }
     })
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct ApplicationInstanceIndex(i32);
+
+impl From<ApplicationInstanceIndex> for i32 {
+    fn from(value: ApplicationInstanceIndex) -> Self {
+        value.0
+    }
+}
+
+impl From<i32> for ApplicationInstanceIndex {
+    fn from(value: i32) -> Self {
+        Self(value)
+    }
 }
 
 /// An instance of a callable application.

@@ -24,8 +24,8 @@ impl CompilationContext {
     }
 
     pub fn get_compute_properties(&self) -> &PackageStoreComputeProperties {
-        //self.analyzer.get_package_store_compute_properties()
-        &self.compute_properties
+        self.analyzer.get_package_store_compute_properties()
+        //&self.compute_properties
     }
 
     pub fn update(&mut self, source: &str) {
