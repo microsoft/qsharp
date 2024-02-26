@@ -975,8 +975,9 @@ fn test_report() {
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
     assert_eq!(json_value.len(), 1);
     assert_eq!(
-        serde_json::to_string(&json_value[0]).unwrap().trim(),
-        include_str!("test_report.json").trim()
+        &json_value[0],
+        &serde_json::from_str::<Value>(include_str!("test_report.json"))
+            .expect("Failed to parse JSON")
     );
 }
 
