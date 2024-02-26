@@ -10,7 +10,7 @@ use std::rc::Rc;
 
 use crate::estimates::LogicalQubit;
 use crate::system::modeling::{
-    PhysicalQubit, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
+    PhysicalQubit, Protocol, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
     TFactoryDistillationUnitType, TFactoryQubit,
 };
 
@@ -29,7 +29,7 @@ pub struct DistillationUnitsMap<'a> {
 impl<'a> DistillationUnitsMap<'a> {
     pub fn create(
         qubit: &PhysicalQubit,
-        qubits: &[Option<Rc<LogicalQubit<PhysicalQubit>>>],
+        qubits: &[Option<Rc<LogicalQubit<Protocol>>>],
         distances: Vec<u64>,
         distillation_unit_templates: &'a [TFactoryDistillationUnitTemplate],
     ) -> Self {
