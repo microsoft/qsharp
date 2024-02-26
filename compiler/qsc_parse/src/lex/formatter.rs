@@ -162,12 +162,10 @@ fn apply_rules(
         (_, CTK::Cooked(TokenKind::Close(Delim::Brace))) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (
-            _,
-            CTK::Cooked(TokenKind::Keyword(
-                Keyword::Operation | Keyword::Function | Keyword::Newtype | Keyword::Namespace,
-            )),
-        ) => {
+        (_, CTK::Cooked(TokenKind::Keyword(Keyword::Operation)))
+        | (_, CTK::Cooked(TokenKind::Keyword(Keyword::Function)))
+        | (_, CTK::Cooked(TokenKind::Keyword(Keyword::Newtype)))
+        | (_, CTK::Cooked(TokenKind::Keyword(Keyword::Namespace))) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (CTK::Cooked(TokenKind::Open(Delim::Brace)), _) => {
