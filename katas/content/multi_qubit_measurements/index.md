@@ -257,19 +257,19 @@ Full measurements can also be used to identify the state of the system, if it is
 
 For a system with $n>1$ qubits, it is possible to measure $m<n$ qubits one after another. The number of measurement outcomes is then $2^m$ instead of $2^n$. The probabilities of each of the outcomes and the post-measurement states of the qubits can be found using the projection formalism for measurements.
 
-First, we recall the concept of projection operators introduced in the single-qubit systems measurements kata. Measurements are modeled by orthogonal projection operators - matrices that satisfy
+First, we recall the concept of projection operators introduced in the Measurements in Single-Qubit Systems kata. Measurements are modeled by orthogonal projection operators - matrices that satisfy
 $$P^2 = P^\dagger = P$$
-Consider an $n$-qubit system in a state $|\psi\rangle$, for which the first $m<n$ qubits are measured in an orthogonal basis $\{ |b_0\rangle , |b_1\rangle, \dotsc, |b_{2^m-1}\rangle\}$ corresponding to the $m$ qubits being measured. Then we define $2^m$ projectors corresponding to each of the $|b_i\rangle$ states as
+Consider an $n$-qubit system in a state $|\psi\rangle$, for which the first $m<n$ qubits are measured in an orthogonal basis $\\{ |b_0\rangle , |b_1\rangle, \dotsc, |b_{2^m-1}\rangle\\}$ corresponding to the $m$ qubits being measured. Then we define $2^m$ projectors corresponding to each of the $|b_i\rangle$ states as
 
 $$P_i = |b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m} $$
 
 where $\mathbb{1}_{n-m}$ is the identity operator over the remaining $(n-m)$ qubits.
 
-The symbol $\otimes$ represents the tensor product or the Kronecker product of two matrices. It is different from the usual matrix multiplication.
-In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that
-
-- The operator $|b_i\rangle \langle b_i|$ acts only on the $m$ qubits being measured.
-- The effect of $P_i$ on the remaining qubits is $\mathbb{1}_{n-m} $, i.e., the identity operator.
+> The symbol $\otimes$ represents the tensor product or the Kronecker product of two matrices. It is different from the usual matrix multiplication.
+> In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that
+>
+> - The operator $|b_i\rangle \langle b_i|$ acts only on the $m$ qubits being measured.
+> - The effect of $P_i$ on the remaining qubits is $\mathbb{1}_{n-m} $, i.e., the identity operator.
 
 Analogous to the case for measurements for single-qubit systems, the rules for partial measurement probabilities and outcomes can be summarized as follows:
 
@@ -280,19 +280,15 @@ $$
 \frac{P_i |\psi\rangle}{\big|P_i |\psi\rangle\big|}.
 $$
 
-For example, consider a two-qubit system in the state $\ket \psi = \frac{1}{\sqrt{2}}\ket{01} - \frac{1}{\sqrt 2}\ket{10}$. Consider a measurement of the first qubit in the computational basis, i.e., in the $\{\ket 0 , \ket 1 \}$ basis. Then, we have two projectors that represent this measurement:
+For example, consider a two-qubit system in the state $\ket \psi = \frac{1}{\sqrt{2}}\ket{01} - \frac{1}{\sqrt 2}\ket{10}$. Consider a measurement of the first qubit in the computational basis, i.e., in the $\\{\ket 0 , \ket 1 \\}$ basis. Then, we have two projectors that represent this measurement:
 $$P_0 = \ket 0\bra 0 \otimes \mathbb{1}$$
 $$P_1 = \ket 1 \bra 1 \otimes \mathbb{1}$$
 
 The action of $P_0$ on $\ket \psi$ is
 
-$$P_0 \ket \psi$$
+$$P_0 \ket \psi = \left(\ket 0\bra 0 \otimes \mathbb{1}\right) \frac{1}{\sqrt 2}\big(\ket{01} - \ket{10}\big) =$$
 
-$$= \left(\ket 0\bra 0 \otimes \mathbb{1}\right) \frac{1}{\sqrt 2}\big(\ket{01} - \ket{10}\big)$$
-
-$$= \frac{1}{\sqrt 2} \big( \ket 0\bra 0 0\rangle \otimes \mathbb{1} \ket{1} - \ket 0 \bra 0 1\rangle \otimes \mathbb{1} \ket 0 \big)$$
-
-$$= \frac{1}{\sqrt 2} \ket{01}$$
+$$= \frac{1}{\sqrt 2} \big( \ket 0\bra 0 0\rangle \otimes \mathbb{1} \ket{1} - \ket 0 \bra 0 1\rangle \otimes \mathbb{1} \ket 0 \big) = \frac{1}{\sqrt 2} \ket{01}$$
 
 Similarly, we obtain
 $$P_1 \ket\psi = -\frac{1}{\sqrt 2} \ket{10}$$
@@ -303,7 +299,7 @@ Clearly, we have $\big|P_0 \ket \psi\big| = \big|P_1 \ket \psi\big| = \frac{1}{2
 
 ## 🔎 Analyze
 
-**Partial measurement probabilities for the Hardy state**
+### Partial measurement probabilities for the Hardy state
 
 Consider a 2-qubit system in the state $\ket \psi = \frac{1}{\sqrt{12}} \big(3|00\rangle + |01\rangle + |10\rangle + |11\rangle\big)$.
 
@@ -344,16 +340,15 @@ $$\frac{P_1 \ket{\psi}}{\big|P_1 \ket{\psi}\big|} = \frac{1}{\sqrt{2}} \left(\ke
     "title": "Measurement Statistics for Partial Measurement"
 })
 
-Using the `M` operation in Q#, we demonstrate that the simulated outcome probabilities and post-measurement outcomes match the theoretical values obtained using the projection operators as described above. We use the Hardy state from Exercise 4 with a computational basis measurement on the first qubit for this purpose.
+In this demo, we show that the simulated outcome probabilities and post-measurement outcomes match the theoretical values obtained using the projection operators as described above. 
+We use the Hardy state $\ket \psi = \frac{1}{\sqrt{12}} \big(3|00\rangle + |01\rangle + |10\rangle + |11\rangle\big)$ from the previous exercise and do a computational basis measurement on the first qubit for this purpose.
 
-The simulated and theoretical measurement probabilities are not expected to match exactly, but should be close to each other, since measurement is probabilistic. However, the post-measurement states from the simulation should match the expected states for Exercise 4 precisely, since partial state collapse is not a probabilistic process.
+The simulated and theoretical measurement probabilities are not expected to match exactly, but should be close to each other, since measurement is probabilistic. However, the post-measurement states from the simulation should match the expected states calculated in the exercise precisely, since partial state collapse is not a probabilistic process.
 
 @[example]({
     "id": "multi_qubit_measurements__partial_measurements_demo",
     "codePath": "./examples/PartialMeasurementsDemo.qs"
 })
-
-## Using Partial Measurements to Identify the State of the System
 
 In certain situations, it is possible to distinguish between orthogonal states of multi-qubit systems using partial measurements, as illustrated in the next exercise.
 
