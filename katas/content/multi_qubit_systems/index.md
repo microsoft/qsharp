@@ -77,7 +77,7 @@ The coefficients of the basis vectors define how "close" is the system state to 
 
 > Just like with single-qubit systems, there exist other orthonormal bases states for multi-qubit systems. An example for a two-qubit system is the **Bell basis**:
 >
-> $$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}, 
+> $$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix},
 \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ -1 \end{bmatrix},
 \frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ 1 \\\ 0 \end{bmatrix},
 \frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ -1 \\\ 0 \end{bmatrix}$$
@@ -98,7 +98,6 @@ $$
 
 You can see that the first qubit is in state $\frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$ and the second qubit is in state $|0\rangle$. The multi-qubit states that allow such representation are known as **separable states**, or product states, because you can separate the global state into the tensor product of individual subsystems.
 
-
 ## 🔎 Analyze
 
 Show that the state is separable:
@@ -112,7 +111,7 @@ $$
 To separate the state into a tensor product of two single-qubit states, we need to represent it in the following way:
 
 $$
-\begin{bmatrix} \alpha \gamma \\\ \alpha \delta \\\ \beta \gamma \\\ \beta \delta \end{bmatrix} = 
+\begin{bmatrix} \alpha \gamma \\\ \alpha \delta \\\ \beta \gamma \\\ \beta \delta \end{bmatrix} =
 \begin{bmatrix} \alpha \\\ \beta \end{bmatrix} \otimes \begin{bmatrix} \gamma \\\ \delta \end{bmatrix}
 $$
 
@@ -236,7 +235,6 @@ $$|\phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$$
 $$|\psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big)$$
 $$|\psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
 
-
 >## Endianness
 >
 > In classical computing, endianness refers to the order of bits (or bytes) when representing numbers in binary. You're probably familiar with the typical way of writing numbers in binary: $0 = 0_2$, $1 = 1_2$, $2 = 10_2$, $3 = 11_2$, $4 = 100_2$, $5 = 101_2$, $6 = 110_2$, etc. This is known as **big-endian format**. In big-endian format, the *most significant* bits come first. For example: $110_2 = 1 \cdot 4 + 1 \cdot 2 + 0 \cdot 1 = 4 + 2 = 6$.
@@ -293,9 +291,9 @@ $$|\psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
 This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the Single-Qubit Gates kata.
 
 These demos use the function `DumpMachine` to print the state of the quantum simulator.
-When dealing with multi-qubit systems, `DumpMachine` prints information about each basis state that has a non-zero amplitude, one basis state per row, the same as it does for single-qubit systems. 
-The basis states are represented as bit strings, one bit per the qubit allocated, with the leftmost bit corresponding 
-to the qubit that was allocated the earliest. (If the qubits were allocated at once as an array, the leftmost bit corresponds 
+When dealing with multi-qubit systems, `DumpMachine` prints information about each basis state that has a non-zero amplitude, one basis state per row, the same as it does for single-qubit systems.
+The basis states are represented as bit strings, one bit per the qubit allocated, with the leftmost bit corresponding
+to the qubit that was allocated the earliest. (If the qubits were allocated at once as an array, the leftmost bit corresponds
 to the first element of the array.)
 
 @[example]({"id": "multi_qubit_systems__multi_qubit_systems_demo", "codePath": "./examples/MultiQubitSystems.qs"})
@@ -313,13 +311,10 @@ If they are not in zero state by that time, they can potentially be still entang
 @[exercise]({
     "id": "multi_qubit_systems__learn_basis_state_amplitudes",
     "title": "Learn Basis State Amplitudes Using DumpMachine",
-    "descriptionPath": "./learn_basis_state_amplitudes/index.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./learn_basis_state_amplitudes/verification.qs"
-    ],
-    "placeholderSourcePath": "./learn_basis_state_amplitudes/placeholder.qs",
-    "solutionPath": "./learn_basis_state_amplitudes/solution.md"
+    "path": "./learn_basis_state_amplitudes/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[section]({
@@ -336,48 +331,36 @@ Array elements are indexed starting with 0, the first array element corresponds 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_basis_state",
     "title": "Prepare a Basis State",
-    "descriptionPath": "./prepare_basis_state/index.md",
-    "placeholderSourcePath": "./prepare_basis_state/placeholder.qs",
-    "solutionPath": "./prepare_basis_state/solution.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./prepare_basis_state/verification.qs"
+    "path": "./prepare_basis_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
     ]
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_superposition",
     "title": "Prepare a Superposition of Two Basis States",
-    "descriptionPath": "./prepare_superposition/index.md",
-    "placeholderSourcePath": "./prepare_superposition/placeholder.qs",
-    "solutionPath": "./prepare_superposition/solution.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./prepare_superposition/verification.qs"
+    "path": "./prepare_superposition/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
     ]
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_with_real",
     "title": " Prepare a Superposition with Real Amplitudes",
-    "descriptionPath": "./prepare_with_real/index.md",
-    "placeholderSourcePath": "./prepare_with_real/placeholder.qs",
-    "solutionPath": "./prepare_with_real/solution.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./prepare_with_real/verification.qs"
+    "path": "./prepare_with_real/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
     ]
 })
 
 @[exercise]({
     "id": "multi_qubit_systems__prepare_with_complex",
     "title": "Prepare a Superposition with Complex Amplitudes",
-    "descriptionPath": "./prepare_with_complex/index.md",
-    "placeholderSourcePath": "./prepare_with_complex/placeholder.qs",
-    "solutionPath": "./prepare_with_complex/solution.md",
-    "codePaths": [
-        "../KatasLibrary.qs",
-        "./prepare_with_complex/verification.qs"
+    "path": "./prepare_with_complex/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
     ]
 })
 

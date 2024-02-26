@@ -206,10 +206,7 @@ impl Interpreter {
     }
 
     fn get_entry_expr(&self) -> Result<ExprId, Vec<Error>> {
-        let unit = self
-            .fir_store
-            .get(self.source_package)
-            .expect("store should have package");
+        let unit = self.fir_store.get(self.source_package);
         if let Some(entry) = unit.entry {
             return Ok(entry);
         };
@@ -336,10 +333,7 @@ impl Interpreter {
     }
 
     fn lower(&mut self, unit_addition: &qsc_frontend::incremental::Increment) -> Vec<StmtId> {
-        let fir_package = self
-            .fir_store
-            .get_mut(self.package)
-            .expect("package should be in store");
+        let fir_package = self.fir_store.get_mut(self.package);
         self.lowerer
             .lower_and_update_package(fir_package, &unit_addition.hir)
     }
@@ -478,8 +472,7 @@ impl Debugger {
             let package = self
                 .interpreter
                 .fir_store
-                .get(self.interpreter.source_package)
-                .expect("package should have been lowered");
+                .get(self.interpreter.source_package);
             let mut collector = BreakpointCollector::new(
                 &unit.sources,
                 source.offset,

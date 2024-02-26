@@ -3,9 +3,18 @@
 
 import { type VSDiagnostic } from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
-import { IServiceProxy, ServiceState } from "../worker-proxy.js";
+import {
+  IServiceProxy,
+  ServiceProtocol,
+  ServiceState,
+} from "../workers/common.js";
 import { eventStringToMsg } from "./common.js";
-import { IQscEventTarget, QscEvents, makeEvent } from "./events.js";
+import {
+  IQscEventTarget,
+  QscEventData,
+  QscEvents,
+  makeEvent,
+} from "./events.js";
 
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
@@ -191,3 +200,17 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
   log.debug("worker dispatching event " + JSON.stringify(qscEvent));
   eventTarget.dispatchEvent(qscEvent);
 }
+
+/** The protocol definition to allow running the compiler in a worker. */
+export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
+  class: Compiler,
+  methods: {
+    checkCode: "request",
+    getHir: "request",
+    getQir: "request",
+    getEstimates: "request",
+    run: "requestWithProgress",
+    checkExerciseSolution: "requestWithProgress",
+  },
+  eventNames: ["DumpMachine", "Message", "Result"],
+};

@@ -448,13 +448,13 @@ fn test_runtime_error_default_span() {
 fn test_doc_gen() {
     let docs = qsc_doc_gen::generate_docs::generate_docs();
     assert!(docs.len() > 100);
-    for (name, contents) in docs {
+    for (name, metadata, contents) in docs {
         // filename will be something like "Microsoft.Quantum.Canon/ApplyToEachC.md"
         let filename = name.to_string();
         // Text is the full markdown including initial metadata inside '---' blocks
-        let text = contents.to_string();
+        let text = format!("{metadata}\n\n{contents}");
         if filename.eq("toc.yml") {
-            assert!(text.contains("uid: Microsoft.Quantum.Core"));
+            assert!(text.contains("uid: Qdk.Microsoft.Quantum.Core"));
         } else {
             assert!(filename.ends_with(".md"));
             assert!(text.starts_with("---\n"));
