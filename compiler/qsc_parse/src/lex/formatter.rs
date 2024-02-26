@@ -4,7 +4,7 @@
 use crate::keyword::Keyword;
 
 use super::{
-    concrete::{self, ConcreteToken, ConcreteTokenKind},
+    concrete::{self, ConcreteToken, ConcreteTokenKind as CTK},
     Delim, TokenKind,
 };
 use qsc_data_structures::span::Span;
@@ -53,22 +53,22 @@ pub fn format(code: &str) -> Vec<Edit> {
         let mut edits_for_triple = match (&one, &two, &three) {
             (Some(one), Some(two), Some(three)) => {
                 // if the token is a {, increase the indent level
-                if let ConcreteTokenKind::Cooked(TokenKind::Open(Delim::Brace)) = one.kind {
+                if let CTK::Cooked(TokenKind::Open(Delim::Brace)) = one.kind {
                     indent_level += 1;
                 }
 
                 // if the token is a }, decrease the indent level
-                if let ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)) = one.kind {
+                if let CTK::Cooked(TokenKind::Close(Delim::Brace)) = one.kind {
                     #[allow(clippy::implicit_saturating_sub)]
                     if indent_level > 0 {
                         indent_level -= 1;
                     }
                 }
 
-                if let ConcreteTokenKind::WhiteSpace = one.kind {
+                if let CTK::WhiteSpace = one.kind {
                     // first token is whitespace, continue scanning
                     continue;
-                } else if let ConcreteTokenKind::WhiteSpace = two.kind {
+                } else if let CTK::WhiteSpace = two.kind {
                     // whitespace in the middle
                     apply_rules(
                         one,
@@ -131,8 +131,7 @@ fn apply_rules(
     // when we get here, neither left nor right should be whitespace
 
     // if the right is a close brace, the indent level should be one less
-    let indent_level = if let ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)) = right.kind
-    {
+    let indent_level = if let CTK::Cooked(TokenKind::Close(Delim::Brace)) = right.kind {
         if indent_level > 0 {
             indent_level - 1
         } else {
@@ -143,18 +142,15 @@ fn apply_rules(
     };
 
     match (&left.kind, &right.kind) {
-        (
-            ConcreteTokenKind::Cooked(TokenKind::Open(l)),
-            ConcreteTokenKind::Cooked(TokenKind::Close(r)),
-        ) if l == r => {
+        (CTK::Cooked(TokenKind::Open(l)), CTK::Cooked(TokenKind::Close(r))) if l == r => {
             rule_no_space(left, whitespace, right, &mut edits);
         }
-        (ConcreteTokenKind::Comment | ConcreteTokenKind::Cooked(TokenKind::DocComment), _) => {
+        (CTK::Comment | CTK::Cooked(TokenKind::DocComment), _) => {
             rule_trim_comments(left, &mut edits, code);
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (ConcreteTokenKind::Cooked(TokenKind::Semi), _) => match &right.kind {
-            ConcreteTokenKind::Comment => {
+        (CTK::Cooked(TokenKind::Semi), _) => match &right.kind {
+            CTK::Comment => {
                 if whitespace.contains('\n') {
                     rule_indentation(left, whitespace, right, &mut edits, indent_level);
                 }
@@ -163,30 +159,27 @@ fn apply_rules(
                 rule_indentation(left, whitespace, right, &mut edits, indent_level);
             }
         },
-        (_, ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace))) => {
+        (_, CTK::Cooked(TokenKind::Close(Delim::Brace))) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (
             _,
-            ConcreteTokenKind::Cooked(TokenKind::Keyword(
+            CTK::Cooked(TokenKind::Keyword(
                 Keyword::Operation | Keyword::Function | Keyword::Newtype | Keyword::Namespace,
             )),
         ) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (ConcreteTokenKind::Cooked(TokenKind::Open(Delim::Brace)), _) => {
+        (CTK::Cooked(TokenKind::Open(Delim::Brace)), _) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (
-            ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)),
-            ConcreteTokenKind::Cooked(TokenKind::Semi),
-        ) => {
+        (CTK::Cooked(TokenKind::Close(Delim::Brace)), CTK::Cooked(TokenKind::Semi)) => {
             rule_no_space(left, whitespace, right, &mut edits);
         }
-        (ConcreteTokenKind::Cooked(TokenKind::Close(Delim::Brace)), _) => {
+        (CTK::Cooked(TokenKind::Close(Delim::Brace)), _) => {
             rule_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (ConcreteTokenKind::Cooked(cooked_left), ConcreteTokenKind::Cooked(cooked_right)) => {
+        (CTK::Cooked(cooked_left), CTK::Cooked(cooked_right)) => {
             match (cooked_left, cooked_right) {
                 (TokenKind::Ident, TokenKind::Ident)
                 | (TokenKind::Keyword(_), TokenKind::Ident)
