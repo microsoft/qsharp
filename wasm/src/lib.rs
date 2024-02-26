@@ -16,7 +16,7 @@ use qsc::{
         output::{self, Receiver},
     },
     target::Profile,
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
+    LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
 use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
@@ -68,13 +68,17 @@ pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> Sou
 }
 
 #[wasm_bindgen]
-pub fn get_qir(sources: Vec<js_sys::Array>) -> Result<String, String> {
+pub fn get_qir(
+    sources: Vec<js_sys::Array>,
+    language_features: Vec<String>,
+) -> Result<String, String> {
+    let language_features = LanguageFeatures::from_iter(language_features);
     let sources = get_source_map(sources, None);
-    _get_qir(sources)
+    _get_qir(sources, language_features)
 }
 
 // allows testing without wasm bindings.
-fn _get_qir(sources: SourceMap) -> Result<String, String> {
+fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<String, String> {
     let core = compile::core();
     let mut store = PackageStore::new(core);
     let std = compile::std(&store, Profile::Base.into());
@@ -86,6 +90,7 @@ fn _get_qir(sources: SourceMap) -> Result<String, String> {
         sources,
         PackageType::Exe,
         Profile::Base.into(),
+        language_features,
     );
 
     // Ensure it compiles before trying to add it to the store.
@@ -101,14 +106,21 @@ fn _get_qir(sources: SourceMap) -> Result<String, String> {
 }
 
 #[wasm_bindgen]
-pub fn get_estimates(sources: Vec<js_sys::Array>, params: &str) -> Result<String, String> {
+pub fn get_estimates(
+    sources: Vec<js_sys::Array>,
+    params: &str,
+    language_features: Vec<String>,
+) -> Result<String, String> {
     let sources = get_source_map(sources, None);
+
+    let language_features = LanguageFeatures::from_iter(language_features);
 
     let mut interpreter = interpret::Interpreter::new(
         true,
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        language_features,
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -138,7 +150,8 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
-pub fn get_hir(code: &str) -> String {
+pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
+    let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
@@ -147,10 +160,11 @@ pub fn get_hir(code: &str) -> String {
             sources,
             PackageType::Exe,
             Profile::Unrestricted.into(),
+            language_features,
         );
         unit.package
     });
-    package.to_string()
+    Ok(package.to_string())
 }
 
 struct CallbackReceiver<F>
@@ -203,8 +217,12 @@ where
         Ok(())
     }
 }
-
-fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<interpret::Error>>
+fn run_internal_with_features<F>(
+    sources: SourceMap,
+    event_cb: F,
+    shots: u32,
+    language_features: LanguageFeatures,
+) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
 {
@@ -220,6 +238,7 @@ where
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        language_features,
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {
@@ -259,18 +278,23 @@ pub fn run(
     expr: &str,
     event_cb: &js_sys::Function,
     shots: u32,
+    language_features: Vec<String>,
 ) -> Result<bool, JsValue> {
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
+
+    let language_features = LanguageFeatures::from_iter(language_features);
+
     let sources = get_source_map(sources, Some(expr.into()));
-    match run_internal(
+    match run_internal_with_features(
         sources,
         |msg: &str| {
             // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
             let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
         },
         shots,
+        language_features,
     ) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),

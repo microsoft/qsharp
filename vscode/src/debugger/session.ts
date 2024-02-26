@@ -80,6 +80,7 @@ export class QscDebugSession extends LoggingDebugSession {
     private debugService: IDebugServiceWorker,
     private config: vscode.DebugConfiguration,
     private sources: [string, string][],
+    private languageFeatures: string[],
   ) {
     super();
 
@@ -92,6 +93,7 @@ export class QscDebugSession extends LoggingDebugSession {
     this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
+    this.languageFeatures = languageFeatures;
   }
 
   public async init(associationId: string): Promise<void> {
@@ -102,6 +104,7 @@ export class QscDebugSession extends LoggingDebugSession {
       this.sources,
       targetProfile,
       this.config.entry,
+      this.languageFeatures,
     );
     for (const [path, _contents] of this.sources) {
       if (failureMessage == "") {

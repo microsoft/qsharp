@@ -5,6 +5,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
@@ -13,7 +14,13 @@ use crate::loop_unification::LoopUni;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
+    let mut unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     LoopUni {
         core: store.core(),
