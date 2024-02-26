@@ -368,14 +368,7 @@ function createQuestion(kataPath, properties) {
 
 function createExerciseSection(kataPath, properties, globalCodeSources) {
   // Validate that the data contains the required properties.
-  const requiredProperties = [
-    "id",
-    "title",
-    "descriptionPath",
-    "codePaths",
-    "placeholderSourcePath",
-    "solutionPath",
-  ];
+  const requiredProperties = ["id", "title", "path", "qsDependencies"];
   const missingProperties = identifyMissingProperties(
     properties,
     requiredProperties,
@@ -389,22 +382,35 @@ function createExerciseSection(kataPath, properties, globalCodeSources) {
     );
   }
 
+  const exercisePath = join(kataPath, properties.path);
   // Generate the object using the macro properties.
+  // Get the description from the index.md file in the exercise folder.
   const descriptionMarkdown = tryReadFile(
-    join(kataPath, properties.descriptionPath),
-    `Could not read descripton for exercise ${properties.id}`,
+    join(exercisePath, "index.md"),
+    `Could not read index.md file for exercise ${properties.id}`,
   );
   const description = createTextContent(descriptionMarkdown);
-  const resolvedCodePaths = properties.codePaths.map((path) =>
+
+  // Aggregate the exercise sources. The verification source file is Verification.qs and additional dependecies are
+  // explicitly listed as source code file paths in the qsDependencies property.
+  let resolvedVerificationFile = join(exercisePath, "Verification.qs");
+  const resolvedDependencies = properties.qsDependencies.map((path) =>
     join(kataPath, path),
   );
-  const sourceIds = aggregateSources(resolvedCodePaths, globalCodeSources);
-  const placeholderCode = tryReadFile(
-    join(kataPath, properties.placeholderSourcePath),
-    `Could not read placeholder code for exercise '${properties.id}'`,
+  const resolvedSources = [resolvedVerificationFile].concat(
+    resolvedDependencies,
   );
+  const sourceIds = aggregateSources(resolvedSources, globalCodeSources);
+
+  // Get the placeholder code from the Placeholder.qs file in the exercise folder.
+  const placeholderCode = tryReadFile(
+    join(exercisePath, "Placeholder.qs"),
+    `Could not read Placeholder.qs file for exercise '${properties.id}'`,
+  );
+
+  // Get the solution from the solution.md file in the exercise folder.
   const explainedSolution = createExplainedSolution(
-    join(kataPath, properties.solutionPath),
+    join(exercisePath, "solution.md"),
   );
 
   return {

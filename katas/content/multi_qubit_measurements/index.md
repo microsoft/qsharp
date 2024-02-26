@@ -24,7 +24,7 @@ This will include measuring a single qubit in a multi-qubit system, as well as m
 
 $\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
 $\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
- 
+
 @[section]({
     "id": "multi_qubit_measurements__types_of_measurements",
     "title": "Types of Measurements"
@@ -87,23 +87,23 @@ The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^
     <tr>
         <td>$00$</td>
         <td>$\left( \frac{1}{3}\right)^2 = \frac{1}{9}$</td>
-    </tr> 
+    </tr>
     <tr>
         <td>$01$</td>
         <td>$\left( \frac{2}{3}\right)^2 = \frac{4}{9}$</td>
-    </tr> 
+    </tr>
     <tr>
         <td>$10$</td>
         <td>$\left( 0\right)^2 = 0$</td>
-    </tr>     
+    </tr>
     <tr>
         <td>$11$</td>
         <td>$\left( \frac{2}{3}\right)^2 = \frac{4}{9}$</td>
-    </tr> 
+    </tr>
 </table>
 </details>
 
-##  Multi-Qubit Measurement Outcome Probabilities II
+## Multi-Qubit Measurement Outcome Probabilities II
 
 Suppose that a two-qubit system is known to be in the following state:
 $$\ket \psi = \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
@@ -134,11 +134,11 @@ After this, the probabilities of measuring each of the four basis vectors is giv
     <tr>
         <td>$++$</td>
         <td>$\left( \frac{5}{6}\right)^2 = \frac{25}{36}$</td>
-    </tr> 
+    </tr>
     <tr>
         <td>$+-$</td>
         <td>$\left( -\frac{1}{6}\right)^2 = \frac{1}{36}$</td>
-    </tr> 
+    </tr>
     <tr>
         <td>$-+$</td>
         <td>$\left( \frac{1}{6}\right)^2 = \frac{1}{36}$</td>
@@ -146,12 +146,13 @@ After this, the probabilities of measuring each of the four basis vectors is giv
     <tr>
         <td>$--$</td>
         <td>$\left( \frac{1}{2}\right)^2 = \frac{1}{4}$</td>
-    </tr> 
+    </tr>
 </table>
 
 ### Code-Based Solution
 
 We can also use Q# to solve this problem. It can be achieved in three steps:
+
 1. Prepare the state $\ket \psi$.
 2. Apply a transformation that maps the 2-qubit Pauli X basis into the 2-qubit computational basis. This transformation just applies a Hadamard gate to each of the qubits.
 3. View probabilities of each basis state with the `DumpMachine` function. Thanks to the previous step, the following state equivalence holds:
@@ -164,11 +165,11 @@ We can also use Q# to solve this problem. It can be achieved in three steps:
     <tr>
         <td>$\ket {++}$</td>
         <td>$\ket {00}$</td>
-    </tr> 
+    </tr>
     <tr>
         <td>$\ket {+-}$</td>
         <td>$\ket {01}$</td>
-    </tr> 
+    </tr>
     <tr>
         <td>$\ket {-+}$</td>
         <td>$\ket {10}$</td>
@@ -176,7 +177,7 @@ We can also use Q# to solve this problem. It can be achieved in three steps:
     <tr>
         <td>$\ket {--}$</td>
         <td>$\ket {11}$</td>
-    </tr> 
+    </tr>
 </table>
 
 The amplitudes of the computational basis states after the transformation are the same as the amplitudes of the basis states of the Pauli X basis before the transformation!
@@ -189,7 +190,7 @@ The amplitudes of the computational basis states after the transformation are th
 
 @[example]({
     "id": "multi_qubit_measurements__multi_qubit_probabilities_2_example",
-    "codePath": "./multi_qubit_probabilities.qs"
+    "codePath": "./MultiQubitProbabilities.qs"
 })
 
 ## Measuring Each Qubit in a System Sequentially
@@ -219,7 +220,7 @@ The simulated probabilities will be different for each run of `DemoBasisMeasurem
 
 @[example]({
     "id": "multi_qubit_measurements__measuring_one_at_a_time",
-    "codePath": "./measuring_one.qs"
+    "codePath": "./MeasuringOne.qs"
 })
 
 ## Using Full Measurements to Identify the State of the System
@@ -229,12 +230,9 @@ Full measurements can also be used to identify the state of the system, if it is
 @[exercise]({
     "id": "multi_qubit_measurements__full_measurements",
     "title":  "Distinguish Four Basis States",
-    "descriptionPath": "./full_measurements/index.md",
-    "placeholderSourcePath": "./full_measurements/placeholder.qs",
-    "solutionPath": "./full_measurements/solution.md",
-    "codePaths": [
-        "./full_measurements/verify.qs",
-        "./common.qs",
+    "path": "./full_measurements/",
+    "qsDependencies": [
+        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -255,13 +253,16 @@ $$P_i = |b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m} $$
 where $\mathbb{1}_{n-m}$ is the identity operator over the remaining $(n-m)$ qubits.
 
 The symbol $\otimes$ represents the tensor product or the Kronecker product of two matrices. It is different from the usual matrix multiplication.
-In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that 
+In the current context, $|b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m}$ simply means that
+
 - The operator $|b_i\rangle \langle b_i|$ acts only on the $m$ qubits being measured.
 - The effect of $P_i$ on the remaining qubits is $\mathbb{1}_{n-m} $, i.e., the identity operator.
 
 Analogous to the case for measurements for single-qubit systems, the rules for partial measurement probabilities and outcomes can be summarized as follows:
+
 - When a measurement is done, one of these projectors is chosen randomly. The probability of choosing projector $P_i$ is $\big|P_i|\psi\rangle\big|^2$.
 - If the projector $P_i$ is chosen, the measurement outcome is $b_i$, and the state of the system after the measurement is given by
+
 $$
 \frac{P_i |\psi\rangle}{\big|P_i |\psi\rangle\big|}.
 $$
@@ -297,12 +298,12 @@ If only the first qubit is measured in the computational basis, what are the pro
 
 <details>
 <summary><b>Solution</b></summary>
-A measurement outcome of $0$ on the first qubit corresponds to the projection operator $P_0 = |0\rangle\langle 0| \otimes \mathbb{1}$. Applying it to the state $\ket \psi$ gives us 
+A measurement outcome of $0$ on the first qubit corresponds to the projection operator $P_0 = |0\rangle\langle 0| \otimes \mathbb{1}$. Applying it to the state $\ket \psi$ gives us
 $$\big|P_0 \ket{\psi}\big|^2 = \big|\frac{1}{\sqrt{12}} \left(3\ket {00} + \ket{01}\right) \big|^2 = \frac{5}{6}$$
-and 
+and
 $$\frac{P_0 \ket{\psi}}{\big|P_0 \ket{\psi}\big|} = \frac{1}{\sqrt{10}} \left( 3\ket{00} + \ket{01}\right)$$
 
-Similarly, $P_1 = |1\rangle \langle 1 | \otimes \mathbb{1}$ is the projector corresponding to a measurement outcome of $1$ on the first qubit. Applying $P_1$ on $\ket{\psi}$ gives us $\big|P_1 \ket{\psi}\big|^2 = \frac{1}{6}$ and 
+Similarly, $P_1 = |1\rangle \langle 1 | \otimes \mathbb{1}$ is the projector corresponding to a measurement outcome of $1$ on the first qubit. Applying $P_1$ on $\ket{\psi}$ gives us $\big|P_1 \ket{\psi}\big|^2 = \frac{1}{6}$ and
 
 $$\frac{P_1 \ket{\psi}}{\big|P_1 \ket{\psi}\big|} = \frac{1}{\sqrt{2}} \left(\ket{10} + \ket{11}\right)$$
 
@@ -316,12 +317,12 @@ $$\frac{P_1 \ket{\psi}}{\big|P_1 \ket{\psi}\big|} = \frac{1}{\sqrt{2}} \left(\ke
         <td>$0$</td>
         <td>$\frac{5}{6}$</td>
         <td>$\frac{1}{\sqrt{10}} \left( 3\ket{00} + \ket{01}\right)$</td>
-    </tr> 
+    </tr>
     <tr>
         <td>$1$</td>
         <td>$\frac{1}{6}$</td>
         <td>$\frac{1}{\sqrt{2}} \left(\ket{10} + \ket{11}\right)$</td>
-    </tr> 
+    </tr>
 </table>
 </details>
 
@@ -336,7 +337,7 @@ The simulated and theoretical measurement probabilities are not expected to matc
 
 @[example]({
     "id": "multi_qubit_measurements__partial_measurements_demo",
-    "codePath": "./partial_measurements_demo.qs"
+    "codePath": "./PartialMeasurementsDemo.qs"
 })
 
 ## Using Partial Measurements to Identify the State of the System
@@ -346,12 +347,9 @@ In certain situations, it is possible to distinguish between orthogonal states o
 @[exercise]({
     "id": "multi_qubit_measurements__partial_measurements_for_system",
     "title": "Distinguish Orthogonal States Using Partial Measurements",
-    "descriptionPath": "./partial_measurements_for_system/index.md",
-    "placeholderSourcePath": "./partial_measurements_for_system/placeholder.qs",
-    "solutionPath": "./partial_measurements_for_system/solution.md",
-    "codePaths": [
-        "./partial_measurements_for_system/verify.qs",
-        "./common.qs",
+    "path": "./partial_measurements_for_system/",
+    "qsDependencies": [
+        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -388,10 +386,11 @@ On the other hand, if the system is entangled, then the measurement outcomes wil
 **Sequential measurements on an entangled state and a separable state**
 
 Consider two two-qubit states:
+
 - The Bell state $|\Phi^{+}\rangle = \frac{1}{\sqrt{2}} \big (|00\rangle + |11\rangle\big)$.
 - A state $\ket \Theta = \frac{1}{2} \big( \ket{00} + \ket{01} + \ket{10} + \ket{11} \big)$.
 
-For both states, consider a measurement on the first qubit, followed by a measurement on the second qubit, both done in the computational basis. For which state can we expect the measurement outcomes to be correlated? Verify by calculating the sequential measurement probabilities explicitly for both states. 
+For both states, consider a measurement on the first qubit, followed by a measurement on the second qubit, both done in the computational basis. For which state can we expect the measurement outcomes to be correlated? Verify by calculating the sequential measurement probabilities explicitly for both states.
 
 <details>
 <summary><b>Solution</b></summary>
@@ -409,12 +408,9 @@ For certain multi-qubit systems prepared in a superposition state, it is possibl
 @[exercise]({
     "id": "multi_qubit_measurements__state_modification",
     "title": "State Selection Using Partial Measurements",
-    "descriptionPath": "./state_modification/index.md",
-    "placeholderSourcePath": "./state_modification/placeholder.qs",
-    "solutionPath": "./state_modification/solution.md",
-    "codePaths": [
-        "./state_modification/verify.qs",
-        "./common.qs",
+    "path": "./state_modification/",
+    "qsDependencies": [
+        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -431,12 +427,9 @@ You could prepare a simpler state involving additional qubits, which, when measu
 @[exercise]({
     "id": "multi_qubit_measurements__state_preparation_using_partial_measurements",
     "title": "State Preparation Using Partial Measurements",
-    "descriptionPath": "./state_preparation/index.md",
-    "placeholderSourcePath": "./state_preparation/placeholder.qs",
-    "solutionPath": "./state_preparation/solution.md",
-    "codePaths": [
-        "./state_preparation/verify.qs",
-        "./common.qs",
+    "path": "./state_preparation/",
+    "qsDependencies": [
+        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -449,6 +442,7 @@ You could prepare a simpler state involving additional qubits, which, when measu
 Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure" target="_blank">`Measure`</a> operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
 
 ## Single-Qubit Pauli Measurement
+
 For single-qubit systems, any measurement corresponding to an orthogonal basis can be associated with a Hermitian matrix with eigenvalues $\pm 1$. The possible measurement outcomes (represented as `Result` in Q#) are the eigenvalues of the Hermitian matrix, and the corresponding projection matrices for the measurement are the projection operators onto the *eigenspaces* corresponding to the eigenvalues.
 
 For example, consider the computational basis measurement, which can result in outcomes `Zero` or `One` corresponding to states $\ket 0$ and $\ket 1$. This measurement is associated with the Pauli Z operator, which is given by
@@ -506,6 +500,7 @@ In general, any measurement on a single qubit which results in two outcomes corr
 Joint measurements are a generalization of this principle for multi-qubit matrices.
 
 ## Parity Measurements
+
 The simplest joint measurement is a parity measurement. A parity measurement treats computational basis vectors differently depending on whether the number of 1's in the basis vector is even or odd.
 
 For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\{ |00\rangle, |11\rangle \}$ and $\{ |01\rangle, |10\rangle \}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e. the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of $1$'s. On the other hand, a result of `One` corresponds to a post-measurement state with only odd parity computational basis vectors.
@@ -561,12 +556,9 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
 @[exercise]({
     "id": "multi_qubit_measurements__two_qubit_parity_measurement",
     "title": "Two-Qubit Parity Measurement",
-    "descriptionPath": "./joint_measurements/index.md",
-    "placeholderSourcePath": "./joint_measurements/placeholder.qs",
-    "solutionPath": "./joint_measurements/solution.md",
-    "codePaths": [
-        "./joint_measurements/verify.qs",
-        "./common.qs",
+    "path": "./joint_measurements/",
+    "qsDependencies": [
+        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -622,7 +614,7 @@ $$XX \ket{-+} = -\ket{-+}$$
 
 Thus, the $XX$ operator measures the parity in the Hadamard, or the $\ket{\pm}$ basis. That is, it distinguishes basis states with an even number of $+$'s from basis states which have an odd number of $+$'s.
 
-The projector corresponding to a result of `Zero` is given by $P_{+1} = \ket{++}\bra{++} + \ket{--}\bra{--}$, while the projector corresponding to a result of `One` is given by $P_{-1} = \ket{+-}\bra{+-} + \ket{-+}\bra{-+}$. Then, we note that $P_{+1}$ annihilates states with odd parity, while leaving states with even parity unaffected. That is, for any values of the constants 
+The projector corresponding to a result of `Zero` is given by $P_{+1} = \ket{++}\bra{++} + \ket{--}\bra{--}$, while the projector corresponding to a result of `One` is given by $P_{-1} = \ket{+-}\bra{+-} + \ket{-+}\bra{-+}$. Then, we note that $P_{+1}$ annihilates states with odd parity, while leaving states with even parity unaffected. That is, for any values of the constants
 $$P_{+1} ( \gamma \ket{++} + \delta \ket{--} ) =$$
 $$( \gamma \ket{++} + \delta \ket{--} )P_{+1} ( \mu \ket{-+} + \nu \ket{+-} ) = 0$$
 
@@ -643,8 +635,9 @@ Thus, this state has an even parity in the Hadamard basis. It follows that an $X
 })
 
 Congratulations! In this kata you learned how to apply measurements on multi-qubit systems. Here are a few key concepts to keep in mind:
-* Full measurements: you measure all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes).
-* Partial measurements: you measure $m$ qubits out of $n$, for $m< n$ ($2^m$ possible outcomes).
-* Joint measurement: Pauli measurement of all $n$ qubits ($2$ possible outcomes).
+
+- Full measurements: you measure all the qubits simultaneously in an orthogonal basis ($2^n$ possible outcomes).
+- Partial measurements: you measure $m$ qubits out of $n$, for $m< n$ ($2^m$ possible outcomes).
+- Joint measurement: Pauli measurement of all $n$ qubits ($2$ possible outcomes).
 
 Next, you will implement a quantum algorithm to generate random numbers in "Quantum Random Number Generation" kata.

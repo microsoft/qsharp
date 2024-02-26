@@ -41,7 +41,7 @@ pub fn generate_qir(
     }
 
     let package = map_hir_package_to_fir(package);
-    let unit = fir_store.get(package).expect("store should have package");
+    let unit = fir_store.get(package);
     let entry_expr = unit.entry.expect("package should have entry");
 
     let mut sim = BaseProfSim::default();

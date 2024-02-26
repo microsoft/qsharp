@@ -2,9 +2,11 @@
 
 @[section]({"id": "random_numbers__overview", "title": "Overview"})
 
-True random number generation is a notoriously difficult problem. Many "random" generators today are actually pseudo-random, using a starting seed to spawn seemingly-random numbers that are actually a repeatable function of that seed. Most true random number generators are based on measurements of some natural phenomenon, such as atmospheric noise or atomic decay. You can read more about it <a href="https://en.wikipedia.org/wiki/Random_number_generation" target="_blank">here</a>. 
+True random number generation is a notoriously difficult problem. Many "random" generators today are actually pseudo-random, using a starting seed to spawn seemingly-random numbers that are actually a repeatable function of that seed. Most true random number generators are based on measurements of some natural phenomenon, such as atmospheric noise or atomic decay. You can read more about it <a href="https://en.wikipedia.org/wiki/Random_number_generation" target="_blank">here</a>.
 
-Quantum random number generators (QRNGs) are truly random. The quantum algorithm for random number generation is one of the simplest applications of quantum computing principles, requiring very few qubits to run.
+Quantum random number generators (QRNGs) are truly random. Of course, this only applies to the case when they run on a real quantum device, relying on the randomness of the quantum state collapse during measurement to produce the random numbers. When QRNGs run on a simulator, the source of randomness is the same as for other classical programs, so the generated numbers are pseudo-random.
+
+The quantum algorithm for random number generation is one of the simplest applications of quantum computing principles, requiring very few qubits to run.
 
 **This kata covers the following topics:**
 
@@ -19,7 +21,7 @@ Quantum random number generators (QRNGs) are truly random. The quantum algorithm
 
 @[section]({"id": "random_numbers__introduction", "title": "Introduction"})
 
-Recall from the Qubit kata that a qubit state $|\psi\rangle$ is defined via the basis states $|0\rangle$ and $|1\rangle$ as $|\psi\rangle = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$, where $|\alpha|^2 + |\beta|^2 = 1$
+Recall from the Qubit kata that a qubit state $|\psi\rangle$ is defined via the basis states $|0\rangle$ and $|1\rangle$ as $|\psi\rangle = \begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$, where $|\alpha|^2 + |\beta|^2 = 1$.
 
 We call $\alpha$ and $\beta$ the probability amplitudes of states $|0\rangle$ and $|1\rangle$, respectively. When $|\psi\rangle$ is measured in the $\\{|0\rangle, |1\rangle\\}$ basis (the computational basis), the probabilities of the outcomes are defined based on the state amplitudes: there is a $|\alpha|^2$ probability that the measurement result will be $0$, and a $|\beta|^2$ probability that the measurement result will be $1$.
 
@@ -32,78 +34,58 @@ This knowledge is sufficient to implement a simple random number generator!
 @[exercise]({
     "id": "random_numbers__random_bit",
     "title": "Generate a Single Random Bit",
-    "descriptionPath": "./random_bit/index.md",
-    "placeholderSourcePath": "./random_bit/placeholder.qs",
-    "solutionPath": "./random_bit/solution.md",
-    "codePaths": [
-        "./random_bit/verification.qs",
+    "path": "./random_bit/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "random_numbers__random_two_bits",
     "title": "Generate a Random Two-Bit Number",
-    "descriptionPath": "./random_two_bits/index.md",
-    "placeholderSourcePath": "./random_two_bits/placeholder.qs",
-    "solutionPath": "./random_two_bits/solution.md",
-    "codePaths": [
-        "./random_two_bits/verification.qs",
+    "path": "./random_two_bits/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "random_numbers__random_n_bits",
     "title": "Generate a Number of Arbitrary Size",
-    "descriptionPath": "./random_n_bits/index.md",
-    "placeholderSourcePath": "./random_n_bits/placeholder.qs",
-    "solutionPath": "./random_n_bits/solution.md",
-    "codePaths": [
-        "./random_n_bits/verification.qs",
+    "path": "./random_n_bits/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "random_numbers__weighted_random_bit",
     "title": "Generate a Weighted Bit",
-    "descriptionPath": "./weighted_random_bit/index.md",
-    "placeholderSourcePath": "./weighted_random_bit/placeholder.qs",
-    "solutionPath": "./weighted_random_bit/solution.md",
-    "codePaths": [
-        "./weighted_random_bit/verification.qs",
+    "path": "./weighted_random_bit/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "random_numbers__random_number",
     "title": "Generate a Random Number Between Min and Max",
-    "descriptionPath": "./random_number/index.md",
-    "placeholderSourcePath": "./random_number/placeholder.qs",
-    "solutionPath": "./random_number/solution.md",
-    "codePaths": [
-        "./random_number/verification.qs",
+    "path": "./random_number/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs"
+        "./Common.qs"
     ]
 })
 
 @[section]({"id": "random_numbers__whats_next", "title": "What's Next?"})
 
 Congratulations! In this kata you have created a random number generator. Here are a few key concepts to keep in mind:
-* This code will generate truly random numbers when executed on a true quantum computer. Random numbers obtained when executing on a simulator are only as good as the source of randomness used by the simulator.
-* You can generate a random bit by applying a Hadamard gate to a state $\ket{0}$, and then measuring the resulting qubit in the computational basis.
-* The Q# <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.math.bitsizei" target="_blank">BitSizeI function</a> returns the number of bits needed to write an integer in binary.
 
-**Next Steps**
-
-We hope you enjoyed this kata on quantum random number generation! If you're looking to learn more about quantum computing and Q#, here are some suggestions:
-* To learn about superposition, interference and entanglement by using Q#, you can check the <a href="https://learn.microsoft.com/en-us/training/modules/qsharp-explore-key-concepts-quantum-computing/" target="_blank">Microsoft Learn module "Explore the key concepts of quantum computing by using Q#"</a>.
-* For another look at quantum random number generation, you can check out the <a href="https://docs.microsoft.com/learn/modules/qsharp-create-first-quantum-development-kit/1-introduction" target="_blank">Microsoft Learn module "Create your first Q# program by using the Quantum Development Kit"</a>.
-
+- This code will generate truly random numbers when executed on a true quantum computer. Random numbers obtained when executing on a simulator are only as good as the source of randomness used by the simulator.
+- You can generate a random bit by preparing a qubit in superposition and then measuring it in the computational basis.
+  The amplitudes of the basis states will define the probability distribution of the generated bits.
+- The Q# library function `BitSizeI` returns the number of bits in the binary representation of an integer.

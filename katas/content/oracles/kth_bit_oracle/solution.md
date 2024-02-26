@@ -1,6 +1,6 @@
 @[solution]({
     "id": "oracles__kth_bit_oracle_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })
 
 Notice how the oracles - both phase and marking - can take extra "classical" parameters.
