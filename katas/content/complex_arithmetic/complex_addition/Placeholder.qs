@@ -8,14 +8,7 @@ namespace Kata {
     
         // Implement your solution here...
 
-        let a = x::Real;
-        let b = x::Imag;
-
-        let c = y::Real;
-        let d = y::Imag;
-    
-        let z = Complex(a + c, b + d);
-    
-        return z;
+       let z = Complex(0., 0.);
+       return z;
     }
 }
