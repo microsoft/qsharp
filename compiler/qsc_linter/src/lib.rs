@@ -67,6 +67,8 @@
 //! ```
 
 #![deny(missing_docs)]
+#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
+#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 mod linter;
 mod lints;
