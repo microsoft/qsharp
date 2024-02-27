@@ -9,6 +9,7 @@ use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_codegen::qir_base;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
     compile::{PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName},
     error::WithSource,
@@ -55,6 +56,10 @@ struct Cli {
     /// Path to a Q# manifest for a project
     #[arg(short, long)]
     qsharp_json: Option<PathBuf>,
+
+    /// Language features to compile with
+    #[arg(short, long)]
+    features: Vec<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -79,6 +84,8 @@ fn main() -> miette::Result<ExitCode> {
         dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
     }
 
+    let mut features = LanguageFeatures::from_iter(cli.features);
+
     let mut sources = cli
         .sources
         .iter()
@@ -93,12 +100,23 @@ fn main() -> miette::Result<ExitCode> {
             let mut project_sources = project.sources;
 
             sources.append(&mut project_sources);
+
+            features.merge(LanguageFeatures::from_iter(
+                manifest.manifest.language_features,
+            ));
         }
     }
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities);
+    let (unit, errors) = compile(
+        &store,
+        &dependencies,
+        sources,
+        package_type,
+        capabilities,
+        features,
+    );
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");
 

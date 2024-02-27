@@ -11,7 +11,7 @@ use crate::{
     },
     serializable_type,
 };
-use qsc::{self, line_column::Encoding, target::Profile, PackageType};
+use qsc::{self, line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -124,6 +124,9 @@ impl LanguageService {
                 target_profile: notebook_metadata
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
+                language_features: LanguageFeatures::from_iter(
+                    notebook_metadata.languageFeatures.unwrap_or_default(),
+                ),
             },
             cells
                 .iter()
@@ -445,9 +448,11 @@ serializable_type! {
     NotebookMetadata,
     {
         pub targetProfile: Option<String>,
+        pub languageFeatures: Option<Vec<String>>
     },
     r#"export interface INotebookMetadata {
         targetProfile?: "unrestricted" | "base";
+        languageFeatures?: "v2-preview-syntax"[];
     }"#,
     INotebookMetadata
 }

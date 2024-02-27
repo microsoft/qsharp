@@ -6,7 +6,7 @@ use std::str::FromStr;
 use qsc::fir::StmtId;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
-use qsc::{fmt_complex, target::Profile};
+use qsc::{fmt_complex, target::Profile, LanguageFeatures};
 
 use crate::line_column::Range;
 use crate::{get_source_map, serializable_type, CallbackReceiver};
@@ -32,11 +32,13 @@ impl DebugService {
         sources: Vec<js_sys::Array>,
         target_profile: String,
         entry: Option<String>,
+        language_features: Vec<String>,
     ) -> String {
         let source_map = get_source_map(sources, entry);
         let target = Profile::from_str(&target_profile)
             .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
-        match Debugger::new(source_map, target.into(), Encoding::Utf16) {
+        let features = LanguageFeatures::from_iter(language_features);
+        match Debugger::new(source_map, target.into(), Encoding::Utf16, features) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 match self.debugger_mut().set_entry() {

@@ -5,6 +5,7 @@
 
 use indoc::indoc;
 use miette::Result;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{output::CursorReceiver, val::Value};
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
@@ -70,6 +71,7 @@ fn stack_traces_can_cross_eval_session_and_file_boundaries() {
         source_map,
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
     )
     .expect("Failed to compile base environment.");
 
@@ -144,6 +146,7 @@ fn stack_traces_can_cross_file_and_entry_boundaries() {
         source_map,
         PackageType::Exe,
         RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
     )
     .expect("Failed to compile base environment.");
 

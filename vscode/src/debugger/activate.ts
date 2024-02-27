@@ -197,12 +197,13 @@ class InlineDebugAdapterFactory
     const uri = workspaceFileAccessor.resolvePathToUri(
       session.configuration.program,
     );
-    const sources = await loadProject(uri);
+    const project = await loadProject(uri);
     const qscSession = new QscDebugSession(
       workspaceFileAccessor,
       worker,
       session.configuration,
-      sources,
+      project.sources,
+      project.languageFeatures,
     );
 
     await qscSession.init(getRandomGuid());
