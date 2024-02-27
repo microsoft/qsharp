@@ -1,11 +1,10 @@
 namespace Kata.Verification {
-   
-   operation PowersOfIExp(n : Int) : Int{
-    // If n is divisible by 4
-    if n % 4 == 0{
-        return 1;}
-    else{
-        return -1;}
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Math;
+
+    operation ComplexAddExp(x : Complex, y : Complex) : (Complex)  {
+        
+        return (x::Real + y::Real, x::Imag + y::Imag);
     }
 
     @EntryPoint()

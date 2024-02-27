@@ -45,57 +45,19 @@ We'll call the number $i$ and its real multiples **imaginary numbers**.
 
 A good video introduction to imaginary numbers can be found [here](https://youtu.be/SP-YJe7Vldo).
 
-@[exercise]({ "id": "complex_arithmetic__powers_of_i", "title": "Powers of $i$", "descriptionPath": "./powers_of_i/index.md", "codePaths": [ "../KatasLibrary.qs", "./powers_of_i/Verification.qs" ], "placeholderSourcePath": "./powers_of_i/Placeholder.qs", "solutionPath": "./powers_of_i/solution.md" })
+@[exercise]({ "id": "complex_arithmetic__powers_of_i", "title": "Powers of $i$", "path": "./powers_of_i/", "qsDependencies": [ "../KatasLibrary.qs" ] })
 
 @[section]({ "id": "complex_arithmetic__complex_numbers", "title": "Complex Numbers" })
-
-<!-- ## Complex Numbers -->
 
 Adding imaginary numbers to each other is quite simple, but what happens when we add a real number to an imaginary number? The result of that addition will be partly real and partly imaginary, otherwise known as a complex number. A complex number is simply the real part and the imaginary part being treated as a single number. Complex numbers are generally written as the sum of their two parts: $$a+bi$$, where both $a$ and $b$ are real numbers. For example, $3+4i$, or $-5-7i$ are valid complex numbers. Note that purely real or purely imaginary numbers can also be written as complex numbers: $2$ is $2+0i$ and $-3i$ is $0-3i$.
 
 When performing operations on complex numbers, it is often helpful to treat them as polynomials in terms of $i$.
 
-### Exercise 2: Complex addition
+@[exercise]({ "id": "complex_arithmetic__complex_addition", "title": "Complex addition", "path": "./complex_addition/", "qsDependencies": [ "../KatasLibrary.qs" ] })
 
-**Inputs:**
+@[exercise]({ "id": "complex_arithmetic__complex_multiplication", "title": "Complex Multiplication", "path": "./complex_multiplication/", "qsDependencies": [ "../KatasLibrary.qs" ] })
 
-1. A complex number $x = a + bi$, represented as a tuple `(a, b)`.
-2. A complex number $y = c + di$, represented as a tuple `(c, d)`.
-
-**Goal:** Return the product of these two numbers $x \\cdot y = z = g + hi$, represented as a tuple `(g, h)`.
-
-A tuple is a pair of numbers. You can make a tuple by putting two numbers in parentheses like this: `(3, 4)`.
-
-* You can access the $n$th element of tuple `x` like so: `x[n]`.
-* For this tutorial, complex numbers are represented as tuples where the first element is the real part, and the second element is the real coefficient of the imaginary part.
-* For example, $1 + 2i$ would be represented by a tuple `(1, 2)`, and $7 - 5i$ would be represented by `(7, -5)`.
-
-**Hint:** Remember, adding complex numbers is just like adding polynomials. Add components of the same type - add the real part to the real part, add the complex part to the complex part.
-
-A video explanation of adding complex numbers can be found [here](https://www.youtube.com/watch?v=SfbjqVyQljk).
-
-if you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-2-complex-addition).
-
-### Exercise 3: Complex multiplication
-
-**Inputs:**
-
-1. A complex number $x = a + bi$, represented as a tuple `(a, b)`.
-2. A complex number $y = c + di$, represented as a tuple `(c, d)`.
-
-**Goal:** Return the product of these two numbers $x \\cdot y = z = g + hi$, represented as a tuple `(g, h)`.
-
-**Hint:** Remember, multiplying complex numbers is just like multiplying polynomials. Distribute one of the complex numbers:
-
-$$(a + bi)(c + di) = a(c + di) + bi(c + di)$$
-
-Then multiply through, and group the real and imaginary terms together.
-
-A video explanation of multiplying complex numbers can be found [here](https://www.youtube.com/watch?v=cWn6g8Qqvs4).
-
-If you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-3-complex-multiplication).
-
-## Complex Conjugate
+@[section]({ "id": "complex_arithmetic__complex_conjugate", "title": "Complex Conjugate" })
 
 Before we discuss any other complex operations, we have to cover the **complex conjugate**. The conjugate is a simple operation: given a complex number  $x = a + bi$, its complex conjugate is $\overline{x} = a - bi$.
 
@@ -161,7 +123,7 @@ You may recall that real numbers can be represented geometrically using the numb
 
 A complex number has two components - a real component and an imaginary component. As you no doubt noticed from the exercises, these can be represented by two real numbers - the real component, and the real coefficient of the imaginary component. This allows us to map complex numbers onto a two-dimensional plane - the **complex plane**. The most common mapping is the obvious one: $a+bi$ can be represented by the point $(a,b)$ in the **Cartesian coordinate system**.
 
-![Complex Plane Explanation](img/complex_plane.svg)
+![Complex Plane Explanation](./img/complex_plane.svg)
 
 This mapping allows us to apply complex arithmetic to geometry, and, more importantly, apply geometric concepts to complex numbers. Many properties of complex numbers become easier to understand when viewed through a geometric lens.
 
