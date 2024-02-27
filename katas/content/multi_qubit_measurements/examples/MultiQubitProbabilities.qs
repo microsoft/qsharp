@@ -1,0 +1,25 @@
+namespace Kata {
+    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Math;
+
+    @EntryPoint()
+    operation CalculateProbabilities() : Unit {
+        use qs = Qubit[2];
+
+        Ry(2. * ArcCos(2. / 3.), qs[1]);
+        Controlled Ry([qs[1]], (2. * ArcCos(1. / Sqrt(5.)), qs[0]));
+
+        Message("The initial state of the system:");
+        DumpMachine();
+
+        // Change the basis
+        H(qs[0]);
+        H(qs[1]);
+
+        Message("Final state of the two-qubit system:");
+        DumpMachine();
+
+        // Return the qubit array into state |00❭.
+        ResetAll(qs);
+    }
+}
