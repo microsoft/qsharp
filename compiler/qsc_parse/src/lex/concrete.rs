@@ -14,7 +14,7 @@ pub(super) struct ConcreteToken {
 
 #[derive(Debug, PartialEq)]
 pub(super) enum ConcreteTokenKind {
-    Cooked(cooked::TokenKind),
+    Syntax(cooked::TokenKind),
     Error(cooked::Error),
     WhiteSpace,
     Comment,
@@ -92,7 +92,7 @@ impl Iterator for ConcreteTokenIterator<'_> {
                     let next_lo = self.get_next_lo();
                     self.get_tokens_from_span(token.span.hi, next_lo);
                     Some(ConcreteToken {
-                        kind: ConcreteTokenKind::Cooked(token.kind),
+                        kind: ConcreteTokenKind::Syntax(token.kind),
                         span: token.span,
                     })
                 }
