@@ -19,8 +19,14 @@ function formatComplex(real: number, imag: number) {
 
 export function StateTable(props: { dump: Dump; latexDump: string }) {
   useEffect(() => {
-    MathJax.typeset();
-  });
+    // TODO: With id mjrender on the element multiple states on the page won't work.
+    var mjrender = document.getElementById("mjrender");
+    if (mjrender != null) {
+      MathJax.typesetClear([mjrender])
+      mjrender.innerHTML = props.latexDump;
+      MathJax.typesetPromise([mjrender]);
+    }
+  }, [props.latexDump]);
 
   return (
     <div>
@@ -63,7 +69,7 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
           })}
         </tbody>
       </table>
-      <p>{props.latexDump}</p>
+      <div id="mjrender"></div>
     </div>
   );
 }
