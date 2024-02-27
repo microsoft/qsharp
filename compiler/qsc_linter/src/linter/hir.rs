@@ -18,7 +18,9 @@ pub fn run_hir_lints(package: &Package) -> Vec<Lint> {
     lints.buffer
 }
 
-/// Combined HIR lints for speed.
+/// Combined HIR lints for speed. This combined lint allow us to
+/// evaluate all the lints in a single HIR pass, instead of doing
+/// an individual pass for each lint in the linter.
 #[derive(Default)]
 pub(crate) struct CombinedHirLints {
     buffer: Vec<Lint>,

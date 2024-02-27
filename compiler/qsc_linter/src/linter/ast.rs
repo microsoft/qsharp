@@ -31,7 +31,9 @@ pub fn run_ast_lints(package: &qsc_ast::ast::Package) -> Vec<Lint> {
     lints.buffer
 }
 
-/// Combined AST lints for speed.
+/// Combined AST lints for speed. This combined lint allow us to
+/// evaluate all the lints in a single AST pass, instead of doing
+/// an individual pass for each lint in the linter.
 #[derive(Default)]
 pub(crate) struct CombinedAstLints {
     buffer: Vec<Lint>,
