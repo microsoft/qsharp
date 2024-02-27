@@ -1,17 +1,17 @@
 pub(crate) mod ast;
 pub(crate) mod hir;
 
-use qsc_ast::ast::NodeId;
 use qsc_data_structures::span::Span;
 use std::fmt::Display;
 
 /// A lint emited by the linter.
-#[allow(missing_docs)]
 #[derive(Debug, Clone)]
 pub struct Lint {
-    pub node_id: NodeId,
+    /// A span indicating where the diagnostic is in the source code.
     pub span: Span,
+    /// This is the message the user will see in the code editor.
     pub message: &'static str,
+    /// The lint level: allow, warning, error.
     pub level: LintLevel,
 }
 

@@ -1,13 +1,6 @@
 use super::{declare_lint, push_lint};
 use crate::linter::{ast::AstLintPass, Lint, LintLevel};
-#[allow(unused_imports)]
-use qsc_ast::{
-    ast::{
-        Attr, BinOp, Block, CallableDecl, Expr, ExprKind, FunctorExpr, Ident, Item, Lit, Namespace,
-        Package, Pat, Path, QubitInit, SpecDecl, Stmt, TopLevelNode, Ty, TyDef, Visibility,
-    },
-    visit::Visitor,
-};
+use qsc_ast::ast::{BinOp, ExprKind, Lit};
 
 declare_lint!(
     DoubleParens,

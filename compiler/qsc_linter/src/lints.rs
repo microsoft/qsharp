@@ -15,7 +15,6 @@ macro_rules! declare_lint {
 macro_rules! push_lint {
     ($lint_ty:ty, $node:expr, $buffer:expr) => {
         $buffer.push(Lint {
-            node_id: $node.id,
             span: $node.span,
             message: <$lint_ty>::MESSAGE,
             level: <$lint_ty>::LEVEL,

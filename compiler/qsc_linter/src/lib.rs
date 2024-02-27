@@ -67,8 +67,7 @@
 //! ```
 
 #![deny(missing_docs)]
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
+#![warn(clippy::pedantic, clippy::unwrap_used)]
 
 mod linter;
 mod lints;
@@ -80,8 +79,6 @@ use miette::{Diagnostic, LabeledSpan};
 
 /// Wrapper around a Lint to provide an error representation
 #[derive(Debug, Clone, thiserror::Error)]
-// #[error(transparent)]
-// #[diagnostic(transparent)]
 pub struct Error(pub Lint);
 
 impl std::fmt::Display for Error {

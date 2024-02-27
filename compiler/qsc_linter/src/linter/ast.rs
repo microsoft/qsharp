@@ -36,48 +36,48 @@ pub(crate) struct CombinedAstLints {
     buffer: Vec<Lint>,
 }
 
-#[allow(unused_variables, clippy::unused_self)]
+#[allow(clippy::unused_self)]
 impl CombinedAstLints {
     pub fn new() -> Self {
         Self { buffer: Vec::new() }
     }
 
-    fn check_package(&self, package: &Package) {}
+    fn check_package(&self, _package: &Package) {}
 
-    fn check_namespace(&self, namespace: &Namespace) {}
+    fn check_namespace(&self, _namespace: &Namespace) {}
 
-    fn check_item(&self, item: &Item) {}
+    fn check_item(&self, _item: &Item) {}
 
-    fn check_attr(&self, attr: &Attr) {}
+    fn check_attr(&self, _attr: &Attr) {}
 
-    fn check_visibility(&self, visibility: &Visibility) {}
+    fn check_visibility(&self, _visibility: &Visibility) {}
 
-    fn check_ty_def(&self, def: &TyDef) {}
+    fn check_ty_def(&self, _def: &TyDef) {}
 
-    fn check_callable_decl(&self, decl: &CallableDecl) {}
+    fn check_callable_decl(&self, _decl: &CallableDecl) {}
 
-    fn check_spec_decl(&self, decl: &SpecDecl) {}
+    fn check_spec_decl(&self, _decl: &SpecDecl) {}
 
-    fn check_functor_expr(&self, expr: &FunctorExpr) {}
+    fn check_functor_expr(&self, _expr: &FunctorExpr) {}
 
-    fn check_ty(&self, ty: &Ty) {}
+    fn check_ty(&self, _ty: &Ty) {}
 
-    fn check_block(&self, block: &Block) {}
+    fn check_block(&self, _block: &Block) {}
 
-    fn check_stmt(&self, stmt: &Stmt) {}
+    fn check_stmt(&self, _stmt: &Stmt) {}
 
     fn check_expr(&mut self, expr: &Expr) {
         DoubleParens::check_expr(expr, &mut self.buffer);
         DivisionByZero::check_expr(expr, &mut self.buffer);
     }
 
-    fn check_pat(&self, pat: &Pat) {}
+    fn check_pat(&self, _pat: &Pat) {}
 
-    fn check_qubit_init(&self, init: &QubitInit) {}
+    fn check_qubit_init(&self, _init: &QubitInit) {}
 
-    fn check_path(&self, path: &Path) {}
+    fn check_path(&self, _path: &Path) {}
 
-    fn check_ident(&self, ident: &Ident) {}
+    fn check_ident(&self, _ident: &Ident) {}
 }
 
 impl<'a> Visitor<'a> for CombinedAstLints {
