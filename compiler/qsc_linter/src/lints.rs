@@ -1,5 +1,4 @@
 pub(super) mod ast;
-pub(super) mod hir;
 
 macro_rules! declare_lint {
     ($lint_name:ident, $level:expr, $msg:expr) => {
