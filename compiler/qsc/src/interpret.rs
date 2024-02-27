@@ -26,6 +26,7 @@ use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_codegen::qir_base::BaseProfSim;
 use qsc_data_structures::{
+    language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
 };
@@ -123,12 +124,13 @@ impl Interpreter {
         sources: SourceMap,
         package_type: PackageType,
         capabilities: RuntimeCapabilityFlags,
+        language_features: LanguageFeatures,
     ) -> Result<Self, Vec<Error>> {
         let mut lowerer = qsc_eval::lower::Lowerer::new();
         let mut fir_store = fir::PackageStore::new();
 
-        let compiler =
-            Compiler::new(std, sources, package_type, capabilities).map_err(into_errors)?;
+        let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
+            .map_err(into_errors)?;
 
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
@@ -359,8 +361,15 @@ impl Debugger {
         sources: SourceMap,
         capabilities: RuntimeCapabilityFlags,
         position_encoding: Encoding,
+        language_features: LanguageFeatures,
     ) -> Result<Self, Vec<Error>> {
-        let interpreter = Interpreter::new(true, sources, PackageType::Exe, capabilities)?;
+        let interpreter = Interpreter::new(
+            true,
+            sources,
+            PackageType::Exe,
+            capabilities,
+            language_features,
+        )?;
         let source_package_id = interpreter.source_package;
         Ok(Self {
             interpreter,

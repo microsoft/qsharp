@@ -82,7 +82,9 @@ function frontierEntryToPlotEntry(entry: FrontierEntry): PlotItem {
     label:
       entry.physicalCountsFormatted.runtime +
       ", physical qubits: " +
-      entry.physicalCountsFormatted.physicalQubits,
+      entry.physicalCountsFormatted.physicalQubits +
+      ", code distance: " +
+      entry.logicalQubit.codeDistance,
   };
 }
 
@@ -97,7 +99,9 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
           label:
             data.physicalCountsFormatted.runtime +
             ", physical qubits: " +
-            data.physicalCountsFormatted.physicalQubits,
+            data.physicalCountsFormatted.physicalQubits +
+            ", code distance: " +
+            data.logicalQubit.codeDistance,
         },
       ],
     };

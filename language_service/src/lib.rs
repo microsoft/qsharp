@@ -415,7 +415,7 @@ async fn apply_update(updater: &mut CompilationStateUpdater<'_>, update: Update)
             cells,
         } => updater.update_notebook_document(
             &notebook_uri,
-            notebook_metadata,
+            &notebook_metadata,
             cells
                 .iter()
                 .map(|(uri, version, contents)| (uri.as_ref(), *version, contents.as_ref())),

@@ -230,7 +230,7 @@ ms.topic: {}
 qsharp.kind: {}
 qsharp.namespace: {}
 qsharp.name: {}
-qsharp.summary: {}
+qsharp.summary: \"{}\"
 ---",
             self.uid, self.title, self.topic, kind, self.namespace, self.name, self.summary
         )
