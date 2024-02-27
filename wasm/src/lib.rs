@@ -9,7 +9,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use project_system::*;
 use qsc::{
-    compile, format_state_id, get_latex_for_state,
+    compile, format_state_id, get_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -193,7 +193,7 @@ where
         )
         .expect("writing to string should succeed");
 
-        let json_latex = serde_json::to_string(&get_latex_for_state(state, qubit_count))
+        let json_latex = serde_json::to_string(&get_latex(state, qubit_count))
             .expect("serialization should succeed");
         write!(dump_json, r#" "stateLatex": {} }} "#, json_latex)
             .expect("writing to string should succeed");

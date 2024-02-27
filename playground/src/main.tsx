@@ -43,7 +43,8 @@ declare global {
   const MathJax: {
     typeset: () => void;
     typesetPromise: (nodes: HTMLElement[]) => Promise<any>;
-    typesetClear: (nodes: HTMLElement[]) => void };
+    typesetClear: (nodes: HTMLElement[]) => void;
+  };
 }
 
 function telemetryHandler({ id, data }: { id: string; data?: any }) {

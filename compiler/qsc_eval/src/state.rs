@@ -71,13 +71,18 @@ impl RationalNumber {
             denominator: self.denominator,
         }
     }
+    const DENOMINATORS: [i64; 36] = [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36,
+        40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64,
+    ];
 
     // Tries to recognize a float number as rational.
     fn recognize(x: f64) -> Option<Self> {
-        // TODO: Optimize this. Consider squares of roots in the denominator.
-        for denominator in 1..31 {
+        for denominator in Self::DENOMINATORS {
+            #[allow(clippy::cast_precision_loss)] // We only use fixes set of denominators
             let numerator: f64 = x * (denominator as f64);
-            if !is_fractional_part_significant(numerator) {
+            if numerator > 0.0 && numerator < 100.0 && !is_fractional_part_significant(numerator) {
+                #[allow(clippy::cast_possible_truncation)] // We only allow small numerators
                 let rounded_numerator: i64 = numerator.round() as i64;
                 return Some(Self::construct(rounded_numerator, denominator));
             }
@@ -104,14 +109,12 @@ impl AlgebraicNumber {
         }
     }
 
-    const ROOTS: [i64; 19] = [
-        1, 2, 3, 5, 6, 7, 10, 11, 13, 14, 15, 17, 19, 21, 22, 23, 26, 29, 30,
-    ];
+    const ROOTS: [i64; 6] = [1, 2, 3, 5, 6, 7];
 
     // Tries to recognize a float number as algebraic.
     fn recognize(x: f64) -> Option<Self> {
-        // TODO: Optimize this. In practice we don't really need anything beyond 1, √2, √3, √5, √6.
         for root in Self::ROOTS {
+            #[allow(clippy::cast_precision_loss)] // We only use fixes set of roots
             let divided_by_root: f64 = x / (root as f64).sqrt();
             if let Some(fraction) = RationalNumber::recognize(divided_by_root) {
                 return Some(Self::construct(fraction, root));
@@ -203,8 +206,8 @@ impl RealNumber {
 // Represents a non-zero complex numbers in the polar form: coefficient·𝒆^(𝝅·𝒊·phase_multiplier)
 // Sign of the number is separated for easier composition and rendering
 struct PolarForm {
-    sign: i64, // 1 means the number should be rendered with "+", -1 is "-", 0 means no sign
-    magnitude: AlgebraicNumber, // magnitude of the number
+    sign: i64,                        // For this form the sign is always 1
+    magnitude: AlgebraicNumber,       // magnitude of the number
     phase_multiplier: RationalNumber, // to be multiplied by 𝝅·𝒊 to get phase
 }
 
@@ -217,7 +220,7 @@ impl PolarForm {
         }
     }
 
-    const PI_FRACTIONS: [(i64, i64); 8] = [
+    const PI_FRACTIONS: [(i64, i64); 16] = [
         (1, 3),
         (2, 3),
         (1, 4),
@@ -226,10 +229,19 @@ impl PolarForm {
         (3, 8),
         (5, 8),
         (7, 8),
+        (1, 16),
+        (3, 16),
+        (5, 16),
+        (7, 16),
+        (9, 16),
+        (11, 16),
+        (13, 16),
+        (15, 16),
     ];
 
     fn recognize(re: f64, im: f64) -> Option<Self> {
         for (pi_num, pi_den) in Self::PI_FRACTIONS {
+            #[allow(clippy::cast_precision_loss)] // We only use fixes set of fractions
             let angle: f64 = std::f64::consts::PI * (pi_num as f64) / (pi_den as f64);
             let sin: f64 = angle.sin();
             let cos: f64 = angle.cos();
@@ -253,7 +265,7 @@ impl PolarForm {
 // Represents a non-zero complex number in the Cartesian form: real_part+𝒊·imaginary_part
 // Sign of the number is separated for easier composition and rendering
 struct CartesianForm {
-    sign: i64, // 1 means the number should be rendered with "+", -1 is "-", 0 means no sign
+    sign: i64,             // 1 the common sign is a "+", -1 is "-", 0 means the number is 0
     real_part: RealNumber, // Real part
     imaginary_part: RealNumber, // Imaginary part
 }
@@ -261,26 +273,25 @@ struct CartesianForm {
 impl CartesianForm {
     fn construct(real_part: RealNumber, imaginary_part: RealNumber) -> Self {
         let sign = real_part.sign();
-        if sign == 0 {
-            CartesianForm {
+        match sign {
+            0 => CartesianForm {
                 sign: imaginary_part.sign(),
-                real_part: real_part.negate(), // TODO: check...
+                real_part: RealNumber::Zero,
                 imaginary_part: imaginary_part.abs(),
-            }
-        } else if sign < 0 {
-            CartesianForm {
-                sign,
-                real_part: real_part.abs(),
-                imaginary_part: imaginary_part.negate(),
-            }
-        } else {
-            CartesianForm {
+            },
+            1.. => CartesianForm {
                 sign,
                 real_part,
                 imaginary_part,
-            }
+            },
+            _ => CartesianForm {
+                sign,
+                real_part: real_part.abs(),
+                imaginary_part: imaginary_part.negate(),
+            },
         }
     }
+
     fn recognize(re: f64, im: f64) -> CartesianForm {
         CartesianForm::construct(RealNumber::recognize(re), RealNumber::recognize(im))
     }
@@ -304,14 +315,13 @@ impl ComplexNumber {
 
 // Represents one term of a quantum state which corresponds to one basis vector
 struct Term {
-    basis_vector: BigUint, // TODO: See if it's better to borrow
+    basis_vector: BigUint,
     coordinate: ComplexNumber,
 }
 
 fn get_terms_for_state(state: Vec<(BigUint, Complex64)>) -> Vec<Term> {
     let mut result: Vec<Term> = Vec::with_capacity(state.len());
     for (basis_vector, coefficient) in state {
-        // TODO: Better to drop insignificant coordinates.
         result.push(Term {
             basis_vector,
             coordinate: ComplexNumber::recognize(coefficient.re, coefficient.im),
@@ -322,7 +332,7 @@ fn get_terms_for_state(state: Vec<(BigUint, Complex64)>) -> Vec<Term> {
 
 // =========================
 #[must_use]
-pub fn get_latex_for_state(state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
+pub fn get_latex(state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
     let terms: Vec<Term> = get_terms_for_state(state);
     let mut latex: String = String::with_capacity(200);
 
@@ -386,28 +396,27 @@ fn write_latex_for_cartesian_form(
     }
     if let RealNumber::Zero = cartesian_form.real_part {
         if let RealNumber::Zero = cartesian_form.imaginary_part {
-            // TODO: This is an empty coefficient. Shouldn't happen.
+            // NOTE: This branch is never used.
+            latex.push('0');
         } else {
             // Only imaginary part present
             write_latex_for_real_number(latex, cartesian_form.imaginary_part, false);
             latex.push('i');
         }
+    } else if let RealNumber::Zero = cartesian_form.imaginary_part {
+        // Only real part present
+        write_latex_for_real_number(latex, cartesian_form.real_part, false);
     } else {
-        if let RealNumber::Zero = cartesian_form.imaginary_part {
-            // Only real part present
-            write_latex_for_real_number(latex, cartesian_form.real_part, false);
+        // Both real and imaginary parts present
+        latex.push_str("\\left( ");
+        write_latex_for_real_number(latex, cartesian_form.real_part, true);
+        latex.push(if cartesian_form.imaginary_part.sign() < 0 {
+            '-'
         } else {
-            // Both real and imaginary parts present
-            latex.push_str("\\left( ");
-            write_latex_for_real_number(latex, cartesian_form.real_part, true);
-            latex.push(if cartesian_form.imaginary_part.sign() < 0 {
-                '-'
-            } else {
-                '+'
-            });
-            write_latex_for_real_number(latex, cartesian_form.imaginary_part, false);
-            latex.push_str("i \\right)");
-        }
+            '+'
+        });
+        write_latex_for_real_number(latex, cartesian_form.imaginary_part, false);
+        latex.push_str("i \\right)");
     }
 }
 
@@ -445,17 +454,15 @@ fn write_latex_for_algebraic_number(latex: &mut String, number: AlgebraicNumber,
         } else {
             write!(latex, "{}", number.fraction.numerator).unwrap();
         }
+    } else if number.fraction.numerator == 1 {
+        write!(latex, "\\sqrt{{{}}}", number.root).unwrap();
     } else {
-        if number.fraction.numerator == 1 {
-            write!(latex, "\\sqrt{{{}}}", number.root).unwrap();
-        } else {
-            write!(
-                latex,
-                "{} \\sqrt{{{}}}",
-                number.fraction.numerator, number.root
-            )
-            .unwrap();
-        }
+        write!(
+            latex,
+            "{} \\sqrt{{{}}}",
+            number.fraction.numerator, number.root
+        )
+        .unwrap();
     }
     if number.fraction.denominator != 1 {
         write!(latex, "}}{{{}}}", number.fraction.denominator).unwrap();
