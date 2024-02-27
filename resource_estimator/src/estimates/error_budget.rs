@@ -1,23 +1,21 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use serde::Serialize;
-
-#[derive(Debug, Serialize, Clone)]
+#[derive(Clone)]
 pub struct ErrorBudget {
     /// Probability of at least one logical error
     logical: f64,
-    /// Probability of at least one faulty T distillation
-    tstates: f64,
+    /// Probability of at least one faulty magic state distillation
+    magic_states: f64,
     /// Probability of at least one failed rotation synthesis
     rotations: f64,
 }
 
 impl ErrorBudget {
-    pub fn new(logical: f64, tstates: f64, rotations: f64) -> Self {
+    pub fn new(logical: f64, magic_states: f64, rotations: f64) -> Self {
         Self {
             logical,
-            tstates,
+            magic_states,
             rotations,
         }
     }
@@ -28,8 +26,8 @@ impl ErrorBudget {
     }
 
     /// Get the error budget's tstates.
-    pub fn tstates(&self) -> f64 {
-        self.tstates
+    pub fn magic_states(&self) -> f64 {
+        self.magic_states
     }
 
     /// Get the error budget's rotations.
