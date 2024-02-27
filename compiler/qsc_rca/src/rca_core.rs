@@ -22,7 +22,7 @@ pub struct CoreAnalyzer<'a> {
     package_store: &'a PackageStore,
     package_store_compute_properties: PackageStoreComputeProperties,
     active_packages: Vec<PackageId>,
-    active_callables: Vec<CallableContext>,
+    active_items: Vec<ItemContext>,
 }
 
 impl<'a> CoreAnalyzer<'a> {
@@ -34,7 +34,7 @@ impl<'a> CoreAnalyzer<'a> {
             package_store,
             package_store_compute_properties,
             active_packages: Vec::<PackageId>::default(),
-            active_callables: Vec::<CallableContext>::default(),
+            active_items: Vec::<ItemContext>::default(),
         }
     }
 
@@ -54,9 +54,9 @@ impl<'a> CoreAnalyzer<'a> {
     // Analyzes the currently active callable assuming it is intrinsic.
     fn analyze_intrinsic_callable(&mut self) {
         // Check whether the callable has already been analyzed.
-        let current_callable_context = self.get_current_callable_context();
+        let current_item_context = self.get_current_item_context();
         let body_specialization_id =
-            GlobalSpecId::from((current_callable_context.id, FunctorSetValue::Empty));
+            GlobalSpecId::from((current_item_context.id, FunctorSetValue::Empty));
         if self
             .package_store_compute_properties
             .find_specialization(body_specialization_id)
@@ -66,7 +66,7 @@ impl<'a> CoreAnalyzer<'a> {
         }
 
         // Determine the application generator set depending on whether the callable is a function or an operation.
-        let decl_info = current_callable_context.get_decl_context();
+        let decl_info = current_item_context.get_decl_context();
         let application_generator_set = match decl_info.kind {
             CallableKind::Function => {
                 determine_intrinsic_function_application_generator_set(decl_info)
@@ -96,11 +96,11 @@ impl<'a> CoreAnalyzer<'a> {
         // of the analysis.
         let package_id = self.get_current_package();
         let pats = &self.package_store.get(package_id).pats;
-        self.get_current_callable_context_mut()
+        self.get_current_item_context_mut()
             .set_current_spec_context(decl, functor_set_value, pats);
         self.visit_spec_decl(decl);
         let spec_context = self
-            .get_current_callable_context_mut()
+            .get_current_item_context_mut()
             .clear_current_spec_context();
         assert!(spec_context.functor_set_value == functor_set_value);
 
@@ -111,16 +111,14 @@ impl<'a> CoreAnalyzer<'a> {
             .save_to_package_compute_properties(package_compute_properties, Some(decl.block));
     }
 
-    fn get_current_callable_context(&self) -> &CallableContext {
-        self.active_callables
-            .last()
-            .expect("there are no active callables")
+    fn get_current_item_context(&self) -> &ItemContext {
+        self.active_items.last().expect("there are no active items")
     }
 
-    fn get_current_callable_context_mut(&mut self) -> &mut CallableContext {
-        self.active_callables
+    fn get_current_item_context_mut(&mut self) -> &mut ItemContext {
+        self.active_items
             .last_mut()
-            .expect("there are no active callables")
+            .expect("there are no active items")
     }
 
     fn get_current_package(&self) -> PackageId {
@@ -164,7 +162,7 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
 
             // Now, we can query the statement's compute kind and aggregate it to the block's compute kind.
             let application_instance = self
-                .get_current_callable_context()
+                .get_current_item_context()
                 .get_current_spec_context()
                 .get_current_application_instance();
             let stmt_compute_kind = application_instance.get_stmt_compute_kind(*stmt_id);
@@ -177,7 +175,7 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
 
         // Finally, insert the block's compute kind to the application instance.
         let application_instance = self
-            .get_current_callable_context_mut()
+            .get_current_item_context_mut()
             .get_current_spec_context_mut()
             .get_current_application_instance_mut();
         application_instance.insert_block_compute_kind(block_id, block_compute_kind);
@@ -189,7 +187,7 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
         // Derive the input parameters of the callable and add them to the currently active callable.
         let input_params =
             derive_callable_input_params(decl, &self.package_store.get(package_id).pats);
-        let current_callable_context = self.get_current_callable_context_mut();
+        let current_callable_context = self.get_current_item_context_mut();
         current_callable_context.set_decl_context(decl.kind, input_params, decl.output.clone());
         self.visit_callable_impl(&decl.implementation);
     }
@@ -208,11 +206,10 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
         let store_item_id = StoreItemId::from((package_id, item.id));
         match &item.kind {
             ItemKind::Callable(decl) => {
-                self.active_callables
-                    .push(CallableContext::new(store_item_id));
+                self.active_items.push(ItemContext::new(store_item_id));
                 self.visit_callable_decl(decl);
                 let popped_callable_context = self
-                    .active_callables
+                    .active_items
                     .pop()
                     .expect("there should be at least one active callable");
                 assert!(popped_callable_context.id == store_item_id);
@@ -236,17 +233,17 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
         // Determine the compute properties of the specialization by visiting the implementation block configured for
         // each application instance in the generator set.
-        let input_param_count = self.get_current_callable_context().get_input_params().len();
+        let input_param_count = self.get_current_item_context().get_input_params().len();
         let start_index = -1i32;
         let end_index = i32::try_from(input_param_count).expect("could not compute end index");
         let applications = (start_index..end_index).map(ApplicationInstanceIndex::from);
         for application_index in applications {
-            self.get_current_callable_context_mut()
+            self.get_current_item_context_mut()
                 .get_current_spec_context_mut()
                 .set_current_application_index(application_index);
             self.visit_block(decl.block);
             let cleared_index = self
-                .get_current_callable_context_mut()
+                .get_current_item_context_mut()
                 .get_current_spec_context_mut()
                 .clear_current_application_index();
             assert!(cleared_index == application_index);
@@ -270,13 +267,13 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
     }
 }
 
-struct CallableContext {
+struct ItemContext {
     pub id: StoreItemId,
     decl_context: Option<CallableDeclContext>,
     current_spec_context: Option<SpecDeclContext>,
 }
 
-impl CallableContext {
+impl ItemContext {
     pub fn new(id: StoreItemId) -> Self {
         Self {
             id,
@@ -368,15 +365,10 @@ impl SpecDeclContext {
         }
     }
 
-    fn clear_current_application_index(&mut self) -> ApplicationInstanceIndex {
+    pub fn clear_current_application_index(&mut self) -> ApplicationInstanceIndex {
         self.current_application_index
             .take()
             .expect("appication instance index is not set")
-    }
-
-    fn get_current_application_index(&self) -> ApplicationInstanceIndex {
-        self.current_application_index
-            .expect("application instance index is not set")
     }
 
     pub fn get_current_application_instance(&self) -> &ApplicationInstance {
@@ -389,9 +381,14 @@ impl SpecDeclContext {
         self.builder.get_application_instance_mut(index)
     }
 
-    fn set_current_application_index(&mut self, index: ApplicationInstanceIndex) {
+    pub fn set_current_application_index(&mut self, index: ApplicationInstanceIndex) {
         assert!(self.current_application_index.is_none());
         self.current_application_index = Some(index);
+    }
+
+    fn get_current_application_index(&self) -> ApplicationInstanceIndex {
+        self.current_application_index
+            .expect("application instance index is not set")
     }
 }
 
