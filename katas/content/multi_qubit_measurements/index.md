@@ -445,7 +445,7 @@ You could prepare a simpler state involving additional qubits, which, when measu
     "title": "Joint Measurements"
 })
 
-Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the `Measure` operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
+Joint measurements, also known as Pauli measurements, are a generalization of two-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the `Measure` operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
 
 ## Single-Qubit Pauli Measurements
 
