@@ -3,7 +3,7 @@
 
 use crate::{
     applications::{ApplicationInstance, ApplicationInstanceIndex, GeneratorSetsBuilder},
-    common::{derive_callable_input_params, GlobalSpecId, InputParam},
+    common::{derive_callable_input_params, GlobalSpecId, InputParam, Local, LocalKind},
     scaffolding::{ItemComputeProperties, PackageStoreComputeProperties},
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
@@ -11,8 +11,8 @@ use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, Item, ItemKind,
-        Package, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl, Stmt,
-        StmtId, StoreItemId,
+        Package, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, SpecDecl,
+        SpecImpl, Stmt, StmtId, StoreItemId,
     },
     ty::{FunctorSetValue, Prim, Ty},
     visit::Visitor,
@@ -21,7 +21,6 @@ use qsc_fir::{
 pub struct CoreAnalyzer<'a> {
     package_store: &'a PackageStore,
     package_store_compute_properties: PackageStoreComputeProperties,
-    active_packages: Vec<PackageId>,
     active_items: Vec<ItemContext>,
 }
 
@@ -33,7 +32,6 @@ impl<'a> CoreAnalyzer<'a> {
         Self {
             package_store,
             package_store_compute_properties,
-            active_packages: Vec::<PackageId>::default(),
             active_items: Vec::<ItemContext>::default(),
         }
     }
@@ -66,13 +64,13 @@ impl<'a> CoreAnalyzer<'a> {
         }
 
         // Determine the application generator set depending on whether the callable is a function or an operation.
-        let decl_info = current_item_context.get_decl_context();
+        let decl_info = current_item_context.get_callable_context();
         let application_generator_set = match decl_info.kind {
             CallableKind::Function => {
-                determine_intrinsic_function_application_generator_set(decl_info)
+                derive_intrinsic_function_application_generator_set(decl_info)
             }
             CallableKind::Operation => {
-                determine_instrinsic_operation_application_generator_set(decl_info)
+                derive_instrinsic_operation_application_generator_set(decl_info)
             }
         };
 
@@ -81,27 +79,26 @@ impl<'a> CoreAnalyzer<'a> {
             .insert_spec(body_specialization_id, application_generator_set);
     }
 
+    fn analyze_item(&mut self, item_id: StoreItemId, item: &'a Item) {
+        self.push_active_item_context(item_id);
+        self.visit_item(item);
+        let popped_item_id = self.pop_active_item_context();
+        assert!(popped_item_id == item_id);
+    }
+
     fn analyze_package_internal(&mut self, package_id: PackageId, package: &'a Package) {
-        self.active_packages.push(package_id);
-        self.visit_package(package);
-        let popped_package_id = self
-            .active_packages
-            .pop()
-            .expect("at least one package should be active");
-        assert!(package_id == popped_package_id);
+        for (local_item_id, item) in &package.items {
+            self.analyze_item((package_id, local_item_id).into(), item);
+        }
     }
 
     fn analyze_spec_decl(&mut self, decl: &'a SpecDecl, functor_set_value: FunctorSetValue) {
         // Set the context for the specialization declaration, visit it and then clear the context to get the results
         // of the analysis.
-        let package_id = self.get_current_package();
-        let pats = &self.package_store.get(package_id).pats;
-        self.get_current_item_context_mut()
-            .set_current_spec_context(decl, functor_set_value, pats);
+        let package_id = self.get_current_package_id();
+        self.set_current_spec_context(decl, functor_set_value);
         self.visit_spec_decl(decl);
-        let spec_context = self
-            .get_current_item_context_mut()
-            .clear_current_spec_context();
+        let spec_context = self.clear_current_spec_context();
         assert!(spec_context.functor_set_value == functor_set_value);
 
         // Save the analysis to the corresponding package compute properties.
@@ -109,6 +106,26 @@ impl<'a> CoreAnalyzer<'a> {
         spec_context
             .builder
             .save_to_package_compute_properties(package_compute_properties, Some(decl.block));
+    }
+
+    pub fn clear_current_application_index(&mut self) -> ApplicationInstanceIndex {
+        self.get_current_spec_context_mut()
+            .clear_current_application_index()
+    }
+
+    fn clear_current_spec_context(&mut self) -> SpecContext {
+        self.get_current_item_context_mut()
+            .clear_current_spec_context()
+    }
+
+    fn get_current_application_instance(&self) -> &ApplicationInstance {
+        self.get_current_spec_context()
+            .get_current_application_instance()
+    }
+
+    fn get_current_application_instance_mut(&mut self) -> &mut ApplicationInstance {
+        self.get_current_spec_context_mut()
+            .get_current_application_instance_mut()
     }
 
     fn get_current_item_context(&self) -> &ItemContext {
@@ -121,22 +138,58 @@ impl<'a> CoreAnalyzer<'a> {
             .expect("there are no active items")
     }
 
-    fn get_current_package(&self) -> PackageId {
-        *self
-            .active_packages
-            .last()
-            .expect("there are no active packages")
+    fn get_current_spec_context(&self) -> &SpecContext {
+        self.get_current_item_context().get_current_spec_context()
+    }
+
+    fn get_current_spec_context_mut(&mut self) -> &mut SpecContext {
+        self.get_current_item_context_mut()
+            .get_current_spec_context_mut()
+    }
+
+    fn get_current_package_id(&self) -> PackageId {
+        self.get_current_item_context().id.package
+    }
+
+    fn pop_active_item_context(&mut self) -> StoreItemId {
+        self.active_items
+            .pop()
+            .expect("there are no active items")
+            .id
+    }
+
+    fn push_active_item_context(&mut self, id: StoreItemId) {
+        self.active_items.push(ItemContext::new(id));
+    }
+
+    pub fn set_current_application_index(&mut self, index: ApplicationInstanceIndex) {
+        self.get_current_spec_context_mut()
+            .set_current_application_index(index);
+    }
+
+    fn set_current_spec_context(&mut self, decl: &'a SpecDecl, functor_set_value: FunctorSetValue) {
+        assert!(self
+            .get_current_item_context()
+            .current_spec_context
+            .is_none());
+        let package_id = self.get_current_package_id();
+        let pats = &self.package_store.get(package_id).pats;
+        let input_params = self.get_current_item_context().get_input_params();
+        let controls = derive_specialization_controls(decl, pats);
+        let spec_context = SpecContext::new(functor_set_value, input_params, controls.as_ref());
+        self.get_current_item_context_mut()
+            .set_current_spec_context(spec_context);
     }
 }
 
 impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
     fn get_block(&self, id: BlockId) -> &'a Block {
-        let package_id = self.get_current_package();
+        let package_id = self.get_current_package_id();
         self.package_store.get_block((package_id, id).into())
     }
 
     fn get_expr(&self, id: ExprId) -> &'a Expr {
-        let package_id = self.get_current_package();
+        let package_id = self.get_current_package_id();
         self.package_store.get_expr((package_id, id).into())
     }
 
@@ -146,7 +199,7 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
     }
 
     fn get_stmt(&self, id: StmtId) -> &'a Stmt {
-        let package_id = self.get_current_package();
+        let package_id = self.get_current_package_id();
         self.package_store.get_stmt((package_id, id).into())
     }
 
@@ -161,34 +214,50 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
             self.visit_stmt(*stmt_id);
 
             // Now, we can query the statement's compute kind and aggregate it to the block's compute kind.
-            let application_instance = self
-                .get_current_item_context()
-                .get_current_spec_context()
-                .get_current_application_instance();
+            let application_instance = self.get_current_application_instance();
             let stmt_compute_kind = application_instance.get_stmt_compute_kind(*stmt_id);
             block_compute_kind =
                 aggregate_compute_kind_runtime_features(block_compute_kind, *stmt_compute_kind);
         }
 
         // Update the block's value kind if its non-unit.
-        // TODO (cesarzc): implement this part.
+        if block.ty != Ty::UNIT {
+            let last_stmt_id = block
+                .stmts
+                .last()
+                .expect("block should have at least one statement");
+            let application_instance = self.get_current_application_instance();
+            let last_stmt_compute_kind = application_instance.get_stmt_compute_kind(*last_stmt_id);
+            if last_stmt_compute_kind.is_value_dynamic() {
+                // If the block's last statement's compute kind is dynamic, the block's compute kind must be quantum.
+                let ComputeKind::Quantum(block_quantum_properties) = &mut block_compute_kind else {
+                    panic!("block's compute kind should be quantum");
+                };
+
+                // The block's value kind must be static since this is the first time a value kind is set.
+                assert!(
+                    matches!(block_quantum_properties.value_kind, ValueKind::Static),
+                    "block's value kind should be static"
+                );
+
+                // Set the block value kind as dynamic.
+                block_quantum_properties.value_kind = ValueKind::Dynamic;
+            }
+        }
 
         // Finally, insert the block's compute kind to the application instance.
-        let application_instance = self
-            .get_current_item_context_mut()
-            .get_current_spec_context_mut()
-            .get_current_application_instance_mut();
+        let application_instance = self.get_current_application_instance_mut();
         application_instance.insert_block_compute_kind(block_id, block_compute_kind);
     }
 
     fn visit_callable_decl(&mut self, decl: &'a CallableDecl) {
-        let package_id = self.get_current_package();
+        let package_id = self.get_current_package_id();
 
         // Derive the input parameters of the callable and add them to the currently active callable.
         let input_params =
             derive_callable_input_params(decl, &self.package_store.get(package_id).pats);
         let current_callable_context = self.get_current_item_context_mut();
-        current_callable_context.set_decl_context(decl.kind, input_params, decl.output.clone());
+        current_callable_context.set_callable_context(decl.kind, input_params, decl.output.clone());
         self.visit_callable_impl(&decl.implementation);
     }
 
@@ -202,28 +271,21 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
     }
 
     fn visit_item(&mut self, item: &'a Item) {
-        let package_id = self.get_current_package();
-        let store_item_id = StoreItemId::from((package_id, item.id));
+        let current_item_context = self.get_current_item_context();
         match &item.kind {
             ItemKind::Callable(decl) => {
-                self.active_items.push(ItemContext::new(store_item_id));
                 self.visit_callable_decl(decl);
-                let popped_callable_context = self
-                    .active_items
-                    .pop()
-                    .expect("there should be at least one active callable");
-                assert!(popped_callable_context.id == store_item_id);
             }
             ItemKind::Namespace(_, _) | ItemKind::Ty(_, _) => {
                 self.package_store_compute_properties
-                    .insert_item(store_item_id, ItemComputeProperties::NonCallable);
+                    .insert_item(current_item_context.id, ItemComputeProperties::NonCallable);
             }
         };
     }
 
-    fn visit_package(&mut self, package: &'a Package) {
-        // First, analyze all top-level items.
-        package.items.values().for_each(|i| self.visit_item(i));
+    fn visit_package(&mut self, _: &'a Package) {
+        // Should never be called.
+        unimplemented!("should never be called");
     }
 
     fn visit_pat(&mut self, _: PatId) {
@@ -238,14 +300,9 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
         let end_index = i32::try_from(input_param_count).expect("could not compute end index");
         let applications = (start_index..end_index).map(ApplicationInstanceIndex::from);
         for application_index in applications {
-            self.get_current_item_context_mut()
-                .get_current_spec_context_mut()
-                .set_current_application_index(application_index);
+            self.set_current_application_index(application_index);
             self.visit_block(decl.block);
-            let cleared_index = self
-                .get_current_item_context_mut()
-                .get_current_spec_context_mut()
-                .clear_current_application_index();
+            let cleared_index = self.clear_current_application_index();
             assert!(cleared_index == application_index);
         }
     }
@@ -269,95 +326,86 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
 
 struct ItemContext {
     pub id: StoreItemId,
-    decl_context: Option<CallableDeclContext>,
-    current_spec_context: Option<SpecDeclContext>,
+    callable_context: Option<CallableContext>,
+    current_spec_context: Option<SpecContext>,
 }
 
 impl ItemContext {
     pub fn new(id: StoreItemId) -> Self {
         Self {
             id,
-            decl_context: None,
+            callable_context: None,
             current_spec_context: None,
         }
     }
 
-    pub fn clear_current_spec_context(&mut self) -> SpecDeclContext {
+    pub fn clear_current_spec_context(&mut self) -> SpecContext {
         self.current_spec_context
             .take()
             .expect("current specialization context has already been cleared")
     }
 
-    pub fn get_current_spec_context(&self) -> &SpecDeclContext {
+    pub fn get_current_spec_context(&self) -> &SpecContext {
         self.current_spec_context
             .as_ref()
             .expect("current specialization context is not set")
     }
 
-    pub fn get_current_spec_context_mut(&mut self) -> &mut SpecDeclContext {
+    pub fn get_current_spec_context_mut(&mut self) -> &mut SpecContext {
         self.current_spec_context
             .as_mut()
             .expect("current specialization context is not set")
     }
 
-    pub fn get_decl_context(&self) -> &CallableDeclContext {
-        self.decl_context
+    pub fn get_callable_context(&self) -> &CallableContext {
+        self.callable_context
             .as_ref()
             .expect("callable declaration context should not be none")
     }
 
     pub fn get_input_params(&self) -> &Vec<InputParam> {
-        &self.get_decl_context().input_params
+        &self.get_callable_context().input_params
     }
 
-    pub fn set_current_spec_context(
-        &mut self,
-        spec_decl: &SpecDecl,
-        functor_set_value: FunctorSetValue,
-        pats: &IndexMap<PatId, Pat>,
-    ) {
-        assert!(self.current_spec_context.is_none());
-        let input_params = self.get_input_params();
-        let spec_decl_context =
-            SpecDeclContext::new(spec_decl, functor_set_value, input_params, pats);
-        self.current_spec_context = Some(spec_decl_context);
-    }
-
-    pub fn set_decl_context(
+    pub fn set_callable_context(
         &mut self,
         kind: CallableKind,
         input_params: Vec<InputParam>,
         output_type: Ty,
     ) {
-        assert!(self.decl_context.is_none());
-        self.decl_context = Some(CallableDeclContext {
+        assert!(self.callable_context.is_none());
+        self.callable_context = Some(CallableContext {
             kind,
             input_params,
             output_type,
         });
     }
+
+    pub fn set_current_spec_context(&mut self, spec_context: SpecContext) {
+        assert!(self.current_spec_context.is_none());
+        self.current_spec_context = Some(spec_context);
+    }
 }
 
-struct CallableDeclContext {
+struct CallableContext {
     pub kind: CallableKind,
     pub input_params: Vec<InputParam>,
     pub output_type: Ty,
 }
 
-struct SpecDeclContext {
+struct SpecContext {
     functor_set_value: FunctorSetValue,
     builder: GeneratorSetsBuilder,
     current_application_index: Option<ApplicationInstanceIndex>,
 }
 
-impl SpecDeclContext {
+impl SpecContext {
     pub fn new(
-        spec_decl: &SpecDecl,
         functor_set_value: FunctorSetValue,
         input_params: &Vec<InputParam>,
-        pats: &IndexMap<PatId, Pat>,
+        controls: Option<&Local>,
     ) -> Self {
-        let builder = GeneratorSetsBuilder::from_spec(spec_decl, input_params, pats);
+        let builder = GeneratorSetsBuilder::new(input_params, controls);
         Self {
             functor_set_value,
             builder,
@@ -420,6 +468,87 @@ fn aggregate_compute_kind_runtime_features(basis: ComputeKind, delta: ComputeKin
     })
 }
 
+fn derive_intrinsic_function_application_generator_set(
+    callable_context: &CallableContext,
+) -> ApplicationGeneratorSet {
+    assert!(matches!(callable_context.kind, CallableKind::Function));
+
+    // Determine the compute kind for all dynamic parameter applications.
+    let mut dynamic_param_applications = Vec::new();
+    for param in &callable_context.input_params {
+        // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
+        // the output of the function is dynamic. Therefore, for all dynamic parameters, if the function's output is
+        // non-unit their value kind is dynamic.
+        let value_kind = if callable_context.output_type == Ty::UNIT {
+            ValueKind::Static
+        } else {
+            ValueKind::Dynamic
+        };
+
+        let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
+            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
+            // function application.
+            runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
+            value_kind,
+        });
+        dynamic_param_applications.push(param_compute_kind);
+    }
+
+    ApplicationGeneratorSet {
+        // Functions are inherently classical.
+        inherent: ComputeKind::Classical,
+        dynamic_param_applications,
+    }
+}
+
+fn derive_instrinsic_operation_application_generator_set(
+    callable_context: &CallableContext,
+) -> ApplicationGeneratorSet {
+    assert!(matches!(callable_context.kind, CallableKind::Operation));
+
+    // The value kind of intrinsic operations is inherently dynamic if their output is not `Unit` or `Qubit`.
+    let value_kind = if callable_context.output_type == Ty::UNIT
+        || callable_context.output_type == Ty::Prim(Prim::Qubit)
+    {
+        ValueKind::Static
+    } else {
+        ValueKind::Dynamic
+    };
+
+    // The compute kind of intrinsic operations is always quantum.
+    let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
+        runtime_features: RuntimeFeatureFlags::empty(),
+        value_kind,
+    });
+
+    // Determine the compute kind of all dynamic parameter applications.
+    let mut dynamic_param_applications = Vec::new();
+    for param in &callable_context.input_params {
+        // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
+        // dynamic the output of the operation is dynamic. Therefore, for all dynamic parameters, if the operation's
+        // output is non-unit it becomes a source of dynamism.
+        let value_kind = if callable_context.output_type == Ty::UNIT {
+            ValueKind::Static
+        } else {
+            ValueKind::Dynamic
+        };
+
+        // The compute kind of intrinsic operations is always quantum.
+        let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
+            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
+            // operation application.
+            runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
+            value_kind,
+        });
+        dynamic_param_applications.push(param_compute_kind);
+    }
+
+    ApplicationGeneratorSet {
+        inherent: inherent_compute_kind,
+        dynamic_param_applications,
+    }
+}
+
 fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     fn intrinsic_runtime_features_from_primitive_type(prim: Prim) -> RuntimeFeatureFlags {
         match prim {
@@ -473,86 +602,21 @@ fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
     }
 }
 
-fn determine_intrinsic_function_application_generator_set(
-    callable_decl_context: &CallableDeclContext,
-) -> ApplicationGeneratorSet {
-    assert!(matches!(callable_decl_context.kind, CallableKind::Function));
-
-    // Determine the compute kind for all dynamic parameter applications.
-    let mut dynamic_param_applications = Vec::new();
-    for param in &callable_decl_context.input_params {
-        // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
-        // the output of the function is dynamic. Therefore, for all dynamic parameters, if the function's output is
-        // non-unit their value kind is dynamic.
-        let value_kind = if callable_decl_context.output_type == Ty::UNIT {
-            ValueKind::Static
-        } else {
-            ValueKind::Dynamic
-        };
-
-        let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
-            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
-            // function application.
-            runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
-            value_kind,
-        });
-        dynamic_param_applications.push(param_compute_kind);
-    }
-
-    ApplicationGeneratorSet {
-        // Functions are inherently classical.
-        inherent: ComputeKind::Classical,
-        dynamic_param_applications,
-    }
-}
-
-fn determine_instrinsic_operation_application_generator_set(
-    callable_decl_context: &CallableDeclContext,
-) -> ApplicationGeneratorSet {
-    assert!(matches!(
-        callable_decl_context.kind,
-        CallableKind::Operation
-    ));
-
-    // The value kind of intrinsic operations is inherently dynamic if their output is not `Unit` or `Qubit`.
-    let value_kind = if callable_decl_context.output_type == Ty::UNIT
-        || callable_decl_context.output_type == Ty::Prim(Prim::Qubit)
-    {
-        ValueKind::Static
-    } else {
-        ValueKind::Dynamic
-    };
-
-    // The compute kind of intrinsic operations is always quantum.
-    let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
-        runtime_features: RuntimeFeatureFlags::empty(),
-        value_kind,
-    });
-
-    // Determine the compute kind of all dynamic parameter applications.
-    let mut dynamic_param_applications = Vec::new();
-    for param in &callable_decl_context.input_params {
-        // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
-        // dynamic the output of the operation is dynamic. Therefore, for all dynamic parameters, if the operation's
-        // output is non-unit it becomes a source of dynamism.
-        let value_kind = if callable_decl_context.output_type == Ty::UNIT {
-            ValueKind::Static
-        } else {
-            ValueKind::Dynamic
-        };
-
-        // The compute kind of intrinsic operations is always quantum.
-        let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
-            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
-            // operation application.
-            runtime_features: derive_runtime_features_for_dynamic_type(&param.ty),
-            value_kind,
-        });
-        dynamic_param_applications.push(param_compute_kind);
-    }
-
-    ApplicationGeneratorSet {
-        inherent: inherent_compute_kind,
-        dynamic_param_applications,
-    }
+fn derive_specialization_controls(
+    spec_decl: &SpecDecl,
+    pats: &IndexMap<PatId, Pat>,
+) -> Option<Local> {
+    spec_decl.input.and_then(|pat_id| {
+        let pat = pats.get(pat_id).expect("pat should exist");
+        match &pat.kind {
+            PatKind::Bind(ident) => Some(Local {
+                var: ident.id,
+                pat: pat_id,
+                ty: pat.ty.clone(),
+                kind: LocalKind::SpecInput,
+            }),
+            PatKind::Discard => None, // Nothing to bind to.
+            PatKind::Tuple(_) => panic!("expected specialization input pattern"),
+        }
+    })
 }

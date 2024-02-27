@@ -23,20 +23,38 @@ pub struct GeneratorSetsBuilder {
 }
 
 impl GeneratorSetsBuilder {
+    /// Creates a new builder.
+    pub fn new(input_params: &Vec<InputParam>, controls: Option<&Local>) -> Self {
+        let inherent = ApplicationInstance::new(input_params, controls, None);
+        let mut dynamic_param_applications =
+            Vec::<ApplicationInstance>::with_capacity(input_params.len());
+        for input_param in input_params {
+            let application_instance =
+                ApplicationInstance::new(input_params, controls, Some(input_param.index));
+            dynamic_param_applications.push(application_instance);
+        }
+
+        Self {
+            inherent,
+            dynamic_param_applications,
+        }
+    }
+
     /// Creates a new builder from a specialization.
+    // TODO (cesarzc): Remove.
     pub fn from_spec(
         spec_decl: &SpecDecl,
         input_params: &Vec<InputParam>,
         pats: &IndexMap<PatId, Pat>,
     ) -> Self {
         let spec_input = derive_spec_input(spec_decl, pats);
-        let inherent = ApplicationInstance::new(input_params, None, spec_input.as_ref());
+        let inherent = ApplicationInstance::new(input_params, spec_input.as_ref(), None);
         let mut dynamic_params = Vec::<ApplicationInstance>::with_capacity(input_params.len());
         for input_param in input_params {
             let application_instance = ApplicationInstance::new(
                 input_params,
-                Some(input_param.index),
                 spec_input.as_ref(),
+                Some(input_param.index),
             );
             dynamic_params.push(application_instance);
         }
@@ -44,6 +62,16 @@ impl GeneratorSetsBuilder {
         Self {
             inherent,
             dynamic_param_applications: dynamic_params,
+        }
+    }
+
+    /// Creates a new builder with no dynamic parameter applications.
+    // TODO (cesarzc): Remove.
+    pub fn with_no_dynamic_param_applications() -> Self {
+        let inherent = ApplicationInstance::new(&Vec::new(), None, None);
+        Self {
+            inherent,
+            dynamic_param_applications: Vec::new(),
         }
     }
 
@@ -75,15 +103,6 @@ impl GeneratorSetsBuilder {
         self.dynamic_param_applications
             .get_mut(usize::try_from(index_as_int).expect("index should be valid"))
             .expect("application instance at index does not exist")
-    }
-
-    /// Creates a new builder with no dynamic parameter applications.
-    pub fn with_no_dynamic_param_applications() -> Self {
-        let inherent = ApplicationInstance::new(&Vec::new(), None, None);
-        Self {
-            inherent,
-            dynamic_param_applications: Vec::new(),
-        }
     }
 
     /// Saves the contents of the builder to the package compute properties data structure.
@@ -310,22 +329,26 @@ impl ApplicationInstance {
 
     fn new(
         input_params: &Vec<InputParam>,
+        controls: Option<&Local>,
         dynamic_param_index: Option<InputParamIndex>,
-        spec_input: Option<&Local>,
     ) -> Self {
-        // Initialize the locals map with the specialization input (if any).
+        // Initialize the locals map with the specialization controls (if any).
         let mut locals_map = LocalsComputeKindMap::default();
-        if let Some(spec_input_local) = spec_input {
-            // Specialization inputs are currently only used for controls, whose compute properties are handled at
-            // the call expression, so just use classical compute kind here for when controls are explicitly used.
+        if let Some(controls) = controls {
+            // Controls compute properties are handled at the call expression, so just use quantum compute kind with
+            // no runtime features here.
             locals_map.insert(
-                spec_input_local.var,
+                controls.var,
                 LocalComputeKind {
-                    local: spec_input_local.clone(),
-                    compute_kind: ComputeKind::Classical,
+                    local: controls.clone(),
+                    compute_kind: ComputeKind::Quantum(QuantumProperties {
+                        runtime_features: RuntimeFeatureFlags::empty(),
+                        value_kind: ValueKind::Static,
+                    }),
                 },
             );
         }
+
         let mut unprocessed_locals_map = initialize_locals_map(input_params);
         for (node_id, local) in unprocessed_locals_map.drain() {
             let LocalKind::InputParam(input_param_index) = local.kind else {
