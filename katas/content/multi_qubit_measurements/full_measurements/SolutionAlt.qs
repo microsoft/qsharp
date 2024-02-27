@@ -6,5 +6,4 @@ namespace Kata {
     operation BasisStateMeasurement(qs : Qubit[]) : Int {
         return ResultArrayAsInt(Reversed(MeasureEachZ(qs)));
     }
-    
 }

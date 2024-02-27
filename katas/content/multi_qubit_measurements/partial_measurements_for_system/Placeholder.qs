@@ -4,5 +4,4 @@ namespace Kata {
 
         return -1;
     }
-
 }
