@@ -75,7 +75,8 @@ environment variables, for example `RUST_LOG=debug ./target/release/qsc ./sample
 
 If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimator, please cite as follows:
 
-* Azure Quantum Development Kit:
+- Azure Quantum Development Kit:
+
 ```bibtex
 @software{Microsoft_Azure_Quantum_Development,
    author = {{Microsoft}},
@@ -83,7 +84,9 @@ If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimato
    title = {{Azure Quantum Development Kit}},
    url = {https://github.com/microsoft/qsharp} }
 ```
-* Q# programming language:
+
+- Q# programming language:
+
 ```bibtex
 @inproceedings{Svore_2018, series={RWDSL2018},
    title={{Q\#: Enabling Scalable Quantum Computing and Development with a High-level DSL}},
@@ -95,7 +98,9 @@ If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimato
    year={2018},
    month=feb, collection={RWDSL2018} }
 ```
-* Azure Quantum Resource Estimator:
+
+- Azure Quantum Resource Estimator:
+
 ```bibtex
 @inproceedings{Azure_Quantum_Resource_Estimator,
    author = {van Dam, Wim and Mykhailova, Mariia and Soeken, Mathias},
@@ -110,7 +115,7 @@ If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimato
    pages = {1414–1419},
    numpages = {6},
    series = {SC-W '23} }
-```  
+```
 
 ## Feedback
 
