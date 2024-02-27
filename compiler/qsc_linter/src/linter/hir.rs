@@ -101,6 +101,10 @@ impl<'a> Visitor<'a> for CombinedHirLints {
     }
 }
 
+/// Represents a lint pass in the HIR.
+/// You only need to implement the `check_*` function relevant to your lint.
+/// The trait provides default empty implementations for the rest of the methods,
+/// which will be optimized to a no-op by the rust compiler.
 #[allow(unused_variables)]
 pub(crate) trait HirLintPass {
     fn check_block(block: &Block, buffer: &mut Vec<Lint>) {}

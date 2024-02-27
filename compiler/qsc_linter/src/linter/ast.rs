@@ -165,6 +165,10 @@ impl<'a> Visitor<'a> for CombinedAstLints {
     }
 }
 
+/// Represents a lint pass in the AST.
+/// You only need to implement the `check_*` function relevant to your lint.
+/// The trait provides default empty implementations for the rest of the methods,
+/// which will be optimized to a no-op by the rust compiler.
 #[allow(unused_variables)]
 pub(crate) trait AstLintPass {
     fn check_attr(attr: &Attr, buffer: &mut Vec<Lint>) {}
