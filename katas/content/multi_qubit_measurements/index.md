@@ -369,21 +369,19 @@ In certain situations, it is possible to distinguish between orthogonal states o
 
 Entanglement has an effect on the measurement statistics of the system. If two qubits are entangled, then their measurement outcomes will be correlated, while separable states (which are by definition not entangled) have uncorrelated measurement outcomes.
 
-> It is useful to revisit the concepts of entanglement and separable states, which were introduced in the kata on multi-qubit systems. Consider a system of $n>1$ number of qubits, which we divide into two parts: A, consisting of $m$ qubits, and B, consisting of the remaining $n-m$ qubits. We say that the state $\ket \psi$ of the entire system is separable if it can be expressed as a tensor product of the states of parts A and B:
-$$
+> It is useful to revisit the concepts of entanglement and separable states, which were introduced in the Multi-Qubit Systems kata. Consider a system of $n>1$ qubits, which we divide into two parts: A, consisting of $m$ qubits, and B, consisting of the remaining $n-m$ qubits. We say that the state $\ket \psi$ of the entire system is separable if it can be expressed as a tensor product of the states of parts A and B:
+> $$
 \ket \psi = \ket {\phi_A} \otimes \ket{\phi_B}
 $$
-where $\ket{\phi_A}$ and $\ket{\phi_B}$ are wave functions that describe parts $A$ and $B$, respectively. If it is not possible to express $\ket \psi$ in such a form, then we say that system A is entangled with system B.
+> Here $\ket{\phi_A}$ and $\ket{\phi_B}$ are wave functions that describe parts $A$ and $B$, respectively. If it is not possible to express $\ket \psi$ in such a form, then we say that system A is entangled with system B.
 
-Consider a measurement on the subsystem $A$ of a separable state. Let the measurement be done in a basis $\{ \ket{b_0},\dotsc,\ket{b_{2^m-1}}\}$. According to the projection formalism, a projection operator $P_i = \ket{b_i}\bra{b_i} \otimes \mathbb{1}$ is chosen randomly. The corresponding post-measurement state of the system is then given by
+Consider a measurement on the subsystem $A$ of a separable state. Let the measurement be done in a basis $\\{ \ket{b_0},\dotsc,\ket{b_{2^m-1}}\\}$. According to the projection formalism, a projection operator $P_i = \ket{b_i}\bra{b_i} \otimes \mathbb{1}$ is chosen randomly. The corresponding post-measurement state of the system is then given by
 
-$$\ket{\psi}_{i} \equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|}$$
+$$\ket{\psi}_{i} \equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|}
+= \frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|}=$$
 
-$$= \frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|}$$
-
-$$= \frac{\bra{b_i}\phi_A\rangle \cdot \ket{b_i} \otimes \ket {\phi_B}}{\big|\ket{b_i}\big| \cdot \bra{b_i}\phi_A\rangle \cdot \big| \ket {\phi_B}\big|}$$
-
-$$= \ket{b_i} \otimes \ket{\phi_B}$$
+$$= \frac{\bra{b_i}\phi_A\rangle \cdot \ket{b_i} \otimes \ket {\phi_B}}{\big|\ket{b_i}\big| \cdot \bra{b_i}\phi_A\rangle \cdot \big| \ket {\phi_B}\big|}
+= \ket{b_i} \otimes \ket{\phi_B}$$
 
 Thus, the state of subsystem $B$ after the measurement is $\ket{\phi_B}$ independently of the outcome $i$ of the measurement on the first qubit. The results of a subsequent measurement on subsystem $B$, including outcome probabilities, will be independent of the result of the first measurement. In other words, the outcomes of the two measurements will be uncorrelated.
 
@@ -391,7 +389,7 @@ On the other hand, if the system is entangled, then the measurement outcomes wil
 
 ## 🔎 Analyze
 
-**Sequential measurements on an entangled state and a separable state**
+### Sequential measurements on an entangled state and a separable state
 
 Consider two two-qubit states:
 
@@ -402,11 +400,11 @@ For both states, consider a measurement on the first qubit, followed by a measur
 
 <details>
 <summary><b>Solution</b></summary>
-<p><b>The Bell state</b>: If the measurement outcome on the first qubit is $0$, a subsequent measurement on the second qubit *always* results in an outcome of $0$, with probability $1$. Similarly, if the measurement outcome on the first qubit is $1$, then the second qubit measurement always results in $1$. Thus, sequential measurements are perfectly *correlated*.</p>
+<p><b>The Bell state</b>: If the measurement outcome on the first qubit is $0$, a subsequent measurement on the second qubit <i>always</i> results in an outcome of $0$, with probability $1$. Similarly, if the measurement outcome on the first qubit is $1$, then the second qubit measurement always results in $1$. Thus, sequential measurements are perfectly <b>correlated</b>.</p>
 
-<p><b>Separable state $\ket \theta$</b>: Irrespective of whether the first qubit measurement outcome is $0$ of $1$ (each of which occurs with a probability of $0.5$), a subsequent measurement on the second qubit results in an outcome of $0$ or $1$ (both with a probability of $0.5$). Thus, sequential measurements are perfectly <b>uncorrelated</b>.</p>
+<p><b>Separable state $\ket \Theta$</b>: Irrespective of whether the first qubit measurement outcome is $0$ of $1$ (each of which occurs with a probability of $0.5$), a subsequent measurement on the second qubit results in an outcome of $0$ or $1$ (both with a probability of $0.5$). Thus, sequential measurements are perfectly <b>uncorrelated</b>.</p>
 
-<p>This aligns with the fact that the Bell state is entangled, while the $\ket{\theta}$ is separable and can be expressed as $\ket \theta = \ket + \otimes \ket +$.</p>
+<p>This aligns with the fact that the Bell state is entangled, while the state $\ket{\Theta}$ is separable and can be expressed as $\ket \Theta = \ket + \otimes \ket +$.</p>
 </details>
 
 ## State Modification Using Partial Measurements
@@ -425,7 +423,7 @@ For certain multi-qubit systems prepared in a superposition state, it is possibl
 
 @[section]({
     "id": "multi_qubit_measurements__state_preparation",
-    "title": "State Preparation"
+    "title": "State Preparation Using Post-Selection"
 })
 
 Any multi-qubit state can be prepared from the $|0...0\rangle$ state using an appropriate combination of quantum gates.
@@ -447,9 +445,9 @@ You could prepare a simpler state involving additional qubits, which, when measu
     "title": "Joint Measurements"
 })
 
-Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the <a href="https://docs.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure" target="_blank">`Measure`</a> operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
+Joint measurements, also known as Pauli measurements, are a generalization of 2-outcome measurements to multiple qubits and other bases. In Q#, joint measurements in Pauli bases are implemented using the `Measure` operation. Let's review single-qubit measurements in a different light before discussing joint measurements.
 
-## Single-Qubit Pauli Measurement
+## Single-Qubit Pauli Measurements
 
 For single-qubit systems, any measurement corresponding to an orthogonal basis can be associated with a Hermitian matrix with eigenvalues $\pm 1$. The possible measurement outcomes (represented as `Result` in Q#) are the eigenvalues of the Hermitian matrix, and the corresponding projection matrices for the measurement are the projection operators onto the *eigenspaces* corresponding to the eigenvalues.
 
@@ -457,7 +455,7 @@ For example, consider the computational basis measurement, which can result in o
 
 $$Z = \begin{pmatrix} 1 & 0 \\\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
 
-The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\\{\ket{0},\ket{1}\\}$ basis, with the measurement outcomes being $1$ and $-1$ respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
+The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\\{\ket{0},\ket{1}\\}$ basis, with the measurement outcomes being $1$ and $-1$, respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
 
 Similarly, one can implement measurements corresponding to the Pauli X and Y operators. We summarize the various properties below:
 <table>
@@ -509,13 +507,13 @@ Joint measurements are a generalization of this principle for multi-qubit matric
 
 ## Parity Measurements
 
-The simplest joint measurement is a parity measurement. A parity measurement treats computational basis vectors differently depending on whether the number of 1's in the basis vector is even or odd.
+The simplest joint measurement is a parity measurement. A parity measurement treats computational basis vectors differently depending on whether the number of 1s in the basis vector is even or odd.
 
-For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\{ |00\rangle, |11\rangle \}$ and $\{ |01\rangle, |10\rangle \}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e. the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of $1$'s. On the other hand, a result of `One` corresponds to a post-measurement state with only odd parity computational basis vectors.
+For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\\{ |00\rangle, |11\rangle \\}$ and $\\{ |01\rangle, |10\rangle \\}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e., the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of 1s. On the other hand, a result of `One` corresponds to a post-measurement state with only computational basis vectors which have an odd number of 1s.
 
-Let's see what happens to various two-qubit states after the parity measurement. The $Z \otimes Z$ matrix for two qubits is:
-
-$$
+> Let's see what happens to various two-qubit states after the parity measurement. The $Z \otimes Z$ matrix for two qubits is:
+>
+>$$
 Z \otimes Z =
 \begin{bmatrix}
     1 & 0 & 0 & 0 \\\ 
@@ -524,10 +522,10 @@ Z \otimes Z =
     0 & 0 & 0 & 1 \\\ 
 \end{bmatrix}
 $$
-
-When this transformation is applied to a basis state $|00\rangle$, we get
-
-$$
+>
+>When this transformation is applied to a basis state $|00\rangle$, we get
+>
+>$$
 \begin{bmatrix}
     1 & 0 & 0 & 0 \\\ 
     0 & -1 & 0 & 0 \\\ 
@@ -537,16 +535,16 @@ $$
 \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} =
 \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}
 $$
-
-Comparing this to the characteristic equation for eigenvectors of $Z \otimes Z$ given by
+>
+>Comparing this to the characteristic equation for eigenvectors of $Z \otimes Z$ given by
 $ Z \otimes Z |\psi\rangle = \lambda |\psi\rangle$,
 it is easy to see that $|00\rangle$ belongs to the $+1$ eigenspace, hence the $Z \otimes Z$ measurement will return `Zero` and leave the state unchanged.
-
-Similarly, it can easily be verified that $|11\rangle$ also belongs to $+1$ eigenspace, while $|01\rangle$ and $|10\rangle$ belong to the $-1$ eigenspace.
-
-Now, what happens if we apply a $Z \otimes Z$ measurement to a superposition state $\alpha |00\rangle + \beta |11\rangle$? We can see that
-
-$$
+>
+>Similarly, it can easily be verified that $|11\rangle$ also belongs to $+1$ eigenspace, while $|01\rangle$ and $|10\rangle$ belong to the $-1$ eigenspace.
+>
+>Now, what happens if we apply a $Z \otimes Z$ measurement to a superposition state $\alpha |00\rangle + \beta |11\rangle$? We can see that
+>
+>$$
 \begin{bmatrix}
     1 & 0 & 0 & 0 \\\ 
     0 & -1 & 0 & 0 \\\ 
@@ -556,8 +554,8 @@ $$
 \begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix} =
 \begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix}
 $$
-
-So this state also belongs to the $+1$ eigenspace, and measuring it will return `Zero` and leave the state unchanged. Similarly, we can verify that an $\alpha |01\rangle + \beta |10\rangle$ state belongs to the $-1$ eigenspace, and measuring it will return `One` without changing the state.
+>
+>So this state also belongs to the $+1$ eigenspace, and measuring it will return `Zero` and leave the state unchanged. Similarly, we can verify that an $\alpha |01\rangle + \beta |10\rangle$ state belongs to the $-1$ eigenspace, and measuring it will return `One` without changing the state.
 
 Similarly, a parity measurement on a higher number of qubits can be implemented using a $Z \otimes \dotsc \otimes Z$ measurement.
 
@@ -577,7 +575,7 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
 })
 
 Joint measurement is a generalization of the measurement in the computational basis.
-Pauli measurements can also be generalized to a larger number of qubits. A multi-qubit Pauli measurement corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_i$ being from the set of gates $\{X,Y,Z,I\}$. If at least one of the operators is not the identity matrix, then the measurement can result in two outcomes: a `Result` of `Zero` corresponding to eigenvalue $+1$ and a `Result` of `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces.
+Pauli measurements can also be generalized to a larger number of qubits. A multi-qubit Pauli measurement corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_i$ being from the set of gates $\\{X,Y,Z,I\\}$. If at least one of the operators is not the identity matrix, then the measurement can result in two outcomes: a `Result` of `Zero` corresponding to eigenvalue $+1$ and a `Result` of `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces.
 
 For example, a Pauli/joint measurement corresponding to the $X\otimes Z$ operator can be characterized as follows:
 <table>
@@ -592,20 +590,20 @@ For example, a Pauli/joint measurement corresponding to the $X\otimes Z$ operato
         <td>Zero</td>
         <td>$\{ \ket{0,+}, \ket{1,-} \}$</td>
         <td>$P_{+1} = \ket{0,+}\bra{0,+} +  \ket{1,-} \bra{1,-}$</td>
-     </tr>
+    </tr>
     <tr>
         <td>$-1$</td>
         <td>One</td>
         <td>$\{ \ket{0,-}, \ket{1,+} \}$</td>
         <td>$P_{-1} = \ket{0,-}\bra{0,-} +  \ket{1,+} \bra{1,+}$</td>
-     </tr>
- </table>
+    </tr>
+</table>
 
- The rules for measurements are then the same as those outlined in the partial measurements section, with the projection operators in the table.
+The rules for measurements are then the same as those outlined in the Partial Measurements section, with the projection operators in the table.
 
 ## 🔎 Analyze
 
-**Parity measurement in different basis**
+### Parity measurement in a different basis
 
 Consider a system which is in a state $\alpha |00\rangle + \beta |01\rangle + \beta |10\rangle + \alpha |11\rangle$.
 
@@ -623,8 +621,8 @@ $$XX \ket{-+} = -\ket{-+}$$
 Thus, the $XX$ operator measures the parity in the Hadamard, or the $\ket{\pm}$ basis. That is, it distinguishes basis states with an even number of $+$'s from basis states which have an odd number of $+$'s.
 
 The projector corresponding to a result of `Zero` is given by $P_{+1} = \ket{++}\bra{++} + \ket{--}\bra{--}$, while the projector corresponding to a result of `One` is given by $P_{-1} = \ket{+-}\bra{+-} + \ket{-+}\bra{-+}$. Then, we note that $P_{+1}$ annihilates states with odd parity, while leaving states with even parity unaffected. That is, for any values of the constants
-$$P_{+1} ( \gamma \ket{++} + \delta \ket{--} ) =$$
-$$( \gamma \ket{++} + \delta \ket{--} )P_{+1} ( \mu \ket{-+} + \nu \ket{+-} ) = 0$$
+$$P_{+1} ( \gamma \ket{++} + \delta \ket{--} ) = ( \gamma \ket{++} + \delta \ket{--} )$$
+$$P_{+1} ( \mu \ket{-+} + \nu \ket{+-} ) = 0$$
 
 Similarly, $P_{-1}$ annihilates states with even parity, while leaving states with odd parity unaffected.
 
