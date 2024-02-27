@@ -22,7 +22,7 @@ Revise the following Q# code to return the sum of x and y.
 
 * Remember, adding complex numbers is just like adding polynomials. Add components of the same type - add the real part to the real part, add the imaginary part to the imaginary part.
 
-$$ z = x + y = (a + bi) + (c + di) = \underset{real}{\underbrace{(a + c)}} + \underset{imaginary}{\underbrace{(b + d)}}i $$
+   $ z = x + y = (a + bi) + (c + di) = \underset{real}{\underbrace{(a + c)}} + \underset{imaginary}{\underbrace{(b + d)}}i $
 
 A video explanation of adding complex numbers can be found [here](https://www.youtube.com/watch?v=SfbjqVyQljk).
 </details>
