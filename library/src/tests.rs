@@ -20,7 +20,7 @@ use indoc::indoc;
 use qsc::{
     interpret::{GenericReceiver, Interpreter, Result, Value},
     target::Profile,
-    Backend, PackageType, SourceMap, SparseSim,
+    Backend, LanguageFeatures, PackageType, SourceMap, SparseSim,
 };
 
 /// # Panics
@@ -58,8 +58,14 @@ pub fn test_expression_with_lib_and_profile_and_sim(
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
-    let mut interpreter = Interpreter::new(true, sources, PackageType::Exe, profile.into())
-        .expect("test should compile");
+    let mut interpreter = Interpreter::new(
+        true,
+        sources,
+        PackageType::Exe,
+        profile.into(),
+        LanguageFeatures::default(),
+    )
+    .expect("test should compile");
     let result = interpreter
         .eval_entry_with_sim(sim, &mut out)
         .expect("test should run successfully");

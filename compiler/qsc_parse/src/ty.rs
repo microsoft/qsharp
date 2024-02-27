@@ -7,7 +7,7 @@ mod tests;
 use super::{
     keyword::Keyword,
     prim::{apos_ident, opt, path, seq, token},
-    scan::Scanner,
+    scan::ParserContext,
     Error, Parser, Result,
 };
 use crate::{
@@ -19,13 +19,13 @@ use qsc_ast::ast::{
     CallableKind, Functor, FunctorExpr, FunctorExprKind, Ident, NodeId, SetOp, Ty, TyKind,
 };
 
-pub(super) fn ty(s: &mut Scanner) -> Result<Ty> {
+pub(super) fn ty(s: &mut ParserContext) -> Result<Ty> {
     let lo = s.peek().span.lo;
     let lhs = base(s)?;
     array_or_arrow(s, lhs, lo)
 }
 
-pub(super) fn array_or_arrow(s: &mut Scanner<'_>, mut lhs: Ty, lo: u32) -> Result<Ty> {
+pub(super) fn array_or_arrow(s: &mut ParserContext<'_>, mut lhs: Ty, lo: u32) -> Result<Ty> {
     loop {
         if let Some(()) = opt(s, array)? {
             lhs = Ty {
@@ -57,18 +57,18 @@ pub(super) fn array_or_arrow(s: &mut Scanner<'_>, mut lhs: Ty, lo: u32) -> Resul
     }
 }
 
-pub(super) fn param(s: &mut Scanner) -> Result<Box<Ident>> {
+pub(super) fn param(s: &mut ParserContext) -> Result<Box<Ident>> {
     throw_away_doc(s);
     apos_ident(s)
 }
 
-fn array(s: &mut Scanner) -> Result<()> {
+fn array(s: &mut ParserContext) -> Result<()> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(())
 }
 
-fn arrow(s: &mut Scanner) -> Result<CallableKind> {
+fn arrow(s: &mut ParserContext) -> Result<CallableKind> {
     if token(s, TokenKind::RArrow).is_ok() {
         Ok(CallableKind::Function)
     } else if token(s, TokenKind::FatArrow).is_ok() {
@@ -82,7 +82,7 @@ fn arrow(s: &mut Scanner) -> Result<CallableKind> {
     }
 }
 
-fn base(s: &mut Scanner) -> Result<Ty> {
+fn base(s: &mut ParserContext) -> Result<Ty> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Keyword(Keyword::Underscore)).is_ok() {
@@ -106,14 +106,14 @@ fn base(s: &mut Scanner) -> Result<Ty> {
     })
 }
 
-pub(super) fn functor_expr(s: &mut Scanner) -> Result<FunctorExpr> {
+pub(super) fn functor_expr(s: &mut ParserContext) -> Result<FunctorExpr> {
     // Intersection binds tighter than union.
     functor_op(s, ClosedBinOp::Plus, SetOp::Union, |s| {
         functor_op(s, ClosedBinOp::Star, SetOp::Intersect, functor_base)
     })
 }
 
-fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
+fn functor_base(s: &mut ParserContext) -> Result<FunctorExpr> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let e = functor_expr(s)?;
@@ -139,7 +139,7 @@ fn functor_base(s: &mut Scanner) -> Result<FunctorExpr> {
 }
 
 fn functor_op(
-    s: &mut Scanner,
+    s: &mut ParserContext,
     bin_op: ClosedBinOp,
     set_op: SetOp,
     mut p: impl Parser<FunctorExpr>,
