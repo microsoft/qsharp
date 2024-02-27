@@ -81,7 +81,7 @@ impl RationalNumber {
         for denominator in Self::DENOMINATORS {
             #[allow(clippy::cast_precision_loss)] // We only use fixes set of denominators
             let numerator: f64 = x * (denominator as f64);
-            if numerator > 0.0 && numerator < 100.0 && !is_fractional_part_significant(numerator) {
+            if numerator.abs() <= 100.0 && !is_fractional_part_significant(numerator) {
                 #[allow(clippy::cast_possible_truncation)] // We only allow small numerators
                 let rounded_numerator: i64 = numerator.round() as i64;
                 return Some(Self::construct(rounded_numerator, denominator));
