@@ -73,7 +73,7 @@ environment variables, for example `RUST_LOG=debug ./target/release/qsc ./sample
 
 ## Citation
 
-If you use Q#, Azure Quantum Development Kit, and Azure Quantum Resource Estimator, please cite as follows:
+If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimator, please cite as follows:
 
 * Azure Quantum Development Kit:
 ```bibtex
