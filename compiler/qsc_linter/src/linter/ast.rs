@@ -15,7 +15,7 @@ use crate::{
 /// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
 pub fn run_ast_lints(package: &qsc_ast::ast::Package) -> Vec<Lint> {
-    let mut lints = CombinedAstLints::new();
+    let mut lints = CombinedAstLints::default();
 
     for node in package.nodes.iter() {
         match node {
@@ -32,16 +32,13 @@ pub fn run_ast_lints(package: &qsc_ast::ast::Package) -> Vec<Lint> {
 }
 
 /// Combined AST lints for speed.
+#[derive(Default)]
 pub(crate) struct CombinedAstLints {
     buffer: Vec<Lint>,
 }
 
 #[allow(clippy::unused_self)]
 impl CombinedAstLints {
-    pub fn new() -> Self {
-        Self { buffer: Vec::new() }
-    }
-
     fn check_package(&self, _package: &Package) {}
 
     fn check_namespace(&self, _namespace: &Namespace) {}

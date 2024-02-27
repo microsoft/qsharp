@@ -9,7 +9,7 @@ use crate::Lint;
 /// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
 pub fn run_hir_lints(package: &Package) -> Vec<Lint> {
-    let mut lints = CombinedHirLints::new();
+    let mut lints = CombinedHirLints::default();
 
     for stmt in &package.stmts {
         lints.visit_stmt(stmt);
@@ -19,16 +19,13 @@ pub fn run_hir_lints(package: &Package) -> Vec<Lint> {
 }
 
 /// Combined HIR lints for speed.
+#[derive(Default)]
 pub(crate) struct CombinedHirLints {
     buffer: Vec<Lint>,
 }
 
 #[allow(clippy::unused_self)]
 impl CombinedHirLints {
-    pub fn new() -> Self {
-        Self { buffer: Vec::new() }
-    }
-
     fn check_package(&self, _package: &Package) {}
 
     fn check_item(&self, _item: &Item) {}
