@@ -16,7 +16,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_data_structures::{index_map::IndexMap, language_features::LanguageFeatures, span::Span};
 use qsc_hir::{assigner::Assigner as HirAssigner, ty::Ty};
 use std::fmt::Write;
 
@@ -106,13 +106,13 @@ fn compile(input: &str, entry_expr: &str) -> (Package, super::Table, Vec<compile
 }
 
 fn parse(input: &str, entry_expr: &str) -> Package {
-    let (namespaces, errors) = qsc_parse::namespaces(input);
+    let (namespaces, errors) = qsc_parse::namespaces(input, LanguageFeatures::default());
     assert!(errors.is_empty(), "parsing input failed: {errors:#?}");
 
     let entry = if entry_expr.is_empty() {
         None
     } else {
-        let (mut entry, errors) = qsc_parse::expr(entry_expr);
+        let (mut entry, errors) = qsc_parse::expr(entry_expr, LanguageFeatures::default());
         let offset = input
             .len()
             .try_into()

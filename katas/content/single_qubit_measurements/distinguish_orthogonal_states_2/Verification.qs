@@ -26,10 +26,11 @@ namespace Kata.Verification {
                 [$"|B⟩ = -i sin({i}π/10)|0⟩ + cos({i}π/10)|1⟩", $"|A⟩ = cos({i}π/10)|0⟩ + i sin({i}π/10)|1⟩"],
                 false);
             if not isCorrect {
+                Message("Incorrect.");
                 return false;
             }
         }
-        Message("All tests passed.");
+        Message("Correct!");
         true
     }
 

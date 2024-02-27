@@ -52,7 +52,7 @@ namespace Kata.Verification {
                 // check that the state of the qubit after the operation is unchanged
                 Adjoint statePrep(qs, state, alpha);
                 if not CheckAllZero(qs) {
-                    Message("Test should preseve qubit state.");
+                    Message($"Input quantum state {stateNames[state]} was not preserved during the measurement.");
                     ResetAll(qs);
                     return false;
                 }

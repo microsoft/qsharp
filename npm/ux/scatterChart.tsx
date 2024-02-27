@@ -266,18 +266,39 @@ export function ScatterChart(props: {
         </text>
         <g>
           {props.data.map((series, seriesIdx) => {
-            return series.items.map((plot, plotIdx) => {
-              return (
-                <circle
-                  data-index={JSON.stringify([seriesIdx, plotIdx])}
-                  data-label={plot.label}
-                  class="qs-scatterChart-point qs-scatterChart-hover"
-                  cx={toLogX(plot.x)}
-                  cy={toLogY(plot.y)}
+            const centers = series.items.map((plot) => ({
+              x: toLogX(plot.x),
+              y: toLogY(plot.y),
+            }));
+
+            // Constructing the points string for the polyline
+            const pointsString = centers
+              .map((center) => `${center.x},${center.y}`)
+              .join(" ");
+
+            return (
+              <>
+                {/* Render circles */}
+                {series.items.map((plot, plotIdx) => (
+                  <circle
+                    key={plotIdx}
+                    data-index={JSON.stringify([seriesIdx, plotIdx])}
+                    data-label={plot.label}
+                    className="qs-scatterChart-point qs-scatterChart-hover"
+                    cx={centers[plotIdx].x}
+                    cy={centers[plotIdx].y}
+                    stroke={series.color}
+                  />
+                ))}
+
+                {/* Render polyline connecting circle centers */}
+                <polyline
+                  points={pointsString}
                   stroke={series.color}
+                  fill="none"
                 />
-              );
-            });
+              </>
+            );
           })}
         </g>
         {

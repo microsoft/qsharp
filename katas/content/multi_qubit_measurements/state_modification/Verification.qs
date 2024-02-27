@@ -4,7 +4,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
 
     // State selection using partial measurements
-    operation stateInitialize_StateSelction(alpha : Double, qs : Qubit[]) : Unit {
+    operation StateInitialize_StateSelection(alpha : Double, qs : Qubit[]) : Unit {
         // Prepare the state to be input to the testImplementation
         // set the second qubit in a superposition a |0⟩ + b|1⟩
         // with a = cos alpha, b = sin alpha
@@ -15,15 +15,14 @@ namespace Kata.Verification {
         CX(qs[0], qs[1]);
     }
 
-    operation statePrepare_StateSelction(alpha : Double, Choice : Int, qs : Qubit[]) : Unit is Adj {
-        // The expected state of the second qubit for the exercise.
-
-        // set the second qubit in a superposition a |0⟩ + b|1⟩
+    // Prepare the expected state of the second qubit for the exercise.
+    operation StatePrepare_StateSelection(alpha : Double, ind : Int, q : Qubit) : Unit is Adj {
+        // set the second qubit in a superposition a|0⟩ + b|1⟩
         // with a = cos alpha, b = sin alpha
-        Ry(2.0 * alpha, qs[1]);
-        if Choice == 1 {
-            // if the Choice is 1, change the state to b|0⟩ + a|1⟩
-            X(qs[1]);
+        Ry(2.0 * alpha, q);
+        if ind == 1 {
+            // change the state to b|0⟩ + a|1⟩
+            X(q);
         }
     }
 
@@ -32,28 +31,29 @@ namespace Kata.Verification {
         use qs = Qubit[2];
         for i in 0 .. 5 {
             let alpha = (PI() * IntAsDouble(i)) / 5.0;
+            let params = $"a = {Cos(alpha)}, b = {Sin(alpha)}";
 
-            //for Choice = 0 and 1,
-            for Choice in 0 .. 1 {
+            for ind in 0 .. 1 {
                 // Prepare the state to be input to the testImplementation
-                stateInitialize_StateSelction(alpha, qs);
+                StateInitialize_StateSelection(alpha, qs);
 
                 // operate testImplementation
-                Kata.StateSelction(qs, Choice);
+                Kata.StateSelection(qs, ind);
                 // reset the first qubit, since its state does not matter
                 Reset(qs[0]);
 
                 // apply adjoint reference operation and check that the result is correct
-                Adjoint statePrepare_StateSelction(alpha, Choice, qs);
+                Adjoint StatePrepare_StateSelection(alpha, ind, qs[1]);
 
                 if not CheckAllZero(qs) {
                     ResetAll(qs);
+                    Message("Incorrect.");
+                    Message($"The state of the second qubit for {params}, ind = {ind} does not match expectation.");
                     return false;
                 }
-                ResetAll(qs);
             }
         }
-        ResetAll(qs);
+        Message("Correct!");
         true
     }
 

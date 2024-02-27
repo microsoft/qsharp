@@ -9,12 +9,19 @@ use crate::{
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use miette::Diagnostic;
+use qsc_data_structures::language_features::LanguageFeatures;
 use std::fmt::Write;
 
+#[allow(clippy::too_many_lines)]
 #[test]
 fn one_callable() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![], RuntimeCapabilityFlags::all());
+    let mut compiler = Compiler::new(
+        &store,
+        vec![],
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     let unit = compiler
         .compile_fragments(
             &mut CompileUnit::default(),
@@ -117,7 +124,12 @@ fn one_callable() {
 #[test]
 fn one_statement() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![], RuntimeCapabilityFlags::all());
+    let mut compiler = Compiler::new(
+        &store,
+        vec![],
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     let unit = compiler
         .compile_fragments(
             &mut CompileUnit::default(),
@@ -175,7 +187,12 @@ fn one_statement() {
 #[test]
 fn parse_error() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![], RuntimeCapabilityFlags::all());
+    let mut compiler = Compiler::new(
+        &store,
+        vec![],
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     let errors = compiler
         .compile_fragments(&mut CompileUnit::default(), "test_1", "}}", fail_on_error)
         .expect_err("should fail");
@@ -215,7 +232,12 @@ fn parse_error() {
 #[test]
 fn conditional_compilation_not_available() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![], RuntimeCapabilityFlags::all());
+    let mut compiler = Compiler::new(
+        &store,
+        vec![],
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     let errors = compiler
         .compile_fragments(
             &mut CompileUnit::default(),
@@ -240,7 +262,12 @@ fn errors_across_multiple_lines() {
     let mut store = PackageStore::new(compile::core());
     let std = compile::std(&store, RuntimeCapabilityFlags::all());
     let std_id = store.insert(std);
-    let mut compiler = Compiler::new(&store, [std_id], RuntimeCapabilityFlags::all());
+    let mut compiler = Compiler::new(
+        &store,
+        [std_id],
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     let mut unit = CompileUnit::default();
     compiler
         .compile_fragments(
@@ -304,7 +331,12 @@ fn errors_across_multiple_lines() {
 #[test]
 fn continue_after_parse_error() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![], RuntimeCapabilityFlags::all());
+    let mut compiler = Compiler::new(
+        &store,
+        vec![],
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     let mut errors = Vec::new();
 
     compiler
@@ -375,7 +407,12 @@ fn continue_after_parse_error() {
 #[test]
 fn continue_after_lower_error() {
     let store = PackageStore::new(compile::core());
-    let mut compiler = Compiler::new(&store, vec![], RuntimeCapabilityFlags::all());
+    let mut compiler = Compiler::new(
+        &store,
+        vec![],
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     let mut unit = CompileUnit::default();
 
     let mut errors = Vec::new();
