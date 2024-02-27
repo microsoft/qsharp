@@ -3,7 +3,7 @@ use qsc_ast::{
     ast::{NodeId, Package},
     mut_visit::MutVisitor,
 };
-use qsc_data_structures::line_column;
+use qsc_data_structures::{language_features::LanguageFeatures, line_column};
 
 #[test]
 fn linter() {
@@ -33,7 +33,9 @@ fn linter() {
 fn parse(source: &str) -> Package {
     let mut package = Package {
         id: NodeId::FIRST,
-        nodes: qsc_parse::top_level_nodes(source).0.into(),
+        nodes: qsc_parse::top_level_nodes(source, LanguageFeatures::default())
+            .0
+            .into(),
         entry: None,
     };
 
