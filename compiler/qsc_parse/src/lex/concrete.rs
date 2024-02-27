@@ -83,7 +83,8 @@ impl Iterator for ConcreteTokenIterator<'_> {
                         kind: ConcreteTokenKind::WhiteSpace,
                         span,
                     },
-                    _ => panic!("only comments and whitespace should be non-compilable tokens"), // Todo: might need better handling
+                    // This will panic if any content other than whitespace or comments are ignored when "cooking" the raw tokens
+                    _ => panic!("only comments and whitespace should be non-compilable tokens"),
                 };
                 Some(concrete)
             }

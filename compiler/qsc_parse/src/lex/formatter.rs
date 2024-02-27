@@ -14,9 +14,7 @@ mod tests;
 
 #[derive(Debug)]
 pub struct Edit {
-    #[allow(dead_code)] // TODO: nobody's using this yet except for tests
     pub span: Span,
-    #[allow(dead_code)] // TODO: nobody's using this yet except for tests
     pub new_text: String,
 }
 
@@ -39,7 +37,7 @@ pub fn format(code: &str) -> Vec<Edit> {
 
     let mut indent_level = 0;
 
-    #[allow(unused_assignments)] // there's probably a better way of doing this, but this works
+    #[allow(unused_assignments)]
     let mut one = None;
     let mut two = None;
     let mut three = None;
@@ -92,7 +90,6 @@ pub fn format(code: &str) -> Vec<Edit> {
             }
             _ => {
                 // not enough tokens to apply a rule
-                // TODO: we'll probably need to handle end-of-file cases here
                 continue;
             }
         };
