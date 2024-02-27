@@ -9,8 +9,6 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-# indenter = { workspace = true }
-# num-bigint = { workspace = true }
 miette = { workspace = true }
 qsc_ast = { path = "../qsc_ast" }
 qsc_fir = { path = "../qsc_fir" }
