@@ -3,7 +3,7 @@
 
 import { ShotResult, Dump, Result } from "./common.js";
 import { TelemetryEvent, log } from "../log.js";
-import { IServiceEventTarget } from "../worker-proxy.js";
+import { IServiceEventTarget } from "../workers/common.js";
 
 // Create strongly typed compiler events
 export type QscEventData =

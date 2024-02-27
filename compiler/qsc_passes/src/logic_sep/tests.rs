@@ -5,7 +5,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use expect_test::{expect, Expect};
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_hir::{
     hir::{ExprKind, NodeId, Stmt},
@@ -34,6 +34,7 @@ fn check(block_str: &str, expect: &Expect) {
         &[std],
         SourceMap::new([], Some(block_str.into())),
         RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 

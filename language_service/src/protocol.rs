@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use qsc::line_column::Range;
-use qsc::{compile::Error, target::Profile, PackageType};
+use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 
 /// A change to the workspace configuration
 #[derive(Clone, Debug, Default, Copy)]
@@ -115,7 +115,22 @@ pub struct ParameterInformation {
     pub documentation: Option<String>,
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone)]
 pub struct NotebookMetadata {
     pub target_profile: Option<Profile>,
+    pub language_features: LanguageFeatures,
+}
+
+#[derive(Debug)]
+pub struct CodeLens {
+    pub range: Range,
+    pub command: CodeLensCommand,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CodeLensCommand {
+    Histogram,
+    Debug,
+    Run,
+    Estimate,
 }

@@ -13,6 +13,7 @@ use std::{clone::Clone, rc::Rc};
 
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
+    locals: IndexMap<hir::NodeId, fir::LocalVarId>,
     exprs: IndexMap<ExprId, Expr>,
     pats: IndexMap<PatId, Pat>,
     stmts: IndexMap<StmtId, Stmt>,
@@ -31,6 +32,7 @@ impl Lowerer {
     pub fn new() -> Self {
         Self {
             nodes: IndexMap::new(),
+            locals: IndexMap::new(),
             exprs: IndexMap::new(),
             pats: IndexMap::new(),
             stmts: IndexMap::new(),
@@ -179,6 +181,9 @@ impl Lowerer {
             };
             CallableImpl::Spec(specialized_implementation)
         };
+
+        self.assigner.reset_local();
+        self.locals.clear();
 
         fir::CallableDecl {
             id,
@@ -331,7 +336,7 @@ impl Lowerer {
                 fir::ExprKind::While(self.lower_expr(cond), self.lower_block(body))
             }
             hir::ExprKind::Closure(ids, id) => {
-                let ids = ids.iter().map(|id| self.lower_id(*id)).collect();
+                let ids = ids.iter().map(|id| self.lower_local_id(*id)).collect();
                 fir::ExprKind::Closure(ids, lower_local_item_id(*id))
             }
             hir::ExprKind::String(components) => fir::ExprKind::String(
@@ -413,17 +418,25 @@ impl Lowerer {
         })
     }
 
+    fn lower_local_id(&mut self, id: hir::NodeId) -> fir::LocalVarId {
+        self.locals.get(id).copied().unwrap_or_else(|| {
+            let new_id = self.assigner.next_local();
+            self.locals.insert(id, new_id);
+            new_id
+        })
+    }
+
     fn lower_res(&mut self, res: &hir::Res) -> fir::Res {
         match res {
             hir::Res::Item(item) => fir::Res::Item(lower_item_id(item)),
-            hir::Res::Local(node) => fir::Res::Local(self.lower_id(*node)),
+            hir::Res::Local(node) => fir::Res::Local(self.lower_local_id(*node)),
             hir::Res::Err => fir::Res::Err,
         }
     }
 
     fn lower_ident(&mut self, ident: &hir::Ident) -> fir::Ident {
         fir::Ident {
-            id: self.lower_id(ident.id),
+            id: self.lower_local_id(ident.id),
             span: ident.span,
             name: ident.name.clone(),
         }
@@ -537,7 +550,7 @@ fn lower_functor_set(functors: &qsc_hir::ty::FunctorSet) -> qsc_fir::ty::Functor
         qsc_hir::ty::FunctorSet::Value(v) => {
             qsc_fir::ty::FunctorSet::Value(lower_functor_set_value(v))
         }
-        qsc_hir::ty::FunctorSet::Param(p) => {
+        qsc_hir::ty::FunctorSet::Param(p, _) => {
             qsc_fir::ty::FunctorSet::Param(ParamId::from(usize::from(p)))
         }
         qsc_hir::ty::FunctorSet::Infer(i) => {

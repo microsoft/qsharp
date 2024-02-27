@@ -35,7 +35,7 @@ pub mod project {
     pub use qsc_project::{DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor};
 }
 
-pub use qsc_data_structures::span::Span;
+pub use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 pub use qsc_passes::{PackageType, PassContext};
 
@@ -47,3 +47,5 @@ pub use qsc_eval::{
     backend::{Backend, SparseSim},
     state::{fmt_basis_state_label, fmt_complex, format_state_id, get_latex, get_phase},
 };
+
+pub use qsc_doc_gen::{display, generate_docs};

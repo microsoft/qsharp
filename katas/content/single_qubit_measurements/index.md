@@ -61,14 +61,14 @@ The outcomes of computational basis measurements and their probabilities are sum
     </tr>
 </table>
 
->Unlike quantum gates which are unitary and reversible operations, measurements are neither unitary nor reversible. Since the outcomes of a measurement are probabilistic, any two isolated qubits which are initially prepared in identical superposition states are in general not guaranteed to have the same measurement outcomes after each qubit has been measured separately. As we will see below, measurements are modeled by projection operators instead of unitary operators.
+>Unlike quantum gates, which are unitary and reversible operations, measurements are neither unitary nor reversible. Since the outcomes of a measurement are probabilistic, any two isolated qubits which are initially prepared in identical superposition states are in general not guaranteed to have the same measurement outcomes after each qubit has been measured separately. As we will see below, measurements are modeled by projection operators instead of unitary operators.
 >
 >Additionally, the assumption of the wave function being **normalized** is important, since the probability outcomes must sum up to $1$. If the wave function is not normalized, it is important to normalize it first in order to obtain the correct measurement probabilities.
 
 ## 🔎 Analyze
 
 The qubit is in the following state:
-$$\ket \psi = 0.6 \ket 0 + 0.8 \ket 1 \equiv \begin{bmatrix} 0.6 \\\ 0.8\end{bmatrix}.$$
+$$\ket \psi = 0.6 \ket 0 + 0.8 \ket 1 = \begin{bmatrix} 0.6 \\\ 0.8\end{bmatrix}$$
 
 If this qubit is measured in the computational basis, what are the outcome probabilities?
 
@@ -79,16 +79,18 @@ The given state $\ket \psi$ is normalized, since $0.6^2 + 0.8^2 = 1$. Hence, the
 
 @[section]({
     "id": "single_qubit_measurements__implementing_measurement",
-    "title": "Implementing Measurement In Q# Using The M Operation"
+    "title": "Implementing Measurement in Q# Using Operations M and MResetZ"
 })
 
-In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and then measure it in the computational basis. In Q#, single-qubit measurements in the computational basis can be implemented using the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.m" target="_blank">M operation</a>. It will return the constant `Zero` if measurement result was $0$ or the constant `One` if the measurement result was $1$. `Zero` and `One` are constants of type `Result`.
+In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and then measure it in the computational basis. In Q#, single-qubit measurements in the computational basis can be implemented using the `M` operation. It will return the constant `Zero` if measurement result was $0$ or the constant `One` if the measurement result was $1$. `Zero` and `One` are constants of type `Result`.
 
-> If you run this code multiple times, you will notice that whenever the measurement outcome is $1$, the post-measurement state of the qubit is $\ket 1$, and similarly for $0$. This is in line with our expectation that after the measurement the wave function 'collapses' to the corresponding state.
+> If you run this code multiple times, you will notice that whenever the measurement outcome is $1$, the post-measurement state of the qubit is $\ket 1$, and similarly for outcome $0$ the final state is $\ket{0}$. This is in line with our expectation that after the measurement the wave function 'collapses' to the corresponding state.
+
+An alternative way to implement a computational basis measurement is using the `MResetZ` operation that measures the qubit and resets it to the $\ket{0}$ state. Remember that Q# requires you to reset all qubits to $\ket{0}$ before releasing them, so if you don't need to use the qubit after you measure it, it is convenient to use `MResetZ` right away rather than do the measurement using `M` and follow it with a separate call to `Reset`.
 
 @[example]({
     "id": "single_qubit_measurements__implementing_measurement_demo",
-    "codePath": "./implementing_measurement/example.qs"
+    "codePath": "./implementing_measurement/Example.qs"
 })
 
 @[section]({
@@ -96,25 +98,22 @@ In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and
     "title": "Measurement Statistics"
 })
 
-The following code demonstrates that the theoretical and experimental values of the probability outcomes indeed match with each other. We repeatedly prepare the same state $\ket \psi = 0.6 \ket 0 + 0.8 \ket 1$ and measure it in the computational basis $100$ times. At the end, we expect 0 to be measured approximately $|0.6 |^2 \cdot 100= 36$ times, and 1 to be measured approximately $|0.8|^2 \cdot 100= 64$ times. Note that since measurements are probabilistic, we do not expect the results to match these values exactly. As we repeat the measurements, the resulting distribution will align with the theoretical probabilities.
+The following code demonstrates that the theoretical and experimental values of the probability outcomes indeed match with each other. We repeatedly prepare the same state $\ket \psi = 0.6 \ket 0 + 0.8 \ket 1$ and measure it in the computational basis $100$ times. At the end, we expect $0$ to be measured approximately $|0.6 |^2 \cdot 100= 36$ times, and $1$ to be measured approximately $|0.8|^2 \cdot 100= 64$ times. Note that since measurements are probabilistic, we do not expect the results to match these values exactly. As we repeat the measurements, the resulting distribution will align with the theoretical probabilities.
 
 @[example]({
     "id": "single_qubit_measurements__measurement_statistics_demo",
-    "codePath": "./measurement_statistics/example.qs"
+    "codePath": "./measurement_statistics/Example.qs"
 })
 
-Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states and discuss the general case of arbitrary basis measurements later in the kata.
+Measurements can be used to distinguish orthogonal states. We start with an exercise for distinguishing between the computational basis states, and discuss the general case of arbitrary basis measurements later in the kata.
 
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_0_and_1",
     "title": "Distinguish |0〉 and |1〉",
-    "descriptionPath": "./distinguish_0_and_1/index.md",
-    "placeholderSourcePath": "./distinguish_0_and_1/placeholder.qs",
-    "solutionPath": "./distinguish_0_and_1/solution.md",
-    "codePaths": [
+    "path": "./distinguish_0_and_1/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_0_and_1/verification.qs"
+        "./Common.qs"
     ]
 })
 
@@ -125,14 +124,14 @@ Measurements can be used to distinguish orthogonal states. We start with an exer
 
 So far, we have discussed measurements done in the computational basis, that is, the $\{ \ket 0, \ket 1\}$ basis.
 
-It is also possible to implement measurements in other orthogonal bases, such as the Pauli X basis, which consists of the two vectors $\ket + = \frac1{\sqrt2} \big(\ket 0 +\ket 1\big)$, and $\ket - = \frac1{\sqrt2} \big(\ket 0 -\ket 1\big)$. Q# has a built-in operation <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.intrinsic.measure" target="_blank">`Measure`</a> for measurements in the Pauli bases.
+It is also possible to implement measurements in other orthogonal bases, such as the Pauli X basis, which consists of the two vectors $\ket + = \frac1{\sqrt2} \big(\ket 0 +\ket 1\big)$, and $\ket - = \frac1{\sqrt2} \big(\ket 0 -\ket 1\big)$. Q# has a built-in operation `Measure` for measurements in the Pauli bases.
 
-> The `Measure` operation can be used for measuring multiple qubits in a multi-qubit system; however, in this kata we only consider measurements for single-qubit systems.
+> The `Measure` operation can also be used for measuring multiple qubits in a multi-qubit system; however, in this kata we only consider measurements for single-qubit systems.
 
 The eigenvalues of a Pauli matrix are $\pm 1$, with one eigenvector corresponding to each eigenvalue. For any chosen Pauli basis, the `Measure` operation returns `Zero` if the measurement outcome corresponds to the eigenvalue $+1$, and returns `One` if the measurement outcome corresponds to the eigenvalue $-1$. As in the case of the computational basis measurements, the wave function of the qubit collapses to the corresponding state after the measurement is executed.
 
-The probabilities of the outcomes are defined using a similar rule: to measure a state $\ket \psi$ in a Pauli basis $\{ \ket {b_0}, \ket {b_1}\}$, we represent it as a linear combination of the basis vectors
-$$\ket \psi = c_0 \ket {b_0} + c_1 \ket {b_1}.$$
+The probabilities of the outcomes are defined using a similar rule: to measure a state $\ket \psi$ in a Pauli basis $\\{ \ket {b_0}, \ket {b_1} \\}$, we represent it as a linear combination of the basis vectors
+$$\ket \psi = c_0 \ket {b_0} + c_1 \ket {b_1}$$
 
 The probabilities of outcomes $\ket{b_0}$ and $\ket{b_1}$ will be defined as $|c_0|^2$, and $|c_1|^2$, respectively.
 
@@ -141,13 +140,10 @@ The probabilities of outcomes $\ket{b_0}$ and $\ket{b_1}$ will be defined as $|c
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_plus_and_minus",
     "title": "Distinguish |+〉 and |-〉",
-    "descriptionPath": "./distinguish_plus_and_minus/index.md",
-    "placeholderSourcePath": "./distinguish_plus_and_minus/placeholder.qs",
-    "solutionPath": "./distinguish_plus_and_minus/solution.md",
-    "codePaths": [
+    "path": "./distinguish_plus_and_minus/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_plus_and_minus/verification.qs"
+        "./Common.qs"
     ]
 })
 
@@ -160,7 +156,7 @@ It is possible to measure a qubit in orthogonal bases other than the Pauli bases
 $$
 \ket \psi = c_0 \ket {b_0} + c_1 \ket {b_1}.
 $$
-The rule for obtaining the probabilities of measurement outcomes is exactly the same as that for the computation basis measurement. For a measurement in a $\{ b_0, b_1\}$ basis we get
+The rule for obtaining the probabilities of measurement outcomes is exactly the same as that for the computational basis measurement. For a measurement in a $\\{ b_0, b_1\\}$ basis we get
 
 - Outcome $b_0$ with probability $|c_0|^2$ and the post-measurement qubit state of $\ket {b_0}$
 - Outcome $b_1$ with probability $|c_1|^2$ and the post-measurement qubit state of $\ket {b_1}$
@@ -188,8 +184,8 @@ As before, the assumption of $\ket \psi$ being normalized is important, since it
 
 > As you may recall, a global phase is said to be hidden or unobservable.
 This is explained by the fact that global phases have no impact on quantum measurements. For example, consider two isolated qubits which are in (normalized) states $\ket \psi$ and $e^{i\theta}\ket \psi$.
-If both are measured in an orthogonal basis $\{ \ket{b_0},\ket{b_1}\}$, the probabilities of measuring $b_0$ or $b_1$ are identical in both cases, since $|\bra{b_i}\ket{\psi}|^2 = |\bra{b_i}e^{i\theta}\ket{\psi}|^2  $.
-Similarly, for either qubit, if $b_i$ is the measurement outcome, the post-measurement state of the qubit is $\ket{b_i}$ for both qubits. Hence, the measurements are independent of the global phase $\theta$.
+If both are measured in an orthogonal basis $\\{ \ket{b_0},\ket{b_1}\\}$, the probabilities of measuring $b_0$ or $b_1$ are identical in both cases, since $|\bra{b_i}\ket{\psi}|^2 = |\bra{b_i}e^{i\theta}\ket{\psi}|^2  $.
+Similarly, for either qubit, if $b_i$ is the measurement outcome, the post-measurement state of the qubit is $\ket{b_i}$. Hence, the measurements are independent of the global phase $\theta$.
 
 ## Measurements as Projection Operations
 
@@ -205,15 +201,15 @@ $$
 P = \ket 0 \bra 0 \equiv \begin{bmatrix} 1 & 0 \\\ 0 & 0\end{bmatrix}.
 $$
 
-A measurement in an orthogonal basis $\{ \ket{b_0}, \ket{b_1}\}$ is described by a pair of projectors $P_0 = \ket{b_0}\bra{b_0}$ and $P_1 = \ket{b_1}\bra{b_1}$. Since $\ket{b_0}$ and $\ket{b_1}$ are orthogonal, their projectors are also orthogonal, i.e., $P_0 P_1 = P_1 P_0 = 0$. The rules for measurements in this basis can then be summarized as follows:
+A measurement in an orthogonal basis $\\{ \ket{b_0}, \ket{b_1}\\}$ is described by a pair of projectors $P_0 = \ket{b_0}\bra{b_0}$ and $P_1 = \ket{b_1}\bra{b_1}$. Since $\ket{b_0}$ and $\ket{b_1}$ are orthogonal, their projectors are also orthogonal, i.e., $P_0 P_1 = P_1 P_0 = 0$. The rules for measurements in this basis can then be summarized as follows:
 
 - Measuring a qubit in a state $\ket \psi$ is done by picking one of these projection operators at random.
 - Projection $P_0$ is chosen with probability $|P_0 \ket{\psi}|^2$, and the projector $P_1$ is chosen with probability $|P_1\ket{\psi}|^2.$
 - If projector $P_0$ is chosen, the post-measurement state of the qubit is given by
-$$
-\frac1{|P_0 \ket{\psi}|}P_0 \ket\psi,
-$$
-and similarly for $P_1$.
+    $$
+    \frac1{|P_0 \ket{\psi}|}P_0 \ket\psi,
+    $$
+    and similarly for $P_1$.
 
 Although this formalism looks different from the previous sections, it is in fact equivalent. If $\ket \psi = c_0 \ket{b_0} + c_1 \ket{b_1}$, we have
 $$
@@ -224,15 +220,15 @@ $$
 P_1 \ket \psi = c_1 \ket{b_1}, \text{so that } |P_1\ket \psi| = c_1.
 $$
 
-Thus, as before, the probability of measuring $b_0$ is $|P_0\ket\psi|^2 = |c_0|^2$, and the probability of measuring $b_1$ is $|P_1\ket\psi|^2 = |c_1|^2$. Similarly, one can verify that the post-measurement outcomes are also $\ket{b_0}$ and $\ket{b_1}$ respectively (up to unobservable global phases).
+Thus, as before, the probability of measuring $b_0$ is $|P_0\ket\psi|^2 = |c_0|^2$, and the probability of measuring $b_1$ is $|P_1\ket\psi|^2 = |c_1|^2$. Similarly, one can verify that the post-measurement outcomes are also $\ket{b_0}$ and $\ket{b_1}$, respectively (up to unobservable global phases).
 
-Although the projector formalism for single-qubit systems may seem superfluous, its importance will become clear later while considering measurements for multi-qubit systems.
+Although the projector formalism for single-qubit systems may seem superfluous, its importance will become clear later, when we consider measurements for multi-qubit systems.
 
 ## Arbitrary Basis Measurements Implementation
 
 In the previous section, we discussed measurements in Pauli bases using the built-in `Measure` operation. We will now show that it is always possible to measure a qubit in any orthogonal basis using just unitary rotation matrices and computation basis measurements.
 
-Consider a state $ \ket \psi = c_0 \ket {b_0} + c_1 \ket {b_1} $ which we would like to measure in an orthonormal basis $\{ \ket{b_0}, \ket{b_1}\}$. First, we construct the following unitary matrix:
+Consider a state $ \ket \psi = c_0 \ket {b_0} + c_1 \ket {b_1} $ which we would like to measure in an orthonormal basis $\\{ \ket{b_0}, \ket{b_1}\\}$. First, we construct the following unitary matrix:
 $$
 U = \ket{0} \bra{b_0} + \ket{1} \bra{b_1}
 $$
@@ -245,12 +241,12 @@ $$
 (One may verify that $U$ is indeed a unitary matrix, by checking that $U^\dagger U = U U^\dagger = I$)
 
 Note that the effect of these matrices on the two bases is the following:
-$$U\ket{b_0} = \ket{0},$$
-$$U\ket{b_1} = \ket{1},$$
-$$U^\dagger \ket{0} = \ket{b_0},$$
-$$U^\dagger \ket 1 = \ket{b_1}.$$
+$$U\ket{b_0} = \ket{0}$$
+$$U\ket{b_1} = \ket{1}$$
+$$U^\dagger \ket{0} = \ket{b_0}$$
+$$U^\dagger \ket{1} = \ket{b_1}$$
 
-In order to implement a measurement in the ${ \ket{b_0}, \ket{b_1} }$ basis, we do the following:
+In order to implement a measurement in the $\\{ \ket{b_0}, \ket{b_1} \\}$ basis, we do the following:
 
 1. Apply $U$ to $\ket \psi$.  
    The resulting state is $U\ket \psi = c_0 \ket 0 + c_1 \ket 1 $.
@@ -304,39 +300,30 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_1",
     "title": "Distinguishing Orthogonal States: 1",
-    "descriptionPath": "./distinguish_orthogonal_states_1/index.md",
-    "placeholderSourcePath": "./distinguish_orthogonal_states_1/placeholder.qs",
-    "solutionPath": "./distinguish_orthogonal_states_1/solution.md",
-    "codePaths": [
+    "path": "./distinguish_orthogonal_states_1/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_orthogonal_states_1/verification.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_2",
     "title": "Distinguishing Orthogonal States: 2",
-    "descriptionPath": "./distinguish_orthogonal_states_2/index.md",
-    "placeholderSourcePath": "./distinguish_orthogonal_states_2/placeholder.qs",
-    "solutionPath": "./distinguish_orthogonal_states_2/solution.md",
-    "codePaths": [
+    "path": "./distinguish_orthogonal_states_2/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./distinguish_orthogonal_states_2/verification.qs"
+        "./Common.qs"
     ]
 })
 
 @[exercise]({
     "id": "single_qubit_measurements__a_b_basis_measurements",
     "title": "Measurement in the |A〉, |B〉 Basis",
-    "descriptionPath": "./a_b_basis_measurements/index.md",
-    "placeholderSourcePath": "./a_b_basis_measurements/placeholder.qs",
-    "solutionPath": "./a_b_basis_measurements/solution.md",
-    "codePaths": [
+    "path": "./a_b_basis_measurements/",
+    "qsDependencies": [
         "../KatasLibrary.qs",
-        "./common.qs",
-        "./a_b_basis_measurements/verification.qs"
+        "./Common.qs"
     ]
 })
 
@@ -346,9 +333,10 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
 })
 
 Congratulations! In this kata you learned how to apply measurements on single-qubit systems. Here are a few key concepts to keep in mind:
-* Measurements are always done in an orthogonal basis. By default, we choose the computational basis $\lbrace \ket{0}, \ket{1} \rbrace$.
-* Measurements are represented as projector operators, which are matrices.
-* Unlike quantum gates, measurements are neither unitary nor reversible. When we measure a qubit, the state of the qubit collapses to one of the basis states, and the initial state is lost. 
-* In Q#, you can implement measurements in the computational basis using the `M` operation, and in the Pauli basis using the `Measure` operation. 
+
+- Unlike quantum gates, measurements are neither unitary nor reversible. When we measure a qubit, the state of the qubit collapses to one of the basis states, and the initial state is lost.
+- Measurements are always done in an orthogonal basis. By default, we choose the computational basis ${{ \ket{0}, \ket{1} }}$.
+- Measurements are represented as sets of projector operators, which are matrices.
+- In Q#, you can implement measurements in the computational basis using the `M` operation, and in the Pauli basis using the `Measure` operation. You can also use `MResetZ` to measure a qubit in the computational basis and reset it to $\ket{0}$ right away.
 
 Next, you will learn about measurements in multi-qubit systems in the "Measurements in Multi-Qubit Systems" kata.

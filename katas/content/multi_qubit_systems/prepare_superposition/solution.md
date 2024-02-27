@@ -14,5 +14,5 @@ $$ H|1\rangle = \frac{1}{\sqrt2}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} \
 
 @[solution]({
 "id": "multi_qubit_systems__prepare_superposition_solution",
-"codePath": "solution.qs"
+"codePath": "Solution.qs"
 })

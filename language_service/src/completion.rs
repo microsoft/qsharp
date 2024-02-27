@@ -4,11 +4,11 @@
 #[cfg(test)]
 mod tests;
 
-use crate::compilation::{Compilation, CompilationKind, Lookup};
-use crate::display::CodeDisplay;
+use crate::compilation::{Compilation, CompilationKind};
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
 use crate::qsc_utils::{into_range, span_contains};
 use qsc::ast::visit::{self, Visitor};
+use qsc::display::{CodeDisplay, Lookup};
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};

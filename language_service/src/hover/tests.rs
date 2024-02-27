@@ -1085,6 +1085,26 @@ fn callable_param_doc() {
 }
 
 #[test]
+fn callable_generic_functor_display() {
+    check(
+        indoc! {"
+            namespace Test {
+                operation Foo(op : (Qubit => Unit is Adj)) : Unit {}
+                operation Main() : Unit {
+                    ◉Fo↘o◉;
+                }
+            }
+        "},
+        &expect![[r#"
+            ```qsharp
+            Test
+            operation Foo(op : (Qubit => Unit is Adj)) : Unit
+            ```
+        "#]],
+    );
+}
+
+#[test]
 fn udt_field_incorrect() {
     check_none(indoc! {r#"
         namespace Test {

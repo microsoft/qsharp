@@ -4,9 +4,10 @@
 use std::mem::replace;
 use std::rc::Rc;
 
-use crate::compilation::{Compilation, Lookup};
+use crate::compilation::Compilation;
 use crate::qsc_utils::{find_ident, span_contains, span_touches};
 use qsc::ast::visit::{walk_expr, walk_namespace, walk_pat, walk_ty, walk_ty_def, Visitor};
+use qsc::display::Lookup;
 use qsc::{ast, hir, resolve};
 
 #[allow(unused_variables)]

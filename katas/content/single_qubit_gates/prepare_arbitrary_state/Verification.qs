@@ -1,8 +1,7 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Katas;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Convert;
 
     operation PrepareArbitraryState (alpha : Double, beta : Double, theta : Double, q : Qubit) : Unit is Adj+Ctl {
         let phi = ArcTan2(beta, alpha);
@@ -21,12 +20,12 @@ namespace Kata.Verification {
             let isCorrect = CheckOperationsEquivalenceOnZeroStateStrict(solution, reference, 1);
             if not isCorrect {
                 Message("Incorrect.");
-                Message("The solution was incorrect for at least one test case.");
-                Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect " +
-                    "it is expected to have.");
-                use target = Qubit[1]; // |0〉
-                ShowQuantumStateComparison(target, solution, reference);
-                ResetAll(target);
+                Message($"The solution was incorrect for the test case alpha = {alpha}, beta = {beta}, theta = {theta}.");
+                Message("Hint: examine the state prepared by your solution and compare it with the state it " +
+                    "is expected to prepare.");
+                use initial = Qubit(); // |0〉
+                ShowQuantumStateComparison([initial], solution, reference);
+                Reset(initial);
                 return false;
             }
         }

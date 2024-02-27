@@ -6,6 +6,7 @@
 use crate::entry_point::generate_entry_expr;
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 
 fn check(file: &str, expr: &str, expect: &Expect) {
@@ -15,6 +16,7 @@ fn check(file: &str, expr: &str, expect: &Expect) {
         &[],
         sources,
         RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
