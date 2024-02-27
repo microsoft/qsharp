@@ -9,6 +9,7 @@ mod canon;
 mod convert;
 mod core;
 mod diagnostics;
+mod intrinsic;
 mod logical;
 mod math;
 mod measurement;
@@ -17,9 +18,9 @@ mod table_lookup;
 
 use indoc::indoc;
 use qsc::{
-    interpret::{GenericReceiver, Interpreter, Value},
+    interpret::{GenericReceiver, Interpreter, Result, Value},
     target::Profile,
-    LanguageFeatures, PackageType, SourceMap,
+    Backend, LanguageFeatures, PackageType, SourceMap, SparseSim,
 };
 
 /// # Panics
@@ -41,6 +42,17 @@ pub fn test_expression_with_lib_and_profile(
     profile: Profile,
     expected: &Value,
 ) -> String {
+    let mut sim = SparseSim::default();
+    test_expression_with_lib_and_profile_and_sim(expr, lib, profile, &mut sim, expected)
+}
+
+pub fn test_expression_with_lib_and_profile_and_sim(
+    expr: &str,
+    lib: &str,
+    profile: Profile,
+    sim: &mut impl Backend<ResultType = impl Into<Result>>,
+    expected: &Value,
+) -> String {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
 
@@ -55,7 +67,7 @@ pub fn test_expression_with_lib_and_profile(
     )
     .expect("test should compile");
     let result = interpreter
-        .eval_entry(&mut out)
+        .eval_entry_with_sim(sim, &mut out)
         .expect("test should run successfully");
 
     match (&expected, result) {
