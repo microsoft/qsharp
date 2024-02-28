@@ -153,7 +153,6 @@ fn check_recognize_decimal() {
     assert_decimal_value(DecimalNumber::recognize(-0.777), (-1, 0.777));
 }
 
-
 // #[test]
 // fn check_get_latex_for_algebraic() {
 //     expect!([r#"\frac{5 \sqrt{2}}{3}"#]).assert_eq(&get_latex_for_algebraic(5, 3, 2, false));
