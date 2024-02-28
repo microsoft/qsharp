@@ -156,43 +156,45 @@ enum RealNumber {
 }
 
 impl RealNumber {
-    fn sign(self) -> i64 {
+    fn sign(&self) -> i64 {
         match self {
             Self::Algebraic(algebraic) => algebraic.sign,
             Self::Decimal(decimal) => decimal.sign,
             Self::Zero => 0,
         }
     }
-    fn negate(self) -> Self {
+
+    fn negate(&self) -> Self {
         match self {
-            Self::Algebraic(algebraic) => RealNumber::Algebraic(AlgebraicNumber {
+            Self::Algebraic(algebraic) => Self::Algebraic(AlgebraicNumber {
                 sign: -algebraic.sign,
                 fraction: algebraic.fraction,
                 root: algebraic.root,
             }),
-            Self::Decimal(decimal) => RealNumber::Decimal(DecimalNumber {
+            Self::Decimal(decimal) => Self::Decimal(DecimalNumber {
                 sign: -decimal.sign,
                 value: decimal.value,
             }),
-            Self::Zero => self,
+            Self::Zero => Self::Zero,
         }
     }
-    fn abs(self) -> Self {
+
+    fn abs(&self) -> Self {
         match self {
-            Self::Algebraic(algebraic) => RealNumber::Algebraic(AlgebraicNumber {
+            Self::Algebraic(algebraic) => Self::Algebraic(AlgebraicNumber {
                 sign: 1,
                 fraction: algebraic.fraction,
                 root: algebraic.root,
             }),
-            Self::Decimal(decimal) => RealNumber::Decimal(DecimalNumber {
+            Self::Decimal(decimal) => Self::Decimal(DecimalNumber {
                 sign: 1,
                 value: decimal.value,
             }),
-            Self::Zero => self,
+            Self::Zero => Self::Zero,
         }
     }
 
-    // Tries to recognize a real number as zero, algebraic, or decimal of all else fails.
+    // Tries to recognize a real number as zero, algebraic, or decimal if all else fails.
     fn recognize(x: f64) -> Self {
         if !is_significant(x) {
             Self::Zero
@@ -334,9 +336,27 @@ fn get_terms_for_state(state: Vec<(BigUint, Complex64)>) -> Vec<Term> {
 // =========================
 #[must_use]
 pub fn get_latex(state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
-    let terms: Vec<Term> = get_terms_for_state(state);
-    let mut latex: String = String::with_capacity(200);
+    if state.len() > 16 {
+        return String::new();
+    }
 
+    let terms: Vec<Term> = get_terms_for_state(state);
+    let mut bad_term_count: i64 = 0;
+    for term in &terms {
+        if let ComplexNumber::Cartesian(cartesian) = &term.coordinate {
+            if let RealNumber::Decimal(_) = &cartesian.real_part {
+                bad_term_count += 1;
+            }
+            if let RealNumber::Decimal(_) = &cartesian.imaginary_part {
+                bad_term_count += 1;
+            };
+            if bad_term_count > 2 {
+                return String::new();
+            }
+        }
+    }
+
+    let mut latex: String = String::with_capacity(200);
     latex.push_str("$|\\psi\\rangle = ");
     let mut is_first: bool = true;
     for term in terms {
