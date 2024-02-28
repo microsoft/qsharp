@@ -432,7 +432,7 @@ fn dump_register_qubits_reorder_output_should_be_sorted() {
             H(qs[0]);
             H(qs[2]);
             Microsoft.Quantum.Diagnostics.DumpMachine();
-            Microsoft.Quantum.Diagnostics.DumpRegister(qs[0..3]);
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs[0..2..3]);
             ResetAll(qs);
         }"},
         &expect![[r#"
@@ -442,10 +442,10 @@ fn dump_register_qubits_reorder_output_should_be_sorted() {
             |10000⟩: 0.5000+0.0000𝑖
             |10100⟩: 0.5000+0.0000𝑖
             STATE:
-            |0000⟩: 0.5000+0.0000𝑖
-            |0010⟩: 0.5000+0.0000𝑖
-            |1000⟩: 0.5000+0.0000𝑖
-            |1010⟩: 0.5000+0.0000𝑖
+            |00⟩: 0.5000+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.5000+0.0000𝑖
         "#]],
     );
 }
