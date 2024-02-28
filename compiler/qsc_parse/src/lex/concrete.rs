@@ -7,11 +7,16 @@ use qsc_data_structures::span::Span;
 
 use super::{cooked, raw};
 
+/// This struct extends cooked tokens to include whitespace and comment tokens.
+/// Whitespace and comment tokens were removed during the creation of cooked tokens
+/// because they are generally not useful for compilation, but they are reintroduced
+/// here because they are needed for formatting.
 pub(super) struct ConcreteToken {
     pub kind: ConcreteTokenKind,
     pub span: Span,
 }
 
+/// This enum extends the cooked token kind to include whitespace and comment token kinds.
 #[derive(Debug, PartialEq)]
 pub(super) enum ConcreteTokenKind {
     Syntax(cooked::TokenKind),
@@ -20,6 +25,13 @@ pub(super) enum ConcreteTokenKind {
     Comment,
 }
 
+/// This is an iterator over ConcreteTokens, creating the tokens from a source str.
+/// It works by running the cooked lexer on the source str, and iterating over
+/// those cooked tokens. Whenever adjacent cooked tokens are found to have a gap
+/// between their spans, the raw lexer is run on that slice of the source str to
+/// generate the raw tokens (which should only produce the non-compilation whitespace
+/// and comment tokens) for that slice, which are iterated over before continuing
+/// with the cooked tokens.
 pub(super) struct ConcreteTokenIterator<'a> {
     code: &'a str,
     cooked_tokens: Peekable<cooked::Lexer<'a>>,

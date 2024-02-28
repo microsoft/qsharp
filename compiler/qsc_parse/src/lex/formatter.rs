@@ -1,6 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// This module contains the Q# formatter, which can be used by calling
+/// the format function available from this module. The formatting algorithm
+/// uses the cooked and concrete tokens from the parser crate to create a
+/// token stream of the given source code string. It then uses a sliding window
+/// over this token stream to apply formatting rules when the selected tokens
+/// match certain patterns. Formatting rules will generate text edit objects
+/// when the format of the input string does not match the expected format, and
+/// these edits are returned on using the formatter.
 use crate::keyword::Keyword;
 
 use super::{
@@ -32,19 +40,22 @@ fn make_indent_string(level: usize) -> String {
     "    ".repeat(level)
 }
 
+/// Applies formatting rules to the given code str, generating edits where
+/// the source code needs to be changed to comply with the format rules.
 pub fn format(code: &str) -> Vec<Edit> {
     let tokens = concrete::ConcreteTokenIterator::new(code);
     let mut edits = vec![];
 
     let mut indent_level = 0;
 
+    // The sliding window used is over three adjacent tokens
     #[allow(unused_assignments)]
     let mut one = None;
     let mut two = None;
     let mut three = None;
 
     for token in tokens {
-        // Advance the trio of tokens
+        // Advance the token window
         one = two;
         two = three;
         three = Some(token);
