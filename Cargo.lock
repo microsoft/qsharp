@@ -971,6 +971,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "num-complex",
+ "num-traits",
  "qsc_data_structures",
  "qsc_fir",
  "qsc_frontend",

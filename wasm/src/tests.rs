@@ -242,9 +242,9 @@ fn test_run_error_program_multiple_shots() {
     )
     .expect("code should compile and run");
     expect![[r#"
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]]
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 
