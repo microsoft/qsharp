@@ -10,5 +10,5 @@ For the second qubit we can use the same transformation we've seen in the "Prepa
 
 @[solution]({
     "id": "multi_qubit_systems__prepare_with_real_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })

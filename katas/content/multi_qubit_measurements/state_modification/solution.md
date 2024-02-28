@@ -4,5 +4,5 @@ Thus, if $ind=0$ and we measure $0$ or if $ind=1$ and we measure $1$, then after
 
 @[solution]({
     "id": "multi_qubit_measurements__state_modification_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })

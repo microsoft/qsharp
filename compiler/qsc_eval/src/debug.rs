@@ -3,7 +3,7 @@
 
 use qsc_data_structures::span::Span;
 
-use crate::val::FunctorApp;
+use qsc_data_structures::functors::FunctorApp;
 use qsc_fir::fir;
 use qsc_fir::fir::{PackageId, StoreItemId};
 use qsc_hir::hir;

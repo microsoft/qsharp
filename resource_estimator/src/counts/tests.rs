@@ -10,7 +10,7 @@ use indoc::indoc;
 use qsc::{
     interpret::{GenericReceiver, Interpreter},
     target::Profile,
-    PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap,
 };
 
 use super::LogicalCounter;
@@ -22,6 +22,7 @@ fn verify_logical_counts(source: &str, entry: Option<&str>, expect: &Expect) {
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        LanguageFeatures::default(),
     )
     .expect("compilation should succeed");
     let mut counter = LogicalCounter::default();

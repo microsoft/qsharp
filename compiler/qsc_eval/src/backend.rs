@@ -49,7 +49,7 @@ pub trait Backend {
 
 /// Default backend used when targeting sparse simulation.
 pub struct SparseSim {
-    sim: QuantumSim,
+    pub sim: QuantumSim,
 }
 
 impl Default for SparseSim {

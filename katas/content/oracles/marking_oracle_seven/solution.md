@@ -1,6 +1,6 @@
 @[solution]({
     "id": "oracles__marking_oracle_seven_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })
 
 Consider how the oracle from this exercise acts on two input basis states and two "output" basis states:

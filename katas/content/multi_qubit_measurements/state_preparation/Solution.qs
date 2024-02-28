@@ -1,0 +1,17 @@
+namespace Kata {
+    open Microsoft.Quantum.Measurement;
+
+    operation PostSelection(qs : Qubit[]) : Unit {
+        use anc = Qubit();
+        mutable res = Zero;
+        repeat {
+            ApplyToEach(H, qs);
+            Controlled X(qs, anc);
+            set res = MResetZ(anc);
+        }
+        until (res == Zero)
+        fixup {
+            ResetAll(qs);
+        }
+    }
+}

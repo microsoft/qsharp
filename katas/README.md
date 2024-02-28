@@ -20,21 +20,21 @@ Macros are meant to insert interactive elements into the content defined through
 The following macros are available for katas composition:
 - @[exercise]: Used to create Q# code exercises that we can be automatically verified.
     - id: Unique identifier for the exercise.
-    - descriptionPath: Path to a markdown file that contains the description of the exercise.
-    - placeholderSourcePath: Path to a Q# file. It contains Q# code which is used as template code that helps the user to start implementing a solution.
-    - codePaths: Q# file paths. This code is not shown to the user but is built with the user code. Verification code in one of these files. The @EntryPoint operation is called to check the solution (eventually, for the convention is to call Kata.Verification.CheckSolution).
-    - solutionPath: Path to a markdown file that contains a “reference solution” – text with at least one code solution that solves the exercise. It can have more than one code solution.
-- @[question]: Used to create theoretical/analytical questions that are not automatically verified.
-    - id: Unique identifier for the question.
-    - descriptionPath: Path a markdown file that contains the description of the question. 
-    - answerPath: Path to a markdown file that contains an explanation of the answer – a text and possibly code samples that explains how to solve this problem.
+    - title: Title that will be displayed for the exercise.
+    - path: Path to a folder that contains the description of the exercise. This folder should contain the following files:
+        - `index.md`: the Markdown description of the exercise.
+        - `Placeholder.qs`: the Q# code that is given to the learner to start with.
+        - `Verification.qs`: the Q# code that checks whether the learner's solution is correct.
+        - `solution.md`: the Markdown description of the solution(s) to the exercise.
+        - `Solution.qs`: the Q# code that contains a "reference solution" described in `solution.md`. 
+    - qsDependencies: Q# file paths used in addition to `Verification.qs`. This code is not shown to the learner but is used to build the learner's code. The @EntryPoint operation is called to check the solution (eventually, for the convention is to call Kata.Verification.CheckSolution).
 - @[example]: Standalone Q# code snippets that can be referenced from markdown files.
     - id: Unique identifier for the example.
     - codePath: Path to a Q# file that contains the example code.
 - @[solution]: represents a solution to a Q# code exercise. It is meant to be compiled as if it was the user authored code that solves a Q# code exercise. It can only be used in solution markdown files.
     - id: Unique identifier for the solution.
     - codePath: Path to a Q# file that contains the solution code.
-- @[section]: A kata is broken into multiple sections. This starts a new section. Exercises and Questions are their own sections.
+- @[section]: A kata is broken into multiple sections. This starts a new section. Exercises are their own sections.
     - id: Unique identifier for the section.
     - title: Title of the section.
 

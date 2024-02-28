@@ -945,8 +945,10 @@ dependencies = [
 name = "qsc_data_structures"
 version = "0.0.0"
 dependencies = [
+ "bitflags 2.4.2",
  "expect-test",
  "miette",
+ "serde",
 ]
 
 [[package]]

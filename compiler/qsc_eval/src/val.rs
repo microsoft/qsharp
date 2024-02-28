@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use num_bigint::BigInt;
+use qsc_data_structures::{display::join, functors::FunctorApp};
 use qsc_fir::fir::{Pauli, StoreItemId};
 use std::{
     fmt::{self, Display, Formatter},
-    iter,
     rc::Rc,
 };
 
@@ -72,25 +72,6 @@ impl From<usize> for Result {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Qubit(pub usize);
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct FunctorApp {
-    /// An invocation is either adjoint or not, with each successive use of `Adjoint` functor switching
-    /// between the two, so a bool is sufficient to track.
-    pub adjoint: bool,
-
-    /// An invocation can have multiple `Controlled` functors with each one adding another layer of updates
-    /// to the argument tuple, so the functor application must be tracked with a count.
-    pub controlled: u8,
-}
-
-impl Display for FunctorApp {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let controlleds = iter::repeat("Controlled").take(self.controlled.into());
-        let adjoint = iter::once("Adjoint").filter(|_| self.adjoint);
-        join(f, controlleds.chain(adjoint), " ")
-    }
-}
 
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -344,15 +325,4 @@ impl Value {
             Value::Tuple(_) => "Tuple",
         }
     }
-}
-
-fn join(f: &mut Formatter, mut vals: impl Iterator<Item = impl Display>, sep: &str) -> fmt::Result {
-    if let Some(v) = vals.next() {
-        v.fmt(f)?;
-    }
-    for v in vals {
-        write!(f, "{sep}")?;
-        v.fmt(f)?;
-    }
-    Ok(())
 }
