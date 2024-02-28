@@ -556,4 +556,8 @@ impl ErrorCorrection for Protocol {
     fn code_parameter_range(&self, lower_bound: Option<&u64>) -> impl Iterator<Item = u64> {
         (lower_bound.copied().unwrap_or(1)..=self.max_code_distance).step_by(2)
     }
+
+    fn code_parameter_cmp(&self, _qubit: &PhysicalQubit, p1: &u64, p2: &u64) -> std::cmp::Ordering {
+        p1.cmp(p2)
+    }
 }
