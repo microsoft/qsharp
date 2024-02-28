@@ -139,9 +139,9 @@ export function Editor(props: {
         await props.compiler.run(
           {
             sources: [["code", code]],
-            expr: runExpr,
-            shots: shotCount,
           },
+          runExpr,
+          shotCount,
           props.evtTarget,
         );
         const runTimer = performance.measure(
