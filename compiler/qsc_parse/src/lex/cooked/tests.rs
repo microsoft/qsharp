@@ -53,7 +53,7 @@ fn op_string(kind: TokenKind) -> Option<String> {
         | TokenKind::Ident
         | TokenKind::Int(_)
         | TokenKind::Keyword(_)
-        | TokenKind::String(_) => None,
+        | TokenKind::StringToken(_) => None,
     }
 }
 
