@@ -58,19 +58,20 @@ struct RationalNumber {
 impl RationalNumber {
     fn construct(numerator: i64, denominator: i64) -> Self {
         Self {
-            sign: numerator.signum(),
+            sign: numerator.signum() * denominator.signum(),
             numerator: numerator.abs(),
-            denominator,
+            denominator: denominator.abs(),
         }
     }
 
-    fn abs(self) -> RationalNumber {
-        RationalNumber {
-            sign: 1,
+    fn abs(&self) -> Self {
+        Self {
+            sign: self.sign.abs(),
             numerator: self.numerator,
             denominator: self.denominator,
         }
     }
+
     const DENOMINATORS: [i64; 36] = [
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 21, 24, 25, 27, 28, 30, 32, 35, 36,
         40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64,
@@ -97,11 +98,11 @@ impl RationalNumber {
 struct AlgebraicNumber {
     sign: i64,                // 1 if the number is positive, -1 if negative
     fraction: RationalNumber, // Positive rational number numerator/denominator
-    root: i64,                // square root component
+    root: i64,                // Component under square root
 }
 
 impl AlgebraicNumber {
-    fn construct(fraction: RationalNumber, root: i64) -> Self {
+    fn construct(fraction: &RationalNumber, root: i64) -> Self {
         Self {
             sign: fraction.sign,
             fraction: fraction.abs(),
@@ -117,7 +118,7 @@ impl AlgebraicNumber {
             #[allow(clippy::cast_precision_loss)] // We only use fixes set of roots
             let divided_by_root: f64 = x / (root as f64).sqrt();
             if let Some(fraction) = RationalNumber::recognize(divided_by_root) {
-                return Some(Self::construct(fraction, root));
+                return Some(Self::construct(&fraction, root));
             }
         }
         None
@@ -215,7 +216,7 @@ impl PolarForm {
     fn construct(magnitude: RationalNumber, pi_num: i64, pi_den: i64) -> Self {
         Self {
             sign: 1,
-            magnitude: AlgebraicNumber::construct(magnitude, 1),
+            magnitude: AlgebraicNumber::construct(&magnitude, 1),
             phase_multiplier: RationalNumber::construct(pi_num, pi_den),
         }
     }

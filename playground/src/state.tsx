@@ -70,6 +70,7 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
         </tbody>
       </table>
       <div id={mjRenderId}></div>
+      <br></br>
     </div>
   );
 }

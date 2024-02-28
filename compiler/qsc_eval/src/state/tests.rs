@@ -1,6 +1,6 @@
 //use expect_test::expect;
 
-use crate::state::{is_fractional_part_significant, is_significant};
+use crate::state::{is_fractional_part_significant, is_significant, RationalNumber};
 
 //use super::{get_latex_for_exponent, recognize_nice_exponent};
 
@@ -28,15 +28,48 @@ fn check_is_fractional_part_significant() {
     assert!(is_fractional_part_significant(-1.000_000_001));
 }
 
-// #[test]
-// fn check_recognize_nice_rational() {
-//     assert!(recognize_nice_rational(1.0 / 1.0) == (true, 1, 1));
-//     assert!(recognize_nice_rational(1.0 / 2.0) == (true, 1, 2));
-//     assert!(recognize_nice_rational(1.0 / 3.0) == (true, 1, 3));
-//     assert!(recognize_nice_rational(-5.0 / 7.0) == (true, -5, 7));
-//     assert!(recognize_nice_rational(5.0 / -7.0) == (true, -5, 7));
-//     assert!(recognize_nice_rational(1.0 / 100.0) == (false, 0, 1));
-// }
+fn assert_rational_value(x: Option<RationalNumber>, expected: (i64, i64, i64)) {
+    match x {
+        None => panic!("Expected rational number."),
+        Some(r) => assert!(
+            r.sign == expected.0 && r.numerator == expected.1 && r.denominator == expected.2
+        ),
+    }
+}
+
+#[test]
+fn check_construct_rational() {
+    assert_rational_value(Some(RationalNumber::construct(1, 2)), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::construct(-1, 2)), (-1, 1, 2));
+    assert_rational_value(Some(RationalNumber::construct(1, -2)), (-1, 1, 2));
+    assert_rational_value(Some(RationalNumber::construct(-1, -2)), (1, 1, 2));
+    // Although 0 is never used in the code we check it for completeness.
+    assert_rational_value(Some(RationalNumber::construct(0, 1)), (0, 0, 1));
+}
+
+#[test]
+fn check_abs_rational() {
+    assert_rational_value(Some(RationalNumber::construct(1, 2).abs()), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::construct(-1, 2).abs()), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::construct(1, -2).abs()), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::construct(-1, -2).abs()), (1, 1, 2));
+    // Although 0 is never used in the code we check it for completeness.
+    assert_rational_value(Some(RationalNumber::construct(0, 1).abs()), (0, 0, 1));
+}
+
+#[test]
+fn check_recognize_rational() {
+    assert_rational_value(RationalNumber::recognize(1.0 / 1.0), (1, 1, 1));
+    assert_rational_value(RationalNumber::recognize(1.0 / 2.0), (1, 1, 2));
+    assert_rational_value(RationalNumber::recognize(1.0 / 3.0), (1, 1, 3));
+    assert_rational_value(RationalNumber::recognize(-5.0 / 7.0), (-1, 5, 7));
+    assert_rational_value(RationalNumber::recognize(5.0 / -7.0), (-1, 5, 7));
+    assert!(RationalNumber::recognize(1.0 / 1000.0).is_none());
+    assert!(RationalNumber::recognize(1000.0 / 1.0).is_none());
+
+    // Although 0 is never used in the code we check it for completeness.
+    assert_rational_value(RationalNumber::recognize(0.0 / -7.0), (0, 0, 1));
+}
 
 // #[test]
 // fn check_get_latex_for_algebraic() {
