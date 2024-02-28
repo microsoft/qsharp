@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    applications::{ApplicationInstance, ApplicationInstanceIndex, GeneratorSetsBuilder},
+    applications::{
+        ApplicationInstance, ApplicationInstanceIndex, GeneratorSetsBuilder, LocalComputeKind,
+    },
     common::{derive_callable_input_params, GlobalSpecId, InputParam, Local, LocalKind},
     scaffolding::{ItemComputeProperties, PackageStoreComputeProperties},
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
@@ -10,9 +12,9 @@ use crate::{
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, Item, ItemKind,
-        Package, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, SpecDecl,
-        SpecImpl, Stmt, StmtId, StoreItemId,
+        Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind, Ident,
+        Item, ItemKind, Mutability, Package, PackageId, PackageStore, PackageStoreLookup, Pat,
+        PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreItemId,
     },
     ty::{FunctorSetValue, Prim, Ty},
     visit::Visitor,
@@ -108,6 +110,91 @@ impl<'a> CoreAnalyzer<'a> {
             .save_to_package_compute_properties(package_compute_properties, Some(decl.block));
     }
 
+    fn bind_compute_kind_to_ident(
+        &mut self,
+        pat: &Pat,
+        ident: &Ident,
+        local_kind: LocalKind,
+        compute_kind: ComputeKind,
+    ) {
+        let application_instance = self.get_current_application_instance_mut();
+        let local = Local {
+            var: ident.id,
+            pat: pat.id,
+            ty: pat.ty.clone(),
+            kind: local_kind,
+        };
+        let local_compute_kind = LocalComputeKind {
+            local,
+            compute_kind,
+        };
+        application_instance
+            .locals_map
+            .insert(ident.id, local_compute_kind);
+    }
+
+    fn bind_expr_compute_kind_to_pattern(
+        &mut self,
+        mutability: Mutability,
+        pat_id: PatId,
+        expr_id: ExprId,
+    ) {
+        let expr = self.get_expr(expr_id);
+        let pat = self.get_pat(pat_id);
+        match &pat.kind {
+            PatKind::Bind(ident) => {
+                let application_instance = self.get_current_application_instance();
+                let compute_kind = *application_instance.get_expr_compute_kind(expr_id);
+                let local_kind = match mutability {
+                    Mutability::Immutable => LocalKind::Immutable(expr_id),
+                    Mutability::Mutable => LocalKind::Mutable,
+                };
+                self.bind_compute_kind_to_ident(pat, ident, local_kind, compute_kind);
+            }
+            PatKind::Tuple(pats) => match &expr.kind {
+                ExprKind::Tuple(exprs) => {
+                    for (pat_id, expr_id) in pats.iter().zip(exprs.iter()) {
+                        self.bind_expr_compute_kind_to_pattern(mutability, *pat_id, *expr_id);
+                    }
+                }
+                _ => {
+                    self.bind_fixed_expr_compute_kind_to_pattern(mutability, pat_id, expr_id);
+                }
+            },
+            PatKind::Discard => {
+                // Nothing to bind to.
+            }
+        }
+    }
+
+    fn bind_fixed_expr_compute_kind_to_pattern(
+        &mut self,
+        mutability: Mutability,
+        pat_id: PatId,
+        expr_id: ExprId,
+    ) {
+        let pat = self.get_pat(pat_id);
+        match &pat.kind {
+            PatKind::Bind(ident) => {
+                let application_instance = self.get_current_application_instance();
+                let compute_kind = *application_instance.get_expr_compute_kind(expr_id);
+                let local_kind = match mutability {
+                    Mutability::Immutable => LocalKind::Immutable(expr_id),
+                    Mutability::Mutable => LocalKind::Mutable,
+                };
+                self.bind_compute_kind_to_ident(pat, ident, local_kind, compute_kind);
+            }
+            PatKind::Tuple(pats) => {
+                for pat_id in pats {
+                    self.bind_fixed_expr_compute_kind_to_pattern(mutability, *pat_id, expr_id);
+                }
+            }
+            PatKind::Discard => {
+                // Nothing to bind to.
+            }
+        }
+    }
+
     pub fn clear_current_application_index(&mut self) -> ApplicationInstanceIndex {
         self.get_current_spec_context_mut()
             .clear_current_application_index()
@@ -193,9 +280,9 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
         self.package_store.get_expr((package_id, id).into())
     }
 
-    fn get_pat(&self, _: PatId) -> &'a Pat {
-        // Should never be used.
-        unimplemented!()
+    fn get_pat(&self, id: PatId) -> &'a Pat {
+        let package_id = self.get_current_package_id();
+        self.package_store.get_pat((package_id, id).into())
     }
 
     fn get_stmt(&self, id: StmtId) -> &'a Stmt {
@@ -321,6 +408,51 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
             .ctl_adj
             .iter()
             .for_each(|spec_decl| self.analyze_spec_decl(spec_decl, FunctorSetValue::CtlAdj));
+    }
+
+    fn visit_stmt(&mut self, stmt_id: StmtId) {
+        let stmt = self.get_stmt(stmt_id);
+        let compute_kind = match &stmt.kind {
+            StmtKind::Expr(expr_id) => {
+                // Visit the expression to determine its compute kind.
+                self.visit_expr(*expr_id);
+
+                // The statement's compute kind is the same as the expression's compute kind.
+                let application_instance = self.get_current_application_instance();
+                *application_instance.get_expr_compute_kind(*expr_id)
+            }
+            StmtKind::Semi(expr_id) => {
+                // Visit the expression to determine its compute kind.
+                self.visit_expr(*expr_id);
+
+                // Use the expression compute kind to construct the statement compute kind, using only the expression
+                // runtime features since the value kind is meaningless for semicolon statements.
+                let application_instance = self.get_current_application_instance();
+                let expr_compute_kind = application_instance.get_expr_compute_kind(*expr_id);
+                aggregate_compute_kind_runtime_features(ComputeKind::Classical, *expr_compute_kind)
+            }
+            StmtKind::Item(_) => {
+                // An item statement does not have any inherent quantum properties, so we just treat it as classical compute.
+                ComputeKind::Classical
+            }
+            StmtKind::Local(mutability, pat_id, value_expr_id) => {
+                // Visit the expression to determine its compute kind.
+                self.visit_expr(*value_expr_id);
+
+                // Bind the expression's compute kind to the pattern.
+                self.bind_expr_compute_kind_to_pattern(*mutability, *pat_id, *value_expr_id);
+
+                // Use the expression compute kind to construct the statement compute kind, using only the expression
+                // runtime features since the value kind is meaningless for local (binding) statements.
+                let application_instance = self.get_current_application_instance();
+                let expr_compute_kind = application_instance.get_expr_compute_kind(*value_expr_id);
+                aggregate_compute_kind_runtime_features(ComputeKind::Classical, *expr_compute_kind)
+            }
+        };
+
+        // Insert the statements's compute kind into the application instance.
+        let application_instance = self.get_current_application_instance_mut();
+        application_instance.insert_stmt_compute_kind(stmt_id, compute_kind);
     }
 }
 
