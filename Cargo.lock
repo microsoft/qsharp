@@ -1004,7 +1004,6 @@ dependencies = [
  "qsc_ast",
  "qsc_data_structures",
  "qsc_hir",
- "qsc_linter",
  "qsc_parse",
  "rustc-hash",
  "thiserror",

@@ -197,8 +197,6 @@ pub struct Error(pub(super) ErrorKind);
 pub(super) enum ErrorKind {
     #[error("syntax error")]
     Parse(#[from] qsc_parse::Error),
-    #[error(transparent)]
-    Lint(#[from] qsc_linter::Error),
     #[error("name error")]
     Resolve(#[from] resolve::Error),
     #[error("type error")]
@@ -356,11 +354,6 @@ pub fn compile(
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
-    let mut ast_lints: Vec<Error> = qsc_linter::run_ast_lints(&ast_package)
-        .into_iter()
-        .filter(|lint| !matches!(lint.level, qsc_linter::LintLevel::Allow))
-        .map(|lint| Error(ErrorKind::Lint(qsc_linter::Error(lint))))
-        .collect();
 
     let mut hir_assigner = HirAssigner::new();
     let (names, locals, name_errors) = resolve_all(
@@ -377,13 +370,8 @@ pub fn compile(
         .lower_package(&ast_package);
     HirValidator::default().visit_package(&hir_package);
     let lower_errors = lowerer.drain_errors();
-    let mut hir_lints: Vec<Error> = qsc_linter::run_hir_lints(&hir_package)
-        .into_iter()
-        .filter(|lint| !matches!(lint.level, qsc_linter::LintLevel::Allow))
-        .map(|lint| Error(ErrorKind::Lint(qsc_linter::Error(lint))))
-        .collect();
 
-    let mut errors: Vec<Error> = parse_errors
+    let errors: Vec<Error> = parse_errors
         .into_iter()
         .map(Into::into)
         .chain(name_errors.into_iter().map(Into::into))
@@ -391,9 +379,6 @@ pub fn compile(
         .chain(lower_errors.into_iter().map(Into::into))
         .map(Error)
         .collect();
-
-    errors.append(&mut ast_lints);
-    errors.append(&mut hir_lints);
 
     CompileUnit {
         package: hir_package,
