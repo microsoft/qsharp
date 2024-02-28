@@ -49,8 +49,8 @@ namespace Microsoft.Quantum.Katas {
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits.
     operation CheckOperationsEquivalenceOnZeroState(
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
+        op : (Qubit[] => Unit),
+        reference : (Qubit[] => Unit is Adj),
         inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");

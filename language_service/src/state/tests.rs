@@ -517,7 +517,7 @@ fn notebook_document_no_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        NotebookMetadata::default(),
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Main()"),
@@ -540,7 +540,7 @@ fn notebook_document_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        NotebookMetadata::default(),
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -599,7 +599,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        NotebookMetadata::default(),
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),
@@ -652,7 +652,7 @@ fn notebook_update_remove_cell_clears_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        NotebookMetadata::default(),
+        &NotebookMetadata::default(),
         [("cell1", 1, "operation Main() : Unit {}")].into_iter(),
     );
 
@@ -677,7 +677,7 @@ fn close_notebook_clears_errors() {
 
     updater.update_notebook_document(
         "notebook.ipynb",
-        NotebookMetadata::default(),
+        &NotebookMetadata::default(),
         [
             ("cell1", 1, "operation Main() : Unit {}"),
             ("cell2", 1, "Foo()"),

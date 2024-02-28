@@ -24,6 +24,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::{
     index_map::{self, IndexMap},
+    language_features::LanguageFeatures,
     span::Span,
 };
 use qsc_hir::{
@@ -343,8 +344,9 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     capabilities: RuntimeCapabilityFlags,
+    language_features: LanguageFeatures,
 ) -> CompileUnit {
-    let (ast_package, parse_errors) = parse_all(&sources);
+    let (ast_package, parse_errors) = parse_all(&sources, language_features);
     compile_ast(
         store,
         dependencies,
@@ -430,7 +432,13 @@ pub fn core() -> CompileUnit {
         .collect();
     let sources = SourceMap::new(core, None);
 
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::empty());
+    let mut unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::empty(),
+        LanguageFeatures::default(),
+    );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
@@ -448,17 +456,25 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
         .collect();
     let sources = SourceMap::new(std, None);
 
-    let mut unit = compile(store, &[PackageId::CORE], sources, capabilities);
+    let mut unit = compile(
+        store,
+        &[PackageId::CORE],
+        sources,
+        capabilities,
+        LanguageFeatures::default(),
+    );
     assert_no_errors(&unit.sources, &mut unit.errors);
     unit
 }
 
-#[must_use]
-pub fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
+fn parse_all(
+    sources: &SourceMap,
+    features: LanguageFeatures,
+) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {
-        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents);
+        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents, features);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(TopLevelNode::Namespace(namespace));
@@ -472,7 +488,7 @@ pub fn parse_all(sources: &SourceMap) -> (ast::Package, Vec<qsc_parse::Error>) {
         .as_ref()
         .filter(|source| !source.contents.is_empty())
         .map(|source| {
-            let (mut entry, entry_errors) = qsc_parse::expr(&source.contents);
+            let (mut entry, entry_errors) = qsc_parse::expr(&source.contents, features);
             Offsetter(source.offset).visit_expr(&mut entry);
             append_parse_errors(&mut errors, source.offset, entry_errors);
             entry
