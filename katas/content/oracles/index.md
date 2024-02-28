@@ -58,19 +58,22 @@ In this kata, you will learn the properties of quantum oracles and how to implem
 A quantum oracle implements a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}^m$, where the input is $n$-bits of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, we will focus on this class of functions.
 
 Quantum oracles operate on qubit arrays (and can take classical parameters as well).  The classical input is encoded into the state of an $n$-qubit register:  
-$$|x\rangle = |x_0\rangle \otimes |x_1\rangle \otimes ... \otimes |x_{n-1}\rangle,$$
+$$|\vec{x}\rangle = |x_0\rangle \otimes |x_1\rangle \otimes ... \otimes |x_{n-1}\rangle,$$
 where $|x_i\rangle$ represents the state of the $i$-th qubit.  
 
 Oracles must be unitary transformations, and follow the same rules of linear algebra as other quantum operations.
 This allows us to define quantum oracles based on their effect on the basis states - tensor products of single-qubit basis states $|0\rangle$ and $|1\rangle$.
 
-> For example, an oracle that implements a function that takes 2 bits of input will be defined using its effect on basis states $|00\rangle$, $|01\rangle$, $|10\rangle$, and $|11\rangle$.  
+> For example, an oracle that implements a function that takes two bits of input will be defined using its effect on basis states $|00\rangle$, $|01\rangle$, $|10\rangle$, and $|11\rangle$.  
 
 There are two types of quantum oracles: phase oracles and marking oracles.  Let's take a closer look at them.
 
-## Phase Oracles
+@[section]({
+    "id": "oracles__phase_oracles",
+    "title": "Phase Oracles"
+})
 
-For a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}$, the phase oracle $U_{\text{phase}}$ encodes the the values $f(0)$ and $f(1)$ in the relative phases of basis states $\ket{0}$ and $\ket{1}$, respectively.
+For a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}$, the phase oracle $U_{\text{phase}}$ encodes the the values of the function $f$ in the *relative phases* of basis states. When provided an input basis state $|\vec{x}\rangle$, it flips the sign of that state if $f(x)=1$:
 
 $$U_{phase} |\vec{x}\rangle = (-1)^{f(x)}|\vec{x}\rangle$$
 
@@ -82,17 +85,17 @@ Remember that quantum operations are linear: if you define the effect of an oper
 A phase oracle doesn't have an "output", unlike the function it implements; the effect of the oracle application is the change in the state of the system.
 
 @[section]({
-    "id": "oracles__phase_oracle",
+    "id": "oracles__phase_oracle_alternating_bits",
     "title": "Phase Oracle for Alternating Bit Pattern Function"
 })
 
-Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise.
+Consider the function $f(x)$ that takes three bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise.
 
-The phase oracle that implements this function will take an array of 3 qubits as an input, flip the sign of basis states $|101\rangle$ and $|010\rangle$, and leave the rest of the basis states unchanged. Let's see the effect of this oracle on a superposition state.
+The phase oracle that implements this function will take an array of three qubits as an input, flip the sign of basis states $|101\rangle$ and $|010\rangle$, and leave the rest of the basis states unchanged. Let's see the effect of this oracle on a superposition state.
 
-@[example]({"id": "oracles__phase_oracle_alt_bit", "codePath": "./PhaseOracleAltBit.qs"})
+@[example]({"id": "oracles__phase_oracle_alt_bit", "codePath": "./examples/PhaseOracleAltBit.qs"})
 
-We introduced the function <a href="https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring" target="_blank">`ApplyControlledOnBitString`</a> provided by the Q# Standard library.
+We introduced the function `ApplyControlledOnBitString` provided by the Q# standard library when we discussed controlled gates.
 It defines a variant of a gate controlled on a state specified by a bit mask; for example, bit mask `[true, false]` means that the gate should be applied only if the two control qubits are in the $|10\rangle$ state.
 
 The sequence of steps that implement this variant are:
@@ -101,10 +104,8 @@ The sequence of steps that implement this variant are:
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
 
-Due to this <a href="https://learn.microsoft.com/en-us/azure/quantum/user-guide/language/statements/conjugations" target="_blank">conjugation pattern</a>, the time complexity of this function is $2N$, where N is the number of control qubits.
-
 > Notice that the input state in the demo above is an equal superposition of all basis states.
-After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative!  
+After applying the oracle the absolute values of all amplitudes are the same, but the states $|010\rangle$ and $|101\rangle$ had their phase flipped to negative.
 > Recall that these two states are exactly the inputs for which $f(x) = 1$, thus they are exactly the two states we expect to experience a phase flip!
 
 In the next exercise you will implement the classical oracle that you've implemented in the first exercise, this time as a quantum phase oracle $U_{7,\text{phase}}$ that encodes the number 7.
@@ -132,16 +133,19 @@ Again, since all quantum operations are linear, you can figure out the effect of
 
 A marking oracle has distinct "input" and "output" qubits, but in general the effect of the oracle application is the change in the state of the whole system rather than of the "output" qubits only. We will look at this closer in a moment.
 
-## Marking Oracle for Alternating Bit Pattern Function
+@[section]({
+    "id": "oracles__marking_oracle_alternating_bits",
+    "title": "Marking Oracle for Alternating Bit Pattern Function"
+})
 
-Consider the function $f(x)$ that takes $3$ bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise (it is the same function we've seen in the demo "Phase oracle for alternating bit pattern function").
+Consider the function $f(x)$ that takes three bits of input and returns $1$ if $x=101$ or $x=010$, and $0$ otherwise (it is the same function we've seen in the lesson "Phase Oracle for Alternating Bit Pattern Function").
 
-The marking oracle that implements this function will take an array of 3 qubits as an "input" register and an "output" qubit, and will flip the state of the output qubit if the input qubit was in basis state $|101\rangle$ or $|010\rangle$, and do nothing otherwise. Let's see the effect of this oracle on a superposition state.
+The marking oracle that implements this function will take an array of three qubits as an "input" register and an "output" qubit, and will flip the state of the output qubit if the input qubit was in basis state $|101\rangle$ or $|010\rangle$, and do nothing otherwise. Let's see the effect of this oracle on a superposition state.
 
-@[example]({"id": "oracles__marking_oracle_alt_bit", "codePath": "./MarkingOracleAltBit.qs"})
+@[example]({"id": "oracles__marking_oracle_alt_bit", "codePath": "./examples/MarkingOracleAltBit.qs"})
 
 > Let's compare the initial state to the final state from the above demo.
-In the initial state we had a tensor product of an equal superposition of all 3-qubit basis states and the state $|0\rangle$.  In the final state, this is no longer the case.
+In the initial state we had a tensor product of an equal superposition of all three-qubit basis states and the state $|0\rangle$.  In the final state, this is no longer the case.
 The basis states $|010\rangle \otimes |0\rangle$ and $|101\rangle \otimes |0\rangle$ no longer have non-zero amplitudes, and instead $|010\rangle \otimes |1\rangle$ and $|101\rangle \otimes |1\rangle$ have non-zero amplitudes.
 >
 > This is exactly the result that we expect.  Recall our function $f(x)$: $f(x)=1$ if and only if $x=010$ or $x=101$.  The first three qubits (variable `x`) represent the input state $|x\rangle$, and the last qubit (variable `y`) represents the output state $|y\rangle$.  Thus when we have the two basis states, $|x\rangle=|010\rangle$ or $|x\rangle=|101\rangle$, we will flip the state of the qubit $|y\rangle$, causing these two initial states to be tensored with $|1\rangle$ in the final state where originally they were tensored with $|0\rangle$.
@@ -270,7 +274,7 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
 
 In this demo we will use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
 
-@[example]({"id": "oracles__oracle_converter_demo", "codePath": "./OracleConverterDemo.qs"})
+@[example]({"id": "oracles__oracle_converter_demo", "codePath": "./examples/OracleConverterDemo.qs"})
 
 > Notice from the above demo that your phase oracle $U_{7,phase}$ behaves the same as the converted version of your marking oracle $U_{7,mark}$, both of which induce a phase flip on the basis state $|111\rangle$!
 
@@ -359,7 +363,7 @@ A good way to test a quantum oracle of interest is to write a classical oracle t
 
 Here we will compare the reference implementation of `Meeting_Oracle` to the classical code implementing the same function.
 
-@[example]({"id": "oracles__test_meeting_oracle", "codePath": "./TestMeetingOracle.qs"})
+@[example]({"id": "oracles__test_meeting_oracle", "codePath": "./examples/TestMeetingOracle.qs"})
 
 @[section]({
     "id": "oracles__conclusion",
@@ -371,10 +375,3 @@ Congratulations! In this kata you have learned to build quantum oracles. Here ar
 - A quantum oracle is an "opaque box" operation that is used as input to another algorithm.
 - Phase oracles encode the information in the relative phase of basis states. If $f(x)=0$, the oracle doesn't change the basis state $\ket{x}$, and if $f(x)=1$ it multiplies the phase of the basis state $\ket{x}$ by $-1$.
 - Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, it doen't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$ it flips the state of the qubit $\ket{y}$ for the basis state $\ket{x}$.
-
-**Next Steps**
-
-We hope you enjoyed this kata! If you're looking to learn more about quantum oracles and Q#, here are some suggestions:
-
-- To learn about the Grover's algorithm, you can check <a href="https://learn.microsoft.com/en-us/training/modules/solve-graph-coloring-problems-grovers-search/" target="_blank">Microsoft Learn module "Solve graph coloring problems by using Grover's search"</a>.
-- To learn more about the Q# libraries, you can check the <a href="https://learn.microsoft.com/en-us/azure/quantum/user-guide/libraries/?tabs=tabid-clivscode" target="_blank">The Q# user guide</a>.
