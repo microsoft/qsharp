@@ -1,6 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/* TODO:
+
+- Move to the npm package as a control
+- Put data on the screen. See https://threejs.org/manual/#en/debugging-javascript
+- Add the trailing dots with a slider for history (fade out speed)
+- Add a few canonical gates to apply
+
+*/
+
 import { useEffect, useRef } from "preact/hooks";
 
 import {
