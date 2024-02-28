@@ -1,8 +1,7 @@
 //use expect_test::expect;
 
-use crate::state::{is_fractional_part_significant, is_significant, RationalNumber};
-
-//use super::{get_latex_for_exponent, recognize_nice_exponent};
+use super::{AlgebraicNumber, DecimalNumber, RationalNumber};
+use crate::state::{is_fractional_part_significant, is_significant};
 
 #[test]
 fn check_is_significant() {
@@ -63,13 +62,97 @@ fn check_recognize_rational() {
     assert_rational_value(RationalNumber::recognize(1.0 / 2.0), (1, 1, 2));
     assert_rational_value(RationalNumber::recognize(1.0 / 3.0), (1, 1, 3));
     assert_rational_value(RationalNumber::recognize(-5.0 / 7.0), (-1, 5, 7));
-    assert_rational_value(RationalNumber::recognize(5.0 / -7.0), (-1, 5, 7));
     assert!(RationalNumber::recognize(1.0 / 1000.0).is_none());
     assert!(RationalNumber::recognize(1000.0 / 1.0).is_none());
-
     // Although 0 is never used in the code we check it for completeness.
-    assert_rational_value(RationalNumber::recognize(0.0 / -7.0), (0, 0, 1));
+    assert_rational_value(RationalNumber::recognize(0.0), (0, 0, 1));
 }
+
+fn assert_algebraic_value(x: Option<AlgebraicNumber>, expected: (i64, i64, i64, i64, i64)) {
+    match x {
+        None => panic!("Expected algebraic number."),
+        Some(a) => assert!(
+            a.sign == expected.0
+                && a.fraction.sign == expected.1
+                && a.fraction.numerator == expected.2
+                && a.fraction.denominator == expected.3
+                && a.root == expected.4
+        ),
+    }
+}
+
+#[test]
+fn check_construct_algebraic() {
+    assert_algebraic_value(
+        Some(AlgebraicNumber::construct(
+            &RationalNumber::construct(1, 2),
+            3,
+        )),
+        (1, 1, 1, 2, 3),
+    );
+    assert_algebraic_value(
+        Some(AlgebraicNumber::construct(
+            &RationalNumber::construct(-1, 2),
+            3,
+        )),
+        (-1, 1, 1, 2, 3),
+    );
+    assert_algebraic_value(
+        Some(AlgebraicNumber::construct(
+            &RationalNumber::construct(1, -2),
+            3,
+        )),
+        (-1, 1, 1, 2, 3),
+    );
+    assert_algebraic_value(
+        Some(AlgebraicNumber::construct(
+            &RationalNumber::construct(-1, -2),
+            3,
+        )),
+        (1, 1, 1, 2, 3),
+    );
+}
+
+#[test]
+fn check_recognize_algebraic() {
+    assert_algebraic_value(AlgebraicNumber::recognize(5.0), (1, 1, 5, 1, 1));
+    assert_algebraic_value(AlgebraicNumber::recognize(1.0 / 7.0), (1, 1, 1, 7, 1));
+    assert_algebraic_value(AlgebraicNumber::recognize(7.0 / 10.0), (1, 1, 7, 10, 1));
+    assert_algebraic_value(
+        AlgebraicNumber::recognize(2.0 * 2.0_f64.sqrt()),
+        (1, 1, 2, 1, 2),
+    );
+    assert_algebraic_value(AlgebraicNumber::recognize(8.0_f64.sqrt()), (1, 1, 2, 1, 2));
+    assert_algebraic_value(
+        AlgebraicNumber::recognize(5.0_f64.sqrt() / 15.0),
+        (1, 1, 1, 15, 5),
+    );
+    assert_algebraic_value(
+        AlgebraicNumber::recognize(3.0 / 5.0 * 2.0_f64.sqrt()),
+        (1, 1, 3, 5, 2),
+    );
+    assert_algebraic_value(
+        AlgebraicNumber::recognize(-3.0 / 5.0 * 2.0_f64.sqrt()),
+        (-1, 1, 3, 5, 2),
+    );
+}
+
+fn assert_decimal_value(x: DecimalNumber, expected: (i64, f64)) {
+    assert!(x.sign == expected.0 && (x.value - expected.1).abs() < f64::EPSILON);
+}
+
+#[test]
+fn check_construct_decimal() {
+    assert_decimal_value(DecimalNumber::construct(0.777), (1, 0.777));
+    assert_decimal_value(DecimalNumber::construct(-0.777), (-1, 0.777));
+}
+
+#[test]
+fn check_recognize_decimal() {
+    assert_decimal_value(DecimalNumber::recognize(0.777), (1, 0.777));
+    assert_decimal_value(DecimalNumber::recognize(-0.777), (-1, 0.777));
+}
+
 
 // #[test]
 // fn check_get_latex_for_algebraic() {

@@ -158,48 +158,48 @@ enum RealNumber {
 impl RealNumber {
     fn sign(self) -> i64 {
         match self {
-            RealNumber::Algebraic(algebraic) => algebraic.sign,
-            RealNumber::Decimal(decimal) => decimal.sign,
-            RealNumber::Zero => 0,
+            Self::Algebraic(algebraic) => algebraic.sign,
+            Self::Decimal(decimal) => decimal.sign,
+            Self::Zero => 0,
         }
     }
-    fn negate(self) -> RealNumber {
+    fn negate(self) -> Self {
         match self {
-            RealNumber::Algebraic(algebraic) => RealNumber::Algebraic(AlgebraicNumber {
+            Self::Algebraic(algebraic) => RealNumber::Algebraic(AlgebraicNumber {
                 sign: -algebraic.sign,
                 fraction: algebraic.fraction,
                 root: algebraic.root,
             }),
-            RealNumber::Decimal(decimal) => RealNumber::Decimal(DecimalNumber {
+            Self::Decimal(decimal) => RealNumber::Decimal(DecimalNumber {
                 sign: -decimal.sign,
                 value: decimal.value,
             }),
-            RealNumber::Zero => self,
+            Self::Zero => self,
         }
     }
-    fn abs(self) -> RealNumber {
+    fn abs(self) -> Self {
         match self {
-            RealNumber::Algebraic(algebraic) => RealNumber::Algebraic(AlgebraicNumber {
+            Self::Algebraic(algebraic) => RealNumber::Algebraic(AlgebraicNumber {
                 sign: 1,
                 fraction: algebraic.fraction,
                 root: algebraic.root,
             }),
-            RealNumber::Decimal(decimal) => RealNumber::Decimal(DecimalNumber {
+            Self::Decimal(decimal) => RealNumber::Decimal(DecimalNumber {
                 sign: 1,
                 value: decimal.value,
             }),
-            RealNumber::Zero => self,
+            Self::Zero => self,
         }
     }
 
     // Tries to recognize a real number as zero, algebraic, or decimal of all else fails.
-    fn recognize(x: f64) -> RealNumber {
+    fn recognize(x: f64) -> Self {
         if !is_significant(x) {
-            RealNumber::Zero
+            Self::Zero
         } else if let Some(algebraic_number) = AlgebraicNumber::recognize(x) {
-            RealNumber::Algebraic(algebraic_number)
+            Self::Algebraic(algebraic_number)
         } else {
-            RealNumber::Decimal(DecimalNumber::recognize(x))
+            Self::Decimal(DecimalNumber::recognize(x))
         }
     }
 }
