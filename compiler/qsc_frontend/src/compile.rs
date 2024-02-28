@@ -467,7 +467,8 @@ pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> Compil
     unit
 }
 
-fn parse_all(
+#[must_use]
+pub fn parse_all(
     sources: &SourceMap,
     features: LanguageFeatures,
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
