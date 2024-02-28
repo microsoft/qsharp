@@ -424,6 +424,33 @@ fn dump_register_qubits_reorder_output() {
 }
 
 #[test]
+fn dump_register_qubits_reorder_output_should_be_sorted() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[5];
+            H(qs[0]);
+            H(qs[2]);
+            Microsoft.Quantum.Diagnostics.DumpMachine();
+            Microsoft.Quantum.Diagnostics.DumpRegister(qs[0..2..3]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |00000⟩: 0.5000+0.0000𝑖
+            |00100⟩: 0.5000+0.0000𝑖
+            |10000⟩: 0.5000+0.0000𝑖
+            |10100⟩: 0.5000+0.0000𝑖
+            STATE:
+            |00⟩: 0.5000+0.0000𝑖
+            |01⟩: 0.5000+0.0000𝑖
+            |10⟩: 0.5000+0.0000𝑖
+            |11⟩: 0.5000+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
 fn dump_register_qubits_not_unique_fails() {
     check_intrinsic_result(
         "",

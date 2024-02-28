@@ -39,12 +39,14 @@ pub fn split_state(
     }
 
     let dump_norm = 1.0 / dump_norm.sqrt();
-    Ok(dump_state
+    let mut dump_state = dump_state
         .into_iter()
         .filter_map(|(label, val)| {
             normalize_and_reorder(val, dump_norm, qubits, &label, qubit_count)
         })
-        .collect())
+        .collect::<Vec<_>>();
+    dump_state.sort_by(|(a, _), (b, _)| a.cmp(b));
+    Ok(dump_state)
 }
 
 /// From the qubit identifiers provided, compute the bit masks for the qubits to dump and the remaining qubits.
