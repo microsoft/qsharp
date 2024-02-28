@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { useEffect, useId } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { Dump } from "qsharp-lang";
 
 function probability(real: number, imag: number) {
@@ -18,14 +18,12 @@ function formatComplex(real: number, imag: number) {
 }
 
 export function StateTable(props: { dump: Dump; latexDump: string }) {
-  const mjRenderId = useId();
+  const mjRender = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const mjrender = document.getElementById(mjRenderId);
-    if (mjrender != null) {
-      MathJax.typesetClear([mjrender]);
-      mjrender.innerHTML = props.latexDump;
-      MathJax.typesetPromise([mjrender]);
-    }
+    if (!mjRender.current) return;
+    MathJax.typesetClear([mjRender.current]);
+    mjRender.current.innerHTML = props.latexDump;
+    MathJax.typesetPromise([mjRender.current]);
   }, [props.latexDump]);
 
   return (
@@ -69,7 +67,7 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
           })}
         </tbody>
       </table>
-      <div id={mjRenderId}></div>
+      <div ref={mjRender}></div>
       <br></br>
     </div>
   );
