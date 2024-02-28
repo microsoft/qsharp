@@ -165,12 +165,12 @@ fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceCont
 fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     let path = dir.as_ref().join("hir.txt");
     info!(
-        "Writing hir output file to: {}",
+        "Writing HIR output file to: {}",
         path.to_str().unwrap_or_default()
     );
-    fs::write(path, package.to_string())
+    fs::write(&path, package.to_string())
         .into_diagnostic()
-        .context("could not emit HIR")
+        .with_context(|| format!("could not emit HIR file `{}`", path.display()))
 }
 
 fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Result<(), Report> {
@@ -179,13 +179,12 @@ fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Resu
     match result {
         Ok(qir) => {
             info!(
-                "Writing qir output file to: {}",
+                "Writing QIR output file to: {}",
                 path.to_str().unwrap_or_default()
             );
-            fs::write(path, qir)
+            fs::write(&path, qir)
                 .into_diagnostic()
-                .context("could not emit QIR")?;
-            Ok(())
+                .with_context(|| format!("could not emit QIR file `{}`", path.display()))
         }
         Err((error, _)) => {
             let unit = store.get(package_id).expect("package should be in store");
