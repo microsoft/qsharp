@@ -57,6 +57,13 @@ pub trait ErrorCorrection {
         &self,
         lower_bound: Option<&Self::Parameter>,
     ) -> impl Iterator<Item = Self::Parameter>;
+
+    fn code_parameter_cmp(
+        &self,
+        qubit: &Self::Qubit,
+        p1: &Self::Parameter,
+        p2: &Self::Parameter,
+    ) -> Ordering;
 }
 
 pub trait FactoryBuilder<E: ErrorCorrection> {
@@ -87,7 +94,7 @@ pub trait Factory {
     fn max_code_parameter(&self) -> Self::Parameter;
 }
 
-pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F: Factory, L: Overhead + Clone> {
+pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
     logical_qubit: LogicalQubit<E>,
     num_cycles: u64,
     factory: Option<F>,
@@ -104,10 +111,11 @@ pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F: Factory, L: O
     error_budget: ErrorBudget,
 }
 
-impl<E: ErrorCorrection, F: Factory<Parameter = E::Parameter> + Clone, L: Overhead + Clone>
-    PhysicalResourceEstimationResult<E, F, L>
-where
-    E::Parameter: Clone + Ord + Default,
+impl<
+        E: ErrorCorrection<Parameter = impl Clone>,
+        F: Factory<Parameter = E::Parameter> + Clone,
+        L: Overhead + Clone,
+    > PhysicalResourceEstimationResult<E, F, L>
 {
     pub fn new(
         estimation: &PhysicalResourceEstimation<E, impl FactoryBuilder<E, Factory = F>, L>,
@@ -118,7 +126,7 @@ where
         required_logical_qubit_error_rate: f64,
         required_logical_magic_state_error_rate: Option<f64>,
     ) -> Self {
-        // Compute statistics for single T-factory
+        // Compute statistics for single factory
         let magic_states_per_run = factory
             .as_ref()
             .map_or(0, |factory| num_factories * factory.num_output_states());
@@ -139,7 +147,7 @@ where
         };
         let physical_qubits_for_single_factory = factory.as_ref().map_or(0, F::physical_qubits);
 
-        // Compute statistics for all T-factories and total overhead
+        // Compute statistics for all factories and total overhead
         let physical_qubits_for_factories = num_factories * physical_qubits_for_single_factory;
         let physical_qubits_for_algorithm =
             estimation.layout_overhead.logical_qubits() * logical_qubit.physical_qubits();
@@ -168,6 +176,23 @@ where
             layout_overhead: estimation.layout_overhead().clone(),
             error_budget: estimation.error_budget().clone(),
         }
+    }
+
+    pub fn without_factories(
+        estimation: &PhysicalResourceEstimation<E, impl FactoryBuilder<E, Factory = F>, L>,
+        logical_qubit: LogicalQubit<E>,
+        num_cycles: u64,
+        required_logical_qubit_error_rate: f64,
+    ) -> Self {
+        Self::new(
+            estimation,
+            logical_qubit,
+            num_cycles,
+            None,
+            0,
+            required_logical_qubit_error_rate,
+            None,
+        )
     }
 
     pub fn logical_qubit(&self) -> &LogicalQubit<E> {
@@ -247,10 +272,7 @@ where
     }
 }
 
-pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder: FactoryBuilder<E>, L: Overhead>
-where
-    Builder::Factory: Factory + Clone,
-{
+pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
     // required parameters
     ftp: E,
     qubit: Rc<E::Qubit>,
@@ -264,11 +286,11 @@ where
     max_physical_qubits: Option<u64>,
 }
 
-impl<E: ErrorCorrection, Builder: FactoryBuilder<E>, L: Overhead + Clone>
-    PhysicalResourceEstimation<E, Builder, L>
-where
-    Builder::Factory: Factory<Parameter = E::Parameter> + Clone,
-    E::Parameter: Clone + Ord + Default,
+impl<
+        E: ErrorCorrection<Parameter = impl Clone>,
+        Builder: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
+        L: Overhead + Clone,
+    > PhysicalResourceEstimation<E, Builder, L>
 {
     pub fn new(
         ftp: E,
@@ -334,9 +356,9 @@ where
     ) -> Result<Vec<PhysicalResourceEstimationResult<E, Builder::Factory, L>>, Error> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
-        // The required T-state error rate is computed by dividing the total
-        // error budget for T states by the number of T-states required for the
-        // algorithm.
+        // The required magic state error rate is computed by dividing the total
+        // error budget for magic states by the number of magic states required
+        // for the algorithm.
         let num_magic_states_per_rotation = self
             .layout_overhead
             .num_magic_states_per_rotation(self.error_budget.rotations());
@@ -412,7 +434,11 @@ where
             // state factory.
             if last_code_parameter
                 .as_ref()
-                .map(|d| *d > code_parameter)
+                .map(|d| {
+                    self.ftp
+                        .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
+                        .is_gt()
+                })
                 .unwrap_or(true)
             {
                 last_factories = self.factory_builder.find_factories(
@@ -422,7 +448,7 @@ where
                     &code_parameter,
                 );
 
-                last_code_parameter = Some(Self::find_highest_code_parameter(&last_factories));
+                last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
             if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
@@ -430,20 +456,17 @@ where
                 &logical_qubit,
                 max_num_cycles_allowed,
             ) {
-                // Here we compute the number of T-factories required limited by the
+                // Here we compute the number of factories required limited by the
                 // maximum number of cycles allowed by the duration constraint (and the error rate).
-                let min_num_tfactories =
+                let min_num_factories =
                     self.num_factories(&logical_qubit, &factory, max_num_cycles_allowed);
 
-                let mut num_tfactories = min_num_tfactories;
+                let mut num_factories = min_num_factories;
 
                 loop {
-                    // Based on the num_tfactories we compute the number of cycles required
-                    // which must be smaller than the maximum number of cycles allowed by the
-                    // duration constraint (and the error rate).
                     let num_cycles_required_for_magic_states = self
                         .compute_num_cycles_required_for_magic_states(
-                            num_tfactories,
+                            num_factories,
                             &factory,
                             &logical_qubit,
                         );
@@ -459,25 +482,25 @@ where
                         LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?,
                         num_cycles,
                         Some(factory.clone()),
-                        num_tfactories,
+                        num_factories,
                         required_logical_qubit_error_rate,
                         Some(required_logical_magic_state_error_rate),
                     );
 
                     let value1 = result.runtime() as f64;
                     let value2 = result.physical_qubits();
-                    let num_t_factory_runs = result.num_factory_runs();
+                    let num_factory_runs = result.num_factory_runs();
                     let point = Point2D::new(result, value1, value2);
                     best_estimation_results.push(point);
 
                     if num_cycles_required_for_magic_states
                         <= num_cycles_required_by_layout_overhead
-                        || num_t_factory_runs <= 1
+                        || num_factory_runs <= 1
                     {
                         break;
                     }
 
-                    num_tfactories += 1;
+                    num_factories += 1;
                 }
             }
         }
@@ -531,9 +554,10 @@ where
                     None,
                 );
             }
-            // The required T-state error rate is computed by dividing the total
-            // error budget for T states by the number of T-states required for the
-            // algorithm.
+
+            // The required magic state error rate is computed by dividing the total
+            // error budget for magic states by the number of magic states required
+            // for the algorithm.
             let required_logical_magic_state_error_rate = self.error_budget.magic_states()
                 / (self
                     .layout_overhead
@@ -603,8 +627,8 @@ where
                 num_cycles,
             )
         {
-            let num_tfactories = self.num_factories(logical_qubit, &factory, num_cycles);
-            return Some((factory, num_cycles, num_tfactories));
+            let num_factories = self.num_factories(logical_qubit, &factory, num_cycles);
+            return Some((factory, num_cycles, num_factories));
         }
         if let Some((factory, num_cycles_required)) = self
             .try_find_factory_for_code_parameter_duration_and_max_factories(
@@ -614,25 +638,23 @@ where
             )
         {
             if num_cycles_required <= max_allowed_num_cycles_for_code_parameter {
-                let num_tfactories =
+                let num_factories =
                     self.num_factories(logical_qubit, &factory, num_cycles_required);
-                return Some((factory, num_cycles_required, num_tfactories));
+                return Some((factory, num_cycles_required, num_factories));
             }
         }
 
         None
     }
 
-    #[allow(clippy::too_many_lines)]
-    pub fn estimate_with_max_duration(
+    fn compute_initial_optimization_values(
         &self,
-        max_duration_in_nanoseconds: u64,
-    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+    ) -> Result<InitialOptimizationValues<E::Parameter>, Error> {
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
-        // The required T-state error rate is computed by dividing the total
-        // error budget for T states by the number of T-states required for the
-        // algorithm.
+        // The required magic state error rate is computed by dividing the total
+        // error budget for magic states by the number of magic states required
+        // for the algorithm.
         let num_magic_states_per_rotation = self
             .layout_overhead
             .num_magic_states_per_rotation(self.error_budget.rotations());
@@ -652,6 +674,28 @@ where
             .compute_code_parameter(&self.qubit, required_logical_qubit_error_rate)
             .map_err(Error::CodeParameterComputationFailed)?;
 
+        Ok(InitialOptimizationValues {
+            num_magic_states_per_rotation,
+            min_code_parameter,
+            num_cycles_required_by_layout_overhead,
+            required_logical_qubit_error_rate,
+            required_logical_magic_state_error_rate,
+        })
+    }
+
+    #[allow(clippy::too_many_lines)]
+    pub fn estimate_with_max_duration(
+        &self,
+        max_duration_in_nanoseconds: u64,
+    ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+        let InitialOptimizationValues {
+            num_magic_states_per_rotation,
+            min_code_parameter,
+            num_cycles_required_by_layout_overhead,
+            required_logical_qubit_error_rate,
+            required_logical_magic_state_error_rate,
+        } = self.compute_initial_optimization_values()?;
+
         if self
             .layout_overhead
             .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
@@ -660,17 +704,14 @@ where
             let logical_qubit =
                 LogicalQubit::new(&self.ftp, min_code_parameter, self.qubit.clone())?;
 
-            if num_cycles_required_by_layout_overhead * (logical_qubit.logical_cycle_time())
-                <= (max_duration_in_nanoseconds)
+            if num_cycles_required_by_layout_overhead * logical_qubit.logical_cycle_time()
+                <= max_duration_in_nanoseconds
             {
-                return Ok(PhysicalResourceEstimationResult::new(
+                return Ok(PhysicalResourceEstimationResult::without_factories(
                     self,
                     logical_qubit,
                     num_cycles_required_by_layout_overhead,
-                    None,
-                    0,
                     required_logical_qubit_error_rate,
-                    None,
                 ));
             }
             return Err(Error::MaxDurationTooSmall);
@@ -722,7 +763,11 @@ where
             // state factory.
             if last_code_parameter
                 .as_ref()
-                .map(|d| *d > code_parameter)
+                .map(|d| {
+                    self.ftp
+                        .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
+                        .is_gt()
+                })
                 .unwrap_or(true)
             {
                 last_factories = self.factory_builder.find_factories(
@@ -732,7 +777,7 @@ where
                     &code_parameter,
                 );
 
-                last_code_parameter = Some(Self::find_highest_code_parameter(&last_factories));
+                last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
             if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
@@ -740,14 +785,9 @@ where
                 &logical_qubit,
                 max_num_cycles_allowed,
             ) {
-                // Here we compute the number of T-factories required limited by the
-                // maximum number of cycles allowed by the duration constraint (and the error rate).
                 let num_factories =
                     self.num_factories(&logical_qubit, &factory, max_num_cycles_allowed);
 
-                // Based on the num_tfactories we compute the number of cycles required
-                // which must be smaller than the maximum number of cycles allowed by the
-                // duration constraint (and the error rate).
                 let num_cycles_required_for_magic_states = self
                     .compute_num_cycles_required_for_magic_states(
                         num_factories,
@@ -761,8 +801,8 @@ where
                 let num_cycles = num_cycles_required_for_magic_states
                     .max(num_cycles_required_by_layout_overhead);
 
-                if let Some(max_tfactories) = self.max_factories {
-                    if num_factories > max_tfactories {
+                if let Some(max_factories) = self.max_factories {
+                    if num_factories > max_factories {
                         continue;
                     }
                 }
@@ -794,29 +834,13 @@ where
         &self,
         max_num_qubits: u64,
     ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
-        let min_num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
-
-        // The required T-state error rate is computed by dividing the total
-        // error budget for T states by the number of T-states required for the
-        // algorithm.
-        let num_magic_states_per_rotation = self
-            .layout_overhead
-            .num_magic_states_per_rotation(self.error_budget.rotations());
-        let required_logical_magic_state_error_rate = self.error_budget.magic_states()
-            / (self
-                .layout_overhead
-                .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
-                as f64);
-
-        // Required logical error rate (\eps_{\log} / (Q * C) in the paper)
-        let required_logical_qubit_error_rate = self.error_budget.logical()
-            / ((self.layout_overhead.logical_qubits()) * min_num_cycles_required_by_layout_overhead)
-                as f64;
-
-        let min_code_parameter = self
-            .ftp
-            .compute_code_parameter(&self.qubit, required_logical_qubit_error_rate)
-            .map_err(Error::CodeParameterComputationFailed)?;
+        let InitialOptimizationValues {
+            num_magic_states_per_rotation,
+            min_code_parameter,
+            num_cycles_required_by_layout_overhead,
+            required_logical_qubit_error_rate,
+            required_logical_magic_state_error_rate,
+        } = self.compute_initial_optimization_values()?;
 
         if self
             .layout_overhead
@@ -828,14 +852,11 @@ where
             if self.layout_overhead.logical_qubits() * logical_qubit.physical_qubits()
                 <= max_num_qubits
             {
-                return Ok(PhysicalResourceEstimationResult::new(
+                return Ok(PhysicalResourceEstimationResult::without_factories(
                     self,
                     logical_qubit,
-                    min_num_cycles_required_by_layout_overhead,
-                    None,
-                    0,
+                    num_cycles_required_by_layout_overhead,
                     required_logical_qubit_error_rate,
-                    None,
                 ));
             }
             return Err(Error::MaxPhysicalQubitsTooSmall);
@@ -875,7 +896,7 @@ where
                     * min_allowed_logical_qubit_error_rate))
                 .floor() as u64;
 
-            if max_num_cycles_allowed_by_error_rate < min_num_cycles_required_by_layout_overhead {
+            if max_num_cycles_allowed_by_error_rate < num_cycles_required_by_layout_overhead {
                 continue;
             }
 
@@ -885,7 +906,11 @@ where
             // state factory.
             if last_code_parameter
                 .as_ref()
-                .map(|d| *d > code_parameter)
+                .map(|d| {
+                    self.ftp
+                        .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
+                        .is_gt()
+                })
                 .unwrap_or(true)
             {
                 last_factories = self.factory_builder.find_factories(
@@ -895,7 +920,7 @@ where
                     &code_parameter,
                 );
 
-                last_code_parameter = Some(Self::find_highest_code_parameter(&last_factories));
+                last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
             if let Some(factory) = Self::try_pick_factory_below_or_equal_num_qubits(
@@ -918,7 +943,7 @@ where
                     );
 
                 let num_cycles = num_cycles_required_for_magic_states
-                    .max(min_num_cycles_required_by_layout_overhead);
+                    .max(num_cycles_required_by_layout_overhead);
 
                 if num_cycles > max_num_cycles_allowed_by_error_rate {
                     continue;
@@ -952,6 +977,9 @@ where
         best_estimation_result.ok_or(Error::MaxPhysicalQubitsTooSmall)
     }
 
+    /// Based on num_factories, we compute the number of cycles required which
+    /// must be smaller than the maximum number of cycles allowed by the
+    /// duration constraint (and the error rate).
     fn compute_num_cycles_required_for_magic_states(
         &self,
         num_factories: u64,
@@ -982,7 +1010,7 @@ where
             .min_by(|&p, &q| {
                 p.normalized_volume()
                     .partial_cmp(&q.normalized_volume())
-                    .expect("Could not compare T-factories normalized volume")
+                    .expect("Could not compare factories normalized volume")
             })
             .cloned()
     }
@@ -1023,7 +1051,7 @@ where
             .min_by(|&p, &q| {
                 p.normalized_volume()
                     .partial_cmp(&q.normalized_volume())
-                    .expect("Could not compare T-factories normalized volume")
+                    .expect("Could not compare factories normalized volume")
             })
             .cloned()
     }
@@ -1055,12 +1083,12 @@ where
         factories: &[Builder::Factory],
         logical_qubit: &LogicalQubit<E>,
         max_allowed_num_cycles_for_code_parameter: u64,
-        max_tfactories: u64,
+        max_factories: u64,
     ) -> Option<(Builder::Factory, u64)> {
         factories
             .iter()
             .map(|factory| {
-                let magic_states_per_run = max_tfactories * factory.num_output_states();
+                let magic_states_per_run = max_factories * factory.num_output_states();
                 let num_magic_states_per_rotation = self
                     .layout_overhead
                     .num_magic_states_per_rotation(self.error_budget.rotations());
@@ -1080,11 +1108,11 @@ where
                 let comp1 = p
                     .normalized_volume()
                     .partial_cmp(&q.normalized_volume())
-                    .expect("Could not compare T-factories normalized volume");
+                    .expect("Could not compare factories normalized volume");
                 if comp1 == Ordering::Equal {
                     num_p
                         .partial_cmp(num_q)
-                        .expect("Could not compare T-factories num cycles")
+                        .expect("Could not compare factories num cycles")
                 } else {
                     comp1
                 }
@@ -1107,16 +1135,15 @@ where
             .min_by(|(p, _), (q, _)| {
                 p.normalized_volume()
                     .partial_cmp(&q.normalized_volume())
-                    .expect("Could not compare T-factories normalized volume")
+                    .expect("Could not compare factories normalized volume")
             })
     }
 
-    fn find_highest_code_parameter(factories: &[Builder::Factory]) -> E::Parameter {
+    fn find_highest_code_parameter(&self, factories: &[Builder::Factory]) -> Option<E::Parameter> {
         factories
             .iter()
             .map(|p| p.max_code_parameter())
-            .max()
-            .unwrap_or_default()
+            .max_by(|a, b| self.ftp.code_parameter_cmp(self.qubit.as_ref(), a, b))
     }
 
     // Possibly adjusts number of cycles C from initial starting point C_min
@@ -1135,7 +1162,7 @@ where
             num_cycles = ((num_cycles as f64) * logical_depth_scaling).ceil() as u64;
         }
 
-        // We cannot perform resource estimation when there are neither T-states nor cycles
+        // We cannot perform resource estimation when there are neither magic states nor cycles
         if self
             .layout_overhead
             .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
@@ -1148,9 +1175,9 @@ where
         Ok(num_cycles)
     }
 
-    // Choose number of T factories to use; we can safely use unwrap on
-    // the t_count here because the algorithm only finds T-factories
-    // that provide this number
+    // Choose number of factories to use; we can safely use unwrap on the number
+    // of magic states here, because the algorithm only finds factories that
+    // provide this number
     fn num_factories(
         &self,
         logical_qubit: &LogicalQubit<E>,
@@ -1184,4 +1211,12 @@ where
             result_u64 + 1
         }
     }
+}
+
+struct InitialOptimizationValues<Parameter> {
+    num_magic_states_per_rotation: Option<u64>,
+    min_code_parameter: Parameter,
+    num_cycles_required_by_layout_overhead: u64,
+    required_logical_qubit_error_rate: f64,
+    required_logical_magic_state_error_rate: f64,
 }
