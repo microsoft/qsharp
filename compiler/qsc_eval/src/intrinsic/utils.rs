@@ -8,6 +8,8 @@ use num_complex::{Complex, Complex64};
 use num_traits::{One, Zero};
 use rustc_hash::FxHashMap;
 
+/// Given a state and a set of qubits, split the state into two parts: the qubits to dump and the remaining qubits.
+/// This function will return an error if the state is not separable using the provided qubit identifiers.
 pub fn split_state(
     qubits: &[usize],
     state: Vec<(BigUint, Complex64)>,
@@ -45,6 +47,8 @@ pub fn split_state(
         .collect())
 }
 
+/// From the qubit identifiers provided, compute the bit masks for the qubits to dump and the remaining qubits.
+/// These masks can be applied to the state labels to separate the label into the two parts needed.
 fn compute_mask(qubit_count: usize, qubits: &[usize]) -> (BigUint, BigUint) {
     let mut dump_mask = BigUint::zero();
     let mut other_mask = BigUint::zero();
@@ -59,6 +63,10 @@ fn compute_mask(qubit_count: usize, qubits: &[usize]) -> (BigUint, BigUint) {
     (dump_mask, other_mask)
 }
 
+/// Iterates through the given state and for each entry uses the mask to calculate what the separated labels would be
+/// and finds the amplitude for each separated state. If the state is not separable, returns an error.
+/// On success, the `dump_state` and `other_state` maps will be populated with the separated states, and the
+/// function returns the accumulated norm of the dump state.
 fn collect_split_state(
     state: &FxHashMap<BigUint, Complex64>,
     dump_mask: &BigUint,
@@ -119,6 +127,10 @@ fn collect_split_state(
     Ok(dump_norm)
 }
 
+/// Given a dump state amplitude, the normalization factor, the qubits to dump, the label, and the qubit count,
+/// normalize the amplitude and reorder the label to match the provided qubit order.
+/// Specifically, qubits in the requested array may not be in the same allocation order that is used in the state
+/// labels, so the bits in the label must be reordered to match the qubit order.
 fn normalize_and_reorder(
     val: Complex64,
     dump_norm: f64,
