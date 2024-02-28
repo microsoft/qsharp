@@ -8,7 +8,7 @@ use std::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Sequence)]
-pub(super) enum Keyword {
+pub enum Keyword {
     Adj,
     Adjoint,
     AdjointUpper,

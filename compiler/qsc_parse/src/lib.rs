@@ -7,8 +7,8 @@
 
 mod expr;
 mod item;
-mod keyword;
-mod lex;
+pub mod keyword;
+pub mod lex;
 mod prim;
 mod scan;
 mod stmt;
@@ -16,7 +16,6 @@ mod stmt;
 mod tests;
 mod ty;
 
-pub use lex::formatter;
 use lex::TokenKind;
 use miette::Diagnostic;
 use qsc_ast::ast::{Expr, Namespace, TopLevelNode};

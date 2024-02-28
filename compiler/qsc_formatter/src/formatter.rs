@@ -9,14 +9,13 @@
 /// match certain patterns. Formatting rules will generate text edit objects
 /// when the format of the input string does not match the expected format, and
 /// these edits are returned on using the formatter.
-use crate::keyword::Keyword;
-
-use super::{
-    concrete::{self, ConcreteToken, ConcreteTokenKind::*},
-    Delim,
-    TokenKind::*,
-};
 use qsc_data_structures::span::Span;
+use qsc_frontend::keyword::Keyword;
+use qsc_frontend::lex::{
+    concrete::{self, ConcreteToken, ConcreteTokenKind::*},
+    cooked::TokenKind::*,
+    Delim,
+};
 
 #[cfg(test)]
 mod tests;

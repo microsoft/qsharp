@@ -11,14 +11,14 @@ use super::{cooked, raw};
 /// Whitespace and comment tokens were removed during the creation of cooked tokens
 /// because they are generally not useful for compilation, but they are reintroduced
 /// here because they are needed for formatting.
-pub(super) struct ConcreteToken {
+pub struct ConcreteToken {
     pub kind: ConcreteTokenKind,
     pub span: Span,
 }
 
 /// This enum extends the cooked token kind to include whitespace and comment token kinds.
 #[derive(Debug, PartialEq)]
-pub(super) enum ConcreteTokenKind {
+pub enum ConcreteTokenKind {
     Syntax(cooked::TokenKind),
     Error(cooked::Error),
     WhiteSpace,
@@ -32,14 +32,14 @@ pub(super) enum ConcreteTokenKind {
 /// generate the raw tokens (which should only produce the non-compilation whitespace
 /// and comment tokens) for that slice, which are iterated over before continuing
 /// with the cooked tokens.
-pub(super) struct ConcreteTokenIterator<'a> {
+pub struct ConcreteTokenIterator<'a> {
     code: &'a str,
     cooked_tokens: Peekable<cooked::Lexer<'a>>,
     non_compilation_tokens: Peekable<raw::Lexer<'a>>,
 }
 
 impl<'a> ConcreteTokenIterator<'a> {
-    pub(super) fn new(code: &'a str) -> Self {
+    pub fn new(code: &'a str) -> Self {
         Self {
             code,
             cooked_tokens: cooked::Lexer::new(code).peekable(),
