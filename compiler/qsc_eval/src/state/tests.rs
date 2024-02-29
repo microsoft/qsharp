@@ -1,4 +1,5 @@
-//use expect_test::expect;
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 use super::{
     get_latex, write_latex_for_algebraic_number, write_latex_for_cartesian_form,
@@ -52,13 +53,13 @@ fn check_construct_rational() {
     assert_rational_value(Some(RationalNumber::construct(-1, -2)), (1, 1, 2));
     // Although 0 is never used in the code we check it for completeness.
     assert_rational_value(Some(RationalNumber::construct(0, 1)), (0, 0, 1));
-    expect![[r"
+    expect!([r"
         RationalNumber {
             sign: 1,
             numerator: 1,
             denominator: 2,
         }
-    "]]
+    "])
     .assert_debug_eq(&RationalNumber::construct(1, 2));
 }
 
@@ -127,7 +128,7 @@ fn check_construct_algebraic() {
         )),
         (1, 1, 1, 2, 3),
     );
-    expect![[r"
+    expect!([r"
         AlgebraicNumber {
             sign: 1,
             fraction: RationalNumber {
@@ -137,7 +138,7 @@ fn check_construct_algebraic() {
             },
             root: 3,
         }
-    "]]
+    "])
     .assert_debug_eq(&AlgebraicNumber::construct(
         &RationalNumber::construct(1, 2),
         3,
@@ -470,7 +471,7 @@ fn assert_latex_for_algebraic(
     let number =
         AlgebraicNumber::construct(&RationalNumber::construct(numerator, denominator), root);
     let mut latex = String::with_capacity(50);
-    write_latex_for_algebraic_number(&mut latex, number, render_one);
+    write_latex_for_algebraic_number(&mut latex, &number, render_one);
     expected.assert_debug_eq(&latex);
 }
 
@@ -571,7 +572,7 @@ fn check_get_latex_for_algebraic() {
 fn assert_latex_for_decimal(expected: &Expect, number: f64, render_one: bool) {
     let number = DecimalNumber::construct(number);
     let mut latex = String::with_capacity(50);
-    write_latex_for_decimal_number(&mut latex, number, render_one);
+    write_latex_for_decimal_number(&mut latex, &number, render_one);
     expected.assert_debug_eq(&latex);
 }
 

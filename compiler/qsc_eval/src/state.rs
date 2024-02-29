@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #[cfg(test)]
 mod tests;
 
@@ -336,7 +339,6 @@ fn get_terms_for_state(state: Vec<(BigUint, Complex64)>) -> Vec<Term> {
     result
 }
 
-// =========================
 #[must_use]
 pub fn get_latex(state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
     if state.len() > 16 {
@@ -390,23 +392,23 @@ fn write_latex_for_term(latex: &mut String, term: &Term, render_plus: bool) {
 
 // Write latex for polar form of a complex number.
 // The sign is always + and is rendered only if render_plus is true.
-fn write_latex_for_polar_form(latex: &mut String, complex_number: &PolarForm, render_plus: bool) {
-    if complex_number.sign < 0 {
+fn write_latex_for_polar_form(latex: &mut String, polar_form: &PolarForm, render_plus: bool) {
+    if polar_form.sign < 0 {
         latex.push('-');
     } else if render_plus {
         latex.push('+');
     }
-    write_latex_for_algebraic_number(latex, complex_number.magnitude, false);
+    write_latex_for_algebraic_number(latex, &polar_form.magnitude, false);
     latex.push_str(" e^{");
-    if complex_number.phase_multiplier.sign < 0 {
+    if polar_form.phase_multiplier.sign < 0 {
         latex.push('-');
     }
-    let pi_num: i64 = complex_number.phase_multiplier.numerator;
+    let pi_num: i64 = polar_form.phase_multiplier.numerator;
     if pi_num != 1 {
         write!(latex, "{pi_num}").unwrap();
     }
     latex.push_str(" i \\pi");
-    let pi_den = complex_number.phase_multiplier.denominator;
+    let pi_den = polar_form.phase_multiplier.denominator;
     if pi_den != 1 {
         write!(latex, " / {pi_den}").unwrap();
     }
@@ -435,29 +437,29 @@ fn write_latex_for_cartesian_form(
             latex.push('0');
         } else {
             // Only imaginary part present
-            write_latex_for_real_number(latex, cartesian_form.imaginary_part, false);
+            write_latex_for_real_number(latex, &cartesian_form.imaginary_part, false);
             latex.push('i');
         }
     } else if let RealNumber::Zero = cartesian_form.imaginary_part {
         // Only real part present
-        write_latex_for_real_number(latex, cartesian_form.real_part, false);
+        write_latex_for_real_number(latex, &cartesian_form.real_part, false);
     } else {
         // Both real and imaginary parts present
         latex.push_str("\\left( ");
-        write_latex_for_real_number(latex, cartesian_form.real_part, true);
+        write_latex_for_real_number(latex, &cartesian_form.real_part, true);
         latex.push(if cartesian_form.imaginary_part.sign() < 0 {
             '-'
         } else {
             '+'
         });
-        write_latex_for_real_number(latex, cartesian_form.imaginary_part, false);
+        write_latex_for_real_number(latex, &cartesian_form.imaginary_part, false);
         latex.push_str("i \\right)");
     }
 }
 
 // Write latex for real number. Note that the sign is not rendered.
 // 1 is only rendered if render_one is true. 0 is rendered, but not used in current code.
-fn write_latex_for_real_number(latex: &mut String, number: RealNumber, render_one: bool) {
+fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_one: bool) {
     match number {
         RealNumber::Algebraic(algebraic_number) => {
             write_latex_for_algebraic_number(latex, algebraic_number, render_one);
@@ -474,7 +476,7 @@ fn write_latex_for_real_number(latex: &mut String, number: RealNumber, render_on
 
 // Write latex for decimal number. Note that the sign is not rendered.
 // 1 is only rendered if render_one is true.
-fn write_latex_for_decimal_number(latex: &mut String, number: DecimalNumber, render_one: bool) {
+fn write_latex_for_decimal_number(latex: &mut String, number: &DecimalNumber, render_one: bool) {
     if render_one || is_significant(number.value - 1.0) {
         write!(latex, "{}", number.value).unwrap();
     }
@@ -482,7 +484,11 @@ fn write_latex_for_decimal_number(latex: &mut String, number: DecimalNumber, ren
 
 // Write latex for algebraic number. Note that the sign is not rendered.
 // 1 is only rendered if render_one is true.
-fn write_latex_for_algebraic_number(latex: &mut String, number: AlgebraicNumber, render_one: bool) {
+fn write_latex_for_algebraic_number(
+    latex: &mut String,
+    number: &AlgebraicNumber,
+    render_one: bool,
+) {
     let actually_needs_1: bool = render_one || number.fraction.denominator != 1;
     if number.fraction.denominator != 1 {
         latex.push_str("\\frac{");
