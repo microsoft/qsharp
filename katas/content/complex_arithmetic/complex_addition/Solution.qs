@@ -1,9 +1,6 @@
-namespace Kata {
-    
-    open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Intrinsic;
-
-    @EntryPoint()
+namespace Kata {    
+     open Microsoft.Quantum.Math;
+     
     operation ComplexAdd(x : Complex, y: Complex) : Complex {
         
         let a = x::Real;

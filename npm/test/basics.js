@@ -282,6 +282,11 @@ test("getting_started kata is valid", async () => {
   await validateKata(kata, true, true, true);
 });
 
+test("complex_arithmetic kata is valid", async () => {
+  const kata = await getKata("complex_arithmetic");
+  await validateKata(kata, true, true, true);
+});
+
 test("qubit kata is valid", async () => {
   const kata = await getKata("qubit");
   await validateKata(kata, true, true, true);
