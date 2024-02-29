@@ -1,5 +1,5 @@
 **Input:** 
-  A bit vector of length 3 represented as a `Bool[]` - a binary representation of a number.
+  A bit vector of length 3 represented as a `Bool[]` - a binary representation of a number in little endian notation.
 
 **Output:**
   Return `true` if the input array represents the number $7$, and `false` otherwise.

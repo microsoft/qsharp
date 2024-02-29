@@ -12,12 +12,9 @@ namespace Kata {
 
     @EntryPoint()
     operation PhaseOracle_Demo() : Unit {
-        // Allocate 3 qubits in the |000⟩ state
         use q = Qubit[3];
-        // Prepare an equal superposition of all basis states
         ApplyToEachA(H, q);
 
-        // Print the current state of the system; notice the phases of each basis state
         Message("Starting state (equal superposition of all basis states):");
         DumpMachine();
 
@@ -28,8 +25,6 @@ namespace Kata {
         Message("State after applying the phase oracle:");
         DumpMachine();
 
-        // Reset our state back to all zeros for deallocation
         ResetAll(q);
     }
-
 }

@@ -10,7 +10,7 @@ namespace Kata {
             X(minus);
             H(minus);
         } apply {
-            Or_Oracle(x[...k-1] + x[k+1...], minus);
+            Or_Oracle(x[...k - 1] + x[k + 1...], minus);
         }
     }
 }
