@@ -8,7 +8,6 @@ use super::{
 };
 use crate::state::{is_fractional_part_significant, is_significant};
 use expect_test::{expect, Expect};
-use num_bigint::BigUint;
 use num_complex::Complex64;
 use std::f64::consts::PI;
 
@@ -53,13 +52,13 @@ fn check_construct_rational() {
     assert_rational_value(Some(RationalNumber::construct(-1, -2)), (1, 1, 2));
     // Although 0 is never used in the code we check it for completeness.
     assert_rational_value(Some(RationalNumber::construct(0, 1)), (0, 0, 1));
-    expect![[r#"
+    expect![[r"
         RationalNumber {
             sign: 1,
             numerator: 1,
             denominator: 2,
         }
-    "#]]
+    "]]
     .assert_debug_eq(&RationalNumber::construct(1, 2));
 }
 
@@ -128,7 +127,7 @@ fn check_construct_algebraic() {
         )),
         (1, 1, 1, 2, 3),
     );
-    expect![[r#"
+    expect![[r"
         AlgebraicNumber {
             sign: 1,
             fraction: RationalNumber {
@@ -138,7 +137,7 @@ fn check_construct_algebraic() {
             },
             root: 3,
         }
-    "#]]
+    "]]
     .assert_debug_eq(&AlgebraicNumber::construct(
         &RationalNumber::construct(1, 2),
         3,
@@ -177,12 +176,12 @@ fn assert_decimal_value(x: DecimalNumber, expected: (i64, f64)) {
 fn check_construct_decimal() {
     assert_decimal_value(DecimalNumber::construct(0.777), (1, 0.777));
     assert_decimal_value(DecimalNumber::construct(-0.777), (-1, 0.777));
-    expect![[r#"
+    expect!([r"
         DecimalNumber {
             sign: 1,
             value: 1.0,
         }
-    "#]]
+    "])
     .assert_debug_eq(&DecimalNumber::construct(1.0));
 }
 
@@ -194,12 +193,12 @@ fn check_recognize_decimal() {
 
 #[test]
 fn check_recognize_real_number() {
-    expect![[r#"
+    expect!([r"
         Zero
-    "#]]
+    "])
     .assert_debug_eq(&RealNumber::recognize(0.0));
 
-    expect![[r#"
+    expect!([r"
         Algebraic(
             AlgebraicNumber {
                 sign: 1,
@@ -211,10 +210,10 @@ fn check_recognize_real_number() {
                 root: 2,
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&RealNumber::recognize(5.0 * 2.0_f64.sqrt() / 3.0));
 
-    expect![[r#"
+    expect!([r"
         Algebraic(
             AlgebraicNumber {
                 sign: 1,
@@ -226,20 +225,20 @@ fn check_recognize_real_number() {
                 root: 1,
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&RealNumber::recognize(7.0 / 10.0));
 
-    expect![[r#"
+    expect!([r"
         Decimal(
             DecimalNumber {
                 sign: 1,
                 value: 0.00558659217877095,
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&RealNumber::recognize(1.0 / 179.0));
 
-    expect![[r#"
+    expect!([r"
         Algebraic(
             AlgebraicNumber {
                 sign: -1,
@@ -251,10 +250,10 @@ fn check_recognize_real_number() {
                 root: 1,
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&RealNumber::recognize(-2.0 / 3.0));
 
-    expect![[r#"
+    expect!([r"
         Algebraic(
             AlgebraicNumber {
                 sign: -1,
@@ -266,13 +265,13 @@ fn check_recognize_real_number() {
                 root: 3,
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&RealNumber::recognize(-5.0 * 3.0_f64.sqrt() / 7.0));
 }
 
 #[test]
 fn check_recognize_polar() {
-    expect![[r#"
+    expect!([r"
         Some(
             PolarForm {
                 sign: 1,
@@ -292,12 +291,12 @@ fn check_recognize_polar() {
                 },
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&PolarForm::recognize(
         5.0 / 2.0 * (PI / 3.0).cos(),
         5.0 / 2.0 * (PI / 3.0).sin(),
     ));
-    expect![[r#"
+    expect!([r"
         Some(
             PolarForm {
                 sign: 1,
@@ -317,7 +316,7 @@ fn check_recognize_polar() {
                 },
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&PolarForm::recognize(
         5.0 / 2.0 * (PI / 3.0).cos(),
         5.0 / 2.0 * (-PI / 3.0).sin(),
@@ -326,7 +325,7 @@ fn check_recognize_polar() {
 
 #[test]
 fn check_recognize_cartesian() {
-    expect![[r#"
+    expect!([r"
         CartesianForm {
             sign: -1,
             real_part: Zero,
@@ -342,9 +341,9 @@ fn check_recognize_cartesian() {
                 },
             ),
         }
-    "#]]
+    "])
     .assert_debug_eq(&CartesianForm::recognize(0.0, -5.0 / 3.0 * 2.0_f64.sqrt()));
-    expect![[r#"
+    expect!([r"
         CartesianForm {
             sign: -1,
             real_part: Algebraic(
@@ -370,7 +369,7 @@ fn check_recognize_cartesian() {
                 },
             ),
         }
-    "#]]
+    "])
     .assert_debug_eq(&CartesianForm::recognize(
         -7.0 / 3.0,
         2.0 / 9.0 * 3.0_f64.sqrt(),
@@ -379,7 +378,7 @@ fn check_recognize_cartesian() {
 
 #[test]
 fn check_recognize_complex() {
-    expect![[r#"
+    expect!([r"
         Cartesian(
             CartesianForm {
                 sign: -1,
@@ -397,10 +396,10 @@ fn check_recognize_complex() {
                 ),
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&ComplexNumber::recognize(0.0, -5.0 / 3.0 * 2.0_f64.sqrt()));
 
-    expect![[r#"
+    expect!([r"
         Cartesian(
             CartesianForm {
                 sign: -1,
@@ -428,13 +427,13 @@ fn check_recognize_complex() {
                 ),
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&ComplexNumber::recognize(
         -7.0 / 3.0,
         2.0 / 9.0 * 3.0_f64.sqrt(),
     ));
 
-    expect![[r#"
+    expect!([r"
         Polar(
             PolarForm {
                 sign: 1,
@@ -454,7 +453,7 @@ fn check_recognize_complex() {
                 },
             },
         )
-    "#]]
+    "])
     .assert_debug_eq(&ComplexNumber::recognize(
         5.0 / 2.0 * (PI / 3.0).cos(),
         5.0 / 2.0 * (PI / 3.0).sin(),
@@ -856,9 +855,44 @@ fn check_get_latex_for_term() {
     );
 }
 
-// #[test]
-// fn check_get_latex() {
-//     let v: Vec<(BigUint, Complex64)> = vec![(0_u8.into(), Complex64::new(0.5, 0.5))];
-//     let s = get_latex(v, 2);
-//     expected.assert_debug_eq(&latex);
-// }
+#[test]
+fn check_get_latex() {
+    expect!([r#"
+        "$|\\psi\\rangle = \\left( \\frac{1}{2}+\\frac{1}{2}i \\right)|00\\rangle$"
+    "#])
+    .assert_debug_eq(&get_latex(vec![(0_u8.into(), Complex64::new(0.5, 0.5))], 2));
+    expect!([r#"
+        "$|\\psi\\rangle = -|00\\rangle$"
+    "#])
+    .assert_debug_eq(&get_latex(
+        vec![(0_u8.into(), Complex64::new(-1.0, 0.0))],
+        2,
+    ));
+    expect!([r#"
+        "$|\\psi\\rangle = -i|00\\rangle$"
+    "#])
+    .assert_debug_eq(&get_latex(
+        vec![(0_u8.into(), Complex64::new(0.0, -1.0))],
+        2,
+    ));
+    expect!([r#"
+        "$|\\psi\\rangle =  e^{-2 i \\pi / 3}|00\\rangle$"
+    "#])
+    .assert_debug_eq(&get_latex(
+        vec![(
+            0_u8.into(),
+            Complex64::new((-2.0 * PI / 3.0).cos(), (-2.0 * PI / 3.0).sin()),
+        )],
+        2,
+    ));
+    expect!([r#"
+        "$|\\psi\\rangle = \\left( 1+\\frac{\\sqrt{2}}{2}i \\right)|00\\rangle+\\left( 1+\\frac{\\sqrt{2}}{2}i \\right)|10\\rangle$"
+    "#])
+    .assert_debug_eq(&get_latex(
+        vec![
+            (0_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
+            (2_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
+        ],
+        2,
+    ));
+}
