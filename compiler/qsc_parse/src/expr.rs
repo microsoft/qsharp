@@ -667,7 +667,7 @@ fn range_op(s: &mut ParserContext, start: Box<Expr>) -> Result<Box<ExprKind>> {
 
 fn op_name(s: &ParserContext) -> OpName {
     match Keyword::from_str(s.read()) {
-        Ok(Keyword::And | Keyword::Or) | Err(_) => OpName::Token(s.peek().kind),
+        Ok(Keyword::And | Keyword::Or) | Err(()) => OpName::Token(s.peek().kind),
         Ok(keyword) => OpName::Keyword(keyword),
     }
 }

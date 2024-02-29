@@ -165,6 +165,7 @@ where
 {
     const MAX_NONEXECUTED_ATTEMPTS_TO_FILTER_OUT_DOMINATED: usize = 1000;
 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             items: Vec::new(),
@@ -172,6 +173,7 @@ where
         }
     }
 
+    #[must_use]
     pub fn items(&self) -> &[P] {
         &self.items
     }

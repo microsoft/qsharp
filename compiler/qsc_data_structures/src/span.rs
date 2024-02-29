@@ -75,7 +75,6 @@ impl From<Span> for SourceSpan {
     }
 }
 
-#[allow(clippy::module_name_repetitions)]
 pub trait WithSpan {
     #[must_use]
     fn with_span(self, span: Span) -> Self;

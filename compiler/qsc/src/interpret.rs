@@ -113,7 +113,6 @@ pub struct Interpreter {
     env: Env,
 }
 
-#[allow(clippy::module_name_repetitions)]
 pub type InterpretResult = std::result::Result<Value, Vec<Error>>;
 
 impl Interpreter {

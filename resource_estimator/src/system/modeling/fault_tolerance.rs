@@ -532,7 +532,6 @@ impl ErrorCorrection for Protocol {
             )
             .to_string())
         } else {
-            #[allow(clippy::cast_possible_truncation)]
             Ok(self.crossing_prefactor()
                 * ((physical_error_rate / self.error_correction_threshold())
                     .powi((*code_distance as i32 + 1) / 2)))

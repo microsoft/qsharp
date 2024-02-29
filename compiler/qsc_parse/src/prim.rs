@@ -222,25 +222,17 @@ pub(super) fn recovering<T>(
     }
 }
 
-pub(super) fn recovering_semi(s: &mut ParserContext) -> Result<()> {
-    match token(s, TokenKind::Semi) {
-        Ok(()) => Ok(()),
-        Err(error) => {
-            s.push_error(error);
-            // no recovery, just move on to the next token
-            Ok(())
-        }
+pub(super) fn recovering_semi(s: &mut ParserContext) {
+    if let Err(error) = token(s, TokenKind::Semi) {
+        s.push_error(error);
+        s.recover(&[TokenKind::Semi]);
     }
 }
 
-pub(super) fn recovering_token(s: &mut ParserContext, t: TokenKind) -> Result<()> {
-    match token(s, t) {
-        Ok(()) => Ok(()),
-        Err(error) => {
-            s.push_error(error);
-            s.recover(&[t]);
-            Ok(())
-        }
+pub(super) fn recovering_token(s: &mut ParserContext, t: TokenKind) {
+    if let Err(error) = token(s, t) {
+        s.push_error(error);
+        s.recover(&[t]);
     }
 }
 

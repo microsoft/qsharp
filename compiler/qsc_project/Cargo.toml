@@ -25,5 +25,8 @@ qsc_project = { path = ".", features = ["fs"] }
 fs = []
 async = ["async-trait"]
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false

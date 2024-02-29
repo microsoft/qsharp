@@ -60,8 +60,8 @@ fn test_run_two_shots() {
 
     let _result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg| {
-            assert!(_msg.contains("42"));
+        |msg| {
+            assert!(msg.contains("42"));
             count.set(count.get() + 1);
         },
         2,
@@ -106,8 +106,8 @@ fn test_message() {
     let expr = "Sample.main()";
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
-            assert!(_msg_.contains("hi") || _msg_.contains("result"));
+        |msg| {
+            assert!(msg.contains("hi") || msg.contains("result"));
         },
         1,
     );
@@ -127,8 +127,8 @@ fn message_with_escape_sequences() {
     let expr = "Sample.main()";
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
-            assert!(_msg_.contains(r"\ta\n\t") || _msg_.contains("result"));
+        |msg| {
+            assert!(msg.contains(r"\ta\n\t") || msg.contains("result"));
         },
         1,
     );
@@ -149,11 +149,11 @@ fn message_with_backslashes() {
     let expr = "Sample.main()";
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
+        |msg| {
             assert!(
-                _msg_.contains("hello { \\\\World [")
-                    || _msg_.contains("hi \\\\World")
-                    || _msg_.contains("result")
+                msg.contains("hello { \\\\World [")
+                    || msg.contains("hi \\\\World")
+                    || msg.contains("result")
             );
         },
         1,
@@ -173,8 +173,8 @@ fn test_entrypoint() {
     let expr = "";
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
-            assert!(_msg_.contains("hi") || _msg_.contains("result"));
+        |msg| {
+            assert!(msg.contains("hi") || msg.contains("result"));
         },
         1,
     );
@@ -194,7 +194,7 @@ fn test_missing_entrypoint() {
     let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg)
+            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
         },
         1,
     );
@@ -306,13 +306,13 @@ fn test_runtime_error_with_span() {
 #[test]
 fn test_runtime_error_in_another_file_with_project() {
     let mut output = Vec::new();
-    let first = indoc! {r#"
+    let first = indoc! {r"
             namespace Test {
                 @EntryPoint()
                 operation Main() : Unit {
                     Test.other()
                 }
-            }"#
+            }"
     };
     let second = indoc! {r#"
             namespace Test {
@@ -351,12 +351,12 @@ fn test_runtime_error_with_failure_in_main_file_project() {
                 }
             }"#
     };
-    let second = indoc! {r#"
+    let second = indoc! {r"
             namespace Test {
                 operation other() : Unit {
                     Test.failing_call()
                 }
-            }"#
+            }"
     };
     run_internal(
         SourceMap::new(
@@ -377,7 +377,7 @@ fn test_runtime_error_with_failure_in_main_file_project() {
 #[test]
 fn test_compile_error_related_spans() {
     let mut output = Vec::new();
-    let code = indoc! {r#"
+    let code = indoc! {r"
             namespace Other { operation DumpMachine() : Unit { } }
             namespace Test {
                 open Other;
@@ -387,7 +387,7 @@ fn test_compile_error_related_spans() {
                     DumpMachine()
                 }
             }
-        "#
+        "
     };
     run_internal(
         SourceMap::new([("test.qs".into(), code.into())], None),
@@ -402,7 +402,7 @@ fn test_compile_error_related_spans() {
 #[test]
 fn test_runtime_error_related_spans() {
     let mut output = Vec::new();
-    let code = indoc! {r#"
+    let code = indoc! {r"
             namespace Test {
                 @EntryPoint()
                 operation Main() : Unit {
@@ -410,7 +410,7 @@ fn test_runtime_error_related_spans() {
                     X(q);
                 }
             }
-        "#
+        "
     };
     run_internal(
         SourceMap::new([("test.qs".into(), code.into())], None),
@@ -425,14 +425,14 @@ fn test_runtime_error_related_spans() {
 #[test]
 fn test_runtime_error_default_span() {
     let mut output = Vec::new();
-    let code = indoc! {r#"
+    let code = indoc! {r"
             namespace Test {
                 @EntryPoint()
                 operation Main() : Unit {
                     use qs = Qubit[-1];
                 }
             }
-        "#
+        "
     };
     run_internal(
         SourceMap::new([("test.qs".into(), code.into())], None),
@@ -456,7 +456,9 @@ fn test_doc_gen() {
         if filename.eq("toc.yml") {
             assert!(text.contains("uid: Qdk.Microsoft.Quantum.Core"));
         } else {
-            assert!(filename.ends_with(".md"));
+            assert!(std::path::Path::new(&filename)
+                .extension()
+                .map_or(false, |ext| ext.eq_ignore_ascii_case("md")));
             assert!(text.starts_with("---\n"));
         }
     }
