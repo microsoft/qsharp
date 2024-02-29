@@ -169,36 +169,34 @@ Now you will implement the same function you've seen in the first two exercises 
     "title": "Phase Kickback"
 })
 
-Previously we considered applying marking oracles when the register $|x\rangle$ was in a basis state or a superposition state, and the target qubit $|y\rangle$ in a basis state.  How might the effect of applying marking oracles change if the target is also in a superposition state?  In this case we will observe **phase kickback** - the relative phase from the target qubit affecting ("kicked back" into) the state of the input qubits.
+Previously we considered applying marking oracles when the register $|x\rangle$ was in a basis state or a superposition state, and the target qubit $|y\rangle$ was in a basis state.  How might the effect of applying marking oracles change if the target is also in a superposition state?  In this case we might observe **phase kickback** - the relative phase from the target qubit affecting ("kicked back" into) the state of the input qubits.
 
 In order to observe phase kickback, we use the target qubit $|y\rangle=|-\rangle$.
 
 > This is the standard choice for two reasons.
 > First, for phase kickback to occur, the target qubit must have a difference in relative phase between the basis states $|0\rangle$ and $|1\rangle$.
-> Second, the target qubit must be in an equal superposition, otherwise it will become entangled with the input register.
+> Second, the absolute values of the amplitudes of the two basis states of the target qubit must be equal, otherwise the target will become entangled with the input register.
 
 Let's see the results of applying a marking oracle $U_{mark}$ which implements the function $f(x)$ to the input register $|x\rangle$ and the target qubit in state $|-\rangle$:
 
 - If the input register $|x\rangle$ is in a basis state:
 
-$$U_{mark} |x\rangle |-\rangle = \frac1{\sqrt2} \big(U_{mark}|x\rangle|0\rangle - U_{mark}|x\rangle |1\rangle\big)$$
+$$U_{mark} |x\rangle |-\rangle = \frac1{\sqrt2} \big(U_{mark}|x\rangle|0\rangle - U_{mark}|x\rangle |1\rangle\big) =$$
 
-$$= \frac1{\sqrt2} \big(|x\rangle|0\oplus f(x)\rangle - |x\rangle |1\oplus f(x)\rangle\big)$$
+$$= \frac1{\sqrt2} \big(|x\rangle|0\oplus f(x)\rangle - |x\rangle |1\oplus f(x)\rangle\big) =$$
 
-$$=
-\begin{cases}
-\frac1{\sqrt2} \big(|x\rangle|0\rangle - |x\rangle |1\rangle\big) = |x\rangle|-\rangle \text{ if } f(x) = 0 \\\
+$$=\begin{cases}
+\frac1{\sqrt2} \big(|x\rangle|0\rangle - |x\rangle |1\rangle\big) = |x\rangle|-\rangle \text{ if } f(x) = 0 \\\\
 \frac1{\sqrt2} \big(|x\rangle|1\rangle - |x\rangle |0\rangle\big) = -|x\rangle|-\rangle \text{ if } f(x) = 1
-\end{cases}
-$$
+\end{cases}=$$
 
 $$= (-1)^{f(x)}|x\rangle |-\rangle$$
 
 - If the input register is in a superposition state, say $|x\rangle = \frac1{\sqrt2} \big(|b_1\rangle + |b_2\rangle\big)$, where $|b_1\rangle$ and $|b_2\rangle$ are basis states:
 
-$$U_{mark} |x\rangle |-\rangle = U_{mark} \frac{1}{\sqrt{2}} \big(|b_1\rangle + |b_2\rangle\big) |-\rangle$$
+$$U_{mark} |x\rangle |-\rangle = U_{mark} \frac{1}{\sqrt{2}} \big(|b_1\rangle + |b_2\rangle\big) |-\rangle =$$
 
-$$= \frac{1}{\sqrt{2}} \big( U_{mark}|b_1\rangle|-\rangle + U_{mark}|b_2\rangle|-\rangle\big)$$
+$$= \frac{1}{\sqrt{2}} \big( U_{mark}|b_1\rangle|-\rangle + U_{mark}|b_2\rangle|-\rangle\big) =$$
 
 $$= \frac{1}{\sqrt{2}} \big( (-1)^{f(b_1)}|b_1\rangle + (-1)^{f(b_2)}|b_2\rangle\big) |-\rangle$$
 
@@ -211,29 +209,29 @@ which looks exactly as if we applied a phase oracle to $|x\rangle$ instead of ap
 
 > Another important application of this effect is **phase estimation** algorithm, which allows to estimate an eigenvalue of an eigenvector.
 
-Consider the following example using the $U_{7,mark}$ oracle. Let's begin with $|x\rangle$ as an equal superposition of the $6$ and $7$ basis states and $|y\rangle=|-\rangle$, the overall state is:
+Consider the following example using the $U_{7,mark}$ oracle. Let's begin with $|x\rangle$ as an equal superposition of the $|110\rangle$ and $|111\rangle$ basis states and $|y\rangle=|-\rangle$, the overall state is:
 
-$$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$$
+$$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big) =$$
 
 $$= \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle\big)$$
 
 How does $U_{7,mark}$ act on this state?
 
-$$U_{7,mark}|\eta\rangle = U_{7,mark} \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle \big)$$
+$$U_{7,mark}|\eta\rangle = U_{7,mark} \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|1\rangle \big) =$$
 
-$$= \frac{1}{2} \big( U_{7,mark}|110\rangle|0\rangle + U_{7,mark}|111\rangle|0\rangle - U_{7,mark}|110\rangle|1\rangle - U_{7,mark}|111\rangle|1\rangle \big)$$
+$$= \frac{1}{2} \big( U_{7,mark}|110\rangle|0\rangle + U_{7,mark}|111\rangle|0\rangle - U_{7,mark}|110\rangle|1\rangle - U_{7,mark}|111\rangle|1\rangle \big) =$$
 
 $$= \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle \big) := |\xi\rangle$$
 
 Now we would like to observe how our input state $|\eta\rangle$ was modified by the oracle.  Let's simplify the resulting state $|\xi\rangle$:
 
-$$|\xi\rangle = \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle\big)$$
+$$|\xi\rangle = \frac{1}{2} \big(|110\rangle|0\rangle + |111\rangle|1\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle\big) =$$
 
-$$= \frac{1}{2} \big(|110\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle + |111\rangle|1\rangle \big)$$
+$$= \frac{1}{2} \big(|110\rangle|0\rangle - |110\rangle|1\rangle - |111\rangle|0\rangle + |111\rangle|1\rangle \big) =$$
 
-$$= \frac{1}{2} \Big[|110\rangle \otimes \big(|0\rangle - |1\rangle \big) + |111\rangle \otimes \big(|1\rangle - |0\rangle\big)\Big]$$
+$$= \frac{1}{2} \Big[|110\rangle \otimes \big(|0\rangle - |1\rangle \big) + |111\rangle \otimes \big(|1\rangle - |0\rangle\big)\Big] =$$
 
-$$= \Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes \Big[ \frac{1}{\sqrt{2}} \big( |0\rangle - |1\rangle \big) \Big]$$
+$$= \Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes \Big[ \frac{1}{\sqrt{2}} \big( |0\rangle - |1\rangle \big) \Big] =$$
 
 $$= \Big[\frac{1}{\sqrt{2}} \big( |110\rangle - |111\rangle \big) \Big] \otimes |-\rangle$$
 
@@ -241,21 +239,8 @@ Finally, let's compare $|\eta\rangle$ and $|\xi\rangle$; below are the final equ
 $$|\eta\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)\Big] \otimes |-\rangle$$
 $$|\xi\rangle = \Big[\frac{1}{\sqrt{2}}\big(|110\rangle - |111\rangle\big)\Big] \otimes |-\rangle$$
 
-We can see that these two equations are identical, except for the $-1$ phase that appeared on the $|111\rangle$ basis state (representing $7$).  This is a specific example of the phase kickback effect, as the phase from $|-\rangle$ has been *kicked back* into $|x\rangle$.
+We can see that these two equations are identical, except for the $-1$ phase that appeared on the $|111\rangle$ basis state - our marked state.  This is a specific example of the phase kickback effect, as the phase from $|-\rangle$ has been *kicked back* into $|x\rangle$.
 
-## 🔎 Analyze
-
-**Distinguishing states**
-
-How could we distinguish the states $|\eta\rangle = |11+\rangle |-\rangle$ and $|\xi\rangle = |11-\rangle |-\rangle$?  Take a moment to think.
-
-<details>
-<summary><b>Solution</b></summary>
-Recall that we can only observe alterations to out input state by performing a measurement.
-If we apply Hadamard gate to the third qubit, we will be able to distinguish between the input state and the output state.
-    $$(I\otimes I \otimes H)|11+\rangle = |110\rangle \\ (I\otimes I \otimes H)|11-\rangle = |111\rangle$$
-Now if we were to measure the third qubit, we'll be able to distinguish the starting state and the state after phase kickback occurred.
-</details>
 
 @[exercise]({
     "id": "oracles__marking_oracle_as_phase",
@@ -269,7 +254,7 @@ Now if we were to measure the third qubit, we'll be able to distinguish the star
 
 @[section]({
     "id": "oracles__conversion",
-    "title": "Oracle Conversion"
+    "title": "Converting Marking Oracles to Phase Oracles"
 })
 
 In this demo we will use a reference implementation of `ApplyMarkingOracleAsPhaseOracle` operation to convert marking oracle `IsSeven_MarkingOracle` to a phase oracle. Then we will compare this converted oracle to the reference implementation of the phase oracle `IsSeven_PhaseOracle`. You already implemented these oracles in the previous tasks.
@@ -287,6 +272,9 @@ This converter provides a way to implement the function of interest as a marking
 })
 
 In this section you will implement a few more complicated quantum oracles.
+Some of them - both phase and marking - can take extra "classical" parameters.
+A useful tool for implementing quantum oracles is allocating auxiliary qubits to assist in a computation. 
+You will practice that in some of the exercises below.
 
 > Notice that the operation declarations below require adjoint and controlled variants of the oracle to be automatically generated. This is common practice that makes testing and reusing the code easier. Typically Q# compiler will easily generate these variants, as long as you don't use mutable variables or operations that don't support these functors.
 
@@ -357,9 +345,9 @@ In this section you will implement a few more complicated quantum oracles.
 
 In this demo we show how you could test an oracle that you've implemented for your own problem.
 For all of the previous oracles that you've implemented, we've been testing your oracle against a reference solution for that task.
-However, if you're designing an oracle for a new problem, you do not have a reference solution for it - if you did, there would be no point for you to program the oracle in the first place!
+However, if you're designing an oracle for a new problem, you do not have a reference solution for it - if you did, there would be no point for you to implement the oracle in the first place!
 
-A good way to test a quantum oracle of interest is to write a classical oracle that performs the same computation classically, and then compare the effect of your quantum oracle on the basis states with the output of the classical oracle for every input (or a lot of the inputs if you are constrained by runtime) to ensure that they match.
+A good way to test a quantum oracle of interest is to write a classical oracle that performs the same computation classically, and then compare the effect of your quantum oracle on the basis states with the output of the classical oracle for every input (or a certain percentage of the inputs if you are constrained by runtime) to ensure that they match.
 
 Here we will compare the reference implementation of `Meeting_Oracle` to the classical code implementing the same function.
 
@@ -372,6 +360,7 @@ Here we will compare the reference implementation of `Meeting_Oracle` to the cla
 
 Congratulations! In this kata you have learned to build quantum oracles. Here are a few key concepts to keep in mind:
 
-- A quantum oracle is an "opaque box" operation that is used as input to another algorithm.
-- Phase oracles encode the information in the relative phase of basis states. If $f(x)=0$, the oracle doesn't change the basis state $\ket{x}$, and if $f(x)=1$ it multiplies the phase of the basis state $\ket{x}$ by $-1$.
-- Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, it doen't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$ it flips the state of the qubit $\ket{y}$ for the basis state $\ket{x}$.
+- A quantum oracle is an "opaque box" operation that implements a classical computation. 
+- Quantum oracles are used to convert classical problems into inputs to quantum algorithms, such as Grover's search algorithm.
+- Phase oracles encode the information in the relative phase of basis states. If $f(x)=0$, the oracle doesn't change the basis state $\ket{x}$, and if $f(x)=1$, it multiplies the phase of the basis state $\ket{x}$ by $-1$.
+- Marking oracles use an extra qubit $\ket{y}$ and encode the information in the state of that qubit. If $f(x)=0$, the oracle doesn't change the state of the qubit $\ket{y}$ for the basis state $\ket{x}$, and if $f(x)=1$, it flips the state of the qubit $\ket{y}$ for the basis state $\ket{x}$.

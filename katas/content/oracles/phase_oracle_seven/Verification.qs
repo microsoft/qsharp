@@ -21,9 +21,7 @@ namespace Kata.Verification {
             Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                 "transformation");
             use initial = Qubit[3]; // |000〉
-            Ry(ArcTan2(0.8, 0.6) * 2.0, initial[0]);
-            Ry(ArcTan2(0.7, 0.4) * 2.0, initial[1]);
-            Ry(ArcTan2(0.6, 0.5) * 2.0, initial[2]);
+            PrepRandomState(initial);
             ShowQuantumStateComparison(initial, Kata.IsSeven_PhaseOracle, IsSeven_PhaseOracle_Reference);
             ResetAll(initial);
         }

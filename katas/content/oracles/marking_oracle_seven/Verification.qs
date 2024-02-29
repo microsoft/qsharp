@@ -12,7 +12,7 @@ namespace Kata.Verification {
         let N = 3;
         let sol = ApplyOracle(_, Kata.IsSeven_MarkingOracle);
         let ref = ApplyOracle(_, IsSeven_MarkingOracle_Reference);
-        let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+        let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N + 1);
         if isCorrect {
             Message("Correct!");
         } else {
@@ -20,9 +20,7 @@ namespace Kata.Verification {
             Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                 "transformation");
             use initial = Qubit[4]; // |000〉
-            Ry(ArcTan2(0.8, 0.6) * 2.0, initial[0]);
-            Ry(ArcTan2(0.7, 0.4) * 2.0, initial[1]);
-            Ry(ArcTan2(0.6, 0.5) * 2.0, initial[2]);
+            PrepRandomState(initial[...2]);
             ShowQuantumStateComparison(initial, sol, ref);
             ResetAll(initial);
         }
