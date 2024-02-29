@@ -2,10 +2,9 @@
 // Licensed under the MIT License.
 
 use qsc_data_structures::span::Span;
-use qsc_frontend::keyword::Keyword;
 use qsc_frontend::lex::{
-    concrete::{self, ConcreteToken, ConcreteTokenKind::*},
-    cooked::TokenKind::*,
+    concrete::{self, ConcreteToken, ConcreteTokenKind},
+    cooked::TokenKind,
     Delim,
 };
 
@@ -54,22 +53,22 @@ pub fn format(code: &str) -> Vec<Edit> {
         let mut edits_for_triple = match (&one, &two, &three) {
             (Some(one), Some(two), Some(three)) => {
                 // if the token is a {, increase the indent level
-                if let Syntax(Open(Delim::Brace)) = one.kind {
+                if let ConcreteTokenKind::Syntax(TokenKind::Open(Delim::Brace)) = one.kind {
                     indent_level += 1;
                 }
 
                 // if the token is a }, decrease the indent level
-                if let Syntax(Close(Delim::Brace)) = one.kind {
+                if let ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) = one.kind {
                     #[allow(clippy::implicit_saturating_sub)]
                     if indent_level > 0 {
                         indent_level -= 1;
                     }
                 }
 
-                if let WhiteSpace = one.kind {
+                if let ConcreteTokenKind::WhiteSpace = one.kind {
                     // first token is whitespace, continue scanning
                     continue;
-                } else if let WhiteSpace = two.kind {
+                } else if let ConcreteTokenKind::WhiteSpace = two.kind {
                     // whitespace in the middle
                     apply_rules(
                         one,
@@ -141,6 +140,9 @@ fn apply_rules(
         indent_level
     };
 
+    use qsc_frontend::keyword::Keyword;
+    use ConcreteTokenKind::*;
+    use TokenKind::*;
     match (&left.kind, &right.kind) {
         (Syntax(Open(l)), Syntax(Close(r))) if l == r => {
             rule_no_space(left, whitespace, right, &mut edits);
