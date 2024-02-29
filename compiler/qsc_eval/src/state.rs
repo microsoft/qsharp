@@ -374,6 +374,9 @@ pub fn get_latex(state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> String
     latex
 }
 
+// Write latex for one term of quantum state.
+// Latex is rendered for coefficient only (not for basis vector).
+// + is rendered only if render_plus is true.
 fn write_latex_for_term(latex: &mut String, term: &Term, render_plus: bool) {
     match &term.coordinate {
         ComplexNumber::Cartesian(cartesian_form) => {
@@ -385,6 +388,8 @@ fn write_latex_for_term(latex: &mut String, term: &Term, render_plus: bool) {
     }
 }
 
+// Write latex for polar form of a complex number.
+// The sign is always + and is rendered only if render_plus is true.
 fn write_latex_for_polar_form(latex: &mut String, complex_number: &PolarForm, render_plus: bool) {
     if complex_number.sign < 0 {
         latex.push('-');
@@ -400,7 +405,7 @@ fn write_latex_for_polar_form(latex: &mut String, complex_number: &PolarForm, re
     if pi_num != 1 {
         write!(latex, "{pi_num}").unwrap();
     }
-    latex.push_str(" i \\pi ");
+    latex.push_str(" i \\pi");
     let pi_den = complex_number.phase_multiplier.denominator;
     if pi_den != 1 {
         write!(latex, " / {pi_den}").unwrap();
@@ -408,6 +413,12 @@ fn write_latex_for_polar_form(latex: &mut String, complex_number: &PolarForm, re
     latex.push('}');
 }
 
+// Write latex for cartesian form of a complex number.
+// Common + is rendered only if render_plus is true.
+// Brackets are used if both real and imaginary parts are present.
+// If only one part is present, its sign is used as common.
+// If both components are present, real part sign is used as common.
+// 1 is not rendered, but + is rendered if render_plus is true.
 fn write_latex_for_cartesian_form(
     latex: &mut String,
     cartesian_form: &CartesianForm,
@@ -444,6 +455,8 @@ fn write_latex_for_cartesian_form(
     }
 }
 
+// Write latex for real number. Note that the sign is not rendered.
+// 1 is only rendered if render_one is true. 0 is rendered, but not used in current code.
 fn write_latex_for_real_number(latex: &mut String, number: RealNumber, render_one: bool) {
     match number {
         RealNumber::Algebraic(algebraic_number) => {
@@ -459,12 +472,16 @@ fn write_latex_for_real_number(latex: &mut String, number: RealNumber, render_on
     }
 }
 
+// Write latex for decimal number. Note that the sign is not rendered.
+// 1 is only rendered if render_one is true.
 fn write_latex_for_decimal_number(latex: &mut String, number: DecimalNumber, render_one: bool) {
     if render_one || is_significant(number.value - 1.0) {
         write!(latex, "{}", number.value).unwrap();
     }
 }
 
+// Write latex for algebraic number. Note that the sign is not rendered.
+// 1 is only rendered if render_one is true.
 fn write_latex_for_algebraic_number(latex: &mut String, number: AlgebraicNumber, render_one: bool) {
     let actually_needs_1: bool = render_one || number.fraction.denominator != 1;
     if number.fraction.denominator != 1 {

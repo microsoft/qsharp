@@ -1,13 +1,16 @@
 //use expect_test::expect;
 
-use std::f64::consts::PI;
-
 use super::{
-    write_latex_for_algebraic_number, AlgebraicNumber, CartesianForm, ComplexNumber, DecimalNumber,
-    PolarForm, RationalNumber, RealNumber,
+    get_latex, write_latex_for_algebraic_number, write_latex_for_cartesian_form,
+    write_latex_for_decimal_number, write_latex_for_polar_form, write_latex_for_real_number,
+    write_latex_for_term, AlgebraicNumber, CartesianForm, ComplexNumber, DecimalNumber, PolarForm,
+    RationalNumber, RealNumber, Term,
 };
 use crate::state::{is_fractional_part_significant, is_significant};
 use expect_test::{expect, Expect};
+use num_bigint::BigUint;
+use num_complex::Complex64;
+use std::f64::consts::PI;
 
 #[test]
 fn check_is_significant() {
@@ -485,6 +488,15 @@ fn check_get_latex_for_algebraic() {
     );
     assert_latex_for_algebraic(
         &expect!([r#"
+            "\\frac{5 \\sqrt{2}}{3}"
+        "#]),
+        -5,
+        3,
+        2,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
             "\\frac{\\sqrt{2}}{3}"
         "#]),
         1,
@@ -557,12 +569,296 @@ fn check_get_latex_for_algebraic() {
     );
 }
 
+fn assert_latex_for_decimal(expected: &Expect, number: f64, render_one: bool) {
+    let number = DecimalNumber::construct(number);
+    let mut latex = String::with_capacity(50);
+    write_latex_for_decimal_number(&mut latex, number, render_one);
+    expected.assert_debug_eq(&latex);
+}
+
+#[test]
+fn check_get_latex_for_decimal() {
+    assert_latex_for_decimal(
+        &expect!([r#"
+            "0.25"
+        "#]),
+        0.25,
+        false,
+    );
+    assert_latex_for_decimal(
+        &expect!([r#"
+            "0.25"
+        "#]),
+        -0.25,
+        false,
+    );
+    assert_latex_for_decimal(
+        &expect!([r#"
+            ""
+        "#]),
+        -1.0,
+        false,
+    );
+    assert_latex_for_decimal(
+        &expect!([r#"
+            ""
+        "#]),
+        1.0,
+        false,
+    );
+    assert_latex_for_decimal(
+        &expect!([r#"
+            "1"
+        "#]),
+        1.0,
+        true,
+    );
+}
+
+fn assert_latex_for_real(expected: &Expect, x: f64, render_one: bool) {
+    let number = RealNumber::recognize(x);
+    let mut latex = String::with_capacity(50);
+    write_latex_for_real_number(&mut latex, number, render_one);
+    expected.assert_debug_eq(&latex);
+}
+
+#[test]
+fn check_get_latex_for_real() {
+    assert_latex_for_real(
+        &expect!([r#"
+        "\\frac{1}{4}"
+    "#]),
+        1.0 / 4.0,
+        false,
+    );
+    assert_latex_for_real(
+        &expect!([r#"
+        "\\frac{1}{4}"
+    "#]),
+        -1.0 / 4.0,
+        false,
+    );
+    assert_latex_for_real(
+        &expect!([r#"
+            ""
+        "#]),
+        1.0,
+        false,
+    );
+    assert_latex_for_real(
+        &expect!([r#"
+            "1"
+        "#]),
+        1.0,
+        true,
+    );
+    assert_latex_for_real(
+        &expect!([r#"
+            "0"
+        "#]),
+        0.0,
+        false,
+    );
+    assert_latex_for_real(
+        &expect!([r#"
+            "0.00025"
+        "#]),
+        1.0 / 4000.0,
+        false,
+    );
+}
+
+fn assert_latex_for_cartesian(expected: &Expect, re: f64, im: f64, render_plus: bool) {
+    let number = CartesianForm::recognize(re, im);
+    let mut latex = String::with_capacity(50);
+    write_latex_for_cartesian_form(&mut latex, &number, render_plus);
+    expected.assert_debug_eq(&latex);
+}
+
+#[test]
+fn check_get_latex_for_cartesian() {
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            "\\left( \\frac{1}{2}+\\frac{1}{2}i \\right)"
+        "#]),
+        0.5,
+        0.5,
+        false,
+    );
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            "-\\left( \\frac{1}{2}-\\frac{1}{2}i \\right)"
+        "#]),
+        -0.5,
+        0.5,
+        false,
+    );
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            "\\left( \\frac{1}{2}-\\frac{1}{2}i \\right)"
+        "#]),
+        0.5,
+        -0.5,
+        false,
+    );
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            "-\\left( \\frac{1}{2}+\\frac{1}{2}i \\right)"
+        "#]),
+        -0.5,
+        -0.5,
+        false,
+    );
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            "-\\frac{1}{2}i"
+        "#]),
+        0.0,
+        -0.5,
+        false,
+    );
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            "-\\frac{1}{2}"
+        "#]),
+        -0.5,
+        0.0,
+        false,
+    );
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            ""
+        "#]),
+        1.0,
+        0.0,
+        false,
+    );
+    assert_latex_for_cartesian(
+        &expect!([r#"
+            "+"
+        "#]),
+        1.0,
+        0.0,
+        true,
+    );
+}
+
+fn assert_latex_for_polar(expected: &Expect, re: f64, im: f64, render_plus: bool) {
+    let number = PolarForm::recognize(re, im).expect("Polar form not recognized.");
+    let mut latex = String::with_capacity(50);
+    write_latex_for_polar_form(&mut latex, &number, render_plus);
+    expected.assert_debug_eq(&latex);
+}
+
+#[test]
+fn check_get_latex_for_polar() {
+    assert_latex_for_polar(
+        &expect!([r#"
+            "+\\frac{1}{2} e^{ i \\pi / 3}"
+        "#]),
+        1.0 / 2.0 * (PI / 3.0).cos(),
+        1.0 / 2.0 * (PI / 3.0).sin(),
+        true,
+    );
+    assert_latex_for_polar(
+        &expect!([r#"
+            "+ e^{ i \\pi / 3}"
+        "#]),
+        (PI / 3.0).cos(),
+        (PI / 3.0).sin(),
+        true,
+    );
+    assert_latex_for_polar(
+        &expect!([r#"
+            "+\\frac{1}{2} e^{- i \\pi / 3}"
+        "#]),
+        1.0 / 2.0 * (-PI / 3.0).cos(),
+        1.0 / 2.0 * (-PI / 3.0).sin(),
+        true,
+    );
+    assert_latex_for_polar(
+        &expect!([r#"
+            "+\\frac{1}{2} e^{2 i \\pi / 3}"
+        "#]),
+        1.0 / 2.0 * (2.0 * PI / 3.0).cos(),
+        1.0 / 2.0 * (2.0 * PI / 3.0).sin(),
+        true,
+    );
+    assert_latex_for_polar(
+        &expect!([r#"
+            "+\\frac{1}{2} e^{-2 i \\pi / 3}"
+        "#]),
+        1.0 / 2.0 * (-2.0 * PI / 3.0).cos(),
+        1.0 / 2.0 * (-2.0 * PI / 3.0).sin(),
+        true,
+    );
+    assert_latex_for_polar(
+        &expect!([r#"
+            "\\frac{1}{2} e^{-2 i \\pi / 3}"
+        "#]),
+        1.0 / 2.0 * (-2.0 * PI / 3.0).cos(),
+        1.0 / 2.0 * (-2.0 * PI / 3.0).sin(),
+        false,
+    );
+}
+
+fn assert_latex_for_term(expected: &Expect, re: f64, im: f64, render_plus: bool) {
+    let t: Term = Term {
+        basis_vector: 0_u8.into(),
+        coordinate: ComplexNumber::recognize(re, im),
+    };
+    let mut latex = String::with_capacity(50);
+    write_latex_for_term(&mut latex, &t, render_plus);
+    expected.assert_debug_eq(&latex);
+}
+
+#[test]
+fn check_get_latex_for_term() {
+    assert_latex_for_term(
+        &expect!([r#"
+            "+\\frac{1}{2} e^{ i \\pi / 3}"
+        "#]),
+        1.0 / 2.0 * (PI / 3.0).cos(),
+        1.0 / 2.0 * (PI / 3.0).sin(),
+        true,
+    );
+    assert_latex_for_term(
+        &expect!([r#"
+            "+\\left( \\frac{1}{2}+\\frac{1}{2}i \\right)"
+        "#]),
+        1.0 / 2.0,
+        1.0 / 2.0,
+        true,
+    );
+    assert_latex_for_term(
+        &expect!([r#"
+            "\\left( \\frac{1}{2}+\\frac{1}{2}i \\right)"
+        "#]),
+        1.0 / 2.0,
+        1.0 / 2.0,
+        false,
+    );
+    assert_latex_for_term(
+        &expect!([r#"
+            "-\\left( \\frac{1}{2}-\\frac{1}{2}i \\right)"
+        "#]),
+        -1.0 / 2.0,
+        1.0 / 2.0,
+        true,
+    );
+    assert_latex_for_term(
+        &expect!([r#"
+            "-\\left( \\frac{1}{2}-\\frac{1}{2}i \\right)"
+        "#]),
+        -1.0 / 2.0,
+        1.0 / 2.0,
+        false,
+    );
+}
+
 // #[test]
-// fn check_get_latex_for_exponent() {
-//     expect!([r#"e^{ i \pi }"#]).assert_eq(&get_latex_for_exponent(1, 1));
-//     expect!([r#"e^{- i \pi }"#]).assert_eq(&get_latex_for_exponent(-1, 1));
-//     expect!([r#"e^{ i \pi  / 2}"#]).assert_eq(&get_latex_for_exponent(1, 2));
-//     expect!([r#"e^{- i \pi  / 2}"#]).assert_eq(&get_latex_for_exponent(-1, 2));
-//     expect!([r#"e^{2 i \pi  / 3}"#]).assert_eq(&get_latex_for_exponent(2, 3));
-//     expect!([r#"e^{-2 i \pi  / 3}"#]).assert_eq(&get_latex_for_exponent(-2, 3));
+// fn check_get_latex() {
+//     let v: Vec<(BigUint, Complex64)> = vec![(0_u8.into(), Complex64::new(0.5, 0.5))];
+//     let s = get_latex(v, 2);
+//     expected.assert_debug_eq(&latex);
 // }
