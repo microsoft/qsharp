@@ -1029,7 +1029,6 @@ dependencies = [
  "miette",
  "qsc_ast",
  "qsc_data_structures",
- "qsc_fir",
  "qsc_hir",
  "qsc_parse",
  "thiserror",
