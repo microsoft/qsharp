@@ -535,12 +535,9 @@ impl<'a> CoreAnalyzer<'a> {
                         .get_expr_compute_kind(e)
                         .is_value_dynamic()
                 });
-            let value_kind = if is_any_sub_expr_dynamic {
-                ValueKind::Dynamic
-            } else {
-                ValueKind::Static
-            };
-            compute_kind.aggregate_value_kind(value_kind);
+            if is_any_sub_expr_dynamic {
+                compute_kind.aggregate_value_kind(ValueKind::Dynamic);
+            }
         }
 
         compute_kind
@@ -909,9 +906,12 @@ impl<'a> CoreAnalyzer<'a> {
 
         // Save the analysis to the corresponding package compute properties.
         let package_compute_properties = self.package_store_compute_properties.get_mut(package_id);
-        spec_context
+        let application_generator_set = spec_context
             .builder
-            .save_to_package_compute_properties(package_compute_properties, Some(decl.block));
+            .save_to_package_compute_properties(package_compute_properties, Some(decl.block))
+            .expect("applications generator set should be some");
+        self.package_store_compute_properties
+            .insert_spec(global_spec_id, application_generator_set);
     }
 
     fn bind_compute_kind_to_ident(
