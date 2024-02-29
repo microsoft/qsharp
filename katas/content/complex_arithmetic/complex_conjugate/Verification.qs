@@ -38,11 +38,11 @@
         
             if (ComplexEqual(expected, actual)) {
                 set success = true; 
-                Message("Success! Your solution is correct");
+                Message("Correct!");
             }        
         
             else {
-            Message("Solution failed. Actual product doesn't match expected value");
+            Message("Incorrect. Actual value doesn't match expected value");
             Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} + {expected::Imag}i");
             }        
         
