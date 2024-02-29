@@ -10,7 +10,8 @@ use crate::{
         FunctorAppExt, GlobalSpecId, InputParam, Local, LocalKind,
     },
     scaffolding::{ItemComputeProperties, PackageStoreComputeProperties},
-    ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
+    ApplicationGeneratorSet, ComputeKind, ComputePropertiesLookup, QuantumProperties,
+    RuntimeFeatureFlags, ValueKind,
 };
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
@@ -27,7 +28,7 @@ use qsc_fir::{
 pub struct CoreAnalyzer<'a> {
     package_store: &'a PackageStore,
     package_store_compute_properties: PackageStoreComputeProperties,
-    active_items: Vec<ItemContext>,
+    active_contexts: Vec<AnalysisContext>,
 }
 
 impl<'a> CoreAnalyzer<'a> {
@@ -38,7 +39,7 @@ impl<'a> CoreAnalyzer<'a> {
         Self {
             package_store,
             package_store_compute_properties,
-            active_items: Vec::<ItemContext>::default(),
+            active_contexts: Vec::<AnalysisContext>::default(),
         }
     }
 
@@ -804,16 +805,33 @@ impl<'a> CoreAnalyzer<'a> {
     }
 
     fn analyze_item(&mut self, item_id: StoreItemId, item: &'a Item) {
-        self.push_active_item_context(item_id);
+        self.push_item_context(item_id);
         self.visit_item(item);
-        let popped_item_id = self.pop_active_item_context();
+        let popped_item_id = self.pop_item_context();
         assert!(popped_item_id == item_id);
     }
 
     fn analyze_package_internal(&mut self, package_id: PackageId, package: &'a Package) {
+        // Analyze all top level items.
         for (local_item_id, item) in &package.items {
             self.analyze_item((package_id, local_item_id).into(), item);
         }
+
+        // Analyze top-level statements, which should be the only ones unanalyzed at this point.
+        let unanalyzed_stmts = self.unanalyzed_stmts(package_id);
+        self.push_top_level_context(package_id);
+        for stmt_id in unanalyzed_stmts {
+            // Visit the statement to determine its compute kind.
+            self.visit_stmt(stmt_id);
+        }
+        let top_level_context = self.pop_top_level_context();
+        assert!(top_level_context.package_id == package_id);
+
+        // Save the analysis of the top-level elements to the corresponding package compute properties.
+        let package_compute_properties = self.package_store_compute_properties.get_mut(package_id);
+        top_level_context
+            .builder
+            .save_to_package_compute_properties(package_compute_properties, None);
     }
 
     fn analyze_spec(&mut self, id: GlobalSpecId, callable_decl: &'a CallableDecl) {
@@ -827,7 +845,7 @@ impl<'a> CoreAnalyzer<'a> {
         }
 
         // Push the context of the callable the specialization belongs to.
-        self.push_active_item_context(id.callable);
+        self.push_item_context(id.callable);
         let input_params = derive_callable_input_params(
             callable_decl,
             &self.package_store.get(id.callable.package).pats,
@@ -865,7 +883,7 @@ impl<'a> CoreAnalyzer<'a> {
         };
 
         // Since we are done analyzing the specialization, pop the active item context.
-        let popped_item_id = self.pop_active_item_context();
+        let popped_item_id = self.pop_item_context();
         assert!(popped_item_id == id.callable);
     }
 
@@ -992,27 +1010,53 @@ impl<'a> CoreAnalyzer<'a> {
     }
 
     fn get_current_application_instance(&self) -> &ApplicationInstance {
-        self.get_current_spec_context()
-            .get_current_application_instance()
+        let current_context = self.get_current_context();
+        match current_context {
+            AnalysisContext::Item(item_context) => item_context
+                .get_current_spec_context()
+                .get_current_application_instance(),
+            // A top level context only has one application instance, the inherent one.
+            AnalysisContext::TopLevel(top_level_context) => &top_level_context.builder.inherent,
+        }
     }
 
     fn get_current_application_instance_mut(&mut self) -> &mut ApplicationInstance {
-        self.get_current_spec_context_mut()
-            .get_current_application_instance_mut()
+        let current_context = self.get_current_context_mut();
+        match current_context {
+            AnalysisContext::Item(item_context) => item_context
+                .get_current_spec_context_mut()
+                .get_current_application_instance_mut(),
+            // A top level context only has one application instance, the inherent one.
+            AnalysisContext::TopLevel(top_level_context) => &mut top_level_context.builder.inherent,
+        }
+    }
+
+    fn get_current_context(&self) -> &AnalysisContext {
+        self.active_contexts
+            .last()
+            .expect("there are no active contexts")
+    }
+
+    fn get_current_context_mut(&mut self) -> &mut AnalysisContext {
+        self.active_contexts
+            .last_mut()
+            .expect("there are no active contexts")
     }
 
     fn get_current_item_context(&self) -> &ItemContext {
-        self.active_items.last().expect("there are no active items")
+        let current_context = self.get_current_context();
+        let AnalysisContext::Item(item_context) = &current_context else {
+            panic!("the current analysis context is not an item context");
+        };
+        item_context
     }
 
     fn get_current_item_context_mut(&mut self) -> &mut ItemContext {
-        self.active_items
-            .last_mut()
-            .expect("there are no active items")
-    }
-
-    fn get_current_spec_context(&self) -> &SpecContext {
-        self.get_current_item_context().get_current_spec_context()
+        let current_context = self.get_current_context_mut();
+        let AnalysisContext::Item(item_context) = current_context else {
+            panic!("the current analysis context is not an item context");
+        };
+        item_context
     }
 
     fn get_current_spec_context_mut(&mut self) -> &mut SpecContext {
@@ -1021,18 +1065,43 @@ impl<'a> CoreAnalyzer<'a> {
     }
 
     fn get_current_package_id(&self) -> PackageId {
-        self.get_current_item_context().id.package
+        let current_context = self.get_current_context();
+        match current_context {
+            AnalysisContext::TopLevel(top_level_context) => top_level_context.package_id,
+            AnalysisContext::Item(item_context) => item_context.id.package,
+        }
     }
 
-    fn pop_active_item_context(&mut self) -> StoreItemId {
-        self.active_items
+    fn pop_item_context(&mut self) -> StoreItemId {
+        let popped_context = self
+            .active_contexts
             .pop()
-            .expect("there are no active items")
-            .id
+            .expect("there are no active contexts");
+        let AnalysisContext::Item(item_context) = popped_context else {
+            panic!("the current analysis context is not an item context");
+        };
+        item_context.id
     }
 
-    fn push_active_item_context(&mut self, id: StoreItemId) {
-        self.active_items.push(ItemContext::new(id));
+    fn pop_top_level_context(&mut self) -> TopLevelContext {
+        let popped_context = self
+            .active_contexts
+            .pop()
+            .expect("there are no active contexts");
+        let AnalysisContext::TopLevel(top_level_context) = popped_context else {
+            panic!("the current analysis context is not an top-level context");
+        };
+        top_level_context
+    }
+
+    fn push_item_context(&mut self, id: StoreItemId) {
+        self.active_contexts
+            .push(AnalysisContext::Item(ItemContext::new(id)));
+    }
+
+    fn push_top_level_context(&mut self, package_id: PackageId) {
+        self.active_contexts
+            .push(AnalysisContext::TopLevel(TopLevelContext::new(package_id)));
     }
 
     fn set_current_application_index(&mut self, index: ApplicationInstanceIndex) {
@@ -1052,6 +1121,21 @@ impl<'a> CoreAnalyzer<'a> {
         let spec_context = SpecContext::new(functor_set_value, input_params, controls.as_ref());
         self.get_current_item_context_mut()
             .set_current_spec_context(spec_context);
+    }
+
+    fn unanalyzed_stmts(&self, package_id: PackageId) -> Vec<StmtId> {
+        let package = self.package_store.get(package_id);
+        let mut unanalyzed_stmts = Vec::new();
+        for (stmt_id, _) in &package.stmts {
+            if self
+                .package_store_compute_properties
+                .find_stmt((package_id, stmt_id).into())
+                .is_none()
+            {
+                unanalyzed_stmts.push(stmt_id);
+            }
+        }
+        unanalyzed_stmts
     }
 
     fn update_locals_compute_kind(&mut self, lhs_expr_id: ExprId, rhs_expr_id: ExprId) {
@@ -1353,6 +1437,29 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
         // Insert the statements's compute kind into the application instance.
         let application_instance = self.get_current_application_instance_mut();
         application_instance.insert_stmt_compute_kind(stmt_id, compute_kind);
+    }
+}
+
+// TODO (cesarzc): Use this at the top-level.
+#[allow(clippy::large_enum_variant)]
+enum AnalysisContext {
+    TopLevel(TopLevelContext),
+    Item(ItemContext),
+}
+
+struct TopLevelContext {
+    pub package_id: PackageId,
+    builder: GeneratorSetsBuilder,
+}
+
+impl TopLevelContext {
+    fn new(package_id: PackageId) -> Self {
+        // A top-level context uses a generator sets builder that behaves like a parameterless callable.
+        let builder = GeneratorSetsBuilder::new(&Vec::new(), None);
+        Self {
+            package_id,
+            builder,
+        }
     }
 }
 
