@@ -36,7 +36,7 @@ pub fn format(code: &str) -> Vec<Edit> {
     let tokens = concrete::ConcreteTokenIterator::new(code);
     let mut edits = vec![];
 
-    let mut indent_level = 0;
+    let mut indent_level: usize = 0;
 
     // The sliding window used is over three adjacent tokens
     #[allow(unused_assignments)]
@@ -59,10 +59,7 @@ pub fn format(code: &str) -> Vec<Edit> {
 
                 // if the token is a }, decrease the indent level
                 if let ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) = one.kind {
-                    #[allow(clippy::implicit_saturating_sub)]
-                    if indent_level > 0 {
-                        indent_level -= 1;
-                    }
+                    indent_level = indent_level.saturating_sub(1);
                 }
 
                 if let ConcreteTokenKind::WhiteSpace = one.kind {
