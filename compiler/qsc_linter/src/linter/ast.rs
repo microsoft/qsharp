@@ -168,23 +168,22 @@ impl<'a> Visitor<'a> for CombinedAstLints {
 /// You only need to implement the `check_*` function relevant to your lint.
 /// The trait provides default empty implementations for the rest of the methods,
 /// which will be optimized to a no-op by the rust compiler.
-#[allow(unused_variables)]
 pub(crate) trait AstLintPass {
-    fn check_attr(attr: &Attr, buffer: &mut Vec<Lint>) {}
-    fn check_block(block: &Block, buffer: &mut Vec<Lint>) {}
-    fn check_callable_decl(callable_decl: &CallableDecl, buffer: &mut Vec<Lint>) {}
-    fn check_expr(expr: &Expr, buffer: &mut Vec<Lint>) {}
-    fn check_functor_expr(functor_expr: &FunctorExpr, buffer: &mut Vec<Lint>) {}
-    fn check_ident(_: &Ident, buffer: &mut Vec<Lint>) {}
-    fn check_item(item: &Item, buffer: &mut Vec<Lint>) {}
-    fn check_namespace(namespace: &Namespace, buffer: &mut Vec<Lint>) {}
-    fn check_package(package: &Package, buffer: &mut Vec<Lint>) {}
-    fn check_pat(pat: &Pat, buffer: &mut Vec<Lint>) {}
-    fn check_path(path: &Path, buffer: &mut Vec<Lint>) {}
-    fn check_qubit_init(qubit_init: &QubitInit, buffer: &mut Vec<Lint>) {}
-    fn check_spec_decl(spec_decl: &SpecDecl, buffer: &mut Vec<Lint>) {}
-    fn check_stmt(stmt: &Stmt, buffer: &mut Vec<Lint>) {}
-    fn check_ty(ty: &Ty, buffer: &mut Vec<Lint>) {}
-    fn check_ty_def(ty_def: &TyDef, buffer: &mut Vec<Lint>) {}
-    fn check_visibility(visibility: &Visibility, buffer: &mut Vec<Lint>) {}
+    fn check_attr(_attr: &Attr, _buffer: &mut Vec<Lint>) {}
+    fn check_block(_block: &Block, _buffer: &mut Vec<Lint>) {}
+    fn check_callable_decl(_callable_decl: &CallableDecl, _buffer: &mut Vec<Lint>) {}
+    fn check_expr(_expr: &Expr, _buffer: &mut Vec<Lint>) {}
+    fn check_functor_expr(_functor_expr: &FunctorExpr, _buffer: &mut Vec<Lint>) {}
+    fn check_ident(_ident: &Ident, _buffer: &mut Vec<Lint>) {}
+    fn check_item(_item: &Item, _buffer: &mut Vec<Lint>) {}
+    fn check_namespace(_namespace: &Namespace, _buffer: &mut Vec<Lint>) {}
+    fn check_package(_package: &Package, _buffer: &mut Vec<Lint>) {}
+    fn check_pat(_pat: &Pat, _buffer: &mut Vec<Lint>) {}
+    fn check_path(_path: &Path, _buffer: &mut Vec<Lint>) {}
+    fn check_qubit_init(_qubit_init: &QubitInit, _buffer: &mut Vec<Lint>) {}
+    fn check_spec_decl(_spec_decl: &SpecDecl, _buffer: &mut Vec<Lint>) {}
+    fn check_stmt(_stmt: &Stmt, _buffer: &mut Vec<Lint>) {}
+    fn check_ty(_ty: &Ty, _buffer: &mut Vec<Lint>) {}
+    fn check_ty_def(_ty_def: &TyDef, _buffer: &mut Vec<Lint>) {}
+    fn check_visibility(_visibility: &Visibility, _buffer: &mut Vec<Lint>) {}
 }
