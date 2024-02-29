@@ -1,11 +1,12 @@
 pub(crate) mod ast;
 pub(crate) mod hir;
 
+use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;
 use std::fmt::Display;
 
 /// A lint emited by the linter.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub struct Lint {
     /// A span indicating where the diagnostic is in the source code.
     pub span: Span,
@@ -13,6 +14,52 @@ pub struct Lint {
     pub message: &'static str,
     /// The lint level: allow, warning, error.
     pub level: LintLevel,
+}
+
+impl std::fmt::Display for Lint {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl Diagnostic for Lint {
+    fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        None
+    }
+
+    fn severity(&self) -> Option<miette::Severity> {
+        match self.level {
+            LintLevel::Allow => None,
+            LintLevel::Warning | LintLevel::ForceWarning => Some(miette::Severity::Warning),
+            LintLevel::Error | LintLevel::ForceError => Some(miette::Severity::Error),
+        }
+    }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        None
+    }
+
+    fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        None
+    }
+
+    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
+        None
+    }
+
+    fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
+        let source_span = miette::SourceSpan::from(self.span);
+        let labeled_span = LabeledSpan::new_with_span(Some(self.to_string()), source_span);
+        Some(Box::new(vec![labeled_span].into_iter()))
+    }
+
+    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
+        None
+    }
+
+    fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
+        None
+    }
 }
 
 /// A lint level. This defines if a lint will be treated as a warning or an error,
