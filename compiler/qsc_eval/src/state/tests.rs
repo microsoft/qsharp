@@ -1,7 +1,13 @@
 //use expect_test::expect;
 
-use super::{AlgebraicNumber, DecimalNumber, RationalNumber};
+use std::f64::consts::PI;
+
+use super::{
+    write_latex_for_algebraic_number, AlgebraicNumber, CartesianForm, ComplexNumber, DecimalNumber,
+    PolarForm, RationalNumber, RealNumber,
+};
 use crate::state::{is_fractional_part_significant, is_significant};
+use expect_test::{expect, Expect};
 
 #[test]
 fn check_is_significant() {
@@ -44,6 +50,14 @@ fn check_construct_rational() {
     assert_rational_value(Some(RationalNumber::construct(-1, -2)), (1, 1, 2));
     // Although 0 is never used in the code we check it for completeness.
     assert_rational_value(Some(RationalNumber::construct(0, 1)), (0, 0, 1));
+    expect![[r#"
+        RationalNumber {
+            sign: 1,
+            numerator: 1,
+            denominator: 2,
+        }
+    "#]]
+    .assert_debug_eq(&RationalNumber::construct(1, 2));
 }
 
 #[test]
@@ -111,6 +125,21 @@ fn check_construct_algebraic() {
         )),
         (1, 1, 1, 2, 3),
     );
+    expect![[r#"
+        AlgebraicNumber {
+            sign: 1,
+            fraction: RationalNumber {
+                sign: 1,
+                numerator: 1,
+                denominator: 2,
+            },
+            root: 3,
+        }
+    "#]]
+    .assert_debug_eq(&AlgebraicNumber::construct(
+        &RationalNumber::construct(1, 2),
+        3,
+    ));
 }
 
 #[test]
@@ -145,6 +174,13 @@ fn assert_decimal_value(x: DecimalNumber, expected: (i64, f64)) {
 fn check_construct_decimal() {
     assert_decimal_value(DecimalNumber::construct(0.777), (1, 0.777));
     assert_decimal_value(DecimalNumber::construct(-0.777), (-1, 0.777));
+    expect![[r#"
+        DecimalNumber {
+            sign: 1,
+            value: 1.0,
+        }
+    "#]]
+    .assert_debug_eq(&DecimalNumber::construct(1.0));
 }
 
 #[test]
@@ -153,32 +189,373 @@ fn check_recognize_decimal() {
     assert_decimal_value(DecimalNumber::recognize(-0.777), (-1, 0.777));
 }
 
-// #[test]
-// fn check_get_latex_for_algebraic() {
-//     expect!([r#"\frac{5 \sqrt{2}}{3}"#]).assert_eq(&get_latex_for_algebraic(5, 3, 2, false));
-//     expect!([r#"\frac{\sqrt{2}}{3}"#]).assert_eq(&get_latex_for_algebraic(1, 3, 2, false));
-//     expect!([r#"5 \sqrt{2}"#]).assert_eq(&get_latex_for_algebraic(5, 1, 2, false));
-//     expect!([r#"\frac{5}{3}"#]).assert_eq(&get_latex_for_algebraic(5, 3, 1, false));
-//     expect!([r#"\sqrt{2}"#]).assert_eq(&get_latex_for_algebraic(1, 1, 2, false));
-//     expect!("5").assert_eq(&get_latex_for_algebraic(5, 1, 1, false));
-//     expect!([r#"\frac{1}{3}"#]).assert_eq(&get_latex_for_algebraic(1, 3, 1, false));
-//     expect!("").assert_eq(&get_latex_for_algebraic(1, 1, 1, false));
-//     expect!("1").assert_eq(&get_latex_for_algebraic(1, 1, 1, true));
-// }
+#[test]
+fn check_recognize_real_number() {
+    expect![[r#"
+        Zero
+    "#]]
+    .assert_debug_eq(&RealNumber::recognize(0.0));
 
-// #[test]
-// fn check_recognize_nice_algebraic() {
-//     let (p, s) = recognize_nice_algebraic(0.25, false);
-//     assert!(p);
-//     expect!([r#"\frac{1}{4}"#]).assert_eq(&s);
-// }
+    expect![[r#"
+        Algebraic(
+            AlgebraicNumber {
+                sign: 1,
+                fraction: RationalNumber {
+                    sign: 1,
+                    numerator: 5,
+                    denominator: 3,
+                },
+                root: 2,
+            },
+        )
+    "#]]
+    .assert_debug_eq(&RealNumber::recognize(5.0 * 2.0_f64.sqrt() / 3.0));
 
-// #[test]
-// fn check_recognize_nice_exponent() {
-//     assert!(
-//         recognize_nice_exponent(1.0 / 2.0_f64.sqrt(), 1.0 / 2.0_f64.sqrt()) == (true, 1, 1, 1, 4)
-//     );
-// }
+    expect![[r#"
+        Algebraic(
+            AlgebraicNumber {
+                sign: 1,
+                fraction: RationalNumber {
+                    sign: 1,
+                    numerator: 7,
+                    denominator: 10,
+                },
+                root: 1,
+            },
+        )
+    "#]]
+    .assert_debug_eq(&RealNumber::recognize(7.0 / 10.0));
+
+    expect![[r#"
+        Decimal(
+            DecimalNumber {
+                sign: 1,
+                value: 0.00558659217877095,
+            },
+        )
+    "#]]
+    .assert_debug_eq(&RealNumber::recognize(1.0 / 179.0));
+
+    expect![[r#"
+        Algebraic(
+            AlgebraicNumber {
+                sign: -1,
+                fraction: RationalNumber {
+                    sign: 1,
+                    numerator: 2,
+                    denominator: 3,
+                },
+                root: 1,
+            },
+        )
+    "#]]
+    .assert_debug_eq(&RealNumber::recognize(-2.0 / 3.0));
+
+    expect![[r#"
+        Algebraic(
+            AlgebraicNumber {
+                sign: -1,
+                fraction: RationalNumber {
+                    sign: 1,
+                    numerator: 5,
+                    denominator: 7,
+                },
+                root: 3,
+            },
+        )
+    "#]]
+    .assert_debug_eq(&RealNumber::recognize(-5.0 * 3.0_f64.sqrt() / 7.0));
+}
+
+#[test]
+fn check_recognize_polar() {
+    expect![[r#"
+        Some(
+            PolarForm {
+                sign: 1,
+                magnitude: AlgebraicNumber {
+                    sign: 1,
+                    fraction: RationalNumber {
+                        sign: 1,
+                        numerator: 5,
+                        denominator: 2,
+                    },
+                    root: 1,
+                },
+                phase_multiplier: RationalNumber {
+                    sign: 1,
+                    numerator: 1,
+                    denominator: 3,
+                },
+            },
+        )
+    "#]]
+    .assert_debug_eq(&PolarForm::recognize(
+        5.0 / 2.0 * (PI / 3.0).cos(),
+        5.0 / 2.0 * (PI / 3.0).sin(),
+    ));
+    expect![[r#"
+        Some(
+            PolarForm {
+                sign: 1,
+                magnitude: AlgebraicNumber {
+                    sign: 1,
+                    fraction: RationalNumber {
+                        sign: 1,
+                        numerator: 5,
+                        denominator: 2,
+                    },
+                    root: 1,
+                },
+                phase_multiplier: RationalNumber {
+                    sign: -1,
+                    numerator: 1,
+                    denominator: 3,
+                },
+            },
+        )
+    "#]]
+    .assert_debug_eq(&PolarForm::recognize(
+        5.0 / 2.0 * (PI / 3.0).cos(),
+        5.0 / 2.0 * (-PI / 3.0).sin(),
+    ));
+}
+
+#[test]
+fn check_recognize_cartesian() {
+    expect![[r#"
+        CartesianForm {
+            sign: -1,
+            real_part: Zero,
+            imaginary_part: Algebraic(
+                AlgebraicNumber {
+                    sign: 1,
+                    fraction: RationalNumber {
+                        sign: 1,
+                        numerator: 5,
+                        denominator: 3,
+                    },
+                    root: 2,
+                },
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&CartesianForm::recognize(0.0, -5.0 / 3.0 * 2.0_f64.sqrt()));
+    expect![[r#"
+        CartesianForm {
+            sign: -1,
+            real_part: Algebraic(
+                AlgebraicNumber {
+                    sign: 1,
+                    fraction: RationalNumber {
+                        sign: 1,
+                        numerator: 7,
+                        denominator: 3,
+                    },
+                    root: 1,
+                },
+            ),
+            imaginary_part: Algebraic(
+                AlgebraicNumber {
+                    sign: -1,
+                    fraction: RationalNumber {
+                        sign: 1,
+                        numerator: 2,
+                        denominator: 9,
+                    },
+                    root: 3,
+                },
+            ),
+        }
+    "#]]
+    .assert_debug_eq(&CartesianForm::recognize(
+        -7.0 / 3.0,
+        2.0 / 9.0 * 3.0_f64.sqrt(),
+    ));
+}
+
+#[test]
+fn check_recognize_complex() {
+    expect![[r#"
+        Cartesian(
+            CartesianForm {
+                sign: -1,
+                real_part: Zero,
+                imaginary_part: Algebraic(
+                    AlgebraicNumber {
+                        sign: 1,
+                        fraction: RationalNumber {
+                            sign: 1,
+                            numerator: 5,
+                            denominator: 3,
+                        },
+                        root: 2,
+                    },
+                ),
+            },
+        )
+    "#]]
+    .assert_debug_eq(&ComplexNumber::recognize(0.0, -5.0 / 3.0 * 2.0_f64.sqrt()));
+
+    expect![[r#"
+        Cartesian(
+            CartesianForm {
+                sign: -1,
+                real_part: Algebraic(
+                    AlgebraicNumber {
+                        sign: 1,
+                        fraction: RationalNumber {
+                            sign: 1,
+                            numerator: 7,
+                            denominator: 3,
+                        },
+                        root: 1,
+                    },
+                ),
+                imaginary_part: Algebraic(
+                    AlgebraicNumber {
+                        sign: -1,
+                        fraction: RationalNumber {
+                            sign: 1,
+                            numerator: 2,
+                            denominator: 9,
+                        },
+                        root: 3,
+                    },
+                ),
+            },
+        )
+    "#]]
+    .assert_debug_eq(&ComplexNumber::recognize(
+        -7.0 / 3.0,
+        2.0 / 9.0 * 3.0_f64.sqrt(),
+    ));
+
+    expect![[r#"
+        Polar(
+            PolarForm {
+                sign: 1,
+                magnitude: AlgebraicNumber {
+                    sign: 1,
+                    fraction: RationalNumber {
+                        sign: 1,
+                        numerator: 5,
+                        denominator: 2,
+                    },
+                    root: 1,
+                },
+                phase_multiplier: RationalNumber {
+                    sign: 1,
+                    numerator: 1,
+                    denominator: 3,
+                },
+            },
+        )
+    "#]]
+    .assert_debug_eq(&ComplexNumber::recognize(
+        5.0 / 2.0 * (PI / 3.0).cos(),
+        5.0 / 2.0 * (PI / 3.0).sin(),
+    ));
+}
+
+fn assert_latex_for_algebraic(
+    expected: &Expect,
+    numerator: i64,
+    denominator: i64,
+    root: i64,
+    render_one: bool,
+) {
+    let number =
+        AlgebraicNumber::construct(&RationalNumber::construct(numerator, denominator), root);
+    let mut latex = String::with_capacity(50);
+    write_latex_for_algebraic_number(&mut latex, number, render_one);
+    expected.assert_debug_eq(&latex);
+}
+
+#[test]
+fn check_get_latex_for_algebraic() {
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "\\frac{5 \\sqrt{2}}{3}"
+        "#]),
+        5,
+        3,
+        2,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "\\frac{\\sqrt{2}}{3}"
+        "#]),
+        1,
+        3,
+        2,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "5 \\sqrt{2}"
+        "#]),
+        5,
+        1,
+        2,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "\\frac{5}{3}"
+        "#]),
+        5,
+        3,
+        1,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "\\sqrt{2}"
+        "#]),
+        1,
+        1,
+        2,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "5"
+        "#]),
+        5,
+        1,
+        1,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "\\frac{1}{3}"
+        "#]),
+        1,
+        3,
+        1,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            ""
+        "#]),
+        1,
+        1,
+        1,
+        false,
+    );
+    assert_latex_for_algebraic(
+        &expect!([r#"
+            "1"
+        "#]),
+        1,
+        1,
+        1,
+        true,
+    );
+}
 
 // #[test]
 // fn check_get_latex_for_exponent() {

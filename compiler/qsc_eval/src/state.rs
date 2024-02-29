@@ -48,7 +48,7 @@ fn is_fractional_part_significant(x: f64) -> bool {
 
 // Represents a non-zero rational number in the form numerator/denominator
 // Sign of the number is separated for easier composition and rendering
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct RationalNumber {
     sign: i64,        // 1 if the number is positive, -1 if negative
     numerator: i64,   // Positive numerator
@@ -94,7 +94,7 @@ impl RationalNumber {
 
 // Represents a non-zero algebraic number in the form fraction·√root,
 // Sign of the number is separated for easier composition and rendering
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct AlgebraicNumber {
     sign: i64,                // 1 if the number is positive, -1 if negative
     fraction: RationalNumber, // Positive rational number numerator/denominator
@@ -127,7 +127,7 @@ impl AlgebraicNumber {
 
 // Represents a non-zero decimal number as an f64 floating point value.
 // Sign of the number is separated for easier composition and rendering
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct DecimalNumber {
     sign: i64,  // 1 if the number is positive, -1 if negative
     value: f64, // Positive floating point value
@@ -148,7 +148,7 @@ impl DecimalNumber {
 }
 
 // Represents a real number, which can be algebraic, decimal or zero.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 enum RealNumber {
     Algebraic(AlgebraicNumber),
     Decimal(DecimalNumber),
@@ -208,6 +208,7 @@ impl RealNumber {
 
 // Represents a non-zero complex numbers in the polar form: coefficient·𝒆^(𝝅·𝒊·phase_multiplier)
 // Sign of the number is separated for easier composition and rendering
+#[derive(Debug)]
 struct PolarForm {
     sign: i64,                        // For this form the sign is always 1
     magnitude: AlgebraicNumber,       // magnitude of the number
@@ -215,10 +216,10 @@ struct PolarForm {
 }
 
 impl PolarForm {
-    fn construct(magnitude: RationalNumber, pi_num: i64, pi_den: i64) -> Self {
+    fn construct(magnitude: &RationalNumber, pi_num: i64, pi_den: i64) -> Self {
         Self {
             sign: 1,
-            magnitude: AlgebraicNumber::construct(&magnitude, 1),
+            magnitude: AlgebraicNumber::construct(magnitude, 1),
             phase_multiplier: RationalNumber::construct(pi_num, pi_den),
         }
     }
@@ -255,7 +256,7 @@ impl PolarForm {
             // It's OK to take abs value as we are only interested in magnitude
             if let Some(magnitude) = RationalNumber::recognize((re / cos).abs()) {
                 return Some(Self::construct(
-                    magnitude,
+                    &magnitude,
                     if im >= 0.0 { pi_num } else { pi_num - pi_den },
                     pi_den,
                 ));
@@ -267,6 +268,7 @@ impl PolarForm {
 
 // Represents a non-zero complex number in the Cartesian form: real_part+𝒊·imaginary_part
 // Sign of the number is separated for easier composition and rendering
+#[derive(Debug)]
 struct CartesianForm {
     sign: i64,             // 1 the common sign is a "+", -1 is "-", 0 means the number is 0
     real_part: RealNumber, // Real part
@@ -277,17 +279,17 @@ impl CartesianForm {
     fn construct(real_part: RealNumber, imaginary_part: RealNumber) -> Self {
         let sign = real_part.sign();
         match sign {
-            0 => CartesianForm {
+            0 => Self {
                 sign: imaginary_part.sign(),
                 real_part: RealNumber::Zero,
                 imaginary_part: imaginary_part.abs(),
             },
-            1.. => CartesianForm {
+            1.. => Self {
                 sign,
                 real_part,
                 imaginary_part,
             },
-            _ => CartesianForm {
+            _ => Self {
                 sign,
                 real_part: real_part.abs(),
                 imaginary_part: imaginary_part.negate(),
@@ -295,23 +297,24 @@ impl CartesianForm {
         }
     }
 
-    fn recognize(re: f64, im: f64) -> CartesianForm {
-        CartesianForm::construct(RealNumber::recognize(re), RealNumber::recognize(im))
+    fn recognize(re: f64, im: f64) -> Self {
+        Self::construct(RealNumber::recognize(re), RealNumber::recognize(im))
     }
 }
 
 // Represents a non-zero complex number which can be in either Polar or CartesianForm
+#[derive(Debug)]
 enum ComplexNumber {
     Polar(PolarForm),
     Cartesian(CartesianForm),
 }
 
 impl ComplexNumber {
-    fn recognize(re: f64, im: f64) -> ComplexNumber {
+    fn recognize(re: f64, im: f64) -> Self {
         if let Some(exponent) = PolarForm::recognize(re, im) {
-            ComplexNumber::Polar(exponent)
+            Self::Polar(exponent)
         } else {
-            ComplexNumber::Cartesian(CartesianForm::recognize(re, im))
+            Self::Cartesian(CartesianForm::recognize(re, im))
         }
     }
 }
