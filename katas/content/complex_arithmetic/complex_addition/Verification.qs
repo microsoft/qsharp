@@ -10,20 +10,6 @@ namespace Kata.Verification {
         return z;
         }
 
-    operation ComplexRandom(min : Double, max : Double) : Complex{
-        
-        // Generates a random complex number. 
-        let real = DrawRandomDouble(min, max);
-        let imag = DrawRandomDouble(min, max);
-        return Complex (real, imag);
-        }
-
-    operation ComplexEqual(x : Complex, y : Complex) : Bool{
-
-        // Tests two complex numbers for equality.
-        return ((x::Real == y::Real) and (x::Imag == y::Imag));
-        }
-    
     @EntryPoint()
     operation CheckSolution() : Bool {
         

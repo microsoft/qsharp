@@ -45,7 +45,7 @@ We'll call the number $i$ and its real multiples **imaginary numbers**.
 
 A good video introduction to imaginary numbers can be found [here](https://youtu.be/SP-YJe7Vldo).
 
-@[exercise]({ "id": "complex_arithmetic__powers_of_i", "title": "Powers of $i$", "path": "./powers_of_i/", "qsDependencies": [ "../KatasLibrary.qs"] })
+@[exercise]({ "id": "complex_arithmetic__powers_of_i", "title": "Powers of $i$", "path": "./powers_of_i/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
 @[section]({ "id": "complex_arithmetic__complex_numbers", "title": "Complex Numbers" })
 
@@ -53,9 +53,9 @@ Adding imaginary numbers to each other is quite simple, but what happens when we
 
 When performing operations on complex numbers, it is often helpful to treat them as polynomials in terms of $i$.
 
-@[exercise]({ "id": "complex_arithmetic__complex_addition", "title": "Complex addition", "path": "./complex_addition/", "qsDependencies": [ "../KatasLibrary.qs" ] })
+@[exercise]({ "id": "complex_arithmetic__complex_addition", "title": "Complex addition", "path": "./complex_addition/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
-@[exercise]({ "id": "complex_arithmetic__complex_multiplication", "title": "Complex Multiplication", "path": "./complex_multiplication/", "qsDependencies": [ "../KatasLibrary.qs" ] })
+@[exercise]({ "id": "complex_arithmetic__complex_multiplication", "title": "Complex Multiplication", "path": "./complex_multiplication/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
 @[section]({ "id": "complex_arithmetic__complex_conjugate", "title": "Complex Conjugate" })
 
@@ -76,7 +76,7 @@ Another property of the conjugate is that it distributes over both complex addit
 $$\overline{x + y} = \overline{x} + \overline{y}$$
 $$\overline{x \cdot y} = \overline{x} \cdot \overline{y}$$
 
-@[exercise]({ "id": "complex_arithmetic__complex_conjugate_exercise", "title": "Complex Conjugate", "path": "./complex_conjugate/", "qsDependencies": [ "../KatasLibrary.qs"] })
+@[exercise]({ "id": "complex_arithmetic__complex_conjugate_exercise", "title": "Complex Conjugate", "path": "./complex_conjugate/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
 @[section]({ "id": "complex_arithmetic__complex_division", "title": "Complex Division" })
 
