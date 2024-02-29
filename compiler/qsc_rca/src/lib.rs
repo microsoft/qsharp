@@ -466,7 +466,7 @@ bitflags! {
         /// Use of a closure.
         const Closure = 1 << 23;
         /// Use of a runtime failure.
-        const Failure = 1 << 24;
+        const FailureWithDynamicExpression = 1 << 24;
     }
 }
 
@@ -547,7 +547,7 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::Closure) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::Failure) {
+        if self.contains(RuntimeFeatureFlags::FailureWithDynamicExpression) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         runtume_capabilities

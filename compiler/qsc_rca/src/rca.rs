@@ -1169,7 +1169,7 @@ fn determine_expr_fail_compute_kind(
         package_store,
         package_store_compute_properties,
     );
-    ComputeKind::with_runtime_features(RuntimeFeatureFlags::Failure)
+    ComputeKind::with_runtime_features(RuntimeFeatureFlags::FailureWithDynamicExpression)
 }
 
 fn determine_expr_field_compute_kind(
