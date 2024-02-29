@@ -929,7 +929,7 @@ fn string() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Normal,
                         ),
                         span: Span {
@@ -951,7 +951,7 @@ fn string_empty() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Normal,
                         ),
                         span: Span {
@@ -1011,7 +1011,7 @@ fn interpolated_string() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 Quote,
@@ -1036,7 +1036,7 @@ fn interpolated_string_braced() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1059,7 +1059,7 @@ fn interpolated_string_braced() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
@@ -1084,7 +1084,7 @@ fn interpolated_string_escape_brace() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 Quote,
@@ -1109,7 +1109,7 @@ fn interpolated_string_unclosed_brace() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1134,7 +1134,7 @@ fn interpolated_string_unclosed_brace_quote() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1186,7 +1186,7 @@ fn interpolated_string_unopened_brace_quote() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 Quote,
@@ -1211,7 +1211,7 @@ fn interpolated_string_braced_index() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1267,7 +1267,7 @@ fn interpolated_string_braced_index() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
@@ -1292,7 +1292,7 @@ fn interpolated_string_two_braced() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1315,7 +1315,7 @@ fn interpolated_string_two_braced() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 LBrace,
@@ -1338,7 +1338,7 @@ fn interpolated_string_two_braced() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
@@ -1363,7 +1363,7 @@ fn interpolated_string_braced_normal_string() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1377,7 +1377,7 @@ fn interpolated_string_braced_normal_string() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Normal,
                         ),
                         span: Span {
@@ -1388,7 +1388,7 @@ fn interpolated_string_braced_normal_string() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
@@ -1413,7 +1413,7 @@ fn nested_interpolated_string() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1427,7 +1427,7 @@ fn nested_interpolated_string() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1450,7 +1450,7 @@ fn nested_interpolated_string() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
@@ -1464,7 +1464,7 @@ fn nested_interpolated_string() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
@@ -1489,7 +1489,7 @@ fn nested_interpolated_string_with_exprs() {
             [
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1523,7 +1523,7 @@ fn nested_interpolated_string_with_exprs() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 DollarQuote,
                                 LBrace,
@@ -1546,7 +1546,7 @@ fn nested_interpolated_string_with_exprs() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
@@ -1560,7 +1560,7 @@ fn nested_interpolated_string_with_exprs() {
                 ),
                 Ok(
                     Token {
-                        kind: String(
+                        kind: StringToken(
                             Interpolated(
                                 RBrace,
                                 Quote,
