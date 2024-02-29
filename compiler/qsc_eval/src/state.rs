@@ -328,11 +328,11 @@ struct Term {
     coordinate: ComplexNumber,
 }
 
-fn get_terms_for_state(state: Vec<(BigUint, Complex64)>) -> Vec<Term> {
+fn get_terms_for_state(state: &Vec<(BigUint, Complex64)>) -> Vec<Term> {
     let mut result: Vec<Term> = Vec::with_capacity(state.len());
     for (basis_vector, coefficient) in state {
         result.push(Term {
-            basis_vector,
+            basis_vector: basis_vector.clone(),
             coordinate: ComplexNumber::recognize(coefficient.re, coefficient.im),
         });
     }
@@ -340,7 +340,7 @@ fn get_terms_for_state(state: Vec<(BigUint, Complex64)>) -> Vec<Term> {
 }
 
 #[must_use]
-pub fn get_latex(state: Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
+pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
     if state.len() > 16 {
         return String::new();
     }

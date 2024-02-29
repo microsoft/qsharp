@@ -618,7 +618,7 @@ fn check_get_latex_for_decimal() {
 fn assert_latex_for_real(expected: &Expect, x: f64, render_one: bool) {
     let number = RealNumber::recognize(x);
     let mut latex = String::with_capacity(50);
-    write_latex_for_real_number(&mut latex, number, render_one);
+    write_latex_for_real_number(&mut latex, &number, render_one);
     expected.assert_debug_eq(&latex);
 }
 
@@ -861,26 +861,29 @@ fn check_get_latex() {
     expect!([r#"
         "$|\\psi\\rangle = \\left( \\frac{1}{2}+\\frac{1}{2}i \\right)|00\\rangle$"
     "#])
-    .assert_debug_eq(&get_latex(vec![(0_u8.into(), Complex64::new(0.5, 0.5))], 2));
+    .assert_debug_eq(&get_latex(
+        &vec![(0_u8.into(), Complex64::new(0.5, 0.5))],
+        2,
+    ));
     expect!([r#"
         "$|\\psi\\rangle = -|00\\rangle$"
     "#])
     .assert_debug_eq(&get_latex(
-        vec![(0_u8.into(), Complex64::new(-1.0, 0.0))],
+        &vec![(0_u8.into(), Complex64::new(-1.0, 0.0))],
         2,
     ));
     expect!([r#"
         "$|\\psi\\rangle = -i|00\\rangle$"
     "#])
     .assert_debug_eq(&get_latex(
-        vec![(0_u8.into(), Complex64::new(0.0, -1.0))],
+        &vec![(0_u8.into(), Complex64::new(0.0, -1.0))],
         2,
     ));
     expect!([r#"
         "$|\\psi\\rangle =  e^{-2 i \\pi / 3}|00\\rangle$"
     "#])
     .assert_debug_eq(&get_latex(
-        vec![(
+        &vec![(
             0_u8.into(),
             Complex64::new((-2.0 * PI / 3.0).cos(), (-2.0 * PI / 3.0).sin()),
         )],
@@ -890,7 +893,7 @@ fn check_get_latex() {
         "$|\\psi\\rangle = \\left( 1+\\frac{\\sqrt{2}}{2}i \\right)|00\\rangle+\\left( 1+\\frac{\\sqrt{2}}{2}i \\right)|10\\rangle$"
     "#])
     .assert_debug_eq(&get_latex(
-        vec![
+        &vec![
             (0_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
             (2_u8.into(), Complex64::new(1.0, 1.0 / 2.0_f64.sqrt())),
         ],
