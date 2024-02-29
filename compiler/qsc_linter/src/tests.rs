@@ -8,22 +8,6 @@ use qsc_ast::{
 use qsc_data_structures::language_features::LanguageFeatures;
 
 #[test]
-fn double_parens() {
-    check_ast(
-        "let x = ((1 + 2));",
-        &expect![[r#"
-            [
-                SrcLint {
-                    source: "((1 + 2))",
-                    message: "unnecesary double parentheses",
-                    level: Warning,
-                },
-            ]
-        "#]],
-    );
-}
-
-#[test]
 fn multiple_lints() {
     check_ast(
         "let x = ((1 + 2)) / 0;",
@@ -41,6 +25,38 @@ fn multiple_lints() {
             },
         ]
     "#]],
+    );
+}
+
+#[test]
+fn double_parens() {
+    check_ast(
+        "let x = ((1 + 2));",
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "((1 + 2))",
+                    message: "unnecesary double parentheses",
+                    level: Warning,
+                },
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn division_by_zero() {
+    check_ast(
+        "let x = 2 / 0;",
+        &expect![[r#"
+            [
+                SrcLint {
+                    source: "2 / 0",
+                    message: "attempt to divide by zero",
+                    level: Allow,
+                },
+            ]
+        "#]],
     );
 }
 
