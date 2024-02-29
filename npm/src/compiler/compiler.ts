@@ -24,51 +24,44 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
+
   getHir(code: string, languageFeatures?: string[]): Promise<string>;
+
+  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
+   * sources and language features separately, pass an object with named properties. This change was made
+   * for the sake of extensibility and future-compatibility. Note that only the new API
+   * supports passing language features. If you need to pass language features, you must use
+   * the new API.
+   **/
+  run(
+    sources: [string, string][],
+    expr: string,
+    shots: number,
+    eventHandler: IQscEventTarget,
+  ): Promise<void>;
   run(
     config: ProgramConfig,
     expr: string,
     shots: number,
     eventHandler: IQscEventTarget,
   ): Promise<void>;
-  getQir(config: ProgramConfig): Promise<string>;
-  getEstimates(config: ProgramConfig, params: string): Promise<string>;
-  checkExerciseSolution(
-    userCode: string,
-    exerciseSources: string[],
-    eventHandler: IQscEventTarget,
-  ): Promise<boolean>;
-
-  // below are the deprecated methods
 
   /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
    * sources and language features separately, pass an object with named properties. This change was made
    * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing guage features. If you need to pass language features, you must use
-   * the new API.
-   **/
-  run(
-    sources: [string, string][],
-    expr: string,
-    shots: number,
-    eventHandler: IQscEventTarget,
-  ): Promise<void>;
-
-  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
-   * sources and language features separately, pass an object with named properties. This change was made
-   * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing guage features. If you need to pass language features, you must use
+   * supports passing language features. If you need to pass language features, you must use
    * the new API.
    **/
   getQir(
     sources: [string, string][],
     languageFeatures?: string[],
   ): Promise<string>;
+  getQir(config: ProgramConfig): Promise<string>;
 
   /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
    * sources and language features separately, pass an object with named properties. This change was made
    * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing guage features. If you need to pass language features, you must use
+   * supports passing language features. If you need to pass language features, you must use
    * the new API.
    **/
   getEstimates(
@@ -76,6 +69,13 @@ export interface ICompiler {
     params: string,
     languageFeatures?: string[],
   ): Promise<string>;
+  getEstimates(config: ProgramConfig, params: string): Promise<string>;
+
+  checkExerciseSolution(
+    userCode: string,
+    exerciseSources: string[],
+    eventHandler: IQscEventTarget,
+  ): Promise<boolean>;
 }
 
 /** Type definition for the configuration of a program. */
