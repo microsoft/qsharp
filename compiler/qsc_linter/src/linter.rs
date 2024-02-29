@@ -23,10 +23,6 @@ impl std::fmt::Display for Lint {
 }
 
 impl Diagnostic for Lint {
-    fn code<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        None
-    }
-
     fn severity(&self) -> Option<miette::Severity> {
         match self.level {
             LintLevel::Allow => None,
@@ -35,30 +31,10 @@ impl Diagnostic for Lint {
         }
     }
 
-    fn help<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        None
-    }
-
-    fn url<'a>(&'a self) -> Option<Box<dyn std::fmt::Display + 'a>> {
-        None
-    }
-
-    fn source_code(&self) -> Option<&dyn miette::SourceCode> {
-        None
-    }
-
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
         let source_span = miette::SourceSpan::from(self.span);
         let labeled_span = LabeledSpan::new_with_span(Some(self.to_string()), source_span);
         Some(Box::new(vec![labeled_span].into_iter()))
-    }
-
-    fn related<'a>(&'a self) -> Option<Box<dyn Iterator<Item = &'a dyn Diagnostic> + 'a>> {
-        None
-    }
-
-    fn diagnostic_source(&self) -> Option<&dyn Diagnostic> {
-        None
     }
 }
 
