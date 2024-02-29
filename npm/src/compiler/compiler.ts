@@ -34,7 +34,8 @@ export interface ICompiler {
   getQir(config: ProgramConfig): Promise<string>;
   getEstimates(config: ProgramConfig, params: string): Promise<string>;
   checkExerciseSolution(
-    config: CheckExerciseConfig,
+    userCode: string,
+    exerciseSources: string[],
     eventHandler: IQscEventTarget,
   ): Promise<boolean>;
 
@@ -75,24 +76,7 @@ export interface ICompiler {
     params: string,
     languageFeatures?: string[],
   ): Promise<string>;
-
-  /** @deprecated -- switch to using `CheckExerciseConfig`-based overload. Instead of passing
-   * sources and language features separately, pass an object with named properties. This change was made
-   * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing guage features. If you need to pass language features, you must use
-   * the new API.
-   **/
-  checkExerciseSolution(
-    userCode: string,
-    exerciseSources: string[],
-    eventHandler: IQscEventTarget,
-  ): Promise<boolean>;
 }
-
-export type CheckExerciseConfig = {
-  userCode: string;
-  exerciseSources: string[];
-};
 
 /** Type definition for the configuration of a program. */
 export type ProgramConfig = {
@@ -227,44 +211,8 @@ export class Compiler implements ICompiler {
   }
 
   async checkExerciseSolution(
-    userCodeOrConfig: string | CheckExerciseConfig,
-    exerciseSourcesOrEventTarget: string[] | IQscEventTarget,
-    maybeEventTarget?: IQscEventTarget,
-  ): Promise<boolean> {
-    if (
-      typeof userCodeOrConfig === "string" &&
-      Array.isArray(exerciseSourcesOrEventTarget) &&
-      maybeEventTarget !== undefined
-    ) {
-      return this.deprecatedCheckExerciseSolution(
-        userCodeOrConfig,
-        exerciseSourcesOrEventTarget,
-        maybeEventTarget,
-      );
-    } else {
-      return this.newCheckExerciseSolution(
-        userCodeOrConfig as CheckExerciseConfig,
-        exerciseSourcesOrEventTarget as IQscEventTarget,
-      );
-    }
-  }
-
-  async deprecatedCheckExerciseSolution(
     userCode: string,
     exerciseSources: string[],
-    eventHandler: IQscEventTarget,
-  ): Promise<boolean> {
-    const success = this.wasm.check_exercise_solution(
-      userCode,
-      exerciseSources,
-      (msg: string) => onCompilerEvent(msg, eventHandler),
-    );
-
-    return success;
-  }
-
-  async newCheckExerciseSolution(
-    { userCode, exerciseSources }: CheckExerciseConfig,
     eventHandler: IQscEventTarget,
   ): Promise<boolean> {
     const success = this.wasm.check_exercise_solution(
