@@ -171,14 +171,14 @@ fn check_recognize_algebraic() {
     );
 }
 
-fn assert_decimal_value(x: DecimalNumber, expected: (i64, f64)) {
+fn assert_decimal_value(x: &DecimalNumber, expected: (i64, f64)) {
     assert!(x.sign == expected.0 && (x.value - expected.1).abs() < f64::EPSILON);
 }
 
 #[test]
 fn check_construct_decimal() {
-    assert_decimal_value(DecimalNumber::construct(0.777), (1, 0.777));
-    assert_decimal_value(DecimalNumber::construct(-0.777), (-1, 0.777));
+    assert_decimal_value(&DecimalNumber::construct(0.777), (1, 0.777));
+    assert_decimal_value(&DecimalNumber::construct(-0.777), (-1, 0.777));
     expect!([r"
         DecimalNumber {
             sign: 1,
@@ -190,8 +190,8 @@ fn check_construct_decimal() {
 
 #[test]
 fn check_recognize_decimal() {
-    assert_decimal_value(DecimalNumber::recognize(0.777), (1, 0.777));
-    assert_decimal_value(DecimalNumber::recognize(-0.777), (-1, 0.777));
+    assert_decimal_value(&DecimalNumber::recognize(0.777), (1, 0.777));
+    assert_decimal_value(&DecimalNumber::recognize(-0.777), (-1, 0.777));
 }
 
 #[test]

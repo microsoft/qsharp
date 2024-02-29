@@ -97,7 +97,7 @@ impl RationalNumber {
 
 // Represents a non-zero algebraic number in the form fraction·√root,
 // Sign of the number is separated for easier composition and rendering
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 struct AlgebraicNumber {
     sign: i64,                // 1 if the number is positive, -1 if negative
     fraction: RationalNumber, // Positive rational number numerator/denominator
@@ -130,7 +130,7 @@ impl AlgebraicNumber {
 
 // Represents a non-zero decimal number as an f64 floating point value.
 // Sign of the number is separated for easier composition and rendering
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 struct DecimalNumber {
     sign: i64,  // 1 if the number is positive, -1 if negative
     value: f64, // Positive floating point value
@@ -151,7 +151,7 @@ impl DecimalNumber {
 }
 
 // Represents a real number, which can be algebraic, decimal or zero.
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 enum RealNumber {
     Algebraic(AlgebraicNumber),
     Decimal(DecimalNumber),
