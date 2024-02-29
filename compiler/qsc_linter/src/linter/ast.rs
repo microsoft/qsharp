@@ -19,12 +19,8 @@ pub fn run_ast_lints(package: &qsc_ast::ast::Package) -> Vec<Lint> {
 
     for node in package.nodes.iter() {
         match node {
-            TopLevelNode::Namespace(namespace) => {
-                lints.visit_namespace(namespace);
-            }
-            TopLevelNode::Stmt(stmt) => {
-                lints.visit_stmt(stmt);
-            }
+            TopLevelNode::Namespace(namespace) => lints.visit_namespace(namespace),
+            TopLevelNode::Stmt(stmt) => lints.visit_stmt(stmt),
         }
     }
 
