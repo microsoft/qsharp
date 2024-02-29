@@ -6,6 +6,7 @@ use qsc::{
     ast,
     compile::{self, Error},
     display::Lookup,
+    error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position},
@@ -60,7 +61,7 @@ impl Compilation {
         let std_package_id =
             package_store.insert(compile::std(&package_store, target_profile.into()));
 
-        let (unit, errors) = compile::compile(
+        let (unit, mut errors) = compile::compile(
             &package_store,
             &[std_package_id],
             source_map,
@@ -68,6 +69,13 @@ impl Compilation {
             target_profile.into(),
             language_features,
         );
+
+        let lints = unit.lints();
+        let mut lints = lints
+            .into_iter()
+            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
+            .collect();
+        errors.append(&mut lints);
 
         let package_id = package_store.insert(unit);
 

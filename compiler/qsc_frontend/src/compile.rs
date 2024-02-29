@@ -34,6 +34,7 @@ use qsc_hir::{
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
+use qsc_linter::{run_ast_lints, run_hir_lints};
 use std::{fmt::Debug, str::FromStr, sync::Arc};
 use thiserror::Error;
 
@@ -99,6 +100,20 @@ pub struct CompileUnit {
     pub sources: SourceMap,
     pub errors: Vec<Error>,
     pub dropped_names: Vec<TrackedName>,
+}
+
+impl CompileUnit {
+    #[must_use]
+    pub fn lints(&self) -> Vec<qsc_linter::Lint> {
+        let mut ast_lints = run_ast_lints(&self.ast.package);
+        let mut hir_lints = run_hir_lints(&self.package);
+
+        let mut lints = Vec::new();
+        lints.append(&mut ast_lints);
+        lints.append(&mut hir_lints);
+
+        lints
+    }
 }
 
 #[derive(Debug, Default)]
@@ -197,6 +212,8 @@ pub struct Error(pub(super) ErrorKind);
 pub(super) enum ErrorKind {
     #[error("syntax error")]
     Parse(#[from] qsc_parse::Error),
+    #[error(transparent)]
+    Lint(#[from] qsc_linter::Lint),
     #[error("name error")]
     Resolve(#[from] resolve::Error),
     #[error("type error")]

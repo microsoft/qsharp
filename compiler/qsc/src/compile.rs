@@ -19,6 +19,7 @@ pub type Error = WithSource<ErrorKind>;
 pub enum ErrorKind {
     Frontend(#[from] qsc_frontend::compile::Error),
     Pass(#[from] qsc_passes::Error),
+    Lint(#[from] qsc_linter::Lint),
 }
 
 #[must_use]
