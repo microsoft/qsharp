@@ -695,3 +695,9 @@ html {
 .qs-estimatesOverview-error {
   color: red;
 }
+
+.qs-gate-buttons button {
+  margin-top: 8px;
+  width: 50px;
+  height: 25px;
+}
