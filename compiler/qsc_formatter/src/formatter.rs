@@ -52,20 +52,19 @@ pub fn format(code: &str) -> Vec<Edit> {
 
         let mut edits_for_triple = match (&one, &two, &three) {
             (Some(one), Some(two), Some(three)) => {
-                // if the token is a {, increase the indent level
-                if let ConcreteTokenKind::Syntax(TokenKind::Open(Delim::Brace)) = one.kind {
-                    indent_level += 1;
-                }
-
-                // if the token is a }, decrease the indent level
-                if let ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) = one.kind {
-                    indent_level = indent_level.saturating_sub(1);
+                match one.kind {
+                    ConcreteTokenKind::Syntax(TokenKind::Open(Delim::Brace)) => indent_level += 1,
+                    ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) => {
+                        indent_level = indent_level.saturating_sub(1)
+                    }
+                    ConcreteTokenKind::WhiteSpace => continue,
+                    _ => {}
                 }
 
                 if let ConcreteTokenKind::WhiteSpace = one.kind {
                     // first token is whitespace, continue scanning
                     continue;
-                } else if let ConcreteTokenKind::WhiteSpace = two.kind {
+                } else if matches!(two.kind, ConcreteTokenKind::WhiteSpace) {
                     // whitespace in the middle
                     apply_rules(
                         one,
@@ -128,11 +127,7 @@ fn apply_rules(
 
     // if the right is a close brace, the indent level should be one less
     let indent_level = if let Syntax(Close(Delim::Brace)) = right.kind {
-        if indent_level > 0 {
-            indent_level - 1
-        } else {
-            indent_level
-        }
+        indent_level.saturating_sub(1)
     } else {
         indent_level
     };
