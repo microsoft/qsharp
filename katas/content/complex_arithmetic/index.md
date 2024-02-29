@@ -45,7 +45,7 @@ We'll call the number $i$ and its real multiples **imaginary numbers**.
 
 A good video introduction to imaginary numbers can be found [here](https://youtu.be/SP-YJe7Vldo).
 
-@[exercise]({ "id": "complex_arithmetic__powers_of_i", "title": "Powers of $i$", "path": "./powers_of_i/", "qsDependencies": [ "../KatasLibrary.qs" ] })
+@[exercise]({ "id": "complex_arithmetic__powers_of_i", "title": "Powers of $i$", "path": "./powers_of_i/", "qsDependencies": [ "../KatasLibrary.qs"] })
 
 @[section]({ "id": "complex_arithmetic__complex_numbers", "title": "Complex Numbers" })
 
@@ -76,17 +76,9 @@ Another property of the conjugate is that it distributes over both complex addit
 $$\overline{x + y} = \overline{x} + \overline{y}$$
 $$\overline{x \cdot y} = \overline{x} \cdot \overline{y}$$
 
-### Exercise 4: Complex conjugate
+@[exercise]({ "id": "complex_arithmetic__complex_conjugate_exercise", "title": "Complex Conjugate", "path": "./complex_conjugate/", "qsDependencies": [ "../KatasLibrary.qs"] })
 
-**Input:** A complex number $x = a + bi$, represented as a tuple `(a, b)`.
-
-**Goal:** Return $\\overline{x} = g + hi$, the complex conjugate of $x$, represented as a tuple `(g, h)`.
-
-A video explanation of the the complex conjugate can be found [here](https://www.youtube.com/watch?v=BZxZ_eEuJBM)
-
-If you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-4-complex-conjugate).
-
-## Complex Division
+@[section]({ "id": "complex_arithmetic__complex_division", "title": "Complex Division" })
 
 The next use for the conjugate is complex division. Let's take two complex numbers: $x = a + bi$ and $y = c + di \neq 0$ (not even complex numbers let you divide by $0$). What does $\frac{x}{y}$ mean?
 
