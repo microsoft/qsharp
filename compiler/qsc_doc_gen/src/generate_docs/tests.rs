@@ -24,7 +24,7 @@ fn docs_generation() {
         qsharp.kind: function
         qsharp.namespace: Microsoft.Quantum.Core
         qsharp.name: Length
-        qsharp.summary: Returns the number of elements in an array.
+        qsharp.summary: "Returns the number of elements in an array."
         ---
 
         # Length function

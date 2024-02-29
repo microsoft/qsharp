@@ -9,7 +9,7 @@ mod tests;
 use serde::Serialize;
 
 use crate::estimates::{Factory, Overhead, PhysicalResourceEstimationResult};
-use crate::system::modeling::{PhysicalQubit, TFactory};
+use crate::system::modeling::{Protocol, TFactory};
 
 use super::{
     super::modeling::PhysicalInstructionSet, job_params::JobParams, LogicalResourceCounts,
@@ -27,7 +27,7 @@ impl Report {
     pub fn new<L: Overhead + Clone>(
         logical_counts: &LogicalResourceCounts,
         job_params: &JobParams,
-        result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
+        result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
         formatted_counts: &FormattedPhysicalResourceCounts,
     ) -> Self {
         // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH resource_estimator/scripts/generate_report_code.py from docs/output_data.md
@@ -67,7 +67,7 @@ impl Report {
         entries.push(ReportEntry::new("logicalQubit/codeDistance", "Code distance", r#"Required code distance for error correction"#, &format!(r#"The code distance is the smallest odd integer greater or equal to $\dfrac{{2\log({} / {})}}{{\log({}/{})}} - 1$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.required_logical_qubit_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_qubit().physical_qubit().clifford_error_rate())));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsPerLogicalQubit", "Physical qubits", r#"Number of physical qubits per logical qubit"#, &format!(r#"The number of physical qubits per logical qubit are evaluated using the formula {} that can be user-specified."#, job_params.qec_scheme().physical_qubits_per_logical_qubit.as_ref().expect("physical qubits per logical qubit should be set"))));
         entries.push(ReportEntry::new("physicalCountsFormatted/logicalCycleTime", "Logical cycle time", r#"Duration of a logical cycle in nanoseconds"#, &format!(r#"The runtime of one logical cycle in nanoseconds is evaluated using the formula {} that can be user-specified."#, job_params.qec_scheme().logical_cycle_time.as_ref().expect("logical cycle time should be set"))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/logicalErrorRate", "Logical qubit error rate", r#"Logical qubit error rate"#, &format!(r#"The logical qubit error rate is computed as ${} \cdot \left(\dfrac{{{}}}{{{}}}\right)^\frac{{{} + 1}}{{2}}$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.logical_qubit().physical_qubit().clifford_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_qubit().code_distance())));
+        entries.push(ReportEntry::new("physicalCountsFormatted/logicalErrorRate", "Logical qubit error rate", r#"Logical qubit error rate"#, &format!(r#"The logical qubit error rate is computed as ${} \cdot \left(\dfrac{{{}}}{{{}}}\right)^\frac{{{} + 1}}{{2}}$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.logical_qubit().physical_qubit().clifford_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_qubit().code_parameter())));
         entries.push(ReportEntry::new("jobParams/qecScheme/crossingPrefactor", "Crossing prefactor", r#"Crossing prefactor used in QEC scheme"#, r#"The crossing prefactor is usually extracted numerically from simulations when fitting an exponential curve to model the relationship between logical and physical error rate."#));
         entries.push(ReportEntry::new("jobParams/qecScheme/errorCorrectionThreshold", "Error correction threshold", r#"Error correction threshold used in QEC scheme"#, r#"The error correction threshold is the physical error rate below which the error rate of the logical qubit is less than the error rate of the physical qubit that constitute it.  This value is usually extracted numerically from simulations of the logical error rate."#));
         entries.push(ReportEntry::new(
@@ -352,7 +352,7 @@ pub struct FormattedPhysicalResourceCounts {
 impl FormattedPhysicalResourceCounts {
     #[allow(clippy::too_many_lines, clippy::cast_lossless)]
     pub fn new<L: Overhead + Clone>(
-        result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
+        result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
         logical_resources: &LogicalResourceCounts,
         job_params: &JobParams,
     ) -> Self {
@@ -496,7 +496,7 @@ impl FormattedPhysicalResourceCounts {
         // Assumed error budget
         let error_budget = format!("{:.2e}", job_params.error_budget().total());
         let error_budget_logical = format!("{:.2e}", result.error_budget().logical());
-        let error_budget_tstates = format!("{:.2e}", result.error_budget().tstates());
+        let error_budget_tstates = format!("{:.2e}", result.error_budget().magic_states());
         let error_budget_rotations = format!("{:.2e}", result.error_budget().rotations());
 
         let num_ts_per_rotation = result

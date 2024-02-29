@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, ClassVar, Tuple, Optional, Dict
+from typing import Any, Callable, ClassVar, Tuple, Optional, Dict, List
 
 class TargetProfile:
     """
@@ -31,6 +31,7 @@ class Interpreter:
     def __init__(
         self,
         target_profile: TargetProfile,
+        language_features: Optional[List[str]],
         manifest_descriptor: Optional[Dict[str, str]],
         read_file: Callable[[str], str],
         list_directory: Callable[[str], str],

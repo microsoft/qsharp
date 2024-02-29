@@ -24,9 +24,8 @@ namespace Kata.Verification {
 
         if (isCorrect) {
             Message("Correct!");
-            Message("All test cases passed.");
         } else {
-            Message("Incorrect!");
+            Message("Incorrect.");
         }
 
         isCorrect

@@ -361,14 +361,14 @@ impl FactoryBuilder<Protocol> for TFactoryBuilder {
         ftp: &Protocol,
         qubit: &Rc<PhysicalQubit>,
         output_t_error_rate: f64,
-        max_code_distance: u64,
+        max_code_distance: &u64,
     ) -> Vec<Self::Factory> {
         find_nondominated_tfactories(
             ftp,
             qubit,
             &self.distillation_unit_templates,
             output_t_error_rate,
-            max_code_distance,
+            *max_code_distance,
         )
     }
 }

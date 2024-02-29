@@ -17,7 +17,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use qsc_hir::assigner::Assigner as HirAssigner;
 use std::fmt::Write;
 
@@ -72,7 +72,7 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn resolve_names(input: &str) -> String {
-    let (package, names, _, errors) = compile(input);
+    let (package, names, _, errors) = compile(input, LanguageFeatures::default());
     let mut renamer = Renamer::new(&names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
@@ -86,8 +86,11 @@ fn resolve_names(input: &str) -> String {
     output
 }
 
-fn compile(input: &str) -> (Package, Names, Locals, Vec<Error>) {
-    let (namespaces, parse_errors) = qsc_parse::namespaces(input);
+fn compile(
+    input: &str,
+    language_features: LanguageFeatures,
+) -> (Package, Names, Locals, Vec<Error>) {
+    let (namespaces, parse_errors) = qsc_parse::namespaces(input, language_features);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
@@ -2109,7 +2112,7 @@ fn check_locals(input: &str, expect: &Expect) {
     let cursor_offset = parts[0].len() as u32;
     let source = parts.join("");
 
-    let (_, _, locals, _) = compile(&source);
+    let (_, _, locals, _) = compile(&source, LanguageFeatures::default());
 
     let locals = locals.get_all_at_offset(cursor_offset);
     let actual = locals.iter().fold(String::new(), |mut output, l| {

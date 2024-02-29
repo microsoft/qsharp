@@ -5,6 +5,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 
 use crate::baseprofck::check_base_profile_compliance;
@@ -13,7 +14,13 @@ fn check(expr: &str, expect: &Expect) {
     let mut store = PackageStore::new(compile::core());
     let std = store.insert(compile::std(&store, RuntimeCapabilityFlags::all()));
     let sources = SourceMap::new([("test".into(), "".into())], Some(expr.into()));
-    let unit = compile(&store, &[std], sources, RuntimeCapabilityFlags::all());
+    let unit = compile(
+        &store,
+        &[std],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
 
     let errors = check_base_profile_compliance(&unit.package);

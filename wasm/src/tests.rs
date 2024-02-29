@@ -3,9 +3,16 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::SourceMap;
+use qsc::{interpret, LanguageFeatures, SourceMap};
 
-use super::run_internal;
+use super::run_internal_with_features;
+
+fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<interpret::Error>>
+where
+    F: FnMut(&str),
+{
+    run_internal_with_features(sources, event_cb, shots, LanguageFeatures::default())
+}
 
 #[test]
 fn test_missing_type() {
@@ -32,7 +39,10 @@ fn test_compile() {
     M(q)
     }}";
 
-    let result = crate::_get_qir(SourceMap::new([("test.qs".into(), code.into())], None));
+    let result = crate::_get_qir(
+        SourceMap::new([("test.qs".into(), code.into())], None),
+        LanguageFeatures::default(),
+    );
     assert!(result.is_ok());
 }
 
@@ -48,7 +58,7 @@ fn test_run_two_shots() {
     let expr = "Test.Answer()";
     let count = std::cell::Cell::new(0);
 
-    let _result = crate::run_internal(
+    let _result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |_msg| {
             assert!(_msg.contains("42"));
@@ -94,7 +104,7 @@ fn test_message() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |_msg_| {
             assert!(_msg_.contains("hi") || _msg_.contains("result"));
@@ -115,7 +125,7 @@ fn message_with_escape_sequences() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |_msg_| {
             assert!(_msg_.contains(r"\ta\n\t") || _msg_.contains("result"));
@@ -137,7 +147,7 @@ fn message_with_backslashes() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |_msg_| {
             assert!(
@@ -161,7 +171,7 @@ fn test_entrypoint() {
         }
     }"#;
     let expr = "";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |_msg_| {
             assert!(_msg_.contains("hi") || _msg_.contains("result"));
@@ -181,7 +191,7 @@ fn test_missing_entrypoint() {
         }
     }";
     let expr = "";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
             expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg)
@@ -232,9 +242,9 @@ fn test_run_error_program_multiple_shots() {
     )
     .expect("code should compile and run");
     expect![[r#"
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]]
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 
