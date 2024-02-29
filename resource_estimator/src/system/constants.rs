@@ -22,7 +22,7 @@ pub const NUM_MEASUREMENTS_PER_TOF: u64 = 3;
 pub const NUM_TS_PER_ROTATION_A_COEFFICIENT: f64 = 0.53;
 
 /// A coefficient in Ts per rotation
-pub const NUM_TS_PER_ROTATION_B_COEFFICIENT: f64 = 5.3;
+pub const NUM_TS_PER_ROTATION_B_COEFFICIENT: f64 = 4.86;
 
 // Physical qubit field names
 pub const INSTRUCTION_SET: &str = "instructionSet";
