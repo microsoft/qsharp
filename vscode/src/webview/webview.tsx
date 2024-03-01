@@ -6,14 +6,18 @@
 const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
-import { EstimatesPanel, Histogram, type ReData } from "qsharp-lang/ux";
+import {
+  EstimatesPanel,
+  Histogram,
+  BlochSphere,
+  type ReData,
+} from "qsharp-lang/ux";
 import { HelpPage } from "./help";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
-import { BlochSphere } from "./bloch";
 const md = markdownIt();
 md.use(mk);
 

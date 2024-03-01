@@ -30,6 +30,7 @@ import {
   lsRangeToMonacoRange,
   monacoPositionToLsPosition,
 } from "./utils.js";
+import { BlochSphere } from "qsharp-lang/ux";
 
 export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
 
@@ -69,7 +70,11 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   });
 
   const [currentNavItem, setCurrentNavItem] = useState(
-    props.linkedCode ? "linked" : "Minimal",
+    props.linkedCode
+      ? "linked"
+      : window.location.hash === "#bloch"
+      ? "bloch"
+      : "Minimal",
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined,
@@ -144,7 +149,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             setActiveTab={setActiveTab}
           ></OutputTabs>
         </>
-      ) : (
+      ) : activeKata ? (
         <Katas
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
@@ -153,6 +158,8 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           onRestartCompiler={onRestartCompiler}
           languageService={languageService}
         ></Katas>
+      ) : (
+        <BlochSphere />
       )}
       <div id="popup"></div>
     </>

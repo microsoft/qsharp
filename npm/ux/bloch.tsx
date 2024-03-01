@@ -16,11 +16,9 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 
 import {
-  BoxGeometry,
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
-  EllipseCurve,
   Group,
   LineSegments,
   Mesh,
@@ -38,12 +36,83 @@ import {
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+
+const colors = {
+  sphereColor: 0x404080,
+  sphereBrightness: 2,
+  sphereOpacity: 0.5,
+  directionalLightBrightness: 0.25,
+  markerColor: 0xc00000,
+  sphereLinesOpacity: 0.2,
+};
+
+const fontMap = {
+  helvetiker: 0,
+  optimer: 1,
+  gentilis: 2,
+  "droid/droid_sans": 3,
+  "droid/droid_serif": 4,
+};
+
+const weightMap = {
+  regular: 0,
+  bold: 1,
+};
+
 // See https://gizma.com/easing/#easeInOutSine
 function easeInOutSine(x: number) {
   return -(Math.cos(Math.PI * x) - 1) / 2;
 }
 
-const rotationTimeMs = 1000;
+function createText(scene: Scene, done: () => void) {
+  const loader = new FontLoader();
+  const fontMat = new MeshBasicMaterial({ color: 0x606080, opacity: 1 });
+  loader.load("fonts/helvetiker_regular.typeface.json", (font) => {
+    const fontProps = {
+      font,
+      size: 0.6,
+      height: 0.01,
+      bevelThickness: 0.075,
+      bevelSize: 0.01,
+      bevelEnabled: true,
+    };
+    const xGeo = new TextGeometry("x", fontProps);
+    const yGeo = new TextGeometry("y", fontProps);
+    const zGeo = new TextGeometry("z", fontProps);
+
+    const xMesh = new Mesh(xGeo, fontMat);
+    const yMesh = new Mesh(yGeo, fontMat);
+    const zMesh = new Mesh(zGeo, fontMat);
+    xGeo.computeBoundingBox();
+    yGeo.computeBoundingBox();
+    zGeo.computeBoundingBox();
+
+    xMesh.position.set(
+      -0.5 * (xGeo.boundingBox!.max.x - xGeo.boundingBox!.min.x),
+      -0.5 * (xGeo.boundingBox!.max.y - xGeo.boundingBox!.min.y),
+      6.4,
+    );
+    yMesh.position.set(
+      6.4,
+      -0.5 * (xGeo.boundingBox!.max.y - xGeo.boundingBox!.min.y),
+      0,
+    );
+
+    zMesh.position.set(
+      -0.5 * (zGeo.boundingBox!.max.x - zGeo.boundingBox!.min.x),
+      6.4,
+      0,
+    );
+    scene.add(xMesh);
+    scene.add(yMesh);
+    scene.add(zMesh);
+    done();
+  });
+}
+
+const rotationTimeMs = 750;
 
 class BlochRenderer {
   scene: Scene;
@@ -53,6 +122,14 @@ class BlochRenderer {
   qubit: Group;
 
   constructor(canvas: HTMLCanvasElement) {
+    // For VS Code, WebView body attribute 'data-vscode-theme-kind' will contain 'light' if light theme is active.
+    // Note: The value is usually 'vscode-light' or 'vscode-dark', but high-contrast dark is just 'vscode-high-contrast',
+    // whereas the light high contract theme is 'vscode-high-contrast-light'.
+    // Default to 'light' if the attribute is not present. (e.g. in the Playground)
+    const isLight = (
+      document.body.getAttribute("data-vscode-theme-kind") ?? "light"
+    ).includes("light");
+
     const renderer = new WebGLRenderer({
       canvas,
       antialias: true,
@@ -74,7 +151,10 @@ class BlochRenderer {
     camera.position.z = 27;
     camera.lookAt(0, 0, 0);
 
-    const light = new DirectionalLight(0xffffff, 0.5);
+    const light = new DirectionalLight(
+      0xffffff,
+      colors.directionalLightBrightness,
+    );
     light.position.set(-1, 2, 4);
     scene.add(light);
 
@@ -87,31 +167,42 @@ class BlochRenderer {
     // Add the main sphere
     const sphereGeometry = new SphereGeometry(5, 32, 16);
     const material = new MeshLambertMaterial({
-      emissive: 0x404080,
-      emissiveIntensity: 3,
+      emissive: colors.sphereColor,
+      emissiveIntensity: colors.sphereBrightness,
       transparent: true,
-      opacity: 0.5,
+      opacity: colors.sphereOpacity,
     });
     const sphere = new Mesh(sphereGeometry, material);
     qubit.add(sphere);
 
     // Add the 'spin' direction marker
-    const boxGeo = new BoxGeometry(0.5, 0.25, 0.5);
-    const boxMat = new MeshBasicMaterial({ color: 0xff0000 });
-    const box = new Mesh(boxGeo, boxMat);
-    box.position.set(0, 5.125, 0);
-    qubit.add(box);
+    const coneGeometry = new ConeGeometry(0.2, 0.75, 32);
+    const coneMat = new MeshBasicMaterial({ color: colors.markerColor });
+    const marker = new Mesh(coneGeometry, coneMat);
+    marker.position.set(0, 5.125, 0.4);
+    marker.rotateX(Math.PI / 2);
+    qubit.add(marker);
 
     // Draw the wires on it
-    const sphereWireGeometry = new SphereGeometry(5, 16, 16);
+    const sphereWireGeometry = new SphereGeometry(5.1, 16, 16);
     const wireframe = new WireframeGeometry(sphereWireGeometry);
     const sphereLines = new LineSegments(wireframe);
     const materialProps = sphereLines.material as MeshBasicMaterialParameters;
-    materialProps.depthTest = false;
-    materialProps.opacity = 0.1;
+    materialProps.depthTest = true;
+    materialProps.opacity = colors.sphereLinesOpacity;
     materialProps.transparent = true;
     qubit.add(sphereLines);
     scene.add(qubit);
+
+    // Test code
+    // Done one after the other...
+    // qubit.rotateX(Math.PI / 2); // Will marker to the camera and move the Z axis to face down
+    // qubit.rotateZ(Math.PI / 2); // Will rotate around the down Z axis, moving the marker to face left
+
+    console.log(qubit.quaternion);
+    // If done on originl axis
+    // Rotate X will move the marker to the camera
+    // Rotate Z will leave it where it is
 
     // Add the axes
     const axisMaterial = new MeshBasicMaterial({ color: 0xe0d0c0 });
@@ -167,7 +258,8 @@ class BlochRenderer {
     this.qubit = qubit;
 
     // Initial render
-    requestAnimationFrame(() => this.render());
+    //requestAnimationFrame(() => this.render());
+    createText(scene, () => this.render());
   }
 
   rotate(axis: Vector3, angle: number) {
@@ -222,7 +314,7 @@ class BlochRenderer {
   }
 }
 
-export function BlochSphere(props: { gates: string[] }) {
+export function BlochSphere(props: { gates?: string[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<BlochRenderer | null>(null);
 
