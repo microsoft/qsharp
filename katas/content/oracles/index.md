@@ -73,7 +73,7 @@ There are two types of quantum oracles: phase oracles and marking oracles.  Let'
     "title": "Phase Oracles"
 })
 
-For a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}$, the phase oracle $U_{\text{phase}}$ encodes the the values of the function $f$ in the *relative phases* of basis states. When provided an input basis state $|\vec{x}\rangle$, it flips the sign of that state if $f(x)=1$:
+For a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}$, the phase oracle $U_{\text{phase}}$ encodes the values of the function $f$ in the *relative phases* of basis states. When provided an input basis state $|\vec{x}\rangle$, it flips the sign of that state if $f(x)=1$:
 
 $$U_{phase} |\vec{x}\rangle = (-1)^{f(x)}|\vec{x}\rangle$$
 
