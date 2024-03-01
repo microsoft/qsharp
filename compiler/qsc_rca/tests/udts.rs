@@ -43,7 +43,7 @@ fn check_rca_for_udt_constructor_with_a_dynamic_value() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicUdt | UdtConstructorUsesDynamicArg)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | UseOfDynamicTuple | UseOfDynamicUdt | UdtConstructorUsesDynamicArg)
                     value_kind: Dynamic
                 dynamic_param_applications: <empty>"#
         ],

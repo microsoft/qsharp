@@ -13,7 +13,6 @@ mod analyzer;
 mod applications;
 mod common;
 mod cycle_detection;
-mod rca;
 mod rca_core;
 mod rca_cyclic_callables;
 mod scaffolding;
@@ -32,7 +31,7 @@ use std::{
     fmt::{self, Debug, Display, Formatter, Write},
 };
 
-pub use crate::analyzer::{Analyzer, RCA};
+pub use crate::analyzer::RCA;
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {

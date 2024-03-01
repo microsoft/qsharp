@@ -9,8 +9,7 @@ use crate::{
     scaffolding::PackageComputeProperties,
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
 };
-use qsc_data_structures::index_map::IndexMap;
-use qsc_fir::fir::{BlockId, ExprId, LocalVarId, Pat, PatId, PatKind, SpecDecl, StmtId};
+use qsc_fir::fir::{BlockId, ExprId, LocalVarId, StmtId};
 use rustc_hash::FxHashMap;
 use std::convert::{From, TryFrom};
 
@@ -37,41 +36,6 @@ impl GeneratorSetsBuilder {
         Self {
             inherent,
             dynamic_param_applications,
-        }
-    }
-
-    /// Creates a new builder from a specialization.
-    // TODO (cesarzc): Remove.
-    pub fn from_spec(
-        spec_decl: &SpecDecl,
-        input_params: &Vec<InputParam>,
-        pats: &IndexMap<PatId, Pat>,
-    ) -> Self {
-        let spec_input = derive_spec_input(spec_decl, pats);
-        let inherent = ApplicationInstance::new(input_params, spec_input.as_ref(), None);
-        let mut dynamic_params = Vec::<ApplicationInstance>::with_capacity(input_params.len());
-        for input_param in input_params {
-            let application_instance = ApplicationInstance::new(
-                input_params,
-                spec_input.as_ref(),
-                Some(input_param.index),
-            );
-            dynamic_params.push(application_instance);
-        }
-
-        Self {
-            inherent,
-            dynamic_param_applications: dynamic_params,
-        }
-    }
-
-    /// Creates a new builder with no dynamic parameter applications.
-    // TODO (cesarzc): Remove.
-    pub fn with_no_dynamic_param_applications() -> Self {
-        let inherent = ApplicationInstance::new(&Vec::new(), None, None);
-        Self {
-            inherent,
-            dynamic_param_applications: Vec::new(),
         }
     }
 
@@ -237,22 +201,6 @@ impl GeneratorSetsBuilder {
                 .insert(expr_id, application_generator_set);
         }
     }
-}
-
-fn derive_spec_input(spec_decl: &SpecDecl, pats: &IndexMap<PatId, Pat>) -> Option<Local> {
-    spec_decl.input.and_then(|pat_id| {
-        let pat = pats.get(pat_id).expect("pat should exist");
-        match &pat.kind {
-            PatKind::Bind(ident) => Some(Local {
-                var: ident.id,
-                pat: pat_id,
-                ty: pat.ty.clone(),
-                kind: LocalKind::SpecInput,
-            }),
-            PatKind::Discard => None, // Nothing to bind to.
-            PatKind::Tuple(_) => panic!("expected specialization input pattern"),
-        }
-    })
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]

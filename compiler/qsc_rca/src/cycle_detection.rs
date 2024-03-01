@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 use crate::common::{
-    derive_callable_input_params, initialize_locals_map, try_resolve_callee, FunctorAppExt,
-    GlobalSpecId, Local, LocalKind, LocalSpecId,
+    derive_callable_input_params, initialize_locals_map, try_resolve_callee, FunctorAppExt, Local,
+    LocalKind, LocalSpecId,
 };
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
         LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId, PatKind, SpecDecl,
-        Stmt, StmtId, StmtKind, StoreItemId, StringComponent,
+        Stmt, StmtId, StmtKind, StringComponent,
     },
     ty::FunctorSetValue,
     visit::Visitor,
@@ -365,26 +365,4 @@ impl CallStack {
         self.set.insert(value);
         self.stack.push(value);
     }
-}
-
-// TODO (cesarzc): remove since it might not be needed anymore.
-pub fn detect_specializations_with_cycles(
-    package_id: PackageId,
-    package: &Package,
-) -> Vec<GlobalSpecId> {
-    // First, detect the specializations that have cycles.
-    let mut cycle_detector = CycleDetector::new(package_id, package);
-    let specializations_with_cycles = cycle_detector.detect_specializations_with_cycles();
-
-    // Convert the package specialization IDs to global specialization IDs.
-    specializations_with_cycles
-        .iter()
-        .map(|local_spec_id| GlobalSpecId {
-            callable: StoreItemId {
-                package: package_id,
-                item: local_spec_id.callable,
-            },
-            functor_set_value: local_spec_id.functor_set_value,
-        })
-        .collect()
 }

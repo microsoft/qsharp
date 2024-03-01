@@ -1440,7 +1440,6 @@ impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
     }
 }
 
-// TODO (cesarzc): Use this at the top-level.
 #[allow(clippy::large_enum_variant)]
 enum AnalysisContext {
     TopLevel(TopLevelContext),
