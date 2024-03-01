@@ -62,3 +62,7 @@ harness = false
 [[bench]]
 name = "eval"
 harness = false
+
+[[bench]]
+name = "rca"
+harness = false
