@@ -3,6 +3,7 @@
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::compile::{self, compile};
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 
@@ -20,6 +21,7 @@ pub fn large_file(c: &mut Criterion) {
                 sources,
                 PackageType::Exe,
                 RuntimeCapabilityFlags::all(),
+                LanguageFeatures::default(),
             );
             assert!(reports.is_empty());
         })

@@ -60,7 +60,9 @@ impl Location {
 mod tests {
     use crate::compile;
     use expect_test::expect;
-    use qsc_data_structures::{line_column::Encoding, span::Span};
+    use qsc_data_structures::{
+        language_features::LanguageFeatures, line_column::Encoding, span::Span,
+    };
     use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags, SourceMap};
     use qsc_hir::hir::PackageId;
     use qsc_passes::PackageType;
@@ -247,8 +249,14 @@ mod tests {
             ],
             None,
         );
-        let (unit, _) =
-            compile::compile(&store, &dependencies, sources, package_type, capabilities);
+        let (unit, _) = compile::compile(
+            &store,
+            &dependencies,
+            sources,
+            package_type,
+            capabilities,
+            LanguageFeatures::default(),
+        );
         let user_package_id = store.insert(unit);
 
         (store, std_package_id, user_package_id)

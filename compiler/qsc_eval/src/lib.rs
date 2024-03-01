@@ -85,9 +85,14 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.OutputFail"))]
     OutputFail(#[label("failed to generate output")] PackageSpan),
 
-    #[error("qubits in gate invocation are not unique")]
+    #[error("qubits in invocation are not unique")]
     #[diagnostic(code("Qsc.Eval.QubitUniqueness"))]
     QubitUniqueness(#[label] PackageSpan),
+
+    #[error("qubits are not separable")]
+    #[diagnostic(help("subset of qubits provided as arguments must not be entangled with any qubits outside of the subset"))]
+    #[diagnostic(code("Qsc.Eval.QubitsNotSeparable"))]
+    QubitsNotSeparable(#[label] PackageSpan),
 
     #[error("range with step size of zero")]
     #[diagnostic(code("Qsc.Eval.RangeStepZero"))]
@@ -134,6 +139,7 @@ impl Error {
             | Error::InvalidNegativeInt(_, span)
             | Error::OutputFail(span)
             | Error::QubitUniqueness(span)
+            | Error::QubitsNotSeparable(span)
             | Error::RangeStepZero(span)
             | Error::ReleasedQubitNotZero(_, span)
             | Error::UnboundName(span)

@@ -9,7 +9,7 @@ use super::{
     item,
     keyword::Keyword,
     prim::{ident, many, opt, pat, seq, token},
-    scan::Scanner,
+    scan::ParserContext,
     Error, Result,
 };
 use crate::{
@@ -20,9 +20,9 @@ use crate::{
 use qsc_ast::ast::{
     Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
-pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
+pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Semi).is_ok() {
         Box::new(StmtKind::Empty)
@@ -49,11 +49,11 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Stmt>> {
 }
 
 #[allow(clippy::vec_box)]
-pub(super) fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Stmt>>> {
+pub(super) fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Stmt>>> {
     many(s, |s| recovering(s, default, &[TokenKind::Semi], parse))
 }
 
-pub(super) fn parse_block(s: &mut Scanner) -> Result<Box<Block>> {
+pub(super) fn parse_block(s: &mut ParserContext) -> Result<Box<Block>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
@@ -74,7 +74,7 @@ fn default(span: Span) -> Box<Stmt> {
     })
 }
 
-fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
+fn parse_local(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     let mutability = if token(s, TokenKind::Keyword(Keyword::Let)).is_ok() {
         Mutability::Immutable
     } else if token(s, TokenKind::Keyword(Keyword::Mutable)).is_ok() {
@@ -95,7 +95,7 @@ fn parse_local(s: &mut Scanner) -> Result<Box<StmtKind>> {
     Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
 
-fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
+fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     let source = if token(s, TokenKind::Keyword(Keyword::Use)).is_ok() {
         QubitSource::Fresh
     } else if token(s, TokenKind::Keyword(Keyword::Borrow)).is_ok() {
@@ -111,7 +111,12 @@ fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = parse_qubit_init(s)?;
-    let block = opt(s, parse_block)?;
+    let block = if s.contains_language_feature(LanguageFeatures::V2PreviewSyntax) {
+        None
+    } else {
+        opt(s, parse_block)?
+    };
+
     if block.is_none() {
         recovering_semi(s)?;
     }
@@ -119,7 +124,7 @@ fn parse_qubit(s: &mut Scanner) -> Result<Box<StmtKind>> {
     Ok(Box::new(StmtKind::Qubit(source, lhs, rhs, block)))
 }
 
-fn parse_qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
+fn parse_qubit_init(s: &mut ParserContext) -> Result<Box<QubitInit>> {
     let lo = s.peek().span.lo;
     let kind = if let Ok(name) = ident(s) {
         if name.name.as_ref() != "Qubit" {
@@ -163,7 +168,7 @@ fn parse_qubit_init(s: &mut Scanner) -> Result<Box<QubitInit>> {
     }))
 }
 
-pub(super) fn check_semis(s: &mut Scanner, stmts: &[Box<Stmt>]) {
+pub(super) fn check_semis(s: &mut ParserContext, stmts: &[Box<Stmt>]) {
     let leading_stmts = stmts.split_last().map_or([].as_slice(), |s| s.1);
     for stmt in leading_stmts {
         if matches!(&*stmt.kind, StmtKind::Expr(expr) if !expr::is_stmt_final(&expr.kind)) {

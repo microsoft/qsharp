@@ -8,7 +8,6 @@ Let's take it a step further and generate an $N$-bit number.
 >
 > * <a href="https://docs.microsoft.com/azure/quantum/user-guide/language/statements/iterations" target="_blank">for loops</a>
 > * <a href="https://docs.microsoft.com/azure/quantum/user-guide/language/typesystem/immutability" target="_blank">mutable variables</a>
-> * <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.math.powi" target="_blank">exponents</a>
 
 <details>
   <summary><b>Need a hint?</b></summary>

@@ -2,7 +2,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
 
-    //Distinguish |0❭ and |1❭
     operation StatePrep_IsQubitZero (q : Qubit, state : Int) : Unit is Adj {
         if state == 0 {
             // convert |0⟩ to |1⟩
@@ -18,7 +17,9 @@ namespace Kata.Verification {
             ["|1⟩", "|0⟩"],
             false);
         if isCorrect {
-            Message("All tests passed.");
+            Message("Correct!");
+        } else {
+            Message("Incorrect.");
         }
         isCorrect
     }

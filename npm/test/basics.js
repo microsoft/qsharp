@@ -36,7 +36,7 @@ export function runSingleShot(code, expr, useWorker) {
     const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
     compiler
-      .run([["test.qs", code]], expr, 1, resultsHandler)
+      .run({ sources: [["test.qs", code]] }, expr, 1, resultsHandler)
       .then(() => resolve(resultsHandler.getResults()[0]))
       .catch((err) => reject(err))
       /* @ts-expect-error: ICompiler does not include 'terminate' */
@@ -340,7 +340,12 @@ test("worker 100 shots", async () => {
 
   const resultsHandler = new QscEventTarget(true);
   const compiler = getCompilerWorker();
-  await compiler.run([["test.qs", code]], expr, 100, resultsHandler);
+  await compiler.run(
+    { sources: [["test.qs", code]] },
+    expr,
+    100,
+    resultsHandler,
+  );
   compiler.terminate();
 
   const results = resultsHandler.getResults();
@@ -359,7 +364,12 @@ test("Run samples", async () => {
   const testCases = samples.filter((x) => !x.omitFromTests);
 
   for await (const sample of testCases) {
-    await compiler.run([[sample.title, sample.code]], "", 1, resultsHandler);
+    await compiler.run(
+      { sources: [[sample.title, sample.code]] },
+      "",
+      1,
+      resultsHandler,
+    );
   }
 
   compiler.terminate();
@@ -384,7 +394,7 @@ test("state change", async () => {
         return M(q1);
     }
   }`;
-  await compiler.run([["test.qs", code]], "", 10, resultsHandler);
+  await compiler.run({ sources: [["test.qs", code]] }, "", 10, resultsHandler);
   compiler.terminate();
   // There SHOULDN'T be a race condition here between the 'run' promise completing and the
   // statechange events firing, as the run promise should 'resolve' in the next microtask,
@@ -412,10 +422,12 @@ test("cancel worker", () => {
     const resultsHandler = new QscEventTarget(false);
 
     // Queue some tasks that will never complete
-    compiler.run([["test.qs", code]], "", 10, resultsHandler).catch((err) => {
-      cancelledArray.push(err);
-    });
-    compiler.getHir(code).catch((err) => {
+    compiler
+      .run({ sources: [["test.qs", code]] }, "", 10, resultsHandler)
+      .catch((err) => {
+        cancelledArray.push(err);
+      });
+    compiler.getHir(code, []).catch((err) => {
       cancelledArray.push(err);
     });
 
@@ -426,7 +438,7 @@ test("cancel worker", () => {
 
       // Start a new compiler and ensure that works fine
       const compiler2 = getCompilerWorker();
-      const result = await compiler2.getHir(code);
+      const result = await compiler2.getHir(code, []);
       compiler2.terminate();
 
       // getHir should have worked
@@ -698,7 +710,7 @@ async function testCompilerError(useWorker) {
   let promiseResult = undefined;
   let lastState = undefined;
   await compiler
-    .run([["test.qs", "invalid code"]], "", 1, events)
+    .run({ sources: [["test.qs", "invalid code"]] }, "", 1, events)
     .then(() => {
       promiseResult = "success";
     })
@@ -740,6 +752,7 @@ test("debug service loading source without entry point attr fails - web worker",
       ],
       "base",
       undefined,
+      [],
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -762,6 +775,7 @@ test("debug service loading source with syntax error fails - web worker", async 
       ],
       "base",
       undefined,
+      [],
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -776,6 +790,7 @@ test("debug service loading source with bad entry expr fails - web worker", asyn
       [["test.qs", `namespace Sample { operation main() : Unit { } }`]],
       "base",
       "SomeBadExpr()",
+      [],
     );
     assert.ok(typeof result === "string" && result.trim().length > 0);
   } finally {
@@ -790,6 +805,7 @@ test("debug service loading source with good entry expr succeeds - web worker", 
       [["test.qs", `namespace Sample { operation Main() : Unit { } }`]],
       "unrestricted",
       "Sample.Main()",
+      [],
     );
     assert.ok(typeof result === "string");
     assert.equal(result.trim(), "");
@@ -818,6 +834,7 @@ test("debug service loading source with entry point attr succeeds - web worker",
       ],
       "base",
       undefined,
+      [],
     );
     assert.ok(typeof result === "string");
     assert.equal(result.trim(), "");
@@ -846,6 +863,7 @@ test("debug service getting breakpoints after loaded source succeeds when file n
       ],
       "base",
       undefined,
+      [],
     );
     assert.ok(typeof result === "string" && result.trim().length == 0);
     const bps = await debugService.getBreakpoints("test.qs");
@@ -883,6 +901,7 @@ test("debug service compiling multiple sources - web worker", async () => {
       ],
       "unrestricted",
       undefined,
+      [],
     );
     assert.equal(result.trim(), "");
     const fooBps = await debugService.getBreakpoints("Foo.qs");

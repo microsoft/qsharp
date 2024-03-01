@@ -111,7 +111,9 @@ namespace Kata.Verification {
         repeat {
             set result = verifier();
             set attemptResults += [result];
-        } until (result == 0 or Length(attemptResults) >= maxAttempts);
+            // If the result is 0x1, the generator returned an invalid result.
+            // That's different from "not random enough" verdicts, so we break right away.
+        } until result == 0 or result == 0x1 or Length(attemptResults) >= maxAttempts;
 
         attemptResults
     }

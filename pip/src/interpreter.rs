@@ -25,7 +25,7 @@ use qsc::{
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
-    PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
 use std::fmt::Write;
@@ -81,10 +81,13 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             ))?
             .downcast::<PyDict>()?;
 
+        let language_features = get_dict_opt_list_string(manifest, "features")?;
+
         Ok(Self(ManifestDescriptor {
             manifest: Manifest {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
+                language_features,
             },
             manifest_dir: manifest_dir.into(),
         }))
@@ -94,11 +97,13 @@ impl FromPyObject<'_> for PyManifestDescriptor {
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    #[allow(clippy::needless_pass_by_value)]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
         py: Python,
         target: TargetProfile,
+        language_features: Option<Vec<String>>,
         manifest_descriptor: Option<PyManifestDescriptor>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
@@ -107,6 +112,7 @@ impl Interpreter {
             TargetProfile::Unrestricted => Profile::Unrestricted,
             TargetProfile::Base => Profile::Base,
         };
+        let language_features = language_features.unwrap_or_default();
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
             let project = file_system(
@@ -125,7 +131,15 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
+        let language_features = LanguageFeatures::from_iter(language_features);
+
+        match interpret::Interpreter::new(
+            true,
+            sources,
+            PackageType::Lib,
+            target.into(),
+            language_features,
+        ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -534,4 +548,22 @@ fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
         Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
         None => None,
     })
+}
+fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
+    let value = dict.get_item(key)?;
+    let list: &PyList = match value {
+        Some(item) => item.downcast::<PyList>()?,
+        None => return Ok(vec![]),
+    };
+    match list
+        .iter()
+        .map(|item| {
+            item.downcast::<PyString>()
+                .map(|s| s.to_string_lossy().into())
+        })
+        .collect::<std::result::Result<Vec<String>, _>>()
+    {
+        Ok(list) => Ok(list),
+        Err(e) => Err(e.into()),
+    }
 }

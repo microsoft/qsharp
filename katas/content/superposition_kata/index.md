@@ -55,8 +55,18 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__even_sup_two_qubits_phase_flip",
-    "title": "Even superposition of all basis vectors on two qubits",
+    "title": "Even superposition of all basis vectors on two qubits with phase flip",
     "path": "./even_sup_two_qubits_phase_flip/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superposition__even_sup_two_qubits_complex_phases",
+    "title": "Even superposition of all basis vectors on two qubits with complex phases",
+    "path": "./even_sup_two_qubits_complex_phases/",
     "qsDependencies": [
         "../KatasLibrary.qs",
         "./Common.qs"

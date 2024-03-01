@@ -1,5 +1,7 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Katas;
+    open Microsoft.Quantum.Random;
 
     operation ApplyMarkingOracleAsPhaseOracle_Reference(
         markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl),
@@ -16,25 +18,28 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 1..5 {
-            for k in 0..(2^N-1) {
+        for N in 1 .. 3 {
+            for k in 0 .. 2^N - 1 {
                 let pattern = IntAsBoolArray(k, N);
+                let marking = ApplyControlledOnBitString(pattern, X, _, _);
+                let sol = Kata.ApplyMarkingOracleAsPhaseOracle(marking, _);
+                let ref = ApplyMarkingOracleAsPhaseOracle_Reference(marking, _);
 
-                let isCorrect = CheckOperationsEqualReferenced(
-                    N,
-                    qubits => Kata.ApplyMarkingOracleAsPhaseOracle(
-                        ApplyControlledOnBitString(pattern, X, _, _),
-                        qubits),
-                    qubits => ApplyMarkingOracleAsPhaseOracle_Reference(
-                        ApplyControlledOnBitString(pattern, X, _, _),
-                        qubits));
+                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+
                 if not isCorrect {
-                    Message($"Failed on test pattern {pattern} for a bit pattern oracle.");
+                    Message("Incorrect.");
+                    Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
+                        $"transformation for the {N}-bit oracle that marks the bit string {pattern}");
+                    use initial = Qubit[N];
+                    PrepRandomState(initial);
+                    ShowQuantumStateComparison(initial, sol, ref);
+                    ResetAll(initial);
                     return false;
                 }
             }
         }
-        Message("All tests passed.");
+        Message("Correct!");
         true
     }
 

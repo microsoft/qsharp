@@ -6,5 +6,4 @@ namespace Kata {
 
         return false;
     }
-
 }
