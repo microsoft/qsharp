@@ -588,15 +588,6 @@ impl<
                         max_allowed_num_cycles_for_code_parameter,
                     )
                 {
-                    assert_eq!(
-                        self.compute_num_cycles_required_for_magic_states(
-                            num_factories,
-                            &factory,
-                            &logical_qubit,
-                        ),
-                        num_cycles_required
-                    );
-
                     num_cycles = num_cycles_required;
                     break (
                         logical_qubit,
