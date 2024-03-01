@@ -94,16 +94,7 @@ By doing this, we re-wrote our division problem to have a complex multiplication
 
 $$\frac{a + bi}{r} = \frac{a}{r} + \frac{b}{r}i$$
 
-### Exercise 5: Complex division
-
-**Inputs:**
-
-1. A complex number $x = a + bi$, represented as a tuple `(a, b)`.
-2. A complex number $y = c + di \neq 0$, represented as a tuple `(c, d)`.
-
-**Goal:** Return the result of the division $\frac{x}{y} = \frac{a + bi}{c + di} = g + hi$, represented as a tuple `(g, h)`.
-
-A video explanation of complex division can be found [here](https://www.youtube.com/watch?v=Z8j5RDOibV4)
+@[exercise]({ "id": "complex_arithmetic__complex_division_exercise", "title": "Complex division", "path": "./complex_division/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
 @[section]({ "id": "complex_arithmetic__geometric_perspective", "title": "Geometric Perspective" })
 

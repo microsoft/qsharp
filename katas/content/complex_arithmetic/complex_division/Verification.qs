@@ -1,10 +1,16 @@
-    namespace Kata.Verification {
-        
-        open Microsoft.Quantum.Math;
-        open Microsoft.Quantum.Random;    
-        
+namespace Kata.Verification {
+    open Microsoft.Quantum.Math;
 
-        @EntryPoint()
+    
+    operation ComplexDiv_Reference(x : Complex, y : Complex) : Complex {
+    
+        // Calculate the quotient of two complex numbers.  
+         
+         return DividedByC(x, y);
+
+        }
+     
+     @EntryPoint()
         operation CheckSolution() : Bool {
         
             mutable success = false;
@@ -17,8 +23,8 @@
                 let testx = ComplexRandom(1., 100.); 
                 let testy = ComplexRandom(1., 100.);
 
-                set expected = ComplexMult_Reference(testx, testy); 
-                set actual = Kata.ComplexMult(testx, testy);        
+                set expected = ComplexDiv_Reference(testx, testy); 
+                set actual = Kata.ComplexDiv(testx, testy);        
         
                 if (ComplexEqual(expected, actual)) {
                     set success = true; 
@@ -31,10 +37,10 @@
             if success == true {Message("Correct!");}
             else {
                      Message("Incorrect. Actual value doesn't match expected value");
-                     Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} +  {expected::Imag}i");
+                     Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} + {expected::Imag}i");
                 }         
         
             return (success);
         
         }
-    }
+}

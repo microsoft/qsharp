@@ -4,14 +4,6 @@
         open Microsoft.Quantum.Random;    
         open Microsoft.Quantum.Convert; 
 
-        operation ComplexConjugate_Reference(x : Complex) : Complex {
-    
-        // Calculate the product of two complex numbers.  
-            let z = Complex ( x::Real, - x::Imag);
-            return z;
-
-        }
-
         @EntryPoint()
         operation CheckSolution() : Bool {
         
