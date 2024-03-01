@@ -27,10 +27,8 @@ impl AstLintPass for DivisionByZero {
     fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
-                if let Lit::Int(ref x) = **lit {
-                    if *x == 0 {
-                        push_lint!(Self, expr, buffer);
-                    }
+                if let Lit::Int(0) = **lit {
+                    push_lint!(Self, expr, buffer);
                 }
             }
         }
