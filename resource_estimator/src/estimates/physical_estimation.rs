@@ -1196,20 +1196,11 @@ impl<
         let logical_cycle_time_big = u128::from(logical_qubit.logical_cycle_time());
         let num_cycles_big = u128::from(num_cycles);
 
-        let result = num_magic_states_big * duration_big
-            / (output_magic_count_big * logical_cycle_time_big * num_cycles_big);
-
-        let rem = num_magic_states_big * duration_big
-            % (output_magic_count_big * logical_cycle_time_big * num_cycles_big);
+        let result = (num_magic_states_big * duration_big)
+            .div_ceil(output_magic_count_big * logical_cycle_time_big * num_cycles_big);
 
         // We expect the result to be small enough to fit into a u64.
-        let result_u64 = u64::try_from(result).expect("result should fit into u64");
-
-        if rem == 0 {
-            result_u64
-        } else {
-            result_u64 + 1
-        }
+        u64::try_from(result).expect("result should fit into u64")
     }
 }
 
