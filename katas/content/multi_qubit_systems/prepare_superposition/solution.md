@@ -1,4 +1,4 @@
-﻿We begin in the same state as the previous excercise:
+﻿We begin in the same state as the previous exercise:
 $$ \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\\ 0 \end{bmatrix} \otimes \begin{bmatrix} 1 \\\ 0 \end{bmatrix} = |0\rangle \otimes |0\rangle$$
 
 The goal state can be separated as follows:
