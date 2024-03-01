@@ -24,11 +24,13 @@ type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
+
   getHir(code: string, languageFeatures?: string[]): Promise<string>;
+
   /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
-   * all arguments separately, pass an object with named properties. This change was made
+   * sources and language features separately, pass an object with named properties. This change was made
    * for the sake of extensibility and future-compatibility. Note that only the new API
-   * supports passing guage features. If you need to pass language features, you must use
+   * supports passing language features. If you need to pass language features, you must use
    * the new API.
    **/
   run(
@@ -37,19 +39,41 @@ export interface ICompiler {
     shots: number,
     eventHandler: IQscEventTarget,
   ): Promise<void>;
-  run(config: ProgramConfig, eventHandler: IQscEventTarget): Promise<void>;
+  run(
+    config: ProgramConfig,
+    expr: string,
+    shots: number,
+    eventHandler: IQscEventTarget,
+  ): Promise<void>;
+
+  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
+   * sources and language features separately, pass an object with named properties. This change was made
+   * for the sake of extensibility and future-compatibility. Note that only the new API
+   * supports passing language features. If you need to pass language features, you must use
+   * the new API.
+   **/
   getQir(
     sources: [string, string][],
     languageFeatures?: string[],
   ): Promise<string>;
+  getQir(config: ProgramConfig): Promise<string>;
+
+  /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
+   * sources and language features separately, pass an object with named properties. This change was made
+   * for the sake of extensibility and future-compatibility. Note that only the new API
+   * supports passing language features. If you need to pass language features, you must use
+   * the new API.
+   **/
   getEstimates(
     sources: [string, string][],
     params: string,
     languageFeatures?: string[],
   ): Promise<string>;
+  getEstimates(config: ProgramConfig, params: string): Promise<string>;
+
   checkExerciseSolution(
-    user_code: string,
-    exercise_sources: string[],
+    userCode: string,
+    exerciseSources: string[],
     eventHandler: IQscEventTarget,
   ): Promise<boolean>;
 }
@@ -58,10 +82,6 @@ export interface ICompiler {
 export type ProgramConfig = {
   /** An array of source objects, each containing a name and contents. */
   sources: [string, string][];
-  /** The entry expression to be evaluated. */
-  expr: string;
-  /** The number of shots to be performed in the quantum simulation. */
-  shots: number;
   /** An array of language features to be opted in to in this compilation. */
   languageFeatures?: string[];
 };
@@ -102,6 +122,24 @@ export class Compiler implements ICompiler {
   }
 
   async getQir(
+    sourcesOrConfig: [string, string][] | ProgramConfig,
+    languageFeatures?: string[],
+  ): Promise<string> {
+    if (Array.isArray(sourcesOrConfig)) {
+      return this.deprecatedGetQir(sourcesOrConfig, languageFeatures || []);
+    } else {
+      return this.newGetQir(sourcesOrConfig);
+    }
+  }
+
+  async newGetQir({
+    sources,
+    languageFeatures = [],
+  }: ProgramConfig): Promise<string> {
+    return this.wasm.get_qir(sources, languageFeatures);
+  }
+
+  async deprecatedGetQir(
     sources: [string, string][],
     languageFeatures: string[],
   ): Promise<string> {
@@ -109,6 +147,29 @@ export class Compiler implements ICompiler {
   }
 
   async getEstimates(
+    sourcesOrConfig: [string, string][] | ProgramConfig,
+    params: string,
+    languageFeatures: string[] = [],
+  ): Promise<string> {
+    if (Array.isArray(sourcesOrConfig)) {
+      return this.deprecatedGetEstimates(
+        sourcesOrConfig,
+        params,
+        languageFeatures,
+      );
+    } else {
+      return this.newGetEstimates(sourcesOrConfig, params);
+    }
+  }
+
+  async newGetEstimates(
+    { sources, languageFeatures }: ProgramConfig,
+    params: string,
+  ): Promise<string> {
+    return this.wasm.get_estimates(sources, params, languageFeatures || []);
+  }
+
+  async deprecatedGetEstimates(
     sources: [string, string][],
     params: string,
     languageFeatures: string[],
@@ -122,28 +183,19 @@ export class Compiler implements ICompiler {
 
   async run(
     sourcesOrConfig: [string, string][] | ProgramConfig,
-    exprOrEventHandler: string | IQscEventTarget,
-    maybeShots?: number,
-    maybeEventHandler?: IQscEventTarget,
+    expr: string,
+    shots: number,
+    eventHandler: IQscEventTarget,
   ): Promise<void> {
     let sources;
-    let expr;
-    let shots;
-    let eventHandler: IQscEventTarget | undefined;
     let languageFeatures: string[] = [];
 
     if (Array.isArray(sourcesOrConfig)) {
       // this is the deprecated API
       sources = sourcesOrConfig;
-      expr = exprOrEventHandler as string;
-      shots = maybeShots;
-      eventHandler = maybeEventHandler;
     } else {
       // this is the new API
       sources = sourcesOrConfig.sources;
-      expr = sourcesOrConfig.expr;
-      shots = sourcesOrConfig.shots;
-      eventHandler = exprOrEventHandler as IQscEventTarget;
       languageFeatures = sourcesOrConfig.languageFeatures || [];
     }
     // All results are communicated as events, but if there is a compiler error (e.g. an invalid
@@ -159,13 +211,13 @@ export class Compiler implements ICompiler {
   }
 
   async checkExerciseSolution(
-    user_code: string,
-    exercise_sources: string[],
+    userCode: string,
+    exerciseSources: string[],
     eventHandler: IQscEventTarget,
   ): Promise<boolean> {
     const success = this.wasm.check_exercise_solution(
-      user_code,
-      exercise_sources,
+      userCode,
+      exerciseSources,
       (msg: string) => onCompilerEvent(msg, eventHandler),
     );
 
