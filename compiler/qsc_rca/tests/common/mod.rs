@@ -4,6 +4,7 @@
 use expect_test::Expect;
 use itertools::Itertools;
 use qsc::incremental::Compiler;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
@@ -56,6 +57,7 @@ impl Default for CompilationContext {
             SourceMap::default(),
             PackageType::Lib,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::default(),
         )
         .expect("should be able to create a new compiler");
         let mut lowerer = Lowerer::new();

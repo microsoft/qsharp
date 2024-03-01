@@ -3,6 +3,7 @@
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::incremental::Compiler;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::PackageStore;
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
@@ -61,6 +62,7 @@ fn compile_and_lower_to_fir(sources: SourceMap) -> PackageStore {
         sources,
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
     )
     .expect("should be able to create a new compiler");
     let mut lowerer = Lowerer::new();
