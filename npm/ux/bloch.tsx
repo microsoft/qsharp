@@ -5,11 +5,12 @@
 
 /* TODO:
 
-- Add the labels to the axes
+- Show the state vector / linear combination
 - Add the trailing dots with a slider for history and fade out speed
-- Animiate the axes when rotating
+- Animiate the axes (including for H) when rotating
+  - Maybe add a new geo/mesh for axis with rotation arrow that rotates with the qubit
 - Have the marker indicate the phase/direction
-- Move to the npm package as a control
+- Show the matrix to be applied when hovering over a gate
 
 */
 
@@ -194,16 +195,6 @@ class BlochRenderer {
     qubit.add(sphereLines);
     scene.add(qubit);
 
-    // Test code
-    // Done one after the other...
-    // qubit.rotateX(Math.PI / 2); // Will marker to the camera and move the Z axis to face down
-    // qubit.rotateZ(Math.PI / 2); // Will rotate around the down Z axis, moving the marker to face left
-
-    console.log(qubit.quaternion);
-    // If done on originl axis
-    // Rotate X will move the marker to the camera
-    // Rotate Z will leave it where it is
-
     // Add the axes
     const axisMaterial = new MeshBasicMaterial({ color: 0xe0d0c0 });
     const zAxis = new CylinderGeometry(0.075, 0.075, 12, 32, 8);
@@ -231,21 +222,6 @@ class BlochRenderer {
     xPointerMesh.rotateX(Math.PI / 2);
     scene.add(xPointerMesh);
 
-    // // Add the points from |0> to |1>
-    // const curve = new EllipseCurve(0, 0, 5.05, 5.05, 0, Math.PI);
-    // const points = curve.getPoints(32);
-    // const pointMaterial = new MeshBasicMaterial({ color: 0x80ffd0 });
-
-    // const pointsGroup = new Group();
-    // for (const point of points) {
-    //   const pointGeometry = new SphereGeometry(0.1, 16, 16);
-    //   const pointMesh = new Mesh(pointGeometry, pointMaterial);
-    //   pointMesh.position.set(0, point.x, point.y);
-    //   pointsGroup.add(pointMesh);
-    // }
-    // pointsGroup.rotateY(0.5);
-    // scene.add(pointsGroup);
-
     // See https://threejs.org/manual/#en/rendering-on-demand
     controls.addEventListener("change", () =>
       requestAnimationFrame(() => this.render()),
@@ -269,6 +245,42 @@ class BlochRenderer {
     const target = new Quaternion()
       .setFromAxisAngle(axis, angle)
       .multiply(initial);
+
+    // Also slerp the regular intervals between the two quaternions and
+    // translate to world space
+    // TODO:
+    // - Add only as the path is travelled
+    // - Fade out old ones per the current settings
+
+    /*
+To calculate the distance the point travels as the rotation is applied.
+- Calculate the angle (theta) between the axis of rotation and the point
+- Get the circumfence for the circle around the sphere at latitude theta: sin(theta) * 2 * PI
+- Calculate the distance travelled as the angle * circumfence
+    */
+
+    const qubitPointInLocal = new Vector3(0, 5, 0);
+    const qubitPointInWorld = qubitPointInLocal
+      .clone()
+      .applyQuaternion(initial);
+    const qubitToAxisAngle = qubitPointInWorld.angleTo(axis);
+    const pathTravelled = Math.sin(qubitToAxisAngle) * angle;
+    // console.log(
+    //   `Path travelled: ${pathTravelled}, angle from axis: ${qubitToAxisAngle}`,
+    // );
+
+    for (let i = 0; i < 1; i += 1 / (pathTravelled * 25)) {
+      const q = initial.clone().slerp(target, i);
+      // Conver to world space
+      const trackGeo = new SphereGeometry(0.05, 16, 16);
+      const trackBall = new Mesh(
+        trackGeo,
+        new MeshBasicMaterial({ color: 0x808080 }),
+      );
+      trackBall.position.set(0, 5, 0);
+      trackBall.position.applyQuaternion(q);
+      this.scene.add(trackBall);
+    }
 
     const update = () => {
       const now = performance.now();
