@@ -25,13 +25,13 @@ use qsc_fir::{
     visit::Visitor,
 };
 
-pub struct CoreAnalyzer<'a> {
+pub struct Analyzer<'a> {
     package_store: &'a PackageStore,
     package_store_compute_properties: PackageStoreComputeProperties,
     active_contexts: Vec<AnalysisContext>,
 }
 
-impl<'a> CoreAnalyzer<'a> {
+impl<'a> Analyzer<'a> {
     pub fn new(
         package_store: &'a PackageStore,
         package_store_compute_properties: PackageStoreComputeProperties,
@@ -1166,7 +1166,7 @@ impl<'a> CoreAnalyzer<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for CoreAnalyzer<'a> {
+impl<'a> Visitor<'a> for Analyzer<'a> {
     fn get_block(&self, id: BlockId) -> &'a Block {
         let package_id = self.get_current_package_id();
         self.package_store.get_block((package_id, id).into())

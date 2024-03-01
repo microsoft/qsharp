@@ -1,10 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{
-    rca_core::CoreAnalyzer, rca_cyclic_callables::CyclicCallablesAnalyzer, scaffolding,
-    PackageStoreComputeProperties,
-};
+use crate::{core, cyclic_callables, scaffolding, PackageStoreComputeProperties};
 use qsc_fir::fir::{PackageId, PackageStore};
 
 /// A runtime capabilities analyzer.
@@ -38,11 +35,11 @@ impl<'a> RCA<'a> {
         // First, we need to analyze the callable specializations with cycles. Otherwise, we cannot safely analyze the
         // rest of the items without causing an infinite analysis loop.
         let cyclic_callables_analyzer =
-            CyclicCallablesAnalyzer::new(self.package_store, self.scaffolding);
+            cyclic_callables::Analyzer::new(self.package_store, self.scaffolding);
         let scaffolding = cyclic_callables_analyzer.analyze_all();
 
         // Now we can safely analyze the rest of the items.
-        let core_analyzer = CoreAnalyzer::new(self.package_store, scaffolding);
+        let core_analyzer = core::Analyzer::new(self.package_store, scaffolding);
         core_analyzer.analyze_all().into()
     }
 
@@ -51,9 +48,9 @@ impl<'a> RCA<'a> {
         // Even when analyzing just one package we need to first analyze cyclic callables and then the rest of the items
         // to avoid an infinite analysis loop.
         let cyclic_callables_analyzer =
-            CyclicCallablesAnalyzer::new(self.package_store, self.scaffolding);
+            cyclic_callables::Analyzer::new(self.package_store, self.scaffolding);
         let scaffolding = cyclic_callables_analyzer.analyze_package(package_id);
-        let core_analyzer = CoreAnalyzer::new(self.package_store, scaffolding);
+        let core_analyzer = core::Analyzer::new(self.package_store, scaffolding);
         core_analyzer.analyze_package(package_id).into()
     }
 }

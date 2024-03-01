@@ -12,9 +12,9 @@
 mod analyzer;
 mod applications;
 mod common;
+mod core;
 mod cycle_detection;
-mod rca_core;
-mod rca_cyclic_callables;
+mod cyclic_callables;
 mod scaffolding;
 
 use crate::common::{aggregate_compute_kind, aggregate_value_kind, set_indentation};

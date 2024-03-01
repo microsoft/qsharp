@@ -16,14 +16,14 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 
-pub struct CyclicCallablesAnalyzer<'a> {
+pub struct Analyzer<'a> {
     package_store: &'a PackageStore,
     package_store_compute_properties: PackageStoreComputeProperties,
     current_package: Option<PackageId>,
     current_application_generator_set: Option<ApplicationGeneratorSet>,
 }
 
-impl<'a> CyclicCallablesAnalyzer<'a> {
+impl<'a> Analyzer<'a> {
     pub fn new(
         package_store: &'a PackageStore,
         package_store_compute_properties: PackageStoreComputeProperties,
@@ -188,7 +188,7 @@ impl<'a> CyclicCallablesAnalyzer<'a> {
     }
 }
 
-impl<'a> Visitor<'a> for CyclicCallablesAnalyzer<'a> {
+impl<'a> Visitor<'a> for Analyzer<'a> {
     fn get_block(&self, id: BlockId) -> &'a Block {
         let package_id = self.get_current_package();
         self.package_store.get_block((package_id, id).into())
@@ -237,7 +237,7 @@ impl<'a> Visitor<'a> for CyclicCallablesAnalyzer<'a> {
 
     fn visit_package(&mut self, package: &'a Package) {
         let package_id = self.get_current_package();
-        let mut cycle_detector = CycleDetector::new(package_id, package);
+        let cycle_detector = CycleDetector::new(package_id, package);
         let specializations_with_cycles = cycle_detector.detect_specializations_with_cycles();
         for cyclic_specialization in specializations_with_cycles {
             self.analyze_cyclic_specialization(cyclic_specialization);

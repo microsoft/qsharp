@@ -36,8 +36,7 @@ impl<'a> CycleDetector<'a> {
         }
     }
 
-    // TODO (cesarzc): should probably receive self.
-    pub fn detect_specializations_with_cycles(&mut self) -> Vec<LocalSpecId> {
+    pub fn detect_specializations_with_cycles(mut self) -> Vec<LocalSpecId> {
         self.visit_package(self.package);
         self.specializations_with_cycles.drain().collect()
     }
