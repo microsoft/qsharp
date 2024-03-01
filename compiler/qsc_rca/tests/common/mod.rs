@@ -8,7 +8,7 @@ use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
-use qsc_rca::{ComputePropertiesLookup, PackageStoreComputeProperties, RCA};
+use qsc_rca::{Analyzer, ComputePropertiesLookup, PackageStoreComputeProperties};
 
 pub struct CompilationContext {
     pub compiler: Compiler,
@@ -41,9 +41,11 @@ impl CompilationContext {
         // Clear the compute properties of the package to update.
         let package_compute_properties = self.compute_properties.get_mut(package_id);
         package_compute_properties.clear();
-        let rca =
-            RCA::init_with_compute_properties(&self.fir_store, self.compute_properties.clone());
-        self.compute_properties = rca.analyze_package(package_id);
+        let analyzer = Analyzer::init_with_compute_properties(
+            &self.fir_store,
+            self.compute_properties.clone(),
+        );
+        self.compute_properties = analyzer.analyze_package(package_id);
     }
 }
 
@@ -58,8 +60,8 @@ impl Default for CompilationContext {
         .expect("should be able to create a new compiler");
         let mut lowerer = Lowerer::new();
         let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
-        let rca = RCA::init(&fir_store);
-        let compute_properties = rca.analyze_all();
+        let analyzer = Analyzer::init(&fir_store);
+        let compute_properties = analyzer.analyze_all();
         Self {
             compiler,
             fir_store,

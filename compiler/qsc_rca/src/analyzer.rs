@@ -5,12 +5,12 @@ use crate::{core, cyclic_callables, scaffolding, PackageStoreComputeProperties};
 use qsc_fir::fir::{PackageId, PackageStore};
 
 /// A runtime capabilities analyzer.
-pub struct RCA<'a> {
+pub struct Analyzer<'a> {
     package_store: &'a PackageStore,
     scaffolding: scaffolding::PackageStoreComputeProperties,
 }
 
-impl<'a> RCA<'a> {
+impl<'a> Analyzer<'a> {
     #[must_use]
     pub fn init(package_store: &'a PackageStore) -> Self {
         Self {

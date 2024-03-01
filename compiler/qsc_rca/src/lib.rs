@@ -31,7 +31,7 @@ use std::{
     fmt::{self, Debug, Display, Formatter, Write},
 };
 
-pub use crate::analyzer::RCA;
+pub use crate::analyzer::Analyzer;
 
 /// A trait to look for the compute properties of elements in a package store.
 pub trait ComputePropertiesLookup {
