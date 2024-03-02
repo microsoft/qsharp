@@ -793,7 +793,7 @@ fn build_frontier_test() {
     let frontier_result = estimation.build_frontier();
 
     let points = frontier_result.expect("failed to estimate");
-    assert_eq!(points.len(), 188);
+    assert_eq!(points.len(), 189);
 
     for i in 0..points.len() - 1 {
         assert!(points[i].runtime() <= points[i + 1].runtime());
@@ -890,7 +890,7 @@ fn build_frontier_bit_flip_code_test() {
     let frontier_result = estimation.build_frontier();
 
     let points = frontier_result.expect("failed to estimate");
-    assert_eq!(points.len(), 7);
+    assert_eq!(points.len(), 10);
 
     let shortest_runtime_result = estimation.estimate().expect("failed to estimate");
 

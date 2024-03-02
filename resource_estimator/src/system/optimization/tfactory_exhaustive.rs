@@ -247,6 +247,8 @@ where
             population.push(point);
         }
 
+        population.sort_items();
+
         return population;
     }
 
