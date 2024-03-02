@@ -17,11 +17,13 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 
 import {
+  Color,
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
   Group,
   LineSegments,
+  Material,
   Mesh,
   MeshBasicMaterial,
   MeshBasicMaterialParameters,
@@ -65,6 +67,38 @@ const weightMap = {
 // See https://gizma.com/easing/#easeInOutSine
 function easeInOutSine(x: number) {
   return -(Math.cos(Math.PI * x) - 1) / 2;
+}
+
+function easeOutSine(x: number) {
+  return Math.sin((x * Math.PI) / 2);
+}
+
+function hslToRgb(h: number, s: number, l: number) {
+  let r, g, b;
+
+  if (s === 0) {
+    r = g = b = l; // achromatic
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hueToRgb(p, q, h + 1 / 3);
+    g = hueToRgb(p, q, h);
+    b = hueToRgb(p, q, h - 1 / 3);
+  }
+  return (
+    (Math.min(r * 255, 255) << 16) |
+    (Math.min(g * 255, 255) << 8) |
+    Math.min(b * 255, 255)
+  );
+}
+
+function hueToRgb(p: number, q: number, t: number) {
+  if (t < 0) t += 1;
+  if (t > 1) t -= 1;
+  if (t < 1 / 6) return p + (q - p) * 6 * t;
+  if (t < 1 / 2) return q;
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+  return p;
 }
 
 function createText(scene: Scene, done: () => void) {
@@ -121,6 +155,7 @@ class BlochRenderer {
   renderer: WebGLRenderer;
   controls: OrbitControls;
   qubit: Group;
+  trail: Group;
 
   constructor(canvas: HTMLCanvasElement) {
     // For VS Code, WebView body attribute 'data-vscode-theme-kind' will contain 'light' if light theme is active.
@@ -165,6 +200,7 @@ class BlochRenderer {
 
     // Create a group to hold the qubit
     const qubit = new Group();
+
     // Add the main sphere
     const sphereGeometry = new SphereGeometry(5, 32, 16);
     const material = new MeshLambertMaterial({
@@ -194,6 +230,10 @@ class BlochRenderer {
     materialProps.transparent = true;
     qubit.add(sphereLines);
     scene.add(qubit);
+
+    // Create a group to hold the trailing points
+    const trail = new Group();
+    scene.add(trail);
 
     // Add the axes
     const axisMaterial = new MeshBasicMaterial({ color: 0xe0d0c0 });
@@ -232,6 +272,7 @@ class BlochRenderer {
     this.camera = camera;
     this.controls = controls;
     this.qubit = qubit;
+    this.trail = trail;
 
     // Initial render
     //requestAnimationFrame(() => this.render());
@@ -255,7 +296,7 @@ class BlochRenderer {
     /*
 To calculate the distance the point travels as the rotation is applied.
 - Calculate the angle (theta) between the axis of rotation and the point
-- Get the circumfence for the circle around the sphere at latitude theta: sin(theta) * 2 * PI
+- Get the circumfence for the circle around the sphere at theta: sin(theta) * 2 * PI
 - Calculate the distance travelled as the angle * circumfence
     */
 
@@ -265,21 +306,23 @@ To calculate the distance the point travels as the rotation is applied.
       .applyQuaternion(initial);
     const qubitToAxisAngle = qubitPointInWorld.angleTo(axis);
     const pathTravelled = Math.sin(qubitToAxisAngle) * angle;
-    // console.log(
-    //   `Path travelled: ${pathTravelled}, angle from axis: ${qubitToAxisAngle}`,
-    // );
+
+    const pointArray: [number, Mesh][] = [];
 
     for (let i = 0; i < 1; i += 1 / (pathTravelled * 25)) {
       const q = initial.clone().slerp(target, i);
-      // Conver to world space
       const trackGeo = new SphereGeometry(0.05, 16, 16);
       const trackBall = new Mesh(
         trackGeo,
         new MeshBasicMaterial({ color: 0x808080 }),
       );
       trackBall.position.set(0, 5, 0);
+
+      // Conver to world space
       trackBall.position.applyQuaternion(q);
-      this.scene.add(trackBall);
+
+      // Save along with the interpolation point
+      pointArray.push([i, trackBall]);
     }
 
     const update = () => {
@@ -288,6 +331,25 @@ To calculate the distance the point travels as the rotation is applied.
       const x = Math.max(now - startTimeMs, 1) / rotationTimeMs;
       const t = x < 1 ? easeInOutSine(x) : 1;
       this.qubit.quaternion.slerpQuaternions(initial, target, t);
+
+      // Add in tracking points as we pass them
+      for (;;) {
+        if (pointArray.length === 0 || pointArray[0][0] > t) {
+          break;
+        }
+        const pointToAdd = pointArray.shift()!;
+        this.trail.add(pointToAdd[1]);
+      }
+
+      // Fade out the trail as needed
+      this.trail.children.forEach((child, idx, arr) => {
+        const ball = child as Mesh;
+        const sat = easeOutSine((idx + 1) / arr.length);
+        const color = hslToRgb(0.6, sat, 0.5);
+        ball.material = new MeshBasicMaterial({ color });
+        ball.scale.setScalar(sat + 0.25);
+      });
+
       this.render();
       if (t < 1) {
         requestAnimationFrame(update);
