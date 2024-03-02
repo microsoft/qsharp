@@ -46,26 +46,26 @@
   },
   "physicalCounts": {
     "breakdown": {
-      "algorithmicLogicalDepth": 154131,
+      "algorithmicLogicalDepth": 152130,
       "algorithmicLogicalQubits": 230,
       "cliffordErrorRate": 0.001,
       "clockFrequency": 131578.94736842104,
-      "logicalDepth": 154131,
-      "numTfactories": 242,
-      "numTfactoryRuns": 9729,
-      "numTsPerRotation": 21,
-      "numTstates": 2354310,
+      "logicalDepth": 152130,
+      "numTfactories": 233,
+      "numTfactoryRuns": 9624,
+      "numTsPerRotation": 20,
+      "numTstates": 2242200,
       "physicalQubitsForAlgorithm": 166060,
-      "physicalQubitsForTfactories": 8063440,
-      "requiredLogicalQubitErrorRate": 9.402880421971184e-12,
-      "requiredLogicalTstateErrorRate": 1.4158430000014154e-10
+      "physicalQubitsForTfactories": 7763560,
+      "requiredLogicalQubitErrorRate": 9.52655861643884e-12,
+      "requiredLogicalTstateErrorRate": 1.4866351500014866e-10
     },
-    "physicalQubits": 8229500,
+    "physicalQubits": 7929620,
     "rqops": 30263158,
-    "runtime": 1171395600
+    "runtime": 1156188000
   },
   "physicalCountsFormatted": {
-    "algorithmicLogicalDepth": "154.13k",
+    "algorithmicLogicalDepth": "152.13k",
     "algorithmicLogicalQubits": "230",
     "clockFrequency": "131.58k",
     "codeDistancePerRound": "7, 19",
@@ -81,26 +81,26 @@
     "logicalCountsRotationDepth": "2.00k",
     "logicalCountsTCount": "0",
     "logicalCycleTime": "8 microsecs",
-    "logicalDepth": "154.13k",
+    "logicalDepth": "152.13k",
     "logicalDepthFactor": "constraint not set",
     "logicalErrorRate": "3.00e-12",
     "maxDuration": "constraint not set",
     "maxPhysicalQubits": "constraint not set",
     "maxTFactories": "constraint not set",
     "numInputTstates": "255",
-    "numTfactories": "242",
-    "numTfactoryRuns": "9.73k",
-    "numTsPerRotation": "21",
-    "numTstates": "2.35M",
+    "numTfactories": "233",
+    "numTfactoryRuns": "9.62k",
+    "numTsPerRotation": "20",
+    "numTstates": "2.24M",
     "numUnitsPerRound": "17, 1",
-    "physicalQubits": "8.23M",
+    "physicalQubits": "7.93M",
     "physicalQubitsForAlgorithm": "166.06k",
-    "physicalQubitsForTfactories": "8.06M",
-    "physicalQubitsForTfactoriesPercentage": "97.98 %",
+    "physicalQubitsForTfactories": "7.76M",
+    "physicalQubitsForTfactoriesPercentage": "97.91 %",
     "physicalQubitsPerLogicalQubit": "722",
     "physicalQubitsPerRound": "33.32k, 22.38k",
-    "requiredLogicalQubitErrorRate": "9.40e-12",
-    "requiredLogicalTstateErrorRate": "1.42e-10",
+    "requiredLogicalQubitErrorRate": "9.53e-12",
+    "requiredLogicalTstateErrorRate": "1.49e-10",
     "rqops": "30.26M",
     "runtime": "1 secs",
     "tfactoryPhysicalQubits": "33.32k",
@@ -125,19 +125,19 @@
         "entries": [
           {
             "description": "Total runtime",
-            "explanation": "This is a runtime estimate for the execution time of the algorithm.  In general, the execution time corresponds to the duration of one logical cycle (7,600 nanosecs) multiplied by the 154,131 logical cycles to run the algorithm.  If however the duration of a single T factory (here: 120,000 nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory.",
+            "explanation": "This is a runtime estimate for the execution time of the algorithm.  In general, the execution time corresponds to the duration of one logical cycle (7,600 nanosecs) multiplied by the 152,130 logical cycles to run the algorithm.  If however the duration of a single T factory (here: 120,000 nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory.",
             "label": "Runtime",
             "path": "physicalCountsFormatted/runtime"
           },
           {
             "description": "Reliable quantum operations per second",
-            "explanation": "The value is computed as the number of logical qubits after layout (230) (with a logical error rate of 9.40e-12) multiplied by the clock frequency (131,578.95), which is the number of logical cycles per second.",
+            "explanation": "The value is computed as the number of logical qubits after layout (230) (with a logical error rate of 9.53e-12) multiplied by the clock frequency (131,578.95), which is the number of logical cycles per second.",
             "label": "rQOPS",
             "path": "physicalCountsFormatted/rqops"
           },
           {
             "description": "Number of physical qubits",
-            "explanation": "This value represents the total number of physical qubits, which is the sum of 166,060 physical qubits to implement the algorithm logic, and 8,063,440 physical qubits to execute the T factories that are responsible to produce the T states that are consumed by the algorithm.",
+            "explanation": "This value represents the total number of physical qubits, which is the sum of 166,060 physical qubits to implement the algorithm logic, and 7,763,560 physical qubits to execute the T factories that are responsible to produce the T states that are consumed by the algorithm.",
             "label": "Physical qubits",
             "path": "physicalCountsFormatted/physicalQubits"
           }
@@ -155,13 +155,13 @@
           },
           {
             "description": "Number of logical cycles for the algorithm",
-            "explanation": "To execute the algorithm using _Parallel Synthesis Sequential Pauli Computation_ (PSSPC), operations are scheduled in terms of multi-qubit Pauli measurements, for which assume an execution time of one logical cycle.  Based on the input algorithm, we require one multi-qubit measurement for the 0 single-qubit measurements, the 112,110 arbitrary single-qubit rotations, and the 0 T gates, three multi-qubit measurements for each of the 0 CCZ and 0 CCiX gates in the input program, as well as 21 multi-qubit measurements for each of the 2,001 non-Clifford layers in which there is at least one single-qubit rotation with an arbitrary angle rotation.",
+            "explanation": "To execute the algorithm using _Parallel Synthesis Sequential Pauli Computation_ (PSSPC), operations are scheduled in terms of multi-qubit Pauli measurements, for which assume an execution time of one logical cycle.  Based on the input algorithm, we require one multi-qubit measurement for the 0 single-qubit measurements, the 112,110 arbitrary single-qubit rotations, and the 0 T gates, three multi-qubit measurements for each of the 0 CCZ and 0 CCiX gates in the input program, as well as 20 multi-qubit measurements for each of the 2,001 non-Clifford layers in which there is at least one single-qubit rotation with an arbitrary angle rotation.",
             "label": "Algorithmic depth",
             "path": "physicalCountsFormatted/algorithmicLogicalDepth"
           },
           {
             "description": "Number of logical cycles performed",
-            "explanation": "This number is usually equal to the logical depth of the algorithm, which is 154,131.  However, in the case in which a single T factory is slower than the execution time of the algorithm, we adjust the logical cycle depth to exceed the T factory's execution time.",
+            "explanation": "This number is usually equal to the logical depth of the algorithm, which is 152,130.  However, in the case in which a single T factory is slower than the execution time of the algorithm, we adjust the logical cycle depth to exceed the T factory's execution time.",
             "label": "Logical depth",
             "path": "physicalCountsFormatted/logicalDepth"
           },
@@ -173,19 +173,19 @@
           },
           {
             "description": "Number of T states consumed by the algorithm",
-            "explanation": "To execute the algorithm, we require one T state for each of the 0 T gates, four T states for each of the 0 CCZ and 0 CCiX gates, as well as 21 for each of the 112,110 single-qubit rotation gates with arbitrary angle rotation.",
+            "explanation": "To execute the algorithm, we require one T state for each of the 0 T gates, four T states for each of the 0 CCZ and 0 CCiX gates, as well as 20 for each of the 112,110 single-qubit rotation gates with arbitrary angle rotation.",
             "label": "Number of T states",
             "path": "physicalCountsFormatted/numTstates"
           },
           {
-            "description": "Number of T factories capable of producing the demanded 2,354,310 T states during the algorithm's runtime",
-            "explanation": "The total number of T factories 242 that are executed in parallel is computed as $\\left\\lceil\\dfrac{\\text{T states}\\cdot\\text{T factory duration}}{\\text{T states per T factory}\\cdot\\text{algorithm runtime}}\\right\\rceil = \\left\\lceil\\dfrac{2,354,310 \\cdot 120,000\\;\\text{ns}}{1 \\cdot 1,171,395,600\\;\\text{ns}}\\right\\rceil$",
+            "description": "Number of T factories capable of producing the demanded 2,242,200 T states during the algorithm's runtime",
+            "explanation": "The total number of T factories 233 that are executed in parallel is computed as $\\left\\lceil\\dfrac{\\text{T states}\\cdot\\text{T factory duration}}{\\text{T states per T factory}\\cdot\\text{algorithm runtime}}\\right\\rceil = \\left\\lceil\\dfrac{2,242,200 \\cdot 120,000\\;\\text{ns}}{1 \\cdot 1,156,188,000\\;\\text{ns}}\\right\\rceil$",
             "label": "Number of T factories",
             "path": "physicalCountsFormatted/numTfactories"
           },
           {
             "description": "Number of times all T factories are invoked",
-            "explanation": "In order to prepare the 2,354,310 T states, the 242 copies of the T factory are repeatedly invoked 9,729 times.",
+            "explanation": "In order to prepare the 2,242,200 T states, the 233 copies of the T factory are repeatedly invoked 9,624 times.",
             "label": "Number of T factory invocations",
             "path": "physicalCountsFormatted/numTfactoryRuns"
           },
@@ -197,25 +197,25 @@
           },
           {
             "description": "Number of physical qubits for the T factories",
-            "explanation": "Each T factory requires 33,320 physical qubits and we run 242 in parallel, therefore we need $8,063,440 = 33,320 \\cdot 242$ qubits.",
+            "explanation": "Each T factory requires 33,320 physical qubits and we run 233 in parallel, therefore we need $7,763,560 = 33,320 \\cdot 233$ qubits.",
             "label": "Physical T factory qubits",
             "path": "physicalCountsFormatted/physicalQubitsForTfactories"
           },
           {
             "description": "The minimum logical qubit error rate required to run the algorithm within the error budget",
-            "explanation": "The minimum logical qubit error rate is obtained by dividing the logical error probability 3.33e-4 by the product of 230 logical qubits and the total cycle count 154,131.",
+            "explanation": "The minimum logical qubit error rate is obtained by dividing the logical error probability 3.33e-4 by the product of 230 logical qubits and the total cycle count 152,130.",
             "label": "Required logical qubit error rate",
             "path": "physicalCountsFormatted/requiredLogicalQubitErrorRate"
           },
           {
             "description": "The minimum T state error rate required for distilled T states",
-            "explanation": "The minimum T state error rate is obtained by dividing the T distillation error probability 3.33e-4 by the total number of T states 2,354,310.",
+            "explanation": "The minimum T state error rate is obtained by dividing the T distillation error probability 3.33e-4 by the total number of T states 2,242,200.",
             "label": "Required logical T state error rate",
             "path": "physicalCountsFormatted/requiredLogicalTstateErrorRate"
           },
           {
             "description": "Number of T states to implement a rotation with an arbitrary angle",
-            "explanation": "The number of T states to implement a rotation with an arbitrary angle is $\\lceil 0.53 \\log_2(112,110 / 0.0003333333333333333) + 5.3\\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)].  For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases.",
+            "explanation": "The number of T states to implement a rotation with an arbitrary angle is $\\lceil 0.53 \\log_2(112,110 / 0.0003333333333333333) + 4.86\\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)].  For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases.",
             "label": "Number of T states per rotation",
             "path": "physicalCountsFormatted/numTsPerRotation"
           }
@@ -233,7 +233,7 @@
           },
           {
             "description": "Required code distance for error correction",
-            "explanation": "The code distance is the smallest odd integer greater or equal to $\\dfrac{2\\log(0.03 / 0.000000000009402880421971184)}{\\log(0.01/0.001)} - 1$",
+            "explanation": "The code distance is the smallest odd integer greater or equal to $\\dfrac{2\\log(0.03 / 0.000000000009526558616438839)}{\\log(0.01/0.001)} - 1$",
             "label": "Code distance",
             "path": "logicalQubit/codeDistance"
           },
@@ -347,7 +347,7 @@
           },
           {
             "description": "Logical T state error rate",
-            "explanation": "This is the logical T state error rate achieved by the T factory which is equal or smaller than the required error rate 1.42e-10.",
+            "explanation": "This is the logical T state error rate achieved by the T factory which is equal or smaller than the required error rate 1.49e-10.",
             "label": "Logical T state error rate",
             "path": "physicalCountsFormatted/tstateLogicalErrorRate"
           }

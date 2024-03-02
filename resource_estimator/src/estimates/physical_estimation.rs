@@ -451,7 +451,7 @@ impl<
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
-            if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
+            for (factory, _) in Self::pick_factories_with_num_cycles(
                 &last_factories,
                 &logical_qubit,
                 max_num_cycles_allowed,
@@ -487,8 +487,8 @@ impl<
                         Some(required_logical_magic_state_error_rate),
                     );
 
-                    let value1 = result.runtime() as f64;
-                    let value2 = result.physical_qubits();
+                    let value1 = result.physical_qubits() as f64;
+                    let value2 = result.runtime();
                     let num_factory_runs = result.num_factory_runs();
                     let point = Point2D::new(result, value1, value2);
                     best_estimation_results.push(point);
@@ -506,6 +506,7 @@ impl<
         }
 
         best_estimation_results.filter_out_dominated();
+        best_estimation_results.sort_items();
 
         Ok(best_estimation_results
             .extract()
@@ -780,7 +781,7 @@ impl<
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
-            if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
+            for (factory, _) in Self::pick_factories_with_num_cycles(
                 &last_factories,
                 &logical_qubit,
                 max_num_cycles_allowed,
@@ -809,7 +810,7 @@ impl<
 
                 let result = PhysicalResourceEstimationResult::new(
                     self,
-                    logical_qubit,
+                    LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?,
                     num_cycles,
                     Some(factory),
                     num_factories,
@@ -1124,6 +1125,25 @@ impl<
         logical_qubit: &LogicalQubit<E>,
         max_allowed_num_cycles_for_code_parameter: u64,
     ) -> Option<(Builder::Factory, u64)> {
+        Self::pick_factories_with_num_cycles(
+            factories,
+            logical_qubit,
+            max_allowed_num_cycles_for_code_parameter,
+        )
+        .iter()
+        .min_by(|(p, _), (q, _)| {
+            p.normalized_volume()
+                .partial_cmp(&q.normalized_volume())
+                .expect("Could not compare factories normalized volume")
+        })
+        .cloned()
+    }
+
+    fn pick_factories_with_num_cycles(
+        factories: &[Builder::Factory],
+        logical_qubit: &LogicalQubit<E>,
+        max_allowed_num_cycles_for_code_parameter: u64,
+    ) -> Vec<(Builder::Factory, u64)> {
         factories
             .iter()
             .map(|factory| {
@@ -1132,11 +1152,7 @@ impl<
                 (factory.clone(), num)
             })
             .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_parameter)
-            .min_by(|(p, _), (q, _)| {
-                p.normalized_volume()
-                    .partial_cmp(&q.normalized_volume())
-                    .expect("Could not compare factories normalized volume")
-            })
+            .collect()
     }
 
     fn find_highest_code_parameter(&self, factories: &[Builder::Factory]) -> Option<E::Parameter> {
@@ -1196,20 +1212,11 @@ impl<
         let logical_cycle_time_big = u128::from(logical_qubit.logical_cycle_time());
         let num_cycles_big = u128::from(num_cycles);
 
-        let result = num_magic_states_big * duration_big
-            / (output_magic_count_big * logical_cycle_time_big * num_cycles_big);
-
-        let rem = num_magic_states_big * duration_big
-            % (output_magic_count_big * logical_cycle_time_big * num_cycles_big);
+        let result = (num_magic_states_big * duration_big)
+            .div_ceil(output_magic_count_big * logical_cycle_time_big * num_cycles_big);
 
         // We expect the result to be small enough to fit into a u64.
-        let result_u64 = u64::try_from(result).expect("result should fit into u64");
-
-        if rem == 0 {
-            result_u64
-        } else {
-            result_u64 + 1
-        }
+        u64::try_from(result).expect("result should fit into u64")
     }
 }
 
