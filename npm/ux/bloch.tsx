@@ -347,7 +347,7 @@ To calculate the distance the point travels as the rotation is applied.
         const sat = easeOutSine((idx + 1) / arr.length);
         const color = hslToRgb(0.6, sat, 0.5);
         ball.material = new MeshBasicMaterial({ color });
-        ball.scale.setScalar(sat + 0.25);
+        ball.scale.setScalar(sat + 0.5);
       });
 
       this.render();
@@ -378,7 +378,12 @@ To calculate the distance the point travels as the rotation is applied.
   }
 
   reset() {
+    this.controls.reset();
+    this.scene.position.set(0, 0, 0);
     this.qubit.rotation.set(0, 0, 0);
+    this.camera.position.set(4, 4, 27);
+    this.camera.lookAt(0, 0, 0);
+    this.trail.clear();
     this.render();
   }
 
