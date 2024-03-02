@@ -781,7 +781,7 @@ impl<
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
 
-            if let Some((factory, _)) = Self::try_pick_factory_with_num_cycles(
+            for (factory, _) in Self::pick_factories_with_num_cycles(
                 &last_factories,
                 &logical_qubit,
                 max_num_cycles_allowed,
@@ -810,7 +810,7 @@ impl<
 
                 let result = PhysicalResourceEstimationResult::new(
                     self,
-                    logical_qubit,
+                    LogicalQubit::new(&self.ftp, code_parameter.clone(), self.qubit.clone())?,
                     num_cycles,
                     Some(factory),
                     num_factories,
@@ -1125,19 +1125,18 @@ impl<
         logical_qubit: &LogicalQubit<E>,
         max_allowed_num_cycles_for_code_parameter: u64,
     ) -> Option<(Builder::Factory, u64)> {
-        factories
-            .iter()
-            .map(|factory| {
-                let num = (factory.duration() as f64 / logical_qubit.logical_cycle_time() as f64)
-                    .ceil() as u64;
-                (factory.clone(), num)
-            })
-            .filter(|(_, num_cycles)| *num_cycles <= max_allowed_num_cycles_for_code_parameter)
-            .min_by(|(p, _), (q, _)| {
-                p.normalized_volume()
-                    .partial_cmp(&q.normalized_volume())
-                    .expect("Could not compare factories normalized volume")
-            })
+        Self::pick_factories_with_num_cycles(
+            factories,
+            logical_qubit,
+            max_allowed_num_cycles_for_code_parameter,
+        )
+        .iter()
+        .min_by(|(p, _), (q, _)| {
+            p.normalized_volume()
+                .partial_cmp(&q.normalized_volume())
+                .expect("Could not compare factories normalized volume")
+        })
+        .cloned()
     }
 
     fn pick_factories_with_num_cycles(
