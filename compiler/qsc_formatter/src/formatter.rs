@@ -126,61 +126,64 @@ fn apply_rules(
     // when we get here, neither left nor right should be whitespace
 
     // if the right is a close brace, the indent level should be one less
-    let indent_level = if let Syntax(Close(Delim::Brace)) = right.kind {
+    let indent_level = if let ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) = right.kind
+    {
         indent_level.saturating_sub(1)
     } else {
         indent_level
     };
+
+    // rule_trim_comments(left, &mut edits, code);
+    // rule_close_empty_delims(left, whitespace, right, &mut edits);
+    // rule_indentation(left, whitespace, right, &mut edits, indent_level);
+    // rule_operator_single_space(left, whitespace, right, &mut edits);
+    // rule_operator_no_space(left, whitespace, right, &mut edits);
 
     use qsc_frontend::keyword::Keyword;
     use ConcreteTokenKind::*;
     use TokenKind::*;
     match (&left.kind, &right.kind) {
         (Syntax(Open(l)), Syntax(Close(r))) if l == r => {
-            rule_no_space(left, whitespace, right, &mut edits);
+            effect_no_space(left, whitespace, right, &mut edits);
         }
         (Comment | Syntax(DocComment), _) => {
-            rule_trim_comments(left, &mut edits, code);
-            rule_indentation(left, whitespace, right, &mut edits, indent_level);
+            effect_trim_comments(left, &mut edits, code);
+            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (Syntax(Semi), _) => match &right.kind {
             Comment => {
                 if whitespace.contains('\n') {
-                    rule_indentation(left, whitespace, right, &mut edits, indent_level);
+                    effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
                 }
             }
             _ => {
-                rule_indentation(left, whitespace, right, &mut edits, indent_level);
+                effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
         },
-        (_, Syntax(Close(Delim::Brace))) => {
-            rule_indentation(left, whitespace, right, &mut edits, indent_level);
-        }
-        (_, Syntax(Keyword(Keyword::Operation)))
+        (_, Syntax(Close(Delim::Brace)))
+        | (_, Syntax(Keyword(Keyword::Operation)))
         | (_, Syntax(Keyword(Keyword::Function)))
         | (_, Syntax(Keyword(Keyword::Newtype)))
-        | (_, Syntax(Keyword(Keyword::Namespace))) => {
-            rule_indentation(left, whitespace, right, &mut edits, indent_level);
-        }
-        (Syntax(Open(Delim::Brace)), _) => {
-            rule_indentation(left, whitespace, right, &mut edits, indent_level);
+        | (_, Syntax(Keyword(Keyword::Namespace)))
+        | (Syntax(Open(Delim::Brace)), _) => {
+            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (Syntax(Close(Delim::Brace)), Syntax(Semi)) => {
-            rule_no_space(left, whitespace, right, &mut edits);
+            effect_no_space(left, whitespace, right, &mut edits);
         }
         (Syntax(Close(Delim::Brace)), _) => {
-            rule_indentation(left, whitespace, right, &mut edits, indent_level);
+            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
             (Ident, Ident) | (Keyword(_), Ident) | (_, Colon) | (Colon, _) | (Comma, _) => {
-                rule_single_space(left, whitespace, right, &mut edits);
+                effect_single_space(left, whitespace, right, &mut edits);
             }
             (Ident, Open(Delim::Paren))
             | (Ident, Open(Delim::Bracket))
             | (Ident, Comma)
             | (Open(_), _)
             | (_, Close(_)) => {
-                rule_no_space(left, whitespace, right, &mut edits);
+                effect_no_space(left, whitespace, right, &mut edits);
             }
             _ => {}
         },
@@ -194,7 +197,108 @@ fn apply_rules(
     edits
 }
 
-fn rule_no_space(
+fn rule_operator_single_space(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<Edit>,
+) {
+    use ConcreteTokenKind::*;
+    use TokenKind::*;
+    if let (Syntax(cooked_left), Syntax(cooked_right)) = (&left.kind, &right.kind) {
+        match (cooked_left, cooked_right) {
+            (Comma, Close(_)) | (Semi, _) => {} // these have different rules
+            (Ident, Ident) | (Keyword(_), Ident) | (_, Colon) | (Colon, _) | (Comma, _) => {
+                effect_single_space(left, whitespace, right, edits);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn rule_operator_no_space(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<Edit>,
+) {
+    use ConcreteTokenKind::*;
+    use TokenKind::*;
+    if let (Syntax(cooked_left), Syntax(cooked_right)) = (&left.kind, &right.kind) {
+        match (cooked_left, cooked_right) {
+            (_, Colon) | (Colon, _) | (Semi, _) => {} // Colons get single spaces, and Semi has indentation logic
+            (Ident, Open(Delim::Paren))
+            | (Ident, Open(Delim::Bracket))
+            | (Ident, Comma)
+            | (Close(Delim::Brace), Semi)
+            | (Open(_), _)
+            | (_, Close(_)) => {
+                effect_no_space(left, whitespace, right, edits);
+            }
+            _ => {}
+        }
+    }
+}
+
+fn rule_indentation(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<Edit>,
+    indent_level: usize,
+) {
+    use qsc_frontend::keyword::Keyword;
+    use ConcreteTokenKind::*;
+    use TokenKind::*;
+    let cond = match (&left.kind, &right.kind) {
+        (Comment | Syntax(DocComment), _) => true,
+        (Syntax(Semi), _) => match &right.kind {
+            Comment => whitespace.contains('\n'),
+            _ => true,
+        },
+        (_, Syntax(Close(Delim::Brace)))
+        | (_, Syntax(Keyword(Keyword::Operation)))
+        | (_, Syntax(Keyword(Keyword::Function)))
+        | (_, Syntax(Keyword(Keyword::Newtype)))
+        | (_, Syntax(Keyword(Keyword::Namespace)))
+        | (Syntax(Open(Delim::Brace)), _) => true,
+        (Syntax(Close(Delim::Brace)), Syntax(Semi)) => false,
+        (Syntax(Close(Delim::Brace)), _) => true,
+        _ => false,
+    };
+
+    if cond {
+        effect_correct_indentation(left, whitespace, right, edits, indent_level);
+    }
+}
+
+fn rule_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
+    match &left.kind {
+        ConcreteTokenKind::Comment | ConcreteTokenKind::Syntax(TokenKind::DocComment) => {
+            effect_trim_comments(left, edits, code)
+        }
+        _ => {}
+    }
+}
+
+fn rule_close_empty_delims(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<Edit>,
+) {
+    match (&left.kind, &right.kind) {
+        (
+            ConcreteTokenKind::Syntax(TokenKind::Open(l)),
+            ConcreteTokenKind::Syntax(TokenKind::Close(r)),
+        ) if l == r => {
+            effect_no_space(left, whitespace, right, edits);
+        }
+        _ => {}
+    }
+}
+
+fn effect_no_space(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
@@ -205,7 +309,7 @@ fn rule_no_space(
     }
 }
 
-fn rule_single_space(
+fn effect_single_space(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
@@ -216,7 +320,7 @@ fn rule_single_space(
     }
 }
 
-fn rule_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
+fn effect_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
     // fix trailing spaces on the comment
     let comment_contents = get_token_contents(code, left);
     let new_comment_contents = comment_contents.trim_end();
@@ -225,7 +329,7 @@ fn rule_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
     }
 }
 
-fn rule_indentation(
+fn effect_correct_indentation(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
