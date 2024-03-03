@@ -1,8 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// A Q# backend to compute logical overheads to compute the overhead based on
+/// the PSSPC layout method.
 mod counts;
+/// Provides traits to define a fault-tolerant quantum computing architecture
+/// and functions to perform resource estimation on such architectures.
 pub mod estimates;
+/// Models a fault-tolerant quantum computing architecture based on
+/// customizaable gate-based and Majorana qubits, planar codes, and T-factories.
 pub mod system;
 
 pub use system::estimate_physical_resources_from_json;
