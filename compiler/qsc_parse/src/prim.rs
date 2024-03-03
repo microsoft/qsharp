@@ -224,8 +224,8 @@ pub(super) fn recovering<T>(
 
 pub(super) fn recovering_semi(s: &mut ParserContext) {
     if let Err(error) = token(s, TokenKind::Semi) {
+        // no recovery, just move on to the next token
         s.push_error(error);
-        s.recover(&[TokenKind::Semi]);
     }
 }
 

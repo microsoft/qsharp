@@ -1216,38 +1216,6 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
                     ),
                 ),
             ),
-            Error(
-                Parse(
-                    Error(
-                        Token(
-                            Close(
-                                Brace,
-                            ),
-                            Semi,
-                            Span {
-                                lo: 303,
-                                hi: 304,
-                            },
-                        ),
-                    ),
-                ),
-            ),
-            Error(
-                Parse(
-                    Error(
-                        Token(
-                            Eof,
-                            Close(
-                                Brace,
-                            ),
-                            Span {
-                                lo: 320,
-                                hi: 321,
-                            },
-                        ),
-                    ),
-                ),
-            ),
         ]
     "#]]
     .assert_debug_eq(&unit.errors);
