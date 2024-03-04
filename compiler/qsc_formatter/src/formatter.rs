@@ -61,7 +61,7 @@ pub fn format(code: &str) -> Vec<Edit> {
                     _ => {}
                 }
 
-                if let ConcreteTokenKind::WhiteSpace = one.kind {
+                if matches!(one.kind, ConcreteTokenKind::WhiteSpace) {
                     // first token is whitespace, continue scanning
                     continue;
                 } else if matches!(two.kind, ConcreteTokenKind::WhiteSpace) {
@@ -98,23 +98,6 @@ pub fn format(code: &str) -> Vec<Edit> {
     edits
 }
 
-fn fix_whitespace(whitespace: &str, indent_level: usize) -> String {
-    //
-    // when you see newline, insert the indent string
-    // and trim until the next newline or the end of the string
-    //
-
-    let mut count_newlines = whitespace.chars().filter(|c| *c == '\n').count();
-
-    // There should always be at least one newline
-    if count_newlines < 1 {
-        count_newlines = 1;
-    }
-    let mut new = "\n".repeat(count_newlines);
-    new.push_str(&make_indent_string(indent_level));
-    new
-}
-
 fn apply_rules(
     left: &ConcreteToken,
     whitespace: &str,
@@ -133,33 +116,27 @@ fn apply_rules(
         indent_level
     };
 
-    // rule_trim_comments(left, &mut edits, code);
-    // rule_close_empty_delims(left, whitespace, right, &mut edits);
-    // rule_indentation(left, whitespace, right, &mut edits, indent_level);
-    // rule_operator_single_space(left, whitespace, right, &mut edits);
-    // rule_operator_no_space(left, whitespace, right, &mut edits);
-
     use qsc_frontend::keyword::Keyword;
     use ConcreteTokenKind::*;
     use TokenKind::*;
     match (&left.kind, &right.kind) {
         (Syntax(Open(l)), Syntax(Close(r))) if l == r => {
+            // close empty delimiter blocks, i.e. (), [], {}
             effect_no_space(left, whitespace, right, &mut edits);
         }
         (Comment | Syntax(DocComment), _) => {
+            // remove whitespace at the ends of comments
             effect_trim_comments(left, &mut edits, code);
             effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (Syntax(Semi), _) => match &right.kind {
-            Comment => {
-                if whitespace.contains('\n') {
-                    effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
-                }
-            }
-            _ => {
+        (Syntax(Semi), Comment) => {
+            if whitespace.contains('\n') {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
-        },
+        }
+        (Syntax(Semi), _) => {
+            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+        }
         (_, Syntax(Close(Delim::Brace)))
         | (_, Syntax(Keyword(Keyword::Operation)))
         | (_, Syntax(Keyword(Keyword::Function)))
@@ -168,21 +145,26 @@ fn apply_rules(
         | (Syntax(Open(Delim::Brace)), _) => {
             effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (Syntax(Close(Delim::Brace)), Syntax(Semi)) => {
+        (Syntax(Close(Delim::Brace)), Syntax(Semi))
+        | (Syntax(Close(Delim::Brace)), Syntax(Comma)) => {
+            // remove any space between a close brace and a semicolon or comma
             effect_no_space(left, whitespace, right, &mut edits);
         }
         (Syntax(Close(Delim::Brace)), _) => {
             effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
-            (Ident, Ident) | (Keyword(_), Ident) | (_, Colon) | (Colon, _) | (Comma, _) => {
+            (Ident, Ident) | (Keyword(_), Ident) // single spaces around identifiers
+            | (_, Colon) | (Colon, _) // single spaces around type-annotating colons
+            | (Comma, _) // single space after a comma
+            => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (Ident, Open(Delim::Paren))
-            | (Ident, Open(Delim::Bracket))
-            | (Ident, Comma)
-            | (Open(_), _)
-            | (_, Close(_)) => {
+            (Ident, Open(Delim::Paren)) // no space between callable name and argument tuple, i.e. foo()
+            | (Ident, Open(Delim::Bracket)) // no space between array name and brackets, i.e. foo[2]
+            | (Ident, Comma) // no space between identifier and following comma in a sequence
+            | (Open(_), _) // no space after an open delimiter
+            | (_, Close(_)) => { // no space before a close delimiter
                 effect_no_space(left, whitespace, right, &mut edits);
             }
             _ => {}
@@ -195,107 +177,6 @@ fn apply_rules(
         &code[left.span.lo as usize..right.span.hi as usize]
     );
     edits
-}
-
-fn rule_operator_single_space(
-    left: &ConcreteToken,
-    whitespace: &str,
-    right: &ConcreteToken,
-    edits: &mut Vec<Edit>,
-) {
-    use ConcreteTokenKind::*;
-    use TokenKind::*;
-    if let (Syntax(cooked_left), Syntax(cooked_right)) = (&left.kind, &right.kind) {
-        match (cooked_left, cooked_right) {
-            (Comma, Close(_)) | (Semi, _) => {} // these have different rules
-            (Ident, Ident) | (Keyword(_), Ident) | (_, Colon) | (Colon, _) | (Comma, _) => {
-                effect_single_space(left, whitespace, right, edits);
-            }
-            _ => {}
-        }
-    }
-}
-
-fn rule_operator_no_space(
-    left: &ConcreteToken,
-    whitespace: &str,
-    right: &ConcreteToken,
-    edits: &mut Vec<Edit>,
-) {
-    use ConcreteTokenKind::*;
-    use TokenKind::*;
-    if let (Syntax(cooked_left), Syntax(cooked_right)) = (&left.kind, &right.kind) {
-        match (cooked_left, cooked_right) {
-            (_, Colon) | (Colon, _) | (Semi, _) => {} // Colons get single spaces, and Semi has indentation logic
-            (Ident, Open(Delim::Paren))
-            | (Ident, Open(Delim::Bracket))
-            | (Ident, Comma)
-            | (Close(Delim::Brace), Semi)
-            | (Open(_), _)
-            | (_, Close(_)) => {
-                effect_no_space(left, whitespace, right, edits);
-            }
-            _ => {}
-        }
-    }
-}
-
-fn rule_indentation(
-    left: &ConcreteToken,
-    whitespace: &str,
-    right: &ConcreteToken,
-    edits: &mut Vec<Edit>,
-    indent_level: usize,
-) {
-    use qsc_frontend::keyword::Keyword;
-    use ConcreteTokenKind::*;
-    use TokenKind::*;
-    let cond = match (&left.kind, &right.kind) {
-        (Comment | Syntax(DocComment), _) => true,
-        (Syntax(Semi), _) => match &right.kind {
-            Comment => whitespace.contains('\n'),
-            _ => true,
-        },
-        (_, Syntax(Close(Delim::Brace)))
-        | (_, Syntax(Keyword(Keyword::Operation)))
-        | (_, Syntax(Keyword(Keyword::Function)))
-        | (_, Syntax(Keyword(Keyword::Newtype)))
-        | (_, Syntax(Keyword(Keyword::Namespace)))
-        | (Syntax(Open(Delim::Brace)), _) => true,
-        (Syntax(Close(Delim::Brace)), Syntax(Semi)) => false,
-        (Syntax(Close(Delim::Brace)), _) => true,
-        _ => false,
-    };
-
-    if cond {
-        effect_correct_indentation(left, whitespace, right, edits, indent_level);
-    }
-}
-
-fn rule_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
-    match &left.kind {
-        ConcreteTokenKind::Comment | ConcreteTokenKind::Syntax(TokenKind::DocComment) => {
-            effect_trim_comments(left, edits, code)
-        }
-        _ => {}
-    }
-}
-
-fn rule_close_empty_delims(
-    left: &ConcreteToken,
-    whitespace: &str,
-    right: &ConcreteToken,
-    edits: &mut Vec<Edit>,
-) {
-    match (&left.kind, &right.kind) {
-        (
-            ConcreteTokenKind::Syntax(TokenKind::Open(l)),
-            ConcreteTokenKind::Syntax(TokenKind::Close(r)),
-        ) if l == r => {
-            effect_no_space(left, whitespace, right, edits);
-        }
-        _ => {}
-    }
 }
 
 fn effect_no_space(
@@ -321,7 +202,6 @@ fn effect_single_space(
 }
 
 fn effect_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
-    // fix trailing spaces on the comment
     let comment_contents = get_token_contents(code, left);
     let new_comment_contents = comment_contents.trim_end();
     if comment_contents != new_comment_contents {
@@ -336,9 +216,15 @@ fn effect_correct_indentation(
     edits: &mut Vec<Edit>,
     indent_level: usize,
 ) {
-    // if the middle whitespace contains a new line, we need to
-    // fix the indentation
-    let new_whitespace = fix_whitespace(whitespace, indent_level);
+    let mut count_newlines = whitespace.chars().filter(|c| *c == '\n').count();
+
+    // There should always be at least one newline
+    if count_newlines < 1 {
+        count_newlines = 1;
+    }
+
+    let mut new_whitespace = "\n".repeat(count_newlines);
+    new_whitespace.push_str(&make_indent_string(indent_level));
     if whitespace != new_whitespace {
         edits.push(Edit::new(
             left.span.hi,
