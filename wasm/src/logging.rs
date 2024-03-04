@@ -84,7 +84,7 @@ pub fn init_logging(callback: JsValue, level: i32) -> Result<(), JsError> {
         return Err(JsError::new("Invalid logging level"));
     }
 
-    let thefn: Function = callback.dyn_into().expect("shoudl already be a function");
+    let thefn: Function = callback.dyn_into().expect("should already be a function");
     LOG_JS_FN.with(|f| {
         *f.borrow_mut() = Option::Some(thefn);
     });
