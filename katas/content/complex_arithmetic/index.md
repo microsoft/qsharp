@@ -128,17 +128,9 @@ Unlike the conjugate, however, the modulus doesn't distribute over addition. Ins
 
 $$|x + y| \leq |x| + |y|$$
 
-### Exercise 6: Modulus
+@[exercise]({ "id": "complex_arithmetic__complex_modulus_exercise", "title": "Complex Modulus", "path": "./complex_modulus/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
-**Input:** A complex number $x = a + bi$, represented as a tuple `(a, b)`.
-
-**Goal:** Return the modulus of this number, $|x|$.
-
-A video explanation of avsolute value and comples numbers can be found [here](https://www.youtube.com/watch?v=FwuPXchH2rA).
-
-If you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-6-modulus).
-
-## Imaginary Exponents
+@[section]({ "id": "complex_arithmetic__imaginary_exponents", "title": "Imaginary Exponents" })
 
 The next complex operation we're going to need is exponentiation. Raising an imaginary number to an integer power is a fairly simple task, but raising a number to an imaginary power, or raising an imaginary (or complex) number to a real power isn't quite as simple.
 
