@@ -128,7 +128,15 @@ Unlike the conjugate, however, the modulus doesn't distribute over addition. Ins
 
 $$|x + y| \leq |x| + |y|$$
 
-@[exercise]({ "id": "complex_arithmetic__complex_modulus_exercise", "title": "Complex Modulus", "path": "./complex_modulus/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
+### Exercise 6: Modulus
+
+**Input:** A complex number $x = a + bi$, represented as a tuple `(a, b)`.
+
+**Goal:** Return the modulus of this number, $|x|$.
+
+A video explanation of avsolute value and comples numbers can be found [here](https://www.youtube.com/watch?v=FwuPXchH2rA).
+
+If you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-6-modulus).
 
 ## Imaginary Exponents
 
