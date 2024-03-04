@@ -72,12 +72,12 @@ def test_dump_machine() -> None:
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
-    assert state_dump[2] == (1.0, 0.0)
+    assert state_dump[2] == complex(1.0, 0.0)
     qsharp.eval("X(q2);")
     state_dump = qsharp.dump_machine()
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
-    assert state_dump[3] == (1.0, 0.0)
+    assert state_dump[3] == complex(1.0, 0.0)
 
 def test_dump_operation() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)

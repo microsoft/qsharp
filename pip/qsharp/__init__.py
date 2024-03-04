@@ -12,7 +12,7 @@ from ._qsharp import (
     dump_machine,
 )
 
-from ._native import Result, Pauli, QSharpError, TargetProfile, StateDump
+from ._native import Result, Pauli, QSharpError, TargetProfile, StateDumpData
 
 # IPython notebook specific features
 try:
@@ -38,5 +38,5 @@ __all__ = [
     "Pauli",
     "QSharpError",
     "TargetProfile",
-    "StateDump",
+    "StateDumpData",
 ]
