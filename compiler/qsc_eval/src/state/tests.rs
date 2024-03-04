@@ -12,7 +12,7 @@ use super::{
 use crate::state::{is_fractional_part_significant, is_significant};
 use expect_test::{expect, Expect};
 use num_complex::Complex64;
-use std::f64::consts::PI;
+use std::{f64::consts::PI, time::Instant};
 
 #[test]
 fn check_is_significant() {
@@ -901,4 +901,42 @@ fn check_get_latex() {
         ],
         2,
     ));
+}
+
+#[test]
+fn check_get_latex_perf() {
+    // This is not a CI gate for performance, just prints out data.
+    let state = vec![
+        (0_u8.into(), Complex64::new(1.0 / 2.0, 0.0)),
+        (
+            1_u8.into(),
+            Complex64::new(0.353_553_390_593_273_8, 0.353_553_390_593_273_8),
+        ),
+        (2_u8.into(), Complex64::new(0.0, 1.0 / 2.0)),
+        (
+            3_u8.into(),
+            Complex64::new(-0.353_553_390_593_273_8, 0.353_553_390_593_273_8),
+        ),
+    ];
+
+    expect!([r#"
+        "$|\\psi\\rangle = \\frac{1}{2}|00\\rangle+\\frac{1}{2} e^{ i \\pi / 4}|01\\rangle+\\frac{1}{2}i|10\\rangle+\\frac{1}{2} e^{3 i \\pi / 4}|11\\rangle$"
+    "#])
+    .assert_debug_eq(&get_latex(
+        &state,
+        2,
+    ));
+
+    print!("Start...");
+    let start = Instant::now();
+    let mut l: usize = 0;
+    for _ in 0..1_000 {
+        let s = get_latex(&state, 2);
+        l += s.len();
+    }
+    println!(
+        "Done. {} bytes in {:?}.",
+        l,
+        Instant::now().duration_since(start)
+    );
 }
