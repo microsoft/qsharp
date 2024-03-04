@@ -317,7 +317,7 @@ fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
 
 fn expr_interpolate(s: &mut ParserContext) -> Result<Vec<StringComponent>> {
     let token = s.peek();
-    let TokenKind::StringToken(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
+    let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
         token.kind
     else {
         return Err(Error(ErrorKind::Rule(
@@ -338,7 +338,7 @@ fn expr_interpolate(s: &mut ParserContext) -> Result<Vec<StringComponent>> {
         components.push(StringComponent::Expr(expr(s)?));
 
         let token = s.peek();
-        let TokenKind::StringToken(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
+        let TokenKind::String(StringToken::Interpolated(InterpolatedStart::RBrace, next_end)) =
             token.kind
         else {
             return Err(Error(ErrorKind::Rule(
@@ -400,7 +400,7 @@ fn lit_token(lexeme: &str, token: Token) -> Result<Option<Lit>> {
                 .ok_or(Error(ErrorKind::Lit("integer", token.span)))?;
             Ok(Some(Lit::Int(value)))
         }
-        TokenKind::StringToken(StringToken::Normal) => {
+        TokenKind::String(StringToken::Normal) => {
             let lexeme = shorten(1, 1, lexeme);
             let string = unescape(lexeme).map_err(|index| {
                 let ch = lexeme[index + 1..]

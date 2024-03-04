@@ -148,7 +148,7 @@ pub enum TokenKind {
     /// `;`
     Semi,
     /// A string literal.
-    StringToken(StringToken),
+    String(StringToken),
     /// `~~~`
     TildeTildeTilde,
     /// `w/`
@@ -197,7 +197,7 @@ impl Display for TokenKind {
             TokenKind::Question => f.write_str("`?`"),
             TokenKind::RArrow => f.write_str("`->`"),
             TokenKind::Semi => f.write_str("`;`"),
-            TokenKind::StringToken(_) => f.write_str("string"),
+            TokenKind::String(_) => f.write_str("string"),
             TokenKind::TildeTildeTilde => f.write_str("`~~~`"),
             TokenKind::WSlash => f.write_str("`w/`"),
             TokenKind::WSlashEq => f.write_str("`w/=`"),
@@ -338,13 +338,11 @@ impl<'a> Lexer<'a> {
             raw::TokenKind::Number(number) => Ok(Some(number.into())),
             raw::TokenKind::Single(single) => self.single(single).map(Some),
             raw::TokenKind::String(raw::StringToken::Normal { terminated: true }) => {
-                Ok(Some(TokenKind::StringToken(StringToken::Normal)))
+                Ok(Some(TokenKind::String(StringToken::Normal)))
             }
-            raw::TokenKind::String(raw::StringToken::Interpolated(start, Some(ending))) => {
-                Ok(Some(TokenKind::StringToken(StringToken::Interpolated(
-                    start, ending,
-                ))))
-            }
+            raw::TokenKind::String(raw::StringToken::Interpolated(start, Some(ending))) => Ok(
+                Some(TokenKind::String(StringToken::Interpolated(start, ending))),
+            ),
             raw::TokenKind::String(
                 raw::StringToken::Normal { terminated: false }
                 | raw::StringToken::Interpolated(_, None),
