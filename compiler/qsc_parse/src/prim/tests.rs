@@ -10,7 +10,7 @@ use crate::{
     Error, ErrorKind,
 };
 use expect_test::expect;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 #[test]
 fn ident_basic() {
@@ -52,7 +52,7 @@ fn ident_num_prefix() {
 #[test]
 fn ident_keyword() {
     for keyword in enum_iterator::all::<Keyword>() {
-        let mut scanner = ParserContext::new(keyword.as_str(), Default::default());
+        let mut scanner = ParserContext::new(keyword.as_str(), LanguageFeatures::default());
         let actual = ident(&mut scanner);
         let span = Span {
             lo: 0,

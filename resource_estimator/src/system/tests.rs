@@ -932,7 +932,6 @@ fn build_frontier_bit_flip_code_test() {
     );
 }
 
-#[allow(clippy::cast_lossless)]
 #[test]
 fn code_distance_tests() {
     let params = JobParams::default();

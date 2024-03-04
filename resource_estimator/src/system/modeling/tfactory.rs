@@ -228,7 +228,7 @@ impl TFactoryDistillationUnitTemplate {
     fn failure_probability(
         input_error_rate: f64,
         clifford_error_rate: f64,
-        #[allow(unused_variables)] readout_error_rate: f64,
+        _readout_error_rate: f64,
     ) -> f64 {
         15.0 * input_error_rate + 356.0 * clifford_error_rate
     }
@@ -236,23 +236,23 @@ impl TFactoryDistillationUnitTemplate {
     fn output_error_rate(
         input_error_rate: f64,
         clifford_error_rate: f64,
-        #[allow(unused_variables)] readout_error_rate: f64,
+        _readout_error_rate: f64,
     ) -> f64 {
         35.0 * input_error_rate.powi(3) + 7.1 * clifford_error_rate
     }
 
     fn trivial_failutre_probability(
-        #[allow(unused_variables)] input_error_rate: f64,
-        #[allow(unused_variables)] clifford_error_rate: f64,
-        #[allow(unused_variables)] readout_error_rate: f64,
+        _input_error_rate: f64,
+        _clifford_error_rate: f64,
+        _readout_error_rate: f64,
     ) -> f64 {
         0.0
     }
 
     fn trivial_error_rate(
         input_error_rate: f64,
-        #[allow(unused_variables)] clifford_error_rate: f64,
-        #[allow(unused_variables)] readout_error_rate: f64,
+        _clifford_error_rate: f64,
+        _readout_error_rate: f64,
     ) -> f64 {
         input_error_rate
     }
@@ -533,7 +533,6 @@ impl TFactoryDistillationRound {
         self.duration
     }
 
-    #[allow(clippy::cast_possible_truncation)]
     fn compute_num_output_ts(&self, failure_probability: f64) -> u64 {
         // special case when not necessary to run actual distillation:
         // the physcial qubit error rate is already below the threshold

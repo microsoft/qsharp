@@ -70,7 +70,7 @@ pub fn hook(info: &std::panic::PanicInfo) {
     msg.push_str(&stack);
     msg.push_str("\n\n");
 
-    let err_text = format!("Wasm panic occurred: {}", msg);
+    let err_text = format!("Wasm panic occurred: {msg}");
     log::error!(target: "wasm", "{}", &err_text);
 }
 
@@ -84,7 +84,7 @@ pub fn init_logging(callback: JsValue, level: i32) -> Result<(), JsError> {
         return Err(JsError::new("Invalid logging level"));
     }
 
-    let thefn: Function = callback.dyn_into().unwrap(); // Already checked it was a function
+    let thefn: Function = callback.dyn_into().expect("should already be a function");
     LOG_JS_FN.with(|f| {
         *f.borrow_mut() = Option::Some(thefn);
     });

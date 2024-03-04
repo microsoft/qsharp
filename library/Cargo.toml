@@ -14,5 +14,8 @@ num-bigint = { workspace = true }
 expect-test = { workspace = true }
 qsc = { path = "../compiler/qsc" }
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false

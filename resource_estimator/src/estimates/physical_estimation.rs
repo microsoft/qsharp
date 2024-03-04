@@ -462,15 +462,11 @@ impl<
             // ensures that the first code parameter is always tried. After
             // that, the last code parameter governs the reuse of the magic
             // state factory.
-            if last_code_parameter
-                .as_ref()
-                .map(|d| {
-                    self.ftp
-                        .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
-                        .is_gt()
-                })
-                .unwrap_or(true)
-            {
+            if last_code_parameter.as_ref().map_or(true, |d| {
+                self.ftp
+                    .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
+                    .is_gt()
+            }) {
                 last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
@@ -786,15 +782,11 @@ impl<
             // ensures that the first code parameter is always tried. After
             // that, the last code parameter governs the reuse of the magic
             // state factory.
-            if last_code_parameter
-                .as_ref()
-                .map(|d| {
-                    self.ftp
-                        .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
-                        .is_gt()
-                })
-                .unwrap_or(true)
-            {
+            if last_code_parameter.as_ref().map_or(true, |d| {
+                self.ftp
+                    .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
+                    .is_gt()
+            }) {
                 last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
@@ -925,15 +917,11 @@ impl<
             // ensures that the first code parameter is always tried. After
             // that, the last code parameter governs the reuse of the magic
             // state factory.
-            if last_code_parameter
-                .as_ref()
-                .map(|d| {
-                    self.ftp
-                        .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
-                        .is_gt()
-                })
-                .unwrap_or(true)
-            {
+            if last_code_parameter.as_ref().map_or(true, |d| {
+                self.ftp
+                    .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
+                    .is_gt()
+            }) {
                 last_factories = self.factory_builder.find_factories(
                     &self.ftp,
                     &self.qubit,
@@ -998,7 +986,7 @@ impl<
         best_estimation_result.ok_or(Error::MaxPhysicalQubitsTooSmall)
     }
 
-    /// Based on num_factories, we compute the number of cycles required which
+    /// Based on `num_factories`, we compute the number of cycles required which
     /// must be smaller than the maximum number of cycles allowed by the
     /// duration constraint (and the error rate).
     fn compute_num_cycles_required_for_magic_states(
@@ -1178,7 +1166,7 @@ impl<
     fn find_highest_code_parameter(&self, factories: &[Builder::Factory]) -> Option<E::Parameter> {
         factories
             .iter()
-            .map(|p| p.max_code_parameter())
+            .map(Factory::max_code_parameter)
             .max_by(|a, b| self.ftp.code_parameter_cmp(self.qubit.as_ref(), a, b))
     }
 

@@ -350,14 +350,13 @@ pub struct FormattedPhysicalResourceCounts {
 }
 
 impl FormattedPhysicalResourceCounts {
-    #[allow(clippy::too_many_lines, clippy::cast_lossless)]
+    #[allow(clippy::too_many_lines)]
     pub fn new<L: Overhead + Clone>(
         result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
         logical_resources: &LogicalResourceCounts,
         job_params: &JobParams,
     ) -> Self {
         // Physical resource estimates
-        #[allow(clippy::cast_lossless)]
         let runtime = format_duration(result.runtime().into());
         let rqops = format_metric_prefix(result.rqops());
         let physical_qubits = format_metric_prefix(result.physical_qubits());
