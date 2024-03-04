@@ -2,11 +2,7 @@ use super::{declare_lint, push_lint};
 use crate::linter::{ast::AstLintPass, Lint, LintLevel};
 use qsc_ast::ast::{BinOp, ExprKind, Lit};
 
-declare_lint!(
-    DoubleParens,
-    LintLevel::Warning,
-    "unnecesary double parentheses"
-);
+declare_lint!(DoubleParens, LintLevel::Warning, "unnecessary parentheses");
 declare_lint!(
     DivisionByZero,
     LintLevel::Allow,
