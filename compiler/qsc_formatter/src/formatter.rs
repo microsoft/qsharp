@@ -126,7 +126,7 @@ fn apply_rules(
         }
         (Comment | Syntax(DocComment), _) => {
             // remove whitespace at the ends of comments
-            effect_trim_comments(left, &mut edits, code);
+            effect_trim_comment(left, &mut edits, code);
             effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (Syntax(Semi), Comment) => {
@@ -201,7 +201,7 @@ fn effect_single_space(
     }
 }
 
-fn effect_trim_comments(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
+fn effect_trim_comment(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
     let comment_contents = get_token_contents(code, left);
     let new_comment_contents = comment_contents.trim_end();
     if comment_contents != new_comment_contents {
