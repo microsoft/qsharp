@@ -10,7 +10,7 @@ use std::{collections::BTreeMap, vec};
 use probability::{distribution::Inverse, prelude::Binomial};
 use serde::{ser::SerializeMap, Serialize};
 
-use crate::estimates::{Factory, LogicalQubit};
+use crate::estimates::{Factory, LogicalPatch};
 use crate::system::modeling::PhysicalQubit;
 
 use super::super::{
@@ -20,7 +20,7 @@ use super::super::{
 use super::Protocol;
 
 pub enum TFactoryQubit<'a> {
-    Logical(&'a LogicalQubit<Protocol>),
+    Logical(&'a LogicalPatch<Protocol>),
     Physical(&'a PhysicalQubit),
 }
 
@@ -617,7 +617,7 @@ impl TFactory {
         TFactoryBuildStatus::Success
     }
 
-    pub fn default(logical_qubit: &LogicalQubit<Protocol>) -> Self {
+    pub fn default(logical_qubit: &LogicalPatch<Protocol>) -> Self {
         let tfactory_qubit = TFactoryQubit::Logical(logical_qubit);
         let template = TFactoryDistillationUnitTemplate::create_trivial_distillation_unit_1_to_1();
         let unit = TFactoryDistillationUnit::by_template(&template, &tfactory_qubit);

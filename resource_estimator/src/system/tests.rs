@@ -226,7 +226,7 @@ fn validate_result_invariants<L: Overhead + Clone>(
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     assert!(
@@ -255,7 +255,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
 
     let result = estimation.estimate()?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     assert_eq!(logical_qubit.code_parameter(), &17);
@@ -341,7 +341,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
 
     let result = estimation.estimate()?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     assert_eq!(logical_qubit.code_parameter(), &5);
@@ -523,7 +523,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
 
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
@@ -569,7 +569,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     Ok(())
@@ -583,7 +583,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
 
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
@@ -628,7 +628,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     Ok(())
@@ -663,12 +663,12 @@ pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result
 
     let result_no_max_duration = estimation.estimate_without_restrictions()?;
 
-    let logical_qubit_no_max_duration = result_no_max_duration.logical_qubit();
+    let logical_qubit_no_max_duration = result_no_max_duration.logical_patch();
 
     let max_duration_in_nanoseconds: u64 = result_no_max_duration.runtime();
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
 
     assert_eq!(
         logical_qubit_no_max_duration.code_parameter(),
@@ -716,12 +716,12 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Resu
 
     let result_no_max_num_qubits = estimation.estimate_without_restrictions()?;
 
-    let logical_qubit_no_max_num_qubits = result_no_max_num_qubits.logical_qubit();
+    let logical_qubit_no_max_num_qubits = result_no_max_num_qubits.logical_patch();
 
     let max_num_qubits = result_no_max_num_qubits.physical_qubits();
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
 
     assert_eq!(
         logical_qubit_no_max_num_qubits.code_parameter(),
@@ -800,8 +800,8 @@ fn build_frontier_test() {
         assert!(points[i].physical_qubits() >= points[i + 1].physical_qubits());
         assert!(points[i].num_factories() >= points[i + 1].num_factories());
         assert!(
-            points[i].logical_qubit().code_parameter()
-                <= points[i + 1].logical_qubit().code_parameter()
+            points[i].logical_patch().code_parameter()
+                <= points[i + 1].logical_patch().code_parameter()
         );
     }
 
@@ -816,8 +816,8 @@ fn build_frontier_test() {
         shortest_runtime_result.num_factories()
     );
     assert_eq!(
-        points[0].logical_qubit().code_parameter(),
-        shortest_runtime_result.logical_qubit().code_parameter()
+        points[0].logical_patch().code_parameter(),
+        shortest_runtime_result.logical_patch().code_parameter()
     );
 
     let mut max_duration = shortest_runtime_result.runtime();

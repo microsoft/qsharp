@@ -4,7 +4,7 @@
 use std::rc::Rc;
 
 use crate::{
-    estimates::LogicalQubit,
+    estimates::LogicalPatch,
     system::{constants::FLOAT_COMPARISON_EPSILON, modeling::Protocol, Result},
 };
 
@@ -314,7 +314,7 @@ fn logical_qubit_from_fast_gate_based_and_surface_code() -> Result<()> {
 
     let ftp = Protocol::default();
 
-    let logical_qubit = LogicalQubit::new(&ftp, 7, physical_qubit)?;
+    let logical_qubit = LogicalPatch::new(&ftp, 7, physical_qubit)?;
 
     assert_eq!(logical_qubit.physical_qubits(), 98);
     assert!(
