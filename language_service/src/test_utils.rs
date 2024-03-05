@@ -267,7 +267,7 @@ fn get_source_and_marker_offsets(source_with_markers: &str) -> (String, Vec<u32>
     (source, cursor_offsets, target_offsets)
 }
 
-fn target_offsets_to_spans(target_offsets: &Vec<u32>) -> Vec<Span> {
+fn target_offsets_to_spans(target_offsets: &[u32]) -> Vec<Span> {
     assert!(target_offsets.len() % 2 == 0);
     let limit = target_offsets.len() / 2;
     let mut spans = vec![];

@@ -290,15 +290,11 @@ pub fn run(
     let language_features = LanguageFeatures::from_iter(language_features);
 
     let sources = get_source_map(sources, &Some(expr.into()));
-    match run_internal_with_features(
-        sources,
-        |msg: &str| {
-            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
-        },
-        shots,
-        language_features,
-    ) {
+    let event_cb = |msg: &str| {
+        // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+        let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+    };
+    match run_internal_with_features(sources, event_cb, shots, language_features) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }
