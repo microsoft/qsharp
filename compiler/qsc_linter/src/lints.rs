@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 pub(super) mod ast;
 
 macro_rules! declare_lint {

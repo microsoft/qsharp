@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 pub(crate) mod ast;
 pub(crate) mod hir;
 

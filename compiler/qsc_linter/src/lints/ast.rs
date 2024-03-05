@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use super::{declare_lint, push_lint};
 use crate::linter::{ast::AstLintPass, Lint, LintLevel};
 use qsc_ast::ast::{BinOp, ExprKind, Lit};

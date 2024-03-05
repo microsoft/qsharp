@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use crate::{linter::ast::run_ast_lints, Lint, LintLevel};
 use expect_test::{expect, Expect};
 use qsc_ast::{
