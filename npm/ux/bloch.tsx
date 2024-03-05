@@ -12,6 +12,9 @@
 - Have the marker indicate the phase/direction
 - Show the matrix to be applied when hovering over a gate
 
+To convert basis coeffeicients a & b into a point on the Bloch sphere:
+ - Calculate the angle theta = 2 * acos(magnitute(a))
+ - Calculate the angle phi = arg(b) - arg(a), normalized to [0, 2 * PI)
 */
 
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -41,6 +44,12 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+
+function complexToPolar({ re, im }: { re: number; im: number }) {
+  const magnitude = Math.sqrt(re * re + im * im);
+  const phase = Math.atan2(im, re);
+  return { magnitude, phase };
+}
 
 const colors = {
   sphereColor: 0x404080,
