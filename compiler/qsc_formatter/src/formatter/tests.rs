@@ -130,7 +130,7 @@ fn remove_spaces_between_empty_delimiters() {
 }
 
 #[test]
-fn sample_has_no_edits() {
+fn sample_has_no_formatting_changes() {
     let input = indoc! {r#"
         /// # Sample
         /// Joint Measurement
