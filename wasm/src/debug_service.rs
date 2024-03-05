@@ -124,14 +124,11 @@ impl DebugService {
         }
         let bps: Vec<_> = ids.iter().map(|f| StmtId::from(*f)).collect();
 
-        match self.run_internal(
-            |msg: &str| {
-                // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-                let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
-            },
-            &bps,
-            step,
-        ) {
+        let event_cb = |msg: &str| {
+            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+        };
+        match self.run_internal(event_cb, &bps, step) {
             Ok(value) => Ok(StructStepResult::from(value).into()),
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
