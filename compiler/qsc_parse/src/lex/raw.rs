@@ -175,6 +175,7 @@ pub struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    #[must_use]
     pub fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
@@ -183,6 +184,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    #[must_use]
     pub fn new_with_starting_offset(input: &'a str, starting_offset: u32) -> Self {
         Self {
             chars: input.char_indices().peekable(),

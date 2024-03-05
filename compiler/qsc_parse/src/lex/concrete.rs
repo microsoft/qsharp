@@ -25,7 +25,7 @@ pub enum ConcreteTokenKind {
     Comment,
 }
 
-/// This is an iterator over ConcreteTokens, creating the tokens from a source str.
+/// This is an iterator over `ConcreteTokens`, creating the tokens from a source str.
 /// It works by running the cooked lexer on the source str, and iterating over
 /// those cooked tokens. Whenever adjacent cooked tokens are found to have a gap
 /// between their spans, the raw lexer is run on that slice of the source str to
@@ -39,6 +39,7 @@ pub struct ConcreteTokenIterator<'a> {
 }
 
 impl<'a> ConcreteTokenIterator<'a> {
+    #[must_use]
     pub fn new(code: &'a str) -> Self {
         Self {
             code,
