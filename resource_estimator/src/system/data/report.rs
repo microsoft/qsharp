@@ -9,10 +9,12 @@ mod tests;
 use serde::Serialize;
 
 use crate::estimates::{Factory, Overhead, PhysicalResourceEstimationResult};
-use crate::system::modeling::{Protocol, TFactory};
+use crate::system::modeling::Protocol;
 
 use super::{
-    super::modeling::PhysicalInstructionSet, job_params::JobParams, LogicalResourceCounts,
+    super::modeling::{PhysicalInstructionSet, TFactory},
+    job_params::JobParams,
+    LogicalResourceCounts,
 };
 
 #[derive(Serialize)]
@@ -90,7 +92,7 @@ impl Report {
             let mut entries = vec![];
             entries.push(ReportEntry::new("physicalCountsFormatted/tfactoryPhysicalQubits", "Physical qubits", r#"Number of physical qubits for a single T factory"#, r#"This corresponds to the maximum number of physical qubits over all rounds of T distillation units in a T factory.  A round of distillation contains of multiple copies of distillation units to achieve the required success probability of producing a T state with the expected logical T state error rate."#));
             entries.push(ReportEntry::new("physicalCountsFormatted/tfactoryRuntime", "Runtime", r#"Runtime of a single T factory"#, r#"The runtime of a single T factory is the accumulated runtime of executing each round in a T factory."#));
-            entries.push(ReportEntry::new("tfactory/numTstates", "Number of output T states per run", r#"Number of output T states produced in a single run of T factory"#, &format!(r#"The T factory takes as input {} noisy physical T states with an error rate of {} and produces {} T states with an error rate of {}."#, format_thousand_sep(&result.factory().map_or(0, TFactory::input_t_count)), job_params.qubit_params().t_gate_error_rate(), format_thousand_sep(&result.factory().map_or(0, TFactory::num_output_states)), formatted_counts.tstate_logical_error_rate)));
+            entries.push(ReportEntry::new("tfactory/numTstates", "Number of output T states per run", r#"Number of output T states produced in a single run of T factory"#, &format!(r#"The T factory takes as input {} noisy physical T states with an error rate of {} and produces {} T states with an error rate of {}."#, format_thousand_sep(&result.factory().map_or(0, TFactory::num_input_states)), job_params.qubit_params().t_gate_error_rate(), format_thousand_sep(&result.factory().map_or(0, TFactory::num_output_states)), formatted_counts.tstate_logical_error_rate)));
             entries.push(ReportEntry::new("physicalCountsFormatted/numInputTstates", "Number of input T states per run", r#"Number of physical input T states consumed in a single run of a T factory"#, r#"This value includes the physical input T states of all copies of the distillation unit in the first round."#));
             entries.push(ReportEntry::new("tfactory/numRounds", "Distillation rounds", r#"The number of distillation rounds"#, r#"This is the number of distillation rounds.  In each round one or multiple copies of some distillation unit is executed."#));
             entries.push(ReportEntry::new(
@@ -419,7 +421,7 @@ impl FormattedPhysicalResourceCounts {
         let num_input_tstates = result
             .factory()
             .map_or(String::from(no_tstates_msg), |tfactory| {
-                format_metric_prefix(tfactory.input_t_count())
+                format_metric_prefix(tfactory.num_input_states())
             });
 
         let num_units_per_round =
@@ -445,9 +447,9 @@ impl FormattedPhysicalResourceCounts {
                 .factory()
                 .map_or(String::from(no_tstates_msg), |tfactory| {
                     tfactory
-                        .code_distance_per_round()
+                        .code_parameter_per_round()
                         .iter()
-                        .map(|&num| num.to_string())
+                        .map(|&num| num.copied().unwrap_or(1).to_string())
                         .collect::<Vec<_>>()
                         .join(", ")
                 });
@@ -479,7 +481,7 @@ impl FormattedPhysicalResourceCounts {
         let tstate_logical_error_rate = result
             .factory()
             .map_or(String::from(no_tstates_msg), |tfactory| {
-                format!("{:.2e}", tfactory.output_t_error_rate())
+                format!("{:.2e}", tfactory.output_error_rate())
             });
 
         // Pre-layout logical resources
