@@ -78,6 +78,13 @@ def test_dump_machine() -> None:
     assert state_dump.qubit_count == 2
     assert len(state_dump) == 1
     assert state_dump[3] == complex(1.0, 0.0)
+    qsharp.eval("H(q1);")
+    state_dump = qsharp.dump_machine()
+    assert state_dump.qubit_count == 2
+    assert len(state_dump) == 2
+    # Check that the state dump correctly supports iteration and membership checks
+    for idx in state_dump:
+        assert idx in state_dump
 
 def test_dump_operation() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
@@ -101,7 +108,7 @@ def test_dump_operation() -> None:
                    [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
                    [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
                    [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)]]
-    qsharp.eval("operation ApplySWAP(qs : Qubit[]) : Unit { SWAP(qs[0], qs[1]); }")
+    qsharp.eval("operation ApplySWAP(qs : Qubit[]) : Unit is Ctl + Adj { SWAP(qs[0], qs[1]); }")
     res = qsharp.utils.dump_operation("ApplySWAP", 2)
     assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
                    [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)],
