@@ -49,8 +49,8 @@ fn is_fractional_part_significant(x: f64) -> bool {
     is_significant(x - x.round())
 }
 
-// Represents a non-zero rational number in the form numerator/denominator
-// Sign of the number is separated for easier composition and rendering
+/// Represents a non-zero rational number in the form ``numerator/denominator``
+/// Sign of the number is separated for easier composition and rendering
 #[derive(Copy, Clone, Debug)]
 struct RationalNumber {
     sign: i64,        // 1 if the number is positive, -1 if negative
@@ -59,7 +59,7 @@ struct RationalNumber {
 }
 
 impl RationalNumber {
-    fn construct(numerator: i64, denominator: i64) -> Self {
+    fn new(numerator: i64, denominator: i64) -> Self {
         Self {
             sign: numerator.signum() * denominator.signum(),
             numerator: numerator.abs(),
@@ -80,7 +80,7 @@ impl RationalNumber {
         40, 42, 45, 48, 49, 50, 54, 56, 60, 63, 64,
     ];
 
-    // Tries to recognize a float number as rational.
+    /// Try to recognize a float number as a "nice" rational.
     fn recognize(x: f64) -> Option<Self> {
         for denominator in Self::DENOMINATORS {
             #[allow(clippy::cast_precision_loss)] // We only use fixes set of denominators
@@ -88,15 +88,15 @@ impl RationalNumber {
             if numerator.abs() <= 100.0 && !is_fractional_part_significant(numerator) {
                 #[allow(clippy::cast_possible_truncation)] // We only allow small numerators
                 let rounded_numerator: i64 = numerator.round() as i64;
-                return Some(Self::construct(rounded_numerator, denominator));
+                return Some(Self::new(rounded_numerator, denominator));
             }
         }
         None
     }
 }
 
-// Represents a non-zero algebraic number in the form fraction·√root,
-// Sign of the number is separated for easier composition and rendering
+/// Represents a non-zero algebraic number in the form ``fraction·√root``,
+/// Sign of the number is separated for easier composition and rendering
 #[derive(Debug)]
 struct AlgebraicNumber {
     sign: i64,                // 1 if the number is positive, -1 if negative
@@ -105,7 +105,7 @@ struct AlgebraicNumber {
 }
 
 impl AlgebraicNumber {
-    fn construct(fraction: &RationalNumber, root: i64) -> Self {
+    fn new(fraction: &RationalNumber, root: i64) -> Self {
         Self {
             sign: fraction.sign,
             fraction: fraction.abs(),
@@ -115,21 +115,21 @@ impl AlgebraicNumber {
 
     const ROOTS: [i64; 6] = [1, 2, 3, 5, 6, 7];
 
-    // Tries to recognize a float number as algebraic.
+    /// Try to recognize a float number as a "nice" algebraic.
     fn recognize(x: f64) -> Option<Self> {
         for root in Self::ROOTS {
             #[allow(clippy::cast_precision_loss)] // We only use fixes set of roots
             let divided_by_root: f64 = x / (root as f64).sqrt();
             if let Some(fraction) = RationalNumber::recognize(divided_by_root) {
-                return Some(Self::construct(&fraction, root));
+                return Some(Self::new(&fraction, root));
             }
         }
         None
     }
 }
 
-// Represents a non-zero decimal number as an f64 floating point value.
-// Sign of the number is separated for easier composition and rendering
+/// Represents a non-zero decimal number as an ``f64`` floating point value.
+/// Sign of the number is separated for easier composition and rendering
 #[derive(Debug)]
 struct DecimalNumber {
     sign: i64,  // 1 if the number is positive, -1 if negative
@@ -137,7 +137,7 @@ struct DecimalNumber {
 }
 
 impl DecimalNumber {
-    fn construct(value: f64) -> Self {
+    fn new(value: f64) -> Self {
         Self {
             sign: if value >= 0.0 { 1 } else { -1 },
             value: value.abs(),
@@ -146,11 +146,11 @@ impl DecimalNumber {
 
     // Tries to recognize a decimal number and always succeeds.
     fn recognize(x: f64) -> Self {
-        Self::construct(x)
+        Self::new(x)
     }
 }
 
-// Represents a real number, which can be algebraic, decimal or zero.
+/// Represents a real number, which can be algebraic, decimal or zero.
 #[derive(Debug)]
 enum RealNumber {
     Algebraic(AlgebraicNumber),
@@ -197,7 +197,7 @@ impl RealNumber {
         }
     }
 
-    // Tries to recognize a real number as zero, algebraic, or decimal if all else fails.
+    /// Try to recognize a real number as zero, algebraic, or decimal if all else fails.
     fn recognize(x: f64) -> Self {
         if !is_significant(x) {
             Self::Zero
@@ -209,8 +209,8 @@ impl RealNumber {
     }
 }
 
-// Represents a non-zero complex numbers in the polar form: coefficient·𝒆^(𝝅·𝒊·phase_multiplier)
-// Sign of the number is separated for easier composition and rendering
+/// Represents a non-zero complex numbers in the polar form: ``coefficient·𝒆^(𝝅·𝒊·phase_multiplier)``
+/// Sign of the number is separated for easier composition and rendering
 #[derive(Debug)]
 struct PolarForm {
     sign: i64,                        // For this form the sign is always 1
@@ -219,11 +219,11 @@ struct PolarForm {
 }
 
 impl PolarForm {
-    fn construct(magnitude: &RationalNumber, pi_num: i64, pi_den: i64) -> Self {
+    fn new(magnitude: &RationalNumber, pi_num: i64, pi_den: i64) -> Self {
         Self {
             sign: 1,
-            magnitude: AlgebraicNumber::construct(magnitude, 1),
-            phase_multiplier: RationalNumber::construct(pi_num, pi_den),
+            magnitude: AlgebraicNumber::new(magnitude, 1),
+            phase_multiplier: RationalNumber::new(pi_num, pi_den),
         }
     }
 
@@ -246,6 +246,7 @@ impl PolarForm {
         (15, 16),
     ];
 
+    /// Try to recognize a complex number and represent it in the polar form.
     fn recognize(re: f64, im: f64) -> Option<Self> {
         for (pi_num, pi_den) in Self::PI_FRACTIONS {
             #[allow(clippy::cast_precision_loss)] // We only use fixes set of fractions
@@ -258,7 +259,7 @@ impl PolarForm {
             // We recognized the angle. Now try to recognize magnitude.
             // It's OK to take abs value as we are only interested in magnitude
             if let Some(magnitude) = RationalNumber::recognize((re / cos).abs()) {
-                return Some(Self::construct(
+                return Some(Self::new(
                     &magnitude,
                     if im >= 0.0 { pi_num } else { pi_num - pi_den },
                     pi_den,
@@ -269,8 +270,8 @@ impl PolarForm {
     }
 }
 
-// Represents a non-zero complex number in the Cartesian form: real_part+𝒊·imaginary_part
-// Sign of the number is separated for easier composition and rendering
+/// Represents a non-zero complex number in the Cartesian form: ``real_part+𝒊·imaginary_part``
+/// Sign of the number is separated for easier composition and rendering
 #[derive(Debug)]
 struct CartesianForm {
     sign: i64,             // 1 the common sign is a "+", -1 is "-", 0 means the number is 0
@@ -279,7 +280,7 @@ struct CartesianForm {
 }
 
 impl CartesianForm {
-    fn construct(real_part: RealNumber, imaginary_part: RealNumber) -> Self {
+    fn new(real_part: RealNumber, imaginary_part: RealNumber) -> Self {
         let sign = real_part.sign();
         match sign {
             0 => Self {
@@ -300,12 +301,13 @@ impl CartesianForm {
         }
     }
 
+    /// Try to recognize a complex number and represent it in the Cartesian form.
     fn recognize(re: f64, im: f64) -> Self {
-        Self::construct(RealNumber::recognize(re), RealNumber::recognize(im))
+        Self::new(RealNumber::recognize(re), RealNumber::recognize(im))
     }
 }
 
-// Represents a non-zero complex number which can be in either Polar or CartesianForm
+/// Represents a non-zero complex number which can be in either polar or Cartesian form.
 #[derive(Debug)]
 enum ComplexNumber {
     Polar(PolarForm),
@@ -322,7 +324,7 @@ impl ComplexNumber {
     }
 }
 
-// Represents one term of a quantum state which corresponds to one basis vector
+/// Represents one term of a quantum state, which corresponds to one basis vector.
 struct Term {
     basis_vector: BigUint,
     coordinate: ComplexNumber,
@@ -339,6 +341,9 @@ fn get_terms_for_state(state: &Vec<(BigUint, Complex64)>) -> Vec<Term> {
     result
 }
 
+/// Get the state represented as a formula in the LaTeX format if possible.
+/// Empty string is returned if the resulting formula is not nice, i.e.
+/// if the formula consists of more than 16 terms or if more than two coefficients are not recognized.
 #[must_use]
 pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
     if state.len() > 16 {
@@ -376,9 +381,9 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Strin
     latex
 }
 
-// Write latex for one term of quantum state.
-// Latex is rendered for coefficient only (not for basis vector).
-// + is rendered only if render_plus is true.
+/// Write latex for one term of quantum state.
+/// Latex is rendered for coefficient only (not for basis vector).
+/// + is rendered only if ``render_plus`` is true.
 fn write_latex_for_term(latex: &mut String, term: &Term, render_plus: bool) {
     match &term.coordinate {
         ComplexNumber::Cartesian(cartesian_form) => {
@@ -390,8 +395,8 @@ fn write_latex_for_term(latex: &mut String, term: &Term, render_plus: bool) {
     }
 }
 
-// Write latex for polar form of a complex number.
-// The sign is always + and is rendered only if render_plus is true.
+/// Write latex for polar form of a complex number.
+/// The sign is always + and is rendered only if ``render_plus`` is true.
 fn write_latex_for_polar_form(latex: &mut String, polar_form: &PolarForm, render_plus: bool) {
     if polar_form.sign < 0 {
         latex.push('-');
@@ -415,12 +420,12 @@ fn write_latex_for_polar_form(latex: &mut String, polar_form: &PolarForm, render
     latex.push('}');
 }
 
-// Write latex for cartesian form of a complex number.
-// Common + is rendered only if render_plus is true.
-// Brackets are used if both real and imaginary parts are present.
-// If only one part is present, its sign is used as common.
-// If both components are present, real part sign is used as common.
-// 1 is not rendered, but + is rendered if render_plus is true.
+/// Write latex for cartesian form of a complex number.
+/// Common + is rendered only if ``render_plus`` is true.
+/// Brackets are used if both real and imaginary parts are present.
+/// If only one part is present, its sign is used as common.
+/// If both components are present, real part sign is used as common.
+/// 1 is not rendered, but + is rendered if ``render_plus`` is true.
 fn write_latex_for_cartesian_form(
     latex: &mut String,
     cartesian_form: &CartesianForm,
@@ -457,8 +462,8 @@ fn write_latex_for_cartesian_form(
     }
 }
 
-// Write latex for real number. Note that the sign is not rendered.
-// 1 is only rendered if render_one is true. 0 is rendered, but not used in current code.
+/// Write latex for real number. Note that the sign is not rendered.
+/// 1 is only rendered if ``render_one`` is true. 0 is rendered, but not used in current code.
 fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_one: bool) {
     match number {
         RealNumber::Algebraic(algebraic_number) => {
@@ -474,16 +479,16 @@ fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_o
     }
 }
 
-// Write latex for decimal number. Note that the sign is not rendered.
-// 1 is only rendered if render_one is true.
+/// Write latex for decimal number. Note that the sign is not rendered.
+/// 1 is only rendered if ``render_one`` is true.
 fn write_latex_for_decimal_number(latex: &mut String, number: &DecimalNumber, render_one: bool) {
     if render_one || is_significant(number.value - 1.0) {
         write!(latex, "{}", number.value).unwrap();
     }
 }
 
-// Write latex for algebraic number. Note that the sign is not rendered.
-// 1 is only rendered if render_one is true.
+/// Write latex for algebraic number. Note that the sign is not rendered.
+/// 1 is only rendered if ``render_one`` is true.
 fn write_latex_for_algebraic_number(
     latex: &mut String,
     number: &AlgebraicNumber,

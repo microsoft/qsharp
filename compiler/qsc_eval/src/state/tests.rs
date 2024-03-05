@@ -49,12 +49,12 @@ fn assert_rational_value(x: Option<RationalNumber>, expected: (i64, i64, i64)) {
 
 #[test]
 fn check_construct_rational() {
-    assert_rational_value(Some(RationalNumber::construct(1, 2)), (1, 1, 2));
-    assert_rational_value(Some(RationalNumber::construct(-1, 2)), (-1, 1, 2));
-    assert_rational_value(Some(RationalNumber::construct(1, -2)), (-1, 1, 2));
-    assert_rational_value(Some(RationalNumber::construct(-1, -2)), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(1, 2)), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(-1, 2)), (-1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(1, -2)), (-1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(-1, -2)), (1, 1, 2));
     // Although 0 is never used in the code we check it for completeness.
-    assert_rational_value(Some(RationalNumber::construct(0, 1)), (0, 0, 1));
+    assert_rational_value(Some(RationalNumber::new(0, 1)), (0, 0, 1));
     expect!([r"
         RationalNumber {
             sign: 1,
@@ -62,17 +62,17 @@ fn check_construct_rational() {
             denominator: 2,
         }
     "])
-    .assert_debug_eq(&RationalNumber::construct(1, 2));
+    .assert_debug_eq(&RationalNumber::new(1, 2));
 }
 
 #[test]
 fn check_abs_rational() {
-    assert_rational_value(Some(RationalNumber::construct(1, 2).abs()), (1, 1, 2));
-    assert_rational_value(Some(RationalNumber::construct(-1, 2).abs()), (1, 1, 2));
-    assert_rational_value(Some(RationalNumber::construct(1, -2).abs()), (1, 1, 2));
-    assert_rational_value(Some(RationalNumber::construct(-1, -2).abs()), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(1, 2).abs()), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(-1, 2).abs()), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(1, -2).abs()), (1, 1, 2));
+    assert_rational_value(Some(RationalNumber::new(-1, -2).abs()), (1, 1, 2));
     // Although 0 is never used in the code we check it for completeness.
-    assert_rational_value(Some(RationalNumber::construct(0, 1).abs()), (0, 0, 1));
+    assert_rational_value(Some(RationalNumber::new(0, 1).abs()), (0, 0, 1));
 }
 
 #[test]
@@ -103,31 +103,19 @@ fn assert_algebraic_value(x: Option<AlgebraicNumber>, expected: (i64, i64, i64, 
 #[test]
 fn check_construct_algebraic() {
     assert_algebraic_value(
-        Some(AlgebraicNumber::construct(
-            &RationalNumber::construct(1, 2),
-            3,
-        )),
+        Some(AlgebraicNumber::new(&RationalNumber::new(1, 2), 3)),
         (1, 1, 1, 2, 3),
     );
     assert_algebraic_value(
-        Some(AlgebraicNumber::construct(
-            &RationalNumber::construct(-1, 2),
-            3,
-        )),
+        Some(AlgebraicNumber::new(&RationalNumber::new(-1, 2), 3)),
         (-1, 1, 1, 2, 3),
     );
     assert_algebraic_value(
-        Some(AlgebraicNumber::construct(
-            &RationalNumber::construct(1, -2),
-            3,
-        )),
+        Some(AlgebraicNumber::new(&RationalNumber::new(1, -2), 3)),
         (-1, 1, 1, 2, 3),
     );
     assert_algebraic_value(
-        Some(AlgebraicNumber::construct(
-            &RationalNumber::construct(-1, -2),
-            3,
-        )),
+        Some(AlgebraicNumber::new(&RationalNumber::new(-1, -2), 3)),
         (1, 1, 1, 2, 3),
     );
     expect!([r"
@@ -141,10 +129,7 @@ fn check_construct_algebraic() {
             root: 3,
         }
     "])
-    .assert_debug_eq(&AlgebraicNumber::construct(
-        &RationalNumber::construct(1, 2),
-        3,
-    ));
+    .assert_debug_eq(&AlgebraicNumber::new(&RationalNumber::new(1, 2), 3));
 }
 
 #[test]
@@ -177,15 +162,15 @@ fn assert_decimal_value(x: &DecimalNumber, expected: (i64, f64)) {
 
 #[test]
 fn check_construct_decimal() {
-    assert_decimal_value(&DecimalNumber::construct(0.777), (1, 0.777));
-    assert_decimal_value(&DecimalNumber::construct(-0.777), (-1, 0.777));
+    assert_decimal_value(&DecimalNumber::new(0.777), (1, 0.777));
+    assert_decimal_value(&DecimalNumber::new(-0.777), (-1, 0.777));
     expect!([r"
         DecimalNumber {
             sign: 1,
             value: 1.0,
         }
     "])
-    .assert_debug_eq(&DecimalNumber::construct(1.0));
+    .assert_debug_eq(&DecimalNumber::new(1.0));
 }
 
 #[test]
@@ -470,8 +455,7 @@ fn assert_latex_for_algebraic(
     root: i64,
     render_one: bool,
 ) {
-    let number =
-        AlgebraicNumber::construct(&RationalNumber::construct(numerator, denominator), root);
+    let number = AlgebraicNumber::new(&RationalNumber::new(numerator, denominator), root);
     let mut latex = String::with_capacity(50);
     write_latex_for_algebraic_number(&mut latex, &number, render_one);
     expected.assert_debug_eq(&latex);
@@ -572,7 +556,7 @@ fn check_get_latex_for_algebraic() {
 }
 
 fn assert_latex_for_decimal(expected: &Expect, number: f64, render_one: bool) {
-    let number = DecimalNumber::construct(number);
+    let number = DecimalNumber::new(number);
     let mut latex = String::with_capacity(50);
     write_latex_for_decimal_number(&mut latex, &number, render_one);
     expected.assert_debug_eq(&latex);
