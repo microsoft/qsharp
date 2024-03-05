@@ -24,5 +24,8 @@ qsc_linter = { path = "../compiler/qsc_linter" }
 qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
 async-trait = { workspace = true }
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false

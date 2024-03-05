@@ -45,6 +45,7 @@ impl<A: GlobalAlloc> AllocationCounter<A> {
 #[global_allocator]
 static ALLOCATOR: AllocationCounter<System> = AllocationCounter::new(System);
 
+#[must_use]
 pub fn compile_stdlib() -> CompileUnit {
     let store = PackageStore::new(compile::core());
     compile::std(&store, RuntimeCapabilityFlags::all())

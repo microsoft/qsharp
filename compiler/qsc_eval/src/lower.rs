@@ -683,7 +683,6 @@ fn lower_functor_set_value(value: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::
 }
 
 #[must_use]
-#[allow(clippy::module_name_repetitions)]
 fn lower_local_item_id(id: qsc_hir::hir::LocalItemId) -> LocalItemId {
     LocalItemId::from(usize::from(id))
 }

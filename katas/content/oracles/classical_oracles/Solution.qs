@@ -1,7 +1,5 @@
 namespace Kata {
-    open Microsoft.Quantum.Convert;
-
     function IsSeven(x : Bool[]) : Bool {
-        return BoolArrayAsInt(x) == 7;
+        return x[0] and x[1] and x[2];
     }
 }

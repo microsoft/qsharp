@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::estimates::{
     optimization::{Point, Point2D, Point4D, Population},
-    Factory, FactoryBuilder, LogicalQubit,
+    Factory, FactoryBuilder, LogicalPatch,
 };
 use crate::system::modeling::{
     PhysicalQubit, Protocol, TFactory, TFactoryBuildStatus, TFactoryDistillationUnit,
@@ -241,18 +241,20 @@ where
     if output_t_error_rate > qubit.t_gate_error_rate() {
         let mut population = Population::<P>::new();
 
-        if let Ok(logical_qubit) = LogicalQubit::new(ftp, max_code_distance, qubit.clone()) {
+        if let Ok(logical_qubit) = LogicalPatch::new(ftp, max_code_distance, qubit.clone()) {
             let factory = TFactory::default(&logical_qubit);
             let point = P::from(factory);
             population.push(point);
         }
+
+        population.sort_items();
 
         return population;
     }
 
     let mut qubits = vec![None; max_code_distance as usize + 1];
     for &distance in &distances {
-        qubits[distance as usize] = LogicalQubit::new(ftp, distance, qubit.clone())
+        qubits[distance as usize] = LogicalPatch::new(ftp, distance, qubit.clone())
             .ok()
             .map(Rc::new);
     }

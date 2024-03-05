@@ -471,7 +471,7 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                    runtime error: qubits in gate invocation are not unique
+                    runtime error: qubits in invocation are not unique
                        [intrinsic.qs] [(control, target)]
                 "#]],
             );

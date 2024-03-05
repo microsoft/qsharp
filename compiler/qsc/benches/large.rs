@@ -24,7 +24,7 @@ pub fn large_file(c: &mut Criterion) {
                 LanguageFeatures::default(),
             );
             assert!(reports.is_empty());
-        })
+        });
     });
 }
 

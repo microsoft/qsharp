@@ -91,7 +91,6 @@ impl From<ConfigAttr> for RuntimeCapabilityFlags {
     }
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default)]
 pub struct CompileUnit {
     pub package: hir::Package,
