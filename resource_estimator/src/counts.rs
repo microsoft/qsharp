@@ -358,9 +358,6 @@ impl LogicalCounter {
 
             1
         } else {
-            #[allow(clippy::cast_possible_truncation)]
-            #[allow(clippy::cast_sign_loss)]
-            #[allow(clippy::cast_precision_loss)]
             if r_depth < (r_count as f64 / qubits.len() as f64).ceil() as usize {
                 return Err(format!(
                     "Rotation depth {r_depth} is too small for rotation count {r_count} and {} qubits.", qubits.len()
@@ -458,7 +455,6 @@ impl Backend for LogicalCounter {
     fn rz(&mut self, theta: f64, q: usize) {
         let multiple = (theta / (PI / 4.0)).round();
         if ((multiple * (PI / 4.0)) - theta).abs() <= EPSILON {
-            #[allow(clippy::cast_possible_truncation)]
             let multiple = (multiple as i64).rem_euclid(8) as u64;
             if multiple & 1 == 1 {
                 self.t(q);

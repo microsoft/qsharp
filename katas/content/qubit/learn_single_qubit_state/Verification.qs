@@ -24,7 +24,7 @@ namespace Kata.Verification {
 
         // Output different feedback to the user depending on whether the exercise was correct.
         if isCorrect {
-            Message("All tests passed.");
+            Message("Correct!");
         } else {
             Message("At least one of the amplitudes was too far from the expected value.");
         }

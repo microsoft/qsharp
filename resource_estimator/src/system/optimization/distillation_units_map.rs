@@ -8,7 +8,7 @@ use std::cmp::max;
 
 use std::rc::Rc;
 
-use crate::estimates::LogicalQubit;
+use crate::estimates::LogicalPatch;
 use crate::system::modeling::{
     PhysicalQubit, Protocol, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
     TFactoryDistillationUnitType, TFactoryQubit,
@@ -29,7 +29,7 @@ pub struct DistillationUnitsMap<'a> {
 impl<'a> DistillationUnitsMap<'a> {
     pub fn create(
         qubit: &PhysicalQubit,
-        qubits: &[Option<Rc<LogicalQubit<Protocol>>>],
+        qubits: &[Option<Rc<LogicalPatch<Protocol>>>],
         distances: Vec<u64>,
         distillation_unit_templates: &'a [TFactoryDistillationUnitTemplate],
     ) -> Self {

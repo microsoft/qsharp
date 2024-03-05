@@ -65,6 +65,14 @@ quantum-sparse-sim = { git = "https://github.com/qir-alliance/qir-runner", rev =
 async-trait = "0.1"
 tokio = { version = "1.35", features = ["macros", "rt"] }
 
+[workspace.lints.clippy]
+mod_module_files = "warn"
+pedantic = "warn"
+unwrap_used = "warn"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+
 [profile.release]
 debug = 1
 strip = true

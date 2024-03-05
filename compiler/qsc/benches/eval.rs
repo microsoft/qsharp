@@ -28,7 +28,7 @@ pub fn teleport(c: &mut Criterion) {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
             assert!(evaluator.eval_entry(&mut rec).is_ok());
-        })
+        });
     });
 }
 
@@ -47,7 +47,7 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
             assert!(evaluator.eval_entry(&mut rec).is_ok());
-        })
+        });
     });
 }
 
@@ -66,7 +66,7 @@ pub fn large_file(c: &mut Criterion) {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
             assert!(evaluator.eval_entry(&mut rec).is_ok());
-        })
+        });
     });
 }
 
@@ -97,7 +97,7 @@ pub fn array_append(c: &mut Criterion) {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
             assert!(evaluator.eval_entry(&mut rec).is_ok());
-        })
+        });
     });
 }
 
@@ -128,7 +128,7 @@ pub fn array_update(c: &mut Criterion) {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
             assert!(evaluator.eval_entry(&mut rec).is_ok());
-        })
+        });
     });
 }
 
@@ -147,7 +147,7 @@ pub fn array_literal(c: &mut Criterion) {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
             assert!(evaluator.eval_entry(&mut rec).is_ok());
-        })
+        });
     });
 }
 
@@ -183,7 +183,7 @@ pub fn large_nested_iteration(c: &mut Criterion) {
             let mut out = Vec::new();
             let mut rec = GenericReceiver::new(&mut out);
             assert!(evaluator.eval_entry(&mut rec).is_ok());
-        })
+        });
     });
 }
 

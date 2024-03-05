@@ -56,10 +56,12 @@ pub struct CodeDisplay<'a> {
 
 #[allow(clippy::unused_self)]
 impl<'a> CodeDisplay<'a> {
+    #[must_use]
     pub fn hir_callable_decl(&self, decl: &'a hir::CallableDecl) -> impl Display + '_ {
         HirCallableDecl { decl }
     }
 
+    #[must_use]
     pub fn ast_callable_decl(&self, decl: &'a ast::CallableDecl) -> impl Display + '_ {
         AstCallableDecl {
             lookup: self.compilation,
@@ -67,6 +69,7 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
+    #[must_use]
     pub fn name_ty_id(&self, name: &'a str, ty_id: ast::NodeId) -> impl Display + '_ {
         NameTyId {
             lookup: self.compilation,
@@ -75,22 +78,27 @@ impl<'a> CodeDisplay<'a> {
         }
     }
 
+    #[must_use]
     pub fn ident_ty(&self, ident: &'a ast::Ident, ty: &'a ast::Ty) -> impl Display + '_ {
         IdentTy { ident, ty }
     }
 
+    #[must_use]
     pub fn ident_ty_def(&self, ident: &'a ast::Ident, def: &'a ast::TyDef) -> impl Display + 'a {
         IdentTyDef { ident, def }
     }
 
+    #[must_use]
     pub fn hir_udt(&self, udt: &'a ty::Udt) -> impl Display + '_ {
         HirUdt { udt }
     }
 
+    #[must_use]
     pub fn hir_pat(&self, pat: &'a hir::Pat) -> impl Display + '_ {
         HirPat { pat }
     }
 
+    #[must_use]
     pub fn get_param_offset(&self, decl: &hir::CallableDecl) -> u32 {
         HirCallableDecl { decl }.get_param_offset()
     }
@@ -601,6 +609,7 @@ fn eval_functor_expr(expr: &ast::FunctorExpr) -> ty::FunctorSetValue {
 
 /// Takes a doc string from Q# and increases all of the markdown header levels by one level.
 /// i.e. `# Summary` becomes `## Summary`
+#[must_use]
 pub fn increase_header_level(doc: &str) -> String {
     let re = Regex::new(r"(?mi)^(#+)( [\s\S]+?)$").expect("Invalid regex");
     re.replace_all(doc, "$1#$2").to_string()
@@ -608,6 +617,7 @@ pub fn increase_header_level(doc: &str) -> String {
 
 /// Takes a doc string from Q# and returns the contents of the `# Summary` section. If no
 /// such section can be found, returns the original doc string.
+#[must_use]
 pub fn parse_doc_for_summary(doc: &str) -> String {
     let re = Regex::new(r"(?mi)(?:^# Summary$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
     match re.captures(doc) {
@@ -626,6 +636,7 @@ pub fn parse_doc_for_summary(doc: &str) -> String {
 /// Takes a doc string from a Q# callable and the name of a parameter of
 /// that callable. Returns the description of that parameter found in the
 /// doc string. If no description is found, returns the empty string.
+#[must_use]
 pub fn parse_doc_for_param(doc: &str, param: &str) -> String {
     let re = Regex::new(r"(?mi)(?:^# Input$)([\s\S]*?)(?:(^# .*)|\z)").expect("Invalid regex");
     let input = match re.captures(doc) {

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::{ErrorBudget, LogicalQubit, Overhead, PhysicalResourceEstimationResult};
+use crate::estimates::{ErrorBudget, LogicalPatch, Overhead, PhysicalResourceEstimationResult};
 use crate::system::modeling::{Protocol, TFactory};
 
 use super::{
@@ -21,7 +21,7 @@ pub struct Success {
     #[serde(skip_serializing_if = "Option::is_none")]
     physical_counts_formatted: Option<FormattedPhysicalResourceCounts>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    logical_qubit: Option<LogicalQubit<Protocol>>,
+    logical_qubit: Option<LogicalPatch<Protocol>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tfactory: Option<TFactory>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -105,7 +105,7 @@ impl Success {
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct FrontierEntry {
-    pub logical_qubit: LogicalQubit<Protocol>,
+    pub logical_qubit: LogicalPatch<Protocol>,
     pub tfactory: Option<TFactory>,
     pub error_budget: ErrorBudget,
     pub physical_counts: PhysicalResourceCounts,
@@ -173,7 +173,7 @@ fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
             .layout_overhead()
             .logical_depth(num_ts_per_rotation.unwrap_or_default()),
         logical_depth: result.num_cycles(),
-        clock_frequency: result.logical_qubit().logical_cycles_per_second(),
+        clock_frequency: result.logical_patch().logical_cycles_per_second(),
         num_tstates: result
             .layout_overhead()
             .num_magic_states(num_ts_per_rotation.unwrap_or_default()),
@@ -181,11 +181,11 @@ fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
         num_tfactory_runs: result.num_factory_runs(),
         physical_qubits_for_tfactories: result.physical_qubits_for_factories(),
         physical_qubits_for_algorithm: result.physical_qubits_for_algorithm(),
-        required_logical_qubit_error_rate: result.required_logical_qubit_error_rate(),
+        required_logical_qubit_error_rate: result.required_logical_patch_error_rate(),
         required_logical_tstate_error_rate: result.required_logical_magic_state_error_rate(),
         num_ts_per_rotation,
         clifford_error_rate: result
-            .logical_qubit()
+            .logical_patch()
             .physical_qubit()
             .clifford_error_rate(),
     }
@@ -234,7 +234,7 @@ impl Serialize for Failure {
     }
 }
 
-impl Serialize for LogicalQubit<Protocol> {
+impl Serialize for LogicalPatch<Protocol> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

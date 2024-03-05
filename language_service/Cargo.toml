@@ -23,5 +23,8 @@ rustc-hash = { workspace = true }
 qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
 async-trait = { workspace = true }
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false

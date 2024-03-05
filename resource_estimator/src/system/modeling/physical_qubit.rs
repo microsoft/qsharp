@@ -112,7 +112,6 @@ impl PhysicalQubit {
     }
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct GateBasedPhysicalQubit {

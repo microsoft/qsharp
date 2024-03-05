@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-//! This module contains a project implementation using [std::fs].
+//! This module contains a project implementation using [`std::fs`].
 //! Only a sync API is provided for now, because our binary targets
 //! are only sync at the time of writing this (qsi and qsc).
 
@@ -12,7 +12,7 @@ use std::fs::DirEntry as StdEntry;
 use std::path::Path;
 use std::{path::PathBuf, sync::Arc};
 
-/// This struct represents management of Q# projects from the [std::fs] filesystem implementation.
+/// This struct represents management of Q# projects from the [`std::fs`] filesystem implementation.
 #[derive(Default)]
 pub struct StdFs;
 
