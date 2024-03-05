@@ -372,7 +372,7 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Strin
     for term in terms {
         write_latex_for_term(&mut latex, &term, !is_first);
         let basis_label = fmt_basis_state_label(&term.basis_vector, qubit_count);
-        write!(latex, "|{basis_label}\\rangle").unwrap();
+        write!(latex, "|{basis_label}\\rangle").expect("Expected to write basis label.");
         is_first = false;
     }
     latex.push('$');
@@ -410,12 +410,12 @@ fn write_latex_for_polar_form(latex: &mut String, polar_form: &PolarForm, render
     }
     let pi_num: i64 = polar_form.phase_multiplier.numerator;
     if pi_num != 1 {
-        write!(latex, "{pi_num}").unwrap();
+        write!(latex, "{pi_num}").expect("Expected to write phase numerator.");
     }
     latex.push_str(" i \\pi");
     let pi_den = polar_form.phase_multiplier.denominator;
     if pi_den != 1 {
-        write!(latex, " / {pi_den}").unwrap();
+        write!(latex, " / {pi_den}").expect("expected to write phase denominator.");
     }
     latex.push('}');
 }
@@ -483,7 +483,7 @@ fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_o
 /// 1 is only rendered if ``render_one`` is true.
 fn write_latex_for_decimal_number(latex: &mut String, number: &DecimalNumber, render_one: bool) {
     if render_one || is_significant(number.value - 1.0) {
-        write!(latex, "{}", number.value).unwrap();
+        write!(latex, "{}", number.value).expect("Expected to write decimal value.");
     }
 }
 
@@ -504,19 +504,21 @@ fn write_latex_for_algebraic_number(
                 latex.push('1');
             }
         } else {
-            write!(latex, "{}", number.fraction.numerator).unwrap();
+            write!(latex, "{}", number.fraction.numerator).expect("Expected to write numerator.");
         }
     } else if number.fraction.numerator == 1 {
-        write!(latex, "\\sqrt{{{}}}", number.root).unwrap();
+        write!(latex, "\\sqrt{{{}}}", number.root)
+            .expect("Expected to write square root expression.");
     } else {
         write!(
             latex,
             "{} \\sqrt{{{}}}",
             number.fraction.numerator, number.root
         )
-        .unwrap();
+        .expect("expected to write numerator and square root expression.");
     }
     if number.fraction.denominator != 1 {
-        write!(latex, "}}{{{}}}", number.fraction.denominator).unwrap();
+        write!(latex, "}}{{{}}}", number.fraction.denominator)
+            .expect("Expected to write denominator.");
     }
 }
