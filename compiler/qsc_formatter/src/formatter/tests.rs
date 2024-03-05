@@ -5,33 +5,8 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 
 fn check(input: &str, expect: &Expect) {
-    let actual = super::format(input);
-    expect.assert_debug_eq(&actual);
-}
-
-#[test]
-fn test_formatting() {
-    check(
-        "operation   Foo   ()",
-        &expect![[r#"
-    [
-        Edit {
-            span: Span {
-                lo: 9,
-                hi: 12,
-            },
-            new_text: " ",
-        },
-        Edit {
-            span: Span {
-                lo: 15,
-                hi: 18,
-            },
-            new_text: "",
-        },
-    ]
-"#]],
-    );
+    let actual = super::format_str(input);
+    expect.assert_eq(&actual);
 }
 
 #[test]
@@ -50,36 +25,12 @@ operation Foo() : Unit {{
     check(
         input.as_str(),
         &expect![[r#"
-            [
-                Edit {
-                    span: Span {
-                        lo: 0,
-                        hi: 40,
-                    },
-                    new_text: "/// Doc Comment with trailing spaces",
-                },
-                Edit {
-                    span: Span {
-                        lo: 70,
-                        hi: 105,
-                    },
-                    new_text: "// Comment with trailing spaces",
-                },
-                Edit {
-                    span: Span {
-                        lo: 123,
-                        hi: 166,
-                    },
-                    new_text: "// In-line comment with trailing spaces",
-                },
-                Edit {
-                    span: Span {
-                        lo: 181,
-                        hi: 186,
-                    },
-                    new_text: "\n",
-                },
-            ]
+            /// Doc Comment with trailing spaces
+            operation Foo() : Unit {
+                // Comment with trailing spaces
+                let x = 3;   // In-line comment with trailing spaces
+                let y = 4;
+            }
         "#]],
     );
 }
@@ -105,92 +56,21 @@ fn correct_indentation() {
             }
 "#,
         &expect![[r#"
-            [
-                Edit {
-                    span: Span {
-                        lo: 0,
-                        hi: 5,
-                    },
-                    new_text: "",
-                },
-                Edit {
-                    span: Span {
-                        lo: 25,
-                        hi: 30,
-                    },
-                    new_text: "\n",
-                },
-                Edit {
-                    span: Span {
-                        lo: 39,
-                        hi: 48,
-                    },
-                    new_text: "\n",
-                },
-                Edit {
-                    span: Span {
-                        lo: 76,
-                        hi: 85,
-                    },
-                    new_text: "\n    ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 120,
-                        hi: 130,
-                    },
-                    new_text: "\n\n    ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 143,
-                        hi: 152,
-                    },
-                    new_text: "\n    ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 176,
-                        hi: 189,
-                    },
-                    new_text: "\n        ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 199,
-                        hi: 212,
-                    },
-                    new_text: "\n        ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 222,
-                        hi: 236,
-                    },
-                    new_text: "\n\n        ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 246,
-                        hi: 259,
-                    },
-                    new_text: "\n        ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 268,
-                        hi: 277,
-                    },
-                    new_text: "\n    ",
-                },
-                Edit {
-                    span: Span {
-                        lo: 278,
-                        hi: 291,
-                    },
-                    new_text: "\n",
-                },
-            ]
+            /// First
+            /// Second
+            /// Third
+            namespace MyQuantumProgram {
+                open Microsoft.Quantum.Diagnostics;
+
+                @EntryPoint()
+                operation Main() : Int {
+                    let x = 3;
+                    let y = 4;
+
+                    // Comment
+                    return 5;
+                }
+            }
         "#]],
     );
 }
@@ -213,51 +93,20 @@ fn correct_empty_delimiters() {
         }
         "#},
         &expect![[r#"
-            [
-                Edit {
-                    span: Span {
-                        lo: 24,
-                        hi: 25,
-                    },
-                    new_text: "",
-                },
-                Edit {
-                    span: Span {
-                        lo: 80,
-                        hi: 83,
-                    },
-                    new_text: "",
-                },
-                Edit {
-                    span: Span {
-                        lo: 98,
-                        hi: 104,
-                    },
-                    new_text: "",
-                },
-                Edit {
-                    span: Span {
-                        lo: 128,
-                        hi: 129,
-                    },
-                    new_text: "",
-                },
-                Edit {
-                    span: Span {
-                        lo: 145,
-                        hi: 152,
-                    },
-                    new_text: "",
-                },
-            ]
+            operation Foo() : Unit {}
+            operation Bar() : Unit {
+                operation Baz() : Unit {}
+                let x = {};
+                let y : Int[] = [];
+                let z = ();
+            }
         "#]],
     );
 }
 
 #[test]
 fn test_sample() {
-    check(
-        indoc! {r#"
+    let input = indoc! {r#"
         /// # Sample
         /// Joint Measurement
         ///
@@ -299,9 +148,6 @@ fn test_sample() {
                 return (parityResult, [firstQubitResult, secondQubitResult]);
             }
         }
-        "#},
-        &expect![[r#"
-            []
-        "#]],
-    );
+        "#};
+    assert!(super::calculate_format_edits(input).is_empty());
 }

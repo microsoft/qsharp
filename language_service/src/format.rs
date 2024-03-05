@@ -3,7 +3,7 @@
 
 use crate::{compilation::Compilation, protocol::TextEdit};
 
-use qsc::formatter::format;
+use qsc::formatter::calculate_format_edits;
 use qsc::line_column::{Encoding, Position, Range};
 
 pub(crate) fn get_format_changes(
@@ -20,7 +20,7 @@ pub(crate) fn get_format_changes(
         .contents
         .clone();
 
-    format(&contents)
+    calculate_format_edits(&contents)
         .iter()
         .map(|edit| TextEdit {
             contents: edit.new_text.clone(),

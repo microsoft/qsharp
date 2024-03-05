@@ -30,9 +30,25 @@ fn make_indent_string(level: usize) -> String {
     "    ".repeat(level)
 }
 
+/// Applies formatting rules to the give code str and returns
+/// the formatted string.
+pub fn format_str(code: &str) -> String {
+    let mut edits = calculate_format_edits(code);
+    edits.sort_by_key(|edit| edit.span.hi); // sort edits by their span's hi value from lowest to highest
+    edits.reverse(); // sort from highest to lowest so that that as edits are applied they don't invalidate later applications of edits
+    let mut new_code = String::from(code);
+
+    for edit in edits {
+        let range = (edit.span.lo as usize)..(edit.span.hi as usize);
+        new_code.replace_range(range, &edit.new_text);
+    }
+
+    new_code
+}
+
 /// Applies formatting rules to the given code str, generating edits where
 /// the source code needs to be changed to comply with the format rules.
-pub fn format(code: &str) -> Vec<Edit> {
+pub fn calculate_format_edits(code: &str) -> Vec<Edit> {
     let tokens = concrete::ConcreteTokenIterator::new(code);
     let mut edits = vec![];
 
@@ -171,11 +187,6 @@ fn apply_rules(
         },
         _ => {}
     }
-
-    println!(
-        "edits for `{}` : {edits:?}",
-        &code[left.span.lo as usize..right.span.hi as usize]
-    );
     edits
 }
 
