@@ -10,6 +10,7 @@ mod error;
 mod intrinsic;
 pub mod lower;
 pub mod output;
+pub mod state;
 pub mod val;
 
 use crate::val::Value;

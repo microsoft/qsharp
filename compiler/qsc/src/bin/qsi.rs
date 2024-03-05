@@ -9,6 +9,7 @@ use qsc::interpret::{self, InterpretResult, Interpreter};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{
     output::{self, Receiver},
+    state::format_state_id,
     val::Value,
 };
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName};
@@ -61,7 +62,7 @@ impl Receiver for TerminalReceiver {
     ) -> Result<(), output::Error> {
         println!("DumpMachine:");
         for (qubit, amplitude) in states {
-            let id = output::format_state_id(&qubit, qubit_count);
+            let id = format_state_id(&qubit, qubit_count);
             println!("{id}: [{}, {}]", amplitude.re, amplitude.im);
         }
 
