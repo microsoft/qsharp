@@ -210,7 +210,7 @@ where
 
         let json_latex = serde_json::to_string(&get_latex(&state, qubit_count))
             .expect("serialization should succeed");
-        write!(dump_json, r#" "stateLatex": {} }} "#, json_latex)
+        write!(dump_json, r#" "stateLatex": {json_latex} }} "#)
             .expect("writing to string should succeed");
         (self.event_cb)(&dump_json);
         Ok(())
