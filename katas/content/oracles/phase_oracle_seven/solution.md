@@ -1,9 +1,11 @@
+You can flip the phase of the basis state $|111\rangle$ using a controlled $Z$ gate, with any two of the qubits as controls and the third one as the target.
+
 @[solution]({
     "id": "oracles__phase_oracle_seven_solution",
     "codePath": "Solution.qs"
 })
 
-Consider how the oracle acts on two basis states:
+Consider how this oracle acts on two basis states:
 $$U_{7,phase} |111\rangle = -|111\rangle$$
 $$U_{7,phase} |110\rangle = |110\rangle$$
 
@@ -11,22 +13,22 @@ You can see that $U_{7,phase}$ does not change the input if it's a basis state (
 
 However, if we applied this oracle to a superposition state instead, what will that look like?
 
-Suppose that $|\beta\rangle$ is an equal superposition of the $|6\rangle$ and $|7\rangle$ states (encoded in big endian, with most significant bit first): 
+Suppose that $|\beta\rangle$ is an equal superposition of the states  $|110\rangle$ and $|111\rangle$: 
 $$|\beta\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big) = |11\rangle \otimes |+\rangle = |11+\rangle$$
 
 Let's consider how our operator $U_{7,phase}$ acts on this state:
 
-$$U_{7,phase} |\beta\rangle = U_{7,phase} \Big[\frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big)\Big]$$
+$$U_{7,phase} |\beta\rangle = U_{7,phase} \Big[\frac{1}{\sqrt{2}} \big(|110\rangle + |111\rangle\big)\Big] =$$
 
-$$= \frac{1}{\sqrt{2}} \big(U_{7,phase} |110\rangle + U_{7,phase} |111\rangle\big)$$
+$$= \frac{1}{\sqrt{2}} \big(U_{7,phase} |110\rangle + U_{7,phase} |111\rangle\big) =$$
 
 $$= \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) := |\gamma\rangle$$
 
 Was our input state modified during this operation? Let's simplify $|\gamma\rangle$:
 
-$$|\gamma\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big)$$
+$$|\gamma\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle - |111\rangle\big) =$$
 
-$$= |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle - |1\rangle\big)$$
+$$= |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle - |1\rangle\big) =$$
 
 $$= |11\rangle \otimes |-\rangle = |11-\rangle \neq |\beta\rangle$$
 

@@ -102,6 +102,7 @@ impl Lookup for Compilation {
     }
 }
 
+#[must_use]
 pub fn generate_docs() -> Files {
     let compilation = Compilation::new();
     let mut files: Files = vec![];

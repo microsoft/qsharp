@@ -34,8 +34,8 @@ impl Report {
         let mut groups = vec![];
 
         let mut entries = vec![];
-        entries.push(ReportEntry::new("physicalCountsFormatted/runtime", "Runtime", r#"Total runtime"#, &format!(r#"This is a runtime estimate for the execution time of the algorithm.  In general, the execution time corresponds to the duration of one logical cycle ({} nanosecs) multiplied by the {} logical cycles to run the algorithm.  If however the duration of a single T factory (here: {} nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory."#, format_thousand_sep(&result.logical_qubit().logical_cycle_time()), format_thousand_sep(&result.algorithmic_logical_depth()), format_thousand_sep(&result.factory().map_or(0, TFactory::duration)))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/rqops", "rQOPS", r#"Reliable quantum operations per second"#, &format!(r#"The value is computed as the number of logical qubits after layout ({}) (with a logical error rate of {}) multiplied by the clock frequency ({}), which is the number of logical cycles per second."#, format_thousand_sep(&result.layout_overhead().logical_qubits()), formatted_counts.required_logical_qubit_error_rate, format_thousand_sep_f64(result.logical_qubit().logical_cycles_per_second()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/runtime", "Runtime", r#"Total runtime"#, &format!(r#"This is a runtime estimate for the execution time of the algorithm.  In general, the execution time corresponds to the duration of one logical cycle ({} nanosecs) multiplied by the {} logical cycles to run the algorithm.  If however the duration of a single T factory (here: {} nanosecs) is larger than the algorithm runtime, we extend the number of logical cycles artificially in order to exceed the runtime of a single T factory."#, format_thousand_sep(&result.logical_patch().logical_cycle_time()), format_thousand_sep(&result.algorithmic_logical_depth()), format_thousand_sep(&result.factory().map_or(0, TFactory::duration)))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/rqops", "rQOPS", r#"Reliable quantum operations per second"#, &format!(r#"The value is computed as the number of logical qubits after layout ({}) (with a logical error rate of {}) multiplied by the clock frequency ({}), which is the number of logical cycles per second."#, format_thousand_sep(&result.layout_overhead().logical_qubits()), formatted_counts.required_logical_qubit_error_rate, format_thousand_sep_f64(result.logical_patch().logical_cycles_per_second()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubits", "Physical qubits", r#"Number of physical qubits"#, &format!(r#"This value represents the total number of physical qubits, which is the sum of {} physical qubits to implement the algorithm logic, and {} physical qubits to execute the T factories that are responsible to produce the T states that are consumed by the algorithm."#, format_thousand_sep(&result.physical_qubits_for_algorithm()), format_thousand_sep(&result.physical_qubits_for_factories()))));
         groups.push(ReportEntryGroup {
             title: "Physical resource estimates".into(),
@@ -51,11 +51,11 @@ impl Report {
         entries.push(ReportEntry::new("physicalCountsFormatted/numTstates", "Number of T states", r#"Number of T states consumed by the algorithm"#, &format!(r#"To execute the algorithm, we require one T state for each of the {} T gates, four T states for each of the {} CCZ and {} CCiX gates, as well as {} for each of the {} single-qubit rotation gates with arbitrary angle rotation."#, format_thousand_sep(&logical_counts.t_count), format_thousand_sep(&logical_counts.ccz_count), format_thousand_sep(&logical_counts.ccix_count), formatted_counts.num_ts_per_rotation, format_thousand_sep(&logical_counts.rotation_count))));
         entries.push(ReportEntry::new("physicalCountsFormatted/numTfactories", "Number of T factories", &format!(r#"Number of T factories capable of producing the demanded {} T states during the algorithm's runtime"#, format_thousand_sep(&result.num_magic_states())), &format!(r#"The total number of T factories {} that are executed in parallel is computed as $\left\lceil\dfrac{{\text{{T states}}\cdot\text{{T factory duration}}}}{{\text{{T states per T factory}}\cdot\text{{algorithm runtime}}}}\right\rceil = \left\lceil\dfrac{{{} \cdot {}\;\text{{ns}}}}{{{} \cdot {}\;\text{{ns}}}}\right\rceil$"#, format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.num_magic_states()), format_thousand_sep(&result.factory().map_or(0, TFactory::duration)), format_thousand_sep(&result.factory().map_or(0, TFactory::num_output_states)), format_thousand_sep(&result.runtime()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/numTfactoryRuns", "Number of T factory invocations", r#"Number of times all T factories are invoked"#, &format!(r#"In order to prepare the {} T states, the {} copies of the T factory are repeatedly invoked {} times."#, format_thousand_sep(&result.num_magic_states()), format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.num_factory_runs()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForAlgorithm", "Physical algorithmic qubits", r#"Number of physical qubits for the algorithm after layout"#, &format!(r#"The {} are the product of the {} logical qubits after layout and the {} physical qubits that encode a single logical qubit."#, format_thousand_sep(&result.physical_qubits_for_algorithm()), format_thousand_sep(&result.layout_overhead().logical_qubits()), format_thousand_sep(&result.logical_qubit().physical_qubits()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForAlgorithm", "Physical algorithmic qubits", r#"Number of physical qubits for the algorithm after layout"#, &format!(r#"The {} are the product of the {} logical qubits after layout and the {} physical qubits that encode a single logical qubit."#, format_thousand_sep(&result.physical_qubits_for_algorithm()), format_thousand_sep(&result.layout_overhead().logical_qubits()), format_thousand_sep(&result.logical_patch().physical_qubits()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForTfactories", "Physical T factory qubits", r#"Number of physical qubits for the T factories"#, &format!(r#"Each T factory requires {} physical qubits and we run {} in parallel, therefore we need ${} = {} \cdot {}$ qubits."#, format_thousand_sep(&result.factory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.physical_qubits_for_factories()), format_thousand_sep(&result.factory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_factories()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/requiredLogicalQubitErrorRate", "Required logical qubit error rate", r#"The minimum logical qubit error rate required to run the algorithm within the error budget"#, &format!(r#"The minimum logical qubit error rate is obtained by dividing the logical error probability {} by the product of {} logical qubits and the total cycle count {}."#, formatted_counts.error_budget_logical, format_thousand_sep(&result.layout_overhead().logical_qubits()), format_thousand_sep(&result.num_cycles()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/requiredLogicalTstateErrorRate", "Required logical T state error rate", r#"The minimum T state error rate required for distilled T states"#, &format!(r#"The minimum T state error rate is obtained by dividing the T distillation error probability {} by the total number of T states {}."#, formatted_counts.error_budget_tstates, format_thousand_sep(&result.num_magic_states()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/numTsPerRotation", "Number of T states per rotation", r#"Number of T states to implement a rotation with an arbitrary angle"#, &format!(r#"The number of T states to implement a rotation with an arbitrary angle is $\lceil 0.53 \log_2({} / {}) + 5.3\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)].  For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases."#, format_thousand_sep(&logical_counts.rotation_count), result.error_budget().rotations())));
+        entries.push(ReportEntry::new("physicalCountsFormatted/numTsPerRotation", "Number of T states per rotation", r#"Number of T states to implement a rotation with an arbitrary angle"#, &format!(r#"The number of T states to implement a rotation with an arbitrary angle is $\lceil 0.53 \log_2({} / {}) + 4.86\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)].  For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases."#, format_thousand_sep(&logical_counts.rotation_count), result.error_budget().rotations())));
         groups.push(ReportEntryGroup {
             title: "Resource estimates breakdown".into(),
             always_visible: false,
@@ -64,10 +64,10 @@ impl Report {
 
         let mut entries = vec![];
         entries.push(ReportEntry::new("jobParams/qecScheme/name", "QEC scheme", r#"Name of QEC scheme"#, r#"You can load pre-defined QEC schemes by using the name `surface_code` or `floquet_code`. The latter only works with Majorana qubits."#));
-        entries.push(ReportEntry::new("logicalQubit/codeDistance", "Code distance", r#"Required code distance for error correction"#, &format!(r#"The code distance is the smallest odd integer greater or equal to $\dfrac{{2\log({} / {})}}{{\log({}/{})}} - 1$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.required_logical_qubit_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_qubit().physical_qubit().clifford_error_rate())));
+        entries.push(ReportEntry::new("logicalQubit/codeDistance", "Code distance", r#"Required code distance for error correction"#, &format!(r#"The code distance is the smallest odd integer greater or equal to $\dfrac{{2\log({} / {})}}{{\log({}/{})}} - 1$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.required_logical_patch_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_patch().physical_qubit().clifford_error_rate())));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsPerLogicalQubit", "Physical qubits", r#"Number of physical qubits per logical qubit"#, &format!(r#"The number of physical qubits per logical qubit are evaluated using the formula {} that can be user-specified."#, job_params.qec_scheme().physical_qubits_per_logical_qubit.as_ref().expect("physical qubits per logical qubit should be set"))));
         entries.push(ReportEntry::new("physicalCountsFormatted/logicalCycleTime", "Logical cycle time", r#"Duration of a logical cycle in nanoseconds"#, &format!(r#"The runtime of one logical cycle in nanoseconds is evaluated using the formula {} that can be user-specified."#, job_params.qec_scheme().logical_cycle_time.as_ref().expect("logical cycle time should be set"))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/logicalErrorRate", "Logical qubit error rate", r#"Logical qubit error rate"#, &format!(r#"The logical qubit error rate is computed as ${} \cdot \left(\dfrac{{{}}}{{{}}}\right)^\frac{{{} + 1}}{{2}}$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.logical_qubit().physical_qubit().clifford_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_qubit().code_parameter())));
+        entries.push(ReportEntry::new("physicalCountsFormatted/logicalErrorRate", "Logical qubit error rate", r#"Logical qubit error rate"#, &format!(r#"The logical qubit error rate is computed as ${} \cdot \left(\dfrac{{{}}}{{{}}}\right)^\frac{{{} + 1}}{{2}}$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.logical_patch().physical_qubit().clifford_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_patch().code_parameter())));
         entries.push(ReportEntry::new("jobParams/qecScheme/crossingPrefactor", "Crossing prefactor", r#"Crossing prefactor used in QEC scheme"#, r#"The crossing prefactor is usually extracted numerically from simulations when fitting an exponential curve to model the relationship between logical and physical error rate."#));
         entries.push(ReportEntry::new("jobParams/qecScheme/errorCorrectionThreshold", "Error correction threshold", r#"Error correction threshold used in QEC scheme"#, r#"The error correction threshold is the physical error rate below which the error rate of the logical qubit is less than the error rate of the physical qubit that constitute it.  This value is usually extracted numerically from simulations of the logical error rate."#));
         entries.push(ReportEntry::new(
@@ -76,10 +76,10 @@ impl Report {
             r#"QEC scheme formula used to compute logical cycle time"#,
             &format!(
                 r#"This is the formula that is used to compute the logical cycle time {} ns."#,
-                format_thousand_sep(&result.logical_qubit().logical_cycle_time())
+                format_thousand_sep(&result.logical_patch().logical_cycle_time())
             ),
         ));
-        entries.push(ReportEntry::new("jobParams/qecScheme/physicalQubitsPerLogicalQubit", "Physical qubits formula", r#"QEC scheme formula used to compute number of physical qubits per logical qubit"#, &format!(r#"This is the formula that is used to compute the number of physical qubits per logical qubits {}."#, format_thousand_sep(&result.logical_qubit().physical_qubits()))));
+        entries.push(ReportEntry::new("jobParams/qecScheme/physicalQubitsPerLogicalQubit", "Physical qubits formula", r#"QEC scheme formula used to compute number of physical qubits per logical qubit"#, &format!(r#"This is the formula that is used to compute the number of physical qubits per logical qubits {}."#, format_thousand_sep(&result.logical_patch().physical_qubits()))));
         groups.push(ReportEntryGroup {
             title: "Logical qubit parameters".into(),
             always_visible: false,
@@ -350,14 +350,13 @@ pub struct FormattedPhysicalResourceCounts {
 }
 
 impl FormattedPhysicalResourceCounts {
-    #[allow(clippy::too_many_lines, clippy::cast_lossless)]
+    #[allow(clippy::too_many_lines)]
     pub fn new<L: Overhead + Clone>(
         result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
         logical_resources: &LogicalResourceCounts,
         job_params: &JobParams,
     ) -> Self {
         // Physical resource estimates
-        #[allow(clippy::cast_lossless)]
         let runtime = format_duration(result.runtime().into());
         let rqops = format_metric_prefix(result.rqops());
         let physical_qubits = format_metric_prefix(result.physical_qubits());
@@ -382,7 +381,7 @@ impl FormattedPhysicalResourceCounts {
         );
 
         let required_logical_qubit_error_rate =
-            format!("{:.2e}", result.required_logical_qubit_error_rate());
+            format!("{:.2e}", result.required_logical_patch_error_rate());
 
         let no_tstates_msg = "No T states in algorithm";
         let no_rotations_msg = "No rotations in algorithm";
@@ -396,15 +395,15 @@ impl FormattedPhysicalResourceCounts {
 
         // Logical qubit parameters
         let physical_qubits_per_logical_qubit =
-            format_metric_prefix(result.logical_qubit().physical_qubits());
+            format_metric_prefix(result.logical_patch().physical_qubits());
 
         let logical_cycle_time =
-            format_duration(result.logical_qubit().logical_cycle_time() as u128);
+            format_duration(result.logical_patch().logical_cycle_time() as u128);
 
         let clock_frequency =
-            format_metric_prefix(result.logical_qubit().logical_cycles_per_second().round() as u64);
+            format_metric_prefix(result.logical_patch().logical_cycles_per_second().round() as u64);
 
-        let logical_error_rate = format!("{:.2e}", result.logical_qubit().logical_error_rate());
+        let logical_error_rate = format!("{:.2e}", result.logical_patch().logical_error_rate());
 
         // T factory parameters
         let tfactory_physical_qubits = result

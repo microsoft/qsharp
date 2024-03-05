@@ -19,6 +19,9 @@ qsc = { path = "../compiler/qsc" }
 [features]
 do_fuzz = [ "dep:libfuzzer-sys" ]
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "compile"
 path = "fuzz_targets/compile.rs"

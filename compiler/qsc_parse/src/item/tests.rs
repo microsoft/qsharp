@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use super::{parse, parse_attr, parse_spec_decl};
 use crate::{
     scan::ParserContext,
@@ -1463,7 +1465,7 @@ fn callable_missing_parens() {
                     ),
                 ),
             ]"#]],
-    )
+    );
 }
 
 #[test]
@@ -1492,7 +1494,7 @@ fn callable_missing_close_parens() {
                     ),
                 ),
             ]"#]],
-    )
+    );
 }
 
 #[test]
@@ -1517,7 +1519,7 @@ fn callable_missing_open_parens() {
                     ),
                 ),
             ]"#]],
-    )
+    );
 }
 
 #[test]

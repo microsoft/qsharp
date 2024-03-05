@@ -8,7 +8,7 @@ namespace Kata.Verification {
     @EntryPoint()
     function CheckSolution() : Bool {
         let N = 3;
-        for k in 0..((2^N)-1) {
+        for k in 0 .. 2^N - 1 {
             let x = IntAsBoolArray(k, N);
 
             let actual = Kata.IsSeven(x);
@@ -19,7 +19,7 @@ namespace Kata.Verification {
                 return false;
             }
         }
-        Message("All tests passed.");
+        Message("Correct!");
         true
     }
 }

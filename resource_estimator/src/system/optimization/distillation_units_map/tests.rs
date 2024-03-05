@@ -4,7 +4,7 @@
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
-use crate::estimates::LogicalQubit;
+use crate::estimates::LogicalPatch;
 
 use super::super::super::{
     data::{
@@ -53,7 +53,7 @@ fn create_default_map<'a>(
     let distances: Vec<_> = (min_code_distance..=max_code_distance).step_by(2).collect();
     let mut qubits = vec![None; max_code_distance as usize + 1];
     for &distance in &distances {
-        qubits[distance as usize] = LogicalQubit::new(ftp, distance, qubit.clone())
+        qubits[distance as usize] = LogicalPatch::new(ftp, distance, qubit.clone())
             .ok()
             .map(Rc::new);
     }

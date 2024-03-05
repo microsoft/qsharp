@@ -4,36 +4,26 @@ namespace Kata {
 
     @EntryPoint()
     operation OracleConverterDemo () : Unit {
-        // Allocate the qubits in the state |000⟩
         use register = Qubit[3];
-        // Prepare an equal superposition state
         ApplyToEachA(H, register);
 
         Message("The equal superposition state:");
         DumpMachine();
 
-        // Apply the `IsSeven_PhaseOracle` from the task on implementing a phase oracle
+        // Apply the phase oracle `IsSeven_PhaseOracle`
         IsSeven_PhaseOracle(register);
 
-        // Dump the state after application of the oracle
         Message("The state after applying the phase oracle IsSeven_PhaseOracle:");
         DumpMachine();
-
-        // Reset the qubits for deallocation
         ResetAll(register);
 
-        // Prepare an equal superposition state again
         ApplyToEachA(H, register);
 
-        // Apply the `IsSeven_MarkingOracle` from the task on implementing a marking oracle
-        // as a phase oracle
+        // Apply the marking oracle `IsSeven_MarkingOracle` as a phase oracle
         ApplyMarkingOracleAsPhaseOracle(IsSeven_MarkingOracle, register);
 
-        // Dump the state after application of the oracle
         Message("The state after applying the converted marking oracle IsSeven_MarkingOracle:");
         DumpMachine();
-
-        // reset the qubits for deallocation
         ResetAll(register);
     }
 
@@ -47,8 +37,8 @@ namespace Kata {
 
     operation ApplyMarkingOracleAsPhaseOracle(
         markingOracle : ((Qubit[], Qubit) => Unit is Adj + Ctl),
-        qubits : Qubit[]) : Unit is Adj + Ctl {
-
+        qubits : Qubit[])
+    : Unit is Adj + Ctl {
         use minus = Qubit();
         within {
             X(minus);

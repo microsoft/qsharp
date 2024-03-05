@@ -82,6 +82,8 @@ fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
         many(s, |s| recovering(s, default, RECOVERY_TOKENS, parse))
     })
 }
+
+#[allow(clippy::unnecessary_box_returns)]
 fn default(span: Span) -> Box<Item> {
     Box::new(Item {
         id: NodeId::default(),
@@ -95,13 +97,13 @@ fn default(span: Span) -> Box<Item> {
 
 pub(super) fn parse_namespaces(s: &mut ParserContext) -> Result<Vec<Namespace>> {
     let namespaces = many(s, parse_namespace)?;
-    recovering_token(s, TokenKind::Eof)?;
+    recovering_token(s, TokenKind::Eof);
     Ok(namespaces)
 }
 
 pub(super) fn parse_top_level_nodes(s: &mut ParserContext) -> Result<Vec<TopLevelNode>> {
     let nodes = many(s, parse_top_level_node)?;
-    recovering_token(s, TokenKind::Eof)?;
+    recovering_token(s, TokenKind::Eof);
     Ok(nodes)
 }
 
@@ -134,7 +136,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
-    recovering_token(s, TokenKind::Close(Delim::Brace))?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
@@ -144,7 +146,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     })
 }
 
-/// See https://github.com/microsoft/qsharp/issues/941 for context.
+/// See [GH Issue 941](https://github.com/microsoft/qsharp/issues/941) for context.
 /// We want to anticipate docstrings in places people might
 /// put them, but throw them away. This is to maintain
 /// back compatibility.
@@ -227,13 +229,13 @@ fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
 
 fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
     match tydef.kind.as_ref() {
-        TyDefKind::Field(Some(_), _) => None,
+        TyDefKind::Field(Some(_), _) | TyDefKind::Err => None,
         TyDefKind::Field(None, ty) => Some(*ty.clone()),
         TyDefKind::Paren(tydef) => try_tydef_as_ty(tydef.as_ref()),
         TyDefKind::Tuple(tup) => {
             let mut ty_tup = Vec::new();
             for tydef in tup.iter() {
-                ty_tup.push(try_tydef_as_ty(tydef)?)
+                ty_tup.push(try_tydef_as_ty(tydef)?);
             }
             Some(Ty {
                 id: tydef.id,
@@ -241,7 +243,6 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
                 kind: Box::new(TyKind::Tuple(ty_tup.into_boxed_slice())),
             })
         }
-        TyDefKind::Err => None,
     }
 }
 
@@ -346,14 +347,14 @@ fn parse_callable_body(s: &mut ParserContext) -> Result<CallableBody> {
         if specs.is_empty() {
             let stmts = stmt::parse_many(s)?;
             check_semis(s, &stmts);
-            recovering_token(s, TokenKind::Close(Delim::Brace))?;
+            recovering_token(s, TokenKind::Close(Delim::Brace));
             Ok(CallableBody::Block(Box::new(Block {
                 id: NodeId::default(),
                 span: s.span(lo),
                 stmts: stmts.into_boxed_slice(),
             })))
         } else {
-            recovering_token(s, TokenKind::Close(Delim::Brace))?;
+            recovering_token(s, TokenKind::Close(Delim::Brace));
             Ok(CallableBody::Specs(specs.into_boxed_slice()))
         }
     })
@@ -415,9 +416,9 @@ fn parse_spec_gen(s: &mut ParserContext) -> Result<SpecGen> {
 }
 /// Checks that the inputs of the callable are surrounded by parens
 pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
-    if !matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
-        Err(Error(ErrorKind::MissingParens(inputs.span)))
-    } else {
+    if matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
         Ok(())
+    } else {
+        Err(Error(ErrorKind::MissingParens(inputs.span)))
     }
 }

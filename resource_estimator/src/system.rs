@@ -115,13 +115,15 @@ fn estimate_single(
                 ));
             }
 
-            let estimation_result = estimation.build_frontier().map_err(|err| err.into());
+            let estimation_result = estimation
+                .build_frontier()
+                .map_err(std::convert::Into::into);
             estimation_result.map(|result| {
                 data::Success::new_from_multiple(logical_resources, job_params, result)
             })
         }
         EstimateType::SinglePoint => {
-            let estimation_result = estimation.estimate().map_err(|err| err.into());
+            let estimation_result = estimation.estimate().map_err(std::convert::Into::into);
             estimation_result
                 .map(|result| data::Success::new(logical_resources, job_params, result))
         }

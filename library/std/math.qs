@@ -13,7 +13,7 @@ namespace Microsoft.Quantum.Math {
     /// Represents the ratio of the circumference of a circle to its diameter.
     ///
     /// # Output
-    /// A double-precision approximation of the the circumference of a circle
+    /// A double-precision approximation of the circumference of a circle
     /// to its diameter, π ≈ 3.14159265358979323846.
     ///
     /// # See Also
@@ -1276,7 +1276,7 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Internal. Since it is easiest to define the power of two complex numbers
-    /// in cartesian form as returning in polar form, we define that here, then
+    /// in Cartesian form as returning in polar form, we define that here, then
     /// convert as needed.
     /// Note that this is a multi-valued function, but only one value is returned.
     internal function PowCAsCP(base : Complex, power : Complex) : ComplexPolar {

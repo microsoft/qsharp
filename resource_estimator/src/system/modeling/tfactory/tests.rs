@@ -6,7 +6,7 @@ use probability::prelude::Inverse;
 use super::*;
 use std::rc::Rc;
 
-use crate::estimates::LogicalQubit;
+use crate::estimates::LogicalPatch;
 
 use super::super::super::modeling::{PhysicalQubit, Protocol};
 use super::super::super::{constants::FLOAT_COMPARISON_EPSILON, Result};
@@ -85,11 +85,11 @@ fn single_physical_qubit() {
 
 fn create_logical_qubit_with_distance(
     code_distance: u64,
-) -> core::result::Result<LogicalQubit<Protocol>, crate::estimates::Error> {
+) -> core::result::Result<LogicalPatch<Protocol>, crate::estimates::Error> {
     let ftp = Protocol::default();
     let qubit = Rc::new(PhysicalQubit::default());
 
-    LogicalQubit::new(&ftp, code_distance, qubit)
+    LogicalPatch::new(&ftp, code_distance, qubit)
 }
 
 #[test]
@@ -264,7 +264,7 @@ fn expression_by_formula2() {
 fn default_t_factory() {
     let physical_qubit = PhysicalQubit::default();
     let ftp = Protocol::default();
-    let logical_qubit = LogicalQubit::new(&ftp, 15, Rc::new(physical_qubit))
+    let logical_qubit = LogicalPatch::new(&ftp, 15, Rc::new(physical_qubit))
         .expect("logical qubit contruction should succeed");
     let tfactory = TFactory::default(&logical_qubit);
 

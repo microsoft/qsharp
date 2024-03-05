@@ -145,7 +145,7 @@ impl Protocol {
             // can you compute logical cycle time and number of physical qubits with code distance?
             ftp.logical_cycle_time(qubit, &code_distance)
                 .map_err(LogicalCycleTimeComputationFailed)?;
-            ftp.physical_qubits_per_logical_qubit(&code_distance)
+            ftp.physical_qubits(&code_distance)
                 .map_err(PhysicalQubitComputationFailed)?;
         }
 
@@ -464,11 +464,11 @@ impl ErrorCorrection for Protocol {
     type Qubit = PhysicalQubit;
     type Parameter = u64;
 
-    /// Computes the number of physical qubits required for one logical qubit
+    /// Computes the number of physical qubits required for this code
     ///
     /// The formula for this field has a default value of `2 * code_distance *
     /// code_distance`.
-    fn physical_qubits_per_logical_qubit(&self, code_distance: &u64) -> Result<u64, String> {
+    fn physical_qubits(&self, code_distance: &u64) -> Result<u64, String> {
         let mut context = Self::create_evaluation_context(None, *code_distance);
         let value = self
             .physical_qubits_per_logical_qubit
@@ -480,6 +480,11 @@ impl ErrorCorrection for Protocol {
         } else {
             Ok(value as u64)
         }
+    }
+
+    /// The planar codes considered in this system encode 1 logical qubit
+    fn logical_qubits(&self, _code_parameter: &Self::Parameter) -> Result<u64, String> {
+        Ok(1)
     }
 
     /// Returns the time of one logical cycle.
@@ -527,7 +532,6 @@ impl ErrorCorrection for Protocol {
             )
             .to_string())
         } else {
-            #[allow(clippy::cast_possible_truncation)]
             Ok(self.crossing_prefactor()
                 * ((physical_error_rate / self.error_correction_threshold())
                     .powi((*code_distance as i32 + 1) / 2)))
