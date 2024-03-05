@@ -12,16 +12,16 @@ use qsc_frontend::lex::{
 mod tests;
 
 #[derive(Debug)]
-pub struct Edit {
-    pub span: Span,
+pub struct TextEdit {
     pub new_text: String,
+    pub span: Span,
 }
 
-impl Edit {
-    fn new(lo: u32, hi: u32, new_text: &str) -> Self {
+impl TextEdit {
+    fn new(new_text: &str, lo: u32, hi: u32) -> Self {
         Self {
-            span: Span { lo, hi },
             new_text: new_text.to_string(),
+            span: Span { lo, hi },
         }
     }
 }
@@ -48,7 +48,7 @@ pub fn format_str(code: &str) -> String {
 
 /// Applies formatting rules to the given code str, generating edits where
 /// the source code needs to be changed to comply with the format rules.
-pub fn calculate_format_edits(code: &str) -> Vec<Edit> {
+pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
     let tokens = concrete::ConcreteTokenIterator::new(code);
     let mut edits = vec![];
 
@@ -97,7 +97,7 @@ pub fn calculate_format_edits(code: &str) -> Vec<Edit> {
             (None, None, Some(three)) => {
                 // Remove any whitespace at the start of a file
                 if three.span.lo != 0 {
-                    vec![Edit::new(0, three.span.lo, "")]
+                    vec![TextEdit::new("", 0, three.span.lo)]
                 } else {
                     vec![]
                 }
@@ -120,7 +120,7 @@ fn apply_rules(
     right: &ConcreteToken,
     code: &str,
     indent_level: usize,
-) -> Vec<Edit> {
+) -> Vec<TextEdit> {
     let mut edits = vec![];
     // when we get here, neither left nor right should be whitespace
 
@@ -194,10 +194,10 @@ fn effect_no_space(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
-    edits: &mut Vec<Edit>,
+    edits: &mut Vec<TextEdit>,
 ) {
     if !whitespace.is_empty() {
-        edits.push(Edit::new(left.span.hi, right.span.lo, ""));
+        edits.push(TextEdit::new("", left.span.hi, right.span.lo));
     }
 }
 
@@ -205,18 +205,22 @@ fn effect_single_space(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
-    edits: &mut Vec<Edit>,
+    edits: &mut Vec<TextEdit>,
 ) {
     if whitespace != " " {
-        edits.push(Edit::new(left.span.hi, right.span.lo, " "));
+        edits.push(TextEdit::new(" ", left.span.hi, right.span.lo));
     }
 }
 
-fn effect_trim_comment(left: &ConcreteToken, edits: &mut Vec<Edit>, code: &str) {
+fn effect_trim_comment(left: &ConcreteToken, edits: &mut Vec<TextEdit>, code: &str) {
     let comment_contents = get_token_contents(code, left);
     let new_comment_contents = comment_contents.trim_end();
     if comment_contents != new_comment_contents {
-        edits.push(Edit::new(left.span.lo, left.span.hi, new_comment_contents));
+        edits.push(TextEdit::new(
+            new_comment_contents,
+            left.span.lo,
+            left.span.hi,
+        ));
     }
 }
 
@@ -224,7 +228,7 @@ fn effect_correct_indentation(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
-    edits: &mut Vec<Edit>,
+    edits: &mut Vec<TextEdit>,
     indent_level: usize,
 ) {
     let mut count_newlines = whitespace.chars().filter(|c| *c == '\n').count();
@@ -237,10 +241,10 @@ fn effect_correct_indentation(
     let mut new_whitespace = "\n".repeat(count_newlines);
     new_whitespace.push_str(&make_indent_string(indent_level));
     if whitespace != new_whitespace {
-        edits.push(Edit::new(
+        edits.push(TextEdit::new(
+            new_whitespace.as_str(),
             left.span.hi,
             right.span.lo,
-            new_whitespace.as_str(),
         ));
     }
 }

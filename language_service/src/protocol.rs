@@ -94,8 +94,8 @@ pub struct Hover {
 
 #[derive(Debug, PartialEq)]
 pub struct TextEdit {
-    pub contents: String,
-    pub span: Range,
+    pub new_text: String,
+    pub range: Range,
 }
 
 #[derive(Debug, PartialEq)]

@@ -205,15 +205,15 @@ impl LanguageService {
                 TextEdit {
                     range: Range {
                         start: Position {
-                            line: edit.span.start.line,
-                            character: edit.span.start.column,
+                            line: edit.range.start.line,
+                            character: edit.range.start.column,
                         },
                         end: Position {
-                            line: edit.span.end.line,
-                            character: edit.span.end.column,
+                            line: edit.range.end.line,
+                            character: edit.range.end.column,
                         },
                     },
-                    newText: edit.contents,
+                    newText: edit.new_text,
                 }
                 .into()
             })

@@ -23,8 +23,8 @@ pub(crate) fn get_format_changes(
     calculate_format_edits(&contents)
         .iter()
         .map(|edit| TextEdit {
-            contents: edit.new_text.clone(),
-            span: Range::from_span(encoding, &contents, &edit.span),
+            new_text: edit.new_text.clone(),
+            range: Range::from_span(encoding, &contents, &edit.span),
         })
         .collect()
 }
