@@ -36,7 +36,32 @@ operation Foo() : Unit {{
 }
 
 #[test]
-fn correct_indentation() {
+fn preserve_string_trailing_spaces() {
+    let extra_spaces = "    ";
+    let input = format!(
+        "operation Foo() : Unit {{
+    let x = \"Hello{extra_spaces}
+    World\";
+}}
+"
+    );
+
+    assert!(super::calculate_format_edits(input.as_str()).is_empty());
+}
+
+#[test]
+fn preserve_string_indentation() {
+    let input = r#"operation Foo() : Unit {
+    let x = "Hello
+                World";
+}
+"#;
+
+    assert!(super::calculate_format_edits(input).is_empty());
+}
+
+#[test]
+fn formatting_corrects_indentation() {
     check(
         r#"
     /// First
@@ -76,7 +101,7 @@ fn correct_indentation() {
 }
 
 #[test]
-fn correct_empty_delimiters() {
+fn remove_spaces_between_empty_delimiters() {
     check(
         indoc! {r#"
         operation Foo() : Unit {
@@ -105,7 +130,7 @@ fn correct_empty_delimiters() {
 }
 
 #[test]
-fn test_sample() {
+fn sample_has_no_edits() {
     let input = indoc! {r#"
         /// # Sample
         /// Joint Measurement
