@@ -10,7 +10,7 @@ use qsc_ast::{
 };
 
 use crate::{
-    lints::ast::{DivisionByZero, DoubleParens},
+    lints::ast::{DivisionByZero, DoubleParens, RedundantSemicolons},
     Lint,
 };
 
@@ -60,7 +60,9 @@ impl CombinedAstLints {
 
     fn check_ty(&self, _ty: &Ty) {}
 
-    fn check_block(&self, _block: &Block) {}
+    fn check_block(&mut self, block: &Block) {
+        RedundantSemicolons::check_block(block, &mut self.buffer);
+    }
 
     fn check_stmt(&self, _stmt: &Stmt) {}
 
