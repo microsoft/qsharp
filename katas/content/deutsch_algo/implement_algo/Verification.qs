@@ -12,8 +12,8 @@ namespace Kata.Verification {
             let actual = Kata.DeutschAlgorithm(oracle);
             if actual != expected {
                 Message("Incorrect.");
-                let actualStr = ConstantOrBalanced(actual);
-                let expectedStr = ConstantOrBalanced(expected);
+                let actualStr = ConstantOrVariable(actual);
+                let expectedStr = ConstantOrVariable(expected);
                 Message($"{name} identified as {actualStr} but it is {expectedStr}.");
                 return false;
             }
@@ -23,8 +23,8 @@ namespace Kata.Verification {
         true
     }
 
-    function ConstantOrBalanced (value : Bool) : String {
-        return value ? "constant" | "balanced";
+    function ConstantOrVariable (value : Bool) : String {
+        return value ? "constant" | "variable";
     }
 
     operation PhaseOracle_OneMinusX(x : Qubit) : Unit is Adj + Ctl {
