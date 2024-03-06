@@ -2,10 +2,13 @@
 // Licensed under the MIT License.
 
 use qsc_data_structures::span::Span;
-use qsc_frontend::lex::{
-    concrete::{self, ConcreteToken, ConcreteTokenKind},
-    cooked::{self, TokenKind},
-    Delim,
+use qsc_frontend::{
+    keyword::Keyword,
+    lex::{
+        concrete::{self, ConcreteToken, ConcreteTokenKind},
+        cooked::TokenKind,
+        Delim,
+    },
 };
 
 #[cfg(test)]
@@ -170,6 +173,7 @@ fn apply_rules(
             | (_, Keyword(Keyword::Function))
             | (_, Keyword(Keyword::Newtype))
             | (_, Keyword(Keyword::Namespace))
+            | (_, Keyword(Keyword::Open))
             | (_, At) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
@@ -242,6 +246,15 @@ fn is_bin_op(cooked: &TokenKind) -> bool {
             | TokenKind::RArrow
             | TokenKind::WSlash
             | TokenKind::WSlashEq
+            | TokenKind::Keyword(Keyword::And)
+            | TokenKind::Keyword(Keyword::Or)
+            // Technically the rest are not binary ops, but has the same spacing as one
+            | TokenKind::Keyword(Keyword::Not)
+            | TokenKind::Keyword(Keyword::As)
+            | TokenKind::Keyword(Keyword::In)
+            | TokenKind::Keyword(Keyword::Is)
+            | TokenKind::Keyword(Keyword::AdjointUpper)
+            | TokenKind::Keyword(Keyword::ControlledUpper)
     )
 }
 
@@ -260,19 +273,17 @@ fn is_suffix(cooked: &TokenKind) -> bool {
     matches!(cooked, TokenKind::Bang | TokenKind::Comma)
 }
 
-fn is_value_token_left(cooked: &TokenKind) -> bool {
+fn is_keyword_value(keyword: &Keyword) -> bool {
+    use Keyword::*;
     matches!(
-        cooked,
-        TokenKind::BigInt(_)
-            | TokenKind::Float
-            | TokenKind::Ident
-            | TokenKind::Int(_)
-            | TokenKind::String(_)
-            | TokenKind::Close(_)
+        keyword,
+        True | False | Zero | One | PauliI | PauliX | PauliY | PauliZ | Underscore
+        // Adj and Ctl are not really values, but have the same spacing as values
+        | Adj | Ctl
     )
 }
 
-fn is_value_token_right(cooked: &TokenKind) -> bool {
+fn is_value_lit(cooked: &TokenKind) -> bool {
     matches!(
         cooked,
         TokenKind::BigInt(_)
@@ -280,8 +291,25 @@ fn is_value_token_right(cooked: &TokenKind) -> bool {
             | TokenKind::Ident
             | TokenKind::Int(_)
             | TokenKind::String(_)
-            | TokenKind::Open(_)
     )
+}
+
+fn is_value_token_left(cooked: &TokenKind) -> bool {
+    match cooked {
+        _ if is_value_lit(cooked) => true,
+        TokenKind::Keyword(keyword) if is_keyword_value(keyword) => true,
+        TokenKind::Close(_) => true, // a closed delim represents a value on the left
+        _ => false,
+    }
+}
+
+fn is_value_token_right(cooked: &TokenKind) -> bool {
+    match cooked {
+        _ if is_value_lit(cooked) => true,
+        TokenKind::Keyword(keyword) if is_keyword_value(keyword) => true,
+        TokenKind::Open(_) => true, // an open delim represents a value on the right
+        _ => false,
+    }
 }
 
 fn effect_no_space(
