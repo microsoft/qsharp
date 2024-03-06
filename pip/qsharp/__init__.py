@@ -10,6 +10,8 @@ from ._qsharp import (
     set_quantum_seed,
     set_classical_seed,
     dump_machine,
+    StateDump,
+    ShotResult,
 )
 
 from ._native import Result, Pauli, QSharpError, TargetProfile, StateDumpData
@@ -38,5 +40,6 @@ __all__ = [
     "Pauli",
     "QSharpError",
     "TargetProfile",
-    "StateDumpData",
+    "StateDump",
+    "ShotResult",
 ]
