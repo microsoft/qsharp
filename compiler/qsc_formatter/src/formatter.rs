@@ -4,7 +4,7 @@
 use qsc_data_structures::span::Span;
 use qsc_frontend::lex::{
     concrete::{self, ConcreteToken, ConcreteTokenKind},
-    cooked::TokenKind,
+    cooked::{self, TokenKind},
     Delim,
 };
 
@@ -136,10 +136,6 @@ fn apply_rules(
     use ConcreteTokenKind::*;
     use TokenKind::*;
     match (&left.kind, &right.kind) {
-        (Syntax(Open(l)), Syntax(Close(r))) if l == r => {
-            // close empty delimiter blocks, i.e. (), [], {}
-            effect_no_space(left, whitespace, right, &mut edits);
-        }
         (Comment | Syntax(DocComment), _) => {
             // remove whitespace at the ends of comments
             effect_trim_comment(left, &mut edits, code);
@@ -150,44 +146,142 @@ fn apply_rules(
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
         }
-        (Syntax(Semi), _) => {
-            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
-        }
-        (_, Syntax(Close(Delim::Brace)))
-        | (_, Syntax(Keyword(Keyword::Operation)))
-        | (_, Syntax(Keyword(Keyword::Function)))
-        | (_, Syntax(Keyword(Keyword::Newtype)))
-        | (_, Syntax(Keyword(Keyword::Namespace)))
-        | (Syntax(Open(Delim::Brace)), _) => {
-            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
-        }
-        (Syntax(Close(Delim::Brace)), Syntax(Semi))
-        | (Syntax(Close(Delim::Brace)), Syntax(Comma)) => {
-            // remove any space between a close brace and a semicolon or comma
-            effect_no_space(left, whitespace, right, &mut edits);
-        }
-        (Syntax(Close(Delim::Brace)), _) => {
-            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
-        }
         (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
-            (Ident, Ident) | (Keyword(_), Ident) // single spaces around identifiers
-            | (_, Colon) | (Colon, _) // single spaces around type-annotating colons
-            | (Comma, _) // single space after a comma
-            => {
+            (Semi, _) => {
+                effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+            }
+            (_, Semi) => {
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (Open(Delim::Brace), Close(Delim::Brace)) => {
+                // close empty brace blocks, i.e. {}
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (At, Ident) => {
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (Keyword(Keyword::Internal), _) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (Ident, Open(Delim::Paren)) // no space between callable name and argument tuple, i.e. foo()
-            | (Ident, Open(Delim::Bracket)) // no space between array name and brackets, i.e. foo[2]
-            | (Ident, Comma) // no space between identifier and following comma in a sequence
-            | (Open(_), _) // no space after an open delimiter
-            | (_, Close(_)) => { // no space before a close delimiter
+            (Open(Delim::Brace), _)
+            | (_, Close(Delim::Brace))
+            | (_, Keyword(Keyword::Internal))
+            | (_, Keyword(Keyword::Operation))
+            | (_, Keyword(Keyword::Function))
+            | (_, Keyword(Keyword::Newtype))
+            | (_, Keyword(Keyword::Namespace))
+            | (_, At) => {
+                effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+            }
+            (Open(Delim::Bracket | Delim::Paren), _)
+            | (_, Close(Delim::Bracket | Delim::Paren)) => {
                 effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (_, Open(Delim::Bracket | Delim::Paren)) => {
+                if is_value_token_left(cooked_left) {
+                    // i.e. foo() or { foo }[3]
+                    effect_no_space(left, whitespace, right, &mut edits);
+                } else {
+                    // i.e. let x = (1, 2, 3);
+                    effect_single_space(left, whitespace, right, &mut edits);
+                }
+            }
+            (_, TokenKind::DotDotDot) => {
+                if is_value_token_left(cooked_left) {
+                    effect_no_space(left, whitespace, right, &mut edits);
+                } else {
+                    effect_single_space(left, whitespace, right, &mut edits);
+                }
+            }
+            (_, _) if is_value_token_right(cooked_right) => {
+                if is_prefix_with_space(cooked_left)
+                    || is_prefix_without_space(cooked_left)
+                    || matches!(cooked_left, TokenKind::DotDotDot)
+                {
+                    effect_no_space(left, whitespace, right, &mut edits);
+                } else {
+                    effect_single_space(left, whitespace, right, &mut edits);
+                }
+            }
+            (_, _) if is_suffix(cooked_right) => {
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (_, _) if is_prefix_with_space(cooked_right) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
+            (_, _) if is_prefix_without_space(cooked_right) => {
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (_, _) if is_bin_op(cooked_right) => {
+                effect_single_space(left, whitespace, right, &mut edits);
             }
             _ => {}
         },
         _ => {}
     }
     edits
+}
+
+fn is_bin_op(cooked: &TokenKind) -> bool {
+    matches!(
+        cooked,
+        TokenKind::Bar
+            | TokenKind::BinOpEq(_)
+            | TokenKind::ClosedBinOp(_)
+            | TokenKind::Colon
+            | TokenKind::Eq
+            | TokenKind::EqEq
+            | TokenKind::FatArrow
+            | TokenKind::Gt
+            | TokenKind::Gte
+            | TokenKind::LArrow
+            | TokenKind::Lt
+            | TokenKind::Lte
+            | TokenKind::Ne
+            | TokenKind::Question
+            | TokenKind::RArrow
+            | TokenKind::WSlash
+            | TokenKind::WSlashEq
+    )
+}
+
+fn is_prefix_with_space(cooked: &TokenKind) -> bool {
+    matches!(cooked, TokenKind::AposIdent | TokenKind::TildeTildeTilde)
+}
+
+fn is_prefix_without_space(cooked: &TokenKind) -> bool {
+    matches!(
+        cooked,
+        TokenKind::ColonColon | TokenKind::Dot | TokenKind::DotDot
+    )
+}
+
+fn is_suffix(cooked: &TokenKind) -> bool {
+    matches!(cooked, TokenKind::Bang | TokenKind::Comma)
+}
+
+fn is_value_token_left(cooked: &TokenKind) -> bool {
+    matches!(
+        cooked,
+        TokenKind::BigInt(_)
+            | TokenKind::Float
+            | TokenKind::Ident
+            | TokenKind::Int(_)
+            | TokenKind::String(_)
+            | TokenKind::Close(_)
+    )
+}
+
+fn is_value_token_right(cooked: &TokenKind) -> bool {
+    matches!(
+        cooked,
+        TokenKind::BigInt(_)
+            | TokenKind::Float
+            | TokenKind::Ident
+            | TokenKind::Int(_)
+            | TokenKind::String(_)
+            | TokenKind::Open(_)
+    )
 }
 
 fn effect_no_space(
