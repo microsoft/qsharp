@@ -163,28 +163,11 @@ $$e^{a + bi} = e^a \cdot e^{bi}$$
 
 Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$, we can use this to find complex powers of any positive real number.
 
-### Exercise 7: Complex exponents
+@[exercise]({ "id": "complex_arithmetic__complex_exponents_exercise", "title": "Complex Exponents", "path": "./complex_exponents/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
-**Input:** A complex number $x = a + bi$, represented as a tuple `(a, b)`.
+@[exercise]({ "id": "complex_arithmetic__complex_powers_real_exercise", "title": "Complex powers of real numbers", "path": "./complex_powers_real/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
-"**Goal:** Return the complex number $e^x = e^{a + bi} = g + hi$, represented as a tuple `(g, h)`.
-
-If you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-7-complex-exponents).
-
-### Exercise 8: Complex powers of real numbers
-
-**Inputs:**
-
-1. A non-negative real number $r$.
-2. A complex number $x = a + bi$, represented as a tuple `(a, b)`.
-
-**Goal:** Return the complex number $r^x = r^{a + bi} = g + hi$, represented as a tuple `(g, h)`.
-
-**Hint:** You can use the fact that $r = e^{\ln r}$ to convert exponent bases. Remember though, $\ln r$ is only defined for positive numbers - make sure to check for $r = 0$ separately!
-
-If you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-8-complex-powers-of-real-numbers).
-
-## Polar coordinates
+@[section]({ "id": "complex_arithmetic__polar_coordinates", "title": "Polar Coordinates" })
 
 Consider the expression  $e^{i\theta} = \cos\theta + i\sin\theta$. Notice that if we map this number onto the complex plane, it will land on a **unit circle** around $0 + 0i$. This means that its modulus is always $1$. You can also verify this algebraically: $\cos^2\theta + \sin^2\theta = 1$.
 
