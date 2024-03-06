@@ -6,7 +6,7 @@ Let's substitute this expression in the expression for the oracle effect on the 
 
 $$U_f |x\rangle = (-1)^{f(x)} |x\rangle = (-1)^{\bigoplus_{k=0}^{N-1} x_k} |x\rangle$$
 
-Since $(-1)^2 = 1$, we can replace sum modulo 2 with a regular sum in the exponent. Then we'll be able to rewrite it as a product of individual exponents for each bit:
+Since $(-1)^2 = 1$, we can replace sum modulo $2$ with a regular sum in the exponent. Then we'll be able to rewrite it as a product of individual exponents for each bit:
 
 $$U_f |x\rangle = (-1)^{\sum_{k=0}^{N-1} x_k} |x\rangle = \prod_{k=0}^{N-1} {(-1)^{x_k}} |x\rangle$$
 

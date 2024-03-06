@@ -9,6 +9,6 @@ We cannot return `false` as soon as we encounter a `One` result, though, since w
 Instead, we'll update the mutable variable that stores our result and continue through the rest of the loop.
 
 @[solution]({
-    "id": "deutsch_jozsa__implement_algo_solution",
+    "id": "deutsch_jozsa__implement_dj_solution",
     "codePath": "./Solution.qs"
 })

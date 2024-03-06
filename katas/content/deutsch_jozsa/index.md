@@ -1,4 +1,4 @@
-# Deutsch-Jozsa Algorithm
+# Deutsch-Jozsa and Bernstein-Vazirani Algorithms
 
 @[section]({
     "id": "deutsch_jozsa__overview",
@@ -13,6 +13,7 @@ This kata introduces you to Deutsch-Jozsa algorithm - one of the most famous alg
 - Multi-qubit phase oracles (for a more detailed introduction to phase oracles, see Oracles kata)
 - Deutsch-Jozsa algorithm
 - Implementing oracles and end-to-end Deutsch-Jozsa algorithm in Q#
+- Bernstein-Vazirani algorithm and the problem solved by it
 
 **What you should know to start working on this kata:**
 
@@ -209,9 +210,9 @@ In the end the algorithm is very straightforward:
 Note that this algorithm requires only $1$ oracle call, and always produces the correct result!
 
 @[exercise]({
-    "id": "deutsch_jozsa__implement_algo",
+    "id": "deutsch_jozsa__implement_dj",
     "title": "Implement Deutsch-Jozsa Algorithm",
-    "path": "./implement_algo/",
+    "path": "./implement_dj/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
@@ -229,11 +230,97 @@ The last demo in this kata shows you how to combine the oracles you've seen so f
 
 
 @[section]({
+    "id": "deutsch_jozsa__bernstein-vazirani",
+    "title": "Bernstein-Vazirani Algorithm"
+})
+
+To wrap up our discussion in this kata, let's take a look at a problem solved using a similar approach - the Bernstein-Vazirani algorithm.
+In this problem, you are also given an oracle implementing an $N$-bit function $f(x): \\{0, 1\\}^N \to \\{0, 1\\}$.
+However, this time the function is guaranteed to be a *scalar product function*, that is, there exists an $N$-bit string $s$
+that allows the following representation ($\cdot$ is bitwise inner product of integers modulo $2$):
+
+$$f(x) = x \cdot s = \sum_{k=0}^{N-1} x_k s_k \bmod 2$$
+
+The task is to recover the hidden bit string $s$.
+
+**Examples**
+
+- $f(x) \equiv 0$ is an example of such a function with $s = 0, \dots, 0$.
+- $f(x) = 1 \text{ if x has odd number of 1s, and } 0 \text{ otherwise }$ is another example of such a function, with $s = 1, \dots, 1$.
+
+If we solve this problem classically, how many calls to the given function will we need? 
+We'd need to use one query to recover each bit of $s$ (the query for $k$-th bit can be a bit string with $1$ in the $k$-th bit and zeros in all other positions), for a total of $N$ queries.
+
+What about the quantum scenario?
+It turns out that the algorithm that allows us to solve this problem looks just like Deutsch-Jozsa algorithm, 
+except for the way we interpret the measurement results on the last step. To see this, we'll need to take another look 
+at the math involved in applying Hadamard gates to multiple qubits.
+
+### Apply Hadamard transform to each qubit: a different view
+
+When we apply an $H$ gate to a single qubit in the basis state $\ket{x}$, we can write the result as the following sum:
+
+$$H\ket{x} = \frac1{\sqrt2} (\ket{0} + (-1)^{x} \ket{1}) = \frac1{\sqrt2} \sum_{z \in {0, 1}} (-1)^{x \cdot z} \ket{z}$$
+
+If we use this representation to spell out the result of applying an $H$ gate to each qubit of an $N$-qubit basis state 
+$\ket{x} = \ket{x_0}\ket{x_1} \dots \ket{x_{N-1}}$, we'll get:
+
+$$H\ket{x} = \frac1{\sqrt{2^N}} \sum_{z_k \in {0, 1}} (-1)^{x_0z_0 + \dots + x_{N-1}z_{N-1}} \ket{z_0}\ket{z_1} \dots \ket{z_{N-1}} =$$
+
+$$= \frac1{\sqrt{2^N}} \sum_{z = 0}^{2^N-1} (-1)^{x \cdot z} \ket{z}$$
+
+With this in mind, let's revisit the algorithm and see how we can write the exact quantum state after it.
+
+### Bernstein-Vazirani algorithm
+
+Bernstein-Vazirani algorithm follows the same outline as Deutsch-Jozsa algorithm:
+
+1. Apply the $H$ gate to each qubit.
+2. Apply the oracle.
+3. Apply the $H$ gate to each qubit again.
+4. Measure all qubits.
+
+We know that after the second step the qubits end up in the following state:
+
+$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)} |x\rangle$$
+
+Now, once we apply the Hadamard gates to each qubit, the system state becomes:
+
+$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} \sum_{z=0}^{2^N-1} (-1)^{f(x) + x \cdot z} |z\rangle$$
+
+> In Deutsch-Jozsa algorithm, we looked at the amplitude of the $\ket{0}$ state in this expression, which was 
+> $\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x)}$.
+
+Now, let's take a look at the amplitude of the $\ket{s}$ state - the state that encodes the hidden bit string we're looking for.
+This amplitude is 
+
+$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} (-1)^{f(x) + x \cdot s}$$
+
+Since $f(x) = x \cdot s$, for all values of $x$ $f(x) + x \cdot s = 2 x \cdot s$, and $(-1)^{f(x) + x \cdot s} = 1$.
+Overall the amplitude of $\ket{s}$ is 
+
+$$\frac{1}{\sqrt{2^N}} \sum_{x=0}^{2^N-1} 1 = \frac{1}{\sqrt{2^N}} 2^N = 1$$
+
+This means that our state after applying the Hadamard gates is just $\ket{s}$, and measuring it will give us the bit string $s$!
+And, same as Deutsch-Jozsa algorithm, Bernstein-Vazirani algorithm takes only one oracle call.
+
+@[exercise]({
+    "id": "deutsch_jozsa__implement_bv",
+    "title": "Implement Bernstein-Vazirani Algorithm",
+    "path": "./implement_bv/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+
+@[section]({
     "id": "deutsch_jozsa__conclusion",
     "title": "Conclusion"
 })
 
-Congratulations! In this kata you have learned Deutsch-Jozsa algorithm.
+Congratulations! In this kata you have learned Deutsch-Jozsa and Bernstein-Vazirani algorithms.
 
 - Deutsch-Jozsa algorithm is the simplest example of a quantum algorithm that is exponentially faster than any possible deterministic algorithm for the same problem.
-- Quantum oracles don't allow you to evaluate the function on all inputs at once! Instead, Deutsch-Jozsa algorithm finds a clever way to aggregate information about all function values into a single bit that indicates whether they are all the same or not.
+- Bernstein-Vazirani algorithm is a similar algorithm that extracts information about the hidden bit string of the given function that is known to be a scalar product function. It offers a linear speedup compared to a classical algorithm for the same problem.
+- Quantum oracles don't allow you to evaluate the function on all inputs at once! Instead, Deutsch-Jozsa algorithm finds a clever way to aggregate information about all function values into a few bits that indicate whether they are all the same or not. Bernstein-Vazirani algorithm uses a similar approach to encode the information about the hidden bit string into the state of the qubits at the end of the algorithm.
