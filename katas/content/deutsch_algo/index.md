@@ -135,6 +135,25 @@ Overll, the algorithm is very straightforward:
 
 Note that this algorithm requires only **1** oracle call, and always produces the correct result (is deterministic).
 
+@[section]({
+    "id": "deutsch_algo__visualization",
+    "title": "Visualizing Deutsch Algorithm"
+})
+
+We can follow the steps of the algorithm for the constant and the balanced scenarios using a neat visualization. Since Deutsch algorithm deals only with states with real amplitudes, we can map all states on the unit circle, and follow the state evolution through the steps.
+
+1-2. Start with a qubit in the $|0\rangle$ state and apply the $H$ gate to the qubit.
+   @[svg]({"path": "./media/Plus_state.svg"})
+
+3. Apply the oracle.  
+   Here, the difference between the two scenarios becomes noticeable. In the constant scenario, $|0\rangle$ and $|1\rangle$ states get the same phase (either $1$ or $-1$), so the state remains the same or acquires a global phase of $-1$, which is physically the same state. In the variable scenario, zero and one states get different phases, so the state changes!
+   @[svg]({"path": "./media/Apply_oracle.svg"})
+
+4. Apply the $H$ gate to the qubit again.
+   Now, we get the $|0\rangle$ state for both constant scenarios and the $|1\rangle$ state for both variable scenarios!
+   @[svg]({"path": "./media/Apply_hadamard.svg"})
+
+
 @[exercise]({
     "id": "deutsch_algo__implement_algo",
     "title": "Implement Deutsch Algorithm",
