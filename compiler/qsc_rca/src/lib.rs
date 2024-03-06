@@ -659,39 +659,36 @@ bitflags! {
         const UseOfDynamicString = 1 << 7;
         /// Use of a dynamic array.
         const UseOfDynamicArray = 1 << 8;
-        /// Use of a dynamic tuple.
-        // TODO (cesarzc): remove.
-        const UseOfDynamicTuple = 1 << 9;
         /// Use of a dynamic UDT.
-        const UseOfDynamicUdt = 1 << 10;
+        const UseOfDynamicUdt = 1 << 9;
         /// Use of a dynamic arrow function.
-        const UseOfDynamicArrowFunction = 1 << 11;
+        const UseOfDynamicArrowFunction = 1 << 10;
         /// Use of a dynamic arrow operation.
-        const UseOfDynamicArrowOperation = 1 << 12;
+        const UseOfDynamicArrowOperation = 1 << 11;
         /// Use of a dynamic generic.
-        const UseOfDynamicGeneric = 1 << 13;
+        const UseOfDynamicGeneric = 1 << 12;
         /// A function with cycles used with a dynamic argument.
-        const CyclicFunctionUsesDynamicArg = 1 << 14;
+        const CyclicFunctionUsesDynamicArg = 1 << 13;
         /// An operation specialization with cycles is used.
-        const CyclicOperation = 1 << 15;
+        const CyclicOperation = 1 << 14;
         /// A callee expression is dynamic.
-        const DynamicCallee = 1 << 16;
+        const DynamicCallee = 1 << 15;
         /// A callee expression could not be resolved to a specific callable.
-        const UnresolvedCallee = 1 << 17;
+        const UnresolvedCallee = 1 << 16;
         /// A UDT constructor was used with a dynamic argument(s).
-        const UdtConstructorUsesDynamicArg = 1 << 18;
+        const UdtConstructorUsesDynamicArg = 1 << 17;
         /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 1 << 19;
+        const ForwardBranchingOnDynamicValue = 1 << 18;
         /// Qubit allocation that happens within a dynamic scope.
-        const DynamicQubitAllocation = 1 << 20;
+        const DynamicQubitAllocation = 1 << 19;
         /// Result allocation that happens within a dynamic scope.
-        const DynamicResultAllocation = 1 << 21;
+        const DynamicResultAllocation = 1 << 20;
         /// Use of a dynamic index to access or update an array.
-        const UseOfDynamicIndex = 1 << 22;
+        const UseOfDynamicIndex = 1 << 21;
+        /// Use of a runtime failure.
+        const FailureWithDynamicExpression = 1 << 22;
         /// Use of a closure.
         const UseOfClosure = 1 << 23;
-        /// Use of a runtime failure.
-        const FailureWithDynamicExpression = 1 << 24;
     }
 }
 
@@ -725,9 +722,6 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArray) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
-        }
-        if self.contains(RuntimeFeatureFlags::UseOfDynamicTuple) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
