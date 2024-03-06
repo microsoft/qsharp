@@ -13,21 +13,26 @@ use qsc_data_structures::language_features::LanguageFeatures;
 #[test]
 fn multiple_lints() {
     check_ast(
-        "let x = ((1 + 2)) / 0;",
+        "let x = ((1 + 2)) / 0;;;;",
         &expect![[r#"
-        [
-            SrcLint {
-                source: "((1 + 2)) / 0",
-                message: "attempt to divide by zero",
-                level: Allow,
-            },
-            SrcLint {
-                source: "((1 + 2))",
-                message: "unnecessary double parentheses",
-                level: Warning,
-            },
-        ]
-    "#]],
+            [
+                SrcLint {
+                    source: ";;;",
+                    message: "redundant semicolons",
+                    level: Warning,
+                },
+                SrcLint {
+                    source: "((1 + 2)) / 0",
+                    message: "attempt to divide by zero",
+                    level: Allow,
+                },
+                SrcLint {
+                    source: "((1 + 2))",
+                    message: "unnecessary parentheses",
+                    level: Warning,
+                },
+            ]
+        "#]],
     );
 }
 
@@ -39,7 +44,7 @@ fn double_parens() {
             [
                 SrcLint {
                     source: "((1 + 2))",
-                    message: "unnecessary double parentheses",
+                    message: "unnecessary parentheses",
                     level: Warning,
                 },
             ]
@@ -60,6 +65,22 @@ fn division_by_zero() {
                 },
             ]
         "#]],
+    );
+}
+
+#[test]
+fn redundant_semicolons() {
+    check_ast(
+        "let x = 2;;;;;",
+        &expect![[r#"
+        [
+            SrcLint {
+                source: ";;;;",
+                message: "redundant semicolons",
+                level: Warning,
+            },
+        ]
+    "#]],
     );
 }
 
