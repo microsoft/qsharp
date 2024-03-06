@@ -4,7 +4,7 @@ Follow the algorithm as outlined in the previous section:
 2. Apply the $H$ gate to the qubit.
 3. Apply the oracle. The syntax for applying the oracle is the same as for applying any other gate or operation.
 4. Apply the $H$ gate to the qubit again.
-5. Measure the qubit: if the measurement result is `Zero`, the function is constant, otherwise it is balanced.
+5. Measure the qubit: if the measurement result is `Zero`, the function is constant, otherwise it is variable.
 Since we need to return `true` if the function is constant, we can just return the result of comparing the measurement result with `Zero`.
 
 @[solution]({

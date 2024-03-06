@@ -333,6 +333,11 @@ test("deutsch_algo kata is valid", async () => {
   await validateKata(kata, true, true, true);
 });
 
+test("deutsch_jozsa kata is valid", async () => {
+  const kata = await getKata("deutsch_jozsa");
+  await validateKata(kata, true, true, true);
+});
+
 test("worker 100 shots", async () => {
   let code = `namespace Test {
         function Answer() : Int {
