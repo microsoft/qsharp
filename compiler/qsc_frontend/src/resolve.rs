@@ -26,6 +26,7 @@ const PRELUDE: &[&str] = &[
     "Microsoft.Quantum.Canon",
     "Microsoft.Quantum.Core",
     "Microsoft.Quantum.Intrinsic",
+    "Microsoft.Quantum.Measurement",
 ];
 
 // All AST Path nodes get mapped
