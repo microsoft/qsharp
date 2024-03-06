@@ -2,10 +2,11 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{derive_callable_input_params, LocalSpecId},
+    common::{derive_callable_input_params, InputParam, LocalSpecId},
     cycle_detection::CycleDetector,
     scaffolding::PackageStoreComputeProperties,
-    ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, ValueKind,
+    ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ParamApplication,
+    RuntimeFeatureFlags, ValueKind,
 };
 use qsc_fir::{
     fir::{
@@ -69,13 +70,13 @@ impl<'a> Analyzer<'a> {
         let application_generator_set = match callable.kind {
             CallableKind::Function => {
                 Self::create_function_specialization_application_generator_set(
-                    input_params.len(),
+                    &input_params,
                     &callable.output,
                 )
             }
             CallableKind::Operation => {
                 Self::create_operation_specialization_application_generator_set(
-                    input_params.len(),
+                    &input_params,
                     &callable.output,
                 )
             }
@@ -117,62 +118,74 @@ impl<'a> Analyzer<'a> {
     }
 
     fn create_function_specialization_application_generator_set(
-        callable_input_params_count: usize,
+        input_params: &Vec<InputParam>,
         output_type: &Ty,
     ) -> ApplicationGeneratorSet {
-        // Set the compute kind of the function for each parameter when it is bound to a dynamic value.
-        let mut using_dynamic_param = Vec::new();
-        for _ in 0..callable_input_params_count {
-            // If any parameter is dynamic, we assume the value of a function with cycles is a a source of dynamism if its
-            // output type is non-unit.
-            let value_kind = if *output_type == Ty::UNIT {
-                ValueKind::Static
-            } else {
-                ValueKind::Dynamic
-            };
+        // Determine each dynamic param application.
+        let mut dynamic_param_applications =
+            Vec::<ParamApplication>::with_capacity(input_params.len());
+        for param in input_params {
+            // If any parameter is dynamic, we assume the output of a function with cycles is also dynamic.
+            let value_kind = ValueKind::new_dynamic_from_type(output_type);
 
-            // Since using cyclic functions with dynamic parameters requires advanced runtime capabilities, we use a runtime
-            // feature for these cases.
-            let quantum_properties = QuantumProperties {
-                runtime_features: RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg,
+            // Since using cyclic functions with dynamic parameters requires advanced runtime capabilities, we use the
+            // corresponding runtime feature.
+            let param_compute_kind = ComputeKind::new_with_runtime_features(
+                RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg,
                 value_kind,
+            );
+
+            // Create a parameter application depending on the parameter type.
+            let param_application = match &param.ty {
+                Ty::Array(_) => ParamApplication::Array(ArrayParamApplication {
+                    static_content_dynamic_size: param_compute_kind,
+                    dynamic_content_static_size: param_compute_kind,
+                    dynamic_content_dynamic_size: param_compute_kind,
+                }),
+                _ => ParamApplication::Element(param_compute_kind),
             };
-            using_dynamic_param.push(ComputeKind::Quantum(quantum_properties));
+            dynamic_param_applications.push(param_application);
         }
 
         ApplicationGeneratorSet {
             // Functions are inherently classically pure.
             inherent: ComputeKind::Classical,
-            dynamic_param_applications: using_dynamic_param,
+            dynamic_param_applications,
         }
     }
 
     fn create_operation_specialization_application_generator_set(
-        callable_input_params_count: usize,
+        input_params: &Vec<InputParam>,
         output_type: &Ty,
     ) -> ApplicationGeneratorSet {
-        // Since operations can allocate and measure qubits freely, we assume its compute kind is quantum, requires all
-        // capabilities (encompassed by the `CyclicOperation` runtime feature) and that their value kind is dynamic.
-        let value_kind = if *output_type == Ty::UNIT {
-            ValueKind::Static
-        } else {
-            ValueKind::Dynamic
-        };
-        let inherent_compute_kind = ComputeKind::Quantum(QuantumProperties {
-            runtime_features: RuntimeFeatureFlags::CyclicOperation,
+        // Since operations can allocate and measure qubits freely, we assume its compute kind is quantum and that their
+        // value kind is dynamic.
+        let value_kind = ValueKind::new_dynamic_from_type(output_type);
+        let inherent_compute_kind = ComputeKind::new_with_runtime_features(
+            RuntimeFeatureFlags::CyclicOperation,
             value_kind,
-        });
+        );
 
-        // The compute kind of a cyclic function when any of its parameters is bound to a dynamic value is the same as its
-        // inherent compute kind.
-        let mut using_dynamic_param = Vec::new();
-        for _ in 0..callable_input_params_count {
-            using_dynamic_param.push(inherent_compute_kind);
+        // The compute kind of a cyclic operation for all dynamic parameter applications is the same as its inherent
+        // compute kind.
+        let mut dynamic_param_applications =
+            Vec::<ParamApplication>::with_capacity(input_params.len());
+        for param in input_params {
+            // Create a parameter application depending on the parameter type.
+            let param_application = match &param.ty {
+                Ty::Array(_) => ParamApplication::Array(ArrayParamApplication {
+                    static_content_dynamic_size: inherent_compute_kind,
+                    dynamic_content_static_size: inherent_compute_kind,
+                    dynamic_content_dynamic_size: inherent_compute_kind,
+                }),
+                _ => ParamApplication::Element(inherent_compute_kind),
+            };
+            dynamic_param_applications.push(param_application);
         }
 
         ApplicationGeneratorSet {
             inherent: inherent_compute_kind,
-            dynamic_param_applications: using_dynamic_param,
+            dynamic_param_applications,
         }
     }
 

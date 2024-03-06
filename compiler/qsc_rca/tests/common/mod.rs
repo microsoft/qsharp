@@ -10,6 +10,7 @@ use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, ComputePropertiesLookup, PackageStoreComputeProperties};
+use std::{fs::File, io::Write};
 
 pub struct CompilationContext {
     pub compiler: Compiler,
@@ -47,6 +48,8 @@ impl CompilationContext {
             self.compute_properties.clone(),
         );
         self.compute_properties = analyzer.analyze_package(package_id);
+        write_fir_store_to_files(&self.fir_store);
+        write_compute_properties_to_files(&self.compute_properties);
     }
 }
 
@@ -158,4 +161,24 @@ fn lower_hir_package_store(
         );
     }
     fir_store
+}
+
+// TODO (cesarzc): for debugging purposes only, remove later.
+pub fn write_fir_store_to_files(store: &PackageStore) {
+    for (id, package) in store {
+        let filename = format!("dbg/fir.package{id}.txt");
+        let mut package_file = File::create(filename).expect("File could be created");
+        let package_string = format!("{package}");
+        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+    }
+}
+
+// TODO (cesarzc): for debugging purposes only, remove later.
+pub fn write_compute_properties_to_files(store: &PackageStoreComputeProperties) {
+    for (id, package) in store.iter() {
+        let filename = format!("dbg/rca.package{id}.txt");
+        let mut package_file = File::create(filename).expect("File could be created");
+        let package_string = format!("{package}");
+        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+    }
 }

@@ -17,13 +17,16 @@ mod cycle_detection;
 mod cyclic_callables;
 mod scaffolding;
 
-use crate::common::{aggregate_compute_kind, aggregate_value_kind, set_indentation};
+use crate::common::set_indentation;
 use bitflags::bitflags;
 use indenter::indented;
 use qsc_data_structures::index_map::{IndexMap, Iter};
-use qsc_fir::fir::{
-    BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
-    StoreStmtId,
+use qsc_fir::{
+    fir::{
+        BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
+        StoreStmtId,
+    },
+    ty::Ty,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use std::{
@@ -263,10 +266,10 @@ impl Display for CallableComputeProperties {
 pub struct ApplicationGeneratorSet {
     /// The inherent compute kind of a program element, which is determined by binding all the parameters it depends on
     /// to static values.
-    pub inherent: ComputeKind,
-    /// Each element in the vector represents the compute kind of a call application when the parameter associated to
+    pub(crate) inherent: ComputeKind,
+    /// Each element in the vector represents the compute kind(s) of a call application when the parameter associated to
     /// the vector index is bound to a dynamic value.
-    pub dynamic_param_applications: Vec<ComputeKind>,
+    pub(crate) dynamic_param_applications: Vec<ParamApplication>,
 }
 
 impl Display for ApplicationGeneratorSet {
@@ -275,15 +278,15 @@ impl Display for ApplicationGeneratorSet {
         write!(indent, "ApplicationsGeneratorSet:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\ninherent: {}", self.inherent)?;
-        write!(indent, "\ndynamic_param_applications:")?;
+        write!(indent, "\nnon_static_param_applications:")?;
         if self.dynamic_param_applications.is_empty() {
             write!(indent, " <empty>")?;
         } else {
             indent = set_indentation(indent, 2);
-            for (param_index, param_compute_kind) in
+            for (param_index, param_application) in
                 self.dynamic_param_applications.iter().enumerate()
             {
-                write!(indent, "\n[{param_index}]: {param_compute_kind}")?;
+                write!(indent, "\n[{param_index}]: {param_application}")?;
             }
         }
         Ok(())
@@ -294,19 +297,92 @@ impl ApplicationGeneratorSet {
     #[must_use]
     pub fn derive_application_compute_kind(
         &self,
-        input_params_dynamism: &Vec<bool>,
+        args_value_kinds: &Vec<ValueKind>,
     ) -> ComputeKind {
-        assert!(self.dynamic_param_applications.len() == input_params_dynamism.len());
+        assert!(self.dynamic_param_applications.len() == args_value_kinds.len());
         let mut compute_kind = self.inherent;
-        for (is_dynamic, dynamic_param_application) in input_params_dynamism
+        for (arg_value_kind, param_application) in args_value_kinds
             .iter()
             .zip(self.dynamic_param_applications.iter())
         {
-            if *is_dynamic {
-                compute_kind = aggregate_compute_kind(compute_kind, *dynamic_param_application);
+            if let ValueKind::Element(RuntimeKind::Dynamic) = arg_value_kind {
+                let ParamApplication::Element(param_compute_kind) = param_application else {
+                    panic!("parameter application was expected to be the element variant");
+                };
+
+                compute_kind = compute_kind.aggregate(*param_compute_kind);
+            } else if let ValueKind::Array(content_runtime_value, size_runtime_value) =
+                arg_value_kind
+            {
+                let ParamApplication::Array(array_param_application) = param_application else {
+                    panic!("parameter application was expected to be the array variant");
+                };
+
+                let param_compute_kind = match (content_runtime_value, size_runtime_value) {
+                    // When both the content and the size are static, we can treat it as aggregating a classical element.
+                    (RuntimeKind::Static, RuntimeKind::Static) => ComputeKind::Classical,
+                    (RuntimeKind::Dynamic, RuntimeKind::Static) => {
+                        array_param_application.dynamic_content_static_size
+                    }
+                    (RuntimeKind::Static, RuntimeKind::Dynamic) => {
+                        array_param_application.static_content_dynamic_size
+                    }
+                    (RuntimeKind::Dynamic, RuntimeKind::Dynamic) => {
+                        array_param_application.dynamic_content_dynamic_size
+                    }
+                };
+
+                compute_kind = compute_kind.aggregate(param_compute_kind);
             }
         }
         compute_kind
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ParamApplication {
+    Element(ComputeKind),
+    Array(ArrayParamApplication),
+}
+
+impl Display for ParamApplication {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match &self {
+            Self::Element(compute_kind) => write!(f, "Element: {compute_kind}")?,
+            Self::Array(array_param_application) => write!(f, "Array: {array_param_application}")?,
+        };
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ArrayParamApplication {
+    pub static_content_dynamic_size: ComputeKind,
+    pub dynamic_content_static_size: ComputeKind,
+    pub dynamic_content_dynamic_size: ComputeKind,
+}
+
+impl Display for ArrayParamApplication {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "ArrayParamApplication:",)?;
+        indent = set_indentation(indent, 1);
+        write!(
+            indent,
+            "\nstatic_content_dynamic_size: {}",
+            self.static_content_dynamic_size
+        )?;
+        write!(
+            indent,
+            "\ndynamic_content_static_size: {}",
+            self.dynamic_content_static_size
+        )?;
+        write!(
+            indent,
+            "\ndynamic_content_dynamic_size: {}",
+            self.dynamic_content_dynamic_size
+        )?;
+        Ok(())
     }
 }
 
@@ -327,29 +403,103 @@ impl Display for ComputeKind {
 }
 
 impl ComputeKind {
-    pub fn aggregate_value_kind(&mut self, value_kind: ValueKind) {
-        let Self::Quantum(quantum_properties) = self else {
-            panic!("only quantum compute kinds can aggregate value kinds");
-        };
-
-        quantum_properties.value_kind =
-            aggregate_value_kind(quantum_properties.value_kind, value_kind);
+    pub(crate) fn new_with_runtime_features(
+        runtime_features: RuntimeFeatureFlags,
+        value_kind: ValueKind,
+    ) -> Self {
+        Self::Quantum(QuantumProperties {
+            runtime_features,
+            value_kind,
+        })
     }
 
-    #[must_use]
-    pub fn is_value_dynamic(&self) -> bool {
+    pub(crate) fn aggregate(self, value: Self) -> Self {
+        let ComputeKind::Quantum(value_quantum_properties) = value else {
+            // A classical compute kind has nothing to aggregate so just return self with no changes.
+            return self;
+        };
+
+        // Determine the aggregated runtime features.
+        let runtime_features = match self {
+            Self::Classical => value_quantum_properties.runtime_features,
+            Self::Quantum(ref self_quantum_properties) => {
+                self_quantum_properties.runtime_features | value_quantum_properties.runtime_features
+            }
+        };
+
+        // Determine the aggregated value kind.
+        let value_kind = match self {
+            Self::Classical => value_quantum_properties.value_kind,
+            Self::Quantum(self_quantum_properties) => self_quantum_properties
+                .value_kind
+                .aggregate(value_quantum_properties.value_kind),
+        };
+
+        // Return the aggregated compute kind.
+        ComputeKind::Quantum(QuantumProperties {
+            runtime_features,
+            value_kind,
+        })
+    }
+
+    pub(crate) fn aggregate_runtime_features(
+        self,
+        value: ComputeKind,
+        default_value_kind: ValueKind,
+    ) -> Self {
+        let Self::Quantum(value_quantum_properties) = value else {
+            // A classical compute kind has nothing to aggregate so just return the self with no changes.
+            return self;
+        };
+
+        // Determine the aggregated runtime features.
+        let runtime_features = match self {
+            Self::Classical => value_quantum_properties.runtime_features,
+            Self::Quantum(ref self_quantum_properties) => {
+                self_quantum_properties.runtime_features | value_quantum_properties.runtime_features
+            }
+        };
+
+        // Use the value kind equivalent from self.
+        let value_kind = match self {
+            // If self was classical, the aggregated value kind is all static.
+            Self::Classical => default_value_kind,
+            Self::Quantum(self_quantum_properties) => self_quantum_properties.value_kind,
+        };
+
+        // Return the aggregated compute kind.
+        ComputeKind::Quantum(QuantumProperties {
+            runtime_features,
+            value_kind,
+        })
+    }
+
+    pub(crate) fn aggregate_value_kind(&mut self, value: ValueKind) {
+        let Self::Quantum(quantum_properties) = self else {
+            panic!("a value kind can only be aggregated to a compute kind of the quantum variant");
+        };
+
+        quantum_properties.value_kind = quantum_properties.value_kind.aggregate(value);
+    }
+
+    pub(crate) fn is_dynamic(&self) -> bool {
         match self {
             Self::Classical => false,
             Self::Quantum(quantum_properties) => match quantum_properties.value_kind {
-                ValueKind::Static => false,
-                ValueKind::Dynamic => true,
+                ValueKind::Array(content_runtime_value, size_runtime_value) => {
+                    matches!(content_runtime_value, RuntimeKind::Dynamic)
+                        || matches!(size_runtime_value, RuntimeKind::Dynamic)
+                }
+                ValueKind::Element(runtime_value) => matches!(runtime_value, RuntimeKind::Dynamic),
             },
         }
     }
 
-    #[must_use]
-    pub fn with_runtime_features(runtime_features: RuntimeFeatureFlags) -> Self {
-        Self::Quantum(QuantumProperties::with_runtime_features(runtime_features))
+    pub(crate) fn value_kind_or_default(&self, default: ValueKind) -> ValueKind {
+        match self {
+            Self::Classical => default,
+            Self::Quantum(quantum_properties) => quantum_properties.value_kind,
+        }
     }
 }
 
@@ -359,16 +509,7 @@ pub struct QuantumProperties {
     /// The runtime features used by the program element.
     pub runtime_features: RuntimeFeatureFlags,
     /// The kind of value of the program element.
-    pub value_kind: ValueKind,
-}
-
-impl Default for QuantumProperties {
-    fn default() -> Self {
-        Self {
-            runtime_features: RuntimeFeatureFlags::empty(),
-            value_kind: ValueKind::Static,
-        }
-    }
+    pub(crate) value_kind: ValueKind,
 }
 
 impl Display for QuantumProperties {
@@ -382,32 +523,116 @@ impl Display for QuantumProperties {
     }
 }
 
-impl QuantumProperties {
-    fn with_runtime_features(runtime_features: RuntimeFeatureFlags) -> Self {
-        Self {
-            runtime_features,
-            value_kind: ValueKind::Static,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum ValueKind {
-    Static,
-    Dynamic,
+    /// The first runtime kind corresponds to the content of the array while the second corresponds to the size.
+    Array(RuntimeKind, RuntimeKind),
+    /// Runtime kind correspondig to a single element.
+    Element(RuntimeKind),
 }
 
 impl Display for ValueKind {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
-            ValueKind::Dynamic => {
-                write!(f, "Dynamic")?;
+            Self::Array(content_runtime_value, size_runtime_value) => write!(
+                f,
+                "Array: (Content: {content_runtime_value}, Size: {size_runtime_value})"
+            )?,
+            Self::Element(runtime_value) => write!(f, "Element: {runtime_value}")?,
+        };
+        Ok(())
+    }
+}
+
+impl ValueKind {
+    pub(crate) fn new_dynamic_from_type(ty: &Ty) -> Self {
+        if *ty == Ty::UNIT {
+            // The associated value kind for a unit type is always static.
+            Self::Element(RuntimeKind::Static)
+        } else {
+            match ty {
+                // For a dynamic array, both contents and size are dynamic.
+                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic),
+                // For every other dynamic type, we use the element variant with a dynamic runtime value.
+                _ => ValueKind::Element(RuntimeKind::Dynamic),
             }
-            ValueKind::Static => {
+        }
+    }
+
+    pub(crate) fn new_static_from_type(ty: &Ty) -> Self {
+        match ty {
+            // For a static array, both contents and size are static.
+            Ty::Array(_) => ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static),
+            // For every other static type, we use the element variant with a static runtime value.
+            _ => ValueKind::Element(RuntimeKind::Static),
+        }
+    }
+
+    pub(crate) fn get_array_runtime_kinds(&self) -> (RuntimeKind, RuntimeKind) {
+        match self {
+            Self::Element(_) => panic!("value kind should be of the element variant"),
+            Self::Array(content_runtime_kind, size_runtime_kind) => {
+                (*content_runtime_kind, *size_runtime_kind)
+            }
+        }
+    }
+
+    pub(crate) fn get_element_runtime_kind(&self) -> RuntimeKind {
+        match self {
+            Self::Element(runtime_kind) => *runtime_kind,
+            Self::Array(_, _) => panic!("value kind should be of the element variant"),
+        }
+    }
+
+    pub(crate) fn aggregate(self, value: ValueKind) -> Self {
+        match self {
+            Self::Array(self_content_runtime_value, self_size_runtime_value) => {
+                let Self::Array(other_content_runtime_value, other_size_runtime_value) = value
+                else {
+                    panic!("only value kinds of the same variant can be aggregated");
+                };
+
+                Self::Array(
+                    self_content_runtime_value.aggregate(other_content_runtime_value),
+                    self_size_runtime_value.aggregate(other_size_runtime_value),
+                )
+            }
+            Self::Element(self_runtime_value) => {
+                let Self::Element(other_runtime_value) = value else {
+                    panic!("only value kinds of the same variant can be aggregated");
+                };
+                Self::Element(self_runtime_value.aggregate(other_runtime_value))
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum RuntimeKind {
+    Static,
+    Dynamic,
+}
+
+impl Display for RuntimeKind {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match &self {
+            RuntimeKind::Static => {
                 write!(f, "Static")?;
+            }
+            RuntimeKind::Dynamic => {
+                write!(f, "Dynamic")?;
             }
         };
         Ok(())
+    }
+}
+
+impl RuntimeKind {
+    pub(crate) fn aggregate(self, value: RuntimeKind) -> Self {
+        match value {
+            Self::Static => self,
+            Self::Dynamic => Self::Dynamic,
+        }
     }
 }
 
@@ -435,6 +660,7 @@ bitflags! {
         /// Use of a dynamic array.
         const UseOfDynamicArray = 1 << 8;
         /// Use of a dynamic tuple.
+        // TODO (cesarzc): remove.
         const UseOfDynamicTuple = 1 << 9;
         /// Use of a dynamic UDT.
         const UseOfDynamicUdt = 1 << 10;
@@ -463,7 +689,7 @@ bitflags! {
         /// Use of a dynamic index to access or update an array.
         const UseOfDynamicIndex = 1 << 22;
         /// Use of a closure.
-        const Closure = 1 << 23;
+        const UseOfClosure = 1 << 23;
         /// Use of a runtime failure.
         const FailureWithDynamicExpression = 1 << 24;
     }
@@ -543,7 +769,7 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::Closure) {
+        if self.contains(RuntimeFeatureFlags::UseOfClosure) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::FailureWithDynamicExpression) {
