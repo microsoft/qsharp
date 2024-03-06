@@ -23,7 +23,7 @@ fn multiple_lints() {
             },
             SrcLint {
                 source: "((1 + 2))",
-                message: "unnecesary double parentheses",
+                message: "unnecessary double parentheses",
                 level: Warning,
             },
         ]
@@ -39,7 +39,7 @@ fn double_parens() {
             [
                 SrcLint {
                     source: "((1 + 2))",
-                    message: "unnecesary double parentheses",
+                    message: "unnecessary double parentheses",
                     level: Warning,
                 },
             ]
