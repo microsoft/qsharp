@@ -12,6 +12,8 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::convert::From;
 
+use super::PartitioningOverhead;
+
 /// Resource counts output from `qir_estimate_counts` program
 #[derive(Default, Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(
@@ -89,5 +91,15 @@ impl Overhead for LogicalResourceCounts {
         } else {
             None
         }
+    }
+}
+
+impl PartitioningOverhead for LogicalResourceCounts {
+    fn has_tgates(&self) -> bool {
+        self.t_count > 0 || self.ccz_count > 0 || self.ccix_count > 0 || self.rotation_count > 0
+    }
+
+    fn has_rotations(&self) -> bool {
+        self.rotation_count > 0
     }
 }

@@ -33,19 +33,23 @@ pub struct Success {
 }
 
 impl Success {
-    pub fn new<L: Overhead + Clone>(
-        logical_resources: LogicalResourceCounts,
+    pub fn new(
         job_params: JobParams,
-        result: PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+        result: PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
     ) -> Self {
         let counts = create_physical_resource_counts(&result);
 
         let formatted_counts: FormattedPhysicalResourceCounts =
-            FormattedPhysicalResourceCounts::new(&result, &logical_resources, &job_params);
+            FormattedPhysicalResourceCounts::new(&result, result.layout_overhead(), &job_params);
 
-        let report_data = Report::new(&logical_resources, &job_params, &result, &formatted_counts);
+        let report_data = Report::new(
+            result.layout_overhead(),
+            &job_params,
+            &result,
+            &formatted_counts,
+        );
 
-        let (logical_qubit, tfactory, error_budget) = result.take();
+        let (logical_qubit, tfactory, error_budget, logical_counts) = result.take();
 
         Self {
             status: "success",
@@ -55,30 +59,29 @@ impl Success {
             logical_qubit: Some(logical_qubit),
             tfactory,
             error_budget: Some(error_budget),
-            logical_counts: logical_resources,
+            logical_counts,
             report_data,
             frontier_entries: Vec::new(),
         }
     }
 
-    pub fn new_from_multiple<L: Overhead + Clone>(
-        logical_resources: LogicalResourceCounts,
+    pub fn new_from_multiple(
         job_params: JobParams,
-        mut results: Vec<PhysicalResourceEstimationResult<Protocol, TFactory, L>>,
+        mut results: Vec<
+            PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
+        >,
     ) -> Self {
         let mut report_data: Option<Report> = None;
 
         let mut frontier_entries: Vec<FrontierEntry> = Vec::new();
 
+        let logical_counts = *results[0].layout_overhead();
+
         // we will pick the shortest runtime result as the first result.
         results.sort_by_key(PhysicalResourceEstimationResult::runtime);
         for result in results {
-            let (frontier_entry, report) = create_frontier_entry(
-                &logical_resources,
-                &job_params,
-                result,
-                report_data.is_none(),
-            );
+            let (frontier_entry, report) =
+                create_frontier_entry(&job_params, result, report_data.is_none());
 
             if report_data.is_none() {
                 report_data = Some(report.expect("error should have report"));
@@ -95,7 +98,7 @@ impl Success {
             logical_qubit: None,
             tfactory: None,
             error_budget: None,
-            logical_counts: logical_resources,
+            logical_counts,
             report_data: report_data.expect("error should have report"), // Here we assume that at least a single solution was found.
             frontier_entries,
         }
@@ -112,20 +115,19 @@ pub struct FrontierEntry {
     pub physical_counts_formatted: FormattedPhysicalResourceCounts,
 }
 
-fn create_frontier_entry<L: Overhead + Clone>(
-    logical_resources: &LogicalResourceCounts,
+fn create_frontier_entry(
     job_params: &JobParams,
-    result: PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+    result: PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
     create_report: bool,
 ) -> (FrontierEntry, Option<Report>) {
     let physical_counts = create_physical_resource_counts(&result);
 
     let physical_counts_formatted: FormattedPhysicalResourceCounts =
-        FormattedPhysicalResourceCounts::new(&result, logical_resources, job_params);
+        FormattedPhysicalResourceCounts::new(&result, result.layout_overhead(), job_params);
 
     let report_data = if create_report {
         Some(Report::new(
-            logical_resources,
+            result.layout_overhead(),
             job_params,
             &result,
             &physical_counts_formatted,
@@ -134,7 +136,7 @@ fn create_frontier_entry<L: Overhead + Clone>(
         None
     };
 
-    let (logical_qubit, tfactory, error_budget) = result.take();
+    let (logical_qubit, tfactory, error_budget, _) = result.take();
 
     (
         FrontierEntry {

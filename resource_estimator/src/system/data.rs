@@ -10,7 +10,7 @@ mod result;
 mod tfactory;
 
 pub use constraints::Constraints;
-pub use job_params::{EstimateType, JobParams};
+pub use job_params::{EstimateType, JobParams, PartitioningOverhead};
 pub use logical_counts::LogicalResourceCounts;
 pub use physical_counts::{PhysicalResourceCounts, PhysicalResourceCountsBreakdown};
 pub use report::{FormattedPhysicalResourceCounts, Report};
