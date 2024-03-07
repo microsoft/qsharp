@@ -135,6 +135,8 @@ fn apply_rules(
         indent_level
     };
 
+    let new_line_in_spaces = whitespace.contains('\n');
+
     use qsc_frontend::keyword::Keyword;
     use qsc_frontend::lex::cooked::ClosedBinOp;
     use ConcreteTokenKind::*;
@@ -152,11 +154,11 @@ fn apply_rules(
             }
         }
         (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
-            (ClosedBinOp(ClosedBinOp::Minus), _) => {
-                // This case is used to ignore the spacing after a `-`.
+            (ClosedBinOp(ClosedBinOp::Minus), _) | (_, ClosedBinOp(ClosedBinOp::Minus)) => {
+                // This case is used to ignore the spacing around a `-`.
                 // This is done because we currently don't have the architecture
                 // to be able to differentiate between the unary `-` and the binary `-`
-                // which would have different spacing after.
+                // which would have different spacing rules.
             }
             (Semi, _) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
@@ -192,12 +194,20 @@ fn apply_rules(
             | (_, At) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
+            (_, _) if new_line_in_spaces => {
+                effect_trim_whitespace(left, whitespace, right, &mut edits);
+                // Ignore the rest of the cases if the user has a newline in the whitespace.
+                // This is done because we don't currently have logic for determining when
+                // lines are too long and require new-lines, and we don't have logic
+                // for determining what the correct indentation should be in these cases,
+                // so we put this do-nothing case in to leave user code unchanged.
+            }
             (Open(Delim::Bracket | Delim::Paren), _)
             | (_, Close(Delim::Bracket | Delim::Paren)) => {
                 effect_no_space(left, whitespace, right, &mut edits);
             }
             (_, Open(Delim::Bracket | Delim::Paren)) => {
-                if is_value_token_left(cooked_left) {
+                if is_value_token_left(cooked_left) || is_prefix(cooked_left) {
                     // i.e. foo() or { foo }[3]
                     effect_no_space(left, whitespace, right, &mut edits);
                 } else {
@@ -219,10 +229,7 @@ fn apply_rules(
                 effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, _) if is_value_token_right(cooked_right) => {
-                if is_prefix_with_space(cooked_left)
-                    || is_prefix_without_space(cooked_left)
-                    || matches!(cooked_left, TokenKind::DotDotDot)
-                {
+                if is_prefix(cooked_left) {
                     effect_no_space(left, whitespace, right, &mut edits);
                 } else {
                     effect_single_space(left, whitespace, right, &mut edits);
@@ -232,7 +239,11 @@ fn apply_rules(
                 effect_no_space(left, whitespace, right, &mut edits);
             }
             (_, _) if is_prefix_with_space(cooked_right) => {
-                effect_single_space(left, whitespace, right, &mut edits);
+                if is_prefix(cooked_left) {
+                    effect_no_space(left, whitespace, right, &mut edits);
+                } else {
+                    effect_single_space(left, whitespace, right, &mut edits);
+                }
             }
             (_, _) if is_prefix_without_space(cooked_right) => {
                 effect_no_space(left, whitespace, right, &mut edits);
@@ -288,6 +299,12 @@ fn is_prefix_without_space(cooked: &TokenKind) -> bool {
         cooked,
         TokenKind::ColonColon | TokenKind::Dot | TokenKind::DotDot
     )
+}
+
+fn is_prefix(cooked: &TokenKind) -> bool {
+    is_prefix_with_space(cooked)
+        || is_prefix_without_space(cooked)
+        || matches!(cooked, TokenKind::DotDotDot)
 }
 
 fn is_suffix(cooked: &TokenKind) -> bool {
@@ -363,6 +380,29 @@ fn effect_trim_comment(left: &ConcreteToken, edits: &mut Vec<TextEdit>, code: &s
             new_comment_contents,
             left.span.lo,
             left.span.hi,
+        ));
+    }
+}
+
+fn effect_trim_whitespace(
+    left: &ConcreteToken,
+    whitespace: &str,
+    right: &ConcreteToken,
+    edits: &mut Vec<TextEdit>,
+) {
+    let count_newlines = whitespace.chars().filter(|c| *c == '\n').count();
+    let suffix = match whitespace.rsplit_once('\n') {
+        Some((_, suffix)) => suffix,
+        None => "",
+    };
+
+    let mut new_whitespace = "\n".repeat(count_newlines);
+    new_whitespace.push_str(suffix);
+    if whitespace != new_whitespace {
+        edits.push(TextEdit::new(
+            new_whitespace.as_str(),
+            left.span.hi,
+            right.span.lo,
         ));
     }
 }
