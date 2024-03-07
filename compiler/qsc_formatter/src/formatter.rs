@@ -148,7 +148,7 @@ fn apply_rules(
             effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (_, Comment) => {
-            if whitespace.contains('\n') {
+            if new_line_in_spaces {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
         }
@@ -402,7 +402,11 @@ fn effect_trim_whitespace(
         None => "",
     };
 
-    let mut new_whitespace = "\n".repeat(count_newlines);
+    let mut new_whitespace = if whitespace.contains("\r\n") {
+        "\r\n".repeat(count_newlines)
+    } else {
+        "\n".repeat(count_newlines)
+    };
     new_whitespace.push_str(suffix);
     if whitespace != new_whitespace {
         edits.push(TextEdit::new(
@@ -427,7 +431,11 @@ fn effect_correct_indentation(
         count_newlines = 1;
     }
 
-    let mut new_whitespace = "\n".repeat(count_newlines);
+    let mut new_whitespace = if whitespace.contains("\r\n") {
+        "\r\n".repeat(count_newlines)
+    } else {
+        "\n".repeat(count_newlines)
+    };
     new_whitespace.push_str(&make_indent_string(indent_level));
     if whitespace != new_whitespace {
         edits.push(TextEdit::new(
