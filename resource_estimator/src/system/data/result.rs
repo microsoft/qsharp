@@ -40,14 +40,9 @@ impl Success {
         let counts = create_physical_resource_counts(&result);
 
         let formatted_counts: FormattedPhysicalResourceCounts =
-            FormattedPhysicalResourceCounts::new(&result, result.layout_overhead(), &job_params);
+            FormattedPhysicalResourceCounts::new(&result, &job_params);
 
-        let report_data = Report::new(
-            result.layout_overhead(),
-            &job_params,
-            &result,
-            &formatted_counts,
-        );
+        let report_data = Report::new(&job_params, &result, &formatted_counts);
 
         let (logical_qubit, tfactory, error_budget, logical_counts) = result.take();
 
@@ -123,15 +118,10 @@ fn create_frontier_entry(
     let physical_counts = create_physical_resource_counts(&result);
 
     let physical_counts_formatted: FormattedPhysicalResourceCounts =
-        FormattedPhysicalResourceCounts::new(&result, result.layout_overhead(), job_params);
+        FormattedPhysicalResourceCounts::new(&result, job_params);
 
     let report_data = if create_report {
-        Some(Report::new(
-            result.layout_overhead(),
-            job_params,
-            &result,
-            &physical_counts_formatted,
-        ))
+        Some(Report::new(job_params, &result, &physical_counts_formatted))
     } else {
         None
     };
@@ -150,8 +140,8 @@ fn create_frontier_entry(
     )
 }
 
-fn create_physical_resource_counts<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+fn create_physical_resource_counts(
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
 ) -> PhysicalResourceCounts {
     let breakdown = create_physical_resource_counts_breakdown(result);
 
@@ -163,8 +153,8 @@ fn create_physical_resource_counts<L: Overhead + Clone>(
     }
 }
 
-fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+fn create_physical_resource_counts_breakdown(
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()

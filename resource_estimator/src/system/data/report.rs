@@ -26,12 +26,13 @@ pub struct Report {
 
 impl Report {
     #[allow(clippy::vec_init_then_push, clippy::too_many_lines)]
-    pub fn new<L: Overhead + Clone>(
-        logical_counts: &LogicalResourceCounts,
+    pub fn new(
         job_params: &JobParams,
-        result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+        result: &PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
         formatted_counts: &FormattedPhysicalResourceCounts,
     ) -> Self {
+        let logical_counts = result.layout_overhead();
+
         // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH resource_estimator/scripts/generate_report_code.py from docs/output_data.md
         let mut groups = vec![];
 
@@ -353,9 +354,8 @@ pub struct FormattedPhysicalResourceCounts {
 
 impl FormattedPhysicalResourceCounts {
     #[allow(clippy::too_many_lines)]
-    pub fn new<L: Overhead + Clone>(
-        result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
-        logical_resources: &LogicalResourceCounts,
+    pub fn new(
+        result: &PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
         job_params: &JobParams,
     ) -> Self {
         // Physical resource estimates
@@ -485,14 +485,16 @@ impl FormattedPhysicalResourceCounts {
             });
 
         // Pre-layout logical resources
-        let logical_counts_num_qubits = format_metric_prefix(logical_resources.num_qubits);
-        let logical_counts_t_count = format_metric_prefix(logical_resources.t_count);
-        let logical_counts_rotation_count = format_metric_prefix(logical_resources.rotation_count);
-        let logical_counts_rotation_depth = format_metric_prefix(logical_resources.rotation_depth);
-        let logical_counts_ccz_count = format_metric_prefix(logical_resources.ccz_count);
-        let logical_counts_ccix_count = format_metric_prefix(logical_resources.ccix_count);
+        let logical_counts_num_qubits = format_metric_prefix(result.layout_overhead().num_qubits);
+        let logical_counts_t_count = format_metric_prefix(result.layout_overhead().t_count);
+        let logical_counts_rotation_count =
+            format_metric_prefix(result.layout_overhead().rotation_count);
+        let logical_counts_rotation_depth =
+            format_metric_prefix(result.layout_overhead().rotation_depth);
+        let logical_counts_ccz_count = format_metric_prefix(result.layout_overhead().ccz_count);
+        let logical_counts_ccix_count = format_metric_prefix(result.layout_overhead().ccix_count);
         let logical_counts_measurement_count =
-            format_metric_prefix(logical_resources.measurement_count);
+            format_metric_prefix(result.layout_overhead().measurement_count);
 
         // Assumed error budget
         let error_budget = format!("{:.2e}", job_params.error_budget().total());
