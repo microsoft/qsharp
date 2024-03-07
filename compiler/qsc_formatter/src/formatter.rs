@@ -166,6 +166,10 @@ fn apply_rules(
             (Keyword(Keyword::Internal), _) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
+            (Keyword(Keyword::Adjoint), Keyword(Keyword::Controlled))
+            | (Keyword(Keyword::Controlled), Keyword(Keyword::Adjoint)) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
             (Open(Delim::Brace), _)
             | (_, Close(Delim::Brace))
             | (_, Keyword(Keyword::Internal))
@@ -174,6 +178,9 @@ fn apply_rules(
             | (_, Keyword(Keyword::Newtype))
             | (_, Keyword(Keyword::Namespace))
             | (_, Keyword(Keyword::Open))
+            | (_, Keyword(Keyword::Body))
+            | (_, Keyword(Keyword::Adjoint))
+            | (_, Keyword(Keyword::Controlled))
             | (_, At) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
@@ -196,6 +203,12 @@ fn apply_rules(
                 } else {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
+            }
+            (_, TokenKind::Keyword(Keyword::Auto))
+            | (_, TokenKind::Keyword(Keyword::Distribute))
+            | (_, TokenKind::Keyword(Keyword::Intrinsic))
+            | (_, TokenKind::Keyword(Keyword::Invert)) => {
+                effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, _) if is_value_token_right(cooked_right) => {
                 if is_prefix_with_space(cooked_left)
