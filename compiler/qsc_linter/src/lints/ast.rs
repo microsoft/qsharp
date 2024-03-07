@@ -56,7 +56,13 @@ impl AstLintPass for NeedlessParens {
 
         fn push(parent: &qsc_ast::ast::Expr, child: &qsc_ast::ast::Expr, buf: &mut Vec<Lint>) {
             if let Paren(expr) = &*child.kind {
-                if precedence(parent) > precedence(expr) {
+                let p_parent = precedence(parent);
+                let p_child = precedence(expr);
+
+                // Check that p_child > 0 to avoid double throwing
+                // the lint when we have a parenthesized literal in
+                // a binary expr.
+                if p_parent > p_child && p_child > 0 {
                     push_lint!(NeedlessParens, child.span, buf);
                 }
             }
