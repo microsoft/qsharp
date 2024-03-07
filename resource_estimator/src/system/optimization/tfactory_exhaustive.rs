@@ -3,13 +3,15 @@
 
 use std::rc::Rc;
 
-use crate::estimates::{
-    optimization::{Point, Point2D, Point4D, Population},
-    Factory, FactoryBuilder, LogicalPatch,
-};
 use crate::system::modeling::{
-    PhysicalQubit, Protocol, TFactory, TFactoryBuildStatus, TFactoryDistillationUnit,
-    TFactoryDistillationUnitTemplate,
+    PhysicalQubit, Protocol, TFactory, TFactoryDistillationUnit, TFactoryDistillationUnitTemplate,
+};
+use crate::{
+    estimates::{
+        optimization::{Point, Point2D, Point4D, Population},
+        Factory, FactoryBuildError, FactoryBuilder, LogicalPatch,
+    },
+    system::modeling::default_t_factory,
 };
 
 use super::super::constants::{MAX_DISTILLATION_ROUNDS, MAX_EXTRA_DISTILLATION_ROUNDS};
@@ -89,15 +91,14 @@ where
     ) -> bool {
         // This is the success probability of producing the expected number of T
         // states in sufficient quality (see Appendix C in paper)
-        let (status, factory) = TFactory::build(units, 0.01);
         #[allow(clippy::match_same_arms)]
-        match status {
-            TFactoryBuildStatus::Success => {
+        match TFactory::build(units, units[0].qubit_t_error_rate(), 0.01) {
+            Ok(factory) => {
                 self.num_valid += 1;
                 // This is the success probability of producing the expected number of T
                 // states in sufficient quality (see Appendix C in paper)
                 let is_below_or_equal_output_t_error_rate =
-                    factory.output_t_error_rate() <= self.output_t_error_rate;
+                    factory.output_error_rate() <= self.output_t_error_rate;
                 if is_below_or_equal_output_t_error_rate {
                     self.num_candidates += 1;
                 }
@@ -118,14 +119,14 @@ where
             }
             // The Clifford error rate is defined as a number < 1 to the power of (code_distance as i32 + 1) / 2.
             //Increasing the code distance decreases the Clifford error rate.
-            TFactoryBuildStatus::FailedDueToLowFailureProbability => {
+            Err(FactoryBuildError::LowFailureProbability) => {
                 // The failure probability is an increasing function of the Clifford error rate like:
                 //  15.0 * input_error_rate + 356.0 * clifford_error_rate.
                 // If increase the code distance, the Clifford error rate decreases, the failure probability decreases.
                 // Should stop increasing the code distance.
                 false
             }
-            TFactoryBuildStatus::FailedDueToHighFailureProbability => {
+            Err(FactoryBuildError::HighFailureProbability) => {
                 // This case happens when the failure probability is greater than 1.0.
                 // The failure probability is a decreasing function of the Clifford error rate like:
                 // 15.0 * input_error_rate + 356.0 * clifford_error_rate.
@@ -133,7 +134,7 @@ where
                 // Should continue increasing the code distance.
                 true
             }
-            TFactoryBuildStatus::FailedDueToOutputErrorRateHigherThanInputErrorRate => {
+            Err(FactoryBuildError::OutputErrorRateHigherThanInputErrorRate) => {
                 // TFactory distillation round returns a higher error rate than the input.
                 // The output error rate is a increasing function of the Clifford error rate like:
                 // 35.0 * input_error_rate.powi(3) + 7.1 * clifford_error_rate
@@ -141,7 +142,7 @@ where
                 // Should continue increasing the code distance.
                 true
             }
-            TFactoryBuildStatus::FailedDueToUnreasonableHighNumberOfUnitsRequired => {
+            Err(FactoryBuildError::UnreasonableHighNumberOfUnitsRequired) => {
                 // Building the TFactory involved too many qubits on an intermediate distillation round.
                 // We assume that increasing the code distance could help because
                 // the success probability should grow with increasing the code distance.
@@ -187,10 +188,13 @@ impl From<TFactory> for Point4D<TFactory> {
     fn from(factory: TFactory) -> Self {
         let value1 = factory.normalized_qubits();
         let value2 = factory.duration();
-        let value3 = factory.output_t_error_rate();
-        let binding = factory.code_distance_per_round();
-        let value4 = binding.last().expect("binding should not be empty");
-        Point4D::new(factory, value1, value2, value3, *value4)
+        let value3 = factory.output_error_rate();
+        let binding = factory.code_parameter_per_round();
+        let value4 = *binding
+            .last()
+            .expect("binding should not be empty")
+            .expect("unit has distance");
+        Point4D::new(factory, value1, value2, value3, value4)
     }
 }
 
@@ -242,7 +246,7 @@ where
         let mut population = Population::<P>::new();
 
         if let Ok(logical_qubit) = LogicalPatch::new(ftp, max_code_distance, qubit.clone()) {
-            let factory = TFactory::default(&logical_qubit);
+            let factory = default_t_factory(&logical_qubit);
             let point = P::from(factory);
             population.push(point);
         }

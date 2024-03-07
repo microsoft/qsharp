@@ -306,7 +306,10 @@ pub fn test_hubbard_e2e() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory1.code_distance_per_round(), vec![5, 15]);
+        assert_eq!(
+            factory1.code_parameter_per_round(),
+            vec![Some(&5), Some(&15)]
+        );
     }
 
     if let Some(factory2) = get_tfactory(&tfactories, 92000, 18000) {
@@ -319,7 +322,10 @@ pub fn test_hubbard_e2e() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory2.code_distance_per_round(), vec![5, 15]);
+        assert_eq!(
+            factory2.code_parameter_per_round(),
+            vec![Some(&5), Some(&15)]
+        );
     }
 
     Ok(())
@@ -390,7 +396,10 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory1.code_distance_per_round(), vec![1, 3]);
+        assert_eq!(
+            factory1.code_parameter_per_round(),
+            vec![Some(&1), Some(&3)]
+        );
     }
 
     if let Some(factory2) = get_tfactory(&tfactories, 14100, 1040) {
@@ -403,7 +412,10 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
                 String::from("15-to-1 space efficient")
             ]
         );
-        assert_eq!(factory2.code_distance_per_round(), vec![1, 3]);
+        assert_eq!(
+            factory2.code_parameter_per_round(),
+            vec![Some(&1), Some(&3)]
+        );
     }
 
     Ok(())
@@ -553,7 +565,10 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
             String::from("15-to-1 RM prep"),
         ]
     );
-    assert_eq!(tfactory.code_distance_per_round(), vec![1, 3, 5, 15]);
+    assert_eq!(
+        tfactory.code_parameter_per_round(),
+        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+    );
 
     assert_eq!(
         result.physical_qubits(),
@@ -612,7 +627,10 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
             String::from("15-to-1 RM prep"),
         ]
     );
-    assert_eq!(tfactory.code_distance_per_round(), vec![1, 3, 5, 15]);
+    assert_eq!(
+        tfactory.code_parameter_per_round(),
+        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+    );
 
     assert_eq!(
         result.physical_qubits(),
