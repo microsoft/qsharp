@@ -1678,6 +1678,26 @@ fn return_mismatch() {
 }
 
 #[test]
+fn return_with_more_specializations() {
+    check(
+        indoc! {"
+            namespace A {
+                operation B() : Unit is Adj + Ctl {}
+                function C() : (Unit => Unit is Adj) { B }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 29-31 "()" : Unit
+            #13 52-54 "{}" : Unit
+            #17 69-71 "()" : Unit
+            #27 96-101 "{ B }" : (Unit => Unit is Adj + Ctl)
+            #29 98-99 "B" : (Unit => Unit is Adj + Ctl)
+        "##]],
+    );
+}
+
+#[test]
 fn array_unknown_field_error() {
     check(
         indoc! {"
@@ -3215,8 +3235,6 @@ fn functors_in_array_mixed() {
             #47 180-183 "Foo" : (Qubit => Unit)
             #50 185-188 "Bar" : (Qubit => Unit is Adj)
             #53 190-193 "Baz" : (Qubit => Unit is Adj + Ctl)
-            Error(Type(Error(FunctorMismatch(Value(Empty), Value(Adj), Span { lo: 185, hi: 188 }))))
-            Error(Type(Error(FunctorMismatch(Value(Empty), Value(CtlAdj), Span { lo: 190, hi: 193 }))))
         "#]],
     );
 }
@@ -3337,7 +3355,6 @@ fn functors_in_arg_bound_to_let_becomes_monotype() {
             #63 232-235 "foo" : ((Qubit => Unit is Adj) => Unit)
             #66 235-240 "(Baz)" : (Qubit => Unit is Adj + Ctl)
             #67 236-239 "Baz" : (Qubit => Unit is Adj + Ctl)
-            Error(Type(Error(FunctorMismatch(Value(Adj), Value(CtlAdj), Span { lo: 232, hi: 240 }))))
         "#]],
     );
 }
