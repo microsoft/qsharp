@@ -147,8 +147,7 @@ fn apply_rules(
             effect_trim_comment(left, &mut edits, code);
             effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
-        (Syntax(Semi), Comment) => {
-            // ToDo: this needs to be broader than just off of semicolons
+        (_, Comment) => {
             if whitespace.contains('\n') {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
