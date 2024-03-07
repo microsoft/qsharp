@@ -492,7 +492,7 @@ impl<'a> Analyzer<'a> {
         compute_kind
     }
 
-    fn analyze_expr_closure(&mut self, expr_type: &Ty) -> ComputeKind {
+    fn analyze_expr_closure(expr_type: &Ty) -> ComputeKind {
         let value_kind = ValueKind::new_dynamic_from_type(expr_type);
         ComputeKind::new_with_runtime_features(RuntimeFeatureFlags::UseOfClosure, value_kind)
     }
@@ -1381,7 +1381,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 let expr = self.get_expr(expr_id);
                 self.analyze_expr_call(*callee_expr_id, *args_expr_id, &expr.ty)
             }
-            ExprKind::Closure(_, _) => self.analyze_expr_closure(&expr.ty),
+            ExprKind::Closure(_, _) => Self::analyze_expr_closure(&expr.ty),
             ExprKind::Fail(msg_expr_id) => self.analyze_expr_fail(*msg_expr_id),
             ExprKind::Field(record_expr_id, _) => self.analyze_expr_field(*record_expr_id),
             ExprKind::Hole | ExprKind::Lit(_) => {
@@ -1810,9 +1810,8 @@ fn derive_runtime_features(ty: &Ty, value_kind: ValueKind) -> RuntimeFeatureFlag
 
             // If the content of the array is dynamic, add runtime features depending on the content type.
             if matches!(content_runtime_kind, RuntimeKind::Dynamic) {
-                let content_value_kind = ValueKind::new_dynamic_from_type(&array_content_type);
-                runtime_features |=
-                    derive_runtime_features(&array_content_type, content_value_kind);
+                let content_value_kind = ValueKind::new_dynamic_from_type(array_content_type);
+                runtime_features |= derive_runtime_features(array_content_type, content_value_kind);
             }
 
             // If the array size is dynamic, add the corresponding runtime feature.

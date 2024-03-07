@@ -241,7 +241,7 @@ impl GeneratorSetsBuilder {
                     .value_kind
                     .iter()
                     .for_each(|value_kind| {
-                        element_param_application.aggregate_value_kind(*value_kind)
+                        element_param_application.aggregate_value_kind(*value_kind);
                     });
             }
         };
@@ -630,6 +630,7 @@ impl ApplicationInstanceComputeProperties {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum ParamApplicationComputeProperties {
     Element(ApplicationInstanceComputeProperties),
     Array(ArrayParamApplicationComputeProperties),

@@ -295,10 +295,7 @@ impl Display for ApplicationGeneratorSet {
 
 impl ApplicationGeneratorSet {
     #[must_use]
-    pub fn derive_application_compute_kind(
-        &self,
-        args_value_kinds: &Vec<ValueKind>,
-    ) -> ComputeKind {
+    pub fn derive_application_compute_kind(&self, args_value_kinds: &[ValueKind]) -> ComputeKind {
         assert!(self.dynamic_param_applications.len() == args_value_kinds.len());
         let mut compute_kind = self.inherent;
         for (arg_value_kind, param_application) in args_value_kinds
@@ -482,7 +479,7 @@ impl ComputeKind {
         quantum_properties.value_kind = quantum_properties.value_kind.aggregate(value);
     }
 
-    pub(crate) fn is_dynamic(&self) -> bool {
+    pub(crate) fn is_dynamic(self) -> bool {
         match self {
             Self::Classical => false,
             Self::Quantum(quantum_properties) => match quantum_properties.value_kind {
@@ -495,7 +492,7 @@ impl ComputeKind {
         }
     }
 
-    pub(crate) fn value_kind_or_default(&self, default: ValueKind) -> ValueKind {
+    pub(crate) fn value_kind_or_default(self, default: ValueKind) -> ValueKind {
         match self {
             Self::Classical => default,
             Self::Quantum(quantum_properties) => quantum_properties.value_kind,
@@ -568,18 +565,18 @@ impl ValueKind {
         }
     }
 
-    pub(crate) fn get_array_runtime_kinds(&self) -> (RuntimeKind, RuntimeKind) {
+    pub(crate) fn get_array_runtime_kinds(self) -> (RuntimeKind, RuntimeKind) {
         match self {
             Self::Element(_) => panic!("value kind should be of the element variant"),
             Self::Array(content_runtime_kind, size_runtime_kind) => {
-                (*content_runtime_kind, *size_runtime_kind)
+                (content_runtime_kind, size_runtime_kind)
             }
         }
     }
 
-    pub(crate) fn get_element_runtime_kind(&self) -> RuntimeKind {
+    pub(crate) fn get_element_runtime_kind(self) -> RuntimeKind {
         match self {
-            Self::Element(runtime_kind) => *runtime_kind,
+            Self::Element(runtime_kind) => runtime_kind,
             Self::Array(_, _) => panic!("value kind should be of the element variant"),
         }
     }

@@ -23,7 +23,7 @@ pub fn teleport(c: &mut Criterion) {
             b.iter(|| {
                 let analyzer = Analyzer::init(&fir_store);
                 let _compute_properties = analyzer.analyze_all();
-            })
+            });
         },
     );
 }
@@ -37,7 +37,7 @@ pub fn deutsch_jozsa(c: &mut Criterion) {
             b.iter(|| {
                 let analyzer = Analyzer::init(&fir_store);
                 let _compute_properties = analyzer.analyze_all();
-            })
+            });
         },
     );
 }
@@ -51,7 +51,7 @@ pub fn large_file(c: &mut Criterion) {
             b.iter(|| {
                 let analyzer = Analyzer::init(&fir_store);
                 let _compute_properties = analyzer.analyze_all();
-            })
+            });
         },
     );
 }
