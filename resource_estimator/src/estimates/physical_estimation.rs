@@ -5,7 +5,7 @@ use super::{
     optimization::{Point2D, Population},
     Error, ErrorBudget, LogicalPatch, Overhead,
 };
-use std::{cmp::Ordering, rc::Rc};
+use std::{borrow::Cow, cmp::Ordering, rc::Rc};
 
 /// Trait to model quantum error correction.
 ///
@@ -108,7 +108,10 @@ pub trait FactoryBuilder<E: ErrorCorrection> {
     ) -> Vec<Self::Factory>;
 }
 
-pub trait Factory {
+pub trait Factory
+where
+    Self::Parameter: std::clone::Clone,
+{
     type Parameter;
 
     fn physical_qubits(&self) -> u64;
@@ -121,7 +124,7 @@ pub trait Factory {
     /// The maximum code parameter setting for a magic state factory. This is
     /// used to constrain the search space, when looking for magic state
     /// factories.
-    fn max_code_parameter(&self) -> Self::Parameter;
+    fn max_code_parameter(&self) -> Option<Cow<Self::Parameter>>;
 }
 
 pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
@@ -1166,8 +1169,9 @@ impl<
     fn find_highest_code_parameter(&self, factories: &[Builder::Factory]) -> Option<E::Parameter> {
         factories
             .iter()
-            .map(Factory::max_code_parameter)
+            .filter_map(Factory::max_code_parameter)
             .max_by(|a, b| self.ftp.code_parameter_cmp(self.qubit.as_ref(), a, b))
+            .map(Cow::into_owned)
     }
 
     /// Computes the number of logical patches required for the algorithm given

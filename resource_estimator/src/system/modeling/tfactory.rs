@@ -7,17 +7,19 @@ mod tests;
 use core::fmt;
 use std::{collections::BTreeMap, vec};
 
-use probability::{distribution::Inverse, prelude::Binomial};
 use serde::{ser::SerializeMap, Serialize};
 
-use crate::estimates::{Factory, LogicalPatch};
-use crate::system::modeling::PhysicalQubit;
-
-use super::super::{
-    compiled_expression::CompiledExpression,
-    error::IO::{self, CannotParseJSON},
+use crate::estimates::{
+    DistillationRound, DistillationUnit, Factory, LogicalPatch, RoundBasedFactory,
 };
-use super::Protocol;
+
+use super::{
+    super::{
+        compiled_expression::CompiledExpression,
+        error::IO::{self, CannotParseJSON},
+    },
+    PhysicalQubit, Protocol,
+};
 
 pub enum TFactoryQubit<'a> {
     Logical(&'a LogicalPatch<Protocol>),
@@ -213,7 +215,7 @@ impl TFactoryDistillationUnitTemplate {
             name: String::from("trivial 1-to-1"),
             num_input_ts: 1,
             num_output_ts: 1,
-            failure_probability_function: Box::new(Self::trivial_failutre_probability),
+            failure_probability_function: Box::new(Self::trivial_failure_probability),
             output_error_rate_function: Box::new(Self::trivial_error_rate),
             unit_type: TFactoryDistillationUnitType::Logical,
             physical_qubit_specification: None,
@@ -241,7 +243,7 @@ impl TFactoryDistillationUnitTemplate {
         35.0 * input_error_rate.powi(3) + 7.1 * clifford_error_rate
     }
 
-    fn trivial_failutre_probability(
+    fn trivial_failure_probability(
         _input_error_rate: f64,
         _clifford_error_rate: f64,
         _readout_error_rate: f64,
@@ -396,52 +398,8 @@ impl<'a> TFactoryDistillationUnit<'a> {
         }
     }
 
-    pub fn physical_qubits(&self, position: usize) -> u64 {
-        if position == 0 {
-            self.physical_qubits_at_first_round
-        } else {
-            self.physical_qubits_at_subsequent_rounds
-        }
-    }
-
-    pub fn duration(&self, position: usize) -> u64 {
-        if position == 0 {
-            self.duration_at_first_round
-        } else {
-            self.duration_at_subsequent_rounds
-        }
-    }
-
-    pub fn code_distance(&self) -> u64 {
-        self.code_distance
-    }
-
-    pub fn num_input_ts(&self) -> u64 {
-        self.num_input_ts
-    }
-
-    pub fn num_output_ts(&self) -> u64 {
-        self.num_output_ts
-    }
-
     pub fn clifford_error_rate(&self) -> f64 {
         self.clifford_error_rate
-    }
-
-    pub fn failure_probability(&self, input_error_rate: f64) -> f64 {
-        (self.failure_probability_formula)(
-            input_error_rate,
-            self.clifford_error_rate,
-            self.readout_error_rate,
-        )
-    }
-
-    pub fn output_error_rate(&self, input_error_rate: f64) -> f64 {
-        (self.output_error_rate_formula)(
-            input_error_rate,
-            self.clifford_error_rate,
-            self.readout_error_rate,
-        )
     }
 
     pub fn qubit_t_error_rate(&self) -> f64 {
@@ -453,328 +411,81 @@ impl<'a> TFactoryDistillationUnit<'a> {
     }
 }
 
-/// One round of distillation in a T-factory
-///
-/// All units per round are the same.  The number is initialized to 1 and can be
-/// iteratively adjusted to match some external constraints.
-#[derive(Debug, Clone)]
-struct TFactoryDistillationRound {
-    num_units: u64,
-    failure_probability_requirement: f64,
-    num_output_ts: u64,
-    num_input_ts: u64,
-    duration: u64,
-    physical_qubits: u64,
-    name: String,
-    code_distance: u64,
-}
-
-impl TFactoryDistillationRound {
-    pub fn new(
-        unit: &TFactoryDistillationUnit,
-        failure_probability_requirement: f64,
-        position: usize,
-    ) -> Self {
-        Self {
-            num_units: 1,
-            failure_probability_requirement,
-            num_output_ts: unit.num_output_ts(),
-            num_input_ts: unit.num_input_ts(),
-            duration: unit.duration(position),
-            physical_qubits: unit.physical_qubits(position),
-            name: unit.name.clone(),
-            code_distance: unit.code_distance(),
-        }
-    }
-
-    fn adjust_num_units_to(
-        &mut self,
-        t_needed_next: u64,
-        failure_probability: f64,
-    ) -> TFactoryBuildStatus {
-        // initial value
-        self.num_units = ((t_needed_next as f64) / (self.max_num_output_ts() as f64)).ceil() as u64;
-
-        loop {
-            let num_output_ts = self.compute_num_output_ts(failure_probability);
-            if num_output_ts < t_needed_next {
-                self.num_units *= 2;
-
-                // TFactory distillation round requires unreasonably high number of units?
-                if self.num_units >= 1_000_000_000_000_000 {
-                    return TFactoryBuildStatus::FailedDueToUnreasonableHighNumberOfUnitsRequired;
-                }
-            } else {
-                break;
-            }
-        }
-
-        let mut upper = self.num_units;
-        let mut lower = self.num_units / 2;
-        while lower < upper {
-            self.num_units = (lower + upper) / 2;
-            let num_output_ts = self.compute_num_output_ts(failure_probability);
-            if num_output_ts >= t_needed_next {
-                upper = self.num_units;
-            } else {
-                lower = self.num_units + 1;
-            }
-        }
-        self.num_units = upper;
-
-        TFactoryBuildStatus::Success
-    }
-
-    pub fn physical_qubits(&self) -> u64 {
-        self.num_units * self.physical_qubits
-    }
-
-    pub fn duration(&self) -> u64 {
-        self.duration
-    }
-
-    fn compute_num_output_ts(&self, failure_probability: f64) -> u64 {
-        // special case when not necessary to run actual distillation:
-        // the physcial qubit error rate is already below the threshold
-        if failure_probability == 0.0 && self.failure_probability_requirement == 0.0 {
-            return self.num_units * self.num_output_ts;
-        }
-        let dist = Binomial::with_failure(self.num_units as usize, failure_probability);
-        dist.inverse(self.failure_probability_requirement) as u64 * self.num_output_ts
-    }
-
-    fn max_num_output_ts(&self) -> u64 {
-        self.num_units * self.num_output_ts
-    }
-
-    fn num_units(&self) -> u64 {
-        self.num_units
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct TFactory {
-    length: usize,
-    failure_probability_requirement: f64,
-    rounds: Vec<TFactoryDistillationRound>,
-    input_t_error_rate_before_each_round: Vec<f64>,
-    failure_probability_after_each_round: Vec<f64>,
-}
-
-impl TFactory {
-    fn new(length: usize, initial_t_error_rate: f64, failure_probability_requirement: f64) -> Self {
-        let rounds = Vec::with_capacity(length);
-        let mut input_t_error_rate_before_each_round = Vec::with_capacity(length + 1);
-        input_t_error_rate_before_each_round.push(initial_t_error_rate);
-        let failure_probability_after_each_round: Vec<f64> = vec![1.0; length + 1];
-
-        Self {
-            length,
-            failure_probability_requirement,
-            rounds,
-            input_t_error_rate_before_each_round,
-            failure_probability_after_each_round,
-        }
-    }
-
-    pub fn build(
-        units: &[&TFactoryDistillationUnit],
-        failure_probability_requirement: f64,
-    ) -> (TFactoryBuildStatus, TFactory) {
-        let initial_input_error_rate = units[0].qubit_t_error_rate();
-        let mut pipeline = TFactory::new(
-            units.len(),
-            initial_input_error_rate,
-            failure_probability_requirement,
-        );
-
-        (pipeline.compute_units_per_round(units, 1), pipeline)
-    }
-
-    fn add_rounds(&mut self, units: &[&TFactoryDistillationUnit]) -> TFactoryBuildStatus {
-        for unit in units {
-            let failure_probability_requirement =
-                self.failure_probability_requirement / (self.length as f64);
-            let &input_t_error_rate = self
-                .input_t_error_rate_before_each_round
-                .last()
-                .unwrap_or_else(|| unreachable!());
-            let output_t_error_rate = unit.output_error_rate(input_t_error_rate);
-            if output_t_error_rate > input_t_error_rate {
-                return TFactoryBuildStatus::FailedDueToOutputErrorRateHigherThanInputErrorRate;
-            }
-            let round = TFactoryDistillationRound::new(
-                unit,
-                failure_probability_requirement,
-                self.rounds.len(),
-            );
-            self.rounds.push(round);
-            self.input_t_error_rate_before_each_round
-                .push(output_t_error_rate);
-        }
-
-        TFactoryBuildStatus::Success
-    }
-
-    pub fn default(logical_qubit: &LogicalPatch<Protocol>) -> Self {
-        let tfactory_qubit = TFactoryQubit::Logical(logical_qubit);
-        let template = TFactoryDistillationUnitTemplate::create_trivial_distillation_unit_1_to_1();
-        let unit = TFactoryDistillationUnit::by_template(&template, &tfactory_qubit);
-
-        let length = 1;
-        let t_error_rate = logical_qubit.logical_error_rate();
-        let failure_probability_requirement = 0.0;
-
-        let round = TFactoryDistillationRound::new(&unit, failure_probability_requirement, 0);
-
-        let rounds = vec![round];
-        let input_t_error_rate_before_each_round = vec![t_error_rate; length + 1];
-        let failure_probability_after_each_round: Vec<f64> =
-            vec![failure_probability_requirement; length + 1];
-
-        Self {
-            length,
-            failure_probability_requirement,
-            rounds,
-            input_t_error_rate_before_each_round,
-            failure_probability_after_each_round,
-        }
-    }
-
-    /// Number of distillation rounds
-    pub fn num_rounds(&self) -> u64 {
-        self.length as u64
-    }
-
-    /// Number of units per distillation round
-    pub fn num_units_per_round(&self) -> Vec<u64> {
-        self.rounds.iter().map(|round| round.num_units).collect()
-    }
-
-    /// Physical qubits per round
-    pub fn physical_qubits_per_round(&self) -> Vec<u64> {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::physical_qubits)
-            .collect()
-    }
-
-    /// Runtime in ns per round
-    pub fn duration_per_round(&self) -> Vec<u64> {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::duration)
-            .collect()
-    }
-
-    /// Names of distillation units per round
-    pub fn unit_names(&self) -> Vec<String> {
-        self.rounds.iter().map(|round| round.name.clone()).collect()
-    }
-
-    /// This computes the necessary number of units per round in order to
-    /// achieve the required success probability
-    /// Returning None means that the sequence of units does not provide a TFactory with the required output error rate.
-    #[allow(clippy::doc_markdown)]
-    pub fn compute_units_per_round(
-        &mut self,
-        units: &[&TFactoryDistillationUnit],
-        multiplier: u64,
-    ) -> TFactoryBuildStatus {
-        let status = self.add_rounds(units);
-        if !matches!(status, TFactoryBuildStatus::Success) {
-            return status;
-        }
-
-        if self.length > 0 {
-            let mut t_needed_next = self.rounds[self.length - 1].num_output_ts * multiplier;
-
-            for idx in (0..self.length).rev() {
-                let q =
-                    units[idx].failure_probability(self.input_t_error_rate_before_each_round[idx]);
-                if q <= 0.0 {
-                    return TFactoryBuildStatus::FailedDueToLowFailureProbability;
-                }
-
-                if q >= 1.0 {
-                    return TFactoryBuildStatus::FailedDueToHighFailureProbability;
-                }
-
-                self.failure_probability_after_each_round[idx] = q;
-                let status = self.rounds[idx].adjust_num_units_to(t_needed_next, q);
-                if !matches!(status, TFactoryBuildStatus::Success) {
-                    return status;
-                }
-
-                t_needed_next = self.rounds[idx].num_input_ts * self.rounds[idx].num_units();
-            }
-        }
-
-        TFactoryBuildStatus::Success
-    }
-
-    #[allow(dead_code)]
-    pub fn input_t_error_rate(&self) -> f64 {
-        // Even when there are no units `input_t_error_rate_before_each_round`
-        // has one element
-        self.input_t_error_rate_before_each_round[0]
-    }
-
-    pub fn output_t_error_rate(&self) -> f64 {
-        self.input_t_error_rate_before_each_round[self.length]
-    }
-
-    pub fn input_t_count(&self) -> u64 {
-        self.rounds
-            .first()
-            .map_or(0, |round| round.num_input_ts * round.num_units())
-    }
-
-    pub fn normalized_qubits(&self) -> f64 {
-        (self.physical_qubits() as f64) / (self.num_output_states() as f64)
-    }
-
-    /// Code distances per round
-    pub fn code_distance_per_round(&self) -> Vec<u64> {
-        self.rounds
-            .iter()
-            .map(|round| round.code_distance)
-            .collect()
-    }
-}
-
-impl Factory for TFactory {
-    type Parameter = u64;
-
-    fn physical_qubits(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::physical_qubits)
-            .max()
-            .unwrap_or(0)
-    }
-
-    fn duration(&self) -> u64 {
-        self.rounds
-            .iter()
-            .map(TFactoryDistillationRound::duration)
-            .sum()
-    }
-
+impl DistillationUnit<u64> for TFactoryDistillationUnit<'_> {
     fn num_output_states(&self) -> u64 {
-        let last_round = self
-            .rounds
-            .last()
-            .expect("at least one round should be present");
-        let failure_probability = self.failure_probability_after_each_round[self.length - 1];
-        // This should not fail, as we already evalauted this
-        // failure_probability when building the TFactory
-        last_round.compute_num_output_ts(failure_probability)
+        self.num_output_ts
     }
 
-    fn max_code_parameter(&self) -> u64 {
-        self.code_distance_per_round().last().copied().unwrap_or(0)
+    fn num_input_states(&self) -> u64 {
+        self.num_input_ts
     }
+
+    fn duration(&self, position: usize) -> u64 {
+        if position == 0 {
+            self.duration_at_first_round
+        } else {
+            self.duration_at_subsequent_rounds
+        }
+    }
+
+    fn physical_qubits(&self, position: usize) -> u64 {
+        if position == 0 {
+            self.physical_qubits_at_first_round
+        } else {
+            self.physical_qubits_at_subsequent_rounds
+        }
+    }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn code_parameter(&self) -> Option<&u64> {
+        Some(&self.code_distance)
+    }
+
+    fn output_error_rate(&self, input_error_rate: f64) -> f64 {
+        (self.output_error_rate_formula)(
+            input_error_rate,
+            self.clifford_error_rate,
+            self.readout_error_rate,
+        )
+    }
+
+    fn failure_probability(&self, input_error_rate: f64) -> f64 {
+        (self.failure_probability_formula)(
+            input_error_rate,
+            self.clifford_error_rate,
+            self.readout_error_rate,
+        )
+    }
+}
+
+pub type TFactory = RoundBasedFactory<u64>;
+
+pub fn default_t_factory(logical_qubit: &LogicalPatch<Protocol>) -> TFactory {
+    let tfactory_qubit = TFactoryQubit::Logical(logical_qubit);
+    let template = TFactoryDistillationUnitTemplate::create_trivial_distillation_unit_1_to_1();
+    let unit = TFactoryDistillationUnit::by_template(&template, &tfactory_qubit);
+
+    let length = 1;
+    let t_error_rate = logical_qubit.logical_error_rate();
+    let failure_probability_requirement = 0.0;
+
+    let round = DistillationRound::new(&unit, failure_probability_requirement, 0);
+
+    let rounds = vec![round];
+    let input_t_error_rate_before_each_round = vec![t_error_rate; length + 1];
+    let failure_probability_after_each_round: Vec<f64> =
+        vec![failure_probability_requirement; length + 1];
+
+    TFactory::new(
+        length,
+        failure_probability_requirement,
+        rounds,
+        input_t_error_rate_before_each_round,
+        failure_probability_after_each_round,
+    )
 }
 
 impl Serialize for TFactory {
@@ -787,23 +498,15 @@ impl Serialize for TFactory {
         map.serialize_entry("physicalQubits", &self.physical_qubits())?;
         map.serialize_entry("runtime", &self.duration())?;
         map.serialize_entry("numTstates", &self.num_output_states())?;
-        map.serialize_entry("numInputTstates", &self.input_t_count())?;
+        map.serialize_entry("numInputTstates", &self.num_input_states())?;
         map.serialize_entry("numRounds", &self.num_rounds())?;
         map.serialize_entry("numUnitsPerRound", &self.num_units_per_round())?;
         map.serialize_entry("unitNamePerRound", &self.unit_names())?;
-        map.serialize_entry("codeDistancePerRound", &self.code_distance_per_round())?;
+        map.serialize_entry("codeDistancePerRound", &self.code_parameter_per_round())?;
         map.serialize_entry("physicalQubitsPerRound", &self.physical_qubits_per_round())?;
         map.serialize_entry("runtimePerRound", &self.duration_per_round())?;
-        map.serialize_entry("logicalErrorRate", &self.output_t_error_rate())?;
+        map.serialize_entry("logicalErrorRate", &self.output_error_rate())?;
 
         map.end()
     }
-}
-
-pub enum TFactoryBuildStatus {
-    Success,
-    FailedDueToLowFailureProbability,
-    FailedDueToHighFailureProbability,
-    FailedDueToOutputErrorRateHigherThanInputErrorRate,
-    FailedDueToUnreasonableHighNumberOfUnitsRequired,
 }

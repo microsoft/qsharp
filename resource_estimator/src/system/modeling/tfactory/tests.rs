@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use probability::distribution::Binomial;
 use probability::prelude::Inverse;
 
 use super::*;
@@ -123,15 +124,17 @@ fn create_pipeline_with_distance(
         .collect();
     let unit_refs = units.iter().collect::<Vec<_>>();
     let failure_probability_requirement = 0.01;
-    let (status, pipeline) = TFactory::build(&unit_refs, failure_probability_requirement);
-
-    if matches!(status, TFactoryBuildStatus::Success) {
+    if let Ok(pipeline) = TFactory::build(
+        &unit_refs,
+        unit_refs[0].qubit_t_error_rate(),
+        failure_probability_requirement,
+    ) {
         Some((
             pipeline.physical_qubits(),
             pipeline.duration(),
-            pipeline.input_t_error_rate(),
-            pipeline.output_t_error_rate(),
-            pipeline.input_t_count(),
+            pipeline.input_error_rate(),
+            pipeline.output_error_rate(),
+            pipeline.num_input_states(),
             pipeline.num_output_states(),
         ))
     } else {
@@ -261,16 +264,16 @@ fn expression_by_formula2() {
 }
 
 #[test]
-fn default_t_factory() {
+fn test_default_t_factory() {
     let physical_qubit = PhysicalQubit::default();
     let ftp = Protocol::default();
     let logical_qubit = LogicalPatch::new(&ftp, 15, Rc::new(physical_qubit))
         .expect("logical qubit contruction should succeed");
-    let tfactory = TFactory::default(&logical_qubit);
+    let tfactory = default_t_factory(&logical_qubit);
 
     assert_eq!(tfactory.num_rounds(), 1);
     assert_eq!(tfactory.num_units_per_round(), vec![1]);
-    assert_eq!(tfactory.code_distance_per_round(), vec![15]);
+    assert_eq!(tfactory.code_parameter_per_round(), vec![Some(&15)]);
     assert_eq!(tfactory.physical_qubits_per_round(), vec![450]);
     assert_eq!(tfactory.duration_per_round(), vec![6000]);
 }

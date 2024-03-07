@@ -5,6 +5,8 @@ mod error;
 pub use error::Error;
 mod error_budget;
 pub use error_budget::ErrorBudget;
+mod factory;
+pub use factory::{DistillationRound, DistillationUnit, FactoryBuildError, RoundBasedFactory};
 mod physical_estimation;
 pub use physical_estimation::{
     ErrorCorrection, Factory, FactoryBuilder, PhysicalResourceEstimation,
