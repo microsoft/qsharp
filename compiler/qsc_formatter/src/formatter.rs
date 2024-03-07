@@ -6,8 +6,8 @@ use qsc_frontend::{
     keyword::Keyword,
     lex::{
         concrete::{self, ConcreteToken, ConcreteTokenKind},
-        cooked::TokenKind,
-        Delim,
+        cooked::{StringToken, TokenKind},
+        Delim, InterpolatedEnding, InterpolatedStart,
     },
 };
 
@@ -202,6 +202,10 @@ fn apply_rules(
                 // for determining what the correct indentation should be in these cases,
                 // so we put this do-nothing case in to leave user code unchanged.
             }
+            (String(StringToken::Interpolated(_, InterpolatedEnding::LBrace)), _)
+            | (_, String(StringToken::Interpolated(InterpolatedStart::RBrace, _))) => {
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
             (Open(Delim::Bracket | Delim::Paren), _)
             | (_, Close(Delim::Bracket | Delim::Paren)) => {
                 effect_no_space(left, whitespace, right, &mut edits);
@@ -321,6 +325,7 @@ fn is_keyword_value(keyword: &Keyword) -> bool {
     )
 }
 
+/// Note that this does not include interpolated string literals
 fn is_value_lit(cooked: &TokenKind) -> bool {
     matches!(
         cooked,
@@ -328,13 +333,14 @@ fn is_value_lit(cooked: &TokenKind) -> bool {
             | TokenKind::Float
             | TokenKind::Ident
             | TokenKind::Int(_)
-            | TokenKind::String(_)
+            | TokenKind::String(StringToken::Normal)
     )
 }
 
 fn is_value_token_left(cooked: &TokenKind) -> bool {
     match cooked {
         _ if is_value_lit(cooked) => true,
+        TokenKind::String(StringToken::Interpolated(_, InterpolatedEnding::Quote)) => true,
         TokenKind::Keyword(keyword) if is_keyword_value(keyword) => true,
         TokenKind::Close(_) => true, // a closed delim represents a value on the left
         _ => false,
@@ -344,6 +350,7 @@ fn is_value_token_left(cooked: &TokenKind) -> bool {
 fn is_value_token_right(cooked: &TokenKind) -> bool {
     match cooked {
         _ if is_value_lit(cooked) => true,
+        TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, _)) => true,
         TokenKind::Keyword(keyword) if is_keyword_value(keyword) => true,
         TokenKind::Open(_) => true, // an open delim represents a value on the right
         _ => false,
