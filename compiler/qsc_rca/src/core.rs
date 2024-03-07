@@ -1429,7 +1429,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         // depending on the expression's type and its value kind.
         if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
             quantum_properties.runtime_features |=
-                derive_runtime_features(&expr.ty, quantum_properties.value_kind)
+                derive_runtime_features(&expr.ty, quantum_properties.value_kind);
         }
 
         // Finally, insert the expresion's compute kind in the application instance.
@@ -1460,14 +1460,15 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
     }
 
     fn visit_spec_decl(&mut self, decl: &'a SpecDecl) {
-        // Determine the compute properties of the specialization by visiting the implementation block configured for
-        // each application instance in the generator set.
-        while self
-            .get_current_spec_context_mut()
-            .builder
-            .advance_current_application_instance()
-        {
+        // Determine the compute properties of the specialization by visiting the implementation block for each
+        // application variant.
+        let mut are_variants_remaining = true;
+        while are_variants_remaining {
             self.visit_block(decl.block);
+            are_variants_remaining = self
+                .get_current_spec_context_mut()
+                .builder
+                .advance_current_application_instance();
         }
     }
 
@@ -1701,11 +1702,13 @@ fn derive_intrinsic_function_application_generator_set(
     for param in &callable_context.input_params {
         // For intrinsic functions, we assume any parameter can contribute to the output, so if any parameter is dynamic
         // the output of the function is dynamic.
+        // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
+        // function application.
+        let runtime_features =
+            derive_runtime_features(&param.ty, ValueKind::new_dynamic_from_type(&param.ty));
         let value_kind = ValueKind::new_dynamic_from_type(&callable_context.output_type);
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
-            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
-            // function application.
-            runtime_features: derive_runtime_features(&param.ty, value_kind),
+            runtime_features,
             value_kind,
         });
 
@@ -1754,13 +1757,13 @@ fn derive_instrinsic_operation_application_generator_set(
     for param in &callable_context.input_params {
         // For intrinsic operations, we assume any parameter can contribute to the output, so if any parameter is
         // dynamic the output of the operation is dynamic.
+        // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
+        // operation application.
+        let runtime_features =
+            derive_runtime_features(&param.ty, ValueKind::new_dynamic_from_type(&param.ty));
         let value_kind = ValueKind::new_dynamic_from_type(&callable_context.output_type);
-
-        // The compute kind of intrinsic operations is always quantum.
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
-            // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
-            // operation application.
-            runtime_features: derive_runtime_features(&param.ty, value_kind),
+            runtime_features,
             value_kind,
         });
 

@@ -114,31 +114,6 @@ impl PackageStoreComputeProperties {
             })
     }
 
-    // TODO (cesarzc): might not be needed anymore.
-    pub fn save(
-        &mut self,
-        package_store_compute_properties: &mut crate::PackageStoreComputeProperties,
-    ) {
-        assert!(package_store_compute_properties.0.is_empty());
-        for (package_id, mut package_scaffolding) in self.0.drain() {
-            let mut items = IndexMap::<LocalItemId, crate::ItemComputeProperties>::new();
-            for (item_id, item_scaffolding) in package_scaffolding.items.drain() {
-                let item_compute_properties = crate::ItemComputeProperties::from(item_scaffolding);
-                items.insert(item_id, item_compute_properties);
-            }
-
-            let package_compute_properties = crate::PackageComputeProperties {
-                items,
-                blocks: package_scaffolding.blocks,
-                stmts: package_scaffolding.stmts,
-                exprs: package_scaffolding.exprs,
-            };
-            package_store_compute_properties
-                .0
-                .insert(package_id, package_compute_properties);
-        }
-    }
-
     pub fn get(&self, id: PackageId) -> &PackageComputeProperties {
         self.0
             .get(id)
@@ -162,35 +137,6 @@ impl PackageStoreComputeProperties {
             packages.insert(package_id, PackageComputeProperties::default());
         }
         Self(packages)
-    }
-
-    // TODO (cesarzc): might not be needed anymore.
-    pub fn init_and_populate(
-        package_store_compute_properties: &mut crate::PackageStoreComputeProperties,
-    ) -> Self {
-        let mut packages_scaffolding = IndexMap::<PackageId, PackageComputeProperties>::default();
-        for (package_id, mut package_compute_properties) in
-            package_store_compute_properties.0.drain()
-        {
-            let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
-            package_compute_properties.items.drain().for_each(
-                |(item_id, item_compute_properties)| {
-                    let item_compute_properties =
-                        ItemComputeProperties::from(item_compute_properties);
-                    items.insert(item_id, item_compute_properties);
-                },
-            );
-
-            let package_compute_properties = PackageComputeProperties {
-                items,
-                blocks: package_compute_properties.blocks,
-                stmts: package_compute_properties.stmts,
-                exprs: package_compute_properties.exprs,
-            };
-            packages_scaffolding.insert(package_id, package_compute_properties);
-        }
-
-        Self(packages_scaffolding)
     }
 
     pub fn insert_block(&mut self, id: StoreBlockId, value: ApplicationGeneratorSet) {

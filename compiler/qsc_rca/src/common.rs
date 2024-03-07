@@ -23,6 +23,12 @@ impl From<InputParamIndex> for usize {
     }
 }
 
+impl From<usize> for InputParamIndex {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
+
 /// An input parameter node.
 #[derive(Clone, Debug)]
 pub struct InputParam {
@@ -140,7 +146,6 @@ impl From<(PackageId, LocalSpecId)> for GlobalSpecId {
     }
 }
 
-// TODO (cesarzc): might not be needed anymore.
 impl From<(StoreItemId, FunctorSetValue)> for GlobalSpecId {
     fn from(value: (StoreItemId, FunctorSetValue)) -> Self {
         Self {

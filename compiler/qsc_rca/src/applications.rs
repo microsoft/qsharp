@@ -7,6 +7,7 @@ use crate::{
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, RuntimeKind,
     ValueKind,
 };
+use itertools::Itertools;
 use qsc_fir::{
     fir::{BlockId, ExprId, LocalVarId, StmtId},
     ty::Ty,
@@ -17,83 +18,138 @@ use rustc_hash::FxHashMap;
 /// instances for a particular callable specialization.
 #[derive(Debug)]
 pub struct GeneratorSetsBuilder {
-    inherent: ApplicationInstance,
-    dynamic_param_applications: Vec<ParamApplication>,
-    _current_application: BuilderItemKey,
+    application_instances: Vec<Vec<ApplicationInstance>>,
+    current_application_instance: usize,
+    input_params_count: usize,
 }
 
 impl GeneratorSetsBuilder {
     /// Creates a new builder.
     pub fn new(input_params: &Vec<InputParam>, controls: Option<&Local>, return_type: &Ty) -> Self {
-        let inherent = ApplicationInstance::new(input_params, controls, return_type, None);
-        let mut dynamic_param_applications =
-            Vec::<ParamApplication>::with_capacity(input_params.len());
+        // Create a vector of vectors of application instances.
+        // - The first element in the top-level vector represents the inherent variant. It always is a single-element
+        //   vector.
+        // - Each of the other elements in the top-level vector represent the variant(s) of each dynamic parameter
+        //   application. For array parameters it is a three-element vector and for the parameters of any other type it
+        //   is a single-element vector.
+        let mut application_instances =
+            Vec::<Vec<ApplicationInstance>>::with_capacity(input_params.len() + 1);
+
+        // Insert the inherent application instance.
+        application_instances.push(vec![ApplicationInstance::new(
+            input_params,
+            controls,
+            return_type,
+            None,
+        )]);
+
+        // Insert the application instances representing the dynamic variant(s) of each input parameter.
         for input_param in input_params {
-            let param_application =
-                ParamApplication::new(input_param.index, input_params, controls, return_type);
-            dynamic_param_applications.push(param_application);
+            let input_param_variants = match input_param.ty {
+                Ty::Array(_) => {
+                    // For parameters of type array, three dynamic variants exit. Each
+                    // - An array with static content and dynamic size.
+                    // - An array with dynamic content and static size.
+                    // - An array with dynamic content and dynamic size.
+                    let static_content_dynamic_size = ApplicationInstance::new(
+                        input_params,
+                        controls,
+                        return_type,
+                        Some((
+                            input_param.index,
+                            ValueKind::Array(RuntimeKind::Static, RuntimeKind::Dynamic),
+                        )),
+                    );
+                    let dynamic_content_static_size = ApplicationInstance::new(
+                        input_params,
+                        controls,
+                        return_type,
+                        Some((
+                            input_param.index,
+                            ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Static),
+                        )),
+                    );
+                    let dynamic_content_dynamic_size = ApplicationInstance::new(
+                        input_params,
+                        controls,
+                        return_type,
+                        Some((
+                            input_param.index,
+                            ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic),
+                        )),
+                    );
+                    vec![
+                        static_content_dynamic_size,
+                        dynamic_content_static_size,
+                        dynamic_content_dynamic_size,
+                    ]
+                }
+                _ => {
+                    // For non-array params, only one dynamic variant exists.
+                    vec![ApplicationInstance::new(
+                        input_params,
+                        controls,
+                        return_type,
+                        Some((input_param.index, ValueKind::Element(RuntimeKind::Dynamic))),
+                    )]
+                }
+            };
+            application_instances.push(input_param_variants);
         }
 
         Self {
-            inherent,
-            dynamic_param_applications,
-            _current_application: BuilderItemKey::Inherent,
+            application_instances,
+            current_application_instance: 0,
+            input_params_count: input_params.len(),
         }
     }
 
     pub fn advance_current_application_instance(&mut self) -> bool {
-        unimplemented!();
+        if self.current_application_instance < self.flattened_application_instances().count() - 1 {
+            self.current_application_instance += 1;
+            return true;
+        }
+
+        false
     }
 
     pub fn get_current_application_instance(&self) -> &ApplicationInstance {
-        unimplemented!();
+        let current_application_instance = self.current_application_instance;
+        self.flattened_application_instances()
+            .nth(current_application_instance)
+            .expect("nth application instace does not exist")
     }
 
-    pub fn get_current_application_instance_mut(&self) -> &mut ApplicationInstance {
-        unimplemented!();
+    pub fn get_current_application_instance_mut(&mut self) -> &mut ApplicationInstance {
+        let current_application_instance = self.current_application_instance;
+        self.flattened_application_instances_mut()
+            .nth(current_application_instance)
+            .expect("nth application instance does not exist")
     }
 
     /// Saves the contents of the builder to the package compute properties data structure.
     /// If a main block ID is provided, it returns the applications generator set representing the block.
     pub fn save_to_package_compute_properties(
-        self,
+        mut self,
         package_compute_properties: &mut PackageComputeProperties,
         main_block: Option<BlockId>,
     ) -> Option<ApplicationGeneratorSet> {
         // Get the compute properties of the inherent application instance and the non-static parameter applications.
-        let input_params_count = self.dynamic_param_applications.len();
-        let mut inherent_application_compute_properties = self.inherent.close();
-        let mut non_static_param_applications_compute_properties =
-            Vec::<ParamApplicationComputeProperties>::with_capacity(input_params_count);
-        for param_application in self.dynamic_param_applications {
-            let param_application_compute_properties = match param_application {
-                ParamApplication::Array(array_param_application) => {
-                    ParamApplicationComputeProperties::Array(
-                        ArrayParamApplicationComputeProperties {
-                            static_content_dynamic_size: array_param_application
-                                .static_content_dynamic_size
-                                .close(),
-                            dynamic_content_static_size: array_param_application
-                                .dynamic_content_static_size
-                                .close(),
-                            dynamic_content_dynamic_size: array_param_application
-                                .dynamic_content_dynamic_size
-                                .close(),
-                        },
-                    )
-                }
-                ParamApplication::Element(application_instance) => {
-                    ParamApplicationComputeProperties::Element(application_instance.close())
-                }
-            };
-            non_static_param_applications_compute_properties
+        let mut inherent_application_compute_properties = self.close_inherent();
+
+        // Get the compute properties of each parameter application.
+        let mut dynamic_param_applications_compute_properties =
+            Vec::<ParamApplicationComputeProperties>::with_capacity(self.input_params_count);
+        for input_param_index in (0..self.input_params_count).map(InputParamIndex::from) {
+            let param_application_compute_properties = self.close_param(input_param_index);
+            dynamic_param_applications_compute_properties
                 .push(param_application_compute_properties);
         }
 
         // Save the compute properties to the package.
         Self::save_application_generator_sets(
             &mut inherent_application_compute_properties,
-            &mut non_static_param_applications_compute_properties,
+            &mut dynamic_param_applications_compute_properties,
             package_compute_properties,
         );
 
@@ -107,7 +163,7 @@ impl GeneratorSetsBuilder {
                 .clone();
             assert!(
                 applications_generator.dynamic_param_applications.len()
-                    == non_static_param_applications_compute_properties.len()
+                    == dynamic_param_applications_compute_properties.len()
             );
 
             // Update the value kind of the generator's inherent compute kind.
@@ -121,9 +177,12 @@ impl GeneratorSetsBuilder {
             for (param_application, compute_properties) in applications_generator
                 .dynamic_param_applications
                 .iter_mut()
-                .zip(non_static_param_applications_compute_properties)
+                .zip(dynamic_param_applications_compute_properties)
             {
-                Self::aggregate_param_application_value_kind(param_application, &compute_properties)
+                Self::aggregate_param_application_value_kind(
+                    param_application,
+                    &compute_properties,
+                );
             }
 
             // Return the applications gene with the updated dynamism sources.
@@ -151,7 +210,7 @@ impl GeneratorSetsBuilder {
                     .for_each(|value_kind| {
                         array_param_application
                             .static_content_dynamic_size
-                            .aggregate_value_kind(*value_kind)
+                            .aggregate_value_kind(*value_kind);
                     });
                 array_compute_properties
                     .dynamic_content_static_size
@@ -160,7 +219,7 @@ impl GeneratorSetsBuilder {
                     .for_each(|value_kind| {
                         array_param_application
                             .dynamic_content_static_size
-                            .aggregate_value_kind(*value_kind)
+                            .aggregate_value_kind(*value_kind);
                     });
                 array_compute_properties
                     .dynamic_content_dynamic_size
@@ -169,7 +228,7 @@ impl GeneratorSetsBuilder {
                     .for_each(|value_kind| {
                         array_param_application
                             .dynamic_content_dynamic_size
-                            .aggregate_value_kind(*value_kind)
+                            .aggregate_value_kind(*value_kind);
                     });
             }
             crate::ParamApplication::Element(element_param_application) => {
@@ -188,14 +247,76 @@ impl GeneratorSetsBuilder {
         };
     }
 
+    fn close_inherent(&mut self) -> ApplicationInstanceComputeProperties {
+        // The inherent param application is always the first one.
+        let mut variants = self.application_instances[0].drain(..).collect_vec();
+        let inherent_application_instance = variants
+            .pop()
+            .expect("inherent application instance could not be popped");
+        inherent_application_instance.close()
+    }
+
+    fn close_param(&mut self, param_index: InputParamIndex) -> ParamApplicationComputeProperties {
+        const DYNAMIC_ELEMENTS_PARAM_VARIANTS: usize = 1;
+        const DYNAMIC_ARRAY_PARAM_VARIANTS: usize = 3;
+
+        // We need to offset the index since the first top-level vector in application instances is reserved for the
+        // inherent variant.
+        let variants_index = usize::from(param_index) + 1usize;
+        let variants = &mut self.application_instances[variants_index]
+            .drain(..)
+            .collect_vec();
+
+        // The kind of parameter application we create depends on the number of variants that the parameter has.
+        if variants.len() == DYNAMIC_ELEMENTS_PARAM_VARIANTS {
+            let application_instance = variants
+                .pop()
+                .expect("element parameter application instance could not be popped");
+            let compute_properties = application_instance.close();
+            ParamApplicationComputeProperties::Element(compute_properties)
+        } else if variants.len() == DYNAMIC_ARRAY_PARAM_VARIANTS {
+            // IMPORTANT: the poisition of each application instance in the variants vector has a specific meaning, so
+            // we need the order of pops is consequential.
+            let dynamic_content_dynamic_size_application_instance = variants
+                .pop()
+                .expect("array parameter application instance could not be popped");
+            let dynamic_content_static_size_application_instance = variants
+                .pop()
+                .expect("array parameter application instance could not be popped");
+            let static_content_dynamic_size_application_instance = variants
+                .pop()
+                .expect("array parameter application instance could not be popped");
+            ParamApplicationComputeProperties::Array(ArrayParamApplicationComputeProperties {
+                static_content_dynamic_size: static_content_dynamic_size_application_instance
+                    .close(),
+                dynamic_content_static_size: dynamic_content_static_size_application_instance
+                    .close(),
+                dynamic_content_dynamic_size: dynamic_content_dynamic_size_application_instance
+                    .close(),
+            })
+        } else {
+            panic!("invalid number of parameter application variants");
+        }
+    }
+
+    fn flattened_application_instances(&self) -> impl Iterator<Item = &ApplicationInstance> {
+        self.application_instances.iter().flat_map(|v| v.iter())
+    }
+
+    fn flattened_application_instances_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut ApplicationInstance> {
+        self.application_instances
+            .iter_mut()
+            .flat_map(|v| v.iter_mut())
+    }
+
     fn save_application_generator_sets(
         inherent_application_compute_properties: &mut ApplicationInstanceComputeProperties,
-        non_static_param_applications_compute_properties: &mut Vec<
-            ParamApplicationComputeProperties,
-        >,
+        dynamic_param_applications_compute_properties: &mut [ParamApplicationComputeProperties],
         package_compute_properties: &mut PackageComputeProperties,
     ) {
-        let input_params_count = non_static_param_applications_compute_properties.len();
+        let input_params_count = dynamic_param_applications_compute_properties.len();
 
         // Save an applications generator set for each block using their compute properties.
         for (block_id, block_inherent_compute_kind) in
@@ -204,7 +325,7 @@ impl GeneratorSetsBuilder {
             let mut block_non_static_param_applications =
                 Vec::<crate::ParamApplication>::with_capacity(input_params_count);
             for param_application_compute_properties in
-                non_static_param_applications_compute_properties.iter_mut()
+                dynamic_param_applications_compute_properties.iter_mut()
             {
                 let param_application = param_application_compute_properties
                     .remove_item(ApplicationInstanceItem::Block(block_id));
@@ -226,7 +347,7 @@ impl GeneratorSetsBuilder {
             let mut stmt_non_static_param_applications =
                 Vec::<crate::ParamApplication>::with_capacity(input_params_count);
             for param_application_compute_properties in
-                non_static_param_applications_compute_properties.iter_mut()
+                dynamic_param_applications_compute_properties.iter_mut()
             {
                 let param_application = param_application_compute_properties
                     .remove_item(ApplicationInstanceItem::Stmt(stmt_id));
@@ -248,7 +369,7 @@ impl GeneratorSetsBuilder {
             let mut expr_non_static_param_applications =
                 Vec::<crate::ParamApplication>::with_capacity(input_params_count);
             for param_application_compute_properties in
-                non_static_param_applications_compute_properties.iter_mut()
+                dynamic_param_applications_compute_properties.iter_mut()
             {
                 let param_application = param_application_compute_properties
                     .remove_item(ApplicationInstanceItem::Expr(expr_id));
@@ -328,7 +449,7 @@ impl ApplicationInstance {
         input_params: &Vec<InputParam>,
         controls: Option<&Local>,
         return_type: &Ty,
-        non_static_param: Option<NonStaticParamDescriptor>,
+        dynamic_param: Option<(InputParamIndex, ValueKind)>,
     ) -> Self {
         // Initialize the locals map with the specialization controls (if any).
         let mut locals_map = LocalsComputeKindMap::default();
@@ -354,20 +475,16 @@ impl ApplicationInstance {
                 panic!("only input parameters are expected");
             };
 
-            // If a non-static param is provided, set the compute kind associated to the parameter accordingly.
-            let compute_kind = if let Some(non_static_param_descriptor) = non_static_param {
-                if input_param_index == non_static_param_descriptor.index {
-                    let value_kind = ValueKind::from(non_static_param_descriptor.kind);
-                    ComputeKind::Quantum(QuantumProperties {
+            // If a dynamic application is provided, set the compute kind associated to the parameter accordingly.
+            let mut compute_kind = ComputeKind::Classical;
+            if let Some((dynamic_param_index, dynamic_param_value_kind)) = dynamic_param {
+                if input_param_index == dynamic_param_index {
+                    compute_kind = ComputeKind::Quantum(QuantumProperties {
                         runtime_features: RuntimeFeatureFlags::empty(),
-                        value_kind,
-                    })
-                } else {
-                    ComputeKind::Classical
+                        value_kind: dynamic_param_value_kind,
+                    });
                 }
-            } else {
-                ComputeKind::Classical
-            };
+            }
 
             locals_map.insert(
                 local_var_id,
@@ -471,127 +588,46 @@ pub struct LocalComputeKind {
     pub compute_kind: ComputeKind,
 }
 
-#[derive(Clone, Copy, Debug)]
-enum BuilderItemKey {
-    Inherent,
-    Param(NonStaticParamDescriptor),
+#[derive(Clone, Copy)]
+enum ApplicationInstanceItem {
+    Block(BlockId),
+    Expr(ExprId),
+    Stmt(StmtId),
 }
 
-#[derive(Clone, Copy, Debug)]
-struct NonStaticParamDescriptor {
-    index: InputParamIndex,
-    kind: NonStaticParamDescriptorKind,
+struct ApplicationInstanceComputeProperties {
+    blocks: FxHashMap<BlockId, ComputeKind>,
+    stmts: FxHashMap<StmtId, ComputeKind>,
+    exprs: FxHashMap<ExprId, ComputeKind>,
+    value_kind: Option<ValueKind>,
 }
 
-#[derive(Clone, Copy, Debug)]
-enum NonStaticParamDescriptorKind {
-    Element,
-    Array(NonStaticArrayParamDescriptor),
-}
-
-impl From<NonStaticParamDescriptorKind> for ValueKind {
-    fn from(value: NonStaticParamDescriptorKind) -> Self {
-        match value {
-            NonStaticParamDescriptorKind::Element => ValueKind::Element(RuntimeKind::Dynamic),
-            NonStaticParamDescriptorKind::Array(array_descriptor) => match array_descriptor {
-                NonStaticArrayParamDescriptor::StaticContentDynamicSize => {
-                    ValueKind::Array(RuntimeKind::Static, RuntimeKind::Dynamic)
-                }
-                NonStaticArrayParamDescriptor::DynamicContentStaticSize => {
-                    ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Static)
-                }
-                NonStaticArrayParamDescriptor::DynamicContentDynamicSize => {
-                    ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic)
-                }
-            },
+impl ApplicationInstanceComputeProperties {
+    fn remove(&mut self, item: ApplicationInstanceItem) -> ComputeKind {
+        match item {
+            ApplicationInstanceItem::Block(block_id) => self.remove_block(block_id),
+            ApplicationInstanceItem::Expr(expr_id) => self.remove_expr(expr_id),
+            ApplicationInstanceItem::Stmt(stmt_id) => self.remove_stmt(stmt_id),
         }
     }
-}
 
-#[derive(Clone, Copy, Debug)]
-enum NonStaticArrayParamDescriptor {
-    StaticContentDynamicSize,
-    DynamicContentStaticSize,
-    DynamicContentDynamicSize,
-}
-
-/// Application instance(s) related to a parameter application.
-#[derive(Debug)]
-enum ParamApplication {
-    Element(ApplicationInstance),
-    Array(ArrayParamApplication),
-}
-
-impl ParamApplication {
-    fn new(
-        input_param_index: InputParamIndex,
-        input_params: &Vec<InputParam>,
-        controls: Option<&Local>,
-        return_type: &Ty,
-    ) -> Self {
-        let input_param = input_params
-            .get(usize::from(input_param_index))
-            .expect("input parameter at index should exist");
-        match input_param.ty {
-            Ty::Array(_) => {
-                let static_content_dynamic_size = ApplicationInstance::new(
-                    input_params,
-                    controls,
-                    return_type,
-                    Some(NonStaticParamDescriptor {
-                        index: input_param_index,
-                        kind: NonStaticParamDescriptorKind::Array(
-                            NonStaticArrayParamDescriptor::StaticContentDynamicSize,
-                        ),
-                    }),
-                );
-                let dynamic_content_static_size = ApplicationInstance::new(
-                    input_params,
-                    controls,
-                    return_type,
-                    Some(NonStaticParamDescriptor {
-                        index: input_param_index,
-                        kind: NonStaticParamDescriptorKind::Array(
-                            NonStaticArrayParamDescriptor::DynamicContentStaticSize,
-                        ),
-                    }),
-                );
-                let dynamic_content_dynamic_size = ApplicationInstance::new(
-                    input_params,
-                    controls,
-                    return_type,
-                    Some(NonStaticParamDescriptor {
-                        index: input_param_index,
-                        kind: NonStaticParamDescriptorKind::Array(
-                            NonStaticArrayParamDescriptor::DynamicContentDynamicSize,
-                        ),
-                    }),
-                );
-                Self::Array(ArrayParamApplication {
-                    static_content_dynamic_size,
-                    dynamic_content_static_size,
-                    dynamic_content_dynamic_size,
-                })
-            }
-            _ => Self::Element(ApplicationInstance::new(
-                input_params,
-                controls,
-                return_type,
-                Some(NonStaticParamDescriptor {
-                    index: input_param_index,
-                    kind: NonStaticParamDescriptorKind::Element,
-                }),
-            )),
-        }
+    fn remove_block(&mut self, id: BlockId) -> ComputeKind {
+        self.blocks.remove(&id).expect(
+            "block to be removed should exist in the compute properties of the application instance",
+        )
     }
-}
 
-/// Application instances related to a parameter application for a parameter of type array.
-#[derive(Debug)]
-struct ArrayParamApplication {
-    static_content_dynamic_size: ApplicationInstance,
-    dynamic_content_static_size: ApplicationInstance,
-    dynamic_content_dynamic_size: ApplicationInstance,
+    fn remove_stmt(&mut self, id: StmtId) -> ComputeKind {
+        self.stmts.remove(&id).expect(
+            "statement to be removed should exist in the compute properties of the application instance",
+        )
+    }
+
+    fn remove_expr(&mut self, id: ExprId) -> ComputeKind {
+        self.exprs.remove(&id).expect(
+            "expression to be removed should exist in the compute properties of the application instance",
+        )
+    }
 }
 
 enum ParamApplicationComputeProperties {
@@ -628,46 +664,4 @@ struct ArrayParamApplicationComputeProperties {
     static_content_dynamic_size: ApplicationInstanceComputeProperties,
     dynamic_content_static_size: ApplicationInstanceComputeProperties,
     dynamic_content_dynamic_size: ApplicationInstanceComputeProperties,
-}
-
-struct ApplicationInstanceComputeProperties {
-    blocks: FxHashMap<BlockId, ComputeKind>,
-    stmts: FxHashMap<StmtId, ComputeKind>,
-    exprs: FxHashMap<ExprId, ComputeKind>,
-    value_kind: Option<ValueKind>,
-}
-
-#[derive(Clone, Copy)]
-enum ApplicationInstanceItem {
-    Block(BlockId),
-    Expr(ExprId),
-    Stmt(StmtId),
-}
-
-impl ApplicationInstanceComputeProperties {
-    fn remove(&mut self, item: ApplicationInstanceItem) -> ComputeKind {
-        match item {
-            ApplicationInstanceItem::Block(block_id) => self.remove_block(block_id),
-            ApplicationInstanceItem::Expr(expr_id) => self.remove_expr(expr_id),
-            ApplicationInstanceItem::Stmt(stmt_id) => self.remove_stmt(stmt_id),
-        }
-    }
-
-    fn remove_block(&mut self, id: BlockId) -> ComputeKind {
-        self.blocks.remove(&id).expect(
-            "block to be removed should exist in the compute properties of the application instance",
-        )
-    }
-
-    fn remove_stmt(&mut self, id: StmtId) -> ComputeKind {
-        self.stmts.remove(&id).expect(
-            "statement to be removed should exist in the compute properties of the application instance",
-        )
-    }
-
-    fn remove_expr(&mut self, id: ExprId) -> ComputeKind {
-        self.exprs.remove(&id).expect(
-            "expression to be removed should exist in the compute properties of the application instance",
-        )
-    }
 }

@@ -195,7 +195,6 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         panic!("visiting a callable declaration through this method is unexpected");
     }
 
-    // TODO (cesarzc): there might be a better way of doing this.
     fn visit_expr(&mut self, expr_id: ExprId) {
         let expr = self.get_expr(expr_id);
         match &expr.kind {
