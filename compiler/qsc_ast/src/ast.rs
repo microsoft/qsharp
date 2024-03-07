@@ -29,7 +29,7 @@ fn set_indentation<'a, 'b>(
 
 /// The unique identifier for an AST node.
 /// This could be assigned or unassigned. If unassigned, the value will be `u32::MAX`.
-/// Assignment happens after symbol resolution. Use [NodeId::is_default] to check if the node
+/// Assignment happens after symbol resolution. Use [`NodeId::is_default`] to check if the node
 /// has been assigned yet.
 #[derive(Clone, Copy, Debug)]
 pub struct NodeId(u32);
