@@ -13,6 +13,11 @@ declare_lint!(
     "attempt to divide by zero"
 );
 declare_lint!(
+    NeedlessParens,
+    LintLevel::Warning,
+    "unnecessary parentheses"
+);
+declare_lint!(
     RedundantSemicolons,
     LintLevel::Warning,
     "redundant semicolons"
@@ -36,6 +41,34 @@ impl AstLintPass for DivisionByZero {
                     push_lint!(Self, expr.span, buffer);
                 }
             }
+        }
+    }
+}
+
+impl AstLintPass for NeedlessParens {
+    /// The idea is that if we find a expr of the form:
+    /// a + (expr)
+    /// and `expr` has higher precedence than `+`, then the
+    /// parentheses are needless. Parentheses around a literal
+    /// are also needless.
+    fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
+        use ExprKind::{BinOp, Lit, Paren};
+
+        fn push(parent: &qsc_ast::ast::Expr, child: &qsc_ast::ast::Expr, buf: &mut Vec<Lint>) {
+            if let Paren(expr) = &*child.kind {
+                if precedence(parent) > precedence(expr) {
+                    push_lint!(NeedlessParens, child.span, buf);
+                }
+            }
+        }
+
+        match &*expr.kind {
+            Paren(e) if matches!(&*e.kind, Lit(_)) => push_lint!(Self, expr.span, buffer),
+            BinOp(_, left, right) => {
+                push(expr, left, buffer);
+                push(expr, right, buffer);
+            }
+            _ => (),
         }
     }
 }
@@ -68,5 +101,24 @@ impl AstLintPass for RedundantSemicolons {
         }
 
         maybe_push(&mut seq, buffer);
+    }
+}
+
+fn precedence(expr: &qsc_ast::ast::Expr) -> u8 {
+    match &*expr.kind {
+        ExprKind::Lit(_) => 0,
+        ExprKind::Paren(_) => 1,
+        ExprKind::UnOp(_, _) => 2,
+        ExprKind::BinOp(op, _, _) => match op {
+            BinOp::Exp => 3,
+            BinOp::Div | BinOp::Mod | BinOp::Mul => 4,
+            BinOp::Add | BinOp::Sub => 5,
+            BinOp::Shl | BinOp::Shr => 6,
+            BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => 7,
+            BinOp::Eq | BinOp::Neq => 8,
+            BinOp::OrB | BinOp::XorB | BinOp::AndB => 9,
+            BinOp::OrL | BinOp::AndL => 10,
+        },
+        _ => u8::MAX,
     }
 }
