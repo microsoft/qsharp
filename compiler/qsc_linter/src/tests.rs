@@ -75,7 +75,9 @@ fn division_by_zero() {
 
 #[test]
 fn needless_parens() {
-    check_ast("let x = (42);", &expect![[r#"
+    check_ast(
+        "let x = (42);",
+        &expect![[r#"
         [
             SrcLint {
                 source: "(42)",
@@ -83,7 +85,8 @@ fn needless_parens() {
                 level: Warning,
             },
         ]
-    "#]]);
+    "#]],
+    );
 
     check_ast(
         "let x = (2) + (5 * 4 * (2 ^ 10));",
