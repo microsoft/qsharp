@@ -77,6 +77,8 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     }
 }
 
+/// This function takes a [Path] and converts it into a single ident, which
+/// contains dots (`.`)
 pub(super) fn dot_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     let p = path(s)?;
     let mut name = String::new();
@@ -93,6 +95,9 @@ pub(super) fn dot_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     }))
 }
 
+/// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
+/// this can be either a namespace name (in an open statement or namespace declaration) or
+/// it can be a direct reference to something in a namespace, like `Microsoft.Quantum.Diagnostics.DumpMachine()`
 pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
     let lo = s.peek().span.lo;
     let mut parts = vec![ident(s)?];
