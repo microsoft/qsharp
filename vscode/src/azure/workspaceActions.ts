@@ -9,7 +9,6 @@ import {
   QuantumUris,
   ResponseTypes,
   storageRequest,
-  useProxy,
 } from "./networkRequests";
 import { WorkspaceConnection } from "./treeView";
 import {
@@ -18,53 +17,7 @@ import {
 } from "./providerProperties";
 import { getRandomGuid } from "../utils";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
-
-export const scopes = {
-  armMgmt: "https://management.azure.com/user_impersonation",
-  quantum: "https://quantum.microsoft.com/user_impersonation",
-};
-
-export async function getAuthSession(
-  scopes: string[],
-  associationId: string,
-): Promise<vscode.AuthenticationSession> {
-  const start = performance.now();
-  sendTelemetryEvent(EventType.AuthSessionStart, { associationId }, {});
-  log.debug("About to getSession for scopes", scopes.join(","));
-  try {
-    let session = await vscode.authentication.getSession("microsoft", scopes, {
-      silent: true,
-    });
-    if (!session) {
-      log.debug("No session with silent request. Trying with createIfNone");
-      session = await vscode.authentication.getSession("microsoft", scopes, {
-        createIfNone: true,
-      });
-    }
-    log.debug("Got session: ", JSON.stringify(session, null, 2));
-    sendTelemetryEvent(
-      EventType.AuthSessionEnd,
-      {
-        associationId,
-        flowStatus: UserFlowStatus.Succeeded,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
-    return session;
-  } catch (e) {
-    sendTelemetryEvent(
-      EventType.AuthSessionEnd,
-      {
-        associationId,
-        reason: "exception in getAuthSession",
-        flowStatus: UserFlowStatus.Failed,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
-    log.error("Exception occurred in getAuthSession: ", e);
-    throw e;
-  }
-}
+import { getTenantIdAndToken, getTokenForWorkspace } from "./auth";
 
 export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
   // Portal link format:
@@ -95,6 +48,8 @@ export function getPythonCodeForWorkspace(
   const resourceGroup = idMatch?.groups?.resourceGroup;
   const location = endpointMatch?.groups?.location;
 
+  // TODO: Mention how to fetch/use connection strings
+
   const pythonCode = `# If developing locally, on first run this will open a browser to authenticate the
 # connection with Azure. In remote scenarios, such as SSH or Codespaces, it may
 # be necesssary to install the Azure CLI and run 'az login --use-device-code' to
@@ -115,156 +70,75 @@ workspace = azure.quantum.Workspace(
   return pythonCode;
 }
 
-export async function queryWorkspaces(): Promise<
+async function getWorkspaceWithConnectionString(): Promise<
   WorkspaceConnection | undefined
 > {
-  log.debug("Querying for account workspaces");
-  const associationId = getRandomGuid();
-  const start = performance.now();
-  sendTelemetryEvent(EventType.QueryWorkspacesStart, { associationId }, {});
-  // *** Authenticate and retrieve tenants the user has Azure resources for ***
+  // TODO: Telemetry
 
-  // For the MSA case, you need to query the tenants first and get the underlying AzureAD
-  // tenant for the 'guest' MSA. See https://stackoverflow.microsoft.com/a/76246/108570
-  const firstAuth = await getAuthSession([scopes.armMgmt], associationId);
+  const connStr = await vscode.window.showInputBox({
+    prompt: "Enter the connection string",
+    placeHolder:
+      "SubscriptionId=<guid>;ResourceGroupName=<name>;WorkspaceName=<name>;ApiKey=<secret>;QuantumEndpoint=<serviceUri>;",
+  });
+  if (!connStr) return;
 
-  if (!firstAuth) {
-    log.error("No authentication session returned");
-    sendTelemetryEvent(
-      EventType.QueryWorkspacesEnd,
-      {
-        associationId,
-        reason: "no auth session returned",
-        flowStatus: UserFlowStatus.Failed,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
-    return;
-  }
-
-  const firstToken = firstAuth.accessToken;
-  const azureUris = new AzureUris();
-
-  const tenants: ResponseTypes.TenantList = await azureRequest(
-    azureUris.tenants(),
-    firstToken,
-    associationId,
-  );
-  log.trace(`Got tenants: ${JSON.stringify(tenants, null, 2)}`);
-  if (!tenants?.value?.length) {
-    log.error("No tenants returned");
-    sendTelemetryEvent(
-      EventType.QueryWorkspacesEnd,
-      {
-        associationId,
-        reason: "no tenants exist for account",
-        flowStatus: UserFlowStatus.Failed,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
+  const parts = connStr.split(";");
+  if (!parts) {
     vscode.window.showErrorMessage(
-      "There a no tenants listed for the account. Ensure the account has an Azure subscription.",
+      "Invalid connection string. Please follow the placeholder format",
     );
     return;
   }
 
-  // Quick-pick if more than one
-  let tenantId = tenants.value[0].tenantId;
-  if (tenants.value.length > 1) {
-    const pickItems = tenants.value.map((tenant) => ({
-      label: tenant.displayName,
-      detail: tenant.tenantId,
-    }));
-    const choice = await vscode.window.showQuickPick(pickItems, {
-      title: "Select a tenant",
-    });
-    if (!choice) {
-      sendTelemetryEvent(
-        EventType.QueryWorkspacesEnd,
-        {
-          associationId,
-          reason: "aborted tenant choice",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        { timeToCompleteMs: performance.now() - start },
-      );
-      return;
-    }
-    tenantId = choice.detail;
-  }
+  const partsMap = new Map<string, string>();
+  parts.forEach((part) => {
+    const eq = part.indexOf("=");
+    if (eq === -1) return;
+    partsMap.set(part.substring(0, eq).toLowerCase(), part.substring(eq + 1));
+  });
 
-  // *** Sign-in to that tenant and query the subscriptions available for it ***
-
-  // Skip if first token is already for the correct tenant and for AAD.
-  let tenantAuth = firstAuth;
-  const matchesTenant = tenantAuth.account.id.startsWith(tenantId);
-  const accountType = (tenantAuth as any).account?.type || "";
-  if (accountType !== "aad" || !matchesTenant) {
-    tenantAuth = await getAuthSession(
-      [scopes.armMgmt, `VSCODE_TENANT:${tenantId}`],
-      associationId,
-    );
-    if (!tenantAuth) {
-      sendTelemetryEvent(
-        EventType.QueryWorkspacesEnd,
-        {
-          associationId,
-          reason: "authentication session did not return",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        { timeToCompleteMs: performance.now() - start },
-      );
-      // The user may have cancelled the login
-      log.debug("No AAD authentication session returned during 2nd auth");
-      return;
-    }
-  }
-  const tenantToken = tenantAuth.accessToken;
-
-  const subs: ResponseTypes.SubscriptionList = await azureRequest(
-    azureUris.subscriptions(),
-    tenantToken,
-    associationId,
-  );
-  log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
-  if (!subs?.value?.length) {
-    log.info("No subscriptions returned for the AAD account and tenant");
+  if (
+    !partsMap.has("subscriptionid") ||
+    !partsMap.has("resourcegroupname") ||
+    !partsMap.has("workspacename") ||
+    !partsMap.has("apikey") ||
+    !partsMap.has("quantumendpoint")
+  ) {
     vscode.window.showErrorMessage(
-      "No Azure subscriptions found for the account and tenant",
+      "Invalid connection string. Please follow the placeholder format",
     );
     return;
   }
 
-  // Quick-pick if more than one
-  let subId = subs.value[0].subscriptionId;
-  if (subs.value.length > 1) {
-    const pickItems = subs.value.map((sub) => ({
-      label: sub.displayName,
-      detail: sub.subscriptionId,
-    }));
-    const choice = await vscode.window.showQuickPick(pickItems, {
-      title: "Select a subscription",
-    });
-    if (!choice) {
-      // User probably cancelled
-      sendTelemetryEvent(
-        EventType.QueryWorkspacesEnd,
-        {
-          associationId,
-          reason: "aborted subscription choice",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        { timeToCompleteMs: performance.now() - start },
-      );
-      return;
-    }
-    subId = choice.detail;
-  }
+  const workspaceId =
+    `/subscriptions/${partsMap.get("subscriptionid")}` +
+    `/resourceGroups/${partsMap.get("resourcegroupname")}` +
+    `/providers/Microsoft.Quantum/Workspaces/${partsMap.get("workspacename")}`;
 
+  // TODO: Validate the connection string info before returning as valid for further use.
+  // e.g. check for 401 (invalid key), 404 (invalid workspace), endpoint not found (invalid endpoint), etc.
+
+  return {
+    id: workspaceId,
+    name: partsMap.get("workspacename")!,
+    endpointUri: partsMap.get("quantumendpoint")!,
+    tenantId: "", // Blank means not authenticated via a token
+    apiKey: partsMap.get("apikey"),
+    providers: [], // Providers and jobs will be populated by a following 'queryWorkspace' call
+    jobs: [],
+  };
+}
+
+async function chooseWorkspaceFromSubscription(
+  subId: string,
+  associationId: string,
+  token: string,
+  start: number,
+) {
   // *** Fetch the Quantum Workspaces in the subscription ***
   const workspaces: ResponseTypes.WorkspaceList = await azureRequest(
-    azureUris.workspaces(subId),
-    tenantToken,
+    AzureUris.workspaces(subId),
+    token,
     associationId,
   );
   if (log.getLogLevel() >= 5) {
@@ -315,6 +189,81 @@ export async function queryWorkspaces(): Promise<
     }
     workspace = choice.selection;
   }
+  return workspace;
+}
+
+async function chooseSubscriptionFromTenant(
+  tenantToken: string,
+  associationId: string,
+  start: number,
+) {
+  const subs: ResponseTypes.SubscriptionList = await azureRequest(
+    AzureUris.subscriptions(),
+    tenantToken,
+    associationId,
+  );
+  log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
+  if (!subs?.value?.length) {
+    log.info("No subscriptions returned for the AAD account and tenant");
+    vscode.window.showErrorMessage(
+      "No Azure subscriptions found for the account and tenant",
+    );
+    return;
+  }
+
+  // Quick-pick if more than one
+  let subId = subs.value[0].subscriptionId;
+  if (subs.value.length > 1) {
+    const pickItems = subs.value.map((sub) => ({
+      label: sub.displayName,
+      detail: sub.subscriptionId,
+    }));
+    const choice = await vscode.window.showQuickPick(pickItems, {
+      title: "Select a subscription",
+    });
+    if (!choice) {
+      // User probably cancelled
+      sendTelemetryEvent(
+        EventType.QueryWorkspacesEnd,
+        {
+          associationId,
+          reason: "aborted subscription choice",
+          flowStatus: UserFlowStatus.Aborted,
+        },
+        { timeToCompleteMs: performance.now() - start },
+      );
+      return;
+    }
+    subId = choice.detail;
+  }
+  return subId;
+}
+
+async function getWorkspaceWithAzureAD(): Promise<
+  WorkspaceConnection | undefined
+> {
+  const associationId = getRandomGuid();
+  const start = performance.now();
+  sendTelemetryEvent(EventType.QueryWorkspacesStart, { associationId }, {});
+
+  // *** Authenticate and retrieve tenants the user has Azure resources for ***
+  const tenantAuth = await getTenantIdAndToken(associationId, start);
+  if (!tenantAuth) return;
+
+  const subscriptionId = await chooseSubscriptionFromTenant(
+    tenantAuth.tenantToken,
+    associationId,
+    start,
+  );
+  if (!subscriptionId) return;
+
+  const workspace = await chooseWorkspaceFromSubscription(
+    subscriptionId,
+    associationId,
+    tenantAuth.tenantToken,
+    start,
+  );
+  if (!workspace) return;
 
   // Need to remove the first part of the endpoint
   const fixedEndpoint =
@@ -327,15 +276,8 @@ export async function queryWorkspaces(): Promise<
     id: workspace.id,
     name: workspace.name,
     endpointUri: fixedEndpoint,
-    tenantId,
-    providers: workspace.properties.providers.map((provider) => ({
-      providerId: provider.providerId,
-      currentAvailability:
-        provider.provisioningState === "Succeeded"
-          ? "Available"
-          : "Unavailable",
-      targets: [], // Will be populated by a later query
-    })),
+    tenantId: tenantAuth.tenantId,
+    providers: [], // Providers and jobs will be populated by a following 'queryWorkspace' call
     jobs: [],
   };
   if (log.getLogLevel() >= 5) {
@@ -345,14 +287,28 @@ export async function queryWorkspaces(): Promise<
   return result;
 }
 
-export async function getTokenForWorkspace(workspace: WorkspaceConnection) {
-  const associationId = getRandomGuid();
+export async function queryWorkspaces(): Promise<
+  WorkspaceConnection | undefined
+> {
+  log.debug("Querying for account workspaces");
 
-  const workspaceAuth = await getAuthSession(
-    [scopes.quantum, `VSCODE_TENANT:${workspace.tenantId}`],
-    associationId,
+  // Show a quick-pick to ask if they want to connect via AzureAD or a connection string
+  const choice = await vscode.window.showQuickPick(
+    [
+      { label: "Azure account", type: "aad" },
+      { label: "Connection string", type: "connStr" },
+    ],
+    { canPickMany: false, title: "Select an authentication method" },
   );
-  return workspaceAuth.accessToken;
+
+  switch (choice?.type) {
+    case "connStr":
+      return await getWorkspaceWithConnectionString();
+    case "aad":
+      return await getWorkspaceWithAzureAD();
+    default:
+      return;
+  }
 }
 
 // Reference for existing queries in Python SDK and Azure schema:
@@ -461,8 +417,8 @@ export async function getJobFiles(
   const file = await storageRequest(
     sasUri,
     "GET",
-    useProxy ? token : undefined,
-    useProxy ? quantumUris.storageProxy() : undefined,
+    token,
+    quantumUris.storageProxy(),
   );
 
   if (!file) {
@@ -499,7 +455,11 @@ export async function submitJob(
   sendTelemetryEvent(EventType.SubmitToAzureStart, { associationId }, {});
 
   const containerName = getRandomGuid();
-  const jobName = await vscode.window.showInputBox({ prompt: "Job name" });
+  const jobName = await vscode.window.showInputBox({
+    prompt: "Job name",
+    value: new Date().toISOString(),
+  });
+  if (!jobName) return; // TODO: Log a telemetry event for this?
 
   // validator for the user-provided number of shots input
   const validateShotsInput = (input: string) => {
@@ -556,8 +516,8 @@ export async function submitJob(
   await storageRequest(
     containerPutUri,
     "PUT",
-    useProxy ? token : undefined,
-    useProxy ? quantumUris.storageProxy() : undefined,
+    token,
+    quantumUris.storageProxy(),
     undefined,
     undefined,
     associationId,
@@ -568,8 +528,8 @@ export async function submitJob(
   await storageRequest(
     inputDataUri,
     "PUT",
-    useProxy ? token : undefined,
-    useProxy ? quantumUris.storageProxy() : undefined,
+    token,
+    quantumUris.storageProxy(),
     [
       ["x-ms-blob-type", "BlockBlob"],
       ["Content-Type", "text/plain"],

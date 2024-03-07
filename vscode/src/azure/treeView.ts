@@ -101,6 +101,7 @@ export type WorkspaceConnection = {
   name: string;
   endpointUri: string;
   tenantId: string;
+  apiKey?: string;
   providers: Provider[];
   jobs: Job[];
 };
