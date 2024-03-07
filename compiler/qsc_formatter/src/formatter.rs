@@ -165,8 +165,8 @@ fn apply_rules(
             (_, Semi) => {
                 effect_no_space(left, whitespace, right, &mut edits);
             }
-            (Open(Delim::Brace), Close(Delim::Brace)) => {
-                // close empty brace blocks, i.e. {}
+            (Open(l), Close(r)) if l == r => {
+                // close empty delimiter blocks, i.e. (), [], {}
                 effect_no_space(left, whitespace, right, &mut edits);
             }
             (At, Ident) => {
