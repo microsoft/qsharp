@@ -6,7 +6,62 @@ namespace Microsoft.Quantum.Intrinsic {
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Measurement;
     open QIR.Intrinsic;
+
+    /// # Summary
+    /// Applies AND gate between `control1` and `control2` and stores the result
+    /// in `target` assuming `target` is in |0⟩ state.
+    ///
+    /// # Description
+    /// Inverts `target` if and only if both controls are 1, but assumes that
+    /// `target` is in state |0⟩. The operation has T-count 4, T-depth 2 and
+    /// requires no helper qubit, and may therefore be preferable to a CCNOT
+    /// operation, if `target` is known to be |0⟩.
+    /// The adjoint of this operation is measurement based and requires no T
+    /// gates (but requires target to support branching on measurements).
+    /// Although the Toffoli gate (CCNOT) will perform faster in simulations,
+    /// this version has lower T gate requirements.
+    /// # References
+    /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
+    ///   Phys. Rev. A 87, 022328, 2013
+    ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
+    ///   doi:10.1103/PhysRevA.87.022328
+    @Config(Unrestricted)
+    operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+        body ... {
+            CCNOT(control1, control2, target);
+        }
+        adjoint ... {
+            H(target);
+            if MResetZ(target) == One {
+                Controlled Z([control1], control2);
+            }
+        }
+    }
+
+    /// # Summary
+    /// Applies AND gate between `control1` and `control2` and stores the result
+    /// in `target` assuming `target` is in |0> state.
+    ///
+    /// # Description
+    /// Inverts `target` if and only if both controls are 1, but assumes that
+    /// `target` is in state 0. The operation has T-count 4, T-depth 2 and
+    /// requires no helper qubit, and may therefore be preferable to a CCNOT
+    /// operation, if `target` is known to be 0.
+    /// The adjoint of this operation is measurement based and requires no T
+    /// gates (but requires target to support branching on measurements).
+    /// Although the Toffoli gate (CCNOT) will perform faster in simulations,
+    /// this version has lower T gate requirements.
+    /// # References
+    /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
+    ///   Phys. Rev. A 87, 022328, 2013
+    ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
+    ///   doi:10.1103/PhysRevA.87.022328
+    @Config(Base)
+    operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
+        PhaseCCX(control1, control2, target);
+    }
 
     /// # Summary
     /// Applies the doubly controlled–NOT (CCNOT) gate to three qubits.
