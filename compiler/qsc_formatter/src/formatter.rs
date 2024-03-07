@@ -136,6 +136,7 @@ fn apply_rules(
     };
 
     use qsc_frontend::keyword::Keyword;
+    use qsc_frontend::lex::cooked::ClosedBinOp;
     use ConcreteTokenKind::*;
     use TokenKind::*;
     match (&left.kind, &right.kind) {
@@ -145,11 +146,18 @@ fn apply_rules(
             effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
         }
         (Syntax(Semi), Comment) => {
+            // ToDo: this needs to be broader than just off of semicolons
             if whitespace.contains('\n') {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
         }
         (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
+            (ClosedBinOp(ClosedBinOp::Minus), _) => {
+                // This case is used to ignore the spacing after a `-`.
+                // This is done because we currently don't have the architecture
+                // to be able to differentiate between the unary `-` and the binary `-`
+                // which would have different spacing after.
+            }
             (Semi, _) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
