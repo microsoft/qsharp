@@ -37,13 +37,20 @@ pub enum Error {
     #[error("No solution found for the provided maximum number of physical qubits.")]
     #[diagnostic(code("Qsc.Estimates.MaxPhysicalQubitsTooSmall"))]
     MaxPhysicalQubitsTooSmall,
-    /// The number of physical qubits per logical qubit cannot be computed.
+    /// The number of physical qubits required for a code cannot be computed.
     ///
     /// ✅ This does not contain user data and can be logged
     /// 🧑‍💻 This indicates a user error
-    #[error("The number of physical qubits per logical qubit cannot be computed: {0}")]
+    #[error("The number of physical qubits required for a code cannot be computed: {0}")]
     #[diagnostic(code("Qsc.Estimates.PhysicalQubitComputationFailed"))]
     PhysicalQubitComputationFailed(String),
+    /// The number of logical qubits provided by a code cannot be computed.
+    ///
+    /// ✅ This does not contain user data and can be logged
+    /// 🧑‍💻 This indicates a user error
+    #[error("The number of logical qubits provided by a code cannot be computed: {0}")]
+    #[diagnostic(code("Qsc.Estimates.LogicalQubitComputationFailed"))]
+    LogicalQubitComputationFailed(String),
     /// The logical cycle time cannot be computed.
     ///
     /// ✅ This does not contain user data and can be logged

@@ -16,6 +16,7 @@ export type Result =
 interface DumpMsg {
   type: "DumpMachine";
   state: Dump;
+  stateLatex: string;
 }
 
 interface MessageMsg {

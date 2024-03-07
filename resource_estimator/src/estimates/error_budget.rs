@@ -12,6 +12,7 @@ pub struct ErrorBudget {
 }
 
 impl ErrorBudget {
+    #[must_use]
     pub fn new(logical: f64, magic_states: f64, rotations: f64) -> Self {
         Self {
             logical,
@@ -21,16 +22,19 @@ impl ErrorBudget {
     }
 
     /// Get the error budget's plogical.
+    #[must_use]
     pub fn logical(&self) -> f64 {
         self.logical
     }
 
     /// Get the error budget's tstates.
+    #[must_use]
     pub fn magic_states(&self) -> f64 {
         self.magic_states
     }
 
     /// Get the error budget's rotations.
+    #[must_use]
     pub fn rotations(&self) -> f64 {
         self.rotations
     }

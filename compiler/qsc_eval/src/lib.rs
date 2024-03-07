@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-
 #[cfg(test)]
 mod tests;
 
@@ -13,6 +10,7 @@ mod error;
 mod intrinsic;
 pub mod lower;
 pub mod output;
+pub mod state;
 pub mod val;
 
 use crate::val::Value;
@@ -668,12 +666,12 @@ impl State {
         Ok(())
     }
 
-    fn cont_tup(&mut self, tup: &Vec<ExprId>) {
+    fn cont_tup(&mut self, tup: &[ExprId]) {
         self.push_action(Action::Tuple(tup.len()));
         self.push_exprs(tup);
     }
 
-    fn cont_arr(&mut self, arr: &Vec<ExprId>) {
+    fn cont_arr(&mut self, arr: &[ExprId]) {
         self.push_action(Action::Array(arr.len()));
         self.push_exprs(arr);
     }

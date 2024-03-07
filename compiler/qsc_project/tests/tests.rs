@@ -13,7 +13,7 @@ use harness::check;
 #[test]
 fn basic_manifest() {
     check(
-        "basic_manifest".into(),
+        &"basic_manifest".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -38,13 +38,13 @@ fn basic_manifest() {
                     language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn circular_imports() {
     check(
-        "circular_imports".into(),
+        &"circular_imports".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -69,13 +69,13 @@ fn circular_imports() {
                     language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn different_files_same_manifest() {
     check(
-        "different_files_same_manifest".into(),
+        &"different_files_same_manifest".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -100,13 +100,13 @@ fn different_files_same_manifest() {
                     language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn empty_manifest() {
     check(
-        "empty_manifest".into(),
+        &"empty_manifest".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -121,13 +121,13 @@ fn empty_manifest() {
                     language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn folder_structure() {
     check(
-        "folder_structure".into(),
+        &"folder_structure".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -154,12 +154,12 @@ fn folder_structure() {
                     language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 #[test]
 fn hidden_files() {
     check(
-        "hidden_files".into(),
+        &"hidden_files".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -182,12 +182,12 @@ fn hidden_files() {
                     language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 #[test]
 fn peer_file() {
     check(
-        "peer_file".into(),
+        &"peer_file".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -214,13 +214,13 @@ fn peer_file() {
                     language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn language_feature() {
     check(
-        "language_feature".into(),
+        &"language_feature".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -237,5 +237,5 @@ fn language_feature() {
                     ],
                 },
             }"#]],
-    )
+    );
 }

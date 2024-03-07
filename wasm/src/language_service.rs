@@ -99,7 +99,7 @@ impl LanguageService {
                     "exe" => PackageType::Exe,
                     _ => panic!("invalid package type"),
                 }),
-            })
+            });
     }
 
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
@@ -116,7 +116,7 @@ impl LanguageService {
         notebook_metadata: INotebookMetadata,
         cells: Vec<ICell>,
     ) {
-        let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
+        let cells: Vec<Cell> = cells.into_iter().map(std::convert::Into::into).collect();
         let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
@@ -241,15 +241,15 @@ impl LanguageService {
         let locations = self.0.get_rename(uri, position.into());
 
         let mut renames: FxHashMap<String, Vec<TextEdit>> = FxHashMap::default();
-        locations.into_iter().for_each(|l| {
+        for l in locations {
             renames
                 .entry(l.source.to_string())
                 .or_default()
                 .push(TextEdit {
                     range: l.range.into(),
                     newText: new_name.to_string(),
-                })
-        });
+                });
+        }
 
         let workspace_edit = WorkspaceEdit {
             changes: renames.into_iter().collect(),
