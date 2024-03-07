@@ -280,7 +280,18 @@ fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     };
 
     if token(s, TokenKind::Comma).is_err() {
-        return Ok(Box::new(ExprKind::Array(vec![first].into_boxed_slice())));
+        match s.peek().kind {
+            TokenKind::Eq | TokenKind::Close(Delim::Bracket) => {
+                return Ok(Box::new(ExprKind::Array(vec![first].into_boxed_slice())));
+            }
+            _missing_comma => {
+                return Err(Error(ErrorKind::Token(
+                    TokenKind::Comma,
+                    s.peek().kind,
+                    s.peek().span,
+                )));
+            }
+        }
     }
 
     let second = expr(s)?;
