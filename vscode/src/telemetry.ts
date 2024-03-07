@@ -40,6 +40,8 @@ export enum EventType {
   TriggerHistogram = "Qsharp.TriggerHistogram",
   HistogramStart = "Qsharp.HistogramStart",
   HistogramEnd = "Qsharp.HistogramEnd",
+  FormatStart = "Qsharp.FormatStart",
+  FormatEnd = "Qsharp.FormatEnd",
 }
 
 type Empty = { [K in any]: never };
@@ -205,6 +207,14 @@ type EventTypes = {
   [EventType.HistogramEnd]: {
     properties: { associationId: string };
     measurements: { timeToCompleteMs: number };
+  };
+  [EventType.FormatStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.FormatEnd]: {
+    properties: { associationId: string };
+    measurements: { timeToCompleteMs: number; numberOfEdits: number };
   };
 };
 
