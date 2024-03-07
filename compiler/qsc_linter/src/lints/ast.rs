@@ -52,29 +52,17 @@ impl AstLintPass for NeedlessParens {
     /// parentheses are needless. Parentheses around a literal
     /// are also needless.
     fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
-        use ExprKind::{BinOp, Lit, Paren};
-
         fn push(parent: &qsc_ast::ast::Expr, child: &qsc_ast::ast::Expr, buf: &mut Vec<Lint>) {
-            if let Paren(expr) = &*child.kind {
-                let p_parent = precedence(parent);
-                let p_child = precedence(expr);
-
-                // Check that p_child > 0 to avoid double throwing
-                // the lint when we have a parenthesized literal in
-                // a binary expr.
-                if p_parent > p_child && p_child > 0 {
+            if let ExprKind::Paren(expr) = &*child.kind {
+                if precedence(parent) > precedence(expr) {
                     push_lint!(NeedlessParens, child.span, buf);
                 }
             }
         }
 
-        match &*expr.kind {
-            Paren(e) if matches!(&*e.kind, Lit(_)) => push_lint!(Self, expr.span, buffer),
-            BinOp(_, left, right) => {
-                push(expr, left, buffer);
-                push(expr, right, buffer);
-            }
-            _ => (),
+        if let ExprKind::BinOp(_, left, right) = &*expr.kind {
+            push(expr, left, buffer);
+            push(expr, right, buffer);
         }
     }
 }
