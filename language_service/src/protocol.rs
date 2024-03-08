@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use qsc::circuit::OperationInfo;
 use qsc::line_column::Range;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 
@@ -124,10 +125,11 @@ pub struct CodeLens {
     pub command: CodeLensCommand,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum CodeLensCommand {
     Histogram,
     Debug,
     Run,
     Estimate,
+    Circuit(Option<OperationInfo>),
 }

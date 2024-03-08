@@ -26,6 +26,7 @@ qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
 qsc_project = { path = "../qsc_project", features = ["fs"] }
+qsc_circuit = { path = "../qsc_circuit" }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 

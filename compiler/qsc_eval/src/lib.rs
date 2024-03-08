@@ -101,6 +101,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize, #[label("Qubit{0}")] PackageSpan),
 
+    #[error("Result comparison is unsupported for this backend")]
+    #[diagnostic(code("Qsc.Eval.ResultComparisonUnsupported"))]
+    ResultComparisonUnsupported(#[label("cannot compare result")] PackageSpan),
+
     #[error("name is not bound")]
     #[diagnostic(code("Qsc.Eval.UnboundName"))]
     UnboundName(#[label] PackageSpan),
@@ -140,6 +144,7 @@ impl Error {
             | Error::QubitsNotSeparable(span)
             | Error::RangeStepZero(span)
             | Error::ReleasedQubitNotZero(_, span)
+            | Error::ResultComparisonUnsupported(span)
             | Error::UnboundName(span)
             | Error::UnknownIntrinsic(_, span)
             | Error::UnsupportedIntrinsicType(_, span)
@@ -1019,11 +1024,7 @@ impl State {
                 }
             }
             BinOp::Div => self.eval_binop_with_error(span, eval_binop_div)?,
-            BinOp::Eq => {
-                let rhs_val = self.pop_val();
-                let lhs_val = self.pop_val();
-                self.push_val(Value::Bool(lhs_val == rhs_val));
-            }
+            BinOp::Eq => self.eval_binop_with_error(span, eval_binop_eq)?,
             BinOp::Exp => self.eval_binop_with_error(span, eval_binop_exp)?,
             BinOp::Gt => self.eval_binop_simple(eval_binop_gt),
             BinOp::Gte => self.eval_binop_simple(eval_binop_gte),
@@ -1034,6 +1035,15 @@ impl State {
             BinOp::Neq => {
                 let rhs_val = self.pop_val();
                 let lhs_val = self.pop_val();
+                if let Value::Result(val::Result::Id(_)) = rhs_val {
+                    // Comparison of result ids is nonsensical, so we prevent it.
+                    // This code path is reachable for the circuit builder backend
+                    // since we don't currently do runtime capability analysis
+                    // to prevent executing programs that do result comparisons.
+                    return Err(Error::ResultComparisonUnsupported(
+                        self.to_global_span(span),
+                    ));
+                }
                 self.push_val(Value::Bool(lhs_val != rhs_val));
             }
             BinOp::OrB => self.eval_binop_simple(eval_binop_orb),
@@ -1706,6 +1716,19 @@ fn make_range(
             (start.unwrap_or(len - 1), end.unwrap_or(0))
         };
         Ok(Range::new(start, step, end))
+    }
+}
+
+fn eval_binop_eq(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Result<Value, Error> {
+    match (lhs_val, rhs_val) {
+        (Value::Result(val::Result::Id(_)), _) | (_, Value::Result(val::Result::Id(_))) => {
+            // Comparison of result ids is nonsensical, so we prevent it.
+            // This code path is reachable when using the circuit builder backend
+            // since we don't currently do runtime capability analysis
+            // to prevent executing programs that do result comparisons.
+            Err(Error::ResultComparisonUnsupported(rhs_span))
+        }
+        (lhs, rhs) => Ok(Value::Bool(lhs == rhs)),
     }
 }
 

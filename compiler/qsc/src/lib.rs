@@ -46,3 +46,7 @@ pub use qsc_eval::{
 };
 
 pub use qsc_doc_gen::{display, generate_docs};
+
+pub mod circuit {
+    pub use qsc_circuit::{operations::*, Circuit, Operation};
+}
