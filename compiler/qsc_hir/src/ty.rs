@@ -500,9 +500,9 @@ impl FunctorSetValue {
     }
 
     #[must_use]
-    pub fn satisfies(&self, required: &Self) -> bool {
+    pub fn satisfies(&self, other: &Self) -> bool {
         matches!(
-            (self, required),
+            (self, other),
             (_, Self::Empty)
                 | (Self::Adj | Self::CtlAdj, Self::Adj)
                 | (Self::Ctl | Self::CtlAdj, Self::Ctl)
