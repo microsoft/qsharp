@@ -6,42 +6,30 @@ namespace Kata.Verification {
         operation ComplexExpReal_Reference(r : Double, x : Complex) : Complex {
                
             if r == 0.0 {return Complex(0.0, 0.0);}
-            let lnr = Log(r);
-            return ComplexExponent_Reference(ComplexMult_Reference(Complex(lnr, 0.0), x));
+            let real = r^x::Real * Cos(x::Imag * Log(r));
+            let imaginary = r^x::Real * Sin(x::Imag * Log(r));
+            return Complex(real, imaginary);
         }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
         
-            mutable success = false;
-            mutable expected = Complex(0., 0.); 
-            mutable actual = Complex(0., 0.);  
+        for count in 0 .. 24 {
+            let testx = ComplexRandom(0., 100.); 
+            let testr = DrawRandomDouble(0., 10.); 
 
-            mutable count = 0;
-                        
-            repeat {
-                let testx = ComplexRandom(0., 10.);
-                let testr = DrawRandomDouble(0., 10.);                 
-
-                set expected =  ComplexExpReal_Reference(testr, testx); 
-                set actual = Kata.ComplexExpReal(testr, testx);        
+            let expected = ComplexExpReal_Reference(testr, testx); 
+            let actual = Kata.ComplexExpReal(testr, testx);        
         
-                if (ComplexEqual(expected, actual)) {
-                    set success = true; 
-                }                
+            if not(ComplexEqual(expected, actual)) {
+                Message($"Incorrect. When x = {testx::Real} + {testx::Imag}i and r = {testr}, actual value doesn't match expected value");
+                Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} +  {expected::Imag}i");
+                return false;
+            }                
+        }            
 
-                set count += 1;
-            }
-            until (count > 25) or (success == false);
-
-            if success == true {Message("Correct!");}
-            else {
-                     Message("Incorrect. Actual value doesn't match expected value");
-                     Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} +  {expected::Imag}i");
-                }         
-        
-            return (success);       
-        
+            Message("Correct!");
+            return true;        
     }
     
 }
