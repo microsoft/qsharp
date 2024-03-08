@@ -19,6 +19,8 @@ mod modeling;
 mod optimization;
 mod serialization;
 
+use std::rc::Rc;
+
 use crate::estimates::PhysicalResourceEstimation;
 
 use self::{modeling::Protocol, optimization::TFactoryBuilder};
@@ -84,7 +86,7 @@ fn estimate_single(
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        logical_resources,
+        Rc::new(logical_resources),
         partitioning,
     );
     if let Some(logical_depth_factor) = job_params.constraints().logical_depth_factor {
