@@ -1654,21 +1654,21 @@ fn namespace_with_attributes_and_docs() {
         "/// Documentation for LevelOne
         namespace LevelOne {
             @ExampleAttr()
-            /// Documentation for InnerItem
+            /// Documentation that shouldn't show up, since docstrings go above attrs
             function InnerItem() : Unit {}
         }",
         &expect![[r#"
-            Namespace _id_ [0-183] (Ident _id_ [49-57] "LevelOne"):
+            Namespace _id_ [0-225] (Ident _id_ [49-57] "LevelOne"):
                 doc:
                     Documentation for LevelOne
-                Item _id_ [72-173]:
+                Item _id_ [72-215]:
                     Attr _id_ [72-86] (Ident _id_ [73-84] "ExampleAttr"):
                         Expr _id_ [84-86]: Unit
-                    Callable _id_ [99-173] (Function):
-                        name: Ident _id_ [152-161] "InnerItem"
-                        input: Pat _id_ [161-163]: Unit
-                        output: Type _id_ [166-170]: Path: Path _id_ [166-170] (Ident _id_ [166-170] "Unit")
-                        body: Block: Block _id_ [171-173]: <empty>"#]],
+                    Callable _id_ [99-215] (Function):
+                        name: Ident _id_ [194-203] "InnerItem"
+                        input: Pat _id_ [203-205]: Unit
+                        output: Type _id_ [208-212]: Path: Path _id_ [208-212] (Ident _id_ [208-212] "Unit")
+                        body: Block: Block _id_ [213-215]: <empty>"#]],
     );
 }
 
