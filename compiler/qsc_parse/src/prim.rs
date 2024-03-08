@@ -77,8 +77,8 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     }
 }
 
-/// This function takes a [Path] and converts it into a single ident, which
-/// contains dots (`.`)
+/// This function parses a [Path] from the given context
+/// and converts it into a single ident, which contains dots (`.`)
 pub(super) fn dot_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     let p = path(s)?;
     let mut name = String::new();
