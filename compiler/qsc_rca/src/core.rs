@@ -1444,11 +1444,25 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
             }
         };
 
-        // If the expression's compute kind is of the quantum variant, then additional runtime features might be needed
-        // depending on the expression's type and its value kind.
+        // If the expression's compute kind is of the quantum variant, then we need to do a couple more things to get
+        // the final compute kind for the expression.
         if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
+            // Since the value kind does not handle all type structures (e.g. it does not handle the structure of a
+            // tuple type), there could be a mistmatch between the expected value kind variant for the expression's type
+            // and the value kind that we got.
+            // We fix this mismatch here.
+            let mut value_kind = ValueKind::new_static_from_type(&expr.ty);
+            quantum_properties
+                .value_kind
+                .project_onto_variant(&mut value_kind);
+            quantum_properties.value_kind = value_kind;
+
+            // Depending on the expression's type and its value kind, we require additional runtime features.
             quantum_properties.runtime_features |=
-                derive_runtime_features(&expr.ty, quantum_properties.value_kind);
+                derive_runtime_features_for_value_kind_associated_to_type(
+                    quantum_properties.value_kind,
+                    &expr.ty,
+                );
         }
 
         // Finally, insert the expresion's compute kind in the application instance.
@@ -1723,8 +1737,13 @@ fn derive_intrinsic_function_application_generator_set(
         // the output of the function is dynamic.
         // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
         // function application.
-        let runtime_features =
-            derive_runtime_features(&param.ty, ValueKind::new_dynamic_from_type(&param.ty));
+        let runtime_features = derive_runtime_features_for_value_kind_associated_to_type(
+            ValueKind::new_dynamic_from_type(&param.ty),
+            &param.ty,
+        );
+
+        // TODO (cesarzc): runtime features for dynamic tuples must be aggregated separately.
+
         let value_kind = ValueKind::new_dynamic_from_type(&callable_context.output_type);
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
             runtime_features,
@@ -1778,8 +1797,13 @@ fn derive_instrinsic_operation_application_generator_set(
         // dynamic the output of the operation is dynamic.
         // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
         // operation application.
-        let runtime_features =
-            derive_runtime_features(&param.ty, ValueKind::new_dynamic_from_type(&param.ty));
+        let runtime_features = derive_runtime_features_for_value_kind_associated_to_type(
+            ValueKind::new_dynamic_from_type(&param.ty),
+            &param.ty,
+        );
+
+        // TODO (cesarzc): runtime features for dynamic tuples must be aggregated separately.
+
         let value_kind = ValueKind::new_dynamic_from_type(&callable_context.output_type);
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
             runtime_features,
@@ -1804,7 +1828,10 @@ fn derive_instrinsic_operation_application_generator_set(
     }
 }
 
-fn derive_runtime_features(ty: &Ty, value_kind: ValueKind) -> RuntimeFeatureFlags {
+fn derive_runtime_features_for_value_kind_associated_to_type(
+    value_kind: ValueKind,
+    ty: &Ty,
+) -> RuntimeFeatureFlags {
     fn derive_runtime_features_for_dynamic_primitive_type(prim: Prim) -> RuntimeFeatureFlags {
         match prim {
             Prim::BigInt => RuntimeFeatureFlags::UseOfDynamicBigInt,
@@ -1830,7 +1857,10 @@ fn derive_runtime_features(ty: &Ty, value_kind: ValueKind) -> RuntimeFeatureFlag
             // If the content of the array is dynamic, add runtime features depending on the content type.
             if matches!(content_runtime_kind, RuntimeKind::Dynamic) {
                 let content_value_kind = ValueKind::new_dynamic_from_type(array_content_type);
-                runtime_features |= derive_runtime_features(array_content_type, content_value_kind);
+                runtime_features |= derive_runtime_features_for_value_kind_associated_to_type(
+                    content_value_kind,
+                    array_content_type,
+                );
             }
 
             // If the array size is dynamic, add the corresponding runtime feature.
@@ -1852,14 +1882,6 @@ fn derive_runtime_features(ty: &Ty, value_kind: ValueKind) -> RuntimeFeatureFlag
             }
         }
         Ty::Infer(_) => panic!("cannot derive runtime features for `Infer` type"),
-        Ty::Param(_) => {
-            let runtime_kind = value_kind.get_element_runtime_kind();
-            if matches!(runtime_kind, RuntimeKind::Dynamic) {
-                RuntimeFeatureFlags::UseOfDynamicGeneric
-            } else {
-                RuntimeFeatureFlags::empty()
-            }
-        }
         Ty::Prim(prim) => {
             let runtime_kind = value_kind.get_element_runtime_kind();
             if matches!(runtime_kind, RuntimeKind::Dynamic) {
@@ -1868,9 +1890,10 @@ fn derive_runtime_features(ty: &Ty, value_kind: ValueKind) -> RuntimeFeatureFlag
                 RuntimeFeatureFlags::empty()
             }
         }
+        // Generic types do not require additional runtime features.
         // Runtime features for tuples with dynamic elements are handled on each sub-expression, so there is no need to
         // do add more runtime features here.
-        Ty::Tuple(_) => RuntimeFeatureFlags::empty(),
+        Ty::Param(_) | Ty::Tuple(_) => RuntimeFeatureFlags::empty(),
         // Runtime features can be more nuanced by taking into account the contained types.
         Ty::Udt(_) => RuntimeFeatureFlags::UseOfDynamicUdt,
         Ty::Err => panic!("cannot derive runtime features for `Err` type"),

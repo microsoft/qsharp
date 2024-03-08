@@ -322,18 +322,18 @@ impl GeneratorSetsBuilder {
         for (block_id, block_inherent_compute_kind) in
             inherent_application_compute_properties.blocks.drain()
         {
-            let mut block_non_static_param_applications =
+            let mut block_dynamic_param_applications =
                 Vec::<crate::ParamApplication>::with_capacity(input_params_count);
             for param_application_compute_properties in
                 dynamic_param_applications_compute_properties.iter_mut()
             {
                 let param_application = param_application_compute_properties
                     .remove_item(ApplicationInstanceItem::Block(block_id));
-                block_non_static_param_applications.push(param_application);
+                block_dynamic_param_applications.push(param_application);
             }
             let application_generator_set = ApplicationGeneratorSet {
                 inherent: block_inherent_compute_kind,
-                dynamic_param_applications: block_non_static_param_applications,
+                dynamic_param_applications: block_dynamic_param_applications,
             };
             package_compute_properties
                 .blocks
@@ -344,18 +344,18 @@ impl GeneratorSetsBuilder {
         for (stmt_id, stmt_inherent_compute_kind) in
             inherent_application_compute_properties.stmts.drain()
         {
-            let mut stmt_non_static_param_applications =
+            let mut stmt_dynamic_param_applications =
                 Vec::<crate::ParamApplication>::with_capacity(input_params_count);
             for param_application_compute_properties in
                 dynamic_param_applications_compute_properties.iter_mut()
             {
                 let param_application = param_application_compute_properties
                     .remove_item(ApplicationInstanceItem::Stmt(stmt_id));
-                stmt_non_static_param_applications.push(param_application);
+                stmt_dynamic_param_applications.push(param_application);
             }
             let application_generator_set = ApplicationGeneratorSet {
                 inherent: stmt_inherent_compute_kind,
-                dynamic_param_applications: stmt_non_static_param_applications,
+                dynamic_param_applications: stmt_dynamic_param_applications,
             };
             package_compute_properties
                 .stmts
@@ -366,18 +366,18 @@ impl GeneratorSetsBuilder {
         for (expr_id, expr_inherent_compute_kind) in
             inherent_application_compute_properties.exprs.drain()
         {
-            let mut expr_non_static_param_applications =
+            let mut expr_dynamic_param_applications =
                 Vec::<crate::ParamApplication>::with_capacity(input_params_count);
             for param_application_compute_properties in
                 dynamic_param_applications_compute_properties.iter_mut()
             {
                 let param_application = param_application_compute_properties
                     .remove_item(ApplicationInstanceItem::Expr(expr_id));
-                expr_non_static_param_applications.push(param_application);
+                expr_dynamic_param_applications.push(param_application);
             }
             let application_generator_set = ApplicationGeneratorSet {
                 inherent: expr_inherent_compute_kind,
-                dynamic_param_applications: expr_non_static_param_applications,
+                dynamic_param_applications: expr_dynamic_param_applications,
             };
             package_compute_properties
                 .exprs
@@ -480,6 +480,7 @@ impl ApplicationInstance {
             if let Some((dynamic_param_index, dynamic_param_value_kind)) = dynamic_param {
                 if input_param_index == dynamic_param_index {
                     compute_kind = ComputeKind::Quantum(QuantumProperties {
+                        // TODO (cesarzc): runitme features should depend on the parameter type to be properly propagated.
                         runtime_features: RuntimeFeatureFlags::empty(),
                         value_kind: dynamic_param_value_kind,
                     });

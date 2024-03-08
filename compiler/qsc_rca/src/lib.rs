@@ -278,7 +278,7 @@ impl Display for ApplicationGeneratorSet {
         write!(indent, "ApplicationsGeneratorSet:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\ninherent: {}", self.inherent)?;
-        write!(indent, "\nnon_static_param_applications:")?;
+        write!(indent, "\ndynamic_param_applications:")?;
         if self.dynamic_param_applications.is_empty() {
             write!(indent, " <empty>")?;
         } else {
@@ -364,8 +364,10 @@ pub enum ParamApplication {
 impl Display for ParamApplication {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
-            Self::Element(compute_kind) => write!(f, "Element: {compute_kind}")?,
-            Self::Array(array_param_application) => write!(f, "Array: {array_param_application}")?,
+            Self::Element(compute_kind) => write!(f, "[Parameter Type Element] {compute_kind}")?,
+            Self::Array(array_param_application) => {
+                write!(f, "[Parameter Type Array] {array_param_application}")?;
+            }
         };
         Ok(())
     }
@@ -546,9 +548,9 @@ impl Display for ValueKind {
         match &self {
             Self::Array(content_runtime_value, size_runtime_value) => write!(
                 f,
-                "Array: (Content: {content_runtime_value}, Size: {size_runtime_value})"
+                "Array(Content: {content_runtime_value}, Size: {size_runtime_value})"
             )?,
-            Self::Element(runtime_value) => write!(f, "Element: {runtime_value}")?,
+            Self::Element(runtime_value) => write!(f, "Element({runtime_value})")?,
         };
         Ok(())
     }
@@ -709,30 +711,28 @@ bitflags! {
         const UseOfDynamicArrowFunction = 1 << 10;
         /// Use of a dynamic arrow operation.
         const UseOfDynamicArrowOperation = 1 << 11;
-        /// Use of a dynamic generic.
-        const UseOfDynamicGeneric = 1 << 12;
         /// A function with cycles used with a dynamic argument.
-        const CyclicFunctionUsesDynamicArg = 1 << 13;
+        const CyclicFunctionUsesDynamicArg = 1 << 12;
         /// An operation specialization with cycles is used.
-        const CyclicOperation = 1 << 14;
+        const CyclicOperation = 1 << 13;
         /// A callee expression is dynamic.
-        const DynamicCallee = 1 << 15;
+        const DynamicCallee = 1 << 14;
         /// A callee expression could not be resolved to a specific callable.
-        const UnresolvedCallee = 1 << 16;
+        const UnresolvedCallee = 1 << 15;
         /// A UDT constructor was used with a dynamic argument(s).
-        const UdtConstructorUsesDynamicArg = 1 << 17;
+        const UdtConstructorUsesDynamicArg = 1 << 16;
         /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 1 << 18;
+        const ForwardBranchingOnDynamicValue = 1 << 17;
         /// Qubit allocation that happens within a dynamic scope.
-        const DynamicQubitAllocation = 1 << 19;
+        const DynamicQubitAllocation = 1 << 18;
         /// Result allocation that happens within a dynamic scope.
-        const DynamicResultAllocation = 1 << 20;
+        const DynamicResultAllocation = 1 << 19;
         /// Use of a dynamic index to access or update an array.
-        const UseOfDynamicIndex = 1 << 21;
+        const UseOfDynamicIndex = 1 << 20;
         /// Use of a runtime failure.
-        const FailureWithDynamicExpression = 1 << 22;
+        const FailureWithDynamicExpression = 1 << 21;
         /// Use of a closure.
-        const UseOfClosure = 1 << 23;
+        const UseOfClosure = 1 << 22;
     }
 }
 
@@ -775,9 +775,6 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
-        }
-        if self.contains(RuntimeFeatureFlags::UseOfDynamicGeneric) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg) {

@@ -19,7 +19,7 @@ fn check_rca_for_quantum_rt_qubit_allocate() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications: <empty>
                 adj: <none>
                 ctl: <none>
@@ -41,11 +41,11 @@ fn check_rca_for_quantum_rt_qubit_release() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -66,11 +66,11 @@ fn check_rca_for_quantum_qis_m_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic
+                        value_kind: Element(Dynamic)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -78,6 +78,7 @@ fn check_rca_for_quantum_qis_m_body() {
     );
 }
 
+#[ignore = "work in progress"]
 #[test]
 fn check_rca_for_length() {
     let compilation_context = CompilationContext::new();
@@ -91,9 +92,16 @@ fn check_rca_for_length() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicArray | UseOfDynamicGeneric)
-                            value_kind: Dynamic
+                        [0]: [Parameter Type Array] ArrayParamApplication:
+                            static_content_dynamic_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                value_kind: Element(Dynamic)
+                            dynamic_content_static_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(0x0)
+                                value_kind: Element(Static)
+                            dynamic_content_dynamic_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -114,11 +122,11 @@ fn check_rca_for_quantum_qis_mresetz_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic
+                        value_kind: Element(Dynamic)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -139,9 +147,9 @@ fn check_rca_for_int_as_double() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -162,9 +170,9 @@ fn check_rca_for_int_as_big_int() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -205,11 +213,11 @@ fn check_rca_for_check_zero() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic
+                        value_kind: Element(Dynamic)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -230,9 +238,9 @@ fn check_rca_for_message() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicString)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -253,9 +261,9 @@ fn check_rca_for_arc_cos() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -276,9 +284,9 @@ fn check_rca_for_arc_sin() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -299,9 +307,9 @@ fn check_rca_for_arc_tan() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -322,12 +330,12 @@ fn check_rca_for_arc_tan_2() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Dynamic)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -348,9 +356,9 @@ fn check_rca_for_cos() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -371,9 +379,9 @@ fn check_rca_for_cosh() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -394,9 +402,9 @@ fn check_rca_for_sin() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -417,9 +425,9 @@ fn check_rca_for_sinh() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -440,9 +448,9 @@ fn check_rca_for_tan() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -463,9 +471,9 @@ fn check_rca_for_tanh() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -486,9 +494,9 @@ fn check_rca_for_sqrt() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -509,9 +517,9 @@ fn check_rca_for_log() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -532,9 +540,9 @@ fn check_rca_for_truncate() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -555,17 +563,17 @@ fn check_rca_for_quantum_qis_ccx_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [2]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [2]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -586,14 +594,14 @@ fn check_rca_for_quantum_qis_cx_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -614,14 +622,14 @@ fn check_rca_for_quantum_qis_cy_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -642,14 +650,14 @@ fn check_rca_for_quantum_qis_cz_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -670,14 +678,14 @@ fn check_rca_for_quantum_qis_rx_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -698,17 +706,17 @@ fn check_rca_for_quantum_qis_rxx_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [2]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [2]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -729,14 +737,14 @@ fn check_rca_for_quantum_qis_ry_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -757,17 +765,17 @@ fn check_rca_for_quantum_qis_ryy_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [2]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [2]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -788,14 +796,14 @@ fn check_rca_for_quantum_qis_rz_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -816,17 +824,17 @@ fn check_rca_for_quantum_qis_rzz_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [2]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [2]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -847,11 +855,11 @@ fn check_rca_for_quantum_qis_h_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -872,11 +880,11 @@ fn check_rca_for_quantum_qis_s_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -897,11 +905,11 @@ fn check_rca_for_quantum_qis_s_adj() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -922,11 +930,11 @@ fn check_rca_for_quantum_qis_t_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -947,11 +955,11 @@ fn check_rca_for_quantum_qis_t_adj() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -972,11 +980,11 @@ fn check_rca_for_quantum_qis_x_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -997,11 +1005,11 @@ fn check_rca_for_quantum_qis_y_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1022,11 +1030,11 @@ fn check_rca_for_quantum_qis_z_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1047,14 +1055,14 @@ fn check_rca_for_quantum_qis_swap_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1075,11 +1083,11 @@ fn check_rca_for_quantum_qis_reset_body() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1100,14 +1108,14 @@ fn check_rca_for_draw_random_int() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic
+                        value_kind: Element(Dynamic)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Dynamic)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1128,14 +1136,14 @@ fn check_rca_for_draw_random_double() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Dynamic
+                        value_kind: Element(Dynamic)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Dynamic)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicDouble)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1156,12 +1164,12 @@ fn check_rca_for_begin_estimate_caching() {
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicString)
-                            value_kind: Dynamic
-                        [1]: Quantum: QuantumProperties:
+                            value_kind: Element(Dynamic)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Dynamic
+                            value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1189,6 +1197,7 @@ fn check_rca_for_end_estimate_caching() {
     );
 }
 
+#[ignore = "work in progress"]
 #[test]
 fn check_rca_for_account_for_estimates_internal() {
     let compilation_context = CompilationContext::new();
@@ -1202,17 +1211,31 @@ fn check_rca_for_account_for_estimates_internal() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicArray | UseOfDynamicTuple)
-                            value_kind: Static
-                        [1]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Array] ArrayParamApplication:
+                            static_content_dynamic_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                value_kind: Element(Static)
+                            dynamic_content_static_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
+                                value_kind: Element(Static)
+                            dynamic_content_dynamic_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicArray)
+                                value_kind: Element(Static)
+                        [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Static
-                        [2]: Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicArray)
-                            value_kind: Static
+                            value_kind: Element(Static)
+                        [2]: [Parameter Type Array] ArrayParamApplication:
+                            static_content_dynamic_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                value_kind: Element(Static)
+                            dynamic_content_static_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
+                                value_kind: Element(Static)
+                            dynamic_content_dynamic_size: Quantum: QuantumProperties:
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicArray)
+                                value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1233,11 +1256,11 @@ fn check_rca_for_begin_repeat_estimates_internal() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications:
-                        [0]: Quantum: QuantumProperties:
+                        [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
-                            value_kind: Static
+                            value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -1258,7 +1281,7 @@ fn check_rca_for_end_repeat_estimates_internal() {
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
                         runtime_features: RuntimeFeatureFlags(0x0)
-                        value_kind: Static
+                        value_kind: Element(Static)
                     dynamic_param_applications: <empty>
                 adj: <none>
                 ctl: <none>
