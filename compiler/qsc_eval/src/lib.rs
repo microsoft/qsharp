@@ -103,7 +103,7 @@ pub enum Error {
 
     #[error("Result comparison is unsupported for this backend")]
     #[diagnostic(code("Qsc.Eval.ResultComparisonUnsupported"))]
-    ResultComparisonUnsupported(#[label("cannot compare result")] PackageSpan),
+    ResultComparisonUnsupported(#[label("cannot compare to result")] PackageSpan),
 
     #[error("name is not bound")]
     #[diagnostic(code("Qsc.Eval.UnboundName"))]
@@ -1032,20 +1032,7 @@ impl State {
             BinOp::Lte => self.eval_binop_simple(eval_binop_lte),
             BinOp::Mod => self.eval_binop_with_error(span, eval_binop_mod)?,
             BinOp::Mul => self.eval_binop_simple(eval_binop_mul),
-            BinOp::Neq => {
-                let rhs_val = self.pop_val();
-                let lhs_val = self.pop_val();
-                if let Value::Result(val::Result::Id(_)) = rhs_val {
-                    // Comparison of result ids is nonsensical, so we prevent it.
-                    // This code path is reachable for the circuit builder backend
-                    // since we don't currently do runtime capability analysis
-                    // to prevent executing programs that do result comparisons.
-                    return Err(Error::ResultComparisonUnsupported(
-                        self.to_global_span(span),
-                    ));
-                }
-                self.push_val(Value::Bool(lhs_val != rhs_val));
-            }
+            BinOp::Neq => self.eval_binop_with_error(span, eval_binop_neq)?,
             BinOp::OrB => self.eval_binop_simple(eval_binop_orb),
             BinOp::OrL => {
                 if self.pop_val().unwrap_bool() {
@@ -1729,6 +1716,19 @@ fn eval_binop_eq(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Resul
             Err(Error::ResultComparisonUnsupported(rhs_span))
         }
         (lhs, rhs) => Ok(Value::Bool(lhs == rhs)),
+    }
+}
+
+fn eval_binop_neq(lhs_val: Value, rhs_val: Value, rhs_span: PackageSpan) -> Result<Value, Error> {
+    match (lhs_val, rhs_val) {
+        (Value::Result(val::Result::Id(_)), _) | (_, Value::Result(val::Result::Id(_))) => {
+            // Comparison of result ids is nonsensical, so we prevent it.
+            // This code path is reachable when using the circuit builder backend
+            // since we don't currently do runtime capability analysis
+            // to prevent executing programs that do result comparisons.
+            Err(Error::ResultComparisonUnsupported(rhs_span))
+        }
+        (lhs, rhs) => Ok(Value::Bool(lhs != rhs)),
     }
 }
 
