@@ -3,12 +3,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;    
     
-    operation ComplexExponent_Reference(x : Complex) : Complex {
-    
-        let expa = E()^x::Real;
-        return Complex(expa * Cos(x::Imag), expa * Sin(x::Imag));
-        }
-
         operation ComplexExpReal_Reference(r : Double, x : Complex) : Complex {
                
             if r == 0.0 {return Complex(0.0, 0.0);}
@@ -27,7 +21,7 @@ namespace Kata.Verification {
                         
             repeat {
                 let testx = ComplexRandom(0., 10.);
-                let testr = DrawRandomDouble(0., 100.);                 
+                let testr = DrawRandomDouble(0., 10.);                 
 
                 set expected =  ComplexExpReal_Reference(testr, testx); 
                 set actual = Kata.ComplexExpReal(testr, testx);        

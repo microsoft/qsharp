@@ -12,12 +12,11 @@ This tutorial covers the following topics:
 * Modulus operator
 * Imaginary exponents
 * Polar representation
-
 If you need to look up some formulas quickly, you can find them in this [reference sheet](https://github.com/microsoft/QuantumKatas/blob/main/quickref/qsharp-quick-reference.pdf).
 
 If you are curious to learn more, you can find more information at [Wikipedia](https://en.wikipedia.org/wiki/Complex_number).
 
-This notebook has several tasks that require you to write Python code to test your understanding of the concepts. If you are not familiar with Python, [this tutorial](https://docs.python.org/3/tutorial/index.html) is a good introduction to the language.
+This notebook has several tasks that require you to write Q# code to test your understanding of the concepts. If you are not familiar with Q#, [this tutorial]() is a good introduction to the language.
 
 @[section]({ "id": "complex_arithmetic__algebraic_perspective", "title": "Algebraic Perspective" })
 
@@ -63,7 +62,7 @@ Before we discuss any other complex operations, we have to cover the **complex c
 
 The conjugate allows us to do some interesting things. The first and probably most important is multiplying a complex number by its conjugate:
 
-"$$x \cdot \overline{x} = (a + bi)(a - bi)$$
+$$x \cdot \overline{x} = (a + bi)(a - bi)$$
 
 Notice that the second expression is a difference of squares:
 
@@ -97,8 +96,6 @@ $$\frac{a + bi}{r} = \frac{a}{r} + \frac{b}{r}i$$
 @[exercise]({ "id": "complex_arithmetic__complex_division_exercise", "title": "Complex division", "path": "./complex_division/", "qsDependencies": [ "../KatasLibrary.qs", "./Common.qs"] })
 
 @[section]({ "id": "complex_arithmetic__geometric_perspective", "title": "Geometric Perspective" })
-
-If you need help, see the explained solution in the [Complex Arithmetic Workbook](./workbook_complexarithmetic.md#exercise-5-complex-division).
 
 ## The Complex Plane
 

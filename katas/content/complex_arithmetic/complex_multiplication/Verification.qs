@@ -1,40 +1,25 @@
-    namespace Kata.Verification {
-        
-        open Microsoft.Quantum.Math;
-        open Microsoft.Quantum.Random;    
-        
+namespace Kata.Verification {        
+    open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Random;        
 
-        @EntryPoint()
-        operation CheckSolution() : Bool {
+    @EntryPoint()
+    operation CheckSolution() : Bool {
         
-            mutable success = false;
-            mutable expected = Complex(0., 0.); 
-            mutable actual = Complex(0., 0.);  
+        for count in 0 .. 24 {
+            let testx = ComplexRandom(1., 100.); 
+            let testy = ComplexRandom(1., 100.);
 
-            mutable count = 0;
-
-            repeat {
-                let testx = ComplexRandom(1., 100.); 
-                let testy = ComplexRandom(1., 100.);
-
-                set expected = ComplexMult_Reference(testx, testy); 
-                set actual = Kata.ComplexMult(testx, testy);        
+            let expected = ComplexMult_Reference(testx, testy); 
+            let actual = Kata.ComplexMult(testx, testy);        
         
-                if (ComplexEqual(expected, actual)) {
-                    set success = true; 
-                }                
+            if not(ComplexEqual(expected, actual)) {
+                Message($"Incorrect. When x = {testx::Real} + {testx::Imag}i and y = {testy::Real} + {testy::Imag}i, actual value doesn't match expected value");
+                Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} +  {expected::Imag}i");
+                return false;
+            }                
+        }            
 
-                set count += 1;
-            }
-            until (count > 25) or (success == false);
-
-            if success == true {Message("Correct!");}
-            else {
-                     Message("Incorrect. Actual value doesn't match expected value");
-                     Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} +  {expected::Imag}i");
-                }         
-        
-            return (success);
-        
-        }
+            Message("Correct!");
+            return true;        
     }
+}

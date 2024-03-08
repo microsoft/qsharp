@@ -11,15 +11,6 @@ Revise the following Q# code to return the sum of x and y.
 <details>
   <summary><b>Need a hint?</b></summary>
   
-* Use the Complex data type defined in the Q# math library. For example, $x = a + bi$:
-
-   ```qsharp
-
-      let x = complex(real_value, imaginary_coefficient);
-      let a = x::Real;
-      let b = x::Imag;
-   ```
-
 * Remember, adding complex numbers is just like adding polynomials. Add components of the same type - add the real part to the real part, add the imaginary part to the imaginary part.
 
    $ z = x + y = (a + bi) + (c + di) = \underset{real}{\underbrace{(a + c)}} + \underset{imaginary}{\underbrace{(b + d)}}i $

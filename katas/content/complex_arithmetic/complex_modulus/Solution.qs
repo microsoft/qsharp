@@ -3,8 +3,7 @@ namespace Kata {
 
     operation ComplexModulus(x : Complex) : Double {
         
-        let a = x::Real;
-        let b = x::Imag;
+        let (a,b) = x!;
         let m = (a^2.0 + b^2.0)^0.5;
 
         return (m);

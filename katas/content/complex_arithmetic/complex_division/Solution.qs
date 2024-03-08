@@ -3,19 +3,14 @@ namespace Kata {
     
     operation ComplexDiv(x : Complex, y: Complex) : Complex {
 
-        let a = x::Real;
-        let b = x::Imag;
+    let (a, b) = x!;
+    let (c, d) = y!;
 
-        let c = y::Real;
-        let d = y::Imag;
-   
-        let denominator = ((c * c) + (d * d));
+    let denominator = c^2.0 + d^2.0;
 
-        let real = ((a * c) + (b * d)) / denominator;
-        let imag = ((a * ( - d)) + (b * c)) / denominator;
-        
-        let z = Complex(real, imag);
+    let real = ((a * c) + (b * d)) / denominator;
+    let imag = ((a * ( - d)) + (b * c)) / denominator;
 
-        return z;
+    return Complex(real, imag);
     }
 }

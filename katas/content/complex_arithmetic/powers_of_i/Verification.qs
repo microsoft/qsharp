@@ -6,29 +6,22 @@ namespace Kata.Verification {
        }
        else { return -1;
        }
-   }
+    }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        mutable count = 1;
-        mutable n=0;
-        mutable success = true;
-        mutable actual = 0;
-        mutable expected = 0;
-
-        repeat {   
-            set n = 2*count;
-            set expected = PowersOfI_Reference(n);
-            set actual  = Kata.PowersOfI(n);
-            if expected != actual {set success = false;}
-            set count += 1;   
+        
+        for count in 0 .. 24 {   
+            let  n = 2*count;
+            let expected = PowersOfI_Reference(n);
+            let actual  = Kata.PowersOfI(n);
+            if expected != actual{
+              Message($"Incorrect solution. When n = {n} the result of exponentiation doesn't match expected value.");
+              Message($"Actual value:{actual}. Expected value:{expected}");
+              return false; 
+            }
         }
-        until (count > 25) or (success == false);   
-        if success == true { Message("Correct!");
-        }
-        else { Message("Incorrect solution. Result of exponentiation doesn't match expected value");
-               Message($"Actual value: {actual}. Expected value: {expected}");
-        }
-        return success;
+        Message("Correct!");
+        return true; 
     }
 }
