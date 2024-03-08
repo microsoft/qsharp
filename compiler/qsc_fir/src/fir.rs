@@ -1387,66 +1387,6 @@ impl Display for PatKind {
     }
 }
 
-/// A qubit initializer.
-#[derive(Clone, Debug, PartialEq)]
-pub struct QubitInit {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The qubit initializer type.
-    pub ty: Ty,
-    /// The qubit initializer kind.
-    pub kind: QubitInitKind,
-}
-
-impl Display for QubitInit {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "QubitInit {} {} [Type {}]: {}",
-            self.id, self.span, self.ty, self.kind
-        )
-    }
-}
-
-/// A qubit initializer kind.
-#[derive(Clone, Debug, PartialEq)]
-pub enum QubitInitKind {
-    /// An array of qubits: `Qubit[a]`.
-    Array(ExprId),
-    /// A single qubit: `Qubit()`.
-    Single,
-    /// A tuple: `(a, b, c)`.
-    Tuple(Vec<QubitInit>),
-}
-
-impl Display for QubitInitKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        match self {
-            QubitInitKind::Array(e) => {
-                write!(indent, "Array:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{e}")?;
-            }
-            QubitInitKind::Single => write!(indent, "Single")?,
-            QubitInitKind::Tuple(qis) => {
-                if qis.is_empty() {
-                    write!(indent, "Unit")?;
-                } else {
-                    write!(indent, "Tuple:")?;
-                    indent = set_indentation(indent, 1);
-                    for qi in qis {
-                        write!(indent, "\n{qi}")?;
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
