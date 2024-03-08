@@ -1081,7 +1081,7 @@ impl State {
     ) -> Result<(), Error> {
         let arg = self.pop_val();
         let (callee_id, functor, fixed_args) = match self.pop_val() {
-            Value::Closure(fixed_args, id, functor) => (id, functor, Some(fixed_args)),
+            Value::Closure(inner) => (inner.id, inner.functor, Some(inner.fixed_args)),
             Value::Global(id, functor) => (id, functor, None),
             _ => panic!("value is not callable"),
         };
@@ -1149,9 +1149,17 @@ impl State {
     fn eval_field(&mut self, field: Field) {
         let record = self.pop_val();
         let val = match (record, field) {
-            (Value::Range(Some(start), _, _), Field::Prim(PrimField::Start)) => Value::Int(start),
-            (Value::Range(_, step, _), Field::Prim(PrimField::Step)) => Value::Int(step),
-            (Value::Range(_, _, Some(end)), Field::Prim(PrimField::End)) => Value::Int(end),
+            (Value::Range(inner), Field::Prim(PrimField::Start)) => Value::Int(
+                inner
+                    .start
+                    .expect("range access should be validated by compiler"),
+            ),
+            (Value::Range(inner), Field::Prim(PrimField::Step)) => Value::Int(inner.step),
+            (Value::Range(inner), Field::Prim(PrimField::End)) => Value::Int(
+                inner
+                    .end
+                    .expect("range access should be validated by compiler"),
+            ),
             (record, Field::Path(path)) => {
                 follow_field_path(record, &path.indices).expect("field path should be valid")
             }
@@ -1175,12 +1183,12 @@ impl State {
         let arr = self.pop_val().unwrap_array();
         match &index_val {
             Value::Int(i) => self.push_val(index_array(&arr, *i, self.to_global_span(span))?),
-            &Value::Range(start, step, end) => {
+            Value::Range(inner) => {
                 self.push_val(slice_array(
                     &arr,
-                    start,
-                    step,
-                    end,
+                    inner.start,
+                    inner.step,
+                    inner.end,
                     self.to_global_span(span),
                 )?);
             }
@@ -1205,7 +1213,7 @@ impl State {
         } else {
             None
         };
-        self.push_val(Value::Range(start, step, end));
+        self.push_val(Value::Range(val::Range { start, step, end }.into()));
     }
 
     fn eval_ret(&mut self, env: &mut Env) {
@@ -1239,9 +1247,14 @@ impl State {
         let span = self.to_global_span(span);
         match index {
             Value::Int(index) => self.eval_update_index_single(&values, index, update, span),
-            Value::Range(start, step, end) => {
-                self.eval_update_index_range(&values, start, step, end, update, span)
-            }
+            Value::Range(inner) => self.eval_update_index_range(
+                &values,
+                inner.start,
+                inner.step,
+                inner.end,
+                update,
+                span,
+            ),
             _ => unreachable!("array should only be indexed by Int or Range"),
         }
     }
@@ -1327,8 +1340,14 @@ impl State {
         let val = self.pop_val();
         match op {
             UnOp::Functor(functor) => match val {
-                Value::Closure(args, id, app) => {
-                    self.push_val(Value::Closure(args, id, update_functor_app(functor, app)));
+                Value::Closure(inner) => {
+                    self.push_val(Value::Closure(
+                        val::Closure {
+                            functor: update_functor_app(functor, inner.functor),
+                            ..*inner
+                        }
+                        .into(),
+                    ));
                 }
                 Value::Global(id, app) => {
                     self.push_val(Value::Global(id, update_functor_app(functor, app)));
@@ -1362,14 +1381,17 @@ impl State {
         let value = self.pop_val();
         let record = self.pop_val();
         let update = match (record, field) {
-            (Value::Range(_, step, end), Field::Prim(PrimField::Start)) => {
-                Value::Range(Some(value.unwrap_int()), step, end)
+            (Value::Range(mut inner), Field::Prim(PrimField::Start)) => {
+                inner.start = Some(value.unwrap_int());
+                Value::Range(inner)
             }
-            (Value::Range(start, _, end), Field::Prim(PrimField::Step)) => {
-                Value::Range(start, value.unwrap_int(), end)
+            (Value::Range(mut inner), Field::Prim(PrimField::Step)) => {
+                inner.step = value.unwrap_int();
+                Value::Range(inner)
             }
-            (Value::Range(start, step, _), Field::Prim(PrimField::End)) => {
-                Value::Range(start, step, Some(value.unwrap_int()))
+            (Value::Range(mut inner), Field::Prim(PrimField::End)) => {
+                inner.end = Some(value.unwrap_int());
+                Value::Range(inner)
             }
             (record, Field::Path(path)) => update_field_path(&record, &path.indices, &value)
                 .expect("field path should be valid"),
@@ -1502,10 +1524,10 @@ impl State {
                     let Value::Array(arr) = &mut var.value else {
                         panic!("variable should be an array");
                     };
-                    let Value::Range(start, step, end) = range else {
+                    let Value::Range(inner) = range else {
                         unreachable!("range should be a Value::Range");
                     };
-                    let range = make_range(arr, *start, *step, *end, range_span)?;
+                    let range = make_range(arr, inner.start, inner.step, inner.end, range_span)?;
                     for (idx, rhs) in range.into_iter().zip(rhs.iter()) {
                         if idx < 0 {
                             return Err(Error::InvalidNegativeInt(idx, range_span));
@@ -1647,7 +1669,14 @@ fn resolve_closure(
         package,
         item: callable,
     };
-    Ok(Value::Closure(args.into(), callable, FunctorApp::default()))
+    Ok(Value::Closure(
+        val::Closure {
+            fixed_args: args.into(),
+            id: callable,
+            functor: FunctorApp::default(),
+        }
+        .into(),
+    ))
 }
 
 fn lit_to_val(lit: &Lit) -> Value {

@@ -12,6 +12,8 @@ mod debugger_tests;
 pub use qsc_eval::{
     debug::Frame,
     output::{self, GenericReceiver},
+    val::Closure,
+    val::Range as EvalRange,
     val::Result,
     val::Value,
     StepAction, StepResult,
