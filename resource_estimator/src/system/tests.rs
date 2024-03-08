@@ -7,7 +7,6 @@ use crate::estimates::{
     ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, Overhead, PhysicalResourceEstimation,
     PhysicalResourceEstimationResult,
 };
-use crate::LogicalResources;
 
 use super::estimate_physical_resources;
 
@@ -24,17 +23,18 @@ use std::rc::Rc;
 
 #[test]
 fn estimate_single() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
     let params: &str = "[{}]";
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
@@ -49,12 +49,13 @@ fn estimate_single() {
 
 #[test]
 fn estimate_frontier() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
@@ -62,7 +63,7 @@ fn estimate_frontier() {
         "estimateType": "frontier"
     }]"#;
 
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
@@ -78,12 +79,13 @@ fn estimate_frontier() {
 #[test]
 fn physical_estimates_crash() {
     let result = estimate_physical_resources(
-        &LogicalResources {
+        LogicalResourceCounts {
             num_qubits: 9,
             t_count: 160,
             rotation_count: 0,
             rotation_depth: 0,
             ccz_count: 8,
+            ccix_count: 0,
             measurement_count: 5,
         },
         r#"[{"qubitParams": {"name": "qubit_maj_ns_e6"},
@@ -1001,17 +1003,18 @@ fn code_distance_tests() {
 
 #[test]
 fn test_report() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
     let params: &str = "[{}]";
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");

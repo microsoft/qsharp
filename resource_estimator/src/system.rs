@@ -23,19 +23,11 @@ use std::rc::Rc;
 
 use crate::estimates::PhysicalResourceEstimation;
 
+pub use self::{data::LogicalResourceCounts, error::Error};
 use self::{modeling::Protocol, optimization::TFactoryBuilder};
-use super::LogicalResources;
-use data::{EstimateType, JobParams, LogicalResourceCounts};
-pub use error::Error;
+use data::{EstimateType, JobParams};
 
 pub(crate) type Result<T> = std::result::Result<T, error::Error>;
-
-pub fn estimate_physical_resources(
-    logical_resources: &LogicalResources,
-    params: &str,
-) -> Result<String> {
-    estimate(logical_resources.into(), params)
-}
 
 pub fn estimate_physical_resources_from_json(
     logical_resources: &str,
@@ -43,10 +35,13 @@ pub fn estimate_physical_resources_from_json(
 ) -> std::result::Result<String, Error> {
     let logical_resources = serde_json::from_str(logical_resources)
         .map_err(|e| error::Error::IO(error::IO::CannotParseJSON(e)))?;
-    estimate(logical_resources, params)
+    estimate_physical_resources(logical_resources, params)
 }
 
-fn estimate(logical_resources: LogicalResourceCounts, params: &str) -> Result<String> {
+pub fn estimate_physical_resources(
+    logical_resources: LogicalResourceCounts,
+    params: &str,
+) -> Result<String> {
     let job_params_array = if params.is_empty() {
         vec![JobParams::default()]
     } else {

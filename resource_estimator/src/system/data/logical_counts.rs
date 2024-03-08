@@ -7,10 +7,8 @@ use crate::{
         NUM_MEASUREMENTS_PER_R, NUM_MEASUREMENTS_PER_TOF, NUM_TS_PER_ROTATION_A_COEFFICIENT,
         NUM_TS_PER_ROTATION_B_COEFFICIENT,
     },
-    LogicalResources,
 };
 use serde::{Deserialize, Serialize};
-use std::convert::From;
 
 use super::PartitioningOverhead;
 
@@ -34,20 +32,6 @@ pub struct LogicalResourceCounts {
     pub ccix_count: u64,
     #[serde(default)]
     pub measurement_count: u64,
-}
-
-impl From<&LogicalResources> for LogicalResourceCounts {
-    fn from(logical_resources: &LogicalResources) -> Self {
-        Self {
-            num_qubits: logical_resources.num_qubits as _,
-            t_count: logical_resources.t_count as _,
-            rotation_count: logical_resources.rotation_count as _,
-            rotation_depth: logical_resources.rotation_depth as _,
-            ccz_count: logical_resources.ccz_count as _,
-            ccix_count: 0,
-            measurement_count: logical_resources.measurement_count as _,
-        }
-    }
 }
 
 /// Models the logical resources after layout

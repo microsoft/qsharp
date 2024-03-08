@@ -65,12 +65,13 @@ fn gates_are_counted() {
         "},
         None,
         &expect![["
-            LogicalResources {
+            LogicalResourceCounts {
                 num_qubits: 10,
                 t_count: 2,
                 rotation_count: 30,
                 rotation_depth: 5,
                 ccz_count: 2,
+                ccix_count: 0,
                 measurement_count: 10,
             }
         "]],
@@ -111,12 +112,13 @@ fn estimate_caching_works() {
         "#},
         None,
         &expect![["
-            LogicalResources {
+            LogicalResourceCounts {
                 num_qubits: 10,
                 t_count: 1,
                 rotation_count: 300,
                 rotation_depth: 30,
                 ccz_count: 0,
+                ccix_count: 0,
                 measurement_count: 0,
             }
         "]],
@@ -157,12 +159,13 @@ fn estimate_repeat_works() {
         "#},
         None,
         &expect![[r#"
-            LogicalResources {
+            LogicalResourceCounts {
                 num_qubits: 10,
                 t_count: 1,
                 rotation_count: 300,
                 rotation_depth: 30,
                 ccz_count: 0,
+                ccix_count: 0,
                 measurement_count: 0,
             }
         "#]],
@@ -195,12 +198,13 @@ fn account_for_estimates_works() {
         "},
         None,
         &expect![["
-            LogicalResources {
+            LogicalResourceCounts {
                 num_qubits: 11,
                 t_count: 2,
                 rotation_count: 3,
                 rotation_depth: 1,
                 ccz_count: 5,
+                ccix_count: 0,
                 measurement_count: 6,
             }
         "]],
