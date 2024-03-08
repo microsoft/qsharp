@@ -235,13 +235,8 @@ impl<
         &self.logical_patch
     }
 
-    pub fn take(self) -> (LogicalPatch<E>, Option<F>, ErrorBudget, L) {
-        (
-            self.logical_patch,
-            self.factory,
-            self.error_budget,
-            self.layout_overhead,
-        )
+    pub fn take(self) -> (LogicalPatch<E>, Option<F>, ErrorBudget) {
+        (self.logical_patch, self.factory, self.error_budget)
     }
 
     pub fn num_cycles(&self) -> u64 {
@@ -288,7 +283,7 @@ impl<
         self.rqops
     }
 
-    pub fn layout_overhead(&self) -> &L {
+    pub fn layout_overhead(&self) -> &Rc<L> {
         &self.layout_overhead
     }
 

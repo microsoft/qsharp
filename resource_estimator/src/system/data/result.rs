@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::rc::Rc;
+
 use crate::estimates::{ErrorBudget, LogicalPatch, Overhead, PhysicalResourceEstimationResult};
 use crate::system::modeling::{Protocol, TFactory};
 
@@ -26,7 +28,7 @@ pub struct Success {
     tfactory: Option<TFactory>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error_budget: Option<ErrorBudget>,
-    logical_counts: LogicalResourceCounts,
+    logical_counts: Rc<LogicalResourceCounts>,
     report_data: Report,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     frontier_entries: Vec<FrontierEntry>,
@@ -44,7 +46,8 @@ impl Success {
 
         let report_data = Report::new(&job_params, &result, &formatted_counts);
 
-        let (logical_qubit, tfactory, error_budget, logical_counts) = result.take();
+        let logical_counts = result.layout_overhead().clone();
+        let (logical_qubit, tfactory, error_budget) = result.take();
 
         Self {
             status: "success",
@@ -70,7 +73,7 @@ impl Success {
 
         let mut frontier_entries: Vec<FrontierEntry> = Vec::new();
 
-        let logical_counts = *results[0].layout_overhead();
+        let logical_counts = results[0].layout_overhead().clone();
 
         // we will pick the shortest runtime result as the first result.
         results.sort_by_key(PhysicalResourceEstimationResult::runtime);
@@ -126,7 +129,7 @@ fn create_frontier_entry(
         None
     };
 
-    let (logical_qubit, tfactory, error_budget, _) = result.take();
+    let (logical_qubit, tfactory, error_budget) = result.take();
 
     (
         FrontierEntry {
@@ -141,7 +144,7 @@ fn create_frontier_entry(
 }
 
 fn create_physical_resource_counts(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
 ) -> PhysicalResourceCounts {
     let breakdown = create_physical_resource_counts_breakdown(result);
 
@@ -154,7 +157,7 @@ fn create_physical_resource_counts(
 }
 
 fn create_physical_resource_counts_breakdown(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()
