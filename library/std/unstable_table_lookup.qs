@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
                 within {
                     X(tail);
                 } apply {
-                    ApplyAndAssuming0Target(ctl, tail, helper);
+                    AND(ctl, tail, helper);
                 }
 
                 SinglyControlledSelect(helper, parts[0], most, target);
@@ -127,7 +127,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
 
                 SinglyControlledSelect(helper, parts[1], most, target);
 
-                Adjoint ApplyAndAssuming0Target(ctl, tail, helper);
+                Adjoint AND(ctl, tail, helper);
             }
 
             EndEstimateCaching();
@@ -234,7 +234,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
                 // targets are the first and second 2^i qubits of the target register
                 let split = Partitioned([2^i, 2^i], target);
                 for j in IndexRange(split[0]) {
-                    ApplyAndAssuming0Target(input[i], split[0][j], split[1][j]);
+                    AND(input[i], split[0][j], split[1][j]);
                     CNOT(split[1][j], split[0][j]);
                 }
             }
@@ -269,7 +269,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
             let tgts = helper + [target];
 
             for idx in IndexRange(tgts) {
-                ApplyAndAssuming0Target(ctls1[idx], ctls2[idx], tgts[idx]);
+                AND(ctls1[idx], ctls2[idx], tgts[idx]);
             }
         }
     }

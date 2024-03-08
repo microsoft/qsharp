@@ -223,7 +223,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         } else {
             use carries = Qubit[xsLen];
             within {
-                ApplyAndAssuming0Target(xs[0], ys[0], carries[0]);
+                AND(xs[0], ys[0], carries[0]);
             } apply {
                 for i in 1..xsLen-2 {
                     CarryForInc(carries[i-1], xs[i], ys[i], carries[i]);
@@ -304,7 +304,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         if zsLen > xsLen { // with carry-out
             // compute initial generate values
             for k in 0..xsLen - 1 {
-                ApplyAndAssuming0Target(xs[k], ys[k], zs[k + 1]);
+                AND(xs[k], ys[k], zs[k + 1]);
             }
 
             within {

@@ -142,9 +142,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             use helper = Qubit();
 
             within {
-                ApplyAndAssuming0Target(x, y, helper);
+                AND(x, y, helper);
             } apply {
-                ApplyAndAssuming0Target(ctl, helper, carryOut);
+                AND(ctl, helper, carryOut);
             }
             CCNOT(ctl, x, y);
         }
@@ -184,7 +184,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     : Unit is Adj {
         CNOT(x, y);
         CNOT(x, carryIn);
-        ApplyAndAssuming0Target(y, carryIn, carryOut);
+        AND(y, carryIn, carryOut);
         CNOT(x, y);
         CNOT(x, carryOut);
         CNOT(y, carryIn);
@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         body (...) {
             CNOT(carryIn, x);
             CNOT(carryIn, y);
-            ApplyAndAssuming0Target(x, y, carryOut);
+            AND(x, y, carryOut);
             CNOT(carryIn, carryOut);
         }
         adjoint auto;
@@ -217,7 +217,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     : Unit is Adj + Ctl {
         body (...) {
             CNOT(carryIn, carryOut);
-            Adjoint ApplyAndAssuming0Target(x, y, carryOut);
+            Adjoint AND(x, y, carryOut);
             CNOT(carryIn, x);
             CNOT(x, y);
         }
@@ -228,7 +228,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             let ctl = ctls[0];
 
             CNOT(carryIn, carryOut);
-            Adjoint ApplyAndAssuming0Target(x, y, carryOut);
+            Adjoint AND(x, y, carryOut);
             CCNOT(ctl, x, y); // Controlled X(ctls + [x], y);
             CNOT(carryIn, x);
             CNOT(carryIn, y);
@@ -236,87 +236,14 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         controlled adjoint auto;
     }
 
-    /// # Summary
-    /// Applies AND gate between `control1` and `control2` and stores the result
-    /// in `target` assuming `target` is in |0> state.
-    ///
-    /// # Description
-    /// Inverts `target` if and only if both controls are 1, but assumes that
-    /// `target` is in state 0. The operation has T-count 4, T-depth 2 and
-    /// requires no helper qubit, and may therefore be preferable to a CCNOT
-    /// operation, if `target` is known to be 0.
-    /// The adjoint of this operation is measurement based and requires no T
-    /// gates (but requires target to support branching on measurements).
-    /// Although the Toffoli gate (CCNOT) will perform faster in simulations,
-    /// this version has lower T gate requirements.
-    /// # References
-    /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
-    ///   Phys. Rev. A 87, 022328, 2013
-    ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
-    ///   doi:10.1103/PhysRevA.87.022328
-    @Config(Unrestricted)
-    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
-    : Unit is Adj { // NOTE: Eventually this operation will be public and intrinsic.
-        body (...) {
-            if not CheckZero(target) {
-                fail "ApplyAndAssuming0Target expects `target` to be in |0> state.";
-            }
-            CCNOT(control1, control2, target);
-        }
-        adjoint (...) {
-            H(target);
-            if M(target) == One {
-                Reset(target);
-                CZ(control1, control2);
-            }
-        }
-    }
-
     internal operation ApplyOrAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         within {
             X(control1);
             X(control2);
         } apply {
-            ApplyAndAssuming0Target(control1, control2, target);
+            AND(control1, control2, target);
             X(target);
         }
-    }
-
-    /// # Summary
-    /// Applies AND gate between `control1` and `control2` and stores the result
-    /// in `target` assuming `target` is in |0> state.
-    ///
-    /// # Description
-    /// Inverts `target` if and only if both controls are 1, but assumes that
-    /// `target` is in state 0. The operation has T-count 4, T-depth 2 and
-    /// requires no helper qubit, and may therefore be preferable to a CCNOT
-    /// operation, if `target` is known to be 0.
-    /// This version is suitable for Base profile.
-    /// Although the Toffoli gate (CCNOT) will perform faster in simulations,
-    /// this version has lower T gate requirements.
-    /// # References
-    /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
-    ///   Phys. Rev. A 87, 022328, 2013
-    ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
-    ///   doi:10.1103/PhysRevA.87.022328
-    @Config(Base)
-    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
-    : Unit is Adj {
-        H(target);
-        T(target);
-        CNOT(control1, target);
-        CNOT(control2, target);
-        within {
-            CNOT(target, control1);
-            CNOT(target, control2);
-        }
-        apply {
-            Adjoint T(control1);
-            Adjoint T(control2);
-            T(target);
-        }
-        H(target);
-        S(target);
     }
 
     /// # Summary
@@ -365,7 +292,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             let (current, next) = (Rest(ws[0]), ws[1]);
 
             for m in IndexRange(next) {
-                ApplyAndAssuming0Target(current[2 * m], current[2 * m + 1], next[m]);
+                AND(current[2 * m], current[2 * m + 1], next[m]);
             }
         }
     }
@@ -460,7 +387,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
                 for i in 0..Length(cs1)-1 {
                     let op =
                         cNormalized &&& (1L <<< (i+1)) != 0L ?
-                        ApplyAndAssuming0Target | ApplyOrAssuming0Target;
+                        AND | ApplyOrAssuming0Target;
                     op(cs1[i], xNormalized[i+1], qs[i]);
                 }
             } apply {
@@ -521,7 +448,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         body (...) {
             X(x);
             X(y);
-            ApplyAndAssuming0Target(x, y, carryOut);
+            AND(x, y, carryOut);
             X(carryOut);
         }
 
@@ -557,9 +484,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             } else {
                 use aux = Qubit[n-1];
                 within {
-                    ApplyAndAssuming0Target(ctls[0], ctls[1], aux[0]);
+                    AND(ctls[0], ctls[1], aux[0]);
                     for i in 1..n-2 {
-                        ApplyAndAssuming0Target(aux[i-1], ctls[i+1], aux[i]);
+                        AND(aux[i-1], ctls[i+1], aux[i]);
                     }
                 } apply {
                     Controlled op(aux[n-2..n-2], input);
