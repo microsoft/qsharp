@@ -562,19 +562,17 @@ impl LocalsComputeKindMap {
         let local_compute_kind = self
             .0
             .get_mut(&local_var_id)
-            .expect("compute kind for local should exist");
+            .expect("local compute kind does not exist");
         local_compute_kind.compute_kind = local_compute_kind.compute_kind.aggregate(delta);
     }
 
-    pub fn find_compute_kind(&self, local_var_id: LocalVarId) -> Option<&ComputeKind> {
-        self.0
-            .get(&local_var_id)
-            .map(|local_compute_kind| &local_compute_kind.compute_kind)
+    pub fn find_local_compute_kind(&self, local_var_id: LocalVarId) -> Option<&LocalComputeKind> {
+        self.0.get(&local_var_id)
     }
 
-    pub fn get_compute_kind(&self, local_var_id: LocalVarId) -> &ComputeKind {
-        self.find_compute_kind(local_var_id)
-            .expect("compute kind for local should exist")
+    pub fn get_local_compute_kind(&self, local_var_id: LocalVarId) -> &LocalComputeKind {
+        self.find_local_compute_kind(local_var_id)
+            .expect("local compute kind does not exist")
     }
 
     pub fn insert(&mut self, local_var_id: LocalVarId, value: LocalComputeKind) {

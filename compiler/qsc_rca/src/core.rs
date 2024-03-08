@@ -856,9 +856,10 @@ impl<'a> Analyzer<'a> {
             // Gather the current compute kind of the local.
             Res::Local(local_var_id) => {
                 let application_instance = self.get_current_application_instance();
-                *application_instance
+                let local_compute_kind = application_instance
                     .locals_map
-                    .get_compute_kind(*local_var_id)
+                    .get_local_compute_kind(*local_var_id);
+                local_compute_kind.compute_kind
             }
             Res::Err => panic!("unexpected error resolution"),
         }
