@@ -147,7 +147,7 @@ pub fn test_no_tstates() {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -166,7 +166,7 @@ pub fn single_tstate() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -190,7 +190,7 @@ pub fn perfect_tstate() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -249,7 +249,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
         ftp,
         qubit.clone(),
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -341,7 +341,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
         ftp,
         qubit.clone(),
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -430,7 +430,7 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -458,7 +458,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -497,7 +497,13 @@ fn prepare_chemistry_estimation_with_expected_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -672,7 +678,13 @@ fn prepare_factorization_estimation_with_optimistic_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -801,7 +813,13 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -897,7 +915,13 @@ fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
