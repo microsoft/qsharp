@@ -163,7 +163,10 @@ impl Interpreter {
             sim: BackendChain::new(
                 SparseSim::new(),
                 CircuitBuilder::new(CircuitConfig {
-                    no_qubit_reuse: capabilities.is_empty(),
+                    // When using in conjunction with the simulator,
+                    // the circuit builder should assume qubits are reusable
+                    // to match the simulator's behavior.
+                    no_qubit_reuse: false,
                 }),
             ),
             quantum_seed: None,
@@ -322,6 +325,7 @@ impl Interpreter {
         &mut self,
         entry: CircuitEntryPoint,
     ) -> std::result::Result<Circuit, Vec<Error>> {
+        // Disallow qubit reuse in Base Profile
         let no_qubit_reuse = self.capabilities.is_empty();
 
         let mut sink = std::io::sink();

@@ -646,24 +646,32 @@ mod debugger_stepping {
             Profile::Base,
         );
 
-        expect![[r"
+        // Surprising but expected: Reset gates would *not* normally
+        // be generated in Base Profile, but they are here, since
+        // when running in tandem with the simulator, the resulting
+        // circuit is intended to match the calls into the simulator.
+        //
+        // Note the circuit still looks different than what would be
+        // generated in Unrestricted Profile for the same code,
+        // due to conditional compilation in the standard library.
+        expect![["
             step:
             step:
             q_0
             step:
             q_0    ── H ──
             step:
-            q_0    ── H ──── Z ────────────────
-            q_1    ── H ──── ● ──── H ──── M ──
-                                           ╘═══
+            q_0    ── H ──── Z ───────────────────────
+            q_1    ── H ──── ● ──── H ──── M ─── |0〉 ─
+                                           ╘══════════
             step:
-            q_0    ── H ──── Z ────────────────
-            q_1    ── H ──── ● ──── H ──── M ──
-                                           ╘═══
+            q_0    ── H ──── Z ─── |0〉 ───────────────
+            q_1    ── H ──── ● ──── H ──── M ─── |0〉 ─
+                                           ╘══════════
             step:
-            q_0    ── H ──── Z ────────────────
-            q_1    ── H ──── ● ──── H ──── M ──
-                                           ╘═══
+            q_0    ── H ──── Z ─── |0〉 ───────────────
+            q_1    ── H ──── ● ──── H ──── M ─── |0〉 ─
+                                           ╘══════════
         "]]
         .assert_eq(&circs);
     }
