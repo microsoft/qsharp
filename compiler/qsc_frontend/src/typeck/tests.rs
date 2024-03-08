@@ -1709,30 +1709,30 @@ fn return_with_satisfying_specialization_succeeds() {
             #28 112-114 "{}" : Unit
             #32 131-133 "()" : Unit
             #39 154-156 "{}" : Unit
-            #43 184-186 "()" : Unit
-            #53 211-216 "{ A }" : (Unit => Unit is Adj)
-            #55 213-214 "A" : (Unit => Unit is Adj)
-            #61 245-247 "()" : Unit
-            #71 272-278 "{ AC }" : (Unit => Unit is Adj + Ctl)
-            #73 274-276 "AC" : (Unit => Unit is Adj + Ctl)
-            #79 307-309 "()" : Unit
-            #89 334-340 "{ AC }" : (Unit => Unit is Adj + Ctl)
-            #91 336-338 "AC" : (Unit => Unit is Adj + Ctl)
-            #97 368-370 "()" : Unit
-            #107 395-400 "{ C }" : (Unit => Unit is Ctl)
-            #109 397-398 "C" : (Unit => Unit is Ctl)
-            #115 429-431 "()" : Unit
-            #124 449-454 "{ A }" : (Unit => Unit is Adj)
-            #126 451-452 "A" : (Unit => Unit is Adj)
-            #132 483-485 "()" : Unit
-            #141 503-509 "{ AC }" : (Unit => Unit is Adj + Ctl)
-            #143 505-507 "AC" : (Unit => Unit is Adj + Ctl)
-            #149 537-539 "()" : Unit
-            #158 557-562 "{ C }" : (Unit => Unit is Ctl)
-            #160 559-560 "C" : (Unit => Unit is Ctl)
-            #166 590-592 "()" : Unit
-            #175 610-615 "{ E }" : (Unit => Unit)
-            #177 612-613 "E" : (Unit => Unit)
+            #43 185-187 "()" : Unit
+            #53 212-217 "{ A }" : (Unit => Unit is Adj)
+            #55 214-215 "A" : (Unit => Unit is Adj)
+            #61 246-248 "()" : Unit
+            #71 273-279 "{ AC }" : (Unit => Unit is Adj + Ctl)
+            #73 275-277 "AC" : (Unit => Unit is Adj + Ctl)
+            #79 309-311 "()" : Unit
+            #89 336-342 "{ AC }" : (Unit => Unit is Adj + Ctl)
+            #91 338-340 "AC" : (Unit => Unit is Adj + Ctl)
+            #97 370-372 "()" : Unit
+            #107 397-402 "{ C }" : (Unit => Unit is Ctl)
+            #109 399-400 "C" : (Unit => Unit is Ctl)
+            #115 431-433 "()" : Unit
+            #124 451-456 "{ A }" : (Unit => Unit is Adj)
+            #126 453-454 "A" : (Unit => Unit is Adj)
+            #132 485-487 "()" : Unit
+            #141 505-511 "{ AC }" : (Unit => Unit is Adj + Ctl)
+            #143 507-509 "AC" : (Unit => Unit is Adj + Ctl)
+            #149 539-541 "()" : Unit
+            #158 559-564 "{ C }" : (Unit => Unit is Ctl)
+            #160 561-562 "C" : (Unit => Unit is Ctl)
+            #166 592-594 "()" : Unit
+            #175 612-617 "{ E }" : (Unit => Unit)
+            #177 614-615 "E" : (Unit => Unit)
         "##]],
     );
 }
