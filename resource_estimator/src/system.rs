@@ -72,7 +72,7 @@ fn estimate(logical_resources: LogicalResourceCounts, params: &str) -> Result<St
 fn estimate_single(
     logical_resources: LogicalResourceCounts,
     mut job_params: JobParams,
-) -> Result<data::Success> {
+) -> Result<data::Success<LogicalResourceCounts>> {
     let qubit = job_params.qubit_params().clone();
 
     let ftp = Protocol::load_from_specification(job_params.qec_scheme_mut(), &qubit)?;

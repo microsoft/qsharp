@@ -15,7 +15,7 @@ use serde::{ser::SerializeMap, Serialize, Serializer};
 
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct Success {
+pub struct Success<L: Serialize> {
     status: &'static str,
     job_params: JobParams,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,13 +28,13 @@ pub struct Success {
     tfactory: Option<TFactory>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error_budget: Option<ErrorBudget>,
-    logical_counts: Rc<LogicalResourceCounts>,
+    logical_counts: Rc<L>,
     report_data: Report,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     frontier_entries: Vec<FrontierEntry>,
 }
 
-impl Success {
+impl Success<LogicalResourceCounts> {
     pub fn new(
         job_params: JobParams,
         result: PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
