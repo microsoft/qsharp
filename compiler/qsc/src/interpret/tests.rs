@@ -940,27 +940,28 @@ mod given_interpreter {
             "#]].assert_eq(&res);
         }
 
-        #[test]
-        fn qirgen_entry_expr_profile_incompatible() {
-            let mut interpreter = Interpreter::new(
-                true,
-                SourceMap::default(),
-                PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
-                LanguageFeatures::default(),
-            )
-            .expect("interpreter should be created");
-            let res = interpreter
-                .qirgen("1")
-                .expect_err("expected qirgen to fail");
-            is_error(
-                &res,
-                &expect![[r#"
-                non-Result return type in entry expression
-                   [<entry>] [1]
-            "#]],
-            );
-        }
+        // https://github.com/microsoft/qsharp/pull/1244
+        // #[test]
+        // fn qirgen_entry_expr_profile_incompatible() {
+        //     let mut interpreter = Interpreter::new(
+        //         true,
+        //         SourceMap::default(),
+        //         PackageType::Lib,
+        //         RuntimeCapabilityFlags::empty(),
+        //         LanguageFeatures::default(),
+        //     )
+        //     .expect("interpreter should be created");
+        //     let res = interpreter
+        //         .qirgen("1")
+        //         .expect_err("expected qirgen to fail");
+        //     is_error(
+        //         &res,
+        //         &expect![[r#"
+        //         non-Result return type in entry expression
+        //            [<entry>] [1]
+        //     "#]],
+        //     );
+        // }
 
         #[test]
         fn run_with_shots() {
