@@ -302,14 +302,33 @@ impl ApplicationGeneratorSet {
             .iter()
             .zip(self.dynamic_param_applications.iter())
         {
-            if let ValueKind::Element(RuntimeKind::Dynamic) = arg_value_kind {
+            // Since the generator set can have parameters with generic types as its basis, the value kind of the
+            // arguments used to derive a particular application might not match the variant of the generator set.
+            // Therefore, we need to fix the mismatch to know what particular compute kinds to aggregate.
+            let mapped_value_kind = match param_application {
+                ParamApplication::Array(_) => {
+                    let mut mapped_value_kind =
+                        ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static);
+                    arg_value_kind.project_onto_variant(&mut mapped_value_kind);
+                    mapped_value_kind
+                }
+                ParamApplication::Element(_) => {
+                    let mut mapped_value_kind = ValueKind::Element(RuntimeKind::Static);
+                    arg_value_kind.project_onto_variant(&mut mapped_value_kind);
+                    mapped_value_kind
+                }
+            };
+
+            // Now that we have fixed any possible mismatch between the value kind variants of the generator set
+            // parameters and the actual arguments used to derive the application, we can decide what to aggregate.
+            if let ValueKind::Element(RuntimeKind::Dynamic) = mapped_value_kind {
                 let ParamApplication::Element(param_compute_kind) = param_application else {
                     panic!("parameter application was expected to be an element variant");
                 };
 
                 compute_kind = compute_kind.aggregate(*param_compute_kind);
             } else if let ValueKind::Array(content_runtime_value, size_runtime_value) =
-                arg_value_kind
+                mapped_value_kind
             {
                 let ParamApplication::Array(array_param_application) = param_application else {
                     panic!("parameter application was expected to be an array variant");
@@ -605,6 +624,30 @@ impl ValueKind {
             }
             Self::Element(runtime_kind) => matches!(runtime_kind, RuntimeKind::Dynamic),
         }
+    }
+
+    pub(crate) fn project_onto_variant(self, variant: &mut ValueKind) {
+        match variant {
+            ValueKind::Array(content_runtime_kind, size_runtime_kind) => match self {
+                // We should resolve to an array value kind variant.
+                ValueKind::Array(self_content_runtime_kind, self_size_runtime_kind) => {
+                    *content_runtime_kind = self_content_runtime_kind;
+                    *size_runtime_kind = self_size_runtime_kind;
+                }
+                ValueKind::Element(self_runtime_kind) => {
+                    *content_runtime_kind = self_runtime_kind;
+                    *size_runtime_kind = self_runtime_kind;
+                }
+            },
+            ValueKind::Element(runtime_kind) => {
+                // We should resolve to an element value kind variant.
+                *runtime_kind = if self.is_dynamic() {
+                    RuntimeKind::Dynamic
+                } else {
+                    RuntimeKind::Static
+                };
+            }
+        };
     }
 }
 

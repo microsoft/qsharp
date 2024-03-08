@@ -430,33 +430,13 @@ impl<'a> Analyzer<'a> {
         // Fix that discrepancy here.
         if callable_decl.output.has_type_parameters() {
             if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
-                // Create a default value kind for the call expression type just so we know which variant we should
-                // resolve to.
-                let default_value_kind_for_expr_type = ValueKind::new_static_from_type(expr_type);
-                let resolved_value_kind = match default_value_kind_for_expr_type {
-                    ValueKind::Array(_, _) => match quantum_properties.value_kind {
-                        // We should resolve to an array value kind variant.
-                        ValueKind::Array(_, _) => quantum_properties.value_kind,
-                        ValueKind::Element(runtime_kind) => match runtime_kind {
-                            RuntimeKind::Static => {
-                                ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static)
-                            }
-                            RuntimeKind::Dynamic => {
-                                ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic)
-                            }
-                        },
-                    },
-                    ValueKind::Element(_) => {
-                        // We should resolve to an element value kind variant.
-                        if quantum_properties.value_kind.is_dynamic() {
-                            ValueKind::Element(RuntimeKind::Dynamic)
-                        } else {
-                            ValueKind::Element(RuntimeKind::Static)
-                        }
-                    }
-                };
-
-                quantum_properties.value_kind = resolved_value_kind;
+                // Create a default value kind for the call expression type just to know which variant we should map to.
+                // Then map the currently computed variant onto it.
+                let mut mapped_value_kind = ValueKind::new_static_from_type(expr_type);
+                quantum_properties
+                    .value_kind
+                    .project_onto_variant(&mut mapped_value_kind);
+                quantum_properties.value_kind = mapped_value_kind;
             }
         }
         compute_kind
