@@ -5,7 +5,7 @@ use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
     common::{
         derive_callable_input_params, try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId,
-        InputParam, Local, LocalKind,
+        InputParam, Local, LocalKind, TyExt,
     },
     scaffolding::{ItemComputeProperties, PackageStoreComputeProperties},
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ComputePropertiesLookup,
@@ -376,6 +376,7 @@ impl<'a> Analyzer<'a> {
         callee: &Callee,
         callable_decl: &'a CallableDecl,
         args_expr_id: ExprId,
+        expr_type: &Ty,
     ) -> ComputeKind {
         // Analyze the specialization to determine its application generator set.
         let callee_id = GlobalSpecId::from((callee.item, callee.functor_app.functor_set_value()));
@@ -408,10 +409,10 @@ impl<'a> Analyzer<'a> {
 
         // Aggregate the runtime features of the qubit controls expressions.
         let mut has_dynamic_controls = false;
+        let default_value_kind = ValueKind::new_static_from_type(&callable_decl.output);
         for control_expr in args_controls {
             let control_expr_compute_kind =
                 *application_instance.get_expr_compute_kind(control_expr);
-            let default_value_kind = ValueKind::new_static_from_type(&callable_decl.output);
             compute_kind = compute_kind
                 .aggregate_runtime_features(control_expr_compute_kind, default_value_kind);
             has_dynamic_controls |= control_expr_compute_kind.is_dynamic();
@@ -424,6 +425,40 @@ impl<'a> Analyzer<'a> {
             compute_kind.aggregate_value_kind(value_kind);
         }
 
+        // If the callable output has type parameters, there might be a discrepancy in the value kind variant we derive
+        // from the application generator set and the value kind variant that corresponds to the call expression type.
+        // Fix that discrepancy here.
+        if callable_decl.output.has_type_parameters() {
+            if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
+                // Create a default value kind for the call expression type just so we know which variant we should
+                // resolve to.
+                let default_value_kind_for_expr_type = ValueKind::new_static_from_type(expr_type);
+                let resolved_value_kind = match default_value_kind_for_expr_type {
+                    ValueKind::Array(_, _) => match quantum_properties.value_kind {
+                        // We should resolve to an array value kind variant.
+                        ValueKind::Array(_, _) => quantum_properties.value_kind,
+                        ValueKind::Element(runtime_kind) => match runtime_kind {
+                            RuntimeKind::Static => {
+                                ValueKind::Array(RuntimeKind::Static, RuntimeKind::Static)
+                            }
+                            RuntimeKind::Dynamic => {
+                                ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic)
+                            }
+                        },
+                    },
+                    ValueKind::Element(_) => {
+                        // We should resolve to an element value kind variant.
+                        if quantum_properties.value_kind.is_dynamic() {
+                            ValueKind::Element(RuntimeKind::Dynamic)
+                        } else {
+                            ValueKind::Element(RuntimeKind::Static)
+                        }
+                    }
+                };
+
+                quantum_properties.value_kind = resolved_value_kind;
+            }
+        }
         compute_kind
     }
 
@@ -461,9 +496,12 @@ impl<'a> Analyzer<'a> {
             .get_global(callee.item)
             .expect("global should exist");
         match global_callee {
-            Global::Callable(callable_decl) => {
-                self.analyze_expr_call_with_spec_callee(&callee, callable_decl, args_expr_id)
-            }
+            Global::Callable(callable_decl) => self.analyze_expr_call_with_spec_callee(
+                &callee,
+                callable_decl,
+                args_expr_id,
+                expr_type,
+            ),
             Global::Udt => self.analyze_expr_call_with_udt_callee(args_expr_id),
         }
     }

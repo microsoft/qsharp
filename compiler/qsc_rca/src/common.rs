@@ -172,6 +172,25 @@ impl FunctorAppExt for FunctorApp {
     }
 }
 
+pub trait TyExt {
+    fn has_type_parameters(&self) -> bool;
+}
+
+impl TyExt for Ty {
+    fn has_type_parameters(&self) -> bool {
+        match self {
+            Self::Array(ty) => ty.has_type_parameters(),
+            Self::Arrow(arrow) => {
+                arrow.input.has_type_parameters() || arrow.output.has_type_parameters()
+            }
+            Self::Infer(_) | Self::Prim(_) | Self::Udt(_) => false,
+            Self::Param(_) => true,
+            Self::Tuple(types) => types.iter().any(TyExt::has_type_parameters),
+            Self::Err => panic!("unexpected type error"),
+        }
+    }
+}
+
 /// An element related to an input pattern.
 #[derive(Debug)]
 struct InputPatternElement {

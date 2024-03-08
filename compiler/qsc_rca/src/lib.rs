@@ -304,7 +304,7 @@ impl ApplicationGeneratorSet {
         {
             if let ValueKind::Element(RuntimeKind::Dynamic) = arg_value_kind {
                 let ParamApplication::Element(param_compute_kind) = param_application else {
-                    panic!("parameter application was expected to be the element variant");
+                    panic!("parameter application was expected to be an element variant");
                 };
 
                 compute_kind = compute_kind.aggregate(*param_compute_kind);
@@ -312,7 +312,7 @@ impl ApplicationGeneratorSet {
                 arg_value_kind
             {
                 let ParamApplication::Array(array_param_application) = param_application else {
-                    panic!("parameter application was expected to be the array variant");
+                    panic!("parameter application was expected to be an array variant");
                 };
 
                 let param_compute_kind = match (content_runtime_value, size_runtime_value) {
@@ -482,13 +482,7 @@ impl ComputeKind {
     pub(crate) fn is_dynamic(self) -> bool {
         match self {
             Self::Classical => false,
-            Self::Quantum(quantum_properties) => match quantum_properties.value_kind {
-                ValueKind::Array(content_runtime_value, size_runtime_value) => {
-                    matches!(content_runtime_value, RuntimeKind::Dynamic)
-                        || matches!(size_runtime_value, RuntimeKind::Dynamic)
-                }
-                ValueKind::Element(runtime_value) => matches!(runtime_value, RuntimeKind::Dynamic),
-            },
+            Self::Quantum(quantum_properties) => quantum_properties.value_kind.is_dynamic(),
         }
     }
 
@@ -565,22 +559,6 @@ impl ValueKind {
         }
     }
 
-    pub(crate) fn get_array_runtime_kinds(self) -> (RuntimeKind, RuntimeKind) {
-        match self {
-            Self::Element(_) => panic!("value kind should be of the element variant"),
-            Self::Array(content_runtime_kind, size_runtime_kind) => {
-                (content_runtime_kind, size_runtime_kind)
-            }
-        }
-    }
-
-    pub(crate) fn get_element_runtime_kind(self) -> RuntimeKind {
-        match self {
-            Self::Element(runtime_kind) => runtime_kind,
-            Self::Array(_, _) => panic!("value kind should be of the element variant"),
-        }
-    }
-
     pub(crate) fn aggregate(self, value: ValueKind) -> Self {
         match self {
             Self::Array(self_content_runtime_value, self_size_runtime_value) => {
@@ -600,6 +578,32 @@ impl ValueKind {
                 };
                 Self::Element(self_runtime_value.aggregate(other_runtime_value))
             }
+        }
+    }
+
+    pub(crate) fn get_array_runtime_kinds(self) -> (RuntimeKind, RuntimeKind) {
+        match self {
+            Self::Element(_) => panic!("value kind should be of the element variant"),
+            Self::Array(content_runtime_kind, size_runtime_kind) => {
+                (content_runtime_kind, size_runtime_kind)
+            }
+        }
+    }
+
+    pub(crate) fn get_element_runtime_kind(self) -> RuntimeKind {
+        match self {
+            Self::Element(runtime_kind) => runtime_kind,
+            Self::Array(_, _) => panic!("value kind should be of the element variant"),
+        }
+    }
+
+    pub(crate) fn is_dynamic(self) -> bool {
+        match self {
+            Self::Array(content_runtime_kind, size_runtime_kind) => {
+                matches!(content_runtime_kind, RuntimeKind::Dynamic)
+                    || matches!(size_runtime_kind, RuntimeKind::Dynamic)
+            }
+            Self::Element(runtime_kind) => matches!(runtime_kind, RuntimeKind::Dynamic),
         }
     }
 }
