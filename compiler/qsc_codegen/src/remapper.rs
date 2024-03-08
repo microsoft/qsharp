@@ -5,9 +5,13 @@ use qsc_data_structures::index_map::IndexMap;
 
 /// Provides support for qubit id allocation, measurement and
 /// reset operations for Base Profile targets.
+///
 /// Since qubit reuse is disallowed, a mapping is maintained
 /// from allocated qubit ids to hardware qubit ids. Each time
 /// a qubit is reset, it is remapped to a fresh hardware qubit.
+///
+/// Note that even though qubit reset & reuse is disallowed,
+/// qubit ids are still reused for new allocations.
 /// Measurements are tracked and deferred.
 #[derive(Default)]
 pub struct Remapper {
