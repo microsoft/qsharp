@@ -24,21 +24,24 @@
 //!
 //! # How to add a new Lint
 //!
-//! Adding a new lint has three steps:
+//! We can add a new lint in two steps:
 //!  1. Declaring the lint: here you set the lint name, the default [`LintLevel`], and the message the user will see.
 //!  2. Implementing the lint: here you write the pattern matching logic of the new lint.
-//!  3. Adding the new lint to the right linter.
 //!
 //! Below is a full example of how to a new AST lint.
 //!
 //! ## Example
 //!
-//! First, we declare and implement our new lint in `src/lints/ast.rs`.
+//! First, we add our lint to `src/lints/ast.rs`.
 //! ```
-//! declare_lint!(DoubleParens, LintLevel::Warn, "unnecesary double parentheses")
+//! declare_ast_lints!{
+//!   ...
+//!   (DoubleParens, LintLevel::Warn, "unnecesary double parentheses"),
+//! }
+//! ```
 //!
-//! // implement the right LintPass for our new lint,
-//! // in this case [`linter::ast::AstLintPass`]
+//! Then we implement the right `LintPass` for our new lint, in this case `linter::ast::AstLintPass`
+//! ```
 //! impl linter::ast::AstLintPass for DoubleParens {
 //!     // we only need to impl the relevant check_* method, all the other ones
 //!     // will default to an empty method that will get optmized by rust
@@ -50,18 +53,6 @@
 //!                 push_lint!(Self, expr.span, buffer);
 //!             }
 //!         }
-//!     }
-//! }
-//! ```
-//!
-//! Finally we add our new lint to `impl CombinedAstLints { ... }` in `src/linter/ast.rs`.
-//!
-//! ```
-//! impl AstLintPass for CombinedAstLints {
-//!     fn check_expr(expr: &Expr) {
-//!         // ... some other lints
-//!
-//!         DoubleParens::check_expr(expr); // add your new lint here
 //!     }
 //! }
 //! ```
