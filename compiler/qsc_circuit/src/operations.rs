@@ -5,7 +5,6 @@ use qsc_hir::{
     hir::{Item, ItemKind},
     ty::{Prim, Ty},
 };
-use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct OperationInfo {
@@ -81,7 +80,6 @@ fn operation_circuit_entry_expr(
         let qs_end = qs_start + qs_len - 1;
         if dim == 0 {
             call_args.push(format!("qs[{qs_start}]"));
-            //let _ = write!(&mut call_params, "qs[{qs_start}]");
         } else {
             // Array argument - use a range to index
             let mut call_arg = format!("qs[{qs_start}..{qs_end}]");
@@ -95,6 +93,7 @@ fn operation_circuit_entry_expr(
     }
 
     let call_args = call_args.join(", ");
+
     // We don't reset the qubits since we don't want reset gates
     // included in circuit output.
     // We also don't measure the qubits but we have to return a result
@@ -112,10 +111,6 @@ fn operation_circuit_entry_expr(
 /// The number of qubits to allocate for each qubit array
 /// in the operation arguments.
 static NUM_QUBITS: u32 = 2;
-
-thread_local! {
-     static DISAMBIGUATOR: RefCell<u32> = RefCell::new(1);
-}
 
 fn get_qubit_param_info(input: &Ty) -> (Vec<u32>, u32) {
     match input {
