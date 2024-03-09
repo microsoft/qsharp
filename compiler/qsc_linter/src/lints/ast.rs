@@ -1,36 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{declare_lint, push_lint};
-use crate::linter::{ast::AstLintPass, Lint, LintLevel};
+use super::push_lint;
+use crate::linter::{
+    ast::{declare_ast_lints, AstLintPass},
+    Lint, LintLevel,
+};
 use qsc_ast::ast::{BinOp, ExprKind, Lit, StmtKind};
 use qsc_data_structures::span::Span;
 
-declare_lint!(DoubleParens, LintLevel::Warning, "unnecessary parentheses");
-declare_lint!(
-    DivisionByZero,
-    LintLevel::Allow,
-    "attempt to divide by zero"
-);
-declare_lint!(
-    NeedlessParens,
-    LintLevel::Warning,
-    "unnecessary parentheses"
-);
-declare_lint!(
-    RedundantSemicolons,
-    LintLevel::Warning,
-    "redundant semicolons"
-);
-
-impl AstLintPass for DoubleParens {
-    fn check_expr(expr: &qsc_ast::ast::Expr, buffer: &mut Vec<Lint>) {
-        if let ExprKind::Paren(ref inner_expr) = *expr.kind {
-            if matches!(*inner_expr.kind, ExprKind::Paren(_)) {
-                push_lint!(Self, expr.span, buffer);
-            }
-        }
-    }
+declare_ast_lints! {
+    (DivisionByZero, LintLevel::Allow, "attempt to divide by zero"),
+    (NeedlessParens, LintLevel::Warning, "unnecessary parentheses"),
+    (RedundantSemicolons, LintLevel::Warning, "redundant semicolons"),
 }
 
 impl AstLintPass for DivisionByZero {
@@ -60,9 +42,23 @@ impl AstLintPass for NeedlessParens {
             }
         }
 
-        if let ExprKind::BinOp(_, left, right) = &*expr.kind {
-            push(expr, left, buffer);
-            push(expr, right, buffer);
+        match &*expr.kind {
+            ExprKind::BinOp(_, left, right) => {
+                push(expr, left, buffer);
+                push(expr, right, buffer);
+            }
+            ExprKind::Assign(_, right) | ExprKind::AssignOp(_, _, right) => {
+                push(expr, right, buffer);
+            }
+            _ => (),
+        }
+    }
+
+    fn check_stmt(stmt: &qsc_ast::ast::Stmt, buffer: &mut Vec<Lint>) {
+        if let StmtKind::Local(_, _, right) = &*stmt.kind {
+            if let ExprKind::Paren(_) = &*right.kind {
+                push_lint!(NeedlessParens, right.span, buffer);
+            }
         }
     }
 }
@@ -113,6 +109,7 @@ fn precedence(expr: &qsc_ast::ast::Expr) -> u8 {
             BinOp::OrB | BinOp::XorB | BinOp::AndB => 9,
             BinOp::OrL | BinOp::AndL => 10,
         },
+        ExprKind::Assign(_, _) | ExprKind::AssignOp(_, _, _) => 11,
         _ => u8::MAX,
     }
 }

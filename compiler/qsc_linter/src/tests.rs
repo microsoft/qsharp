@@ -31,11 +31,6 @@ fn multiple_lints() {
                     message: "unnecessary parentheses",
                     level: Warning,
                 },
-                SrcLint {
-                    source: "((1 + 2))",
-                    message: "unnecessary parentheses",
-                    level: Warning,
-                },
             ]
         "#]],
     );
@@ -74,7 +69,7 @@ fn division_by_zero() {
 }
 
 #[test]
-fn needless_parens() {
+fn needless_parens_in_assignment() {
     check_ast(
         "let x = (42);",
         &expect![[r#"
@@ -87,18 +82,21 @@ fn needless_parens() {
         ]
     "#]],
     );
+}
 
+#[test]
+fn needless_parens() {
     check_ast(
         "let x = (2) + (5 * 4 * (2 ^ 10));",
         &expect![[r#"
             [
                 SrcLint {
-                    source: "(5 * 4 * (2 ^ 10))",
+                    source: "(2)",
                     message: "unnecessary parentheses",
                     level: Warning,
                 },
                 SrcLint {
-                    source: "(2)",
+                    source: "(5 * 4 * (2 ^ 10))",
                     message: "unnecessary parentheses",
                     level: Warning,
                 },
