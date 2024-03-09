@@ -11,6 +11,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir;
 use qsc_fir::fir::{ExprId, PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
@@ -58,7 +59,13 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
-    let mut unit = compile(&store, &[std_id], sources, RuntimeCapabilityFlags::all());
+    let mut unit = compile(
+        &store,
+        &[std_id],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     let pass_errors = run_default_passes(
         store.core(),
@@ -1373,6 +1380,33 @@ fn assignop_add_expr() {
 }
 
 #[test]
+fn assignop_add_concat() {
+    check_expr(
+        "",
+        indoc! {"{
+            mutable x = [1, 2];
+            set x += [3, 4];
+            x
+        }"},
+        &expect!["[1, 2, 3, 4]"],
+    );
+}
+
+#[test]
+fn assignop_add_concat_copy() {
+    check_expr(
+        "",
+        indoc! {"{
+            let x = [1, 2];
+            mutable y = x;
+            set y += [3, 4];
+            (x, y)
+        }"},
+        &expect!["([1, 2], [1, 2, 3, 4])"],
+    );
+}
+
+#[test]
 fn assignop_sub_expr() {
     check_expr(
         "",
@@ -2254,6 +2288,20 @@ fn assignupdate_expr() {
             x
         }"},
         &expect!["[1, 2, 4]"],
+    );
+}
+
+#[test]
+fn assignupdate_on_copy_should_work() {
+    check_expr(
+        "",
+        indoc! {"{
+            let x = [1, 2, 3];
+            mutable y = x;
+            set y w/= 2 <- 4;
+            (x, y)
+        }"},
+        &expect!["([1, 2, 3], [1, 2, 4])"],
     );
 }
 

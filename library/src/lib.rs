@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-
 #[cfg(test)]
 mod tests;
 
@@ -23,6 +20,7 @@ pub const STD_LIB: &[(&str, &str)] = &[
     ("diagnostics.qs", include_str!("../std/diagnostics.qs")),
     ("internal.qs", include_str!("../std/internal.qs")),
     ("intrinsic.qs", include_str!("../std/intrinsic.qs")),
+    ("logical.qs", include_str!("../std/logical.qs")),
     ("math.qs", include_str!("../std/math.qs")),
     ("measurement.qs", include_str!("../std/measurement.qs")),
     ("qir.qs", include_str!("../std/qir.qs")),
@@ -35,6 +33,10 @@ pub const STD_LIB: &[(&str, &str)] = &[
     (
         "unstable_arithmetic_internal.qs",
         include_str!("../std/unstable_arithmetic_internal.qs"),
+    ),
+    (
+        "unstable_state_preparation.qs",
+        include_str!("../std/unstable_state_preparation.qs"),
     ),
     (
         "unstable_table_lookup.qs",

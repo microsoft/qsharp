@@ -41,6 +41,40 @@ suite("Q# Notebook Tests", function suite() {
     );
   });
 
+  test("Cell language is set back to Python", async () => {
+    const notebook = await vscode.workspace.openNotebookDocument(
+      vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),
+    );
+
+    await vscode.window.showNotebookDocument(notebook);
+
+    assert.equal(
+      vscode.window.activeNotebookEditor?.notebook.uri.toString(),
+      notebook.uri.toString(),
+    );
+
+    const oldLength = notebook.getCells().length;
+
+    // Add a new cell at the bottom of the notebook
+    await vscode.commands.executeCommand("notebook.focusBottom");
+    await vscode.commands.executeCommand("notebook.cell.insertCodeCellBelow");
+
+    // There should be an additional cell in the notebook and it should be Python
+    await waitForCondition(
+      () => {
+        const cellsAfter = notebook.getCells();
+        return (
+          cellsAfter.length === oldLength + 1 &&
+          notebook.getCells()[cellsAfter.length - 1].document.languageId ===
+            "python"
+        );
+      },
+      vscode.workspace.onDidChangeNotebookDocument,
+      50,
+      "timed out waiting for a Python code cell",
+    );
+  });
+
   test("Diagnostics", async () => {
     const notebook = await vscode.workspace.openNotebookDocument(
       vscode.Uri.joinPath(workspaceFolderUri, "test.ipynb"),

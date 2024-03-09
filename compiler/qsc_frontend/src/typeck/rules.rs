@@ -81,8 +81,12 @@ impl<'a> Context<'a> {
         self.return_ty = Some(spec.output.clone());
         let block = self.infer_block(spec.block);
         if let Some(return_ty) = self.return_ty.take() {
-            let span = spec.block.stmts.last().map_or(spec.block.span, |s| s.span);
-            self.inferrer.eq(span, return_ty, block.ty);
+            if block.ty == Ty::UNIT {
+                self.inferrer.eq(spec.output_span, block.ty, return_ty);
+            } else {
+                let span = spec.block.stmts.last().map_or(spec.block.span, |s| s.span);
+                self.inferrer.eq(span, return_ty, block.ty);
+            }
         }
     }
 
@@ -285,15 +289,24 @@ impl<'a> Context<'a> {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);
                 self.inferrer.eq(cond_span, Ty::Prim(Prim::Bool), cond.ty);
+                let if_true_span = if_true.span;
                 let if_true = self.infer_block(if_true);
-                let if_false = if_false
-                    .as_ref()
-                    .map_or(converge(Ty::UNIT), |e| self.infer_expr(e));
-                self.inferrer.eq(expr.span, if_true.ty.clone(), if_false.ty);
+                let if_false_diverges = match if_false {
+                    None => {
+                        self.inferrer.eq(if_true_span, Ty::UNIT, if_true.ty.clone());
+                        false
+                    }
+                    Some(if_false) => {
+                        let if_false = self.infer_expr(if_false);
+                        self.inferrer
+                            .eq(if_true_span, if_true.ty.clone(), if_false.ty);
+                        if_false.diverges
+                    }
+                };
                 self.diverge_if(
                     cond.diverges,
                     Partial {
-                        diverges: if_true.diverges && if_false.diverges,
+                        diverges: if_true.diverges && if_false_diverges,
                         ..if_true
                     },
                 )
@@ -770,6 +783,7 @@ pub(super) struct SpecImpl<'a> {
     pub(super) callable_input: &'a Pat,
     pub(super) spec_input: Option<&'a Pat>,
     pub(super) output: &'a Ty,
+    pub(super) output_span: Span,
     pub(super) block: &'a Block,
 }
 

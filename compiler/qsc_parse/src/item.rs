@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Something declared at the top level (within a namespace or module) is an [Item]. This could be a newtype, callable
+//! declaration, import or open statement, or other top-level declaration or statement.
+
 #[cfg(test)]
 mod tests;
 
@@ -8,7 +11,7 @@ use super::{
     expr::expr,
     keyword::Keyword,
     prim::{dot_ident, ident, many, opt, pat, seq, token},
-    scan::Scanner,
+    scan::ParserContext,
     stmt,
     ty::{self, ty},
     Error, Result,
@@ -27,7 +30,7 @@ use qsc_ast::ast::{
 };
 use qsc_data_structures::span::Span;
 
-pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
+pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s);
     let attrs = many(s, parse_attr)?;
@@ -66,7 +69,7 @@ pub(super) fn parse(s: &mut Scanner) -> Result<Box<Item>> {
 }
 
 #[allow(clippy::vec_box)]
-fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Item>>> {
+fn parse_many(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
     const BARRIER_TOKENS: &[TokenKind] = &[
         TokenKind::At,
         TokenKind::Keyword(Keyword::Internal),
@@ -83,6 +86,7 @@ fn parse_many(s: &mut Scanner) -> Result<Vec<Box<Item>>> {
     })
 }
 
+#[allow(clippy::unnecessary_box_returns)]
 fn default(span: Span) -> Box<Item> {
     Box::new(Item {
         id: NodeId::default(),
@@ -94,19 +98,19 @@ fn default(span: Span) -> Box<Item> {
     })
 }
 
-pub(super) fn parse_namespaces(s: &mut Scanner) -> Result<Vec<Namespace>> {
+pub(super) fn parse_namespaces(s: &mut ParserContext) -> Result<Vec<Namespace>> {
     let namespaces = many(s, parse_namespace)?;
-    recovering_token(s, TokenKind::Eof)?;
+    recovering_token(s, TokenKind::Eof);
     Ok(namespaces)
 }
 
-pub(super) fn parse_top_level_nodes(s: &mut Scanner) -> Result<Vec<TopLevelNode>> {
+pub(super) fn parse_top_level_nodes(s: &mut ParserContext) -> Result<Vec<TopLevelNode>> {
     let nodes = many(s, parse_top_level_node)?;
-    recovering_token(s, TokenKind::Eof)?;
+    recovering_token(s, TokenKind::Eof);
     Ok(nodes)
 }
 
-fn parse_top_level_node(s: &mut Scanner) -> Result<TopLevelNode> {
+fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
     // Here we parse any doc comments ahead of calling `parse_namespace` or `stmt::parse` in order
     // to avoid problems with error reporting. Specifically, if `parse_namespace` consumes the
     // doc comment and then fails to find a namespace, that becomes an unrecoverable error even with
@@ -128,14 +132,14 @@ fn parse_top_level_node(s: &mut Scanner) -> Result<TopLevelNode> {
     }
 }
 
-fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
+fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let doc = parse_doc(s).unwrap_or_default();
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = dot_ident(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
-    recovering_token(s, TokenKind::Close(Delim::Brace))?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(Namespace {
         id: NodeId::default(),
         span: s.span(lo),
@@ -145,7 +149,7 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
     })
 }
 
-/// See https://github.com/microsoft/qsharp/issues/941 for context.
+/// See [GH Issue 941](https://github.com/microsoft/qsharp/issues/941) for context.
 /// We want to anticipate docstrings in places people might
 /// put them, but throw them away. This is to maintain
 /// back compatibility.
@@ -153,11 +157,11 @@ fn parse_namespace(s: &mut Scanner) -> Result<Namespace> {
 /// or support warnings, we can use this function to determine
 /// places that need to be updated. This function can then emit
 /// a warning.
-pub(super) fn throw_away_doc(s: &mut Scanner) {
+pub(super) fn throw_away_doc(s: &mut ParserContext) {
     let _ = parse_doc(s);
 }
 
-fn parse_doc(s: &mut Scanner) -> Option<String> {
+fn parse_doc(s: &mut ParserContext) -> Option<String> {
     let mut content = String::new();
     while s.peek().kind == TokenKind::DocComment {
         if !content.is_empty() {
@@ -173,7 +177,7 @@ fn parse_doc(s: &mut Scanner) -> Option<String> {
     (!content.is_empty()).then_some(content)
 }
 
-fn parse_attr(s: &mut Scanner) -> Result<Box<Attr>> {
+fn parse_attr(s: &mut ParserContext) -> Result<Box<Attr>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::At)?;
     let name = ident(s)?;
@@ -186,7 +190,7 @@ fn parse_attr(s: &mut Scanner) -> Result<Box<Attr>> {
     }))
 }
 
-fn parse_visibility(s: &mut Scanner) -> Result<Visibility> {
+fn parse_visibility(s: &mut ParserContext) -> Result<Visibility> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Internal))?;
     Ok(Visibility {
@@ -196,7 +200,7 @@ fn parse_visibility(s: &mut Scanner) -> Result<Visibility> {
     })
 }
 
-fn parse_open(s: &mut Scanner) -> Result<Box<ItemKind>> {
+fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Open))?;
     let name = dot_ident(s)?;
     let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
@@ -208,7 +212,7 @@ fn parse_open(s: &mut Scanner) -> Result<Box<ItemKind>> {
     Ok(Box::new(ItemKind::Open(name, alias)))
 }
 
-fn parse_newtype(s: &mut Scanner) -> Result<Box<ItemKind>> {
+fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     token(s, TokenKind::Keyword(Keyword::Newtype))?;
     let name = ident(s)?;
     token(s, TokenKind::Eq)?;
@@ -228,13 +232,13 @@ fn parse_newtype(s: &mut Scanner) -> Result<Box<ItemKind>> {
 
 fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
     match tydef.kind.as_ref() {
-        TyDefKind::Field(Some(_), _) => None,
+        TyDefKind::Field(Some(_), _) | TyDefKind::Err => None,
         TyDefKind::Field(None, ty) => Some(*ty.clone()),
         TyDefKind::Paren(tydef) => try_tydef_as_ty(tydef.as_ref()),
         TyDefKind::Tuple(tup) => {
             let mut ty_tup = Vec::new();
             for tydef in tup.iter() {
-                ty_tup.push(try_tydef_as_ty(tydef)?)
+                ty_tup.push(try_tydef_as_ty(tydef)?);
             }
             Some(Ty {
                 id: tydef.id,
@@ -242,11 +246,10 @@ fn try_tydef_as_ty(tydef: &TyDef) -> Option<Ty> {
                 kind: Box::new(TyKind::Tuple(ty_tup.into_boxed_slice())),
             })
         }
-        TyDefKind::Err => None,
     }
 }
 
-fn parse_ty_def(s: &mut Scanner) -> Result<Box<TyDef>> {
+fn parse_ty_def(s: &mut ParserContext) -> Result<Box<TyDef>> {
     throw_away_doc(s);
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
@@ -287,8 +290,9 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     }
 }
 
-fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
+fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
+    let _doc = parse_doc(s);
     let kind = if token(s, TokenKind::Keyword(Keyword::Function)).is_ok() {
         CallableKind::Function
     } else if token(s, TokenKind::Keyword(Keyword::Operation)).is_ok() {
@@ -338,7 +342,7 @@ fn parse_callable_decl(s: &mut Scanner) -> Result<Box<CallableDecl>> {
     }))
 }
 
-fn parse_callable_body(s: &mut Scanner) -> Result<CallableBody> {
+fn parse_callable_body(s: &mut ParserContext) -> Result<CallableBody> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Open(Delim::Brace))?;
     barrier(s, &[TokenKind::Close(Delim::Brace)], |s| {
@@ -346,20 +350,20 @@ fn parse_callable_body(s: &mut Scanner) -> Result<CallableBody> {
         if specs.is_empty() {
             let stmts = stmt::parse_many(s)?;
             check_semis(s, &stmts);
-            recovering_token(s, TokenKind::Close(Delim::Brace))?;
+            recovering_token(s, TokenKind::Close(Delim::Brace));
             Ok(CallableBody::Block(Box::new(Block {
                 id: NodeId::default(),
                 span: s.span(lo),
                 stmts: stmts.into_boxed_slice(),
             })))
         } else {
-            recovering_token(s, TokenKind::Close(Delim::Brace))?;
+            recovering_token(s, TokenKind::Close(Delim::Brace));
             Ok(CallableBody::Specs(specs.into_boxed_slice()))
         }
     })
 }
 
-fn parse_spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
+fn parse_spec_decl(s: &mut ParserContext) -> Result<Box<SpecDecl>> {
     let lo = s.peek().span.lo;
     let spec = if token(s, TokenKind::Keyword(Keyword::Body)).is_ok() {
         Spec::Body
@@ -394,7 +398,7 @@ fn parse_spec_decl(s: &mut Scanner) -> Result<Box<SpecDecl>> {
     }))
 }
 
-fn parse_spec_gen(s: &mut Scanner) -> Result<SpecGen> {
+fn parse_spec_gen(s: &mut ParserContext) -> Result<SpecGen> {
     if token(s, TokenKind::Keyword(Keyword::Auto)).is_ok() {
         Ok(SpecGen::Auto)
     } else if token(s, TokenKind::Keyword(Keyword::Distribute)).is_ok() {
@@ -415,9 +419,9 @@ fn parse_spec_gen(s: &mut Scanner) -> Result<SpecGen> {
 }
 /// Checks that the inputs of the callable are surrounded by parens
 pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
-    if !matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
-        Err(Error(ErrorKind::MissingParens(inputs.span)))
-    } else {
+    if matches!(*inputs.kind, PatKind::Paren(_) | PatKind::Tuple(_)) {
         Ok(())
+    } else {
+        Err(Error(ErrorKind::MissingParens(inputs.span)))
     }
 }

@@ -10,42 +10,43 @@ import {
   qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import * as vscode from "vscode";
+import { initAzureWorkspaces } from "./azure/commands.js";
+import { createCodeLensProvider } from "./codeLens.js";
 import {
   isQsharpDocument,
   isQsharpNotebookCell,
   qsharpLanguageId,
 } from "./common.js";
 import { createCompletionItemProvider } from "./completion";
-import { activateDebugger } from "./debugger/activate";
 import { getTarget } from "./config";
+import { activateDebugger } from "./debugger/activate";
 import { createDefinitionProvider } from "./definition";
 import { startCheckingQSharp } from "./diagnostics";
 import { createHoverProvider } from "./hover";
+import {
+  Logging,
+  initLogForwarder,
+  initOutputWindowLogger,
+} from "./logging.js";
+import { initFileSystem } from "./memfs.js";
 import {
   registerCreateNotebookCommand,
   registerQSharpNotebookCellUpdateHandlers,
   registerQSharpNotebookHandlers,
 } from "./notebook.js";
+import { getManifest, listDir, readFile } from "./projectSystem.js";
+import { initCodegen } from "./qirGeneration.js";
+import { createReferenceProvider } from "./references.js";
+import { createRenameProvider } from "./rename.js";
+import { createSignatureHelpProvider } from "./signature.js";
+import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import {
   EventType,
   QsharpDocumentType,
   initTelemetry,
   sendTelemetryEvent,
 } from "./telemetry.js";
-import { initAzureWorkspaces } from "./azure/commands.js";
-import { initCodegen } from "./qirGeneration.js";
-import { createSignatureHelpProvider } from "./signature.js";
-import { createRenameProvider } from "./rename.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
-import { createReferenceProvider } from "./references.js";
-import { activateTargetProfileStatusBarItem } from "./statusbar.js";
-import { initFileSystem } from "./memfs.js";
-import { getManifest, readFile, listDir } from "./projectSystem.js";
-import {
-  Logging,
-  initLogForwarder,
-  initOutputWindowLogger,
-} from "./logging.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -105,10 +106,10 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
-      const documentType = isQsharpDocument(document)
-        ? QsharpDocumentType.Qsharp
-        : isQsharpNotebookCell(document)
+      const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
+        : isQsharpDocument(document)
+        ? QsharpDocumentType.Qsharp
         : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
@@ -216,6 +217,14 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     vscode.languages.registerRenameProvider(
       qsharpLanguageId,
       createRenameProvider(languageService),
+    ),
+  );
+
+  // code lens
+  subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      qsharpLanguageId,
+      createCodeLensProvider(languageService),
     ),
   );
 

@@ -1,13 +1,13 @@
 **Inputs:**
 
-  1. $N$ qubits in an arbitrary state $|x\rangle$ (input/query register).
+  1. $N \geq 2$ qubits in an arbitrary state $|x\rangle$ (input/query register).
   2. An integer $k$ such that $0 \leq k < N$.
 
 **Goal:**
 
-Flip the sign of the basis state $|x\rangle$ if any of the bits of $x$ (not considering the $k$-th bit) are $1$ in input register. In other words, the input register with the $k$-th qubit excluded should not be in the all zero state to flip the sign of the input register. The state of the $k$-th qubit does not affect the result.
+Flip the sign of the basis state $|x\rangle$ if any of the bits of $x$ (not considering the $k$-th bit) are $1$ in the input register. In other words, the input register with the $k$-th qubit excluded should not be in the all zero state to flip the sign of the input register. The state of the $k$-th qubit does not affect the result.
 
-Feel free to explore implementing this operation with or without auxiliary qubits.
+*Feel free to explore implementing this operation with or without auxiliary qubits.*
 
 **Examples:**
 
@@ -23,5 +23,5 @@ Feel free to explore implementing this operation with or without auxiliary qubit
   <summary><b>Need a hint?</b></summary>
   You can use the previously implemented oracles if needed by copying the code.
   <br/>
-  You can use <a href="https://docs.microsoft.com/en-us/azure/quantum/user-guide/language/expressions/itemaccessexpressions" target="_blank">array slicing</a> to get parts of the array before and after the $k$-th element.
+  You can use <a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/itemaccessexpressions" target="_blank">array slicing</a> to get parts of the array before and after the $k$-th element.
 </details>

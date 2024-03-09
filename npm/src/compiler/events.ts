@@ -3,12 +3,12 @@
 
 import { ShotResult, Dump, Result } from "./common.js";
 import { TelemetryEvent, log } from "../log.js";
-import { IServiceEventTarget } from "../worker-proxy.js";
+import { IServiceEventTarget } from "../workers/common.js";
 
 // Create strongly typed compiler events
 export type QscEventData =
   | { type: "Message"; detail: string }
-  | { type: "DumpMachine"; detail: Dump }
+  | { type: "DumpMachine"; detail: { state: Dump; stateLatex: string } }
   | { type: "Result"; detail: Result }
   | { type: "telemetry-event"; detail: TelemetryEvent };
 
@@ -94,11 +94,15 @@ export class QscEventTarget implements IQscEventTarget {
     this.queueUiRefresh();
   }
 
-  private onDumpMachine(dump: Dump) {
+  private onDumpMachine(detail: { state: Dump; stateLatex: string }) {
     this.ensureActiveShot();
 
     const shotIdx = this.results.length - 1;
-    this.results[shotIdx].events.push({ type: "DumpMachine", state: dump });
+    this.results[shotIdx].events.push({
+      type: "DumpMachine",
+      state: detail.state,
+      stateLatex: detail.stateLatex,
+    });
 
     this.queueUiRefresh();
   }

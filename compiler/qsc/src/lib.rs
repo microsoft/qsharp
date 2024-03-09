@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-
 pub mod compile;
 pub mod error;
 pub mod incremental;
@@ -35,7 +32,7 @@ pub mod project {
     pub use qsc_project::{DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor};
 }
 
-pub use qsc_data_structures::span::Span;
+pub use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 pub use qsc_passes::{PackageType, PassContext};
 
@@ -45,5 +42,7 @@ pub mod line_column {
 
 pub use qsc_eval::{
     backend::{Backend, SparseSim},
-    output::{fmt_basis_state_label, fmt_complex, format_state_id, get_phase},
+    state::{fmt_basis_state_label, fmt_complex, format_state_id, get_latex, get_phase},
 };
+
+pub use qsc_doc_gen::{display, generate_docs};

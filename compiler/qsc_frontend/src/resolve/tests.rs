@@ -17,7 +17,7 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use qsc_hir::assigner::Assigner as HirAssigner;
 use std::fmt::Write;
 
@@ -72,7 +72,7 @@ fn check(input: &str, expect: &Expect) {
 }
 
 fn resolve_names(input: &str) -> String {
-    let (package, names, _, errors) = compile(input);
+    let (package, names, _, errors) = compile(input, LanguageFeatures::default());
     let mut renamer = Renamer::new(&names);
     renamer.visit_package(&package);
     let mut output = input.to_string();
@@ -86,8 +86,11 @@ fn resolve_names(input: &str) -> String {
     output
 }
 
-fn compile(input: &str) -> (Package, Names, Locals, Vec<Error>) {
-    let (namespaces, parse_errors) = qsc_parse::namespaces(input);
+fn compile(
+    input: &str,
+    language_features: LanguageFeatures,
+) -> (Package, Names, Locals, Vec<Error>) {
+    let (namespaces, parse_errors) = qsc_parse::namespaces(input, language_features);
     assert!(parse_errors.is_empty(), "parse failed: {parse_errors:#?}");
     let mut package = Package {
         id: NodeId::default(),
@@ -2027,6 +2030,77 @@ fn multiple_definition_dropped_is_not_found() {
     );
 }
 
+#[test]
+fn disallow_duplicate_intrinsic() {
+    check(
+        indoc! {"
+            namespace A {
+                operation B() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace B {
+                operation B() : Unit {
+                    body intrinsic;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                operation item1() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace item2 {
+                operation item3() : Unit {
+                    body intrinsic;
+                }
+            }
+
+            // DuplicateIntrinsic("B", Span { lo: 101, hi: 102 })
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_duplicate_intrinsic_and_non_intrinsic_collision() {
+    check(
+        indoc! {"
+            namespace A {
+                internal operation C() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace B {
+                operation C() : Unit {}
+            }
+            namespace B {
+                operation C() : Unit {
+                    body intrinsic;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                internal operation item1() : Unit {
+                    body intrinsic;
+                }
+            }
+            namespace item2 {
+                operation item3() : Unit {}
+            }
+            namespace item4 {
+                operation item5() : Unit {
+                    body intrinsic;
+                }
+            }
+
+            // Duplicate("C", "B", Span { lo: 154, hi: 155 })
+            // DuplicateIntrinsic("C", Span { lo: 154, hi: 155 })
+        "#]],
+    );
+}
+
 #[allow(clippy::cast_possible_truncation)]
 fn check_locals(input: &str, expect: &Expect) {
     let parts = input.split('↘').collect::<Vec<_>>();
@@ -2038,7 +2112,7 @@ fn check_locals(input: &str, expect: &Expect) {
     let cursor_offset = parts[0].len() as u32;
     let source = parts.join("");
 
-    let (_, _, locals, _) = compile(&source);
+    let (_, _, locals, _) = compile(&source, LanguageFeatures::default());
 
     let locals = locals.get_all_at_offset(cursor_offset);
     let actual = locals.iter().fold(String::new(), |mut output, l| {
@@ -2326,5 +2400,257 @@ fn get_locals_block_scope_boundary_begin() {
             }
         "},
         &expect![""],
+    );
+}
+
+#[test]
+fn use_after_scope() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    {
+                        let x = 42;
+                    }
+                    x; // x should not be accessible here
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    {
+                        let local16 = 42;
+                    }
+                    x; // x should not be accessible here
+                }
+            }
+
+            // NotFound("x", Span { lo: 94, hi: 95 })
+        "#]],
+    );
+}
+
+#[test]
+fn nested_function_definition() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    function B() : Unit {
+                        function C() : Unit {}
+                        C();
+                    }
+                    B();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    function item2() : Unit {
+                        function item3() : Unit {}
+                        item3();
+                    }
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn variable_in_nested_blocks() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    {
+                        let x = 10;
+                        {
+                            let y = x + 5;
+                            y; // Should be accessible
+                        }
+                        y; // Should not be accessible
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    {
+                        let local16 = 10;
+                        {
+                            let local23 = local16 + 5;
+                            local23; // Should be accessible
+                        }
+                        y; // Should not be accessible
+                    }
+                }
+            }
+
+            // NotFound("y", Span { lo: 190, hi: 191 })
+        "#]],
+    );
+}
+
+#[test]
+fn function_call_with_namespace_alias() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+            namespace Bar {
+                open Foo as F;
+                function B() : Unit {
+                    F.A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+            }
+            namespace item2 {
+                open Foo as F;
+                function item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn type_alias_in_function_scope() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    newtype MyInt = Int;
+                    let x : MyInt = MyInt(5);
+                }
+                function B() : Unit {
+                    let z: MyInt = MyInt(5); // this should be a different type (and unresolved)
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    newtype item3 = Int;
+                    let local20 : item3 = item3(5);
+                }
+                function item2() : Unit {
+                    let local40: MyInt = MyInt(5); // this should be a different type (and unresolved)
+                }
+            }
+
+            // NotFound("MyInt", Span { lo: 152, hi: 157 })
+            // NotFound("MyInt", Span { lo: 160, hi: 165 })
+        "#]],
+    );
+}
+
+#[test]
+fn lambda_inside_lambda() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    let f = () -> {
+                        let g = (x) -> x + 1;
+                        g(10);
+                    };
+                    f();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    let local13 = () -> {
+                        let local20 = (local24) -> local24 + 1;
+                        local20(10);
+                    };
+                    local13();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_namespaces_with_same_function_name() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+            namespace Bar {
+                function A() : Unit {}
+                function B() : Unit {
+                    Foo.A();
+                    A(); // Should call Bar.A without needing to qualify
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+            }
+            namespace item2 {
+                function item3() : Unit {}
+                function item4() : Unit {
+                    item1();
+                    item3(); // Should call Bar.A without needing to qualify
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn newtype_with_invalid_field_type() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype Complex = (Re: Real, Im: Imaginary); // Imaginary is not a valid type
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (Re: Real, Im: Imaginary); // Imaginary is not a valid type
+            }
+
+            // NotFound("Real", Span { lo: 43, hi: 47 })
+            // NotFound("Imaginary", Span { lo: 53, hi: 62 })
+        "#]],
+    );
+}
+
+#[test]
+fn newtype_with_tuple_destructuring() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype Pair = (First: Int, Second: Int);
+                function Destructure(pair: Pair) : Int {
+                    let (first, second) = pair;
+                    first + second
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First: Int, Second: Int);
+                function item2(local21: item1) : Int {
+                    let (local32, local34) = local21;
+                    local32 + local34
+                }
+            }
+        "#]],
     );
 }

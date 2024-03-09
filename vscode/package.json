@@ -397,7 +397,12 @@
           }
         }
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "[qsharp]": {
+        "debug.saveBeforeStart": "none"
+      }
+    }
   },
   "scripts": {
     "build": "npm run tsc:check && node build.mjs",

@@ -12,6 +12,7 @@ This repository contains tooling for the Q# language, specifically:
 - **[npm](./npm/)**: Q# npm package
 - **[pip](./pip/)**: Q# Python pip package
 - **[playground](./playground/)**: simple website for interacting with Q#
+- **[resource_estimator](./resource_estimator)**: Implementation for the Azure Quantum Resource Estimator
 - **[vscode](./vscode/)**: Visual Studio Code extension
 - **[wasm](./wasm/)**: The bindings and logic for the WebAssembly module
 - **[widgets](./widgets)**: The Q# Jupyter widgets Python package
@@ -38,8 +39,9 @@ build of each project, including running tests and checks such as linting. Run w
 
 ### Playground
 
-To run the "playground" locally, `cd` into the `playground` directory, and run `npm start`.
-This will launch a local web server and output the URL to visit to the console.
+To run the "playground" locally, build the repository, then `cd` into the `playground` directory, and run `npm start`.
+This will launch a local web server and output the URL to the console; copy that URL and open it in a browser to use the playground.
+If you only want to build the functionality necessary to run the playground, you can use `python .\build.py --wasm --npm --play`.
 
 ### Python
 
@@ -68,6 +70,52 @@ Besides the usual debugging tools for Rust code and web sites, there is some log
 that may be enabled to help troubleshoot. The `qsc` command-line compiler makes use of the Rust
 crate [env_logger](https://docs.rs/env_logger/latest/env_logger/), which enables logging via
 environment variables, for example `RUST_LOG=debug ./target/release/qsc ./samples/Grover.qs`.
+
+## Citation
+
+If you use Q#, Azure Quantum Development Kit, or Azure Quantum Resource Estimator, please cite as follows:
+
+- Azure Quantum Development Kit:
+
+```bibtex
+@software{Microsoft_Azure_Quantum_Development,
+   author = {{Microsoft}},
+   license = {MIT},
+   title = {{Azure Quantum Development Kit}},
+   url = {https://github.com/microsoft/qsharp} }
+```
+
+- Q# programming language:
+
+```bibtex
+@inproceedings{Svore_2018, series={RWDSL2018},
+   title={{Q\#: Enabling Scalable Quantum Computing and Development with a High-level DSL}},
+   url={http://dx.doi.org/10.1145/3183895.3183901},
+   DOI={10.1145/3183895.3183901},
+   booktitle={Proceedings of the Real World Domain Specific Languages Workshop 2018},
+   publisher={ACM},
+   author={Svore, Krysta and Geller, Alan and Troyer, Matthias and Azariah, John and Granade, Christopher and Heim, Bettina and Kliuchnikov, Vadym and Mykhailova, Mariia and Paz, Andres and Roetteler, Martin},
+   year={2018},
+   month=feb, collection={RWDSL2018} }
+```
+
+- Azure Quantum Resource Estimator:
+
+```bibtex
+@inproceedings{Azure_Quantum_Resource_Estimator,
+   author = {van Dam, Wim and Mykhailova, Mariia and Soeken, Mathias},
+   title = {{Using Azure Quantum Resource Estimator for Assessing Performance of Fault Tolerant Quantum Computation}},
+   year = {2023},
+   isbn = {9798400707858},
+   publisher = {Association for Computing Machinery},
+   address = {New York, NY, USA},
+   url = {https://doi.org/10.1145/3624062.3624211},
+   doi = {10.1145/3624062.3624211},
+   booktitle = {Proceedings of the SC '23 Workshops of The International Conference on High Performance Computing, Network, Storage, and Analysis},
+   pages = {1414–1419},
+   numpages = {6},
+   series = {SC-W '23} }
+```
 
 ## Feedback
 

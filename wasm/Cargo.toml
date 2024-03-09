@@ -25,6 +25,7 @@ num-complex = { workspace = true }
 qsls = { path = "../language_service" }
 qsc = { path = "../compiler/qsc" }
 qsc_codegen = { path = "../compiler/qsc_codegen" }
+qsc_doc_gen = { path = "../compiler/qsc_doc_gen" }
 qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
 resource_estimator = { path = "../resource_estimator" }
 serde = { workspace = true, features = ["derive"]}
@@ -41,3 +42,6 @@ getrandom = { workspace = true, features = ["js"] }
 [dev-dependencies]
 expect-test = { workspace = true }
 indoc = { workspace = true }
+
+[lints]
+workspace = true

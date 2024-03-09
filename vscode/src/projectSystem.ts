@@ -13,16 +13,15 @@ import { updateQSharpJsonDiagnostics } from "./diagnostics";
  */
 export async function getManifest(uri: string): Promise<{
   manifestDirectory: string;
+  languageFeatures: string[] | undefined;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
-
   if (manifestDocument === null) {
     return null;
   }
-
+  let result;
   try {
-    updateQSharpJsonDiagnostics(manifestDocument.uri);
-    JSON.parse(manifestDocument.content);
+    result = await getManifestThrowsOnParseFailure(uri);
   } catch (e) {
     log.warn(
       `failed to parse manifest at ${manifestDocument.uri.toString()}`,
@@ -34,12 +33,7 @@ export async function getManifest(uri: string): Promise<{
     );
     return null;
   }
-
-  const manifestDirectory = Utils.dirname(manifestDocument.uri);
-
-  return {
-    manifestDirectory: manifestDirectory.toString(),
-  };
+  return result;
 }
 
 /** Returns the manifest document if one is found
@@ -53,6 +47,9 @@ async function findManifestDocument(
   // vscode-vfs://github%2B7b2276223a312c22726566223a7b2274797065223a332c226964223a22383439227d7d/microsoft/qsharp/samples/shor.qs
   const currentDocumentUri = URI.parse(currentDocumentUriString);
 
+  // Untitled documents don't have a file location, thus can't have a manifest
+  if (currentDocumentUri.scheme === "untitled") return null;
+
   // just the parent
   // e.g.
   // file://home/foo/bar/src
@@ -64,16 +61,12 @@ async function findManifestDocument(
 
   while (attempts > 0) {
     attempts--;
-    // we abort this check if we are going above the current VS Code
-    // workspace. If the user is working in a multi-root workspace [1],
-    // then we do not perform this check. This is because a multi-
-    // root workspace could contain different roots at different
-    // levels in each others' path ancestry.
-    // [1]: https://code.visualstudio.com/docs/editor/workspaces#_multiroot-workspaces
+
+    // Make sure that the path doesn't go above one of the open workspaces.
     if (
-      vscode.workspace.workspaceFolders?.length === 1 &&
-      Utils.resolvePath(vscode.workspace.workspaceFolders[0].uri, "..") ===
-        uriToQuery
+      !vscode.workspace.workspaceFolders?.some((root) =>
+        uriToQuery.toString().startsWith(root.uri.toString()),
+      )
     ) {
       log.debug("Aborting search for manifest file outside of workspace");
       return null;
@@ -137,6 +130,19 @@ async function readFileUri(
   const uri: vscode.Uri = (maybeUri as any).path
     ? (maybeUri as vscode.Uri)
     : vscode.Uri.parse(maybeUri as string);
+
+  // If any open documents match this uri, return their contents instead of from disk
+  const opendoc = vscode.workspace.textDocuments.find(
+    (opendoc) => opendoc.uri.toString() === uri.toString(),
+  );
+
+  if (opendoc) {
+    return {
+      content: opendoc.getText(),
+      uri,
+    };
+  }
+
   try {
     return await vscode.workspace.fs.readFile(uri).then((res) => {
       return {
@@ -145,19 +151,26 @@ async function readFileUri(
       };
     });
   } catch (_err) {
-    // `readFile` returns `err` if the file didn't exist.
+    // `readFile` should throw the below if the file is not found
+    if (
+      !(_err instanceof vscode.FileSystemError && _err.code === "FileNotFound")
+    ) {
+      log.error("Unexpected error trying to read file", _err);
+    }
     return null;
   }
 }
 
 async function getManifestThrowsOnParseFailure(uri: string): Promise<{
   manifestDirectory: string;
+  languageFeatures: string[] | undefined;
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
+  let parsedManifest: { languageFeatures: string[] | undefined } | null = null;
 
   if (manifestDocument) {
     try {
-      JSON.parse(manifestDocument.content); // will throw if invalid
+      parsedManifest = JSON.parse(manifestDocument.content); // will throw if invalid
     } catch (e: any) {
       updateQSharpJsonDiagnostics(
         manifestDocument.uri,
@@ -174,6 +187,7 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
 
     return {
       manifestDirectory: manifestDirectory.toString(),
+      languageFeatures: parsedManifest?.languageFeatures,
     };
   }
   return null;
@@ -181,9 +195,10 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
 
 let projectLoader: any | undefined = undefined;
 
-export async function loadProject(
-  documentUri: vscode.Uri,
-): Promise<[string, string][]> {
+export async function loadProject(documentUri: vscode.Uri): Promise<{
+  sources: [string, string][];
+  languageFeatures: string[];
+}> {
   // get the project using this.program
   const manifest = await getManifestThrowsOnParseFailure(
     documentUri.toString(),
@@ -192,12 +207,19 @@ export async function loadProject(
     // return just the one file if we are in single file mode
     const file = await vscode.workspace.openTextDocument(documentUri);
 
-    return [[documentUri.toString(), file.getText()]];
+    return {
+      sources: [[documentUri.toString(), file.getText()]],
+      languageFeatures: [],
+    };
   }
 
   if (!projectLoader) {
     projectLoader = await getProjectLoader(readFile, listDir, getManifest);
   }
-  const project = await projectLoader.load_project(manifest);
-  return project;
+  const project: [string, string][] =
+    await projectLoader.load_project(manifest);
+  return {
+    sources: project,
+    languageFeatures: manifest.languageFeatures || [],
+  };
 }

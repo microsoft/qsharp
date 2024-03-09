@@ -1,6 +1,8 @@
+You can flip the state of the target qubit if the basis state of the control qubits is $|111\rangle$ using a controlled $X$ gate.
+
 @[solution]({
     "id": "oracles__marking_oracle_seven_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })
 
 Consider how the oracle from this exercise acts on two input basis states and two "output" basis states:
@@ -15,7 +17,7 @@ $$U_{7,mark} |110\rangle |1\rangle = |110\rangle |1 \oplus f(110)\rangle = |110\
 
 You can see that the state of the input qubit array is unchanged, and the state of the output qubit changes if $f(x) = 1$ and is unchanged if $f(x) = 0$ - this matches the definition of a marking oracle precisely.
 
-Now let's again apply this oracle to a superposition state $|\alpha\rangle$ such that $|x\rangle$ is a superposition of the $|6\rangle$ and $|7\rangle$ basis states and $|y\rangle = |0\rangle$:
+Now let's again apply this oracle to a superposition state $|\alpha\rangle$ such that $|x\rangle$ is a superposition of the basis states $|110\rangle$ and $|111\rangle$ and $|y\rangle = |0\rangle$:
 $$|\alpha\rangle = \frac{1}{\sqrt{2}}\big(|110\rangle + |111\rangle\big)|0\rangle = 
 |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big) \otimes |0\rangle = |11+\rangle |0\rangle$$
 
@@ -23,13 +25,13 @@ Let's consider how our operator $U_{7,mark}$ acts on this state.
 
 > Recall that oracles are linear operators, thus they can be applied to each term individually.
 
-$$U_{7,mark} |\alpha\rangle = \frac{1}{\sqrt{2}} \big(U_{7,mark}|110\rangle |0\rangle + U_{7,mark}|111\rangle |0\rangle\big)$$
+$$U_{7,mark} |\alpha\rangle = \frac{1}{\sqrt{2}} \big(U_{7,mark}|110\rangle |0\rangle + U_{7,mark}|111\rangle |0\rangle\big) =$$
 
 $$= \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) := |\epsilon\rangle$$
 
 Was our input state modified during this operation?  Let's simplify the resulting state $|\epsilon\rangle$:
 
-$$|\epsilon\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle |0\rangle + |1\rangle |1\rangle\big)$$
+$$|\epsilon\rangle = \frac{1}{\sqrt{2}} \big(|110\rangle |0\rangle + |111\rangle |1\rangle\big) = |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|0\rangle |0\rangle + |1\rangle |1\rangle\big) =$$
 
 $$= |11\rangle \otimes \frac{1}{\sqrt{2}} \big(|00\rangle + |11\rangle\big) = |11\rangle \otimes |\Phi^+\rangle = |11\Phi^+\rangle$$
 

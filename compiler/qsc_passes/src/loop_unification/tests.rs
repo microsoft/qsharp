@@ -5,6 +5,7 @@
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
@@ -13,7 +14,13 @@ use crate::loop_unification::LoopUni;
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
+    let mut unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     LoopUni {
         core: store.core(),
@@ -55,7 +62,7 @@ fn convert_for_array() {
                                         Expr 10 [75-78] [Type Int[]]: Var: Local 3
                                     Stmt 24 [0-0]: Local (Immutable):
                                         Pat 25 [75-78] [Type Int]: Bind: Ident 21 [75-78] "@len_id_21"
-                                        Expr 22 [75-78] [Type Int[]]: Call:
+                                        Expr 22 [75-78] [Type Int]: Call:
                                             Expr 20 [75-78] [Type (Int[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
@@ -118,7 +125,7 @@ fn convert_for_array_deconstruct() {
                                         Expr 13 [90-93] [Type (Int, Double)[]]: Var: Local 3
                                     Stmt 27 [0-0]: Local (Immutable):
                                         Pat 28 [90-93] [Type Int]: Bind: Ident 24 [90-93] "@len_id_24"
-                                        Expr 25 [90-93] [Type (Int, Double)[]]: Call:
+                                        Expr 25 [90-93] [Type Int]: Call:
                                             Expr 23 [90-93] [Type ((Int, Double)[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:
@@ -189,7 +196,7 @@ fn convert_for_slice() {
                                                 Expr 16 [86-87] [Type Int]: Lit: Int(2)
                                     Stmt 30 [0-0]: Local (Immutable):
                                         Pat 31 [75-88] [Type Int]: Bind: Ident 27 [75-88] "@len_id_27"
-                                        Expr 28 [75-88] [Type Int[]]: Call:
+                                        Expr 28 [75-88] [Type Int]: Call:
                                             Expr 26 [75-88] [Type (Int[] -> Int)]: Var:
                                                 res: Item 1 (Package 0)
                                                 generics:

@@ -7,7 +7,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
   const eventTarget = new QscEventTarget(false);
 
   eventTarget.addEventListener("Message", (evt) => {
-    out(`Message: ${evt.detail}`);
+    out(evt.detail);
   });
 
   eventTarget.addEventListener("DumpMachine", (evt) => {
@@ -46,7 +46,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
       "-------------------------------------------\n";
 
     for (const row of basisStates) {
-      const [real, imag] = dump[row];
+      const [real, imag] = dump.state[row];
       const basis = row.padStart(basisColumnWidth);
       const amplitude = formatComplex(real, imag).padStart(16);
       const probability = formatProbabilityPercent(real, imag).padStart(11);

@@ -209,6 +209,7 @@ fir_id!(BlockId);
 fir_id!(ExprId);
 fir_id!(PatId);
 fir_id!(StmtId);
+fir_id!(LocalVarId);
 
 /// A unique identifier for a package within a package store.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -300,7 +301,7 @@ pub enum Res {
     /// A global item.
     Item(ItemId),
     /// A local variable.
-    Local(NodeId),
+    Local(LocalVarId),
 }
 
 impl Display for Res {
@@ -461,46 +462,37 @@ pub struct PackageStore(IndexMap<PackageId, Package>);
 
 impl PackageStoreLookup for PackageStore {
     fn get_block(&self, id: StoreBlockId) -> &Block {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_block(id.block)
+        self.get(id.package).get_block(id.block)
     }
 
     fn get_expr(&self, id: StoreExprId) -> &Expr {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_expr(id.expr)
+        self.get(id.package).get_expr(id.expr)
     }
 
     fn get_global(&self, id: StoreItemId) -> Option<Global> {
-        self.get(id.package)
-            .and_then(|package| package.get_global(id.item))
+        self.get(id.package).get_global(id.item)
     }
 
     fn get_pat(&self, id: StorePatId) -> &Pat {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_pat(id.pat)
+        self.get(id.package).get_pat(id.pat)
     }
 
     fn get_stmt(&self, id: StoreStmtId) -> &Stmt {
-        self.get(id.package)
-            .expect("Package not found")
-            .get_stmt(id.stmt)
+        self.get(id.package).get_stmt(id.stmt)
     }
 }
 
 impl PackageStore {
     /// Gets a package from the store.
     #[must_use]
-    pub fn get(&self, id: PackageId) -> Option<&Package> {
-        self.0.get(id)
+    pub fn get(&self, id: PackageId) -> &Package {
+        self.0.get(id).expect("store should have package")
     }
 
     /// Gets a mutable package from the store.
     #[must_use]
-    pub fn get_mut(&mut self, id: PackageId) -> Option<&mut Package> {
-        self.0.get_mut(id)
+    pub fn get_mut(&mut self, id: PackageId) -> &mut Package {
+        self.0.get_mut(id).expect("store should have package")
     }
 
     /// Inserts a package to the store.
@@ -1006,7 +998,7 @@ pub enum ExprKind {
     /// A call: `a(b)`.
     Call(ExprId, ExprId),
     /// A closure that fixes the vector of local variables as arguments to the callable item.
-    Closure(Vec<NodeId>, LocalItemId),
+    Closure(Vec<LocalVarId>, LocalItemId),
     /// A failure: `fail "message"`.
     Fail(ExprId),
     /// A field accessor: `a::F`.
@@ -1174,7 +1166,7 @@ fn display_call(mut indent: Indented<Formatter>, callable: ExprId, arg: ExprId) 
 
 fn display_closure(
     mut f: Indented<Formatter>,
-    args: &[NodeId],
+    args: &[LocalVarId],
     callable: LocalItemId,
 ) -> fmt::Result {
     f.write_str("Closure([")?;
@@ -1395,71 +1387,11 @@ impl Display for PatKind {
     }
 }
 
-/// A qubit initializer.
-#[derive(Clone, Debug, PartialEq)]
-pub struct QubitInit {
-    /// The node ID.
-    pub id: NodeId,
-    /// The span.
-    pub span: Span,
-    /// The qubit initializer type.
-    pub ty: Ty,
-    /// The qubit initializer kind.
-    pub kind: QubitInitKind,
-}
-
-impl Display for QubitInit {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "QubitInit {} {} [Type {}]: {}",
-            self.id, self.span, self.ty, self.kind
-        )
-    }
-}
-
-/// A qubit initializer kind.
-#[derive(Clone, Debug, PartialEq)]
-pub enum QubitInitKind {
-    /// An array of qubits: `Qubit[a]`.
-    Array(ExprId),
-    /// A single qubit: `Qubit()`.
-    Single,
-    /// A tuple: `(a, b, c)`.
-    Tuple(Vec<QubitInit>),
-}
-
-impl Display for QubitInitKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut indent = set_indentation(indented(f), 0);
-        match self {
-            QubitInitKind::Array(e) => {
-                write!(indent, "Array:")?;
-                indent = set_indentation(indent, 1);
-                write!(indent, "\n{e}")?;
-            }
-            QubitInitKind::Single => write!(indent, "Single")?,
-            QubitInitKind::Tuple(qis) => {
-                if qis.is_empty() {
-                    write!(indent, "Unit")?;
-                } else {
-                    write!(indent, "Tuple:")?;
-                    indent = set_indentation(indent, 1);
-                    for qi in qis {
-                        write!(indent, "\n{qi}")?;
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Ident {
     /// The node ID.
-    pub id: NodeId,
+    pub id: LocalVarId,
     /// The span.
     pub span: Span,
     /// The identifier name.

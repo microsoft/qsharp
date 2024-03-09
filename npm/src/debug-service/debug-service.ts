@@ -2,18 +2,23 @@
 // Licensed under the MIT License.
 
 import type {
-  IBreakpointSpan,
   DebugService,
+  IBreakpointSpan,
+  IQuantumState,
   IStackFrame,
   IStructStepResult,
   IVariable,
-  IQuantumState,
 } from "../../lib/node/qsc_wasm.cjs";
 import { TargetProfile } from "../browser.js";
 import { eventStringToMsg } from "../compiler/common.js";
-import { IQscEventTarget, QscEvents, makeEvent } from "../compiler/events.js";
+import {
+  IQscEventTarget,
+  QscEventData,
+  QscEvents,
+  makeEvent,
+} from "../compiler/events.js";
 import { log } from "../log.js";
-import { IServiceProxy } from "../worker-proxy.js";
+import { IServiceProxy, ServiceProtocol } from "../workers/common.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
@@ -23,6 +28,7 @@ export interface IDebugService {
     sources: [string, string][],
     target: TargetProfile,
     entry: string | undefined,
+    language_features: string[],
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
@@ -63,8 +69,14 @@ export class QSharpDebugService implements IDebugService {
     sources: [string, string][],
     target: TargetProfile,
     entry: string | undefined,
+    language_features: string[],
   ): Promise<string> {
-    return this.debugService.load_source(sources, target, entry);
+    return this.debugService.load_source(
+      sources,
+      target,
+      entry,
+      language_features,
+    );
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {
@@ -141,7 +153,10 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       qscEvent = makeEvent("Message", qscMsg.message);
       break;
     case "DumpMachine":
-      qscEvent = makeEvent("DumpMachine", qscMsg.state);
+      qscEvent = makeEvent("DumpMachine", {
+        state: qscMsg.state,
+        stateLatex: qscMsg.stateLatex,
+      });
       break;
     case "Result":
       qscEvent = makeEvent("Result", qscMsg.result);
@@ -153,3 +168,24 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
   log.debug("worker dispatching event " + JSON.stringify(qscEvent));
   eventTarget.dispatchEvent(qscEvent);
 }
+
+/** The protocol definition to allow running the debugger in a worker. */
+export const debugServiceProtocol: ServiceProtocol<
+  IDebugService,
+  QscEventData
+> = {
+  class: QSharpDebugService,
+  methods: {
+    loadSource: "request",
+    getBreakpoints: "request",
+    getLocalVariables: "request",
+    captureQuantumState: "request",
+    getStackFrames: "request",
+    evalContinue: "requestWithProgress",
+    evalNext: "requestWithProgress",
+    evalStepIn: "requestWithProgress",
+    evalStepOut: "requestWithProgress",
+    dispose: "request",
+  },
+  eventNames: ["DumpMachine", "Message", "Result"],
+};

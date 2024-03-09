@@ -10,9 +10,14 @@ repository.workspace = true
 
 [dependencies]
 miette = { workspace = true }
+serde = { workspace = true }
+bitflags = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
+
+[lints]
+workspace = true
 
 [lib]
 doctest = false

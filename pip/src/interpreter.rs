@@ -25,10 +25,9 @@ use qsc::{
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
-    PackageType, SourceMap,
+    LanguageFeatures, PackageType, SourceMap,
 };
 use resource_estimator::{self as re, estimate_expr};
-use rustc_hash::FxHashMap;
 use std::fmt::Write;
 
 #[pymodule]
@@ -82,10 +81,13 @@ impl FromPyObject<'_> for PyManifestDescriptor {
             ))?
             .downcast::<PyDict>()?;
 
+        let language_features = get_dict_opt_list_string(manifest, "features")?;
+
         Ok(Self(ManifestDescriptor {
             manifest: Manifest {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
+                language_features,
             },
             manifest_dir: manifest_dir.into(),
         }))
@@ -95,11 +97,13 @@ impl FromPyObject<'_> for PyManifestDescriptor {
 #[pymethods]
 /// A Q# interpreter.
 impl Interpreter {
+    #[allow(clippy::needless_pass_by_value)]
     #[new]
     /// Initializes a new Q# interpreter.
     pub(crate) fn new(
         py: Python,
         target: TargetProfile,
+        language_features: Option<Vec<String>>,
         manifest_descriptor: Option<PyManifestDescriptor>,
         read_file: Option<PyObject>,
         list_directory: Option<PyObject>,
@@ -108,6 +112,7 @@ impl Interpreter {
             TargetProfile::Unrestricted => Profile::Unrestricted,
             TargetProfile::Base => Profile::Base,
         };
+        let language_features = language_features.unwrap_or_default();
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
             let project = file_system(
@@ -126,7 +131,15 @@ impl Interpreter {
             SourceMap::default()
         };
 
-        match interpret::Interpreter::new(true, sources, PackageType::Lib, target.into()) {
+        let language_features = LanguageFeatures::from_iter(language_features);
+
+        match interpret::Interpreter::new(
+            true,
+            sources,
+            PackageType::Lib,
+            target.into(),
+            language_features,
+        ) {
             Ok(interpreter) => Ok(Self { interpreter }),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -168,10 +181,7 @@ impl Interpreter {
     /// pairs of real and imaginary amplitudes.
     fn dump_machine(&mut self) -> StateDump {
         let (state, qubit_count) = self.interpreter.get_quantum_state();
-        StateDump(DisplayableState(
-            state.into_iter().collect::<FxHashMap<_, _>>(),
-            qubit_count,
-        ))
+        StateDump(DisplayableState(state, qubit_count))
     }
 
     fn run(
@@ -336,7 +346,13 @@ impl StateDump {
     // Pass by value is needed for compatiblity with the pyo3 API.
     #[allow(clippy::needless_pass_by_value)]
     fn __getitem__(&self, key: BigUint) -> Option<(f64, f64)> {
-        self.0 .0.get(&key).map(|state| (state.re, state.im))
+        self.0 .0.iter().find_map(|state| {
+            if state.0 == key {
+                Some((state.1.re, state.1.im))
+            } else {
+                None
+            }
+        })
     }
 
     fn __len__(&self) -> usize {
@@ -459,7 +475,6 @@ impl Receiver for OptionalCallbackReceiver<'_> {
         qubit_count: usize,
     ) -> core::result::Result<(), Error> {
         if let Some(callback) = &self.callback {
-            let state = state.into_iter().collect::<FxHashMap<_, _>>();
             let out = DisplayableOutput::State(DisplayableState(state, qubit_count));
             callback
                 .call1(
@@ -533,4 +548,22 @@ fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
         Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
         None => None,
     })
+}
+fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
+    let value = dict.get_item(key)?;
+    let list: &PyList = match value {
+        Some(item) => item.downcast::<PyList>()?,
+        None => return Ok(vec![]),
+    };
+    match list
+        .iter()
+        .map(|item| {
+            item.downcast::<PyString>()
+                .map(|s| s.to_string_lossy().into())
+        })
+        .collect::<std::result::Result<Vec<String>, _>>()
+    {
+        Ok(list) => Ok(list),
+        Err(e) => Err(e.into()),
+    }
 }

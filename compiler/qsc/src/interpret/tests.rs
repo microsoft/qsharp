@@ -7,6 +7,7 @@ mod given_interpreter {
     use crate::interpret::{Error, InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
+    use qsc_data_structures::language_features::LanguageFeatures;
     use qsc_eval::{output::CursorReceiver, val::Value};
     use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
     use qsc_passes::PackageType;
@@ -58,6 +59,7 @@ mod given_interpreter {
                     SourceMap::default(),
                     PackageType::Lib,
                     RuntimeCapabilityFlags::all(),
+                    LanguageFeatures::default(),
                 )
                 .expect("interpreter should be created");
 
@@ -469,7 +471,7 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                    runtime error: qubits in gate invocation are not unique
+                    runtime error: qubits in invocation are not unique
                        [intrinsic.qs] [(control, target)]
                 "#]],
             );
@@ -551,6 +553,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -617,6 +620,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -683,6 +687,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -764,6 +769,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -790,6 +796,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(
@@ -876,6 +883,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let res = interpreter
@@ -939,6 +947,7 @@ mod given_interpreter {
                 SourceMap::default(),
                 PackageType::Lib,
                 RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let res = interpreter
@@ -1043,6 +1052,7 @@ mod given_interpreter {
             SourceMap::default(),
             PackageType::Lib,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::default(),
         )
         .expect("interpreter should be created")
     }
@@ -1052,7 +1062,7 @@ mod given_interpreter {
 
         match result {
             Ok(v) => assert_eq!(value, v),
-            Err(e) => panic!("Expected unit value, got {e:?}"),
+            Err(e) => panic!("Expected {value:?}, got {e:?}"),
         }
     }
 
@@ -1150,6 +1160,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Exe,
                 RuntimeCapabilityFlags::all(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
 
@@ -1172,6 +1183,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
 
@@ -1198,6 +1210,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
 
@@ -1236,8 +1249,13 @@ mod given_interpreter {
             ];
 
             let sources = SourceMap::new(sources, None);
-            let debugger = Debugger::new(sources, RuntimeCapabilityFlags::all(), Encoding::Utf8)
-                .expect("debugger should be created");
+            let debugger = Debugger::new(
+                sources,
+                RuntimeCapabilityFlags::all(),
+                Encoding::Utf8,
+                LanguageFeatures::default(),
+            )
+            .expect("debugger should be created");
             let bps = debugger.get_breakpoints("a.qs");
             assert_eq!(1, bps.len());
             let bps = debugger.get_breakpoints("b.qs");
@@ -1265,6 +1283,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let (result, output) = line(&mut interpreter, "Test.Hello()");
@@ -1295,6 +1314,7 @@ mod given_interpreter {
                 sources,
                 PackageType::Lib,
                 RuntimeCapabilityFlags::all(),
+                LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);

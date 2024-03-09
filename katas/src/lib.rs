@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-
 #[cfg(test)]
 mod tests;
 
@@ -12,6 +9,8 @@ use qsc::{
     target::Profile,
     PackageType, SourceContents, SourceMap, SourceName,
 };
+
+use qsc::LanguageFeatures;
 
 pub const EXAMPLE_ENTRY: &str = "Kata.RunExample()";
 
@@ -34,6 +33,7 @@ pub fn check_solution(
         source_map,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        LanguageFeatures::default(),
     )?;
     interpreter.eval_entry(receiver).map(|value| {
         if let Value::Bool(success) = value {

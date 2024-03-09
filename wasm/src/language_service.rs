@@ -11,7 +11,7 @@ use crate::{
     },
     serializable_type,
 };
-use qsc::{self, line_column::Encoding, target::Profile, PackageType};
+use qsc::{self, line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -99,7 +99,7 @@ impl LanguageService {
                     "exe" => PackageType::Exe,
                     _ => panic!("invalid package type"),
                 }),
-            })
+            });
     }
 
     pub fn update_document(&mut self, uri: &str, version: u32, text: &str) {
@@ -116,7 +116,7 @@ impl LanguageService {
         notebook_metadata: INotebookMetadata,
         cells: Vec<ICell>,
     ) {
-        let cells: Vec<Cell> = cells.into_iter().map(|c| c.into()).collect();
+        let cells: Vec<Cell> = cells.into_iter().map(std::convert::Into::into).collect();
         let notebook_metadata: NotebookMetadata = notebook_metadata.into();
         self.0.update_notebook_document(
             notebook_uri,
@@ -124,6 +124,9 @@ impl LanguageService {
                 target_profile: notebook_metadata
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
+                language_features: LanguageFeatures::from_iter(
+                    notebook_metadata.languageFeatures.unwrap_or_default(),
+                ),
             },
             cells
                 .iter()
@@ -238,15 +241,15 @@ impl LanguageService {
         let locations = self.0.get_rename(uri, position.into());
 
         let mut renames: FxHashMap<String, Vec<TextEdit>> = FxHashMap::default();
-        locations.into_iter().for_each(|l| {
+        for l in locations {
             renames
                 .entry(l.source.to_string())
                 .or_default()
                 .push(TextEdit {
                     range: l.range.into(),
                     newText: new_name.to_string(),
-                })
-        });
+                });
+        }
 
         let workspace_edit = WorkspaceEdit {
             changes: renames.into_iter().collect(),
@@ -265,6 +268,28 @@ impl LanguageService {
             }
             .into()
         })
+    }
+
+    pub fn get_code_lenses(&self, uri: &str) -> Vec<ICodeLens> {
+        let code_lenses = self.0.get_code_lenses(uri);
+        code_lenses
+            .into_iter()
+            .map(|lens| {
+                let range = lens.range.into();
+                let (command, args) = match lens.command {
+                    qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
+                    qsls::protocol::CodeLensCommand::Debug => ("debug", None),
+                    qsls::protocol::CodeLensCommand::Run => ("run", None),
+                    qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
+                };
+                CodeLens {
+                    range,
+                    command: command.to_string(),
+                    args,
+                }
+                .into()
+            })
+            .collect()
     }
 }
 
@@ -378,6 +403,22 @@ serializable_type! {
 }
 
 serializable_type! {
+    CodeLens,
+    {
+        range: Range,
+        command: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        args: Option<(String, String, String)>,
+    },
+    r#"export interface ICodeLens {
+        range: IRange;
+        command: "histogram" | "estimate" | "debug" | "run";
+        args?: [string, string, string];
+    }"#,
+    ICodeLens
+}
+
+serializable_type! {
     WorkspaceEdit,
     {
         changes: Vec<(String, Vec<TextEdit>)>,
@@ -407,9 +448,11 @@ serializable_type! {
     NotebookMetadata,
     {
         pub targetProfile: Option<String>,
+        pub languageFeatures: Option<Vec<String>>
     },
     r#"export interface INotebookMetadata {
         targetProfile?: "unrestricted" | "base";
+        languageFeatures?: "v2-preview-syntax"[];
     }"#,
     INotebookMetadata
 }

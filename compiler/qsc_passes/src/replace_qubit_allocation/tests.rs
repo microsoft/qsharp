@@ -4,13 +4,20 @@
 use crate::replace_qubit_allocation::ReplaceQubitAllocation;
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
 fn check(file: &str, expect: &Expect) {
     let store = PackageStore::new(compile::core());
     let sources = SourceMap::new([("test".into(), file.into())], None);
-    let mut unit = compile(&store, &[], sources, RuntimeCapabilityFlags::all());
+    let mut unit = compile(
+        &store,
+        &[],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
     ReplaceQubitAllocation::new(store.core(), &mut unit.assigner).visit_package(&mut unit.package);
     Validator::default().visit_package(&unit.package);
@@ -80,7 +87,7 @@ fn test_qubit_array() {
                             Block 4 [45-97] [Type Unit]:
                                 Stmt 18 [55-72]: Local (Immutable):
                                     Pat 19 [55-72] [Type Qubit[]]: Bind: Ident 7 [55-72] "q"
-                                    Expr 16 [55-72] [Type Qubit]: Call:
+                                    Expr 16 [55-72] [Type Qubit[]]: Call:
                                         Expr 15 [55-72] [Type (Int => Qubit[])]: Var: Item 6 (Package 0)
                                         Expr 9 [69-70] [Type Int]: Lit: Int(3)
                                 Stmt 10 [81-91]: Local (Immutable):
@@ -176,7 +183,7 @@ fn test_multiple_qubits_tuple() {
                                         Expr 27 [69-76] [Type Unit]: Unit
                                 Stmt 33 [78-86]: Local (Immutable):
                                     Pat 34 [78-86] [Type Qubit[]]: Bind: Ident 22 [78-86] "@generated_ident_22"
-                                    Expr 31 [78-86] [Type Qubit]: Call:
+                                    Expr 31 [78-86] [Type Qubit[]]: Call:
                                         Expr 30 [78-86] [Type (Int => Qubit[])]: Var: Item 6 (Package 0)
                                         Expr 14 [84-85] [Type Int]: Lit: Int(3)
                                 Stmt 35 [55-88]: Local (Immutable):
@@ -693,7 +700,7 @@ fn test_array_expr() {
                             Block 4 [45-150] [Type Unit]:
                                 Stmt 39 [55-125]: Local (Immutable):
                                     Pat 40 [55-125] [Type Qubit[]]: Bind: Ident 7 [55-125] "a"
-                                    Expr 37 [55-125] [Type Qubit]: Call:
+                                    Expr 37 [55-125] [Type Qubit[]]: Call:
                                         Expr 36 [55-125] [Type (Int => Qubit[])]: Var: Item 6 (Package 0)
                                         Expr 9 [69-123] [Type Int]: Expr Block: Block 10 [69-123] [Type Int]:
                                             Stmt 25 [83-99]: Local (Immutable):

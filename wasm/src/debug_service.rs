@@ -6,7 +6,7 @@ use std::str::FromStr;
 use qsc::fir::StmtId;
 use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
-use qsc::{fmt_complex, target::Profile};
+use qsc::{fmt_complex, target::Profile, LanguageFeatures};
 
 use crate::line_column::{Location, Range};
 use crate::{get_source_map, serializable_type, CallbackReceiver};
@@ -27,20 +27,23 @@ impl DebugService {
         Self::default()
     }
 
+    #[allow(clippy::needless_pass_by_value)] // needed for wasm_bindgen
     pub fn load_source(
         &mut self,
         sources: Vec<js_sys::Array>,
-        target_profile: String,
+        target_profile: &str,
         entry: Option<String>,
+        language_features: Vec<String>,
     ) -> String {
-        let source_map = get_source_map(sources, entry);
-        let target = Profile::from_str(&target_profile)
-            .unwrap_or_else(|_| panic!("Invalid target : {}", target_profile));
-        match Debugger::new(source_map, target.into(), Encoding::Utf16) {
+        let source_map = get_source_map(sources, &entry);
+        let target = Profile::from_str(target_profile)
+            .unwrap_or_else(|()| panic!("Invalid target : {target_profile}"));
+        let features = LanguageFeatures::from_iter(language_features);
+        match Debugger::new(source_map, target.into(), Encoding::Utf16, features) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
                 match self.debugger_mut().set_entry() {
-                    Ok(()) => "".to_string(),
+                    Ok(()) => String::new(),
                     Err(e) => render_errors(e),
                 }
             }
@@ -120,14 +123,11 @@ impl DebugService {
         }
         let bps: Vec<_> = ids.iter().map(|f| StmtId::from(*f)).collect();
 
-        match self.run_internal(
-            |msg: &str| {
-                // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-                let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
-            },
-            &bps,
-            step,
-        ) {
+        let event_cb = |msg: &str| {
+            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+        };
+        match self.run_internal(event_cb, &bps, step) {
             Ok(value) => Ok(StructStepResult::from(value).into()),
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
@@ -171,7 +171,7 @@ impl DebugService {
 
         match result {
             Ok(value) => Ok(value),
-            Err(errors) => Err(Vec::from_iter(errors.iter().cloned())),
+            Err(errors) => Err(errors.clone()),
         }
     }
 

@@ -82,7 +82,9 @@ function frontierEntryToPlotEntry(entry: FrontierEntry): PlotItem {
     label:
       entry.physicalCountsFormatted.runtime +
       ", physical qubits: " +
-      entry.physicalCountsFormatted.physicalQubits,
+      entry.physicalCountsFormatted.physicalQubits +
+      ", code distance: " +
+      entry.logicalQubit.codeDistance,
   };
 }
 
@@ -97,7 +99,9 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
           label:
             data.physicalCountsFormatted.runtime +
             ", physical qubits: " +
-            data.physicalCountsFormatted.physicalQubits,
+            data.physicalCountsFormatted.physicalQubits +
+            ", code distance: " +
+            data.logicalQubit.codeDistance,
         },
       ],
     };
@@ -112,7 +116,13 @@ function reDataToRowScatter(data: ReData, color: string): ScatterSeries {
 function createRunNames(estimatesData: ReData[]): string[] {
   // If there's only 1 entry, use the shared run name
   if (estimatesData.length === 1) {
-    return [estimatesData[0].jobParams.sharedRunName];
+    const name =
+      estimatesData[0].jobParams.sharedRunName ??
+      estimatesData[0].jobParams.qubitParams.name ??
+      estimatesData[0].jobParams.qecScheme.name ??
+      "estimate";
+
+    return [name];
   }
 
   const fields: string[][] = [];

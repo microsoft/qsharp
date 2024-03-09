@@ -7,19 +7,20 @@ use diagnostic::VSDiagnostic;
 use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::*;
+use project_system::into_async_rust_fn_with;
 use qsc::{
-    compile,
+    compile, format_state_id, get_latex,
     hir::PackageId,
     interpret::{
         self,
         output::{self, Receiver},
     },
     target::Profile,
-    PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
+    LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
 use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
+use serde::Serialize;
 use serde_json::json;
 use std::{fmt::Write, sync::Arc};
 use wasm_bindgen::prelude::*;
@@ -44,6 +45,7 @@ thread_local! {
 }
 
 #[wasm_bindgen]
+#[must_use]
 pub fn git_hash() -> String {
     let git_hash = env!("QSHARP_GIT_HASH");
     git_hash.into()
@@ -53,7 +55,8 @@ pub fn git_hash() -> String {
 // so we have to manually assert length of the interior
 // array and the content type in the function body
 // `sources` should be Vec<[String; 2]> though
-pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> SourceMap {
+#[must_use]
+pub fn get_source_map(sources: Vec<js_sys::Array>, entry: &Option<String>) -> SourceMap {
     let sources = sources.into_iter().map(|js_arr| {
         // map the inner arr elements into (String, String)
         let elem_0 = js_arr.get(0).as_string();
@@ -63,17 +66,21 @@ pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> Sou
             Arc::from(elem_1.unwrap_or_default()),
         )
     });
-    SourceMap::new(sources, entry.as_deref().map(|value| value.into()))
+    SourceMap::new(sources, entry.as_deref().map(std::convert::Into::into))
 }
 
 #[wasm_bindgen]
-pub fn get_qir(sources: Vec<js_sys::Array>) -> Result<String, String> {
-    let sources = get_source_map(sources, None);
-    _get_qir(sources)
+pub fn get_qir(
+    sources: Vec<js_sys::Array>,
+    language_features: Vec<String>,
+) -> Result<String, String> {
+    let language_features = LanguageFeatures::from_iter(language_features);
+    let sources = get_source_map(sources, &None);
+    _get_qir(sources, language_features)
 }
 
 // allows testing without wasm bindings.
-fn _get_qir(sources: SourceMap) -> Result<String, String> {
+fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<String, String> {
     let core = compile::core();
     let mut store = PackageStore::new(core);
     let std = compile::std(&store, Profile::Base.into());
@@ -85,6 +92,7 @@ fn _get_qir(sources: SourceMap) -> Result<String, String> {
         sources,
         PackageType::Exe,
         Profile::Base.into(),
+        language_features,
     );
 
     // Ensure it compiles before trying to add it to the store.
@@ -100,14 +108,21 @@ fn _get_qir(sources: SourceMap) -> Result<String, String> {
 }
 
 #[wasm_bindgen]
-pub fn get_estimates(sources: Vec<js_sys::Array>, params: &str) -> Result<String, String> {
-    let sources = get_source_map(sources, None);
+pub fn get_estimates(
+    sources: Vec<js_sys::Array>,
+    params: &str,
+    language_features: Vec<String>,
+) -> Result<String, String> {
+    let sources = get_source_map(sources, &None);
+
+    let language_features = LanguageFeatures::from_iter(language_features);
 
     let mut interpreter = interpret::Interpreter::new(
         true,
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        language_features,
     )
     .map_err(|e| e[0].to_string())?;
 
@@ -119,6 +134,7 @@ pub fn get_estimates(sources: Vec<js_sys::Array>, params: &str) -> Result<String
 }
 
 #[wasm_bindgen]
+#[must_use]
 pub fn get_library_source_content(name: &str) -> Option<String> {
     STORE_CORE_STD.with(|(store, std)| {
         for id in [PackageId::CORE, *std] {
@@ -137,7 +153,8 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
-pub fn get_hir(code: &str) -> String {
+pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
+    let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
@@ -146,10 +163,11 @@ pub fn get_hir(code: &str) -> String {
             sources,
             PackageType::Exe,
             Profile::Unrestricted.into(),
+            language_features,
         );
         unit.package
     });
-    package.to_string()
+    Ok(package.to_string())
 }
 
 struct CallbackReceiver<F>
@@ -178,7 +196,7 @@ where
             write!(
                 dump_json,
                 r#""{}": [{}, {}],"#,
-                output::format_state_id(&state.0, qubit_count),
+                format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -186,12 +204,17 @@ where
         }
         write!(
             dump_json,
-            r#""{}": [{}, {}]}}}}"#,
-            output::format_state_id(&last.0, qubit_count),
+            r#""{}": [{}, {}]}}, "#,
+            format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )
         .expect("writing to string should succeed");
+
+        let json_latex = serde_json::to_string(&get_latex(&state, qubit_count))
+            .expect("serialization should succeed");
+        write!(dump_json, r#" "stateLatex": {json_latex} }} "#)
+            .expect("writing to string should succeed");
         (self.event_cb)(&dump_json);
         Ok(())
     }
@@ -202,8 +225,12 @@ where
         Ok(())
     }
 }
-
-fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<interpret::Error>>
+fn run_internal_with_features<F>(
+    sources: SourceMap,
+    event_cb: F,
+    shots: u32,
+    language_features: LanguageFeatures,
+) -> Result<(), Box<interpret::Error>>
 where
     F: FnMut(&str),
 {
@@ -219,6 +246,7 @@ where
         sources,
         PackageType::Exe,
         Profile::Unrestricted.into(),
+        language_features,
     ) {
         Ok(interpreter) => interpreter,
         Err(err) => {
@@ -258,19 +286,20 @@ pub fn run(
     expr: &str,
     event_cb: &js_sys::Function,
     shots: u32,
+    language_features: Vec<String>,
 ) -> Result<bool, JsValue> {
     if !event_cb.is_function() {
         return Err(JsError::new("Events callback function must be provided").into());
     }
-    let sources = get_source_map(sources, Some(expr.into()));
-    match run_internal(
-        sources,
-        |msg: &str| {
-            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
-        },
-        shots,
-    ) {
+
+    let language_features = LanguageFeatures::from_iter(language_features);
+
+    let sources = get_source_map(sources, &Some(expr.into()));
+    let event_cb = |msg: &str| {
+        // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+        let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+    };
+    match run_internal_with_features(sources, event_cb, shots, language_features) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }
@@ -308,6 +337,7 @@ fn check_exercise_solution_internal(
 }
 
 #[wasm_bindgen]
+#[must_use]
 pub fn check_exercise_solution(
     solution_code: &str,
     exercise_sources_js: JsValue,
@@ -322,6 +352,30 @@ pub fn check_exercise_solution(
     check_exercise_solution_internal(solution_code, exercise_sources, |msg: &str| {
         let _ = event_cb.call1(&JsValue::null(), &JsValue::from_str(msg));
     })
+}
+
+#[derive(Serialize)]
+struct DocFile {
+    filename: String,
+    metadata: String,
+    contents: String,
+}
+
+#[wasm_bindgen]
+#[must_use]
+pub fn generate_docs() -> JsValue {
+    let docs = qsc_doc_gen::generate_docs::generate_docs();
+    let mut result: Vec<DocFile> = vec![];
+
+    for (name, metadata, contents) in docs {
+        result.push(DocFile {
+            filename: name.to_string(),
+            metadata: metadata.to_string(),
+            contents: contents.to_string(),
+        });
+    }
+
+    serde_wasm_bindgen::to_value(&result).expect("Serializing docs should succeed")
 }
 
 #[wasm_bindgen(typescript_custom_section)]

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use miette::{Diagnostic, Report};
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceMap},
     error::WithSource,
@@ -15,8 +16,16 @@ pub type Error = WithSource<ErrorKind>;
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]
+/// `ErrorKind` represents the different kinds of errors that can occur in the compiler.
+/// Each variant of the enum corresponds to a different stage of the compilation process.
 pub enum ErrorKind {
+    /// `Frontend` variant represents errors that occur during the frontend stage of the compiler.
+    /// These errors are typically related to syntax and semantic checks.
     Frontend(#[from] qsc_frontend::compile::Error),
+
+    /// `Pass` variant represents errors that occur during the `qsc_passes` stage of the compiler.
+    /// These errors are typically related to optimization, transformation, code generation, passes,
+    /// and static analysis passes.
     Pass(#[from] qsc_passes::Error),
 }
 
@@ -27,8 +36,15 @@ pub fn compile(
     sources: SourceMap,
     package_type: PackageType,
     capabilities: RuntimeCapabilityFlags,
+    language_features: LanguageFeatures,
 ) -> (CompileUnit, Vec<Error>) {
-    let mut unit = qsc_frontend::compile::compile(store, dependencies, sources, capabilities);
+    let mut unit = qsc_frontend::compile::compile(
+        store,
+        dependencies,
+        sources,
+        capabilities,
+        language_features,
+    );
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
         errors.push(WithSource::from_map(&unit.sources, error.into()));

@@ -2,20 +2,25 @@
 // Licensed under the MIT License.
 
 import type {
+  ICodeLens,
   ICompletionList,
   IHover,
   ILocation,
-  ISignatureHelp,
   INotebookMetadata,
+  IPosition,
+  ISignatureHelp,
+  ITextEdit,
   IWorkspaceConfiguration,
   IWorkspaceEdit,
-  ITextEdit,
   LanguageService,
-  IPosition,
   VSDiagnostic,
 } from "../../lib/node/qsc_wasm.cjs";
 import { log } from "../log.js";
-import { IServiceEventTarget, IServiceProxy } from "../worker-proxy.js";
+import {
+  IServiceEventTarget,
+  IServiceProxy,
+  ServiceProtocol,
+} from "../workers/common.js";
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // Only one event type for now
@@ -75,6 +80,7 @@ export interface ILanguageService {
     documentUri: string,
     position: IPosition,
   ): Promise<ITextEdit | undefined>;
+  getCodeLenses(documentUri: string): Promise<ICodeLens[]>;
 
   dispose(): Promise<void>;
 
@@ -209,6 +215,10 @@ export class QSharpLanguageService implements ILanguageService {
     return this.languageService.prepare_rename(documentUri, position);
   }
 
+  async getCodeLenses(documentUri: string): Promise<ICodeLens[]> {
+    return this.languageService.get_code_lenses(documentUri);
+  }
+
   async dispose() {
     this.languageService.stop_background_work();
     await this.backgroundWork;
@@ -247,3 +257,34 @@ export class QSharpLanguageService implements ILanguageService {
     }
   }
 }
+
+/**
+ * The protocol definition to allow running the language service in a worker.
+ *
+ * Not to be confused with "the" LSP (Language Server Protocol).
+ */
+export const languageServiceProtocol: ServiceProtocol<
+  ILanguageService,
+  LanguageServiceEvent
+> = {
+  class: QSharpLanguageService,
+  methods: {
+    updateConfiguration: "request",
+    updateDocument: "request",
+    updateNotebookDocument: "request",
+    closeDocument: "request",
+    closeNotebookDocument: "request",
+    getCompletions: "request",
+    getHover: "request",
+    getDefinition: "request",
+    getReferences: "request",
+    getSignatureHelp: "request",
+    getRename: "request",
+    prepareRename: "request",
+    getCodeLenses: "request",
+    dispose: "request",
+    addEventListener: "addEventListener",
+    removeEventListener: "removeEventListener",
+  },
+  eventNames: ["diagnostics"],
+};

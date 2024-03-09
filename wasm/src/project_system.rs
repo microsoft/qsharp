@@ -4,6 +4,7 @@
 use async_trait::async_trait;
 use js_sys::JsString;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
+
 use std::iter::FromIterator;
 use std::{path::PathBuf, sync::Arc};
 use wasm_bindgen::prelude::*;
@@ -43,7 +44,7 @@ extern "C" {
 
 impl From<ManifestDescriptorObject> for Option<ManifestDescriptor> {
     fn from(value: ManifestDescriptorObject) -> Self {
-        get_manifest_transformer(value.obj, Default::default())
+        get_manifest_transformer(value.obj, String::default())
     }
 }
 
@@ -89,14 +90,13 @@ pub(crate) fn to_js_function(val: JsValue, help_text_panic: &'static str) -> js_
     let js_ty = val.js_typeof();
     assert!(
         val.is_function(),
-        "expected a valid JS function ({help_text_panic}), received {:?}",
-        js_ty
+        "expected a valid JS function ({help_text_panic}), received {js_ty:?}"
     );
     Into::<js_sys::Function>::into(val)
 }
 pub(crate) use into_async_rust_fn_with;
 
-/// Given a [JsValue] representing the result of a call to a list_directory function,
+/// Given a [`JsValue`] representing the result of a call to a `list_directory` function,
 /// and an unused `String` parameter for API compatibility, assert that `js_val`
 /// matches our expected return type of `[string, number][]` and transform that
 /// JS data into a [Vec<JSFileEntry>]
@@ -110,9 +110,10 @@ pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFi
             })
             .filter_map(|js_arr| {
                 let mut arr = js_arr.into_iter().take(2);
+                #[allow(clippy::cast_possible_truncation)]
                 match (
-                    arr.next().unwrap().as_string(),
-                    arr.next().unwrap().as_f64(),
+                    arr.next().expect("should be string").as_string(),
+                    arr.next().expect("should be float").as_f64(),
                 ) {
                     (Some(a), Some(b)) => Some((a, b as i32)),
                     _ => None,
@@ -133,25 +134,27 @@ pub(crate) fn list_directory_transformer(js_val: JsValue, _: String) -> Vec<JSFi
     }
 }
 
-/// Given a [JsValue] representing the result of a call to a read file function,
+/// Given a [`JsValue`] representing the result of a call to a read file function,
 /// and a `String` representing the path that was originally passed in as an
 /// argument to that function, assert that `js_val` matches our expected return type of
 /// `string` and transform it into a tuple representing the path and the file contents.
+#[allow(clippy::needless_pass_by_value)]
 pub(crate) fn read_file_transformer(
     js_val: JsValue,
     path_buf_string: String,
 ) -> (Arc<str>, Arc<str>) {
     match js_val.as_string() {
-        Some(res) => return (Arc::from(path_buf_string.as_str()), Arc::from(res)),
+        Some(res) => (Arc::from(path_buf_string), Arc::from(res)),
         // this can happen if the document is completely empty
-        None if js_val.is_null() => (Arc::from(path_buf_string.as_str()), Arc::from("")),
+        None if js_val.is_null() => (Arc::from(path_buf_string), Arc::from("")),
         None => unreachable!("Expected string from JS callback, received {js_val:?}"),
     }
 }
-/// Given a [JsValue] representing the result of a call to a get_manifest function,
+/// Given a [`JsValue`] representing the result of a call to a `get_manifest` function,
 /// and an unused `String` parameter for API compatibility, assert that `js_val`
-/// matches our expected return object shape  and transform it into a [ManifestDescriptor],
+/// matches our expected return object shape  and transform it into a [`ManifestDescriptor`],
 /// or `None`
+#[allow(clippy::needless_pass_by_value)]
 pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<ManifestDescriptor> {
     if js_val.is_null() {
         return None;
@@ -161,18 +164,36 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
     {
         Ok(v) => v.as_string().unwrap_or_else(|| {
             panic!(
-                "manifest callback returned {:?}, but we expected a string representing its URI",
-                v
+                "manifest callback returned {v:?}, but we expected a string representing its URI"
             )
         }),
-                    Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
+        Err(_) => unreachable!("our typescript bindings should guarantee that an object with a manifestDirectory property is returned here"),
     };
+    let language_features = match js_sys::Reflect::get(&js_val, &JsValue::from_str("languageFeatures"))
+    {
+        Ok(v) => match v.dyn_into::<js_sys::Array>()  {
+            Ok(arr) => arr
+                .into_iter()
+                .map(|x| {
+                    x.as_string().unwrap_or_else(|| {
+                        panic!(
+                            "manifest callback returned {x:?}, but we expected a string representing a language feature"
+                        )
+                    })
+                }).collect::<Vec<_>>(),
+                Err(_) => Vec::new(),
+        },
+        _ => Vec::new(),
+
+    };
+
     log::trace!("found manifest at {manifest_dir:?}");
 
     let manifest_dir = PathBuf::from(manifest_dir);
 
     Some(ManifestDescriptor {
         manifest: Manifest {
+            language_features,
             ..Default::default()
         },
         manifest_dir,
@@ -210,20 +231,24 @@ impl ProjectLoader {
     pub async fn load_project(&self, manifest: ManifestDescriptorObject) -> ProjectSources {
         let manifest: Option<ManifestDescriptor> = manifest.into();
         match manifest {
+            #[allow(clippy::from_iter_instead_of_collect)]
             Some(manifest) => {
                 let res = qsc_project::FileSystemAsync::load_project(self, &manifest)
                     .await
-                    .map(|proj| {
-                        proj.sources
-                            .into_iter()
-                            .map(|(path, contents)| {
-                                js_sys::Array::from_iter::<std::slice::Iter<'_, JsString>>(
-                                    [path.to_string().into(), contents.to_string().into()].iter(),
-                                )
-                            })
-                            .collect::<js_sys::Array>()
-                    })
-                    .unwrap_or_else(|_| js_sys::Array::new());
+                    .map_or_else(
+                        |_| js_sys::Array::new(),
+                        |proj| {
+                            proj.sources
+                                .into_iter()
+                                .map(|(path, contents)| {
+                                    js_sys::Array::from_iter::<std::slice::Iter<'_, JsString>>(
+                                        [path.to_string().into(), contents.to_string().into()]
+                                            .iter(),
+                                    )
+                                })
+                                .collect::<_>()
+                        },
+                    );
                 ProjectSources { obj: res.into() }
             }
             None => ProjectSources {

@@ -20,5 +20,8 @@ thiserror = { workspace = true }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false

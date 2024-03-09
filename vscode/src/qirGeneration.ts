@@ -49,8 +49,11 @@ export async function getQirForActiveWindow(): Promise<string> {
     }
   }
   let sources: [string, string][] = [];
+  let languageFeatures: string[] = [];
   try {
-    sources = await loadProject(editor.document.uri);
+    const result = await loadProject(editor.document.uri);
+    sources = result.sources;
+    languageFeatures = result.languageFeatures || [];
   } catch (e: any) {
     throw new QirGenerationError(e.message);
   }
@@ -74,7 +77,7 @@ export async function getQirForActiveWindow(): Promise<string> {
     const associationId = getRandomGuid();
     const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
-    result = await worker.getQir(sources);
+    result = await worker.getQir(sources, languageFeatures);
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },

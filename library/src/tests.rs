@@ -7,16 +7,20 @@ mod arithmetic;
 mod arrays;
 mod canon;
 mod convert;
+mod core;
 mod diagnostics;
+mod intrinsic;
+mod logical;
 mod math;
 mod measurement;
+mod state_preparation;
 mod table_lookup;
 
 use indoc::indoc;
 use qsc::{
-    interpret::{GenericReceiver, Interpreter, Value},
+    interpret::{GenericReceiver, Interpreter, Result, Value},
     target::Profile,
-    PackageType, SourceMap,
+    Backend, LanguageFeatures, PackageType, SourceMap, SparseSim,
 };
 
 /// # Panics
@@ -24,12 +28,12 @@ use qsc::{
 /// Will panic if compilation fails or the result is not the same as expected.
 /// NOTE: Floating point numbers in tuples are compared taking precision into
 /// account so that results of calculations can also be compared.
-pub fn test_expression(expr: &str, expected: &Value) {
-    test_expression_with_lib(expr, "", expected);
+pub fn test_expression(expr: &str, expected: &Value) -> String {
+    test_expression_with_lib(expr, "", expected)
 }
 
-pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) {
-    test_expression_with_lib_and_profile(expr, lib, Profile::Unrestricted, expected);
+pub fn test_expression_with_lib(expr: &str, lib: &str, expected: &Value) -> String {
+    test_expression_with_lib_and_profile(expr, lib, Profile::Unrestricted, expected)
 }
 
 pub fn test_expression_with_lib_and_profile(
@@ -37,16 +41,33 @@ pub fn test_expression_with_lib_and_profile(
     lib: &str,
     profile: Profile,
     expected: &Value,
-) {
+) -> String {
+    let mut sim = SparseSim::default();
+    test_expression_with_lib_and_profile_and_sim(expr, lib, profile, &mut sim, expected)
+}
+
+pub fn test_expression_with_lib_and_profile_and_sim(
+    expr: &str,
+    lib: &str,
+    profile: Profile,
+    sim: &mut impl Backend<ResultType = impl Into<Result>>,
+    expected: &Value,
+) -> String {
     let mut stdout = vec![];
     let mut out = GenericReceiver::new(&mut stdout);
 
     let sources = SourceMap::new([("test".into(), lib.into())], Some(expr.into()));
 
-    let mut interpreter = Interpreter::new(true, sources, PackageType::Exe, profile.into())
-        .expect("test should compile");
+    let mut interpreter = Interpreter::new(
+        true,
+        sources,
+        PackageType::Exe,
+        profile.into(),
+        LanguageFeatures::default(),
+    )
+    .expect("test should compile");
     let result = interpreter
-        .eval_entry(&mut out)
+        .eval_entry_with_sim(sim, &mut out)
         .expect("test should run successfully");
 
     match (&expected, result) {
@@ -66,6 +87,8 @@ pub fn test_expression_with_lib_and_profile(
         }
         (&expected, result) => assert_eq!(expected, &result),
     }
+
+    String::from_utf8(stdout).expect("stdout should be valid utf8")
 }
 
 /// # Panics

@@ -14,7 +14,7 @@ use crate::{
         TokenKind,
     },
     prim::{ident, opt, pat, path, seq, shorten, token},
-    scan::Scanner,
+    scan::ParserContext,
     stmt, Error, ErrorKind, Result,
 };
 use num_bigint::BigInt;
@@ -40,7 +40,7 @@ enum OpKind {
     Postfix(UnOp),
     Binary(BinOp, Assoc),
     Ternary(TernOp, TokenKind, Assoc),
-    Rich(fn(&mut Scanner, Box<Expr>) -> Result<Box<ExprKind>>),
+    Rich(fn(&mut ParserContext, Box<Expr>) -> Result<Box<ExprKind>>),
 }
 
 #[derive(Clone, Copy)]
@@ -65,17 +65,17 @@ const LAMBDA_PRECEDENCE: u8 = 1;
 
 const RANGE_PRECEDENCE: u8 = 1;
 
-pub(super) fn expr(s: &mut Scanner) -> Result<Box<Expr>> {
+pub(super) fn expr(s: &mut ParserContext) -> Result<Box<Expr>> {
     expr_op(s, OpContext::Precedence(0))
 }
 
-pub(super) fn expr_eof(s: &mut Scanner) -> Result<Box<Expr>> {
+pub(super) fn expr_eof(s: &mut ParserContext) -> Result<Box<Expr>> {
     let expr = expr(s)?;
     token(s, TokenKind::Eof)?;
     Ok(expr)
 }
 
-pub(super) fn expr_stmt(s: &mut Scanner) -> Result<Box<Expr>> {
+pub(super) fn expr_stmt(s: &mut ParserContext) -> Result<Box<Expr>> {
     expr_op(s, OpContext::Stmt)
 }
 
@@ -96,7 +96,7 @@ pub(super) fn is_stmt_final(kind: &ExprKind) -> bool {
     )
 }
 
-fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Box<Expr>> {
+fn expr_op(s: &mut ParserContext, context: OpContext) -> Result<Box<Expr>> {
     let lo = s.peek().span.lo;
     let mut lhs = if let Some(op) = prefix_op(op_name(s)) {
         s.advance();
@@ -149,7 +149,7 @@ fn expr_op(s: &mut Scanner, context: OpContext) -> Result<Box<Expr>> {
     Ok(lhs)
 }
 
-fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
+fn expr_base(s: &mut ParserContext) -> Result<Box<Expr>> {
     let lo = s.peek().span.lo;
     let kind = if token(s, TokenKind::Open(Delim::Paren)).is_ok() {
         let (exprs, final_sep) = seq(s, expr)?;
@@ -221,7 +221,7 @@ fn expr_base(s: &mut Scanner) -> Result<Box<Expr>> {
     }))
 }
 
-fn expr_if(s: &mut Scanner) -> Result<Box<ExprKind>> {
+fn expr_if(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     let cond = expr(s)?;
     let body = stmt::parse_block(s)?;
     let lo = s.peek().span.lo;
@@ -244,7 +244,7 @@ fn expr_if(s: &mut Scanner) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::If(cond, body, otherwise)))
 }
 
-fn expr_set(s: &mut Scanner) -> Result<Box<ExprKind>> {
+fn expr_set(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     let lhs = expr(s)?;
     if token(s, TokenKind::Eq).is_ok() {
         let rhs = expr(s)?;
@@ -267,14 +267,14 @@ fn expr_set(s: &mut Scanner) -> Result<Box<ExprKind>> {
     }
 }
 
-fn expr_array(s: &mut Scanner) -> Result<Box<ExprKind>> {
+fn expr_array(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     token(s, TokenKind::Open(Delim::Bracket))?;
     let kind = expr_array_core(s)?;
     token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(kind)
 }
 
-fn expr_array_core(s: &mut Scanner) -> Result<Box<ExprKind>> {
+fn expr_array_core(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     let Some(first) = opt(s, expr)? else {
         return Ok(Box::new(ExprKind::Array(Vec::new().into_boxed_slice())));
     };
@@ -300,7 +300,7 @@ fn is_ident(name: &str, kind: &ExprKind) -> bool {
     matches!(kind, ExprKind::Path(path) if path.namespace.is_none() && path.name.name.as_ref() == name)
 }
 
-fn expr_range_prefix(s: &mut Scanner) -> Result<Box<ExprKind>> {
+fn expr_range_prefix(s: &mut ParserContext) -> Result<Box<ExprKind>> {
     let e = opt(s, |s| {
         expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))
     })?;
@@ -315,7 +315,7 @@ fn expr_range_prefix(s: &mut Scanner) -> Result<Box<ExprKind>> {
     }))
 }
 
-fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
+fn expr_interpolate(s: &mut ParserContext) -> Result<Vec<StringComponent>> {
     let token = s.peek();
     let TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, mut end)) =
         token.kind
@@ -360,7 +360,7 @@ fn expr_interpolate(s: &mut Scanner) -> Result<Vec<StringComponent>> {
     Ok(components)
 }
 
-fn lit(s: &mut Scanner) -> Result<Option<Lit>> {
+fn lit(s: &mut ParserContext) -> Result<Option<Lit>> {
     let lexeme = s.read();
     let token = s.peek();
     match lit_token(lexeme, token) {
@@ -625,23 +625,23 @@ fn closed_bin_op(op: ClosedBinOp) -> BinOp {
     }
 }
 
-fn lambda_op(s: &mut Scanner, input: Expr, kind: CallableKind) -> Result<Box<ExprKind>> {
+fn lambda_op(s: &mut ParserContext, input: Expr, kind: CallableKind) -> Result<Box<ExprKind>> {
     let input = expr_as_pat(input)?;
     let output = expr_op(s, OpContext::Precedence(LAMBDA_PRECEDENCE))?;
     Ok(Box::new(ExprKind::Lambda(kind, input, output)))
 }
 
-fn field_op(s: &mut Scanner, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
 }
 
-fn index_op(s: &mut Scanner, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     let index = expr(s)?;
     token(s, TokenKind::Close(Delim::Bracket))?;
     Ok(Box::new(ExprKind::Index(lhs, index)))
 }
 
-fn call_op(s: &mut Scanner, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+fn call_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     let lo = s.span(0).hi - 1;
     let (args, final_sep) = seq(s, expr)?;
     token(s, TokenKind::Close(Delim::Paren))?;
@@ -653,7 +653,7 @@ fn call_op(s: &mut Scanner, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::Call(lhs, rhs)))
 }
 
-fn range_op(s: &mut Scanner, start: Box<Expr>) -> Result<Box<ExprKind>> {
+fn range_op(s: &mut ParserContext, start: Box<Expr>) -> Result<Box<ExprKind>> {
     let rhs = expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?;
     Ok(Box::new(if token(s, TokenKind::DotDot).is_ok() {
         let end = expr_op(s, OpContext::Precedence(RANGE_PRECEDENCE + 1))?;
@@ -665,9 +665,9 @@ fn range_op(s: &mut Scanner, start: Box<Expr>) -> Result<Box<ExprKind>> {
     }))
 }
 
-fn op_name(s: &Scanner) -> OpName {
+fn op_name(s: &ParserContext) -> OpName {
     match Keyword::from_str(s.read()) {
-        Ok(Keyword::And | Keyword::Or) | Err(_) => OpName::Token(s.peek().kind),
+        Ok(Keyword::And | Keyword::Or) | Err(()) => OpName::Token(s.peek().kind),
         Ok(keyword) => OpName::Keyword(keyword),
     }
 }

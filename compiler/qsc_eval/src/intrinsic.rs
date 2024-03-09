@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+mod utils;
+
 #[cfg(test)]
 mod tests;
 
@@ -13,6 +15,7 @@ use crate::{
 };
 use num_bigint::BigInt;
 use rand::{rngs::StdRng, Rng};
+use rustc_hash::FxHashSet;
 use std::array;
 
 #[allow(clippy::too_many_lines)]
@@ -36,6 +39,23 @@ pub(crate) fn call(
         "DumpMachine" => {
             let (state, qubit_count) = sim.capture_quantum_state();
             match out.state(state, qubit_count) {
+                Ok(()) => Ok(Value::unit()),
+                Err(_) => Err(Error::OutputFail(name_span)),
+            }
+        }
+        "DumpRegister" => {
+            let qubits = arg.unwrap_array();
+            let qubits = qubits
+                .iter()
+                .map(|q| q.clone().unwrap_qubit().0)
+                .collect::<Vec<_>>();
+            if qubits.len() != qubits.iter().collect::<FxHashSet<_>>().len() {
+                return Err(Error::QubitUniqueness(arg_span));
+            }
+            let (state, qubit_count) = sim.capture_quantum_state();
+            let state = utils::split_state(&qubits, state, qubit_count)
+                .map_err(|()| Error::QubitsNotSeparable(arg_span))?;
+            match out.state(state, qubits.len()) {
                 Ok(()) => Ok(Value::unit()),
                 Err(_) => Err(Error::OutputFail(name_span)),
             }

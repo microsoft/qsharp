@@ -6,10 +6,15 @@ use crate::{
     lex::{Lexer, Token, TokenKind},
     ErrorKind,
 };
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 #[derive(Debug)]
 pub(super) struct NoBarrierError;
+
+pub(super) struct ParserContext<'a> {
+    scanner: Scanner<'a>,
+    language_features: LanguageFeatures,
+}
 
 /// Scans over the token stream. Notably enforces LL(1) parser behavior via
 /// its lack of a [Clone] implementation and limited peek functionality.
@@ -23,6 +28,61 @@ pub(super) struct Scanner<'a> {
     recovered_eof: bool,
     peek: Token,
     offset: u32,
+}
+
+impl<'a> ParserContext<'a> {
+    pub fn new(input: &'a str, language_features: LanguageFeatures) -> Self {
+        Self {
+            scanner: Scanner::new(input),
+            language_features,
+        }
+    }
+
+    pub(super) fn peek(&self) -> Token {
+        self.scanner.peek()
+    }
+
+    pub(super) fn read(&self) -> &'a str {
+        self.scanner.read()
+    }
+
+    pub(super) fn span(&self, from: u32) -> Span {
+        self.scanner.span(from)
+    }
+
+    pub(super) fn advance(&mut self) {
+        self.scanner.advance();
+    }
+
+    /// Pushes a recovery barrier. While the barrier is active, recovery will never advance past any
+    /// of the barrier tokens, unless it is explicitly listed as a recovery token.
+    pub(super) fn push_barrier(&mut self, tokens: &'a [TokenKind]) {
+        self.scanner.push_barrier(tokens);
+    }
+
+    /// Pops the most recently pushed active barrier.
+    pub(super) fn pop_barrier(&mut self) -> Result<(), NoBarrierError> {
+        self.scanner.pop_barrier()
+    }
+
+    /// Tries to recover from a parse error by advancing tokens until any of the given recovery
+    /// tokens, or a barrier token, is found. If a recovery token is found, it is consumed. If a
+    /// barrier token is found first, it is not consumed.
+    pub(super) fn recover(&mut self, tokens: &[TokenKind]) {
+        self.scanner.recover(tokens);
+    }
+
+    pub(super) fn push_error(&mut self, error: Error) {
+        self.scanner.push_error(error);
+    }
+
+    pub(super) fn into_errors(self) -> Vec<Error> {
+        self.scanner.into_errors()
+    }
+
+    pub(crate) fn contains_language_feature(&self, feat: LanguageFeatures) -> bool {
+        self.language_features.contains(feat)
+    }
 }
 
 impl<'a> Scanner<'a> {
@@ -91,11 +151,11 @@ impl<'a> Scanner<'a> {
             if contains(peek, tokens) {
                 self.advance();
                 break;
-            } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
-                break;
-            } else {
-                self.advance();
             }
+            if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
+                break;
+            }
+            self.advance();
         }
     }
 

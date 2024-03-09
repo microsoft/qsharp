@@ -3,9 +3,16 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc::SourceMap;
+use qsc::{interpret, LanguageFeatures, SourceMap};
 
-use super::run_internal;
+use super::run_internal_with_features;
+
+fn run_internal<F>(sources: SourceMap, event_cb: F, shots: u32) -> Result<(), Box<interpret::Error>>
+where
+    F: FnMut(&str),
+{
+    run_internal_with_features(sources, event_cb, shots, LanguageFeatures::default())
+}
 
 #[test]
 fn test_missing_type() {
@@ -32,7 +39,10 @@ fn test_compile() {
     M(q)
     }}";
 
-    let result = crate::_get_qir(SourceMap::new([("test.qs".into(), code.into())], None));
+    let result = crate::_get_qir(
+        SourceMap::new([("test.qs".into(), code.into())], None),
+        LanguageFeatures::default(),
+    );
     assert!(result.is_ok());
 }
 
@@ -48,10 +58,10 @@ fn test_run_two_shots() {
     let expr = "Test.Answer()";
     let count = std::cell::Cell::new(0);
 
-    let _result = crate::run_internal(
+    let _result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg| {
-            assert!(_msg.contains("42"));
+        |msg| {
+            assert!(msg.contains("42"));
             count.set(count.get() + 1);
         },
         2,
@@ -94,10 +104,10 @@ fn test_message() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
-            assert!(_msg_.contains("hi") || _msg_.contains("result"));
+        |msg| {
+            assert!(msg.contains("hi") || msg.contains("result"));
         },
         1,
     );
@@ -115,10 +125,10 @@ fn message_with_escape_sequences() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
-            assert!(_msg_.contains(r"\ta\n\t") || _msg_.contains("result"));
+        |msg| {
+            assert!(msg.contains(r"\ta\n\t") || msg.contains("result"));
         },
         1,
     );
@@ -137,13 +147,13 @@ fn message_with_backslashes() {
         }
     }"#;
     let expr = "Sample.main()";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
+        |msg| {
             assert!(
-                _msg_.contains("hello { \\\\World [")
-                    || _msg_.contains("hi \\\\World")
-                    || _msg_.contains("result")
+                msg.contains("hello { \\\\World [")
+                    || msg.contains("hi \\\\World")
+                    || msg.contains("result")
             );
         },
         1,
@@ -161,10 +171,10 @@ fn test_entrypoint() {
         }
     }"#;
     let expr = "";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
-        |_msg_| {
-            assert!(_msg_.contains("hi") || _msg_.contains("result"));
+        |msg| {
+            assert!(msg.contains("hi") || msg.contains("result"));
         },
         1,
     );
@@ -181,10 +191,10 @@ fn test_missing_entrypoint() {
         }
     }";
     let expr = "";
-    let result = crate::run_internal(
+    let result = run_internal(
         SourceMap::new([("test.qs".into(), code.into())], Some(expr.into())),
         |msg| {
-            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg)
+            expect![[r#"{"result":{"code":"Qsc.EntryPoint.NotFound","message":"entry point not found\n\nhelp: a single callable with the `@EntryPoint()` attribute must be present if no entry expression is provided","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]].assert_eq(msg);
         },
         1,
     );
@@ -232,9 +242,9 @@ fn test_run_error_program_multiple_shots() {
     )
     .expect("code should compile and run");
     expect![[r#"
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
-        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in gate invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]]
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}
+        {"result":{"code":"Qsc.Eval.QubitUniqueness","message":"runtime error: qubits in invocation are not unique","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
 }
 
@@ -296,13 +306,13 @@ fn test_runtime_error_with_span() {
 #[test]
 fn test_runtime_error_in_another_file_with_project() {
     let mut output = Vec::new();
-    let first = indoc! {r#"
+    let first = indoc! {r"
             namespace Test {
                 @EntryPoint()
                 operation Main() : Unit {
                     Test.other()
                 }
-            }"#
+            }"
     };
     let second = indoc! {r#"
             namespace Test {
@@ -341,12 +351,12 @@ fn test_runtime_error_with_failure_in_main_file_project() {
                 }
             }"#
     };
-    let second = indoc! {r#"
+    let second = indoc! {r"
             namespace Test {
                 operation other() : Unit {
                     Test.failing_call()
                 }
-            }"#
+            }"
     };
     run_internal(
         SourceMap::new(
@@ -367,7 +377,7 @@ fn test_runtime_error_with_failure_in_main_file_project() {
 #[test]
 fn test_compile_error_related_spans() {
     let mut output = Vec::new();
-    let code = indoc! {r#"
+    let code = indoc! {r"
             namespace Other { operation DumpMachine() : Unit { } }
             namespace Test {
                 open Other;
@@ -377,7 +387,7 @@ fn test_compile_error_related_spans() {
                     DumpMachine()
                 }
             }
-        "#
+        "
     };
     run_internal(
         SourceMap::new([("test.qs".into(), code.into())], None),
@@ -392,7 +402,7 @@ fn test_compile_error_related_spans() {
 #[test]
 fn test_runtime_error_related_spans() {
     let mut output = Vec::new();
-    let code = indoc! {r#"
+    let code = indoc! {r"
             namespace Test {
                 @EntryPoint()
                 operation Main() : Unit {
@@ -400,7 +410,7 @@ fn test_runtime_error_related_spans() {
                     X(q);
                 }
             }
-        "#
+        "
     };
     run_internal(
         SourceMap::new([("test.qs".into(), code.into())], None),
@@ -415,14 +425,14 @@ fn test_runtime_error_related_spans() {
 #[test]
 fn test_runtime_error_default_span() {
     let mut output = Vec::new();
-    let code = indoc! {r#"
+    let code = indoc! {r"
             namespace Test {
                 @EntryPoint()
                 operation Main() : Unit {
                     use qs = Qubit[-1];
                 }
             }
-        "#
+        "
     };
     run_internal(
         SourceMap::new([("test.qs".into(), code.into())], None),
@@ -432,4 +442,24 @@ fn test_runtime_error_default_span() {
     .expect("code should compile and run");
     expect![[r#"{"result":{"code":"Qsc.Eval.UserFail","message":"runtime error: program failed: Cannot allocate qubit array with a negative length","range":{"end":{"character":1,"line":0},"start":{"character":0,"line":0}},"related":[{"location":{"source":"core/qir.qs","span":{"end":{"character":69,"line":14},"start":{"character":12,"line":14}}},"message":"explicit fail"}],"severity":"error"},"success":false,"type":"Result"}"#]]
     .assert_eq(&output.join("\n"));
+}
+
+#[test]
+fn test_doc_gen() {
+    let docs = qsc_doc_gen::generate_docs::generate_docs();
+    assert!(docs.len() > 100);
+    for (name, metadata, contents) in docs {
+        // filename will be something like "Microsoft.Quantum.Canon/ApplyToEachC.md"
+        let filename = name.to_string();
+        // Text is the full markdown including initial metadata inside '---' blocks
+        let text = format!("{metadata}\n\n{contents}");
+        if filename.eq("toc.yml") {
+            assert!(text.contains("uid: Qdk.Microsoft.Quantum.Core"));
+        } else {
+            assert!(std::path::Path::new(&filename)
+                .extension()
+                .map_or(false, |ext| ext.eq_ignore_ascii_case("md")));
+            assert!(text.starts_with("---\n"));
+        }
+    }
 }

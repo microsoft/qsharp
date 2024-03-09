@@ -198,11 +198,12 @@ class InlineDebugAdapterFactory
   ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
     const uri = vscode.Uri.parse(session.configuration.programUri);
-    const sources = await loadProject(uri);
+    const project = await loadProject(uri);
     const qscSession = new QscDebugSession(
       worker,
       session.configuration,
-      sources,
+      project.sources,
+      project.languageFeatures,
     );
 
     await qscSession.init(getRandomGuid());

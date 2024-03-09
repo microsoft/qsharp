@@ -204,7 +204,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         controlled (ctls, ...) {
             // This CarryForInc is intended to be used only in an in-place
             // ripple-carry implementation. Only such particular use case allows
-            // for this simple implementation where controlled verions
+            // for this simple implementation where controlled version
             // is the same as uncontrolled body.
             CarryForInc(carryIn, x, y, carryOut);
         }
@@ -247,7 +247,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// operation, if `target` is known to be 0.
     /// The adjoint of this operation is measurement based and requires no T
     /// gates (but requires target to support branching on measurements).
-    /// Although the Toffoli gate (CCNOT) will perform faster in in simulations,
+    /// Although the Toffoli gate (CCNOT) will perform faster in simulations,
     /// this version has lower T gate requirements.
     /// # References
     /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
@@ -292,7 +292,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// requires no helper qubit, and may therefore be preferable to a CCNOT
     /// operation, if `target` is known to be 0.
     /// This version is suitable for Base profile.
-    /// Although the Toffoli gate (CCNOT) will perform faster in in simulations,
+    /// Although the Toffoli gate (CCNOT) will perform faster in simulations,
     /// this version has lower T gate requirements.
     /// # References
     /// - Cody Jones: "Novel constructions for the fault-tolerant Toffoli gate",
