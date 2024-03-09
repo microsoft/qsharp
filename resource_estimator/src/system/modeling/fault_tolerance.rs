@@ -143,9 +143,9 @@ impl Protocol {
         // validate that formulas only yield positive values
         for code_distance in (1..=model.max_code_distance).skip(2) {
             // can you compute logical cycle time and number of physical qubits with code distance?
-            ftp.logical_cycle_time(qubit, code_distance)
+            ftp.logical_cycle_time(qubit, &code_distance)
                 .map_err(LogicalCycleTimeComputationFailed)?;
-            ftp.physical_qubits_per_logical_qubit(code_distance)
+            ftp.physical_qubits(&code_distance)
                 .map_err(PhysicalQubitComputationFailed)?;
         }
 
@@ -449,6 +449,11 @@ impl Protocol {
         ))
     }
 
+    #[cfg(test)]
+    pub fn max_code_distance(&self) -> u64 {
+        self.max_code_distance
+    }
+
     #[inline]
     fn default_max_code_distance() -> u64 {
         MAX_CODE_DISTANCE
@@ -457,27 +462,29 @@ impl Protocol {
 
 impl ErrorCorrection for Protocol {
     type Qubit = PhysicalQubit;
+    type Parameter = u64;
 
-    fn max_code_distance(&self) -> u64 {
-        self.max_code_distance
-    }
-
-    /// Computes the number of physical qubits required for one logical qubit
+    /// Computes the number of physical qubits required for this code
     ///
     /// The formula for this field has a default value of `2 * code_distance *
     /// code_distance`.
-    fn physical_qubits_per_logical_qubit(&self, code_distance: u64) -> Result<u64, String> {
-        let mut context = Self::create_evaluation_context(None, code_distance);
+    fn physical_qubits(&self, code_distance: &u64) -> Result<u64, String> {
+        let mut context = Self::create_evaluation_context(None, *code_distance);
         let value = self
             .physical_qubits_per_logical_qubit
             .evaluate(&mut context)
             .map_err(|err| err.to_string())?;
 
         if value <= 0.0 {
-            Err(NonPositivePhysicalQubitsPerLogicalQubit(code_distance).to_string())
+            Err(NonPositivePhysicalQubitsPerLogicalQubit(*code_distance).to_string())
         } else {
             Ok(value as u64)
         }
+    }
+
+    /// The planar codes considered in this system encode 1 logical qubit
+    fn logical_qubits(&self, _code_parameter: &Self::Parameter) -> Result<u64, String> {
+        Ok(1)
     }
 
     /// Returns the time of one logical cycle.
@@ -487,8 +494,12 @@ impl ErrorCorrection for Protocol {
     /// extraction time, is based on physical operation times specified in the
     /// qubit and usually some factor based on the choice of stabilizer
     /// extraction circuit.
-    fn logical_cycle_time(&self, qubit: &Self::Qubit, code_distance: u64) -> Result<u64, String> {
-        let mut context = Self::create_evaluation_context(Some(qubit), code_distance);
+    fn logical_cycle_time(
+        &self,
+        qubit: &PhysicalQubit,
+        code_distance: &u64,
+    ) -> Result<u64, String> {
+        let mut context = Self::create_evaluation_context(Some(qubit), *code_distance);
 
         let result = self
             .logical_cycle_time
@@ -496,7 +507,7 @@ impl ErrorCorrection for Protocol {
             .map_err(|err| err.to_string())?;
 
         if result <= 0.0 {
-            Err(NonPositiveLogicalCycleTime(code_distance).to_string())
+            Err(NonPositiveLogicalCycleTime(*code_distance).to_string())
         } else {
             Ok(result.round() as u64)
         }
@@ -506,10 +517,10 @@ impl ErrorCorrection for Protocol {
     ///
     /// Computes the logical failure probability based on a physical error rate
     /// and a code distance
-    fn logical_failure_probability(
+    fn logical_error_rate(
         &self,
-        qubit: &Self::Qubit,
-        code_distance: u64,
+        qubit: &PhysicalQubit,
+        code_distance: &u64,
     ) -> Result<f64, String> {
         let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
 
@@ -521,23 +532,36 @@ impl ErrorCorrection for Protocol {
             )
             .to_string())
         } else {
-            #[allow(clippy::cast_possible_truncation)]
             Ok(self.crossing_prefactor()
                 * ((physical_error_rate / self.error_correction_threshold())
-                    .powi((code_distance as i32 + 1) / 2)))
+                    .powi((*code_distance as i32 + 1) / 2)))
         }
     }
 
     // Compute code distance d (Equation (E2) in paper)
-    fn compute_code_distance(
+    fn compute_code_parameter(
         &self,
-        qubit: &Self::Qubit,
+        qubit: &PhysicalQubit,
         required_logical_qubit_error_rate: f64,
-    ) -> u64 {
+    ) -> Result<u64, String> {
         let physical_error_rate = qubit.clifford_error_rate().max(qubit.readout_error_rate());
         let numerator = 2.0 * (self.crossing_prefactor() / required_logical_qubit_error_rate).ln();
         let denominator = (self.error_correction_threshold() / physical_error_rate).ln();
 
-        (((numerator / denominator) - 1.0).ceil() as u64) | 0x1
+        let code_distance = (((numerator / denominator) - 1.0).ceil() as u64) | 0x1;
+
+        if code_distance <= self.max_code_distance {
+            Ok(code_distance)
+        } else {
+            Err(format!("The computed code distance {code_distance} is too high; maximum allowed code distance is {}; try increasing the total logical error budget", self.max_code_distance))
+        }
+    }
+
+    fn code_parameter_range(&self, lower_bound: Option<&u64>) -> impl Iterator<Item = u64> {
+        (lower_bound.copied().unwrap_or(1)..=self.max_code_distance).step_by(2)
+    }
+
+    fn code_parameter_cmp(&self, _qubit: &PhysicalQubit, p1: &u64, p2: &u64) -> std::cmp::Ordering {
+        p1.cmp(p2)
     }
 }

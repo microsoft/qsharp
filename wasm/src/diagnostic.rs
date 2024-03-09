@@ -48,32 +48,33 @@ impl VSDiagnostic {
         serde_json::to_value(self).expect("serializing VSDiagnostic should succeed")
     }
 
-    /// Creates a [VSDiagnostic] from an interpreter error. See `VSDiagnostic::new()` for details.
+    /// Creates a [`VSDiagnostic`] from an interpreter error. See `VSDiagnostic::new()` for details.
     pub(crate) fn from_interpret_error(source_name: &str, err: &interpret::Error) -> Self {
         let labels = match err {
             interpret::Error::Compile(e) => error_labels(e),
             interpret::Error::Pass(e) => error_labels(e),
             interpret::Error::Eval(e) => error_labels(e.error()),
-            interpret::Error::NoEntryPoint => Vec::new(),
-            interpret::Error::UnsupportedRuntimeCapabilities => Vec::new(),
+            interpret::Error::NoEntryPoint | interpret::Error::UnsupportedRuntimeCapabilities => {
+                Vec::new()
+            }
         };
 
         Self::new(labels, source_name, err)
     }
 
-    /// Creates a [VSDiagnostic] from a compiler error. See `VSDiagnostic::new()` for details.
+    /// Creates a [`VSDiagnostic`] from a compiler error. See `VSDiagnostic::new()` for details.
     pub(crate) fn from_compile_error(source_name: &str, err: &qsc::compile::Error) -> Self {
         let labels = error_labels(err);
 
         Self::new(labels, source_name, err)
     }
 
-    /// Creates a [VSDiagnostic] using the information from a [miette::Diagnostic].
+    /// Creates a [`VSDiagnostic`] using the information from a [`miette::Diagnostic`].
     /// The error message, code and severity are straightforwardly generated,
     /// while mapping label spans is a little trickier.
     ///
-    /// While a [miette::Diagnostic] can be associated with zero or more spans,
-    /// a [VSDiagnostic] is intended to be shown as a squiggle in a specific document,
+    /// While a [`miette::Diagnostic`] can be associated with zero or more spans,
+    /// a [`VSDiagnostic`] is intended to be shown as a squiggle in a specific document,
     /// and therefore needs to have at least one span that falls in the current document.
     ///
     /// If the first label's span falls in the current document, that span will be
@@ -83,7 +84,7 @@ impl VSDiagnostic {
     /// used just to make the squiggle visible in the current document.
     ///
     /// Any labels with associated messages are included as "related information"
-    /// objects in the [VSDiagnostic], whether they fall in the current document or not.
+    /// objects in the [`VSDiagnostic`], whether they fall in the current document or not.
     /// Editors can display these as links to other source locations.
     fn new<T>(labels: Vec<Label>, source_name: &str, err: &T) -> VSDiagnostic
     where

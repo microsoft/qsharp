@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-
 use clap::{crate_version, Parser};
 use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::interpret::{self, InterpretResult, Interpreter};
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{
     output::{self, Receiver},
+    state::format_state_id,
     val::Value,
 };
 use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName};
@@ -47,6 +46,10 @@ struct Cli {
     /// Path to a Q# manifest for a project
     #[arg(short, long)]
     qsharp_json: Option<PathBuf>,
+
+    /// Language features to compile with
+    #[arg(short, long)]
+    features: Vec<String>,
 }
 
 struct TerminalReceiver;
@@ -59,7 +62,7 @@ impl Receiver for TerminalReceiver {
     ) -> Result<(), output::Error> {
         println!("DumpMachine:");
         for (qubit, amplitude) in states {
-            let id = output::format_state_id(&qubit, qubit_count);
+            let id = format_state_id(&qubit, qubit_count);
             println!("{id}: [{}, {}]", amplitude.re, amplitude.im);
         }
 
@@ -80,6 +83,8 @@ fn main() -> miette::Result<ExitCode> {
         .map(read_source)
         .collect::<miette::Result<Vec<_>>>()?;
 
+    let mut features = LanguageFeatures::from_iter(cli.features);
+
     if sources.is_empty() {
         let fs = StdFs;
         let manifest = Manifest::load(cli.qsharp_json)?;
@@ -88,6 +93,10 @@ fn main() -> miette::Result<ExitCode> {
             let mut project_sources = project.sources;
 
             sources.append(&mut project_sources);
+
+            features.merge(LanguageFeatures::from_iter(
+                manifest.manifest.language_features,
+            ));
         }
     }
     if cli.exec {
@@ -96,6 +105,7 @@ fn main() -> miette::Result<ExitCode> {
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
             RuntimeCapabilityFlags::all(),
+            features,
         ) {
             Ok(interpreter) => interpreter,
             Err(errors) => {
@@ -115,6 +125,7 @@ fn main() -> miette::Result<ExitCode> {
         SourceMap::new(sources, None),
         PackageType::Lib,
         RuntimeCapabilityFlags::all(),
+        features,
     ) {
         Ok(interpreter) => interpreter,
         Err(errors) => {

@@ -28,6 +28,7 @@ export interface IDebugService {
     sources: [string, string][],
     target: TargetProfile,
     entry: string | undefined,
+    language_features: string[],
   ): Promise<string>;
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
@@ -68,8 +69,14 @@ export class QSharpDebugService implements IDebugService {
     sources: [string, string][],
     target: TargetProfile,
     entry: string | undefined,
+    language_features: string[],
   ): Promise<string> {
-    return this.debugService.load_source(sources, target, entry);
+    return this.debugService.load_source(
+      sources,
+      target,
+      entry,
+      language_features,
+    );
   }
 
   async getStackFrames(): Promise<IStackFrame[]> {
@@ -146,7 +153,10 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
       qscEvent = makeEvent("Message", qscMsg.message);
       break;
     case "DumpMachine":
-      qscEvent = makeEvent("DumpMachine", qscMsg.state);
+      qscEvent = makeEvent("DumpMachine", {
+        state: qscMsg.state,
+        stateLatex: qscMsg.stateLatex,
+      });
       break;
     case "Result":
       qscEvent = makeEvent("Result", qscMsg.result);

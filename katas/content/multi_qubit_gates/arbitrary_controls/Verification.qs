@@ -23,13 +23,12 @@ namespace Kata.Verification {
             let reference = register => MultiControls(Most(register), Tail(register), bits);
             if not CheckOperationsEquivalence(solution, reference, 5) {
                 Message("Incorrect.");
-                Message("At least one test case did not pass");
+                Message($"The test case for controlBits = {bits} did not pass.");
                 return false;
             }
         }
 
         Message("Correct!");
-        Message("All test cases passed.");
         true
     }
 }

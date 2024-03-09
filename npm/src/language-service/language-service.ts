@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import type {
+  ICodeLens,
   ICompletionList,
   IHover,
   ILocation,
@@ -79,6 +80,7 @@ export interface ILanguageService {
     documentUri: string,
     position: IPosition,
   ): Promise<ITextEdit | undefined>;
+  getCodeLenses(documentUri: string): Promise<ICodeLens[]>;
 
   dispose(): Promise<void>;
 
@@ -213,6 +215,10 @@ export class QSharpLanguageService implements ILanguageService {
     return this.languageService.prepare_rename(documentUri, position);
   }
 
+  async getCodeLenses(documentUri: string): Promise<ICodeLens[]> {
+    return this.languageService.get_code_lenses(documentUri);
+  }
+
   async dispose() {
     this.languageService.stop_background_work();
     await this.backgroundWork;
@@ -275,6 +281,7 @@ export const languageServiceProtocol: ServiceProtocol<
     getSignatureHelp: "request",
     getRename: "request",
     prepareRename: "request",
+    getCodeLenses: "request",
     dispose: "request",
     addEventListener: "addEventListener",
     removeEventListener: "removeEventListener",

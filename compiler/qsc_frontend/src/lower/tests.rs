@@ -6,6 +6,7 @@
 use crate::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_data_structures::language_features::LanguageFeatures;
 
 fn check_hir(input: &str, expect: &Expect) {
     let sources = SourceMap::new([("test".into(), input.into())], None);
@@ -14,6 +15,7 @@ fn check_hir(input: &str, expect: &Expect) {
         &[],
         sources,
         RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
     );
     expect.assert_eq(&unit.package.to_string());
 }
@@ -25,6 +27,7 @@ fn check_errors(input: &str, expect: &Expect) {
         &[],
         sources,
         RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
     );
 
     let lower_errors: Vec<_> = unit

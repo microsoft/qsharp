@@ -1,8 +1,7 @@
+Since the effect of this oracle depends only on the value of the $k$-th qubit, we can ignore the rest of the qubits and focus on just `x[k]`.
+We need to flip the phase of the qubit if it is in the $|1\rangle$ state and leave it unchanged otherwise - this is exactly the effect of the $Z$ gate.
+
 @[solution]({
     "id": "oracles__kth_bit_oracle_solution",
-    "codePath": "solution.qs"
+    "codePath": "Solution.qs"
 })
-
-Notice how the oracles - both phase and marking - can take extra "classical" parameters.
-
-Another key tool for implementing quantum oracles is allocating auxiliary qubits to assist in a computation.  Below are some exercises where you will practice that.

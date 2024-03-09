@@ -18,6 +18,7 @@ use qsc_eval::{
 use qsc_fir::fir;
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir::{self};
+use rustc_hash::FxHashSet;
 use std::fmt::{Display, Write};
 
 /// # Errors
@@ -40,7 +41,7 @@ pub fn generate_qir(
     }
 
     let package = map_hir_package_to_fir(package);
-    let unit = fir_store.get(package).expect("store should have package");
+    let unit = fir_store.get(package);
     let entry_expr = unit.entry.expect("package should have entry");
 
     let mut sim = BaseProfSim::default();
@@ -71,6 +72,8 @@ pub struct BaseProfSim {
     qubit_map: IndexMap<usize, HardwareId>,
     instrs: String,
     measurements: String,
+    decls: String,
+    decl_names: FxHashSet<String>,
 }
 
 impl Default for BaseProfSim {
@@ -89,6 +92,8 @@ impl BaseProfSim {
             qubit_map: IndexMap::new(),
             instrs: String::new(),
             measurements: String::new(),
+            decls: String::new(),
+            decl_names: FxHashSet::default(),
         };
         sim.instrs.push_str(include_str!("./qir_base/prefix.ll"));
         sim
@@ -103,7 +108,7 @@ impl BaseProfSim {
         write!(
             self.instrs,
             include_str!("./qir_base/postfix.ll"),
-            self.next_qubit_hardware_id.0, self.next_meas_id
+            self.decls, self.next_qubit_hardware_id.0, self.next_meas_id
         )
         .expect("writing to string should succeed");
 
@@ -171,6 +176,53 @@ impl BaseProfSim {
             self.instrs,
             "  call void @__quantum__rt__array_record_output(i64 {size}, i8* null)"
         )
+    }
+
+    fn write_arg(&mut self, arg: &Value) -> std::result::Result<(), String> {
+        match arg {
+            Value::Qubit(q) => {
+                let q = self.map(q.0);
+                write!(self.instrs, "{}", Qubit(q))
+            }
+            Value::Double(d) => write!(self.instrs, "{}", Double(*d)),
+            Value::Bool(b) => write!(self.instrs, "{}", Bool(*b)),
+            Value::Int(i) => write!(self.instrs, "{}", Int(*i)),
+            _ => return Err(format!("unsupported argument type: {}", arg.type_name())),
+        }
+        .expect("writing to string should succeed");
+        Ok(())
+    }
+
+    fn write_decl_type(&mut self, ty: &Value) -> std::result::Result<(), String> {
+        match ty {
+            Value::Qubit(_) => write!(self.decls, "%Qubit*"),
+            Value::Double(_) => write!(self.decls, "double"),
+            Value::Bool(_) => write!(self.decls, "i1"),
+            Value::Int(_) => write!(self.decls, "i64"),
+            _ => return Err(format!("unsupported argument type: {}", ty.type_name())),
+        }
+        .expect("writing to string should succeed");
+        Ok(())
+    }
+
+    fn write_decl(&mut self, name: &str, arg: &Value) -> std::result::Result<(), String> {
+        if self.decl_names.insert(name.to_string()) {
+            write!(self.decls, "declare void @{name}(").expect("writing to string should succeed");
+            if let Value::Tuple(args) = arg {
+                if let Some((first, rest)) = args.split_first() {
+                    self.write_decl_type(first)?;
+                    for arg in rest {
+                        write!(self.decls, ", ").expect("writing to string should succeed");
+                        self.write_decl_type(arg)?;
+                    }
+                }
+            } else {
+                self.write_decl_type(arg)?;
+            }
+            writeln!(self.decls, ")").expect("writing to string should succeed");
+        }
+
+        Ok(())
     }
 }
 
@@ -438,6 +490,42 @@ impl Backend for BaseProfSim {
         // true to avoid a panic.
         true
     }
+
+    fn custom_intrinsic(
+        &mut self,
+        name: &str,
+        arg: Value,
+    ) -> Option<std::result::Result<Value, String>> {
+        match self.write_decl(name, &arg) {
+            Ok(()) => {}
+            Err(e) => return Some(Err(e)),
+        }
+        write!(self.instrs, "  call void @{name}(").expect("writing to string should succeed");
+
+        if let Value::Tuple(args) = arg {
+            if let Some((first, rest)) = args.split_first() {
+                match self.write_arg(first) {
+                    Ok(()) => {}
+                    Err(e) => return Some(Err(e)),
+                }
+                for arg in rest {
+                    write!(self.instrs, ", ").expect("writing to string should succeed");
+                    match self.write_arg(arg) {
+                        Ok(()) => {}
+                        Err(e) => return Some(Err(e)),
+                    }
+                }
+            }
+        } else {
+            match self.write_arg(&arg) {
+                Ok(()) => {}
+                Err(e) => return Some(Err(e)),
+            }
+        }
+
+        writeln!(self.instrs, ")").expect("writing to string should succeed");
+        Some(Ok(Value::unit()))
+    }
 }
 
 struct Qubit(HardwareId);
@@ -468,5 +556,25 @@ impl Display for Double {
         } else {
             write!(f, "double {v}")
         }
+    }
+}
+
+struct Bool(bool);
+
+impl Display for Bool {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.0 {
+            write!(f, "i1 true")
+        } else {
+            write!(f, "i1 false")
+        }
+    }
+}
+
+struct Int(i64);
+
+impl Display for Int {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "i64 {}", self.0)
     }
 }

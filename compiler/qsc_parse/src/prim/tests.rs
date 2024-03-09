@@ -5,12 +5,12 @@ use super::{ident, opt, pat, path, seq};
 use crate::{
     keyword::Keyword,
     lex::{ClosedBinOp, TokenKind},
-    scan::Scanner,
+    scan::ParserContext,
     tests::{check, check_opt, check_seq},
     Error, ErrorKind,
 };
 use expect_test::expect;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
 #[test]
 fn ident_basic() {
@@ -52,7 +52,7 @@ fn ident_num_prefix() {
 #[test]
 fn ident_keyword() {
     for keyword in enum_iterator::all::<Keyword>() {
-        let mut scanner = Scanner::new(keyword.as_str());
+        let mut scanner = ParserContext::new(keyword.as_str(), LanguageFeatures::default());
         let actual = ident(&mut scanner);
         let span = Span {
             lo: 0,

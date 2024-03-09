@@ -24,7 +24,7 @@ declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
 declare void @__quantum__rt__result_record_output(%Result*, i8*)
 declare void @__quantum__rt__array_record_output(i64, i8*)
 declare void @__quantum__rt__tuple_record_output(i64, i8*)
-
+{}
 attributes #0 = {{ "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="{}" "required_num_results"="{}" }}
 attributes #1 = {{ "irreversible" }}
 

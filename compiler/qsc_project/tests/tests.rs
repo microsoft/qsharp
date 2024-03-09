@@ -13,7 +13,7 @@ use harness::check;
 #[test]
 fn basic_manifest() {
     check(
-        "basic_manifest".into(),
+        &"basic_manifest".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -35,15 +35,16 @@ fn basic_manifest() {
                         "Microsoft",
                     ),
                     license: None,
+                    language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn circular_imports() {
     check(
-        "circular_imports".into(),
+        &"circular_imports".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -65,15 +66,16 @@ fn circular_imports() {
                         "Microsoft",
                     ),
                     license: None,
+                    language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn different_files_same_manifest() {
     check(
-        "different_files_same_manifest".into(),
+        &"different_files_same_manifest".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -95,15 +97,16 @@ fn different_files_same_manifest() {
                         "Microsoft",
                     ),
                     license: None,
+                    language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn empty_manifest() {
     check(
-        "empty_manifest".into(),
+        &"empty_manifest".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -115,15 +118,16 @@ fn empty_manifest() {
                 manifest: Manifest {
                     author: None,
                     license: None,
+                    language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 
 #[test]
 fn folder_structure() {
     check(
-        "folder_structure".into(),
+        &"folder_structure".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -147,14 +151,15 @@ fn folder_structure() {
                 manifest: Manifest {
                     author: None,
                     license: None,
+                    language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 #[test]
 fn hidden_files() {
     check(
-        "hidden_files".into(),
+        &"hidden_files".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -174,14 +179,15 @@ fn hidden_files() {
                 manifest: Manifest {
                     author: None,
                     license: None,
+                    language_features: [],
                 },
             }"#]],
-    )
+    );
 }
 #[test]
 fn peer_file() {
     check(
-        "peer_file".into(),
+        &"peer_file".into(),
         &expect![[r#"
             Project {
                 sources: [
@@ -205,7 +211,31 @@ fn peer_file() {
                 manifest: Manifest {
                     author: None,
                     license: None,
+                    language_features: [],
                 },
             }"#]],
-    )
+    );
+}
+
+#[test]
+fn language_feature() {
+    check(
+        &"language_feature".into(),
+        &expect![[r#"
+            Project {
+                sources: [
+                    (
+                        "language_feature/src/Project.qs",
+                        "namespace Project {\n    @EntryPoint()\n    operation Entry() : Unit {\n        use qs = Qubit[2] { };\n    }\n}\n",
+                    ),
+                ],
+                manifest: Manifest {
+                    author: None,
+                    license: None,
+                    language_features: [
+                        "v2-preview-syntax",
+                    ],
+                },
+            }"#]],
+    );
 }

@@ -221,7 +221,7 @@ export function CreateReport(result: SingleEstimateResult): ReportData {
       result.logicalCounts.rotationCount,
     )} / ${
       result.errorBudget.rotations
-    }) + 5.3\\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)]. For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases.`,
+    }) + 4.86\\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)]. For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases.`,
   });
   groups.push({
     title: "Resource estimates breakdown",

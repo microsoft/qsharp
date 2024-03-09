@@ -75,10 +75,16 @@ impl Ty {
                     CallableKind::Function => "->",
                     CallableKind::Operation => "=>",
                 };
-                let functors = if arrow.functors == FunctorSet::Value(FunctorSetValue::Empty) {
-                    String::new()
-                } else {
-                    format!(" is {}", arrow.functors)
+
+                let functors = match arrow.functors {
+                    FunctorSet::Value(FunctorSetValue::Empty)
+                    | FunctorSet::Param(_, FunctorSetValue::Empty) => String::new(),
+                    FunctorSet::Value(_) | FunctorSet::Infer(_) => {
+                        format!(" is {}", arrow.functors)
+                    }
+                    FunctorSet::Param(_, functors) => {
+                        format!(" is {functors}")
+                    }
                 };
                 format!(
                     "({} {arrow_symbol} {}{functors})",
@@ -231,7 +237,7 @@ fn instantiate_arrow_ty<'a>(
 ) -> Result<Arrow, InstantiationError> {
     let input = instantiate_ty(arg, &arrow.input)?;
     let output = instantiate_ty(arg, &arrow.output)?;
-    let functors = if let FunctorSet::Param(param) = arrow.functors {
+    let functors = if let FunctorSet::Param(param, _) = arrow.functors {
         match arg(&param) {
             Some(GenericArg::Functor(functor_arg)) => *functor_arg,
             Some(_) => return Err(InstantiationError::Kind(param)),
@@ -409,7 +415,7 @@ pub enum FunctorSet {
     /// An evaluated set.
     Value(FunctorSetValue),
     /// A functor parameter.
-    Param(ParamId),
+    Param(ParamId, FunctorSetValue),
     /// A placeholder functor variable used during type inference.
     Infer(InferFunctorId),
 }
@@ -424,7 +430,7 @@ impl FunctorSet {
     pub fn expect_value(self, msg: &str) -> FunctorSetValue {
         match self {
             Self::Value(value) => value,
-            Self::Param(_) | Self::Infer(_) => panic!("{msg}"),
+            Self::Param(_, _) | Self::Infer(_) => panic!("{msg}"),
         }
     }
 }
@@ -433,7 +439,7 @@ impl Display for FunctorSet {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
             Self::Value(value) => Display::fmt(value, f),
-            Self::Param(param) => write!(f, "Param<{param}>"),
+            Self::Param(param, _) => write!(f, "Param<{param}>"),
             Self::Infer(infer) => Display::fmt(infer, f),
         }
     }
@@ -491,6 +497,17 @@ impl FunctorSetValue {
             | (Self::Adj, Self::Ctl)
             | (Self::Ctl, Self::Adj) => Self::CtlAdj,
         }
+    }
+
+    #[must_use]
+    pub fn satisfies(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (_, Self::Empty)
+                | (Self::Adj | Self::CtlAdj, Self::Adj)
+                | (Self::Ctl | Self::CtlAdj, Self::Ctl)
+                | (Self::CtlAdj, Self::CtlAdj)
+        )
     }
 }
 

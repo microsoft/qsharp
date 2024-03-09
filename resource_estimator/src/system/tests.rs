@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use serde_json::Value;
+use serde_json::{json, Map, Value};
 
 use crate::estimates::{
     ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, Overhead, PhysicalResourceEstimation,
@@ -210,7 +210,7 @@ fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBu
 }
 
 fn validate_result_invariants<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<PhysicalQubit, TFactory, L>,
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
 ) {
     assert_eq!(
         result.physical_qubits(),
@@ -226,7 +226,7 @@ fn validate_result_invariants<L: Overhead + Clone>(
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     assert!(
@@ -255,10 +255,10 @@ pub fn test_hubbard_e2e() -> Result<()> {
 
     let result = estimation.estimate()?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
-    assert_eq!(logical_qubit.code_distance(), 17);
+    assert_eq!(logical_qubit.code_parameter(), &17);
     assert_eq!(logical_qubit.logical_cycle_time(), 6800);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 72);
@@ -292,7 +292,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
         &same_ftp,
         &qubit,
         output_t_error_rate,
-        same_ftp.max_code_distance(),
+        &same_ftp.max_code_distance(),
     );
 
     assert_eq!(tfactories.len(), 2);
@@ -306,7 +306,10 @@ pub fn test_hubbard_e2e() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory1.code_distance_per_round(), vec![5, 15]);
+        assert_eq!(
+            factory1.code_parameter_per_round(),
+            vec![Some(&5), Some(&15)]
+        );
     }
 
     if let Some(factory2) = get_tfactory(&tfactories, 92000, 18000) {
@@ -319,7 +322,10 @@ pub fn test_hubbard_e2e() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory2.code_distance_per_round(), vec![5, 15]);
+        assert_eq!(
+            factory2.code_parameter_per_round(),
+            vec![Some(&5), Some(&15)]
+        );
     }
 
     Ok(())
@@ -341,10 +347,10 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
 
     let result = estimation.estimate()?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
-    assert_eq!(logical_qubit.code_distance(), 5);
+    assert_eq!(logical_qubit.code_parameter(), &5);
     assert_eq!(logical_qubit.logical_cycle_time(), 1500);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 72);
@@ -376,7 +382,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
         &same_ftp,
         &qubit,
         output_t_error_rate,
-        same_ftp.max_code_distance(),
+        &same_ftp.max_code_distance(),
     );
 
     assert_eq!(tfactories.len(), 2);
@@ -390,7 +396,10 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory1.code_distance_per_round(), vec![1, 3]);
+        assert_eq!(
+            factory1.code_parameter_per_round(),
+            vec![Some(&1), Some(&3)]
+        );
     }
 
     if let Some(factory2) = get_tfactory(&tfactories, 14100, 1040) {
@@ -403,7 +412,10 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
                 String::from("15-to-1 space efficient")
             ]
         );
-        assert_eq!(factory2.code_distance_per_round(), vec![1, 3]);
+        assert_eq!(
+            factory2.code_parameter_per_round(),
+            vec![Some(&1), Some(&3)]
+        );
     }
 
     Ok(())
@@ -523,23 +535,23 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
 
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
     assert!(result.runtime() <= max_duration_in_nanoseconds);
 
-    assert_eq!(logical_qubit.code_distance(), 19);
+    assert_eq!(logical_qubit.code_parameter(), &19);
     assert_eq!(logical_qubit.logical_cycle_time(), 5700);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
-    assert_eq!(result.algorithmic_logical_depth(), 411_211_118_594_u64);
+    assert_eq!(result.algorithmic_logical_depth(), 411_005_967_364);
     assert_eq!(result.num_factories(), 2);
     assert_eq!(result.physical_qubits_for_factories(), 572_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
 
-    assert_eq!(result.runtime(), 22_371_634_030_834_500_u64);
+    assert_eq!(result.runtime(), 22_363_183_367_607_300);
 
     assert_eq!(tfactory.physical_qubits(), 286_000);
     assert_eq!(tfactory.num_rounds(), 4);
@@ -553,7 +565,10 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
             String::from("15-to-1 RM prep"),
         ]
     );
-    assert_eq!(tfactory.code_distance_per_round(), vec![1, 3, 5, 15]);
+    assert_eq!(
+        tfactory.code_parameter_per_round(),
+        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+    );
 
     assert_eq!(
         result.physical_qubits(),
@@ -569,7 +584,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     Ok(())
@@ -583,22 +598,22 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
 
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
     assert!(result.physical_qubits() <= max_num_qubits);
 
-    assert_eq!(logical_qubit.code_distance(), 19);
+    assert_eq!(logical_qubit.code_parameter(), &19);
     assert_eq!(logical_qubit.logical_cycle_time(), 5700);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
-    assert_eq!(result.algorithmic_logical_depth(), 411_211_118_594_u64);
+    assert_eq!(result.algorithmic_logical_depth(), 411_005_967_364);
     assert_eq!(result.num_factories(), 2);
     assert_eq!(result.physical_qubits_for_factories(), 572_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
-    assert_eq!(result.runtime(), 22_371_634_030_834_500_u64);
+    assert_eq!(result.runtime(), 22_363_183_367_607_300);
 
     assert_eq!(tfactory.physical_qubits(), 286_000);
     assert_eq!(tfactory.num_rounds(), 4);
@@ -612,7 +627,10 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
             String::from("15-to-1 RM prep"),
         ]
     );
-    assert_eq!(tfactory.code_distance_per_round(), vec![1, 3, 5, 15]);
+    assert_eq!(
+        tfactory.code_parameter_per_round(),
+        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+    );
 
     assert_eq!(
         result.physical_qubits(),
@@ -628,7 +646,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     Ok(())
@@ -663,16 +681,16 @@ pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result
 
     let result_no_max_duration = estimation.estimate_without_restrictions()?;
 
-    let logical_qubit_no_max_duration = result_no_max_duration.logical_qubit();
+    let logical_qubit_no_max_duration = result_no_max_duration.logical_patch();
 
     let max_duration_in_nanoseconds: u64 = result_no_max_duration.runtime();
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
 
     assert_eq!(
-        logical_qubit_no_max_duration.code_distance(),
-        logical_qubit.code_distance()
+        logical_qubit_no_max_duration.code_parameter(),
+        logical_qubit.code_parameter()
     );
 
     assert_eq!(
@@ -716,16 +734,16 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Resu
 
     let result_no_max_num_qubits = estimation.estimate_without_restrictions()?;
 
-    let logical_qubit_no_max_num_qubits = result_no_max_num_qubits.logical_qubit();
+    let logical_qubit_no_max_num_qubits = result_no_max_num_qubits.logical_patch();
 
     let max_num_qubits = result_no_max_num_qubits.physical_qubits();
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
 
     assert_eq!(
-        logical_qubit_no_max_num_qubits.code_distance(),
-        logical_qubit.code_distance()
+        logical_qubit_no_max_num_qubits.code_parameter(),
+        logical_qubit.code_parameter()
     );
 
     assert_eq!(
@@ -793,15 +811,15 @@ fn build_frontier_test() {
     let frontier_result = estimation.build_frontier();
 
     let points = frontier_result.expect("failed to estimate");
-    assert_eq!(points.len(), 195);
+    assert_eq!(points.len(), 189);
 
     for i in 0..points.len() - 1 {
         assert!(points[i].runtime() <= points[i + 1].runtime());
         assert!(points[i].physical_qubits() >= points[i + 1].physical_qubits());
         assert!(points[i].num_factories() >= points[i + 1].num_factories());
         assert!(
-            points[i].logical_qubit().code_distance()
-                <= points[i + 1].logical_qubit().code_distance()
+            points[i].logical_patch().code_parameter()
+                <= points[i + 1].logical_patch().code_parameter()
         );
     }
 
@@ -816,8 +834,8 @@ fn build_frontier_test() {
         shortest_runtime_result.num_factories()
     );
     assert_eq!(
-        points[0].logical_qubit().code_distance(),
-        shortest_runtime_result.logical_qubit().code_distance()
+        points[0].logical_patch().code_parameter(),
+        shortest_runtime_result.logical_patch().code_parameter()
     );
 
     let mut max_duration = shortest_runtime_result.runtime();
@@ -884,12 +902,13 @@ fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
 
 #[test]
 fn build_frontier_bit_flip_code_test() {
-    let estimation = prepare_bit_flip_code_resources_and_majorana_n6_qubit();
+    let estimation: PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> =
+        prepare_bit_flip_code_resources_and_majorana_n6_qubit();
 
     let frontier_result = estimation.build_frontier();
 
     let points = frontier_result.expect("failed to estimate");
-    assert_eq!(points.len(), 7);
+    assert_eq!(points.len(), 10);
 
     let shortest_runtime_result = estimation.estimate().expect("failed to estimate");
 
@@ -931,7 +950,6 @@ fn build_frontier_bit_flip_code_test() {
     );
 }
 
-#[allow(clippy::cast_lossless)]
 #[test]
 fn code_distance_tests() {
     let params = JobParams::default();
@@ -947,13 +965,40 @@ fn code_distance_tests() {
                     budget_logical / (logical_qubits * num_cycles) as f64;
 
                 let qubit = params.qubit_params().clone();
-                let code_distance =
-                    ftp.compute_code_distance(&qubit, required_logical_qubit_error_rate);
+                let code_distance = ftp
+                    .compute_code_parameter(&qubit, required_logical_qubit_error_rate)
+                    .expect("code distance can be computed");
 
                 assert!(code_distance <= ftp.max_code_distance());
             }
         }
     }
+}
+
+#[test]
+fn test_report() {
+    let logical_resources = LogicalResources {
+        num_qubits: 100,
+        t_count: 0,
+        rotation_count: 112_110,
+        rotation_depth: 2001,
+        ccz_count: 0,
+        measurement_count: 0,
+    };
+
+    let params: &str = "[{}]";
+    let result = estimate_physical_resources(&logical_resources, params);
+
+    let json_value: Vec<Value> =
+        serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
+    assert_eq!(json_value.len(), 1);
+    assert_eq!(
+        strip_numbers(&json_value[0]),
+        strip_numbers(
+            &serde_json::from_str::<Value>(include_str!("test_report.json"))
+                .expect("Failed to parse JSON")
+        )
+    );
 }
 
 fn get_tfactory(tfactories: &[TFactory], duration: u64, physical_qubits: u64) -> Option<&TFactory> {
@@ -962,4 +1007,23 @@ fn get_tfactory(tfactories: &[TFactory], duration: u64, physical_qubits: u64) ->
     });
     assert!(tfactory.is_some());
     tfactory
+}
+
+// In order to avoid small numerical imprecision when comparing JSON values, we
+// can use this function to replace any numerical values by 0.
+fn strip_numbers(value: &Value) -> Value {
+    match value {
+        Value::Number(_) => json!(0),
+        Value::Null | Value::Bool(_) | Value::String(_) => value.clone(),
+        Value::Array(entries) => Value::Array(entries.iter().map(strip_numbers).collect()),
+        Value::Object(entries) => {
+            let mut map = Map::new();
+
+            for (key, value) in entries {
+                map.insert(key.clone(), strip_numbers(value));
+            }
+
+            Value::Object(map)
+        }
+    }
 }

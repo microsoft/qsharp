@@ -6,7 +6,7 @@
 **Goal:**
 
 Flip the sign of the input state $|x\rangle$ if the $k$-th bit of $x$ is $1$.  
-**Implement this oracle without using auxiliary qubits.**
+*Implement this oracle without using auxiliary qubits.*
 
 **Examples:**
 

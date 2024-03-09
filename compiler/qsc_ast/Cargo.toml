@@ -14,5 +14,8 @@ miette = { workspace = true }
 num-bigint = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
 
+[lints]
+workspace = true
+
 [lib]
 doctest = false

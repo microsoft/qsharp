@@ -1,6 +1,4 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
 
     operation BellState (qs : Qubit[]) : Unit is Adj + Ctl {
@@ -18,11 +16,11 @@ namespace Kata.Verification {
             Message("Correct!");
         } else {
             Message("Incorrect :(");
-            Message("Hint: examine how your solution transforms the |00〉 state and compare it with the expected " +
-                "transformation");
-            use target = Qubit[2]; // |00〉
-            ShowQuantumStateComparison(target, solution, reference);
-            ResetAll(target);
+            Message("Hint: examine the state prepared by your solution and compare it with the state it " +
+                "is expected to prepare.");
+            use initial = Qubit[2]; // |00〉
+            ShowQuantumStateComparison(initial, solution, reference);
+            ResetAll(initial);
         }
 
         isCorrect

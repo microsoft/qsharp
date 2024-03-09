@@ -1,14 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_codegen::qir_base;
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
     compile::{PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName},
     error::WithSource,
@@ -55,6 +53,10 @@ struct Cli {
     /// Path to a Q# manifest for a project
     #[arg(short, long)]
     qsharp_json: Option<PathBuf>,
+
+    /// Language features to compile with
+    #[arg(short, long)]
+    features: Vec<String>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -79,6 +81,8 @@ fn main() -> miette::Result<ExitCode> {
         dependencies.push(store.insert(qsc::compile::std(&store, capabilities)));
     }
 
+    let mut features = LanguageFeatures::from_iter(cli.features);
+
     let mut sources = cli
         .sources
         .iter()
@@ -93,12 +97,23 @@ fn main() -> miette::Result<ExitCode> {
             let mut project_sources = project.sources;
 
             sources.append(&mut project_sources);
+
+            features.merge(LanguageFeatures::from_iter(
+                manifest.manifest.language_features,
+            ));
         }
     }
 
     let entry = cli.entry.unwrap_or_default();
     let sources = SourceMap::new(sources, Some(entry.into()));
-    let (unit, errors) = compile(&store, &dependencies, sources, package_type, capabilities);
+    let (unit, errors) = compile(
+        &store,
+        &dependencies,
+        sources,
+        package_type,
+        capabilities,
+        features,
+    );
     let package_id = store.insert(unit);
     let unit = store.get(package_id).expect("package should be in store");
 
@@ -147,12 +162,12 @@ fn read_source(path: impl AsRef<Path>) -> miette::Result<(SourceName, SourceCont
 fn emit_hir(package: &Package, dir: impl AsRef<Path>) -> miette::Result<()> {
     let path = dir.as_ref().join("hir.txt");
     info!(
-        "Writing hir output file to: {}",
+        "Writing HIR output file to: {}",
         path.to_str().unwrap_or_default()
     );
-    fs::write(path, package.to_string())
+    fs::write(&path, package.to_string())
         .into_diagnostic()
-        .context("could not emit HIR")
+        .with_context(|| format!("could not emit HIR file `{}`", path.display()))
 }
 
 fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Result<(), Report> {
@@ -161,13 +176,12 @@ fn emit_qir(out_dir: &Path, store: &PackageStore, package_id: PackageId) -> Resu
     match result {
         Ok(qir) => {
             info!(
-                "Writing qir output file to: {}",
+                "Writing QIR output file to: {}",
                 path.to_str().unwrap_or_default()
             );
-            fs::write(path, qir)
+            fs::write(&path, qir)
                 .into_diagnostic()
-                .context("could not emit QIR")?;
-            Ok(())
+                .with_context(|| format!("could not emit QIR file `{}`", path.display()))
         }
         Err((error, _)) => {
             let unit = store.get(package_id).expect("package should be in store");

@@ -10,12 +10,9 @@ license.workspace = true
 
 [dependencies]
 bitflags = { workspace = true }
-enum-iterator = { workspace = true }
 miette = { workspace = true }
-num-bigint = { workspace = true }
-num-traits = { workspace = true }
-qsc_ast = { path = "../qsc_ast" }
 qsc_data_structures = { path = "../qsc_data_structures" }
+qsc_ast = { path = "../qsc_ast" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_parse = { path = "../qsc_parse" }
 library = { path = "../../library" }
@@ -25,6 +22,9 @@ thiserror = { workspace = true }
 [dev-dependencies]
 expect-test = { workspace = true }
 indoc = { workspace = true }
+
+[lints]
+workspace = true
 
 [lib]
 doctest = false

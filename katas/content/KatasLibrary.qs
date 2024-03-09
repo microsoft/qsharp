@@ -4,13 +4,11 @@
 namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Random;
 
     /// # Summary
     /// Given two operations, checks whether they act identically for all input states.
     /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
-    ///
-    /// N.B. Investigate whether this can be done using just 1 control qubit (GitHub issue #535).
     operation CheckOperationsEquivalence(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
@@ -19,7 +17,6 @@ namespace Microsoft.Quantum.Katas {
         Fact(inputSize > 0, "`inputSize` must be positive");
         use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
         within {
-            // N.B. The order in which quantum registers are passed to this operation is important.
             EntangleRegisters(control, target);
         }
         apply {
@@ -52,8 +49,8 @@ namespace Microsoft.Quantum.Katas {
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits.
     operation CheckOperationsEquivalenceOnZeroState(
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
+        op : (Qubit[] => Unit),
+        reference : (Qubit[] => Unit is Adj),
         inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
@@ -127,6 +124,30 @@ namespace Microsoft.Quantum.Katas {
         Adjoint op(targetRegister);
     }
 
+    /// # Summary
+    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
+    /// `inputSize` qubits. If they don't, prints user feedback.
+    operation CheckOperationsEquivalenceOnZeroStateWithFeedback(
+        testImpl : (Qubit[] => Unit is Adj + Ctl),
+        refImpl : (Qubit[] => Unit is Adj + Ctl),
+        inputSize : Int
+    ) : Bool {
+
+        let isCorrect = CheckOperationsEquivalenceOnZeroState(testImpl, refImpl, inputSize);
+
+        // Output different feedback to the user depending on whether the exercise was correct.
+        if isCorrect {
+            Message("Correct!");
+        } else {
+            Message("Incorrect.");
+            use target = Qubit[inputSize];
+            ShowQuantumStateComparison(target, testImpl, refImpl);
+            ResetAll(target);
+        }
+        isCorrect
+    }
+
+
     internal operation EntangleRegisters(
         control : Qubit[],
         target : Qubit[]) : Unit is Adj + Ctl {
@@ -137,6 +158,15 @@ namespace Microsoft.Quantum.Katas {
         for index in IndexRange(control) {
             H(control[index]);
             CNOT(control[index], target[index]);
+        }
+    }
+
+
+    /// # Summary
+    /// Prepare a random uneven superposition state on the given qubit array.
+    operation PrepRandomState(qs : Qubit[]) : Unit {
+        for q in qs {
+            Ry(DrawRandomDouble(0.01, 0.99) * 2.0, q);
         }
     }
 }
