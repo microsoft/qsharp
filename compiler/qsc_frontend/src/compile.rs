@@ -370,7 +370,6 @@ pub fn compile(
     let mut ast_assigner = AstAssigner::new();
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
-
     let mut hir_assigner = HirAssigner::new();
     let (names, locals, name_errors) = resolve_all(
         store,
