@@ -381,13 +381,13 @@ pub fn compile(
     );
     let (tys, ty_errors) = typeck_all(store, dependencies, &ast_package, &names);
     let mut lowerer = Lowerer::new();
-    let hir_package = lowerer
+    let package = lowerer
         .with(&mut hir_assigner, &names, &tys)
         .lower_package(&ast_package);
-    HirValidator::default().visit_package(&hir_package);
+    HirValidator::default().visit_package(&package);
     let lower_errors = lowerer.drain_errors();
 
-    let errors: Vec<Error> = parse_errors
+    let errors = parse_errors
         .into_iter()
         .map(Into::into)
         .chain(name_errors.into_iter().map(Into::into))
@@ -397,7 +397,7 @@ pub fn compile(
         .collect();
 
     CompileUnit {
-        package: hir_package,
+        package,
         ast: AstPackage {
             package: ast_package,
             tys,
