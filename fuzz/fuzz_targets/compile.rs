@@ -3,6 +3,10 @@
 
 #![no_main]
 
+#[cfg(not(target_family = "wasm"))]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[cfg(feature = "do_fuzz")]
 use libfuzzer_sys::fuzz_target;
 use qsc::{hir::PackageId, target::Profile, LanguageFeatures, PackageStore, SourceMap};

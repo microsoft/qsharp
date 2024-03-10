@@ -29,6 +29,9 @@ qsc_project = { path = "../qsc_project", features = ["fs"] }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 
+[target.'cfg(not(any(target_family = "wasm")))'.dependencies]
+mimalloc = { workspace = true }
+
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }
 expect-test = { workspace = true }
