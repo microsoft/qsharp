@@ -1,26 +1,27 @@
-    namespace Kata.Verification {
-        
-        open Microsoft.Quantum.Math;
-        open Microsoft.Quantum.Random;    
-        open Microsoft.Quantum.Convert; 
+namespace Kata.Verification {
+    open Microsoft.Quantum.Math;
 
-        @EntryPoint()
-        operation CheckSolution() : Bool {        
-        for count in 0 .. 24 {
-            let testx = ComplexRandom(0., 100.); 
-            
-            let expected = ComplexConjugate_Reference(testx); 
-            let actual = Kata.ComplexConjugate(testx);        
+    function ComplexConjugate_Reference(x : Complex) : Complex {
+        // Return the complex conjugate  
+        Complex(x::Real, -x::Imag)
+    }    
+
+    @EntryPoint()
+    operation CheckSolution() : Bool {        
+        for _ in 0 .. 24 {
+            let x = DrawRandomComplex();
+
+            let expected = ComplexConjugate_Reference(x);
+            let actual = Kata.ComplexConjugate(x);
         
-            if not(ComplexEqual(expected, actual)) {
-                Message($"Incorrect. When x = {testx::Real} + {testx::Imag}i, actual value doesn't match expected value");
-                Message($"Actual value: {actual::Real} + {actual::Imag}i. Expected value: {expected::Real} +  {expected::Imag}i");
+            if not ComplexEqual(expected, actual) {
+                Message("Incorrect");
+                Message($"For x = {ComplexAsString(x)} expected return {ComplexAsString(expected)}, actual return {ComplexAsString(actual)}.");
                 return false;
-            }                
-        }            
+            }
+        }
 
-            Message("Correct!");
-            return true;        
+        Message("Correct!");
+        return true;
     }
-    
 }

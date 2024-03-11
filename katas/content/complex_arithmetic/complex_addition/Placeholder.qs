@@ -1,9 +1,11 @@
 namespace Kata {    
     open Microsoft.Quantum.Math;
     
-    operation ComplexAdd(x : Complex, y : Complex) : Complex {    
+    function ComplexAdd(x : Complex, y : Complex) : Complex {    
+        // Extract real and imaginary components of the inputs.
+        let (a, b) = x!;
+        let (c, d) = (y::Real, y::Imag);
         // Implement your solution here...
-
-       return Complex (0., 0.);
+        return Complex(0., 0.);
     }
 }

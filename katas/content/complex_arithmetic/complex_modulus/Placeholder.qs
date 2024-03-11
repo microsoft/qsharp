@@ -1,9 +1,8 @@
 namespace Kata {
     open Microsoft.Quantum.Math;
     
-    operation ComplexModulus(x : Complex) : (Double) {
+    function ComplexModulus(x : Complex) : Double {
         // Implement your solution here...
-
-        return (0.);
+        return 0.;
     }
 }
