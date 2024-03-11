@@ -1215,26 +1215,26 @@ fn check_rca_for_account_for_estimates_internal() {
                     dynamic_param_applications:
                         [0]: [Parameter Type Array] ArrayParamApplication:
                             static_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray | UseOfDynamicTuple)
                                 value_kind: Element(Static)
                             dynamic_content_static_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray | UseOfDynamicTuple)
                                 value_kind: Element(Static)
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray | UseOfDynamicTuple)
                                 value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                             value_kind: Element(Static)
                         [2]: [Parameter Type Array] ArrayParamApplication:
                             static_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                             dynamic_content_static_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
