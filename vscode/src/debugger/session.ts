@@ -666,12 +666,13 @@ export class QscDebugSession extends LoggingDebugSession {
         .map(async (f, id) => {
           log.trace(`frames: location %O`, f.location);
 
+          const uri = f.location.source;
           const sf: DebugProtocol.StackFrame = new StackFrame(
             id,
             f.name,
             new Source(
-              basename(f.location.source) ?? f.location.source,
-              f.location.source,
+              basename(vscode.Uri.parse(uri).path) ?? uri,
+              uri,
               undefined,
               undefined,
               "qsharp-adapter-data",

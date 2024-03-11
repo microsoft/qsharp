@@ -370,7 +370,7 @@ suite("Q# Debugger Tests", function suite() {
       {
         id: 1,
         source: {
-          name: "qsharp-library-source:intrinsic.qs",
+          name: "intrinsic.qs",
           path: "qsharp-library-source:intrinsic.qs",
           sourceReference: 0,
           adapterData: "qsharp-adapter-data",
