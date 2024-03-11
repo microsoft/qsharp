@@ -543,18 +543,24 @@ impl Resolver {
     }
 }
 
+/// Constructed from a [Resolver] and an [Assigner], this structure implements `Visitor`
+/// on the package AST where it resolves identifiers, and assigns IDs to them.
 pub(super) struct With<'a> {
     resolver: &'a mut Resolver,
     assigner: &'a mut Assigner,
 }
 
 impl With<'_> {
+    /// Given a function, apply that function to `Self` within a scope. In other words, this
+    /// function automatically pushes a scope before `f` and pops it after.
     fn with_scope(&mut self, span: Span, kind: ScopeKind, f: impl FnOnce(&mut Self)) {
         self.resolver.push_scope(span, kind);
         f(self);
         self.resolver.pop_scope();
     }
 
+    /// Apply `f` to self while a pattern's constituent identifiers are in scope. Removes those
+    /// identifiers from the scope after `f`.
     fn with_pat(&mut self, span: Span, kind: ScopeKind, pat: &ast::Pat, f: impl FnOnce(&mut Self)) {
         self.with_scope(span, kind, |visitor| {
             // The bindings are valid from the beginning of the scope

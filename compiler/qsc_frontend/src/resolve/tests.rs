@@ -2402,3 +2402,255 @@ fn get_locals_block_scope_boundary_begin() {
         &expect![""],
     );
 }
+
+#[test]
+fn use_after_scope() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    {
+                        let x = 42;
+                    }
+                    x; // x should not be accessible here
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    {
+                        let local16 = 42;
+                    }
+                    x; // x should not be accessible here
+                }
+            }
+
+            // NotFound("x", Span { lo: 94, hi: 95 })
+        "#]],
+    );
+}
+
+#[test]
+fn nested_function_definition() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    function B() : Unit {
+                        function C() : Unit {}
+                        C();
+                    }
+                    B();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    function item2() : Unit {
+                        function item3() : Unit {}
+                        item3();
+                    }
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn variable_in_nested_blocks() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    {
+                        let x = 10;
+                        {
+                            let y = x + 5;
+                            y; // Should be accessible
+                        }
+                        y; // Should not be accessible
+                    }
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    {
+                        let local16 = 10;
+                        {
+                            let local23 = local16 + 5;
+                            local23; // Should be accessible
+                        }
+                        y; // Should not be accessible
+                    }
+                }
+            }
+
+            // NotFound("y", Span { lo: 190, hi: 191 })
+        "#]],
+    );
+}
+
+#[test]
+fn function_call_with_namespace_alias() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+            namespace Bar {
+                open Foo as F;
+                function B() : Unit {
+                    F.A();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+            }
+            namespace item2 {
+                open Foo as F;
+                function item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn type_alias_in_function_scope() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    newtype MyInt = Int;
+                    let x : MyInt = MyInt(5);
+                }
+                function B() : Unit {
+                    let z: MyInt = MyInt(5); // this should be a different type (and unresolved)
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    newtype item3 = Int;
+                    let local20 : item3 = item3(5);
+                }
+                function item2() : Unit {
+                    let local40: MyInt = MyInt(5); // this should be a different type (and unresolved)
+                }
+            }
+
+            // NotFound("MyInt", Span { lo: 152, hi: 157 })
+            // NotFound("MyInt", Span { lo: 160, hi: 165 })
+        "#]],
+    );
+}
+
+#[test]
+fn lambda_inside_lambda() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {
+                    let f = () -> {
+                        let g = (x) -> x + 1;
+                        g(10);
+                    };
+                    f();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {
+                    let local13 = () -> {
+                        let local20 = (local24) -> local24 + 1;
+                        local20(10);
+                    };
+                    local13();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_namespaces_with_same_function_name() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function A() : Unit {}
+            }
+            namespace Bar {
+                function A() : Unit {}
+                function B() : Unit {
+                    Foo.A();
+                    A(); // Should call Bar.A without needing to qualify
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                function item1() : Unit {}
+            }
+            namespace item2 {
+                function item3() : Unit {}
+                function item4() : Unit {
+                    item1();
+                    item3(); // Should call Bar.A without needing to qualify
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn newtype_with_invalid_field_type() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype Complex = (Re: Real, Im: Imaginary); // Imaginary is not a valid type
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (Re: Real, Im: Imaginary); // Imaginary is not a valid type
+            }
+
+            // NotFound("Real", Span { lo: 43, hi: 47 })
+            // NotFound("Imaginary", Span { lo: 53, hi: 62 })
+        "#]],
+    );
+}
+
+#[test]
+fn newtype_with_tuple_destructuring() {
+    check(
+        indoc! {"
+            namespace Foo {
+                newtype Pair = (First: Int, Second: Int);
+                function Destructure(pair: Pair) : Int {
+                    let (first, second) = pair;
+                    first + second
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace item0 {
+                newtype item1 = (First: Int, Second: Int);
+                function item2(local21: item1) : Int {
+                    let (local32, local34) = local21;
+                    local32 + local34
+                }
+            }
+        "#]],
+    );
+}

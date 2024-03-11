@@ -498,6 +498,17 @@ impl FunctorSetValue {
             | (Self::Ctl, Self::Adj) => Self::CtlAdj,
         }
     }
+
+    #[must_use]
+    pub fn satisfies(&self, other: &Self) -> bool {
+        matches!(
+            (self, other),
+            (_, Self::Empty)
+                | (Self::Adj | Self::CtlAdj, Self::Adj)
+                | (Self::Ctl | Self::CtlAdj, Self::Ctl)
+                | (Self::CtlAdj, Self::CtlAdj)
+        )
+    }
 }
 
 impl Display for FunctorSetValue {
