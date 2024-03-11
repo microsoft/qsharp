@@ -466,6 +466,10 @@ export function initService<
   }
 
   function postLogMessage(level: number, target: string, ...args: any) {
+    if (log.getLogLevel() < level) {
+      return;
+    }
+
     let data = args;
     try {
       // Only structured cloneable objects can be sent in worker messages.
