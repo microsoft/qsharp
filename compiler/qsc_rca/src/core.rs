@@ -66,7 +66,7 @@ impl<'a> Analyzer<'a> {
             let expr_compute_kind = application_instance.get_expr_compute_kind(*expr_id);
             compute_kind =
                 compute_kind.aggregate_runtime_features(*expr_compute_kind, default_value_kind);
-            has_dynamic_content |= compute_kind.is_dynamic();
+            has_dynamic_content |= expr_compute_kind.is_dynamic();
         }
 
         // The value kind of an array expression has two components. The runtime value of its content and the runtime
@@ -229,7 +229,12 @@ impl<'a> Analyzer<'a> {
         compute_kind
     }
 
-    fn analyze_expr_bin_op(&mut self, lhs_expr_id: ExprId, rhs_expr_id: ExprId) -> ComputeKind {
+    fn analyze_expr_bin_op(
+        &mut self,
+        lhs_expr_id: ExprId,
+        rhs_expr_id: ExprId,
+        expr_type: &Ty,
+    ) -> ComputeKind {
         // Visit the LHS and RHS expressions to determine their compute kind.
         self.visit_expr(lhs_expr_id);
         self.visit_expr(rhs_expr_id);
@@ -241,6 +246,15 @@ impl<'a> Analyzer<'a> {
         let mut compute_kind = ComputeKind::Classical;
         compute_kind = compute_kind.aggregate(lhs_compute_kind);
         compute_kind = compute_kind.aggregate(rhs_compute_kind);
+
+        // Additionally, since the new compute kind can be of a different type than its operands, aggregate additional
+        // runtime features depending on the binary operator expression's type (if it's dynamic).
+        if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
+            if let ValueKind::Element(RuntimeKind::Dynamic) = quantum_properties.value_kind {
+                quantum_properties.runtime_features |=
+                    derive_runtime_features_for_dynamic_type(expr_type);
+            }
+        }
         compute_kind
     }
 
@@ -278,8 +292,20 @@ impl<'a> Analyzer<'a> {
             self.analyze_expr_call_with_static_callee(callee_expr_id, args_expr_id, expr_type)
         };
 
-        // If this call happens within a dynamic scope, there might be additional runtime features being used.
+        // If the call expression is dynamic, aggregate the corresponding runtime features depending on its type.
         let default_value_kind = ValueKind::new_static_from_type(expr_type);
+        if compute_kind.is_dynamic() {
+            let dynamic_runtime_features = derive_runtime_features_for_dynamic_type(expr_type);
+            compute_kind = compute_kind.aggregate_runtime_features(
+                ComputeKind::new_with_runtime_features(
+                    dynamic_runtime_features,
+                    default_value_kind,
+                ),
+                default_value_kind,
+            );
+        }
+
+        // If this call happens within a dynamic scope, there might be additional runtime features being used.
         let application_instance = self.get_current_application_instance();
         if !application_instance.active_dynamic_scopes.is_empty() {
             // Any call that happens within a dynamic scope uses the forward branching runtime feature.
@@ -455,7 +481,7 @@ impl<'a> Analyzer<'a> {
                 RuntimeFeatureFlags::UdtConstructorUsesDynamicArg,
                 ValueKind::Element(RuntimeKind::Dynamic),
             );
-            compute_kind.aggregate(additional_compute_kind);
+            compute_kind = compute_kind.aggregate(additional_compute_kind);
         }
 
         compute_kind
@@ -1275,10 +1301,7 @@ impl<'a> Analyzer<'a> {
                 if !application_instance.active_dynamic_scopes.is_empty() {
                     let value_expr = self.get_expr(value_expr_id);
                     let dynamic_runtime_features =
-                        derive_runtime_features_for_dynamic_type(&value_expr.ty)
-                            | derive_runtime_features_for_dynamic_type(
-                                &local_var_compute_kind.local.ty,
-                            );
+                        derive_runtime_features_for_dynamic_type(&value_expr.ty);
                     let dynamic_value_kind =
                         ValueKind::new_dynamic_from_type(&local_var_compute_kind.local.ty);
                     let dynamic_compute_kind = ComputeKind::new_with_runtime_features(
@@ -1286,6 +1309,18 @@ impl<'a> Analyzer<'a> {
                         dynamic_value_kind,
                     );
                     updated_compute_kind = updated_compute_kind.aggregate(dynamic_compute_kind);
+                }
+
+                // If the updated compute kind is dynamic, include additional properties depending on the type of the
+                // local variable.
+                if updated_compute_kind.is_dynamic() {
+                    let ComputeKind::Quantum(updated_quantum_properties) =
+                        &mut updated_compute_kind
+                    else {
+                        panic!("expected Quantum variant of Compute Kind");
+                    };
+                    updated_quantum_properties.runtime_features |=
+                        derive_runtime_features_for_dynamic_type(&local_var_compute_kind.local.ty);
                 }
 
                 let application_instance = self.get_current_application_instance_mut();
@@ -1418,7 +1453,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                     *replacement_value_expr_id,
                 ),
             ExprKind::BinOp(_, lhs_expr_id, rhs_expr_id) => {
-                self.analyze_expr_bin_op(*lhs_expr_id, *rhs_expr_id)
+                self.analyze_expr_bin_op(*lhs_expr_id, *rhs_expr_id, &expr.ty)
             }
             ExprKind::Block(block_id) => self.analyze_expr_block(*block_id),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
@@ -1433,13 +1468,15 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 // Hole and literal expressions are purely classical.
                 ComputeKind::Classical
             }
-            ExprKind::If(condition_expr_id, body_expr_id, otherwise_expr_id) => self
-                .analyze_expr_if(
+            ExprKind::If(condition_expr_id, body_expr_id, otherwise_expr_id) => {
+                let expr = self.get_expr(expr_id);
+                self.analyze_expr_if(
                     *condition_expr_id,
                     *body_expr_id,
                     otherwise_expr_id.to_owned(),
                     &expr.ty,
-                ),
+                )
+            }
             ExprKind::Index(array_expr_id, index_expr_id) => {
                 self.analyze_expr_index(*array_expr_id, *index_expr_id, &expr.ty)
             }
@@ -1869,7 +1906,7 @@ fn derive_runtime_features_for_dynamic_primitive_type(prim: Prim) -> RuntimeFeat
 }
 
 fn derive_runtime_features_for_dynamic_tuple(element_types: &Vec<Ty>) -> RuntimeFeatureFlags {
-    let mut runtime_features = RuntimeFeatureFlags::UseOfDynamicTuple;
+    let mut runtime_features = RuntimeFeatureFlags::empty();
     for ty in element_types {
         runtime_features |= derive_runtime_features_for_dynamic_type(ty);
     }

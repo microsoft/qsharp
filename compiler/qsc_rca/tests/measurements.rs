@@ -22,7 +22,7 @@ fn check_rca_for_static_single_measurement() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -45,7 +45,7 @@ fn check_rca_for_static_single_measurement_and_reset() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );

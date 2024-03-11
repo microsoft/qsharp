@@ -480,7 +480,6 @@ impl ApplicationInstance {
             if let Some((dynamic_param_index, dynamic_param_value_kind)) = dynamic_param {
                 if input_param_index == dynamic_param_index {
                     compute_kind = ComputeKind::Quantum(QuantumProperties {
-                        // TODO (cesarzc): runitme features should depend on the parameter type to be properly propagated.
                         runtime_features: RuntimeFeatureFlags::empty(),
                         value_kind: dynamic_param_value_kind,
                     });

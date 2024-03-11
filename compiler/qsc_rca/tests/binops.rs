@@ -38,7 +38,7 @@ fn check_rca_for_bin_op_with_dynamic_lhs_and_classical_rhs() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -60,7 +60,7 @@ fn check_rca_for_bin_op_with_classical_lhs_and_dynamic_rhs() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -83,7 +83,7 @@ fn check_rca_for_bin_op_with_dynamic_lhs_and_dynamic_rhs() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -126,7 +126,7 @@ fn check_rca_for_nested_bin_ops_with_a_dynamic_operand() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );

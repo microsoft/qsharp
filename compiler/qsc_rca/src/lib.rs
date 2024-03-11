@@ -690,7 +690,7 @@ bitflags! {
         /// Use of a dynamic array.
         const UseOfDynamicallySizedArray = 1 << 8;
         /// Use of a dynamic Tuple.
-        const UseOfDynamicTuple = 1 << 10;
+        const UseOfDynamicTuple = 1 << 9;
         /// Use of a dynamic UDT.
         const UseOfDynamicUdt = 1 << 10;
         /// Use of a dynamic arrow function.

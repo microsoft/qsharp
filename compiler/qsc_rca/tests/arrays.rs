@@ -39,7 +39,7 @@ fn check_rca_for_array_with_dynamic_results() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Static
+                    value_kind: Array(Content: Dynamic, Size: Static)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -62,7 +62,7 @@ fn check_rca_for_array_with_dynamic_bools() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
-                    value_kind: Static
+                    value_kind: Array(Content: Dynamic, Size: Static)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -100,7 +100,7 @@ fn check_rca_for_array_repeat_with_dynamic_result_value_and_classical_size() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Static
+                    value_kind: Array(Content: Dynamic, Size: Static)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -123,7 +123,7 @@ fn check_rca_for_array_repeat_with_dynamic_bool_value_and_classical_size() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
-                    value_kind: Static
+                    value_kind: Array(Content: Dynamic, Size: Static)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -145,8 +145,8 @@ fn check_rca_for_array_repeat_with_classical_value_and_dynamic_size() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicArray)
-                    value_kind: Dynamic
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicallySizedArray)
+                    value_kind: Array(Content: Static, Size: Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -171,8 +171,8 @@ fn check_rca_for_array_repeat_with_dynamic_double_value_and_dynamic_size() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicDouble | UseOfDynamicArray)
-                    value_kind: Dynamic
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicDouble | UseOfDynamicallySizedArray)
+                    value_kind: Array(Content: Dynamic, Size: Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );

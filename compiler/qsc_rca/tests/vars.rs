@@ -78,7 +78,7 @@ fn check_rca_for_static_qubit_var() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Static
+                    value_kind: Element(Static)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -101,7 +101,7 @@ fn check_rca_for_dynamic_result_var() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );

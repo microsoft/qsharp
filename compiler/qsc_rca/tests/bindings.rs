@@ -45,7 +45,7 @@ fn check_rca_for_immutable_dynamic_result_binding() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -89,7 +89,7 @@ fn check_rca_for_mutable_dynamic_bool_binding() {
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
-                    value_kind: Dynamic
+                    value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
     );
@@ -113,24 +113,4 @@ fn check_rca_for_immutable_classical_int_binding() {
                 dynamic_param_applications: <empty>"#
         ],
     );
-}
-
-#[ignore = "work in progress"]
-#[test]
-fn check_rca_for_immutable_dynamic_int_binding() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
-        use qs = Qubit[8];
-        mutable results = [];
-        for q in qs {
-            set results += [M(q)];
-        }
-        //let results = MeasureEachZ(qs);
-        results"#,
-    );
-    let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(package_store_compute_properties, &expect![r#""#]);
 }

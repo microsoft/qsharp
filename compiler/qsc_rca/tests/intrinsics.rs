@@ -1197,7 +1197,6 @@ fn check_rca_for_end_estimate_caching() {
     );
 }
 
-#[ignore = "work in progress"]
 #[test]
 fn check_rca_for_account_for_estimates_internal() {
     let compilation_context = CompilationContext::new();
@@ -1215,13 +1214,13 @@ fn check_rca_for_account_for_estimates_internal() {
                     dynamic_param_applications:
                         [0]: [Parameter Type Array] ArrayParamApplication:
                             static_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray | UseOfDynamicTuple)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                             dynamic_content_static_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray | UseOfDynamicTuple)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray | UseOfDynamicTuple)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
