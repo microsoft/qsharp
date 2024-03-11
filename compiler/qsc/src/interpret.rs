@@ -20,6 +20,7 @@ pub use qsc_eval::{
 use crate::{
     error::{self, WithStack},
     incremental::Compiler,
+    location::Location,
 };
 use debug::format_call_stack;
 use miette::Diagnostic;
@@ -437,25 +438,15 @@ impl Debugger {
                     Global::Udt => "udt".into(),
                 };
 
-                let hir_package = self
-                    .interpreter
-                    .compiler
-                    .package_store()
-                    .get(map_fir_package_to_hir(frame.id.package))
-                    .expect("package should exist");
-                let source = hir_package
-                    .sources
-                    .find_by_offset(frame.span.lo)
-                    .expect("frame should have a source");
-                let path = source.name.to_string();
                 StackFrame {
                     name,
                     functor,
-                    path,
-                    range: Range::from_span(
+                    location: Location::from(
+                        frame.span,
+                        map_fir_package_to_hir(frame.id.package),
+                        self.interpreter.compiler.package_store(),
+                        map_fir_package_to_hir(self.interpreter.source_package),
                         self.position_encoding,
-                        &source.contents,
-                        &(frame.span - source.offset),
                     ),
                 }
             })
@@ -541,10 +532,8 @@ pub struct StackFrame {
     pub name: String,
     /// The functor of the callable.
     pub functor: String,
-    /// The path of the source file.
-    pub path: String,
-    /// The source range of the call site.
-    pub range: Range,
+    /// The source location of the call site.
+    pub location: Location,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
