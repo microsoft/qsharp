@@ -159,5 +159,5 @@ fn lower_hir_package_store(
     fir_store
 }
 
-criterion_group!(benches, core_and_std);
+criterion_group!(benches, core_and_std, teleport, deutsch_jozsa, large_file);
 criterion_main!(benches);
