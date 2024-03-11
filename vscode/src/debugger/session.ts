@@ -855,16 +855,24 @@ export class QscDebugSession extends LoggingDebugSession {
   /**
    * Attemps to resolve a DebugProtocol.Source.path to a URI.
    *
-   * This method will attempt to undo the lossy conversion
-   * from URI to path that the VS Code debug adapter client performs.
+   * In Debug Protocol requests, the VS Code debug adapter client
+   * will strip file URIs to just the filesystem path part.
+   * But for non-file URIs, the full URI is sent.
+   *
    * See: https://github.com/microsoft/vscode/blob/3246d63177e1e5ae211029e7ab0021c33342a3c7/src/vs/workbench/contrib/debug/common/debugSource.ts#L90
    *
-   * If the path was originally constructed from a file:// URI, it's a
-   * filesystem path. We use our knownPaths map to resolve it back to a URI.
-   * Filesystem paths we don't know about *won't* be resolved, and that's ok.
+   * Here, we need the original URI, but we don't know if we're
+   * dealing with a filesystem path or URI. We cannot determine
+   * which one it is based on the input alone (the syntax is ambiguous).
+   * But we do have a set of *known* filesystem paths that we
+   * constructed at initialization, and we can use that to resolve
+   * any known fileystem paths back to the original URI.
    *
-   * If the path was originally constructed from a URI, it's a URI,
-   * use it directly.
+   * Filesystem paths we don't know about *won't* be resolved,
+   * and that's ok in this use case.
+   *
+   * If the path was originally constructed from a URI, it won't
+   * be in our known paths map, so we'll treat the string as a URI.
    */
   asUri(pathOrUri: string): vscode.Uri | undefined {
     pathOrUri = this.knownPaths.get(pathOrUri) || pathOrUri;
