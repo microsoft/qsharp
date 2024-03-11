@@ -96,11 +96,11 @@ impl Iterator for ConcreteTokenIterator<'_> {
                         kind: ConcreteTokenKind::WhiteSpace,
                         span,
                     },
-                    // ToDo: investigate this case further
-                    raw::TokenKind::Single(raw::Single::Apos) => ConcreteToken {
-                        kind: ConcreteTokenKind::Syntax(super::TokenKind::AposIdent),
-                        span,
-                    },
+                    raw::TokenKind::Single(raw::Single::Apos) => {
+                        // Apostrophes are handled a bit strangely.
+                        // Their full information is contained in the following token.
+                        return self.next();
+                    }
                     // This will panic if any content other than whitespace or comments are ignored when "cooking" the raw tokens
                     _ => panic!("Raw Token couldn't be converted: {raw_token:?}"),
                 };
@@ -110,19 +110,21 @@ impl Iterator for ConcreteTokenIterator<'_> {
                 Ok(token) => {
                     let next_lo = self.get_next_lo();
                     self.get_tokens_from_span(token.span.hi, next_lo);
-                    Some(ConcreteToken {
+                    let syntax = ConcreteToken {
                         kind: ConcreteTokenKind::Syntax(token.kind),
                         span: token.span,
-                    })
+                    };
+                    Some(syntax)
                 }
                 Err(err) => {
                     let next_lo = self.get_next_lo();
                     let span = err.get_span();
                     self.get_tokens_from_span(span.hi, next_lo);
-                    Some(ConcreteToken {
+                    let error = ConcreteToken {
                         kind: ConcreteTokenKind::Error(err),
                         span,
-                    })
+                    };
+                    Some(error)
                 }
             },
         }
