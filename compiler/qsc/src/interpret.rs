@@ -9,6 +9,8 @@ mod tests;
 #[cfg(test)]
 mod debugger_tests;
 
+use std::rc::Rc;
+
 pub use qsc_eval::{
     debug::Frame,
     output::{self, GenericReceiver},
@@ -39,9 +41,9 @@ use qsc_eval::{
     debug::{map_fir_package_to_hir, map_hir_package_to_fir},
     output::Receiver,
     val::{self},
-    Env, EvalId, State, VariableInfo,
+    Env, State, VariableInfo,
 };
-use qsc_fir::fir::{self, Global, PackageStoreLookup};
+use qsc_fir::fir::{self, CfgNode, Global, PackageStoreLookup};
 use qsc_fir::{
     fir::{Block, BlockId, Expr, ExprId, Package, PackageId, Pat, PatId, Stmt, StmtId},
     visit::{self, Visitor},
@@ -175,11 +177,11 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
     ) -> std::result::Result<Value, Vec<Error>> {
-        let expr = self.get_entry_expr()?;
+        let cfg = self.get_entry_cfg()?;
         eval(
             self.source_package,
             self.classical_seed,
-            expr.into(),
+            cfg,
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -195,14 +197,14 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
     ) -> std::result::Result<Value, Vec<Error>> {
-        let expr = self.get_entry_expr()?;
+        let cfg = self.get_entry_cfg()?;
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
         }
         eval(
             self.source_package,
             self.classical_seed,
-            expr.into(),
+            cfg,
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -211,10 +213,10 @@ impl Interpreter {
         )
     }
 
-    fn get_entry_expr(&self) -> std::result::Result<ExprId, Vec<Error>> {
+    fn get_entry_cfg(&self) -> std::result::Result<Rc<[CfgNode]>, Vec<Error>> {
         let unit = self.fir_store.get(self.source_package);
-        if let Some(entry) = unit.entry {
-            return Ok(entry);
+        if unit.entry.is_some() {
+            return Ok(unit.entry_cfg.clone());
         };
         Err(vec![Error::NoEntryPoint])
     }
@@ -235,7 +237,7 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
-        let stmts = self.lower(&increment);
+        let (_, cfg) = self.lower(&increment);
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -245,22 +247,16 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        let mut result = Value::unit();
-
-        for stmt_id in stmts {
-            result = eval(
-                self.package,
-                self.classical_seed,
-                stmt_id.into(),
-                self.compiler.package_store(),
-                &self.fir_store,
-                &mut self.env,
-                &mut self.sim,
-                receiver,
-            )?;
-        }
-
-        Ok(result)
+        eval(
+            self.package,
+            self.classical_seed,
+            cfg.into(),
+            self.compiler.package_store(),
+            &self.fir_store,
+            &mut self.env,
+            &mut self.sim,
+            receiver,
+        )
     }
 
     /// Runs the given entry expression on a new instance of the environment and simulator,
@@ -302,7 +298,7 @@ impl Interpreter {
         receiver: &mut impl Receiver,
         expr: &str,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        let expr_id = self.compile_entry_expr(expr)?;
+        let cfg = self.compile_entry_expr(expr)?;
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -311,7 +307,7 @@ impl Interpreter {
         Ok(eval(
             self.package,
             self.classical_seed,
-            expr_id.into(),
+            cfg.into(),
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -320,7 +316,7 @@ impl Interpreter {
         ))
     }
 
-    fn compile_entry_expr(&mut self, expr: &str) -> std::result::Result<ExprId, Vec<Error>> {
+    fn compile_entry_expr(&mut self, expr: &str) -> std::result::Result<Vec<CfgNode>, Vec<Error>> {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
@@ -328,7 +324,7 @@ impl Interpreter {
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
-        let _ = self.lower(&increment);
+        let (_, cfg) = self.lower(&increment);
 
         // The AST and HIR packages in `increment` only contain an entry
         // expression and no statements. The HIR *can* contain items if the entry
@@ -344,16 +340,19 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        let unit = self.fir_store.get(self.package);
-        let entry = unit.entry.expect("package should have an entry expression");
-
-        Ok(entry)
+        Ok(cfg)
     }
 
-    fn lower(&mut self, unit_addition: &qsc_frontend::incremental::Increment) -> Vec<StmtId> {
+    fn lower(
+        &mut self,
+        unit_addition: &qsc_frontend::incremental::Increment,
+    ) -> (Vec<StmtId>, Vec<CfgNode>) {
         let fir_package = self.fir_store.get_mut(self.package);
-        self.lowerer
-            .lower_and_update_package(fir_package, &unit_addition.hir)
+        (
+            self.lowerer
+                .lower_and_update_package(fir_package, &unit_addition.hir),
+            self.lowerer.cfg(),
+        )
     }
 
     fn next_line_label(&mut self) -> String {
@@ -389,22 +388,13 @@ impl Debugger {
             language_features,
         )?;
         let source_package_id = interpreter.source_package;
+        let unit = interpreter.fir_store.get(source_package_id);
+        let entry_cfg = unit.entry_cfg.clone();
         Ok(Self {
             interpreter,
             position_encoding,
-            state: State::new(source_package_id, None),
+            state: State::new(source_package_id, entry_cfg, None),
         })
-    }
-
-    /// Loads the entry expression to the top of the evaluation stack.
-    /// This is needed for debugging so that when begging to debug with
-    /// a step action the system is already in the correct state.
-    /// # Errors
-    /// Returns a vector of errors if loading the entry point fails.
-    pub fn set_entry(&mut self) -> std::result::Result<(), Vec<Error>> {
-        let expr = self.interpreter.get_entry_expr()?;
-        qsc_eval::eval_push_expr(&mut self.state, expr);
-        Ok(())
     }
 
     /// Resumes execution with specified `StepAction`.
@@ -529,14 +519,14 @@ impl Debugger {
 fn eval(
     package: PackageId,
     classical_seed: Option<u64>,
-    id: EvalId,
+    cfg: Rc<[CfgNode]>,
     package_store: &PackageStore,
     fir_store: &fir::PackageStore,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> InterpretResult {
-    qsc_eval::eval(package, classical_seed, id, fir_store, env, sim, receiver)
+    qsc_eval::eval(package, classical_seed, cfg, fir_store, env, sim, receiver)
         .map_err(|(error, call_stack)| eval_error(package_store, fir_store, call_stack, error))
 }
 

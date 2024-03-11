@@ -3,6 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use std::rc::Rc;
+
 use crate::{
     backend::{Backend, SparseSim},
     debug::{map_hir_package_to_fir, Frame},
@@ -12,8 +14,8 @@ use crate::{
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_fir::fir;
-use qsc_fir::fir::{ExprId, PackageId, PackageStoreLookup};
+use qsc_fir::fir::{self, CfgNode};
+use qsc_fir::fir::{PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
@@ -22,15 +24,14 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// # Errors
 /// Returns the first error encountered during execution.
 pub(super) fn eval_expr(
-    expr: ExprId,
+    cfg: Rc<[CfgNode]>,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     globals: &impl PackageStoreLookup,
     package: PackageId,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, None);
+    let mut state = State::new(package, cfg, None);
     let mut env = Env::default();
-    state.push_expr(expr);
     let StepResult::Return(value) =
         state.eval(globals, &mut env, sim, out, &[], StepAction::Continue)?
     else {
@@ -75,7 +76,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     );
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = fir_lowerer.lower_package(&unit.package);
-    let entry = unit_fir.entry.expect("package should have entry");
+    let entry = unit_fir.entry_cfg.clone();
     let id = store.insert(unit);
 
     let mut fir_store = fir::PackageStore::new();
@@ -356,7 +357,7 @@ fn block_qubit_use_array_invalid_count_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 1573,
+                            lo: 1568,
                             hi: 1625,
                         },
                         id: StoreItemId {
@@ -461,6 +462,11 @@ fn binop_andl() {
 #[test]
 fn binop_andl_false() {
     check_expr("", "true and false", &expect!["false"]);
+}
+
+#[test]
+fn binop_andl_shortcut() {
+    check_expr("", r#"false and (fail "Should Fail")"#, &expect!["false"]);
 }
 
 #[test]
@@ -2958,7 +2964,7 @@ fn call_adjoint_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 190,
+                            lo: 185,
                             hi: 214,
                         },
                         id: StoreItemId {
@@ -3022,7 +3028,7 @@ fn call_adjoint_adjoint_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 124,
+                            lo: 119,
                             hi: 145,
                         },
                         id: StoreItemId {
@@ -3081,7 +3087,7 @@ fn call_adjoint_self_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 116,
+                            lo: 111,
                             hi: 137,
                         },
                         id: StoreItemId {

@@ -22,15 +22,15 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, BlockId, CallableImpl, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
-    LocalItemId, LocalVarId, Mutability, PackageId, PackageStoreLookup, PatId, PatKind, PrimField,
-    Res, StmtId, StmtKind, StoreItemId, StringComponent, UnOp,
+    self, BinOp, CallableImpl, CfgNode, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
+    LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
+    StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
 use rand::{rngs::StdRng, SeedableRng};
 use std::{
     cell::RefCell,
-    fmt::{self, Display, Formatter, Write},
+    fmt::{self, Display, Formatter},
     iter,
     ops::Neg,
     rc::Rc,
@@ -172,25 +172,6 @@ impl Display for Spec {
     }
 }
 
-/// An id either representing a statement or an expression to be evaluated.
-#[derive(Clone, Copy)]
-pub enum EvalId {
-    Expr(ExprId),
-    Stmt(StmtId),
-}
-
-impl From<ExprId> for EvalId {
-    fn from(expr: ExprId) -> Self {
-        Self::Expr(expr)
-    }
-}
-
-impl From<StmtId> for EvalId {
-    fn from(stmt: StmtId) -> Self {
-        Self::Stmt(stmt)
-    }
-}
-
 /// Evaluates the given code with the given context.
 /// # Errors
 /// Returns the first error encountered during execution.
@@ -199,17 +180,13 @@ impl From<StmtId> for EvalId {
 pub fn eval(
     package: PackageId,
     seed: Option<u64>,
-    id: EvalId,
+    cfg: Rc<[CfgNode]>,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, seed);
-    match id {
-        EvalId::Expr(expr) => state.push_expr(expr),
-        EvalId::Stmt(stmt) => state.push_stmt(stmt),
-    }
+    let mut state = State::new(package, cfg, seed);
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
         panic!("eval should always return a value");
@@ -236,10 +213,6 @@ pub enum StepResult {
     Return(Value),
 }
 
-pub fn eval_push_expr(state: &mut State, expr: ExprId) {
-    state.push_expr(expr);
-}
-
 trait AsIndex {
     type Output;
 
@@ -261,7 +234,6 @@ impl AsIndex for i64 {
 struct Variable {
     name: Rc<str>,
     value: Value,
-    mutability: Mutability,
     span: Span,
 }
 
@@ -270,14 +242,7 @@ pub struct VariableInfo {
     pub value: Value,
     pub name: Rc<str>,
     pub type_name: String,
-    pub mutability: Mutability,
     pub span: Span,
-}
-
-impl Variable {
-    fn is_mutable(&self) -> bool {
-        self.mutability == Mutability::Mutable
-    }
 }
 
 struct Range {
@@ -334,9 +299,13 @@ impl Env {
     }
 
     fn leave_scope(&mut self) {
-        self.0
-            .pop()
-            .expect("scope should be entered first before leaving");
+        // Only pop the scope if there is more than one scope in the stack,
+        // because the global/top-level scope cannot be exited.
+        if self.0.len() > 1 {
+            self.0
+                .pop()
+                .expect("scope should have more than one entry.");
+        }
     }
 
     #[must_use]
@@ -365,7 +334,6 @@ impl Env {
                         name: var.name.clone(),
                         type_name: var.value.type_name().to_string(),
                         value: var.value.clone(),
-                        mutability: var.mutability,
                         span: var.span,
                     })
                     .collect()
@@ -388,44 +356,11 @@ impl Default for Env {
     }
 }
 
-enum Cont {
-    Action,
-    Expr(ExprId),
-    Frame(usize),
-    Scope,
-    Stmt(StmtId),
-}
-
-#[derive(Clone)]
-enum Action {
-    Array(usize),
-    ArrayRepeat(Span),
-    ArrayAppendInPlace(ExprId),
-    Assign(ExprId),
-    Bind(PatId, Mutability),
-    BinOp(BinOp, Span, Option<ExprId>),
-    Call(Span, Span),
-    Consume,
-    Fail(Span),
-    Field(Field),
-    If(ExprId, Option<ExprId>),
-    Index(Span),
-    Range(bool, bool, bool),
-    Return,
-    StringConcat(usize),
-    StringLit(Rc<str>),
-    UpdateIndex(Span),
-    UpdateIndexInPlace(ExprId, Span),
-    Tuple(usize),
-    UnOp(UnOp),
-    UpdateField(Field),
-    While(ExprId, BlockId),
-}
-
 pub struct State {
-    cont_stack: Vec<Cont>,
-    action_stack: Vec<Action>,
-    vals: Vec<Value>,
+    cfg_stack: Vec<Rc<[CfgNode]>>,
+    idx: u32,
+    idx_stack: Vec<u32>,
+    vals: Vec<Vec<Value>>,
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
@@ -434,15 +369,16 @@ pub struct State {
 
 impl State {
     #[must_use]
-    pub fn new(package: PackageId, classical_seed: Option<u64>) -> Self {
+    pub fn new(package: PackageId, cfg: Rc<[CfgNode]>, classical_seed: Option<u64>) -> Self {
         let rng = match classical_seed {
             Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
             None => RefCell::new(StdRng::from_entropy()),
         };
         Self {
-            cont_stack: Vec::new(),
-            action_stack: Vec::new(),
-            vals: Vec::new(),
+            cfg_stack: vec![cfg],
+            idx: 0,
+            idx_stack: Vec::new(),
+            vals: vec![Vec::new()],
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
@@ -450,79 +386,59 @@ impl State {
         }
     }
 
-    fn pop_cont(&mut self) -> Option<Cont> {
-        self.cont_stack.pop()
-    }
-
-    fn push_action(&mut self, action: Action) {
-        self.cont_stack.push(Cont::Action);
-        self.action_stack.push(action);
-    }
-
-    fn push_expr(&mut self, expr: ExprId) {
-        self.cont_stack.push(Cont::Expr(expr));
-    }
-
-    fn push_exprs(&mut self, exprs: &[ExprId]) {
-        self.cont_stack
-            .extend(exprs.iter().rev().map(|expr| Cont::Expr(*expr)));
-    }
-
-    fn push_frame(&mut self, id: StoreItemId, functor: FunctorApp) {
+    fn push_frame(&mut self, cfg: Rc<[CfgNode]>, id: StoreItemId, functor: FunctorApp) {
         self.call_stack.push_frame(Frame {
             span: self.current_span,
             id,
             caller: self.package,
             functor,
         });
-        self.cont_stack.push(Cont::Frame(self.vals.len()));
+        self.cfg_stack.push(cfg);
+        self.vals.push(Vec::new());
+        self.idx_stack.push(self.idx);
+        self.idx = 0;
         self.package = id.package;
     }
 
-    fn leave_frame(&mut self, len: usize) {
-        let frame = self
-            .call_stack
-            .pop_frame()
-            .expect("frame should be present");
-        self.package = frame.caller;
-        let frame_val = self.pop_val();
-        self.vals.drain(len..);
-        self.push_val(frame_val);
+    fn leave_frame(&mut self) {
+        if let Some(frame) = self.call_stack.pop_frame() {
+            self.package = frame.caller;
+            let frame_val = self.pop_val();
+            self.vals.pop();
+            self.push_val(frame_val);
+            self.idx = self
+                .idx_stack
+                .pop()
+                .expect("should have at least one index");
+        }
+        self.cfg_stack.pop();
     }
 
     fn push_scope(&mut self, env: &mut Env) {
         env.push_scope(self.call_stack.len());
-        self.cont_stack.push(Cont::Scope);
-    }
-
-    fn push_stmt(&mut self, stmt: StmtId) {
-        self.cont_stack.push(Cont::Stmt(stmt));
-    }
-
-    fn push_block(&mut self, env: &mut Env, globals: &impl PackageStoreLookup, block: BlockId) {
-        let block = globals.get_block((self.package, block).into());
-        self.push_scope(env);
-        for stmt in block.stmts.iter().rev() {
-            self.push_stmt(*stmt);
-            self.push_action(Action::Consume);
-        }
-        if block.stmts.is_empty() {
-            self.push_val(Value::unit());
-        } else if let Some(Cont::Action) = self.pop_cont() {
-            self.action_stack.pop();
-        }
     }
 
     fn pop_val(&mut self) -> Value {
-        self.vals.pop().expect("value should be present")
+        self.vals
+            .last_mut()
+            .expect("should have at least one value frame")
+            .pop()
+            .expect("value should be present")
     }
 
     fn pop_vals(&mut self, len: usize) -> Vec<Value> {
-        self.vals.drain(self.vals.len() - len..).collect()
+        let last = self
+            .vals
+            .last_mut()
+            .expect("should have at least one value frame");
+        last.drain(last.len() - len..).collect()
     }
 
     fn push_val(&mut self, val: Value) {
-        self.vals.push(val);
+        self.vals
+            .last_mut()
+            .expect("should have at least one value frame")
+            .push(val);
     }
 
     #[must_use]
@@ -551,30 +467,32 @@ impl State {
     ) -> Result<StepResult, (Error, Vec<Frame>)> {
         let current_frame = self.call_stack.len();
 
-        while let Some(cont) = self.pop_cont() {
-            let res = match cont {
-                Cont::Action => {
-                    let action = self.action_stack.pop().expect("action should be present");
-                    self.cont_action(env, sim, globals, action, out)
+        while !self.cfg_stack.is_empty() {
+            let cfg = self
+                .cfg_stack
+                .last()
+                .expect("should have at least one stack frame")
+                .clone();
+            let res = match cfg
+                .get(self.idx as usize)
+                .expect("should have next node in CFG")
+            {
+                CfgNode::Bind(pat) => {
+                    self.idx += 1;
+                    self.eval_bind(env, globals, *pat);
+                    continue;
+                }
+                CfgNode::Expr(expr) => {
+                    self.idx += 1;
+                    self.eval_expr(env, sim, globals, out, *expr)
                         .map_err(|e| (e, self.get_stack_frames()))?;
                     continue;
                 }
-                Cont::Expr(expr) => {
-                    self.cont_expr(env, globals, expr)
-                        .map_err(|e| (e, self.get_stack_frames()))?;
-                    continue;
-                }
-                Cont::Frame(len) => {
-                    self.leave_frame(len);
-                    continue;
-                }
-                Cont::Scope => {
-                    env.leave_scope();
-                    continue;
-                }
-                Cont::Stmt(stmt) => {
-                    self.cont_stmt(globals, stmt);
-                    if let Some(bp) = breakpoints.iter().find(|&bp| *bp == stmt) {
+                CfgNode::Stmt(stmt) => {
+                    self.idx += 1;
+                    self.current_span = globals.get_stmt((self.package, *stmt).into()).span;
+
+                    if let Some(bp) = breakpoints.iter().find(|&bp| *bp == *stmt) {
                         StepResult::BreakpointHit(*bp)
                     } else {
                         if self.current_span == Span::default() {
@@ -594,6 +512,54 @@ impl State {
                         }
                     }
                 }
+                CfgNode::Jump(idx) => {
+                    self.idx = *idx;
+                    continue;
+                }
+                CfgNode::JumpIf(idx) => {
+                    let cond = self.pop_val();
+                    if cond.unwrap_bool() {
+                        self.push_val(Value::Bool(true));
+                        self.idx = *idx;
+                    } else {
+                        self.idx += 1;
+                    }
+                    continue;
+                }
+                CfgNode::JumpIfNot(idx) => {
+                    let cond = self.pop_val();
+                    if cond.unwrap_bool() {
+                        self.idx += 1;
+                    } else {
+                        self.push_val(Value::Bool(false));
+                        self.idx = *idx;
+                    }
+                    continue;
+                }
+                CfgNode::JumpUnless(idx) => {
+                    let cond = self.pop_val();
+                    if cond.unwrap_bool() {
+                        self.idx += 1;
+                    } else {
+                        self.idx = *idx;
+                    }
+                    continue;
+                }
+                CfgNode::Consume => {
+                    self.pop_val();
+                    self.idx += 1;
+                    continue;
+                }
+                CfgNode::Unit => {
+                    self.idx += 1;
+                    self.push_val(Value::unit());
+                    continue;
+                }
+                CfgNode::Ret => {
+                    self.leave_frame();
+                    env.leave_scope();
+                    continue;
+                }
             };
 
             if let StepResult::Return(_) = res {
@@ -607,341 +573,138 @@ impl State {
     }
 
     pub fn get_result(&mut self) -> Value {
-        self.pop_val()
+        // Some executions don't have any statements to execute,
+        // such as a fragment that has only item definitions.
+        // In that case, the values are empty and the result is unit.
+        self.vals
+            .last_mut()
+            .expect("should have at least one value frame")
+            .pop()
+            .unwrap_or_else(Value::unit)
     }
 
     #[allow(clippy::similar_names)]
-    fn cont_expr(
+    fn eval_expr(
         &mut self,
         env: &mut Env,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         globals: &impl PackageStoreLookup,
+        out: &mut impl Receiver,
         expr: ExprId,
     ) -> Result<(), Error> {
         let expr = globals.get_expr((self.package, expr).into());
         self.current_span = expr.span;
 
         match &expr.kind {
-            ExprKind::Array(arr) => self.cont_arr(arr),
-            ExprKind::ArrayRepeat(item, size) => self.cont_arr_repeat(globals, *item, *size),
-            ExprKind::Assign(lhs, rhs) => self.cont_assign(*lhs, *rhs),
-            ExprKind::AssignOp(op, lhs, rhs) => self.cont_assign_op(env, globals, *op, *lhs, *rhs),
-            ExprKind::AssignField(record, field, replace) => {
-                self.cont_assign_field(*record, field, *replace);
+            ExprKind::Array(arr) => self.eval_arr(arr.len()),
+            ExprKind::ArrayRepeat(..) => self.eval_arr_repeat(expr.span)?,
+            ExprKind::Assign(lhs, _) => self.eval_assign(env, globals, *lhs)?,
+            ExprKind::AssignOp(op, lhs, rhs) => {
+                let rhs_span = globals.get_expr((self.package, *rhs).into()).span;
+                let (is_array, is_unique) =
+                    is_updatable_in_place(env, globals.get_expr((self.package, *lhs).into()));
+                if is_array {
+                    if is_unique {
+                        self.eval_array_append_in_place(env, globals, *lhs)?;
+                        return Ok(());
+                    }
+                    let rhs_val = self.pop_val();
+                    self.eval_expr(env, sim, globals, out, *lhs)?;
+                    self.push_val(rhs_val);
+                }
+                self.eval_binop(*op, rhs_span)?;
+                self.eval_assign(env, globals, *lhs)?;
             }
-            ExprKind::AssignIndex(lhs, mid, rhs) => {
-                self.cont_assign_index(env, globals, *lhs, *mid, *rhs);
+            ExprKind::AssignField(record, field, _) => {
+                self.eval_update_field(field.clone());
+                self.eval_assign(env, globals, *record)?;
             }
-            ExprKind::BinOp(op, lhs, rhs) => self.cont_binop(globals, *op, *rhs, *lhs),
-            ExprKind::Block(block) => self.push_block(env, globals, *block),
+            ExprKind::AssignIndex(lhs, mid, _) => {
+                let mid_span = globals.get_expr((self.package, *mid).into()).span;
+                let (_, is_unique) =
+                    is_updatable_in_place(env, globals.get_expr((self.package, *lhs).into()));
+                if is_unique {
+                    self.eval_update_index_in_place(env, globals, *lhs, mid_span)?;
+                    return Ok(());
+                }
+                self.eval_expr(env, sim, globals, out, *lhs)?;
+                self.eval_update_index(mid_span)?;
+                self.eval_assign(env, globals, *lhs)?;
+            }
+            ExprKind::BinOp(op, _, rhs) => {
+                let rhs_span = globals.get_expr((self.package, *rhs).into()).span;
+                self.eval_binop(*op, rhs_span)?;
+            }
+            ExprKind::Block(..) => panic!("block expr should be handled by control flow"),
             ExprKind::Call(callee_expr, args_expr) => {
-                self.cont_call(globals, *callee_expr, *args_expr);
+                let callable_span = globals.get_expr((self.package, *callee_expr).into()).span;
+                let args_span = globals.get_expr((self.package, *args_expr).into()).span;
+                self.eval_call(env, sim, globals, callable_span, args_span, out)?;
             }
             ExprKind::Closure(args, callable) => {
                 let closure = resolve_closure(env, self.package, expr.span, args, *callable)?;
                 self.push_val(closure);
             }
-            ExprKind::Fail(fail_expr) => self.cont_fail(expr.span, *fail_expr),
-            ExprKind::Field(expr, field) => self.cont_field(*expr, field),
-            ExprKind::Hole => panic!("hole expr should be disallowed by passes"),
-            ExprKind::If(cond_expr, then_expr, else_expr) => {
-                self.cont_if(*cond_expr, *then_expr, *else_expr);
+            ExprKind::Fail(..) => {
+                return Err(Error::UserFail(
+                    self.pop_val().unwrap_string().to_string(),
+                    self.to_global_span(expr.span),
+                ));
             }
-            ExprKind::Index(arr, index) => self.cont_index(globals, *arr, *index),
+            ExprKind::Field(_, field) => self.eval_field(field.clone()),
+            ExprKind::Hole => panic!("hole expr should be disallowed by passes"),
+            ExprKind::If(..) => {
+                panic!("if expr should be handled by control flow")
+            }
+            ExprKind::Index(_, rhs) => {
+                let rhs_span = globals.get_expr((self.package, *rhs).into()).span;
+                self.eval_index(rhs_span)?;
+            }
             ExprKind::Lit(lit) => self.push_val(lit_to_val(lit)),
-            ExprKind::Range(start, step, end) => self.cont_range(*start, *step, *end),
-            ExprKind::Return(expr) => self.cont_ret(*expr),
-            ExprKind::String(components) => self.cont_string(components),
-            ExprKind::UpdateIndex(lhs, mid, rhs) => self.update_index(globals, *lhs, *mid, *rhs),
-            ExprKind::Tuple(tup) => self.cont_tup(tup),
-            ExprKind::UnOp(op, expr) => self.cont_unop(*op, *expr),
-            ExprKind::UpdateField(record, field, replace) => {
-                self.cont_update_field(*record, field, *replace);
+            ExprKind::Range(start, step, end) => {
+                self.eval_range(start.is_some(), step.is_some(), end.is_some());
+            }
+            ExprKind::Return(..) => panic!("return expr should be handled by control flow"),
+            ExprKind::String(components) => self.collect_string(components),
+            ExprKind::UpdateIndex(_, mid, _) => {
+                let mid_span = globals.get_expr((self.package, *mid).into()).span;
+                self.eval_update_index(mid_span)?;
+            }
+            ExprKind::Tuple(tup) => self.eval_tup(tup.len()),
+            ExprKind::UnOp(op, _) => self.eval_unop(*op),
+            ExprKind::UpdateField(_, field, _) => {
+                self.eval_update_field(field.clone());
             }
             ExprKind::Var(res, _) => {
                 self.push_val(resolve_binding(env, self.package, *res, expr.span)?);
             }
-            ExprKind::While(cond_expr, block) => self.cont_while(*cond_expr, *block),
+            ExprKind::While(..) => {
+                panic!("while expr should be handled by control flow")
+            }
         }
 
         Ok(())
     }
 
-    fn cont_tup(&mut self, tup: &[ExprId]) {
-        self.push_action(Action::Tuple(tup.len()));
-        self.push_exprs(tup);
-    }
-
-    fn cont_arr(&mut self, arr: &[ExprId]) {
-        self.push_action(Action::Array(arr.len()));
-        self.push_exprs(arr);
-    }
-
-    fn cont_arr_repeat(&mut self, globals: &impl PackageStoreLookup, item: ExprId, size: ExprId) {
-        let size_expr = globals.get_expr((self.package, size).into());
-        self.push_action(Action::ArrayRepeat(size_expr.span));
-        self.push_expr(size);
-        self.push_expr(item);
-    }
-
-    fn cont_ret(&mut self, expr: ExprId) {
-        self.push_action(Action::Return);
-        self.push_expr(expr);
-    }
-
-    fn cont_if(&mut self, cond_expr: ExprId, then_expr: ExprId, else_expr: Option<ExprId>) {
-        self.push_action(Action::If(then_expr, else_expr));
-        self.push_expr(cond_expr);
-    }
-
-    fn cont_fail(&mut self, span: Span, fail_expr: ExprId) {
-        self.push_action(Action::Fail(span));
-        self.push_expr(fail_expr);
-    }
-
-    fn cont_assign(&mut self, lhs: ExprId, rhs: ExprId) {
-        self.push_action(Action::Assign(lhs));
-        self.push_expr(rhs);
-        self.push_val(Value::unit());
-    }
-
-    fn cont_assign_op(
-        &mut self,
-        env: &Env,
-        globals: &impl PackageStoreLookup,
-        op: BinOp,
-        lhs: ExprId,
-        rhs: ExprId,
-    ) {
-        // If we know the assign op is an array append, as in `set arr += other;`, we should attempt to perform it in-place.
-        if op == BinOp::Add {
-            let expr = globals.get_expr((self.package, lhs).into());
-            if matches!(expr.ty, Ty::Array(_)) && is_updatable_in_place(env, expr) {
-                self.push_action(Action::ArrayAppendInPlace(lhs));
-                self.push_expr(rhs);
-                self.push_val(Value::unit());
-                return;
-            }
-        }
-
-        self.push_action(Action::Assign(lhs));
-        self.cont_binop(globals, op, rhs, lhs);
-        self.push_val(Value::unit());
-    }
-
-    fn cont_assign_field(&mut self, record: ExprId, field: &Field, replace: ExprId) {
-        self.push_action(Action::Assign(record));
-        self.cont_update_field(record, field, replace);
-        self.push_val(Value::unit());
-    }
-
-    fn cont_assign_index(
-        &mut self,
-        env: &Env,
-        globals: &impl PackageStoreLookup,
-        lhs: ExprId,
-        mid: ExprId,
-        rhs: ExprId,
-    ) {
-        if is_updatable_in_place(env, globals.get_expr((self.package, lhs).into())) {
-            let span = globals.get_expr((self.package, mid).into()).span;
-            self.push_action(Action::UpdateIndexInPlace(lhs, span));
-            self.push_expr(rhs);
-            self.push_expr(mid);
-            self.push_val(Value::unit());
-        } else {
-            self.push_action(Action::Assign(lhs));
-            self.update_index(globals, lhs, mid, rhs);
-            self.push_val(Value::unit());
-        }
-    }
-
-    fn cont_field(&mut self, expr: ExprId, field: &Field) {
-        self.push_action(Action::Field(field.clone()));
-        self.push_expr(expr);
-    }
-
-    fn cont_index(&mut self, globals: &impl PackageStoreLookup, arr: ExprId, index: ExprId) {
-        let index_expr = globals.get_expr((self.package, index).into());
-        self.push_action(Action::Index(index_expr.span));
-        self.push_expr(index);
-        self.push_expr(arr);
-    }
-
-    fn cont_range(&mut self, start: Option<ExprId>, step: Option<ExprId>, end: Option<ExprId>) {
-        self.push_action(Action::Range(
-            start.is_some(),
-            step.is_some(),
-            end.is_some(),
-        ));
-        if let Some(end) = end {
-            self.push_expr(end);
-        }
-        if let Some(step) = step {
-            self.push_expr(step);
-        }
-        if let Some(start) = start {
-            self.push_expr(start);
-        }
-    }
-
-    fn cont_string(&mut self, components: &[StringComponent]) {
+    fn collect_string(&mut self, components: &[StringComponent]) {
         if let [StringComponent::Lit(str)] = components {
             self.push_val(Value::String(Rc::clone(str)));
             return;
         }
 
-        self.push_action(Action::StringConcat(components.len()));
+        let mut string = String::new();
         for component in components.iter().rev() {
             match component {
-                StringComponent::Expr(expr) => self.push_expr(*expr),
-                StringComponent::Lit(lit) => self.push_action(Action::StringLit(lit.clone())),
+                StringComponent::Expr(..) => {
+                    let expr_str = format!("{}", self.pop_val());
+                    string.insert_str(0, &expr_str);
+                }
+                StringComponent::Lit(lit) => {
+                    string.insert_str(0, lit);
+                }
             }
         }
-    }
-
-    fn cont_while(&mut self, cond_expr: ExprId, block: BlockId) {
-        self.push_action(Action::While(cond_expr, block));
-        self.push_expr(cond_expr);
-    }
-
-    fn cont_call(&mut self, globals: &impl PackageStoreLookup, callee: ExprId, args: ExprId) {
-        let callee_expr = globals.get_expr((self.package, callee).into());
-        let args_expr = globals.get_expr((self.package, args).into());
-        self.push_action(Action::Call(callee_expr.span, args_expr.span));
-        self.push_expr(args);
-        self.push_expr(callee);
-    }
-
-    fn cont_binop(
-        &mut self,
-        globals: &impl PackageStoreLookup,
-        op: BinOp,
-        rhs: ExprId,
-        lhs: ExprId,
-    ) {
-        let rhs_expr = globals.get_expr((self.package, rhs).into());
-        match op {
-            BinOp::Add
-            | BinOp::AndB
-            | BinOp::Div
-            | BinOp::Eq
-            | BinOp::Exp
-            | BinOp::Gt
-            | BinOp::Gte
-            | BinOp::Lt
-            | BinOp::Lte
-            | BinOp::Mod
-            | BinOp::Mul
-            | BinOp::Neq
-            | BinOp::OrB
-            | BinOp::Shl
-            | BinOp::Shr
-            | BinOp::Sub
-            | BinOp::XorB => {
-                self.push_action(Action::BinOp(op, rhs_expr.span, None));
-                self.push_expr(rhs);
-                self.push_expr(lhs);
-            }
-            BinOp::AndL | BinOp::OrL => {
-                self.push_action(Action::BinOp(op, rhs_expr.span, Some(rhs)));
-                self.push_expr(lhs);
-            }
-        }
-    }
-
-    fn update_index(
-        &mut self,
-        globals: &impl PackageStoreLookup,
-        lhs: ExprId,
-        mid: ExprId,
-        rhs: ExprId,
-    ) {
-        let span = globals.get_expr((self.package, mid).into()).span;
-        self.push_action(Action::UpdateIndex(span));
-        self.push_expr(lhs);
-        self.push_expr(rhs);
-        self.push_expr(mid);
-    }
-
-    fn cont_unop(&mut self, op: UnOp, expr: ExprId) {
-        self.push_action(Action::UnOp(op));
-        self.push_expr(expr);
-    }
-
-    fn cont_update_field(&mut self, record: ExprId, field: &Field, replace: ExprId) {
-        self.push_action(Action::UpdateField(field.clone()));
-        self.push_expr(replace);
-        self.push_expr(record);
-    }
-
-    fn cont_stmt(&mut self, globals: &impl PackageStoreLookup, stmt: StmtId) {
-        let stmt = globals.get_stmt((self.package, stmt).into());
-        self.current_span = stmt.span;
-
-        match &stmt.kind {
-            StmtKind::Expr(expr) => self.push_expr(*expr),
-            StmtKind::Item(..) => self.push_val(Value::unit()),
-            StmtKind::Local(mutability, pat, expr) => {
-                self.push_action(Action::Bind(*pat, *mutability));
-                self.push_expr(*expr);
-                self.push_val(Value::unit());
-            }
-            StmtKind::Semi(expr) => {
-                self.push_action(Action::Consume);
-                self.push_expr(*expr);
-                self.push_val(Value::unit());
-            }
-        }
-    }
-
-    fn cont_action(
-        &mut self,
-        env: &mut Env,
-        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
-        globals: &impl PackageStoreLookup,
-        action: Action,
-        out: &mut impl Receiver,
-    ) -> Result<(), Error> {
-        match action {
-            Action::Array(len) => self.eval_arr(len),
-            Action::ArrayAppendInPlace(lhs) => {
-                self.eval_array_append_in_place(env, globals, lhs)?;
-            }
-            Action::ArrayRepeat(span) => self.eval_arr_repeat(span)?,
-            Action::Assign(lhs) => self.eval_assign(env, globals, lhs)?,
-            Action::BinOp(op, span, rhs) => self.eval_binop(op, span, rhs)?,
-            Action::Bind(pat, mutability) => self.eval_bind(env, globals, pat, mutability),
-            Action::Call(callable_span, args_span) => {
-                self.eval_call(env, sim, globals, callable_span, args_span, out)?;
-            }
-            Action::Consume => {
-                self.pop_val();
-            }
-            Action::Fail(span) => {
-                return Err(Error::UserFail(
-                    self.pop_val().unwrap_string().to_string(),
-                    self.to_global_span(span),
-                ));
-            }
-            Action::Field(field) => self.eval_field(field),
-            Action::If(then_expr, else_expr) => self.eval_if(then_expr, else_expr),
-            Action::Index(span) => self.eval_index(span)?,
-            Action::Range(has_start, has_step, has_end) => {
-                self.eval_range(has_start, has_step, has_end);
-            }
-            Action::Return => self.eval_ret(env),
-            Action::StringConcat(len) => self.eval_string_concat(len),
-            Action::StringLit(str) => self.push_val(Value::String(str)),
-            Action::UpdateIndex(span) => self.eval_update_index(span)?,
-            Action::UpdateIndexInPlace(lhs, span) => {
-                self.eval_update_index_in_place(env, globals, lhs, span)?;
-            }
-            Action::Tuple(len) => self.eval_tup(len),
-            Action::UnOp(op) => self.eval_unop(op),
-            Action::UpdateField(field) => self.eval_update_field(field),
-            Action::While(cond_expr, block) => self.eval_while(env, globals, cond_expr, block),
-        }
-        Ok(())
+        self.push_val(Value::String(Rc::from(string)));
     }
 
     fn eval_arr(&mut self, len: usize) {
@@ -959,16 +722,14 @@ impl State {
         let rhs = self.pop_val();
         match (&lhs.kind, rhs) {
             (&ExprKind::Var(Res::Local(id), _), rhs) => match env.get_mut(id) {
-                Some(var) if var.is_mutable() => {
+                Some(var) => {
                     var.value.append_array(rhs);
-                }
-                Some(_) => {
-                    unreachable!("update of mutable variable should be disallowed by compiler")
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
+        self.push_val(Value::unit());
         Ok(())
     }
 
@@ -993,31 +754,20 @@ impl State {
         lhs: ExprId,
     ) -> Result<(), Error> {
         let rhs = self.pop_val();
+        self.push_val(Value::unit());
         self.update_binding(env, globals, lhs, rhs)
     }
 
-    fn eval_bind(
-        &mut self,
-        env: &mut Env,
-        globals: &impl PackageStoreLookup,
-        pat: PatId,
-        mutability: Mutability,
-    ) {
+    fn eval_bind(&mut self, env: &mut Env, globals: &impl PackageStoreLookup, pat: PatId) {
         let val = self.pop_val();
-        self.bind_value(env, globals, pat, val, mutability);
+        self.bind_value(env, globals, pat, val);
+        self.push_val(Value::unit());
     }
 
-    fn eval_binop(&mut self, op: BinOp, span: Span, rhs: Option<ExprId>) -> Result<(), Error> {
+    fn eval_binop(&mut self, op: BinOp, span: Span) -> Result<(), Error> {
         match op {
             BinOp::Add => self.eval_binop_simple(eval_binop_add),
             BinOp::AndB => self.eval_binop_simple(eval_binop_andb),
-            BinOp::AndL => {
-                if self.pop_val().unwrap_bool() {
-                    self.push_expr(rhs.expect("rhs should be provided with binop andl"));
-                } else {
-                    self.push_val(Value::Bool(false));
-                }
-            }
             BinOp::Div => self.eval_binop_with_error(span, eval_binop_div)?,
             BinOp::Eq => {
                 let rhs_val = self.pop_val();
@@ -1037,17 +787,13 @@ impl State {
                 self.push_val(Value::Bool(lhs_val != rhs_val));
             }
             BinOp::OrB => self.eval_binop_simple(eval_binop_orb),
-            BinOp::OrL => {
-                if self.pop_val().unwrap_bool() {
-                    self.push_val(Value::Bool(true));
-                } else {
-                    self.push_expr(rhs.expect("rhs should be provided with binop andl"));
-                }
-            }
             BinOp::Shl => self.eval_binop_with_error(span, eval_binop_shl)?,
             BinOp::Shr => self.eval_binop_with_error(span, eval_binop_shr)?,
             BinOp::Sub => self.eval_binop_simple(eval_binop_sub),
             BinOp::XorB => self.eval_binop_simple(eval_binop_xorb),
+
+            // Logical operators should be handled by control flow
+            BinOp::AndL | BinOp::OrL => {}
         }
         Ok(())
     }
@@ -1100,10 +846,10 @@ impl State {
         let callee_span = self.to_global_span(callee.span);
 
         let spec = spec_from_functor_app(functor);
-        self.push_frame(callee_id, functor);
-        self.push_scope(env);
         match &callee.implementation {
             CallableImpl::Intrinsic => {
+                self.push_frame(Vec::new().into(), callee_id, functor);
+
                 let name = &callee.name.name;
                 let val = intrinsic::call(
                     name,
@@ -1121,6 +867,7 @@ impl State {
                     ));
                 }
                 self.push_val(val);
+                self.leave_frame();
                 Ok(())
             }
             CallableImpl::Spec(specialized_implementation) => {
@@ -1131,6 +878,9 @@ impl State {
                     Spec::CtlAdj => specialized_implementation.ctl_adj.as_ref(),
                 }
                 .expect("missing specialization should be a compilation error");
+                self.push_frame(spec_decl.cfg.clone(), callee_id, functor);
+                self.push_scope(env);
+
                 self.bind_args_for_spec(
                     env,
                     globals,
@@ -1140,7 +890,6 @@ impl State {
                     functor.controlled,
                     fixed_args,
                 );
-                self.push_block(env, globals, spec_decl.block);
                 Ok(())
             }
         }
@@ -1166,16 +915,6 @@ impl State {
             _ => panic!("invalid field access"),
         };
         self.push_val(val);
-    }
-
-    fn eval_if(&mut self, then_expr: ExprId, else_expr: Option<ExprId>) {
-        if self.pop_val().unwrap_bool() {
-            self.push_expr(then_expr);
-        } else if let Some(else_expr) = else_expr {
-            self.push_expr(else_expr);
-        } else {
-            self.push_val(Value::unit());
-        }
     }
 
     fn eval_index(&mut self, span: Span) -> Result<(), Error> {
@@ -1214,30 +953,6 @@ impl State {
             None
         };
         self.push_val(Value::Range(val::Range { start, step, end }.into()));
-    }
-
-    fn eval_ret(&mut self, env: &mut Env) {
-        while let Some(cont) = self.pop_cont() {
-            match cont {
-                Cont::Frame(len) => {
-                    self.leave_frame(len);
-                    break;
-                }
-                Cont::Scope => env.leave_scope(),
-                Cont::Action => {
-                    self.action_stack.pop();
-                }
-                _ => {}
-            }
-        }
-    }
-
-    fn eval_string_concat(&mut self, len: usize) {
-        let mut string = String::new();
-        for component in self.pop_vals(len) {
-            write!(string, "{component}").expect("string should be writable");
-        }
-        self.push_val(Value::String(string.into()));
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
@@ -1378,8 +1093,8 @@ impl State {
     }
 
     fn eval_update_field(&mut self, field: Field) {
-        let value = self.pop_val();
         let record = self.pop_val();
+        let value = self.pop_val();
         let update = match (record, field) {
             (Value::Range(mut inner), Field::Prim(PrimField::Start)) => {
                 inner.start = Some(value.unwrap_int());
@@ -1400,31 +1115,7 @@ impl State {
         self.push_val(update);
     }
 
-    fn eval_while(
-        &mut self,
-        env: &mut Env,
-        globals: &impl PackageStoreLookup,
-        cond_expr: ExprId,
-        block: BlockId,
-    ) {
-        if self.pop_val().unwrap_bool() {
-            self.cont_while(cond_expr, block);
-            self.push_action(Action::Consume);
-            self.push_val(Value::unit());
-            self.push_block(env, globals, block);
-        } else {
-            self.push_val(Value::unit());
-        }
-    }
-
-    fn bind_value(
-        &self,
-        env: &mut Env,
-        globals: &impl PackageStoreLookup,
-        pat: PatId,
-        val: Value,
-        mutability: Mutability,
-    ) {
+    fn bind_value(&self, env: &mut Env, globals: &impl PackageStoreLookup, pat: PatId, val: Value) {
         let pat = globals.get_pat((self.package, pat).into());
         match &pat.kind {
             PatKind::Bind(variable) => {
@@ -1434,7 +1125,6 @@ impl State {
                     Variable {
                         name: variable.name.clone(),
                         value: val,
-                        mutability,
                         span: variable.span,
                     },
                 );
@@ -1443,7 +1133,7 @@ impl State {
             PatKind::Tuple(tup) => {
                 let val_tup = val.unwrap_tuple();
                 for (pat, val) in tup.iter().zip(val_tup.iter()) {
-                    self.bind_value(env, globals, *pat, val.clone(), mutability);
+                    self.bind_value(env, globals, *pat, val.clone());
                 }
             }
         }
@@ -1461,11 +1151,8 @@ impl State {
         match (&lhs.kind, rhs) {
             (ExprKind::Hole, _) => {}
             (&ExprKind::Var(Res::Local(id), _), rhs) => match env.get_mut(id) {
-                Some(var) if var.is_mutable() => {
+                Some(var) => {
                     var.value = rhs;
-                }
-                Some(_) => {
-                    unreachable!("update of mutable variable should be disallowed by compiler")
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
@@ -1480,7 +1167,7 @@ impl State {
     }
 
     fn update_array_index_single(
-        &self,
+        &mut self,
         env: &mut Env,
         globals: &impl PackageStoreLookup,
         lhs: ExprId,
@@ -1491,24 +1178,22 @@ impl State {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
             &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
-                Some(var) if var.is_mutable() => {
+                Some(var) => {
                     var.value.update_array(index, rhs).map_err(|idx| {
                         Error::IndexOutOfRange(idx.try_into().expect("index should be valid"), span)
                     })?;
-                }
-                Some(_) => {
-                    unreachable!("update of immutable variable should be disallowed by compiler")
                 }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
+        self.push_val(Value::unit());
         Ok(())
     }
 
     #[allow(clippy::similar_names)] // `env` and `end` are similar but distinct
     fn update_array_index_range(
-        &self,
+        &mut self,
         env: &mut Env,
         globals: &impl PackageStoreLookup,
         lhs: ExprId,
@@ -1519,7 +1204,7 @@ impl State {
         let lhs = globals.get_expr((self.package, lhs).into());
         match &lhs.kind {
             &ExprKind::Var(Res::Local(id), _) => match env.get_mut(id) {
-                Some(var) if var.is_mutable() => {
+                Some(var) => {
                     let rhs = update.unwrap_array();
                     let Value::Array(arr) = &mut var.value else {
                         panic!("variable should be an array");
@@ -1541,13 +1226,11 @@ impl State {
                         })?;
                     }
                 }
-                Some(_) => {
-                    unreachable!("update of mutable variable should be disallowed by compiler")
-                }
                 None => return Err(Error::UnboundName(self.to_global_span(lhs.span))),
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
+        self.push_val(Value::unit());
         Ok(())
     }
 
@@ -1579,27 +1262,14 @@ impl State {
                     tup = rest.clone();
                 }
 
-                self.bind_value(
-                    env,
-                    globals,
-                    spec_pat,
-                    Value::Array(ctls.into()),
-                    Mutability::Immutable,
-                );
-                self.bind_value(
-                    env,
-                    globals,
-                    decl_pat,
-                    merge_fixed_args(fixed_args, tup),
-                    Mutability::Immutable,
-                );
+                self.bind_value(env, globals, spec_pat, Value::Array(ctls.into()));
+                self.bind_value(env, globals, decl_pat, merge_fixed_args(fixed_args, tup));
             }
             None => self.bind_value(
                 env,
                 globals,
                 decl_pat,
                 merge_fixed_args(fixed_args, args_val),
-                Mutability::Immutable,
             ),
         }
     }
@@ -1761,7 +1431,7 @@ fn eval_binop_add(lhs_val: Value, rhs_val: Value) -> Value {
             let rhs = rhs_val.unwrap_string();
             Value::String((val.to_string() + &rhs).into())
         }
-        _ => panic!("value is not addable"),
+        _ => panic!("value is not addable: {}", lhs_val.type_name()),
     }
 }
 
@@ -2106,15 +1776,15 @@ fn update_field_path(record: &Value, path: &[usize], replace: &Value) -> Option<
     }
 }
 
-fn is_updatable_in_place(env: &Env, expr: &Expr) -> bool {
+fn is_updatable_in_place(env: &Env, expr: &Expr) -> (bool, bool) {
     match &expr.kind {
         ExprKind::Var(Res::Local(id), _) => match env.get(*id) {
-            Some(var) if var.is_mutable() => match &var.value {
-                Value::Array(var) => Rc::weak_count(var) + Rc::strong_count(var) == 1,
-                _ => false,
+            Some(var) => match &var.value {
+                Value::Array(var) => (true, Rc::weak_count(var) + Rc::strong_count(var) == 1),
+                _ => (false, false),
             },
-            _ => false,
+            _ => (false, false),
         },
-        _ => false,
+        _ => (false, false),
     }
 }

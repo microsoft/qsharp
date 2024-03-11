@@ -180,7 +180,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     )
     .is_empty());
     let unit_fir = fir_lowerer.lower_package(&unit.package);
-    let entry = unit_fir.entry.expect("package should have entry");
+    let entry = unit_fir.entry_cfg.clone();
 
     let id = store.insert(unit);
 
