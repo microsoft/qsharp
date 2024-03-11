@@ -1,4 +1,5 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Katas;
 
     operation Or_Oracle_Reference(x : Qubit[], y : Qubit) : Unit is Adj + Ctl {
         X(y);
@@ -17,20 +18,25 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for N in 1..5 {
-            for k in 0..(N-1) {
-                let isCorrect = CheckOperationsEqualReferenced(
-                    N,
-                    Kata.OrOfBitsExceptKth_Oracle(_, k),
-                    OrOfBitsExceptKth_Oracle_Reference(_, k));
+        for N in 2 .. 4 {
+            for k in 0 .. N - 1 {
+                let sol = Kata.OrOfBitsExceptKth_Oracle(_, k);
+                let ref = OrOfBitsExceptKth_Oracle_Reference(_, k);
+                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+
                 if not isCorrect {
-                    Message($"Failed on test case for NumberOfQubits = {N}, k = {k}.");
+                    Message("Incorrect.");
+                    Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
+                        $"transformation for the {N}-bit oracle for k = {k}");
+                    use initial = Qubit[N];
+                    PrepRandomState(initial);
+                    ShowQuantumStateComparison(initial, sol, ref);
+                    ResetAll(initial);
                     return false;
                 }
             }
         }
-        Message("All tests passed.");
+        Message("Correct!");
         true
     }
-
 }

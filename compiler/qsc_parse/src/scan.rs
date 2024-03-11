@@ -151,11 +151,11 @@ impl<'a> Scanner<'a> {
             if contains(peek, tokens) {
                 self.advance();
                 break;
-            } else if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
-                break;
-            } else {
-                self.advance();
             }
+            if peek == TokenKind::Eof || self.barriers.iter().any(|&b| contains(peek, b)) {
+                break;
+            }
+            self.advance();
         }
     }
 

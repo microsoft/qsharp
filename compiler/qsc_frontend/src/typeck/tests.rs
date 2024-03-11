@@ -1678,6 +1678,129 @@ fn return_mismatch() {
 }
 
 #[test]
+fn return_with_satisfying_specialization_succeeds() {
+    check(
+        indoc! {"
+            namespace test {
+                operation E() : Unit {}
+                operation A() : Unit is Adj {}
+                operation C() : Unit is Ctl {}
+                operation AC() : Unit is Adj + Ctl {}
+
+                function returns_A_as_A() : (Unit => Unit is Adj) { A }
+                function returns_AC_as_A() : (Unit => Unit is Adj) { AC }
+
+                function returns_AC_as_C() : (Unit => Unit is Ctl) { AC }
+                function returns_C_as_C() : (Unit => Unit is Ctl) { C }
+
+                function returns_A_as_E() : (Unit => Unit) { A }
+                function returns_AC_as_E() : (Unit => Unit) { AC }
+                function returns_C_as_E() : (Unit => Unit) { C }
+                function returns_E_as_E() : (Unit => Unit) { E }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 32-34 "()" : Unit
+            #10 42-44 "{}" : Unit
+            #14 60-62 "()" : Unit
+            #19 77-79 "{}" : Unit
+            #23 95-97 "()" : Unit
+            #28 112-114 "{}" : Unit
+            #32 131-133 "()" : Unit
+            #39 154-156 "{}" : Unit
+            #43 185-187 "()" : Unit
+            #53 212-217 "{ A }" : (Unit => Unit is Adj)
+            #55 214-215 "A" : (Unit => Unit is Adj)
+            #61 246-248 "()" : Unit
+            #71 273-279 "{ AC }" : (Unit => Unit is Adj + Ctl)
+            #73 275-277 "AC" : (Unit => Unit is Adj + Ctl)
+            #79 309-311 "()" : Unit
+            #89 336-342 "{ AC }" : (Unit => Unit is Adj + Ctl)
+            #91 338-340 "AC" : (Unit => Unit is Adj + Ctl)
+            #97 370-372 "()" : Unit
+            #107 397-402 "{ C }" : (Unit => Unit is Ctl)
+            #109 399-400 "C" : (Unit => Unit is Ctl)
+            #115 431-433 "()" : Unit
+            #124 451-456 "{ A }" : (Unit => Unit is Adj)
+            #126 453-454 "A" : (Unit => Unit is Adj)
+            #132 485-487 "()" : Unit
+            #141 505-511 "{ AC }" : (Unit => Unit is Adj + Ctl)
+            #143 507-509 "AC" : (Unit => Unit is Adj + Ctl)
+            #149 539-541 "()" : Unit
+            #158 559-564 "{ C }" : (Unit => Unit is Ctl)
+            #160 561-562 "C" : (Unit => Unit is Ctl)
+            #166 592-594 "()" : Unit
+            #175 612-617 "{ E }" : (Unit => Unit)
+            #177 614-615 "E" : (Unit => Unit)
+        "##]],
+    );
+}
+
+#[test]
+fn return_with_unsatisfying_specialization_fails() {
+    check(
+        indoc! {"
+            namespace test {
+                operation E() : Unit {}
+                operation A() : Unit is Adj {}
+                operation C() : Unit is Ctl {}
+                operation AC() : Unit is Adj + Ctl {}
+
+                function returns_E_as_A() : (Unit => Unit is Adj) { E }
+                function returns_C_as_A() : (Unit => Unit is Adj) { C }
+
+                function returns_E_as_C() : (Unit => Unit is Ctl) { E }
+                function returns_A_as_C() : (Unit => Unit is Ctl) { A }
+
+                function returns_E_as_AC() : (Unit => Unit is Adj + Ctl) { E }
+                function returns_A_as_AC() : (Unit => Unit is Adj + Ctl) { A }
+                function returns_C_as_AC() : (Unit => Unit is Adj + Ctl) { C }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 32-34 "()" : Unit
+            #10 42-44 "{}" : Unit
+            #14 60-62 "()" : Unit
+            #19 77-79 "{}" : Unit
+            #23 95-97 "()" : Unit
+            #28 112-114 "{}" : Unit
+            #32 131-133 "()" : Unit
+            #39 154-156 "{}" : Unit
+            #43 185-187 "()" : Unit
+            #53 212-217 "{ E }" : (Unit => Unit)
+            #55 214-215 "E" : (Unit => Unit)
+            #61 245-247 "()" : Unit
+            #71 272-277 "{ C }" : (Unit => Unit is Ctl)
+            #73 274-275 "C" : (Unit => Unit is Ctl)
+            #79 306-308 "()" : Unit
+            #89 333-338 "{ E }" : (Unit => Unit)
+            #91 335-336 "E" : (Unit => Unit)
+            #97 366-368 "()" : Unit
+            #107 393-398 "{ A }" : (Unit => Unit is Adj)
+            #109 395-396 "A" : (Unit => Unit is Adj)
+            #115 428-430 "()" : Unit
+            #127 461-466 "{ E }" : (Unit => Unit)
+            #129 463-464 "E" : (Unit => Unit)
+            #135 495-497 "()" : Unit
+            #147 528-533 "{ A }" : (Unit => Unit is Adj)
+            #149 530-531 "A" : (Unit => Unit is Adj)
+            #155 562-564 "()" : Unit
+            #167 595-600 "{ C }" : (Unit => Unit is Ctl)
+            #169 597-598 "C" : (Unit => Unit is Ctl)
+            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Empty), Span { lo: 214, hi: 215 }))))
+            Error(Type(Error(FunctorMismatch(Value(Adj), Value(Ctl), Span { lo: 274, hi: 275 }))))
+            Error(Type(Error(FunctorMismatch(Value(Ctl), Value(Empty), Span { lo: 335, hi: 336 }))))
+            Error(Type(Error(FunctorMismatch(Value(Ctl), Value(Adj), Span { lo: 395, hi: 396 }))))
+            Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Empty), Span { lo: 463, hi: 464 }))))
+            Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Adj), Span { lo: 530, hi: 531 }))))
+            Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Ctl), Span { lo: 597, hi: 598 }))))
+        "##]],
+    );
+}
+
+#[test]
 fn array_unknown_field_error() {
     check(
         indoc! {"
@@ -3215,8 +3338,6 @@ fn functors_in_array_mixed() {
             #47 180-183 "Foo" : (Qubit => Unit)
             #50 185-188 "Bar" : (Qubit => Unit is Adj)
             #53 190-193 "Baz" : (Qubit => Unit is Adj + Ctl)
-            Error(Type(Error(FunctorMismatch(Value(Empty), Value(Adj), Span { lo: 185, hi: 188 }))))
-            Error(Type(Error(FunctorMismatch(Value(Empty), Value(CtlAdj), Span { lo: 190, hi: 193 }))))
         "#]],
     );
 }
@@ -3337,7 +3458,6 @@ fn functors_in_arg_bound_to_let_becomes_monotype() {
             #63 232-235 "foo" : ((Qubit => Unit is Adj) => Unit)
             #66 235-240 "(Baz)" : (Qubit => Unit is Adj + Ctl)
             #67 236-239 "Baz" : (Qubit => Unit is Adj + Ctl)
-            Error(Type(Error(FunctorMismatch(Value(Adj), Value(CtlAdj), Span { lo: 232, hi: 240 }))))
         "#]],
     );
 }

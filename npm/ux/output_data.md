@@ -134,7 +134,7 @@ The minimum T state error rate is obtained by dividing the T distillation error 
 
 _Number of T states to implement a rotation with an arbitrary angle_
 
-The number of T states to implement a rotation with an arbitrary angle is $\lceil 0.53 \log_2(\mathtt{logicalCounts/rotationCount} / \mathtt{errorBudget/rotations}) + 5.3\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)]. For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases.
+The number of T states to implement a rotation with an arbitrary angle is $\lceil 0.53 \log_2(\mathtt{logicalCounts/rotationCount} / \mathtt{errorBudget/rotations}) + 4.86\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)]. For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases.
 
 ## Logical qubit parameters
 

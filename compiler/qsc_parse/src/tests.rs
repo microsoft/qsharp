@@ -84,7 +84,7 @@ fn check_map<T>(
     expect: &Expect,
     f: impl FnOnce(&T) -> String,
 ) {
-    let mut scanner = ParserContext::new(input, Default::default());
+    let mut scanner = ParserContext::new(input, LanguageFeatures::default());
     let result = parser(&mut scanner);
     let errors = scanner.into_errors();
     match result {

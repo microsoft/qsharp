@@ -3,8 +3,7 @@
 
 use crate::fir::{
     Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
-    Package, Pat, PatId, PatKind, QubitInit, QubitInitKind, SpecDecl, SpecImpl, Stmt, StmtId,
-    StmtKind, StringComponent,
+    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent,
 };
 
 pub trait MutVisitor<'a>: Sized {
@@ -46,10 +45,6 @@ pub trait MutVisitor<'a>: Sized {
 
     fn visit_pat(&mut self, pat: PatId) {
         walk_pat(self, pat);
-    }
-
-    fn visit_qubit_init(&mut self, init: &'a mut QubitInit) {
-        walk_qubit_init(self, init);
     }
 
     fn visit_ident(&mut self, _: &'a mut Ident) {}
@@ -200,13 +195,5 @@ pub fn walk_pat<'a>(vis: &mut impl MutVisitor<'a>, pat: PatId) {
         PatKind::Bind(name) => vis.visit_ident(name),
         PatKind::Discard => {}
         PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(*p)),
-    }
-}
-
-pub fn walk_qubit_init<'a>(vis: &mut impl MutVisitor<'a>, init: &'a mut QubitInit) {
-    match &mut init.kind {
-        QubitInitKind::Array(len) => vis.visit_expr(*len),
-        QubitInitKind::Single => {}
-        QubitInitKind::Tuple(inits) => inits.iter_mut().for_each(|i| vis.visit_qubit_init(i)),
     }
 }

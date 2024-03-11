@@ -351,11 +351,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
         sendTelemetryEvent(EventType.HistogramStart, { associationId }, {});
         const config = {
           sources,
-          expr: "",
-          shots: parseInt(numberOfShots),
           languageFeatures,
         };
-        await worker.run(config, evtTarget);
+        await worker.run(config, "", parseInt(numberOfShots), evtTarget);
         sendTelemetryEvent(
           EventType.HistogramEnd,
           { associationId },

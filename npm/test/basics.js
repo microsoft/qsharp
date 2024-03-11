@@ -36,7 +36,7 @@ export function runSingleShot(code, expr, useWorker) {
     const compiler = useWorker ? getCompilerWorker() : getCompiler();
 
     compiler
-      .run({ sources: [["test.qs", code]], expr, shots: 1 }, resultsHandler)
+      .run({ sources: [["test.qs", code]] }, expr, 1, resultsHandler)
       .then(() => resolve(resultsHandler.getResults()[0]))
       .catch((err) => reject(err))
       /* @ts-expect-error: ICompiler does not include 'terminate' */
@@ -277,60 +277,13 @@ test("getAllKatas works", async () => {
   assert.ok(katas.length > 0, "katas should not be empty");
 });
 
-test("getting_started kata is valid", async () => {
-  const kata = await getKata("getting_started");
-  await validateKata(kata, true, true, true);
-});
+const katasList = await getAllKatas();
 
-test("complex_arithmetic kata is valid", async () => {
-  const kata = await getKata("complex_arithmetic");
-  await validateKata(kata, true, true, true);
-});
-
-test("qubit kata is valid", async () => {
-  const kata = await getKata("qubit");
-  await validateKata(kata, true, true, true);
-});
-
-test("single_qubit_gates kata is valid", async () => {
-  const kata = await getKata("single_qubit_gates");
-  await validateKata(kata, true, true, true);
-});
-
-test("multi_qubit_systems kata is valid", async () => {
-  const kata = await getKata("multi_qubit_systems");
-  await validateKata(kata, true, true, true);
-});
-
-test("multi_qubit_gates kata is valid", async () => {
-  const kata = await getKata("multi_qubit_gates");
-  await validateKata(kata, true, true, true);
-});
-
-// This test is commented because the superposition kata is still a work in progress.
-// test("superposition_kata kata is valid", async () => {
-//   const kata = await getKata("superposition_kata");
-//   await validateKata(kata, true, true, true);
-// });
-
-test("single_qubit_measurements is valid", async () => {
-  const kata = await getKata("single_qubit_measurements");
-  await validateKata(kata, true, true, true);
-});
-
-test("multi_qubit_measurements is valid", async () => {
-  const kata = await getKata("multi_qubit_measurements");
-  await validateKata(kata, true, true, true);
-});
-
-test("random_numbers kata is valid", async () => {
-  const kata = await getKata("random_numbers");
-  await validateKata(kata, true, true, true);
-});
-
-test("oracles kata is valid", async () => {
-  const kata = await getKata("oracles");
-  await validateKata(kata, true, true, true);
+katasList.forEach((kataDesc) => {
+  test(`${kataDesc.id} kata is valid`, async () => {
+    const kata = await getKata(kataDesc.id);
+    await validateKata(kata, true, true, true);
+  });
 });
 
 test("worker 100 shots", async () => {
@@ -346,7 +299,9 @@ test("worker 100 shots", async () => {
   const resultsHandler = new QscEventTarget(true);
   const compiler = getCompilerWorker();
   await compiler.run(
-    { sources: [["test.qs", code]], expr, shots: 100 },
+    { sources: [["test.qs", code]] },
+    expr,
+    100,
     resultsHandler,
   );
   compiler.terminate();
@@ -368,7 +323,9 @@ test("Run samples", async () => {
 
   for await (const sample of testCases) {
     await compiler.run(
-      { sources: [[sample.title, sample.code]], expr: "", shots: 1 },
+      { sources: [[sample.title, sample.code]] },
+      "",
+      1,
       resultsHandler,
     );
   }
@@ -395,10 +352,7 @@ test("state change", async () => {
         return M(q1);
     }
   }`;
-  await compiler.run(
-    { sources: [["test.qs", code]], expr: "", shots: 10 },
-    resultsHandler,
-  );
+  await compiler.run({ sources: [["test.qs", code]] }, "", 10, resultsHandler);
   compiler.terminate();
   // There SHOULDN'T be a race condition here between the 'run' promise completing and the
   // statechange events firing, as the run promise should 'resolve' in the next microtask,
@@ -427,10 +381,7 @@ test("cancel worker", () => {
 
     // Queue some tasks that will never complete
     compiler
-      .run(
-        { sources: [["test.qs", code]], expr: "", shots: 10 },
-        resultsHandler,
-      )
+      .run({ sources: [["test.qs", code]] }, "", 10, resultsHandler)
       .catch((err) => {
         cancelledArray.push(err);
       });
@@ -717,7 +668,7 @@ async function testCompilerError(useWorker) {
   let promiseResult = undefined;
   let lastState = undefined;
   await compiler
-    .run({ sources: [["test.qs", "invalid code"]], expr: "", shots: 1 }, events)
+    .run({ sources: [["test.qs", "invalid code"]] }, "", 1, events)
     .then(() => {
       promiseResult = "success";
     })

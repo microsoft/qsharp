@@ -19,7 +19,6 @@ pub struct DiagnosticUpdate {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-#[allow(clippy::module_name_repetitions)]
 pub enum CompletionItemKind {
     // It would have been nice to match the numeric values to the ones used by
     // VS Code and Monaco, but unfortunately those two disagree on the values.
@@ -34,13 +33,11 @@ pub enum CompletionItemKind {
 }
 
 #[derive(Debug, Default)]
-#[allow(clippy::module_name_repetitions)]
 pub struct CompletionList {
     pub items: Vec<CompletionItem>,
 }
 
 #[derive(Debug)]
-#[allow(clippy::module_name_repetitions)]
 pub struct CompletionItem {
     pub label: String,
     pub kind: CompletionItemKind,

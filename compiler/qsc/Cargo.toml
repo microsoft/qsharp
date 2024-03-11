@@ -34,6 +34,9 @@ criterion = { workspace = true, features = ["cargo_bench_support"] }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 
+[lints]
+workspace = true
+
 [lib]
 bench = false
 doctest = false

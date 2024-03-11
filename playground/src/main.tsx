@@ -40,7 +40,11 @@ const compilerWorkerPath = basePath + "libs/compiler-worker.js";
 const languageServiceWorkerPath = basePath + "libs/language-service-worker.js";
 
 declare global {
-  const MathJax: { typeset: () => void };
+  const MathJax: {
+    typeset: () => void;
+    typesetPromise: (nodes: HTMLElement[]) => Promise<any>;
+    typesetClear: (nodes: HTMLElement[]) => void;
+  };
 }
 
 function telemetryHandler({ id, data }: { id: string; data?: any }) {

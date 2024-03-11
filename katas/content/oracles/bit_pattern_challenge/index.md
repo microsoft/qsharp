@@ -7,7 +7,7 @@
  
 Flip the sign of the input state $|x\rangle$ if the input register matches the basis state
 represented by `pattern`.  
-**Implement this oracle without using auxiliary qubits**
+*Implement this oracle without using auxiliary qubits*
 
 **Examples:**
 

@@ -3,5 +3,4 @@ namespace Kata {
     : Unit  is Adj + Ctl {
         ApplyControlledOnBitString(pattern, X, x, y);
     }
-
 }

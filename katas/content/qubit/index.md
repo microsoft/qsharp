@@ -110,7 +110,7 @@ These two kets represent basis states, so they can be used to represent any othe
 
 $$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
-Dirac notation is not only restricted to vectors $0$ and $1$; it can be used to represent any vector, simiar to how variable names are used in algebra. For example, we can call the state above "the state $\psi$" and write it as:
+Dirac notation is not only restricted to vectors $0$ and $1$; it can be used to represent any vector, similar to how variable names are used in algebra. For example, we can call the state above "the state $\psi$" and write it as:
 
 $$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$$
 

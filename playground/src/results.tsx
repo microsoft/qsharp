@@ -241,7 +241,12 @@ export function ResultsTab(props: {
               return evt.type === "Message" ? (
                 <div class="message-output">&gt; {evt.message}</div>
               ) : (
-                <StateTable dump={evt.state}></StateTable>
+                <div>
+                  <StateTable
+                    dump={evt.state}
+                    latexDump={evt.stateLatex}
+                  ></StateTable>
+                </div>
               );
             })}
           </div>

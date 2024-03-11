@@ -58,7 +58,7 @@ pub(super) fn parse_block(s: &mut ParserContext) -> Result<Box<Block>> {
     token(s, TokenKind::Open(Delim::Brace))?;
     let stmts = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     check_semis(s, &stmts);
-    recovering_token(s, TokenKind::Close(Delim::Brace))?;
+    recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(Box::new(Block {
         id: NodeId::default(),
         span: s.span(lo),
@@ -66,6 +66,7 @@ pub(super) fn parse_block(s: &mut ParserContext) -> Result<Box<Block>> {
     }))
 }
 
+#[allow(clippy::unnecessary_box_returns)]
 fn default(span: Span) -> Box<Stmt> {
     Box::new(Stmt {
         id: NodeId::default(),
@@ -91,7 +92,7 @@ fn parse_local(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     let lhs = pat(s)?;
     token(s, TokenKind::Eq)?;
     let rhs = expr(s)?;
-    recovering_semi(s)?;
+    recovering_semi(s);
     Ok(Box::new(StmtKind::Local(mutability, lhs, rhs)))
 }
 
@@ -118,7 +119,7 @@ fn parse_qubit(s: &mut ParserContext) -> Result<Box<StmtKind>> {
     };
 
     if block.is_none() {
-        recovering_semi(s)?;
+        recovering_semi(s);
     }
 
     Ok(Box::new(StmtKind::Qubit(source, lhs, rhs, block)))
