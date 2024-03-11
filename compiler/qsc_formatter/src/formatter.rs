@@ -159,6 +159,13 @@ fn apply_rules(
                 // to be able to differentiate between the unary `-` and the binary `-`
                 // which would have different spacing rules.
             }
+            (Gt, _) | (_, Gt) | (Lt, _) | (_, Lt) => {
+                // This case is used to ignore the spacing around a `<` and `>`.
+                // This is done because we currently don't have the architecture
+                // to be able to differentiate between the comparison operators
+                // and the type-parameter delimiters which would have different
+                // spacing rules.
+            }
             (Semi, _) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
             }
@@ -294,7 +301,7 @@ fn is_bin_op(cooked: &TokenKind) -> bool {
 }
 
 fn is_prefix_with_space(cooked: &TokenKind) -> bool {
-    matches!(cooked, TokenKind::AposIdent | TokenKind::TildeTildeTilde)
+    matches!(cooked, TokenKind::TildeTildeTilde)
 }
 
 fn is_prefix_without_space(cooked: &TokenKind) -> bool {
@@ -331,6 +338,7 @@ fn is_value_lit(cooked: &TokenKind) -> bool {
         TokenKind::BigInt(_)
             | TokenKind::Float
             | TokenKind::Ident
+            | TokenKind::AposIdent
             | TokenKind::Int(_)
             | TokenKind::String(StringToken::Normal)
     )

@@ -96,8 +96,13 @@ impl Iterator for ConcreteTokenIterator<'_> {
                         kind: ConcreteTokenKind::WhiteSpace,
                         span,
                     },
+                    // ToDo: investigate this case further
+                    raw::TokenKind::Single(raw::Single::Apos) => ConcreteToken {
+                        kind: ConcreteTokenKind::Syntax(super::TokenKind::AposIdent),
+                        span,
+                    },
                     // This will panic if any content other than whitespace or comments are ignored when "cooking" the raw tokens
-                    _ => panic!("only comments and whitespace should be non-compilable tokens"),
+                    _ => panic!("Raw Token couldn't be converted: {raw_token:?}"),
                 };
                 Some(concrete)
             }
