@@ -689,36 +689,30 @@ bitflags! {
         const UseOfDynamicString = 1 << 7;
         /// Use of a dynamic array.
         const UseOfDynamicallySizedArray = 1 << 8;
-        /// Use of a dynamic Tuple.
-        const UseOfDynamicTuple = 1 << 9;
         /// Use of a dynamic UDT.
-        const UseOfDynamicUdt = 1 << 10;
+        const UseOfDynamicUdt = 1 << 9;
         /// Use of a dynamic arrow function.
-        const UseOfDynamicArrowFunction = 1 << 11;
+        const UseOfDynamicArrowFunction = 1 << 10;
         /// Use of a dynamic arrow operation.
-        const UseOfDynamicArrowOperation = 1 << 12;
+        const UseOfDynamicArrowOperation = 1 << 11;
         /// A function with cycles used with a dynamic argument.
-        const CyclicFunctionUsesDynamicArg = 1 << 13;
+        const CyclicFunctionUsesDynamicArg = 1 << 12;
         /// An operation specialization with cycles is used.
-        const CyclicOperation = 1 << 14;
+        const UseOfCyclicOperation = 1 << 13;
         /// A callee expression is dynamic.
-        const DynamicCallee = 1 << 15;
+        const DynamicCallee = 1 << 14;
         /// A callee expression could not be resolved to a specific callable.
-        const UnresolvedCallee = 1 << 16;
-        /// A UDT constructor was used with a dynamic argument(s).
-        const UdtConstructorUsesDynamicArg = 1 << 17;
+        const UnresolvedCallee = 1 << 15;
         /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 1 << 18;
+        const ForwardBranchingOnDynamicValue = 1 << 16;
         /// Qubit allocation that happens within a dynamic scope.
-        const DynamicQubitAllocation = 1 << 19;
+        const DynamicQubitAllocation = 1 << 17;
         /// Result allocation that happens within a dynamic scope.
-        const DynamicResultAllocation = 1 << 20;
+        const DynamicResultAllocation = 1 << 18;
         /// Use of a dynamic index to access or update an array.
-        const UseOfDynamicIndex = 1 << 21;
-        /// Use of a runtime failure.
-        const FailureWithDynamicExpression = 1 << 22;
+        const UseOfDynamicIndex = 1 << 19;
         /// Use of a closure.
-        const UseOfClosure = 1 << 23;
+        const UseOfClosure = 1 << 20;
     }
 }
 
@@ -766,16 +760,13 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::CyclicOperation) {
+        if self.contains(RuntimeFeatureFlags::UseOfCyclicOperation) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::DynamicCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::UnresolvedCallee) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
-        }
-        if self.contains(RuntimeFeatureFlags::UdtConstructorUsesDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::ForwardBranchingOnDynamicValue) {
@@ -791,9 +782,6 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfClosure) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
-        }
-        if self.contains(RuntimeFeatureFlags::FailureWithDynamicExpression) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         runtume_capabilities

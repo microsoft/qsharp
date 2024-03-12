@@ -477,11 +477,7 @@ impl<'a> Analyzer<'a> {
         // If any argument to the UDT constructor is dynamic, then the UDT instance is also dynamic and uses an
         // additional runtime feature.
         if args_expr_compute_kind.is_dynamic() {
-            let additional_compute_kind = ComputeKind::new_with_runtime_features(
-                RuntimeFeatureFlags::UdtConstructorUsesDynamicArg,
-                ValueKind::Element(RuntimeKind::Dynamic),
-            );
-            compute_kind = compute_kind.aggregate(additional_compute_kind);
+            compute_kind.aggregate_value_kind(ValueKind::Element(RuntimeKind::Dynamic));
         }
 
         compute_kind
@@ -504,15 +500,6 @@ impl<'a> Analyzer<'a> {
         let default_value_kind = ValueKind::Element(RuntimeKind::Static);
         compute_kind =
             compute_kind.aggregate_runtime_features(msg_expr_compute_kind, default_value_kind);
-        if msg_expr_compute_kind.is_dynamic() {
-            compute_kind = compute_kind.aggregate_runtime_features(
-                ComputeKind::new_with_runtime_features(
-                    RuntimeFeatureFlags::FailureWithDynamicExpression,
-                    default_value_kind,
-                ),
-                default_value_kind,
-            );
-        }
 
         compute_kind
     }
@@ -722,7 +709,11 @@ impl<'a> Analyzer<'a> {
 
         // If any of the string components is dynamic, then the string expression is dynamic as well.
         if has_dynamic_components {
-            compute_kind.aggregate_value_kind(ValueKind::Element(RuntimeKind::Dynamic));
+            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                panic!("Quantum variant was expected for the compute kind of string expression ");
+            };
+            quantum_properties.runtime_features |= RuntimeFeatureFlags::UseOfDynamicString;
+            quantum_properties.value_kind = ValueKind::Element(RuntimeKind::Dynamic);
         }
 
         compute_kind

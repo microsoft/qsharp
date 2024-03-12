@@ -162,7 +162,7 @@ impl<'a> Analyzer<'a> {
         // value kind is dynamic.
         let value_kind = ValueKind::new_dynamic_from_type(output_type);
         let inherent_compute_kind = ComputeKind::new_with_runtime_features(
-            RuntimeFeatureFlags::CyclicOperation,
+            RuntimeFeatureFlags::UseOfCyclicOperation,
             value_kind,
         );
 
