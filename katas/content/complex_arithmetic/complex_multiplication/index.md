@@ -16,3 +16,5 @@ Then multiply through, keeping in mind that $i^2=-1$, and group the real and ima
 A video explanation of multiplying complex numbers can be found [here](https://www.youtube.com/watch?v=cWn6g8Qqvs4).
 
 </details>
+
+> Q# function `TimesC` from `Microsoft.Quantum.Math` namespace multiplies two complex numbers. For educational purposes, try to do this task by hand.

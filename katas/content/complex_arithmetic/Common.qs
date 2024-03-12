@@ -18,6 +18,10 @@ namespace Kata.Verification {
         }
     }
 
+    operation ComplexPolarAsString(x : ComplexPolar) : String {
+        $"{x::Magnitude} * exp({x::Argument}i)"
+    }
+
     operation CheckTwoComplexOpsAreSame(sol : (Complex, Complex) -> Complex, ref : (Complex, Complex) -> Complex) : Bool {
         for _ in 0 .. 24 {
             let x = DrawRandomComplex();
@@ -40,5 +44,10 @@ namespace Kata.Verification {
     function ComplexEqual(x : Complex, y : Complex) : Bool { 
         // Tests two complex numbers for equality.
         AbsD(x::Real - y::Real) <= 0.001 and AbsD(x::Imag - y::Imag) <= 0.001
+    }
+
+    function ComplexPolarEqual(x : ComplexPolar, y : ComplexPolar) : Bool { 
+        // Tests two complex polar numbers for equality.
+        AbsD(x::Magnitude - y::Magnitude) <= 0.001 and AbsD(x::Argument - y::Argument) <= 0.001
     }
 }
