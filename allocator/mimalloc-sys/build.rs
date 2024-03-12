@@ -10,9 +10,9 @@ use std::path::PathBuf;
 use cmake::Config;
 
 // 1.8.2
-static ALLOCATOR_MIMALLOC_TAG: &str = "b66e3214d8a104669c2ec05ae91ebc26a8f5ab78";
+//static ALLOCATOR_MIMALLOC_TAG: &str = "b66e3214d8a104669c2ec05ae91ebc26a8f5ab78";
 // 2.1.2
-//static ALLOCATOR_MIMALLOC_TAG: &str = "43ce4bd7fd34bcc730c1c7471c99995597415488";
+static ALLOCATOR_MIMALLOC_TAG: &str = "43ce4bd7fd34bcc730c1c7471c99995597415488";
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=build.rs");
@@ -28,9 +28,12 @@ fn compile_mimalloc() -> Result<(), Box<dyn Error>> {
     let mut config = Config::new(build_dir);
 
     config
-        .build_target("mimalloc")
+        //.build_target("mimalloc")
+        .no_build_target(true)
         .define("CMAKE_BUILD_TYPE", "MinSizeRel")
         .define("MI_INSTALL_TOPLEVEL", "ON")
+        .define("MI_OVERRIDE", "OFF")
+        .define("MI_WIN_REDIRECT", "OFF")
         .env("ALLOCATOR_MIMALLOC_TAG", ALLOCATOR_MIMALLOC_TAG)
         .static_crt(true)
         .very_verbose(true);
@@ -38,10 +41,6 @@ fn compile_mimalloc() -> Result<(), Box<dyn Error>> {
     let dst = config.build();
     println!(
         "cargo:rustc-link-search=native={}",
-        dst.join("lib").display()
-    );
-    println!(
-        "cargo:rustc-link-search=static={}",
         dst.join("lib").display()
     );
     println!("cargo:rustc-link-lib=static=mimalloc");
