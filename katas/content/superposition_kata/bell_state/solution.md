@@ -23,33 +23,21 @@ How can we do this?
 
 We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as CNOT. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The CNOT gate changes the target qubit from state $|0\rangle$ to $|1\rangle$ and vice versa when the control qubit is $|1\rangle$ and does nothing to the target qubit when the control qubit is $|0\rangle$. The control qubit always remains unchanged. 
 
-<center>
-<table style="background-color: white; border:1px solid; tr  { background-color:transparent; }">
-    <col width=300>
-    <tr>
-        <th style="text-align:center; border:1px solid">Matrix</th>
-    </tr>
-    <tr>
-        <td style="text-align:center; border:1px solid">$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$</td> 
-      </tr>      
-</table> <br>
+
+$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$ 
+
 The matrix representation of CNOT
-</center><br>
+
 
 If we apply the CNOT gate to the state $\frac{1}{\sqrt2} (|00\rangle + |10\rangle)$, taking the first qubit as the control and the second one as target, we'll get exactly the desired goal state. 
  
-<table style="background-color: white; border:1px solid; tr  { background-color:transparent; }">
-    <col width=500>
-    <col width=300>
-    <tr>
-        <th style="text-align:center; border:1px solid">Steps required to reach goal state</th>
-        <th style="text-align:center; border:1px solid">Notation</th>
-    </tr>
-    <tr>
-        <td style="text-align:left; border:1px solid">1. Apply a Hadamard gate to the first qubit. <br/> 2. Applying a CNOT with first qubit as control and second qubit as target.</td>
-        <td style="text-align:center; border:1px solid; font-bold; font-size: 16px; ">$\frac{1}{\sqrt2} (|00\rangle + |11\rangle)$</td>
-      </tr>      
-</table>
+Steps required to reach goal state:
+1. Apply a Hadamard gate to the first qubit.
+2. Applying a CNOT with first qubit as control and second qubit as target.
+
+Notation:
+
+$\frac{1}{\sqrt2} (|00\rangle + |11\rangle)$
 
 In matrix representation we can represent this operation as a product of two $4 \times 4$ matrices, with the matrix corresponding to the first step being the tensor product of a Hadamard gate on the first qubit and identity gate on the second qubit.
 

@@ -9,5 +9,5 @@ It is open in any Q# source files by default, so you can use it right away.
 
 @[solution]({
     "id": "superposition__plus_state_solution",
-    "codePath": "./solution.qs"
+    "codePath": "./Solution.qs"
 })
