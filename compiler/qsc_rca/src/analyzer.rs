@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{core, cyclic_callables, scaffolding, PackageStoreComputeProperties};
+use crate::{
+    core, cyclic_callables, overrider::Overrider, scaffolding, PackageStoreComputeProperties,
+};
 use qsc_fir::fir::{PackageId, PackageStore};
 
 /// A runtime capabilities analyzer.
@@ -32,10 +34,14 @@ impl<'a> Analyzer<'a> {
 
     #[must_use]
     pub fn analyze_all(self) -> PackageStoreComputeProperties {
-        // First, we need to analyze the callable specializations with cycles. Otherwise, we cannot safely analyze the
+        // First, we populate the elements for which we override its compute properties.
+        let overrider = Overrider::new(self.package_store, self.scaffolding);
+        let scaffolding = overrider.populate_overrides();
+
+        // Then, we need to analyze the callable specializations with cycles. Otherwise, we cannot safely analyze the
         // rest of the items without causing an infinite analysis loop.
         let cyclic_callables_analyzer =
-            cyclic_callables::Analyzer::new(self.package_store, self.scaffolding);
+            cyclic_callables::Analyzer::new(self.package_store, scaffolding);
         let scaffolding = cyclic_callables_analyzer.analyze_all();
 
         // Now we can safely analyze the rest of the items.

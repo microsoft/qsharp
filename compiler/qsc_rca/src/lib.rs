@@ -15,6 +15,7 @@ mod common;
 mod core;
 mod cycle_detection;
 mod cyclic_callables;
+mod overrider;
 mod scaffolding;
 
 use crate::common::set_indentation;
