@@ -10,9 +10,9 @@ use std::path::PathBuf;
 use cmake::Config;
 
 // 1.8.2
-//static ALLOCATOR_MIMALLOC_TAG: &str = "b66e3214d8a104669c2ec05ae91ebc26a8f5ab78";
+static ALLOCATOR_MIMALLOC_TAG: &str = "b66e3214d8a104669c2ec05ae91ebc26a8f5ab78";
 // 2.1.2
-static ALLOCATOR_MIMALLOC_TAG: &str = "43ce4bd7fd34bcc730c1c7471c99995597415488";
+//static ALLOCATOR_MIMALLOC_TAG: &str = "43ce4bd7fd34bcc730c1c7471c99995597415488";
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=build.rs");
