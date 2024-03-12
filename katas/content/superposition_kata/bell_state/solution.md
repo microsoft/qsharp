@@ -6,7 +6,7 @@ The first thing we notice is that, unlike in the previous task, we cannot repres
 >
 >In order for this state to be equal to $\frac{1}{\sqrt2}\big(|00\rangle + |11\rangle\big)$, we need to have $\alpha_1\alpha_2 = \beta_1\beta_2 = \frac{1}{\sqrt2}$ and at the same time $\alpha_1\beta_2 = \beta_1\alpha_2 = 0$, which is impossible.
 >
->This is the first time we encounter the phenomena called **entanglement**, in which the states of the qubits are linked together and can not be considered individually.  
+>This is the phenomena called **entanglement**, in which the states of the qubits are linked together and can not be considered individually.  
 
 Let's see what steps we can take to prepare this state without factoring it into states of individual qubits.
 
