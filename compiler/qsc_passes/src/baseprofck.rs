@@ -8,18 +8,8 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     hir::{
-        BinOp,
-        CallableKind,
-        Expr,
-        ExprKind,
-        Item,
-        ItemKind,
-        Lit,
-        Package,
-        SpecBody,
-        SpecGen,
-        // https://github.com/microsoft/qsharp/pull/1244
-        // StmtKind,
+        BinOp, CallableKind, Expr, ExprKind, Item, ItemKind, Lit, Package, SpecBody, SpecGen,
+        StmtKind,
     },
     ty::{Prim, Ty},
     visit::{walk_expr, walk_item, walk_package, Visitor},
@@ -60,12 +50,11 @@ pub enum Error {
 #[must_use]
 pub fn check_base_profile_compliance(package: &Package) -> Vec<Error> {
     let mut checker = Checker { errors: Vec::new() };
-    // https://github.com/microsoft/qsharp/pull/1244
-    // if let Some(entry) = &package.entry {
-    //     if any_non_result_ty(&entry.ty) {
-    //         checker.errors.push(Error::ReturnNonResult(entry.span));
-    //     }
-    // }
+    if let Some(entry) = &package.entry {
+        if any_non_result_ty(&entry.ty) {
+            checker.errors.push(Error::ReturnNonResult(entry.span));
+        }
+    }
     checker.visit_package(package);
 
     checker.errors
@@ -77,12 +66,11 @@ struct Checker {
 
 impl<'a> Visitor<'a> for Checker {
     fn visit_package(&mut self, package: &'a Package) {
-        // https://github.com/microsoft/qsharp/pull/1244
-        // if let Some(StmtKind::Expr(expr)) = &package.stmts.last().map(|stmt| &stmt.kind) {
-        //     if any_non_result_ty(&expr.ty) {
-        //         self.errors.push(Error::ReturnNonResult(expr.span));
-        //     }
-        // }
+        if let Some(StmtKind::Expr(expr)) = &package.stmts.last().map(|stmt| &stmt.kind) {
+            if any_non_result_ty(&expr.ty) {
+                self.errors.push(Error::ReturnNonResult(expr.span));
+            }
+        }
 
         walk_package(self, package);
     }
@@ -128,13 +116,12 @@ fn any_result_ty(ty: &Ty) -> bool {
     }
 }
 
-// https://github.com/microsoft/qsharp/pull/1244
-// fn any_non_result_ty(ty: &Ty) -> bool {
-//     match ty {
-//         Ty::Array(ty) => any_non_result_ty(ty),
-//         Ty::Prim(Prim::Result) => false,
-//         Ty::Tuple(tys) if tys.is_empty() => true,
-//         Ty::Tuple(tys) => tys.iter().any(any_non_result_ty),
-//         _ => true,
-//     }
-// }
+fn any_non_result_ty(ty: &Ty) -> bool {
+    match ty {
+        Ty::Array(ty) => any_non_result_ty(ty),
+        Ty::Prim(Prim::Result) => false,
+        Ty::Tuple(tys) if tys.is_empty() => true,
+        Ty::Tuple(tys) => tys.iter().any(any_non_result_ty),
+        _ => true,
+    }
+}

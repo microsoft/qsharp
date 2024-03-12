@@ -60,34 +60,34 @@ fn intrinsic_calls_with_supported_returns_are_valid() {
     );
 }
 
-// #[test]
-// fn result_comparison_error() {
-//     check(
-//         indoc! {"{
-//             use q = Qubit();
-//             H(q);
-//             if (M(q) == M(q)) {
-//                 X(q);
-//             }
-//         }"},
-//         &expect![[r#"
-//             [
-//                 ReturnNonResult(
-//                     Span {
-//                         lo: 0,
-//                         hi: 78,
-//                     },
-//                 ),
-//                 ResultComparison(
-//                     Span {
-//                         lo: 41,
-//                         hi: 53,
-//                     },
-//                 ),
-//             ]
-//         "#]],
-//     );
-// }
+#[test]
+fn result_comparison_error() {
+    check(
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            if (M(q) == M(q)) {
+                X(q);
+            }
+        }"},
+        &expect![[r#"
+            [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 78,
+                    },
+                ),
+                ResultComparison(
+                    Span {
+                        lo: 41,
+                        hi: 53,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
 
 #[test]
 fn result_literal_error() {
@@ -112,71 +112,71 @@ fn result_literal_error() {
     );
 }
 
-// #[test]
-// fn non_result_return_error() {
-//     check(
-//         indoc! {"{
-//             use q = Qubit();
-//             H(q);
-//             M(q);
-//             3 + 1
-//         }"},
-//         &expect![[r#"
-//             [
-//                 ReturnNonResult(
-//                     Span {
-//                         lo: 0,
-//                         hi: 54,
-//                     },
-//                 ),
-//             ]
-//         "#]],
-//     );
-// }
+#[test]
+fn non_result_return_error() {
+    check(
+        indoc! {"{
+            use q = Qubit();
+            H(q);
+            M(q);
+            3 + 1
+        }"},
+        &expect![[r#"
+            [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 54,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
 
-// #[test]
-// fn unit_return_error() {
-//     check(
-//         indoc! {"{
-//             operation Foo() : Unit {}
-//             Foo()
-//         }"},
-//         &expect![[r#"
-//             [
-//                 ReturnNonResult(
-//                     Span {
-//                         lo: 0,
-//                         hi: 43,
-//                     },
-//                 ),
-//             ]
-//         "#]],
-//     );
-// }
+#[test]
+fn unit_return_error() {
+    check(
+        indoc! {"{
+            operation Foo() : Unit {}
+            Foo()
+        }"},
+        &expect![[r#"
+            [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 43,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
 
-// #[test]
-// fn unsupported_intrsinsic_error() {
-//     check(
-//         indoc! {"{
-//             operation Rand() : Int {
-//                 body intrinsic;
-//             }
-//         }"},
-//         &expect![[r#"
-//             [
-//                 ReturnNonResult(
-//                     Span {
-//                         lo: 0,
-//                         hi: 62,
-//                     },
-//                 ),
-//                 UnsupportedIntrinsic(
-//                     Span {
-//                         lo: 16,
-//                         hi: 20,
-//                     },
-//                 ),
-//             ]
-//         "#]],
-//     );
-// }
+#[test]
+fn unsupported_intrsinsic_error() {
+    check(
+        indoc! {"{
+            operation Rand() : Int {
+                body intrinsic;
+            }
+        }"},
+        &expect![[r#"
+            [
+                ReturnNonResult(
+                    Span {
+                        lo: 0,
+                        hi: 62,
+                    },
+                ),
+                UnsupportedIntrinsic(
+                    Span {
+                        lo: 16,
+                        hi: 20,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
