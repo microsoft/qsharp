@@ -493,9 +493,9 @@ fn lambda() {
         .circuit(CircuitEntryPoint::Operation("q => H(q)".into()))
         .expect("circuit generation should succeed");
 
-    expect![[r#"
+    expect![[r"
         q_0    ── H ──
-    "#]]
+    "]]
     .assert_eq(&circ.to_string());
 }
 
