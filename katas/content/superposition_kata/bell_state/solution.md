@@ -64,7 +64,7 @@ $$\underset{\text{CNOT}}{\underbrace{\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0
 = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 1 \\\ 0 & 1 & 0 & -1 \\\ 1 & 0 & -1 & 0 \end{bmatrix}
 \cdot
 \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}
-= \underset{goal}{\underbrace{ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 0 \\\ 0 \\ 1 \end{bmatrix}}}
+= \underset{goal}{\underbrace{ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}}}
 \label{6.1} \tag{6.1}
 $$
 
