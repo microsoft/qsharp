@@ -6,7 +6,7 @@ The first thing we notice is that, unlike in the previous task, we cannot repres
 >
 >In order for this state to be equal to $\frac{1}{\sqrt2}\big(|00\rangle + |11\rangle\big)$, we need to have $\alpha_1\alpha_2 = \beta_1\beta_2 = \frac{1}{\sqrt2}$ and at the same time $\alpha_1\beta_2 = \beta_1\alpha_2 = 0$, which is impossible.
 >
->This is the first time we encounter the phenomena called **entanglement**, in which the states of the qubits are linked together and can not be considered individually.  
+>This is the phenomena called **entanglement**, in which the states of the qubits are linked together and can not be considered individually.  
 
 Let's see what steps we can take to prepare this state without factoring it into states of individual qubits.
 
@@ -21,7 +21,7 @@ $$H|0\rangle \otimes |0\rangle = \frac{1}{\sqrt2} (|0\rangle + |1\rangle) \otime
 Well, we got pretty close, except we need to transform the $|10\rangle$ state to $|11\rangle$.
 How can we do this? 
 
-We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as CNOT. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The CNOT gate changes the target qubit from state $|0\rangle$ to $|1\rangle$ and vice versa when the control qubit is $|1\rangle$ and does nothing to the target qubit when the control qubit is $|0\rangle$. The control qubit always remains unchanged. 
+We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as $CNOT$. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The $CNOT$ gate changes the target qubit from state $|0\rangle$ to $|1\rangle$ and vice versa when the control qubit is $|1\rangle$ and does nothing to the target qubit when the control qubit is $|0\rangle$. The control qubit always remains unchanged. 
 
 
 $\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$ 
