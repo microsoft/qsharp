@@ -2,13 +2,14 @@
 // Licensed under the MIT License.
 
 pub(super) mod ast;
+pub(super) mod hir;
 
 macro_rules! push_lint {
-    ($lint_ty:ty, $span:expr, $buffer:expr) => {
+    ($lint:expr, $span:expr, $buffer:expr) => {
         $buffer.push(Lint {
             span: $span,
-            message: <$lint_ty>::MESSAGE,
-            level: <$lint_ty>::LEVEL,
+            message: $lint.message,
+            level: $lint.level,
         })
     };
 }

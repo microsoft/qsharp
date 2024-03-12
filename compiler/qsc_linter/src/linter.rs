@@ -6,7 +6,10 @@ pub(crate) mod hir;
 
 use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+
+use crate::lints::{ast::AstLintsConfig, hir::HirLintsConfig};
 
 /// A lint emited by the linter.
 #[derive(Debug, Clone, thiserror::Error)]
@@ -43,7 +46,7 @@ impl Diagnostic for Lint {
 
 /// A lint level. This defines if a lint will be treated as a warning or an error,
 /// and if the lint level can be overriden by the user.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum LintLevel {
     /// The lint is effectively disabled.
     Allow,
@@ -67,4 +70,12 @@ impl Display for LintLevel {
 
         write!(f, "{level}")
     }
+}
+
+/// End-user configuration for each lint level. This structure is meant to be loaded
+/// from a JSON file using [`serde::Deserialize`].
+#[derive(Default, Serialize, Deserialize)]
+pub struct LintsConfig {
+    ast_lints: AstLintsConfig,
+    hir_lints: HirLintsConfig,
 }

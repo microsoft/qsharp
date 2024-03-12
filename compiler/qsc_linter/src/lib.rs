@@ -66,4 +66,4 @@ mod lints;
 #[cfg(test)]
 mod tests;
 
-pub use linter::{ast::run_ast_lints, hir::run_hir_lints, Lint, LintLevel};
+pub use linter::{ast::run_ast_lints, hir::run_hir_lints, Lint, LintLevel, LintsConfig};

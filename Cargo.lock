@@ -1032,6 +1032,7 @@ dependencies = [
  "qsc_data_structures",
  "qsc_hir",
  "qsc_parse",
+ "serde",
  "thiserror",
 ]
 

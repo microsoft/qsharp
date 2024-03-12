@@ -70,7 +70,7 @@ impl Compilation {
             language_features,
         );
 
-        let lints = unit.lints();
+        let lints = unit.lints(None);
         let mut lints = lints
             .into_iter()
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))

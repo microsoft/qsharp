@@ -13,6 +13,7 @@ miette = { workspace = true }
 qsc_ast = { path = "../qsc_ast" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_data_structures = { path = "../qsc_data_structures" }
+serde = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

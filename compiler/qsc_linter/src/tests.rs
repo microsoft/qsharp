@@ -130,9 +130,9 @@ fn redundant_semicolons() {
 fn check_ast(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let package = parse(&source);
-    let actual: Vec<SrcLint> = run_ast_lints(&package)
+    let actual: Vec<SrcLint> = run_ast_lints(&package, None)
         .into_iter()
-        .map(|lint| SrcLint::from(lint, &source))
+        .map(|lint| SrcLint::from(&lint, &source))
         .collect();
     expected.assert_debug_eq(&actual);
 }
@@ -173,7 +173,7 @@ struct SrcLint {
 }
 
 impl SrcLint {
-    fn from(lint: Lint, source: &str) -> Self {
+    fn from(lint: &Lint, source: &str) -> Self {
         Self {
             source: source[lint.span].into(),
             message: lint.message,
