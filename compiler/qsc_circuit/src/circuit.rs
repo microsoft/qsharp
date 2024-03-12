@@ -55,7 +55,8 @@ pub struct Qubit {
 
 #[derive(Clone, Debug, Copy, Default)]
 pub struct Config {
-    pub no_qubit_reuse: bool,
+    /// Perform Base Profile decompositions
+    pub base_profile: bool,
 }
 
 type ObjectsByColumn = FxHashMap<usize, String>;

@@ -53,7 +53,7 @@ impl Backend for Builder {
     }
 
     fn m(&mut self, q: usize) -> Self::ResultType {
-        if self.config.no_qubit_reuse {
+        if self.config.base_profile {
             // defer the measurement and reset the qubit
             self.remapper.mreset(q)
         } else {
@@ -70,7 +70,7 @@ impl Backend for Builder {
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
-        if self.config.no_qubit_reuse {
+        if self.config.base_profile {
             // defer the measurement
             self.remapper.mreset(q)
         } else {
@@ -91,7 +91,7 @@ impl Backend for Builder {
     }
 
     fn reset(&mut self, q: usize) {
-        if self.config.no_qubit_reuse {
+        if self.config.base_profile {
             self.remapper.reset(q);
         } else {
             let mapped_q = self.map(q);
@@ -271,7 +271,7 @@ impl Builder {
         let by_qubit = self.num_measurements_by_qubit();
 
         // add deferred measurements
-        if self.config.no_qubit_reuse {
+        if self.config.base_profile {
             for (qubit, _) in &by_qubit {
                 // guaranteed one measurement per qubit, so result is always 0
                 circuit.operations.push(measurement_gate(qubit, 0));

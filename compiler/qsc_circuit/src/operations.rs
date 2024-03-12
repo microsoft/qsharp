@@ -6,12 +6,6 @@ use qsc_hir::{
     ty::{Prim, Ty},
 };
 
-#[derive(Debug)]
-pub struct OperationInfo {
-    pub operation: String,
-    pub total_num_qubits: u32,
-}
-
 /// If the item is a callable, returns the information that would
 /// be needed to generate a circuit for it.
 ///

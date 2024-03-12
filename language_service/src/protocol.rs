@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc::circuit::OperationInfo;
 use qsc::line_column::Range;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
 
@@ -132,4 +131,10 @@ pub enum CodeLensCommand {
     Run,
     Estimate,
     Circuit(Option<OperationInfo>),
+}
+
+#[derive(Debug)]
+pub struct OperationInfo {
+    pub operation: String,
+    pub total_num_qubits: u32,
 }

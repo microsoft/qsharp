@@ -165,9 +165,13 @@ impl Interpreter {
                 SparseSim::new(),
                 CircuitBuilder::new(CircuitConfig {
                     // When using in conjunction with the simulator,
-                    // the circuit builder should assume qubits are reusable
-                    // to match the simulator's behavior.
-                    no_qubit_reuse: false,
+                    // the circuit builder should *not* perform base profile
+                    // decompositions, in order to match the simulator's behavior.
+                    //
+                    // Note that conditional compilation (e.g. @Config(Base) attributes)
+                    // will still respect the selected profile. This also
+                    // matches the behavior of the simulator.
+                    base_profile: false,
                 }),
             ),
             quantum_seed: None,
@@ -295,6 +299,7 @@ impl Interpreter {
         self.sim.capture_quantum_state()
     }
 
+    /// Get the current circuit representation of the program.
     pub fn get_circuit(&self) -> Circuit {
         self.sim.chained.snapshot()
     }
@@ -326,12 +331,11 @@ impl Interpreter {
         &mut self,
         entry: CircuitEntryPoint,
     ) -> std::result::Result<Circuit, Vec<Error>> {
-        // Disallow qubit reuse in Base Profile
-        let no_qubit_reuse = self.capabilities.is_empty();
-
         let mut sink = std::io::sink();
         let mut out = GenericReceiver::new(&mut sink);
-        let mut sim = CircuitBuilder::new(CircuitConfig { no_qubit_reuse });
+        let mut sim = CircuitBuilder::new(CircuitConfig {
+            base_profile: self.capabilities.is_empty(),
+        });
 
         let entry_expr = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {

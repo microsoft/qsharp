@@ -6,11 +6,11 @@ mod tests;
 
 use crate::{
     compilation::{Compilation, CompilationKind},
-    protocol::{CodeLens, CodeLensCommand},
+    protocol::{CodeLens, CodeLensCommand, OperationInfo},
     qsc_utils::{into_range, span_contains},
 };
 use qsc::{
-    circuit::{qubit_param_info, OperationInfo},
+    circuit::qubit_param_info,
     hir::{Attr, ItemKind, Visibility},
     line_column::Encoding,
 };
