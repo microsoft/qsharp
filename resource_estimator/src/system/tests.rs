@@ -211,7 +211,7 @@ fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBu
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<L: Overhead + Clone>(
+fn validate_result_invariants<L: Overhead>(
     result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
 ) {
     assert_eq!(

@@ -23,7 +23,7 @@ pub trait LayoutReportData {
 }
 
 /// Resource counts output from `qir_estimate_counts` program
-#[derive(Default, Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Default, Debug, Deserialize, Serialize)]
 #[serde(
     rename_all(deserialize = "camelCase", serialize = "camelCase"),
     deny_unknown_fields
