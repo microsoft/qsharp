@@ -36,7 +36,14 @@ fn compile_mimalloc() -> Result<(), Box<dyn Error>> {
         .very_verbose(true);
 
     let dst = config.build();
-    println!("cargo:rustc-link-search=native={}/lib", dst.display());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        dst.join("lib").display()
+    );
+    println!(
+        "cargo:rustc-link-search=static={}",
+        dst.join("lib").display()
+    );
     println!("cargo:rustc-link-lib=static=mimalloc");
 
     Ok(())
