@@ -337,7 +337,7 @@ impl Interpreter {
             CircuitEntryPoint::Operation(operation_expr) => {
                 // To determine whether the passed in expression is a valid callable name
                 // or lambda, we evaluate it and inspect the runtime value.
-                let maybe_operation = self.run_with_sim(&mut sim, &mut out, &operation_expr)??;
+                let maybe_operation = self.eval_fragments(&mut out, &operation_expr)?;
 
                 let maybe_invoke_expr = match maybe_operation {
                     Value::Closure(_, item_id, functor_app)

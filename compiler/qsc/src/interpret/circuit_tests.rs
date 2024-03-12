@@ -459,6 +459,47 @@ fn adjoint_operation() {
 }
 
 #[test]
+fn lambda() {
+    let mut interpreter = interpreter(
+        r"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] { [] }
+
+            operation SWAP (q1 : Qubit, q2 : Qubit) : Unit
+                is Adj + Ctl {
+
+                body (...) {
+                    CNOT(q1, q2);
+                    CNOT(q2, q1);
+                    CNOT(q1, q2);
+                }
+
+                adjoint (...) {
+                    SWAP(q1, q2);
+                }
+
+                controlled (cs, ...) {
+                    CNOT(q1, q2);
+                    Controlled CNOT(cs, (q2, q1));
+                    CNOT(q1, q2);
+                }
+            }
+        }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()))
+        .expect("circuit generation should succeed");
+
+    expect![[r#"
+        q_0    ── H ──
+    "#]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn controlled_operation() {
     let mut interpreter = interpreter(
         r"
@@ -530,7 +571,7 @@ fn internal_operation() {
                 WithSource {
                     sources: [
                         Source {
-                            name: "<entry>",
+                            name: "line_0",
                             contents: "Test.Test",
                             offset: 0,
                         },
