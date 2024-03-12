@@ -26,35 +26,28 @@ We can take advantage of controlled gates, specifically the [controlled NOT gate
 <center>
 <table style="background-color: white; border:1px solid; tr  { background-color:transparent; }">
     <col width=300>
-    <col width=300>
     <tr>
         <th style="text-align:center; border:1px solid">Matrix</th>
-        <th style="text-align:center; border:1px solid">Circuit</th>
     </tr>
     <tr>
-        <td style="text-align:center; border:1px solid">$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
-        <td style="text-align:center; border:1px solid"><img src="./img/CNOTGateCircuit.png"/></td>    
+        <td style="text-align:center; border:1px solid">$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$</td> 
       </tr>      
 </table> <br>
-The matrix and circuit representation of CNOT
+The matrix representation of CNOT
 </center><br>
 
 If we apply the CNOT gate to the state $\frac{1}{\sqrt2} (|00\rangle + |10\rangle)$, taking the first qubit as the control and the second one as target, we'll get exactly the desired goal state. 
-<img src="./img/Task6OutputHadamardasControl.png" width="200"/>
  
 <table style="background-color: white; border:1px solid; tr  { background-color:transparent; }">
     <col width=500>
     <col width=300>
-    <col width=300>
     <tr>
         <th style="text-align:center; border:1px solid">Steps required to reach goal state</th>
         <th style="text-align:center; border:1px solid">Notation</th>
-        <th style="text-align:center; border:1px solid">Circuit</th>
     </tr>
     <tr>
         <td style="text-align:left; border:1px solid">1. Apply a Hadamard gate to the first qubit. <br/> 2. Applying a CNOT with first qubit as control and second qubit as target.</td>
         <td style="text-align:center; border:1px solid; font-bold; font-size: 16px; ">$\frac{1}{\sqrt2} (|00\rangle + |11\rangle)$</td>
-        <td style="text-align:center; border:1px solid"><img src="./img/Task6HadamardCNOTCircuit.png"/></td>
       </tr>      
 </table>
 
