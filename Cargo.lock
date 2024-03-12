@@ -27,6 +27,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator"
+version = "0.0.0"
+dependencies = [
+ "mimalloc-sys",
+]
+
+[[package]]
 name = "anes"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -235,6 +242,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
+name = "cmake"
+version = "0.1.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31c789563b815f77f4250caee12365734369f942439b7defd71e18a48197130"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -434,8 +450,8 @@ dependencies = [
 name = "fuzz"
 version = "0.0.0"
 dependencies = [
+ "allocator",
  "libfuzzer-sys",
- "mimalloc",
  "qsc",
 ]
 
@@ -579,16 +595,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
 
 [[package]]
-name = "libmimalloc-sys"
-version = "0.1.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3979b5c37ece694f1f5e51e7ecc871fdb0f517ed04ee45f88d15d6d553cb9664"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
 name = "library"
 version = "0.0.0"
 dependencies = [
@@ -672,12 +678,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "mimalloc"
-version = "0.1.39"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa01922b5ea280a911e323e4d2fd24b7fe5cc4042e0d2cda3c40775cdc4bdc9c"
+name = "mimalloc-sys"
+version = "0.0.0"
 dependencies = [
- "libmimalloc-sys",
+ "cc",
+ "cmake",
 ]
 
 [[package]]
@@ -911,6 +916,7 @@ dependencies = [
 name = "qsc"
 version = "0.0.0"
 dependencies = [
+ "allocator",
  "clap",
  "criterion",
  "env_logger",
@@ -918,7 +924,6 @@ dependencies = [
  "indoc",
  "log",
  "miette",
- "mimalloc",
  "num-bigint",
  "num-complex",
  "qsc_ast",
@@ -1117,8 +1122,8 @@ dependencies = [
 name = "qsharp"
 version = "0.0.0"
 dependencies = [
+ "allocator",
  "miette",
- "mimalloc",
  "num-bigint",
  "num-complex",
  "pyo3",

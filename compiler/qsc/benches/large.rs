@@ -3,7 +3,7 @@
 
 #[cfg(not(target_family = "wasm"))]
 #[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static GLOBAL: allocator::Mimalloc = allocator::Mimalloc;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::compile::{self, compile};

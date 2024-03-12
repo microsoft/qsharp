@@ -3,7 +3,7 @@
 
 #[cfg(not(target_family = "wasm"))]
 #[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static GLOBAL: allocator::Mimalloc = allocator::Mimalloc;
 
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;

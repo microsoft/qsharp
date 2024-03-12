@@ -5,7 +5,7 @@
 
 #[cfg(not(target_family = "wasm"))]
 #[global_allocator]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static GLOBAL: allocator::Mimalloc = allocator::Mimalloc;
 
 #[cfg(feature = "do_fuzz")]
 use libfuzzer_sys::fuzz_target;

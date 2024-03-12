@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "allocator",
+    "allocator/mimalloc-sys",
     "compiler/qsc",
     "compiler/qsc_ast",
     "compiler/qsc_codegen",
@@ -47,7 +49,6 @@ libfuzzer-sys = "0.4"
 log = "0.4"
 miette = "5.10"
 thiserror = "1.0"
-mimalloc = { version = "0.1.39", default-features = false }
 num-bigint = "0.4"
 num-complex = "0.4"
 num-traits = "0.2"
