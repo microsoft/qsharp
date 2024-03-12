@@ -1401,8 +1401,8 @@ fn custom_intrinsic_fail_on_result_arg() {
                         2,
                     ),
                     span: Span {
-                        lo: 217,
-                        hi: 301,
+                        lo: 177,
+                        hi: 261,
                     },
                 },
             )
@@ -1438,8 +1438,8 @@ fn custom_intrinsic_fail_on_bigint_arg() {
                         2,
                     ),
                     span: Span {
-                        lo: 219,
-                        hi: 303,
+                        lo: 179,
+                        hi: 263,
                     },
                 },
             )
@@ -1475,8 +1475,8 @@ fn custom_intrinsic_fail_on_string_arg() {
                         2,
                     ),
                     span: Span {
-                        lo: 230,
-                        hi: 314,
+                        lo: 190,
+                        hi: 274,
                     },
                 },
             )
@@ -1512,8 +1512,8 @@ fn custom_intrinsic_fail_on_array_arg() {
                         2,
                     ),
                     span: Span {
-                        lo: 225,
-                        hi: 308,
+                        lo: 185,
+                        hi: 268,
                     },
                 },
             )
@@ -1549,8 +1549,8 @@ fn custom_intrinsic_fail_on_tuple_arg() {
                         2,
                     ),
                     span: Span {
-                        lo: 225,
-                        hi: 318,
+                        lo: 185,
+                        hi: 278,
                     },
                 },
             )
@@ -1584,8 +1584,8 @@ fn custom_intrinsic_fail_on_non_unit_return() {
                         2,
                     ),
                     span: Span {
-                        lo: 195,
-                        hi: 265,
+                        lo: 155,
+                        hi: 225,
                     },
                 },
             )
