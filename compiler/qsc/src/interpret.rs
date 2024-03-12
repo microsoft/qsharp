@@ -300,7 +300,8 @@ impl Interpreter {
         receiver: &mut impl Receiver,
         expr: &str,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        let stmt_id = self.compile_expr_to_stmt(expr)?;
+        let expr_id = self.compile_entry_expr(expr)?;
+
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
         }
@@ -308,7 +309,7 @@ impl Interpreter {
         Ok(eval(
             self.package,
             self.classical_seed,
-            stmt_id.into(),
+            expr_id.into(),
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -317,10 +318,21 @@ impl Interpreter {
         ))
     }
 
-    fn compile_expr_to_stmt(&mut self, expr: &str) -> std::result::Result<StmtId, Vec<Error>> {
-        let increment = self.compiler.compile_expr(expr).map_err(into_errors)?;
+    fn compile_entry_expr(&mut self, expr: &str) -> std::result::Result<ExprId, Vec<Error>> {
+        let increment = self
+            .compiler
+            .compile_entry_expr(expr)
+            .map_err(into_errors)?;
 
-        let stmts = self.lower(&increment);
+        // `lower` will update the entry expression in the FIR store,
+        // and it will always return an empty list of statements.
+        let _ = self.lower(&increment);
+
+        // The AST and HIR packages in `increment` only contain an entry
+        // expression and no statements. The HIR *can* contain items if the entry
+        // expression defined any items.
+        assert!(increment.hir.stmts.is_empty());
+        assert!(increment.ast.package.nodes.is_empty());
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -330,10 +342,10 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        assert!(stmts.len() == 1, "expected exactly one statement");
-        let stmt_id = stmts.first().expect("expected exactly one statement");
+        let unit = self.fir_store.get(self.package);
+        let entry = unit.entry.expect("package should have an entry expression");
 
-        Ok(*stmt_id)
+        Ok(entry)
     }
 
     fn lower(&mut self, unit_addition: &qsc_frontend::incremental::Increment) -> Vec<StmtId> {
