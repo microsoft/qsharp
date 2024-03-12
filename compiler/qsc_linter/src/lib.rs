@@ -19,7 +19,8 @@
 //! use qsc_ast::ast::Package;
 //!
 //! let package: Package = ...;
-//! let lints: Vec<Lint> = run_ast_lints(&package);
+//! let user_config: Option<LintsConfig> = serde::from_json(...);
+//! let lints: Vec<Lint> = run_ast_lints(&package, user_config.as_ref());
 //! ```
 //!
 //! # How to add a new Lint
