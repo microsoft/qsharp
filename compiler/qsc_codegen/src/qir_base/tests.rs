@@ -440,7 +440,6 @@ fn qubit_allocation_allows_reuse_of_unmeasured_qubits() {
     check(
         "",
         Some(indoc! {"{
-            open Microsoft.Quantum.Measurement;
             { use (c, q) = (Qubit(), Qubit()); CNOT(c, q); MResetZ(q); }
             { use (c, q) = (Qubit(), Qubit()); CNOT(c, q); MResetZ(q) }
         }"}),
@@ -604,7 +603,6 @@ fn complex_program_is_valid() {
     check(
         "",
         Some(indoc! {"{
-            open Microsoft.Quantum.Measurement;
             open Microsoft.Quantum.Math;
 
             operation SWAPfromExp(q1 : Qubit, q2 : Qubit) : Unit is Ctl + Adj {
@@ -911,7 +909,6 @@ fn qubit_ids_properly_reused() {
         namespace Test {
 
             open Microsoft.Quantum.Intrinsic;
-            open Microsoft.Quantum.Measurement;
 
             // Verifies the use of the CNOT quantum gate from Q#'s Microsoft.Quantum.Intrinsic namespace.
             // Expected simulation output: ([0, 0], [1, 1]).
@@ -1011,7 +1008,6 @@ fn custom_intrinsic_on_single_qubit() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : (Result, Result) {
                 use (q1, q2) = (Qubit(), Qubit());
@@ -1086,7 +1082,6 @@ fn multiple_custom_intrinsic_calls() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : (Result, Result) {
                 use (q0, q1) = (Qubit(), Qubit());
@@ -1173,7 +1168,6 @@ fn custom_intrinsic_on_qubit_and_double() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1244,7 +1238,6 @@ fn custom_intrinsic_on_qubit_and_bool() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1315,7 +1308,6 @@ fn custom_intrinsic_on_qubit_and_int() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1386,7 +1378,6 @@ fn custom_intrinsic_fail_on_result_arg() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1424,7 +1415,6 @@ fn custom_intrinsic_fail_on_bigint_arg() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1462,7 +1452,6 @@ fn custom_intrinsic_fail_on_string_arg() {
     check(
         indoc! {r#"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1500,7 +1489,6 @@ fn custom_intrinsic_fail_on_array_arg() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1538,7 +1526,6 @@ fn custom_intrinsic_fail_on_tuple_arg() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();
@@ -1576,7 +1563,6 @@ fn custom_intrinsic_fail_on_non_unit_return() {
     check(
         indoc! {"
         namespace Test {
-            open Microsoft.Quantum.Measurement;
             @EntryPoint()
             operation Test() : Result {
                 use q = Qubit();

@@ -140,7 +140,6 @@ fn check_measure_integer() {
     test_expression(
         {
             "{
-                open Microsoft.Quantum.Measurement;
                 use q = Qubit[16];
                 ApplyXorInPlace(45967, q);
                 let result = MeasureInteger(q);
