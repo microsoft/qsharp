@@ -28,10 +28,9 @@ fn compile_mimalloc() -> Result<(), Box<dyn Error>> {
     let mut config = Config::new(build_dir);
 
     config
-        .generator("Ninja")
         .define("CMAKE_BUILD_TYPE", "MinSizeRel")
         .define("MI_INSTALL_TOPLEVEL", "ON")
-        .build_target("mimalloc-prefix/src/mimalloc-stamp/mimalloc-install")
+        .build_target("mimalloc")
         .env("ALLOCATOR_MIMALLOC_TAG", ALLOCATOR_MIMALLOC_TAG);
 
     let dst = config.build();
