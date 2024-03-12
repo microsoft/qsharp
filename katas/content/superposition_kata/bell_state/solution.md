@@ -21,7 +21,7 @@ $$H|0\rangle \otimes |0\rangle = \frac{1}{\sqrt2} (|0\rangle + |1\rangle) \otime
 Well, we got pretty close, except we need to transform the $|10\rangle$ state to $|11\rangle$.
 How can we do this? 
 
-We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as CNOT. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The CNOT gate changes the target qubit from state $|0\rangle$ to $|1\rangle$ and vice versa when the control qubit is $|1\rangle$ and does nothing to the target qubit when the control qubit is $|0\rangle$. The control qubit always remains unchanged. 
+We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as $CNOT$. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The $CNOT$ gate changes the target qubit from state $|0\rangle$ to $|1\rangle$ and vice versa when the control qubit is $|1\rangle$ and does nothing to the target qubit when the control qubit is $|0\rangle$. The control qubit always remains unchanged. 
 
 <center>
 <table style="background-color: white; border:1px solid; tr  { background-color:transparent; }">
