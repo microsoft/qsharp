@@ -28,10 +28,12 @@ fn compile_mimalloc() -> Result<(), Box<dyn Error>> {
     let mut config = Config::new(build_dir);
 
     config
+        .build_target("mimalloc")
         .define("CMAKE_BUILD_TYPE", "MinSizeRel")
         .define("MI_INSTALL_TOPLEVEL", "ON")
-        .build_target("mimalloc")
-        .env("ALLOCATOR_MIMALLOC_TAG", ALLOCATOR_MIMALLOC_TAG);
+        .env("ALLOCATOR_MIMALLOC_TAG", ALLOCATOR_MIMALLOC_TAG)
+        .static_crt(true)
+        .very_verbose(true);
 
     let dst = config.build();
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
