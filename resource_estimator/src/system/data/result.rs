@@ -6,9 +6,10 @@ use std::rc::Rc;
 use crate::estimates::{ErrorBudget, LogicalPatch, Overhead, PhysicalResourceEstimationResult};
 use crate::system::modeling::{Protocol, TFactory};
 
+use super::LayoutReportData;
 use super::{
-    super::Error, FormattedPhysicalResourceCounts, JobParams, LogicalResourceCounts,
-    PhysicalResourceCounts, PhysicalResourceCountsBreakdown, Report,
+    super::Error, FormattedPhysicalResourceCounts, JobParams, PhysicalResourceCounts,
+    PhysicalResourceCountsBreakdown, Report,
 };
 use miette::Diagnostic;
 use serde::{ser::SerializeMap, Serialize, Serializer};
@@ -34,10 +35,10 @@ pub struct Success<L: Serialize> {
     frontier_entries: Vec<FrontierEntry>,
 }
 
-impl Success<LogicalResourceCounts> {
+impl<L: Overhead + LayoutReportData + Serialize> Success<L> {
     pub fn new(
         job_params: JobParams,
-        result: PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
+        result: PhysicalResourceEstimationResult<Protocol, TFactory, L>,
     ) -> Self {
         let counts = create_physical_resource_counts(&result);
 
@@ -65,9 +66,7 @@ impl Success<LogicalResourceCounts> {
 
     pub fn new_from_multiple(
         job_params: JobParams,
-        mut results: Vec<
-            PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
-        >,
+        mut results: Vec<PhysicalResourceEstimationResult<Protocol, TFactory, L>>,
     ) -> Self {
         let mut report_data: Option<Report> = None;
 
@@ -115,7 +114,7 @@ pub struct FrontierEntry {
 
 fn create_frontier_entry(
     job_params: &JobParams,
-    result: PhysicalResourceEstimationResult<Protocol, TFactory, LogicalResourceCounts>,
+    result: PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead + LayoutReportData>,
     create_report: bool,
 ) -> (FrontierEntry, Option<Report>) {
     let physical_counts = create_physical_resource_counts(&result);

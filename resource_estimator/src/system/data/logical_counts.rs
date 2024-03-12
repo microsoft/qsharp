@@ -12,6 +12,16 @@ use serde::{Deserialize, Serialize};
 
 use super::PartitioningOverhead;
 
+pub trait LayoutReportData {
+    fn num_qubits(&self) -> u64;
+    fn t_count(&self) -> u64;
+    fn rotation_count(&self) -> u64;
+    fn rotation_depth(&self) -> u64;
+    fn ccz_count(&self) -> u64;
+    fn ccix_count(&self) -> u64;
+    fn measurement_count(&self) -> u64;
+}
+
 /// Resource counts output from `qir_estimate_counts` program
 #[derive(Default, Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(
@@ -85,5 +95,35 @@ impl PartitioningOverhead for LogicalResourceCounts {
 
     fn has_rotations(&self) -> bool {
         self.rotation_count > 0
+    }
+}
+
+impl LayoutReportData for LogicalResourceCounts {
+    fn num_qubits(&self) -> u64 {
+        self.num_qubits
+    }
+
+    fn t_count(&self) -> u64 {
+        self.t_count
+    }
+
+    fn rotation_count(&self) -> u64 {
+        self.rotation_count
+    }
+
+    fn rotation_depth(&self) -> u64 {
+        self.rotation_depth
+    }
+
+    fn ccz_count(&self) -> u64 {
+        self.ccz_count
+    }
+
+    fn ccix_count(&self) -> u64 {
+        self.ccix_count
+    }
+
+    fn measurement_count(&self) -> u64 {
+        self.measurement_count
     }
 }
