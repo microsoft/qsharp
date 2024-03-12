@@ -35,10 +35,6 @@ Steps required to reach goal state:
 1. Apply a Hadamard gate to the first qubit.
 2. Applying a CNOT with first qubit as control and second qubit as target.
 
-Notation:
-
-$\frac{1}{\sqrt2} (|00\rangle + |11\rangle)$
-
 In matrix representation we can represent this operation as a product of two $4 \times 4$ matrices, with the matrix corresponding to the first step being the tensor product of a Hadamard gate on the first qubit and identity gate on the second qubit.
 
 $$H \otimes I = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 1  \\\ 1 & -1 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0  \\\ 0 & 1 \end{bmatrix} = 
