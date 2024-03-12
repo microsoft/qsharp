@@ -131,6 +131,15 @@ pub struct LocalSpecId {
     pub functor_set_value: FunctorSetValue,
 }
 
+impl From<(LocalItemId, FunctorSetValue)> for LocalSpecId {
+    fn from(value: (LocalItemId, FunctorSetValue)) -> Self {
+        Self {
+            callable: value.0,
+            functor_set_value: value.1,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct GlobalSpecId {
     pub callable: StoreItemId,

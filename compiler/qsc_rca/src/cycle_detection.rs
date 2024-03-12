@@ -119,10 +119,7 @@ impl<'a> CycleDetector<'a> {
             let item = self.package.get_item(callee.item.item);
             match &item.kind {
                 ItemKind::Callable(callable_decl) => self.walk_callable_decl(
-                    LocalSpecId {
-                        callable: callee.item.item,
-                        functor_set_value: callee.functor_app.functor_set_value(),
-                    },
+                    (callee.item.item, callee.functor_app.functor_set_value()).into(),
                     callable_decl,
                 ),
                 ItemKind::Namespace(_, _) => panic!("calls to namespaces are invalid"),
@@ -274,45 +271,21 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
         };
 
         // Visit the body specialization.
-        self.walk_spec_decl(
-            LocalSpecId {
-                callable: item.id,
-                functor_set_value: FunctorSetValue::Empty,
-            },
-            &spec_impl.body,
-        );
+        self.walk_spec_decl((item.id, FunctorSetValue::Empty).into(), &spec_impl.body);
 
         // Visit the adj specialization.
         if let Some(adj_decl) = &spec_impl.adj {
-            self.walk_spec_decl(
-                LocalSpecId {
-                    callable: item.id,
-                    functor_set_value: FunctorSetValue::Adj,
-                },
-                adj_decl,
-            );
+            self.walk_spec_decl((item.id, FunctorSetValue::Adj).into(), adj_decl);
         }
 
         // Visit the ctl specialization.
         if let Some(ctl_decl) = &spec_impl.ctl {
-            self.walk_spec_decl(
-                LocalSpecId {
-                    callable: item.id,
-                    functor_set_value: FunctorSetValue::Ctl,
-                },
-                ctl_decl,
-            );
+            self.walk_spec_decl((item.id, FunctorSetValue::Ctl).into(), ctl_decl);
         }
 
         // Visit the ctl_adj specialization.
         if let Some(ctl_adj_decl) = &spec_impl.ctl_adj {
-            self.walk_spec_decl(
-                LocalSpecId {
-                    callable: item.id,
-                    functor_set_value: FunctorSetValue::CtlAdj,
-                },
-                ctl_adj_decl,
-            );
+            self.walk_spec_decl((item.id, FunctorSetValue::CtlAdj).into(), ctl_adj_decl);
         }
     }
 
