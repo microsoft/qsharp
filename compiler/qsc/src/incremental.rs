@@ -149,12 +149,12 @@ impl Compiler {
     /// get information about the newly added items, or do other modifications.
     /// It is then the caller's responsibility to merge
     /// these packages into the current `CompileUnit` using the `update()` method.
-    pub fn compile_expr(&mut self, expr: &str) -> Result<Increment, Errors> {
+    pub fn compile_entry_expr(&mut self, expr: &str) -> Result<Increment, Errors> {
         let (core, unit) = self.store.get_open_mut();
 
         let mut increment = self
             .frontend
-            .compile_expr(unit, "<entry>", expr)
+            .compile_entry_expr(unit, expr)
             .map_err(into_errors)?;
 
         let pass_errors = self.passes.run_default_passes(
@@ -173,6 +173,7 @@ impl Compiler {
 
     /// Updates the current compilation with the AST and HIR packages,
     /// and any associated context, returned from a previous incremental compilation.
+    /// Entry expressions are ignored.
     pub fn update(&mut self, new: Increment) {
         let (_, unit) = self.store.get_open_mut();
 

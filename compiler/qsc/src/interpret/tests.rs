@@ -1044,6 +1044,20 @@ mod given_interpreter {
                 );
             }
         }
+
+        #[test]
+        fn base_prof_non_result_return() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(&mut interpreter, "123");
+            is_only_value(&result, &output, &Value::Int(123));
+        }
     }
 
     fn get_interpreter() -> Interpreter {
