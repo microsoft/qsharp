@@ -21,12 +21,7 @@ import {
   Handles,
   Scope,
 } from "@vscode/debugadapter";
-import {
-  FileAccessor,
-  basename,
-  isQsharpDocument,
-  toVscodeRange,
-} from "../common";
+import { basename, isQsharpDocument, toVscodeRange } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IDebugServiceWorker,
@@ -34,7 +29,6 @@ import {
   StepResultId,
   IStructStepResult,
   QscEventTarget,
-  qsharpLibraryUriScheme,
 } from "qsharp-lang";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
@@ -68,6 +62,8 @@ interface IBreakpointLocationData {
 export class QscDebugSession extends LoggingDebugSession {
   private static threadID = 1;
 
+  private readonly knownPaths = new Map<string, string>();
+
   private breakpointLocations: Map<string, IBreakpointLocationData[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
   private variableHandles = new Handles<"locals" | "quantum">();
@@ -76,7 +72,6 @@ export class QscDebugSession extends LoggingDebugSession {
   private supportsVariableType = false;
 
   public constructor(
-    private fileAccessor: FileAccessor,
     private debugService: IDebugServiceWorker,
     private config: vscode.DebugConfiguration,
     private sources: [string, string][],
@@ -93,7 +88,19 @@ export class QscDebugSession extends LoggingDebugSession {
     this.breakpoints = new Map<string, DebugProtocol.Breakpoint[]>();
     this.setDebuggerLinesStartAt1(false);
     this.setDebuggerColumnsStartAt1(false);
-    this.languageFeatures = languageFeatures;
+
+    for (const source of sources) {
+      const uri = vscode.Uri.parse(source[0], true);
+
+      // In Debug Protocol requests, the VS Code debug adapter client
+      // will strip file URIs to just the filesystem path.
+      // Keep track of the filesystem paths we know about so that
+      // we can resolve them back to the original URI when handling requests.
+      // See `asUri()` for more details.
+      if (uri.scheme === "file") {
+        this.knownPaths.set(uri.fsPath, uri.toString());
+      }
+    }
   }
 
   public async init(associationId: string): Promise<void> {
@@ -468,27 +475,15 @@ export class QscDebugSession extends LoggingDebugSession {
       breakpoints: [],
     };
 
-    const file = await this.fileAccessor
-      .openPath(args.source.path ?? "")
-      .catch((e) => {
-        log.trace(`Failed to open file: ${e}`);
-        const fileUri = this.fileAccessor.resolvePathToUri(
-          args.source.path ?? "",
-        );
-        log.trace(
-          "breakpointLocationsRequest, target file: " + fileUri.toString(),
-        );
-        return undefined;
-      });
+    const doc = await this.tryLoadSource(args.source);
+    log.trace(
+      `breakpointLocationsRequest: path=${args.source.path} resolved to ${doc?.uri}`,
+    );
 
-    // If we couldn't find the file, or it wasn't a Q# file, or
-    // the range is longer than the file, just return
+    // If we couldn't find the document, or if
+    // the range is longer than the document, just return
     const targetLineNumber = this.convertClientLineToDebugger(args.line);
-    if (
-      !file ||
-      !isQsharpDocument(file) ||
-      targetLineNumber >= file.lineCount
-    ) {
+    if (!doc || targetLineNumber >= doc.lineCount) {
       log.trace(`setBreakPointsResponse: %O`, response);
       this.sendResponse(response);
       return;
@@ -498,7 +493,7 @@ export class QscDebugSession extends LoggingDebugSession {
     // everything from `file` is 0 based, everything from `args` is 1 based
     // so we have to convert anything from `args` to 0 based
 
-    const line = file.lineAt(targetLineNumber);
+    const line = doc.lineAt(targetLineNumber);
     const lineRange = line.range;
     // If the column isn't specified, it is a line breakpoint so that we
     // use the whole line's range for breakpoint finding.
@@ -534,7 +529,7 @@ export class QscDebugSession extends LoggingDebugSession {
     // column offset, so we need to check if the startOffset is within range.
     const bps =
       this.breakpointLocations
-        .get(file.uri.toString())
+        .get(doc.uri.toString())
         ?.filter((bp) =>
           isLineBreakpoint
             ? bp.range.start.line == requestRange.start.line
@@ -563,31 +558,25 @@ export class QscDebugSession extends LoggingDebugSession {
   ): Promise<void> {
     log.trace(`setBreakPointsRequest: %O`, args);
 
-    const file = await this.fileAccessor
-      .openPath(args.source.path ?? "")
-      .catch((e) => {
-        log.trace(`setBreakPointsRequest - Failed to open file: ${e}`);
-        const fileUri = this.fileAccessor.resolvePathToUri(
-          args.source.path ?? "",
-        );
-        log.trace("setBreakPointsRequest, target file: " + fileUri.toString());
-        return undefined;
-      });
+    const doc = await this.tryLoadSource(args.source);
+    log.trace(
+      `setBreakPointsRequest: path=${args.source.path} resolved to ${doc?.uri}`,
+    );
 
-    // If we couldn't find the file, or it wasn't a Q# file, just return
-    if (!file || !isQsharpDocument(file)) {
+    // If we couldn't find the document, just return
+    if (!doc) {
       log.trace(`setBreakPointsResponse: %O`, response);
       this.sendResponse(response);
       return;
     }
 
     log.trace(`setBreakPointsRequest: looking`);
-    this.breakpoints.set(file.uri.toString(), []);
+    this.breakpoints.set(doc.uri.toString(), []);
     log.trace(
       `setBreakPointsRequest: files in cache %O`,
       this.breakpointLocations.keys(),
     );
-    const locations = this.breakpointLocations.get(file.uri.toString()) ?? [];
+    const locations = this.breakpointLocations.get(doc.uri.toString()) ?? [];
     log.trace(`setBreakPointsRequest: got locations %O`, locations);
     const desiredBpOffsets: {
       range: vscode.Range;
@@ -597,12 +586,12 @@ export class QscDebugSession extends LoggingDebugSession {
       .filter(
         (sourceBreakpoint) =>
           this.convertClientLineToDebugger(sourceBreakpoint.line) <
-          file.lineCount,
+          doc.lineCount,
       )
       .map((sourceBreakpoint) => {
         const isLineBreakpoint = !sourceBreakpoint.column;
         const line = this.convertClientLineToDebugger(sourceBreakpoint.line);
-        const lineRange = file.lineAt(line).range;
+        const lineRange = doc.lineAt(line).range;
         const startCol = sourceBreakpoint.column
           ? this.convertClientColumnToDebugger(sourceBreakpoint.column)
           : lineRange.start.character;
@@ -644,7 +633,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
 
     // Update our breakpoint list for the given file
-    this.breakpoints.set(file.uri.toString(), bps);
+    this.breakpoints.set(doc.uri.toString(), bps);
 
     response.body = {
       breakpoints: bps,
@@ -675,79 +664,29 @@ export class QscDebugSession extends LoggingDebugSession {
     const mappedStackFrames = await Promise.all(
       debuggerStackFrames
         .map(async (f, id) => {
-          log.trace(`frames: path %O`, f.path);
+          log.trace(`frames: location %O`, f.location);
 
-          const file = await this.fileAccessor
-            .openPath(f.path ?? "")
-            .catch((e) => {
-              log.error(`stackTraceRequest - Failed to open file: ${e}`);
-              const fileUri = this.fileAccessor.resolvePathToUri(f.path ?? "");
-              log.trace(
-                "stackTraceRequest, target file: " + fileUri.toString(),
-              );
-            });
-          if (file) {
-            log.trace(`frames: file %O`, file);
-            const sf: DebugProtocol.StackFrame = new StackFrame(
-              id,
-              f.name,
-              new Source(
-                basename(f.path) ?? f.path,
-                file.uri.toString(true),
-                undefined,
-                undefined,
-                "qsharp-adapter-data",
-              ),
-              this.convertDebuggerLineToClient(f.range.start.line),
-              this.convertDebuggerColumnToClient(f.range.start.character),
-            );
-            sf.endLine = this.convertDebuggerLineToClient(f.range.end.line);
-            sf.endColumn = this.convertDebuggerColumnToClient(
-              f.range.end.character,
-            );
-            return sf;
-          } else {
-            try {
-              // This file isn't part of the workspace, so we'll
-              // create a URI which can try to load it from the core and std lib
-              // There is a custom content provider subscribed to this scheme.
-              // Opening the text document by that uri will use the content
-              // provider to look for the source code.
-              const uri = vscode.Uri.from({
-                scheme: qsharpLibraryUriScheme,
-                path: f.path,
-              });
-              const source = new Source(
-                basename(f.path) ?? f.path,
-                uri.toString(),
-                0,
-                "internal core/std library",
-                "qsharp-adapter-data",
-              ) as DebugProtocol.Source;
-              const sf = new StackFrame(
-                id,
-                f.name,
-                source as Source,
-                this.convertDebuggerLineToClient(f.range.start.line),
-                this.convertDebuggerColumnToClient(f.range.start.character),
-              );
-              sf.endLine = this.convertDebuggerLineToClient(f.range.end.line);
-              sf.endColumn = this.convertDebuggerColumnToClient(
-                f.range.end.character,
-              );
-
-              return sf as DebugProtocol.StackFrame;
-            } catch (e: any) {
-              log.warn(e.message);
-              return new StackFrame(
-                id,
-                f.name,
-                undefined,
-                undefined,
-                undefined,
-              );
-            }
-          }
+          const uri = f.location.source;
+          const sf: DebugProtocol.StackFrame = new StackFrame(
+            id,
+            f.name,
+            new Source(
+              basename(vscode.Uri.parse(uri).path) ?? uri,
+              uri,
+              undefined,
+              undefined,
+              "qsharp-adapter-data",
+            ),
+            this.convertDebuggerLineToClient(f.location.span.start.line),
+            this.convertDebuggerColumnToClient(f.location.span.start.character),
+          );
+          sf.endLine = this.convertDebuggerLineToClient(
+            f.location.span.end.line,
+          );
+          sf.endColumn = this.convertDebuggerColumnToClient(
+            f.location.span.end.character,
+          );
+          return sf;
         })
         .filter(filterUndefined),
     );
@@ -882,5 +821,66 @@ export class QscDebugSession extends LoggingDebugSession {
       "console",
     );
     this.sendEvent(evt);
+  }
+
+  /**
+   * Attempts to find the Source in the current session and returns the
+   * TextDocument if it exists.
+   *
+   * This method *may* return a valid result even when the requested
+   * path does not belong in the current program (e.g. another Q# file
+   * in the workspace).
+   */
+  async tryLoadSource(source: DebugProtocol.Source) {
+    if (!source.path) {
+      return;
+    }
+
+    const uri = this.asUri(source.path);
+    if (!uri) {
+      return;
+    }
+
+    try {
+      const doc = await vscode.workspace.openTextDocument(uri);
+      if (!isQsharpDocument(doc)) {
+        return;
+      }
+      return doc;
+    } catch (e) {
+      log.trace(`Failed to open ${uri}: ${e}`);
+    }
+  }
+
+  /**
+   * Attemps to resolve a DebugProtocol.Source.path to a URI.
+   *
+   * In Debug Protocol requests, the VS Code debug adapter client
+   * will strip file URIs to just the filesystem path part.
+   * But for non-file URIs, the full URI is sent.
+   *
+   * See: https://github.com/microsoft/vscode/blob/3246d63177e1e5ae211029e7ab0021c33342a3c7/src/vs/workbench/contrib/debug/common/debugSource.ts#L90
+   *
+   * Here, we need the original URI, but we don't know if we're
+   * dealing with a filesystem path or URI. We cannot determine
+   * which one it is based on the input alone (the syntax is ambiguous).
+   * But we do have a set of *known* filesystem paths that we
+   * constructed at initialization, and we can use that to resolve
+   * any known fileystem paths back to the original URI.
+   *
+   * Filesystem paths we don't know about *won't* be resolved,
+   * and that's ok in this use case.
+   *
+   * If the path was originally constructed from a URI, it won't
+   * be in our known paths map, so we'll treat the string as a URI.
+   */
+  asUri(pathOrUri: string): vscode.Uri | undefined {
+    pathOrUri = this.knownPaths.get(pathOrUri) || pathOrUri;
+
+    try {
+      return vscode.Uri.parse(pathOrUri);
+    } catch (e) {
+      log.trace(`Could not resolve path ${pathOrUri}`);
+    }
   }
 }
