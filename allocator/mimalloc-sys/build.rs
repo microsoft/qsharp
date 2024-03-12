@@ -43,7 +43,13 @@ fn compile_mimalloc(dst: &Path) {
 
     if build.get_compiler().is_like_msvc() {
         build.cpp(true);
+        build.static_crt(true);
     }
+    // turn off debug mode
+    build.define("MI_DEBUG", "0");
+
+    // turning on optimizations doesn't seem to make a difference
+    //build.opt_level(3);
 
     build.compile("mimalloc");
 
