@@ -403,7 +403,6 @@ if build_jupyterlab:
         "-m",
         "pip",
         "wheel",
-        "--verbose",
         "--wheel-dir",
         wheels_dir,
         jupyterlab_src,
