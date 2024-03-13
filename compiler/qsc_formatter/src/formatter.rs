@@ -252,7 +252,14 @@ fn apply_rules(
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
             }
-            (_, TokenKind::Keyword(Keyword::Is)) => {
+            (_, TokenKind::Keyword(Keyword::Is))
+            | (_, TokenKind::Keyword(Keyword::For))
+            | (_, TokenKind::Keyword(Keyword::While))
+            | (_, TokenKind::Keyword(Keyword::Repeat))
+            | (_, TokenKind::Keyword(Keyword::If))
+            | (_, TokenKind::Keyword(Keyword::Within))
+            | (_, TokenKind::Keyword(Keyword::Return))
+            | (_, TokenKind::Keyword(Keyword::Fail)) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, _) if is_value_token_right(cooked_right) => {
