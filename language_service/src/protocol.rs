@@ -43,7 +43,7 @@ pub struct CompletionItem {
     pub kind: CompletionItemKind,
     pub sort_text: Option<String>,
     pub detail: Option<String>,
-    pub additional_text_edits: Option<Vec<(Range, String)>>,
+    pub additional_text_edits: Option<Vec<TextEdit>>,
 }
 
 impl CompletionItem {

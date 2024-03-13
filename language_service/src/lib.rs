@@ -223,10 +223,12 @@ impl LanguageService {
     #[must_use]
     pub fn get_format_changes(&self, uri: &str) -> Vec<TextEdit> {
         self.document_op(
-            format::get_format_changes,
+            |compilation, uri, (), position_encoding| {
+                format::get_format_changes(compilation, uri, position_encoding)
+            },
             "get_format_changes",
             uri,
-            Position { line: 0, column: 0 },
+            (),
         )
     }
 

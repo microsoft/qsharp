@@ -64,7 +64,7 @@ impl<'a> ConcreteTokenIterator<'a> {
             None => match self.cooked_tokens.peek() {
                 Some(next) => match next {
                     Ok(next) => next.span.lo,
-                    Err(err) => err.get_span().lo,
+                    Err(err) => err.span().lo,
                 },
                 None => self
                     .code
@@ -118,7 +118,7 @@ impl Iterator for ConcreteTokenIterator<'_> {
                 }
                 Err(err) => {
                     let next_lo = self.get_next_lo();
-                    let span = err.get_span();
+                    let span = err.span();
                     self.get_tokens_from_span(span.hi, next_lo);
                     let error = ConcreteToken {
                         kind: ConcreteTokenKind::Error(err),

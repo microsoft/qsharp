@@ -67,7 +67,7 @@ impl Error {
         }
     }
 
-    pub(crate) fn get_span(self) -> Span {
+    pub(crate) fn span(self) -> Span {
         match self {
             Error::Incomplete(_, _, _, s)
             | Error::IncompleteEof(_, _, s)

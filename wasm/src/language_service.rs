@@ -201,18 +201,8 @@ impl LanguageService {
         edits
             .into_iter()
             .map(|edit| {
-                // ToDo: is there an easier way to convert data types?
                 TextEdit {
-                    range: Range {
-                        start: Position {
-                            line: edit.range.start.line,
-                            character: edit.range.start.column,
-                        },
-                        end: Position {
-                            line: edit.range.end.line,
-                            character: edit.range.end.column,
-                        },
-                    },
+                    range: edit.range.into(),
                     newText: edit.new_text,
                 }
                 .into()
