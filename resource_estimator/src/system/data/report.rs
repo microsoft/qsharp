@@ -11,10 +11,10 @@ use serde::Serialize;
 use crate::estimates::{Factory, Overhead, PhysicalResourceEstimationResult};
 use crate::system::modeling::Protocol;
 
+use super::LayoutReportData;
 use super::{
     super::modeling::{PhysicalInstructionSet, TFactory},
     job_params::JobParams,
-    LogicalResourceCounts,
 };
 
 #[derive(Serialize)]
@@ -26,12 +26,17 @@ pub struct Report {
 
 impl Report {
     #[allow(clippy::vec_init_then_push, clippy::too_many_lines)]
-    pub fn new<L: Overhead + Clone>(
-        logical_counts: &LogicalResourceCounts,
+    pub fn new(
         job_params: &JobParams,
-        result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+        result: &PhysicalResourceEstimationResult<
+            Protocol,
+            TFactory,
+            impl Overhead + LayoutReportData,
+        >,
         formatted_counts: &FormattedPhysicalResourceCounts,
     ) -> Self {
+        let logical_counts = result.layout_overhead();
+
         // THIS CODE HAS BEEN AUTOMATICALLY GENERATED WITH resource_estimator/scripts/generate_report_code.py from docs/output_data.md
         let mut groups = vec![];
 
@@ -46,18 +51,18 @@ impl Report {
         });
 
         let mut entries = vec![];
-        entries.push(ReportEntry::new("physicalCountsFormatted/algorithmicLogicalQubits", "Logical algorithmic qubits", r#"Number of logical qubits for the algorithm after layout"#, &format!(r#"Laying out the logical qubits in the presence of nearest-neighbor constraints requires additional logical qubits.  In particular, to layout the $Q_{{\rm alg}} = {}$ logical qubits in the input algorithm, we require in total $2 \cdot Q_{{\rm alg}} + \lceil \sqrt{{8 \cdot Q_{{\rm alg}}}}\rceil + 1 = {}$ logical qubits."#, format_thousand_sep(&logical_counts.num_qubits), format_thousand_sep(&result.layout_overhead().logical_qubits()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/algorithmicLogicalDepth", "Algorithmic depth", r#"Number of logical cycles for the algorithm"#, &format!(r#"To execute the algorithm using _Parallel Synthesis Sequential Pauli Computation_ (PSSPC), operations are scheduled in terms of multi-qubit Pauli measurements, for which assume an execution time of one logical cycle.  Based on the input algorithm, we require one multi-qubit measurement for the {} single-qubit measurements, the {} arbitrary single-qubit rotations, and the {} T gates, three multi-qubit measurements for each of the {} CCZ and {} CCiX gates in the input program, as well as {} multi-qubit measurements for each of the {} non-Clifford layers in which there is at least one single-qubit rotation with an arbitrary angle rotation."#, format_thousand_sep(&logical_counts.measurement_count), format_thousand_sep(&logical_counts.rotation_count), format_thousand_sep(&logical_counts.t_count), format_thousand_sep(&logical_counts.ccz_count), format_thousand_sep(&logical_counts.ccix_count), formatted_counts.num_ts_per_rotation, format_thousand_sep(&logical_counts.rotation_depth))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/algorithmicLogicalQubits", "Logical algorithmic qubits", r#"Number of logical qubits for the algorithm after layout"#, &format!(r#"Laying out the logical qubits in the presence of nearest-neighbor constraints requires additional logical qubits.  In particular, to layout the $Q_{{\rm alg}} = {}$ logical qubits in the input algorithm, we require in total $2 \cdot Q_{{\rm alg}} + \lceil \sqrt{{8 \cdot Q_{{\rm alg}}}}\rceil + 1 = {}$ logical qubits."#, format_thousand_sep(&logical_counts.num_qubits()), format_thousand_sep(&result.layout_overhead().logical_qubits()))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/algorithmicLogicalDepth", "Algorithmic depth", r#"Number of logical cycles for the algorithm"#, &format!(r#"To execute the algorithm using _Parallel Synthesis Sequential Pauli Computation_ (PSSPC), operations are scheduled in terms of multi-qubit Pauli measurements, for which assume an execution time of one logical cycle.  Based on the input algorithm, we require one multi-qubit measurement for the {} single-qubit measurements, the {} arbitrary single-qubit rotations, and the {} T gates, three multi-qubit measurements for each of the {} CCZ and {} CCiX gates in the input program, as well as {} multi-qubit measurements for each of the {} non-Clifford layers in which there is at least one single-qubit rotation with an arbitrary angle rotation."#, format_thousand_sep(&logical_counts.measurement_count()), format_thousand_sep(&logical_counts.rotation_count()), format_thousand_sep(&logical_counts.t_count()), format_thousand_sep(&logical_counts.ccz_count()), format_thousand_sep(&logical_counts.ccix_count()), formatted_counts.num_ts_per_rotation, format_thousand_sep(&logical_counts.rotation_depth()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/logicalDepth", "Logical depth", r#"Number of logical cycles performed"#, &format!(r#"This number is usually equal to the logical depth of the algorithm, which is {}.  However, in the case in which a single T factory is slower than the execution time of the algorithm, we adjust the logical cycle depth to exceed the T factory's execution time."#, format_thousand_sep(&result.algorithmic_logical_depth()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/clockFrequency", "Clock frequency", r#"Number of logical cycles per second"#, &format!(r#"This is the number of logical cycles that can be performed within one second.  The logical cycle time is {}."#, formatted_counts.logical_cycle_time)));
-        entries.push(ReportEntry::new("physicalCountsFormatted/numTstates", "Number of T states", r#"Number of T states consumed by the algorithm"#, &format!(r#"To execute the algorithm, we require one T state for each of the {} T gates, four T states for each of the {} CCZ and {} CCiX gates, as well as {} for each of the {} single-qubit rotation gates with arbitrary angle rotation."#, format_thousand_sep(&logical_counts.t_count), format_thousand_sep(&logical_counts.ccz_count), format_thousand_sep(&logical_counts.ccix_count), formatted_counts.num_ts_per_rotation, format_thousand_sep(&logical_counts.rotation_count))));
+        entries.push(ReportEntry::new("physicalCountsFormatted/numTstates", "Number of T states", r#"Number of T states consumed by the algorithm"#, &format!(r#"To execute the algorithm, we require one T state for each of the {} T gates, four T states for each of the {} CCZ and {} CCiX gates, as well as {} for each of the {} single-qubit rotation gates with arbitrary angle rotation."#, format_thousand_sep(&logical_counts.t_count()), format_thousand_sep(&logical_counts.ccz_count()), format_thousand_sep(&logical_counts.ccix_count()), formatted_counts.num_ts_per_rotation, format_thousand_sep(&logical_counts.rotation_count()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/numTfactories", "Number of T factories", &format!(r#"Number of T factories capable of producing the demanded {} T states during the algorithm's runtime"#, format_thousand_sep(&result.num_magic_states())), &format!(r#"The total number of T factories {} that are executed in parallel is computed as $\left\lceil\dfrac{{\text{{T states}}\cdot\text{{T factory duration}}}}{{\text{{T states per T factory}}\cdot\text{{algorithm runtime}}}}\right\rceil = \left\lceil\dfrac{{{} \cdot {}\;\text{{ns}}}}{{{} \cdot {}\;\text{{ns}}}}\right\rceil$"#, format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.num_magic_states()), format_thousand_sep(&result.factory().map_or(0, TFactory::duration)), format_thousand_sep(&result.factory().map_or(0, TFactory::num_output_states)), format_thousand_sep(&result.runtime()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/numTfactoryRuns", "Number of T factory invocations", r#"Number of times all T factories are invoked"#, &format!(r#"In order to prepare the {} T states, the {} copies of the T factory are repeatedly invoked {} times."#, format_thousand_sep(&result.num_magic_states()), format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.num_factory_runs()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForAlgorithm", "Physical algorithmic qubits", r#"Number of physical qubits for the algorithm after layout"#, &format!(r#"The {} are the product of the {} logical qubits after layout and the {} physical qubits that encode a single logical qubit."#, format_thousand_sep(&result.physical_qubits_for_algorithm()), format_thousand_sep(&result.layout_overhead().logical_qubits()), format_thousand_sep(&result.logical_patch().physical_qubits()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsForTfactories", "Physical T factory qubits", r#"Number of physical qubits for the T factories"#, &format!(r#"Each T factory requires {} physical qubits and we run {} in parallel, therefore we need ${} = {} \cdot {}$ qubits."#, format_thousand_sep(&result.factory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_factories()), format_thousand_sep(&result.physical_qubits_for_factories()), format_thousand_sep(&result.factory().map_or(0, TFactory::physical_qubits)), format_thousand_sep(&result.num_factories()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/requiredLogicalQubitErrorRate", "Required logical qubit error rate", r#"The minimum logical qubit error rate required to run the algorithm within the error budget"#, &format!(r#"The minimum logical qubit error rate is obtained by dividing the logical error probability {} by the product of {} logical qubits and the total cycle count {}."#, formatted_counts.error_budget_logical, format_thousand_sep(&result.layout_overhead().logical_qubits()), format_thousand_sep(&result.num_cycles()))));
         entries.push(ReportEntry::new("physicalCountsFormatted/requiredLogicalTstateErrorRate", "Required logical T state error rate", r#"The minimum T state error rate required for distilled T states"#, &format!(r#"The minimum T state error rate is obtained by dividing the T distillation error probability {} by the total number of T states {}."#, formatted_counts.error_budget_tstates, format_thousand_sep(&result.num_magic_states()))));
-        entries.push(ReportEntry::new("physicalCountsFormatted/numTsPerRotation", "Number of T states per rotation", r#"Number of T states to implement a rotation with an arbitrary angle"#, &format!(r#"The number of T states to implement a rotation with an arbitrary angle is $\lceil 0.53 \log_2({} / {}) + 4.86\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)].  For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases."#, format_thousand_sep(&logical_counts.rotation_count), result.error_budget().rotations())));
+        entries.push(ReportEntry::new("physicalCountsFormatted/numTsPerRotation", "Number of T states per rotation", r#"Number of T states to implement a rotation with an arbitrary angle"#, &format!(r#"The number of T states to implement a rotation with an arbitrary angle is $\lceil 0.53 \log_2({} / {}) + 4.86\rceil$ [[arXiv:2203.10064](https://arxiv.org/abs/2203.10064)].  For simplicity, we use this formula for all single-qubit arbitrary angle rotations, and do not distinguish between best, worst, and average cases."#, format_thousand_sep(&logical_counts.rotation_count()), result.error_budget().rotations())));
         groups.push(ReportEntryGroup {
             title: "Resource estimates breakdown".into(),
             always_visible: false,
@@ -353,9 +358,12 @@ pub struct FormattedPhysicalResourceCounts {
 
 impl FormattedPhysicalResourceCounts {
     #[allow(clippy::too_many_lines)]
-    pub fn new<L: Overhead + Clone>(
-        result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
-        logical_resources: &LogicalResourceCounts,
+    pub fn new(
+        result: &PhysicalResourceEstimationResult<
+            Protocol,
+            TFactory,
+            impl Overhead + LayoutReportData,
+        >,
         job_params: &JobParams,
     ) -> Self {
         // Physical resource estimates
@@ -485,14 +493,16 @@ impl FormattedPhysicalResourceCounts {
             });
 
         // Pre-layout logical resources
-        let logical_counts_num_qubits = format_metric_prefix(logical_resources.num_qubits);
-        let logical_counts_t_count = format_metric_prefix(logical_resources.t_count);
-        let logical_counts_rotation_count = format_metric_prefix(logical_resources.rotation_count);
-        let logical_counts_rotation_depth = format_metric_prefix(logical_resources.rotation_depth);
-        let logical_counts_ccz_count = format_metric_prefix(logical_resources.ccz_count);
-        let logical_counts_ccix_count = format_metric_prefix(logical_resources.ccix_count);
+        let logical_counts_num_qubits = format_metric_prefix(result.layout_overhead().num_qubits());
+        let logical_counts_t_count = format_metric_prefix(result.layout_overhead().t_count());
+        let logical_counts_rotation_count =
+            format_metric_prefix(result.layout_overhead().rotation_count());
+        let logical_counts_rotation_depth =
+            format_metric_prefix(result.layout_overhead().rotation_depth());
+        let logical_counts_ccz_count = format_metric_prefix(result.layout_overhead().ccz_count());
+        let logical_counts_ccix_count = format_metric_prefix(result.layout_overhead().ccix_count());
         let logical_counts_measurement_count =
-            format_metric_prefix(logical_resources.measurement_count);
+            format_metric_prefix(result.layout_overhead().measurement_count());
 
         // Assumed error budget
         let error_budget = format!("{:.2e}", job_params.error_budget().total());

@@ -19,32 +19,32 @@ mod modeling;
 mod optimization;
 mod serialization;
 
-use crate::estimates::PhysicalResourceEstimation;
+use crate::estimates::{Overhead, PhysicalResourceEstimation};
+use std::rc::Rc;
 
+pub use self::{data::LogicalResourceCounts, error::Error};
 use self::{modeling::Protocol, optimization::TFactoryBuilder};
-use super::LogicalResources;
-use data::{EstimateType, JobParams, LogicalResourceCounts};
-pub use error::Error;
+use data::{EstimateType, JobParams};
+pub use data::{LayoutReportData, PartitioningOverhead};
+use serde::Serialize;
 
 pub(crate) type Result<T> = std::result::Result<T, error::Error>;
-
-pub fn estimate_physical_resources(
-    logical_resources: &LogicalResources,
-    params: &str,
-) -> Result<String> {
-    estimate(logical_resources.into(), params)
-}
 
 pub fn estimate_physical_resources_from_json(
     logical_resources: &str,
     params: &str,
 ) -> std::result::Result<String, Error> {
-    let logical_resources = serde_json::from_str(logical_resources)
+    let logical_resources: LogicalResourceCounts = serde_json::from_str(logical_resources)
         .map_err(|e| error::Error::IO(error::IO::CannotParseJSON(e)))?;
-    estimate(logical_resources, params)
+    estimate_physical_resources(logical_resources, params)
 }
 
-fn estimate(logical_resources: LogicalResourceCounts, params: &str) -> Result<String> {
+pub fn estimate_physical_resources<
+    L: Overhead + LayoutReportData + PartitioningOverhead + Serialize,
+>(
+    logical_resources: L,
+    params: &str,
+) -> Result<String> {
     let job_params_array = if params.is_empty() {
         vec![JobParams::default()]
     } else {
@@ -52,8 +52,9 @@ fn estimate(logical_resources: LogicalResourceCounts, params: &str) -> Result<St
     };
 
     let mut results: Vec<String> = Vec::with_capacity(job_params_array.len());
+    let logical_resources = Rc::new(logical_resources);
     for job_params in job_params_array {
-        let result = estimate_single(logical_resources, job_params);
+        let result = estimate_single(logical_resources.clone(), job_params);
         match result {
             Ok(result) => results.push(
                 serde_json::to_string(&result).expect("serializing to json string should succeed"),
@@ -67,10 +68,10 @@ fn estimate(logical_resources: LogicalResourceCounts, params: &str) -> Result<St
     Ok(format!("[{}]", results.join(",")))
 }
 
-fn estimate_single(
-    logical_resources: LogicalResourceCounts,
+fn estimate_single<L: Overhead + LayoutReportData + PartitioningOverhead + Serialize>(
+    logical_resources: Rc<L>,
     mut job_params: JobParams,
-) -> Result<data::Success> {
+) -> Result<data::Success<L>> {
     let qubit = job_params.qubit_params().clone();
 
     let ftp = Protocol::load_from_specification(job_params.qec_scheme_mut(), &qubit)?;
@@ -78,7 +79,9 @@ fn estimate_single(
         .distillation_unit_specifications()
         .as_templates()?;
     // create error budget partitioning
-    let partitioning = job_params.error_budget().partitioning(&logical_resources)?;
+    let partitioning = job_params
+        .error_budget()
+        .partitioning(logical_resources.as_ref())?;
 
     let mut estimation = PhysicalResourceEstimation::new(
         ftp,
@@ -118,14 +121,11 @@ fn estimate_single(
             let estimation_result = estimation
                 .build_frontier()
                 .map_err(std::convert::Into::into);
-            estimation_result.map(|result| {
-                data::Success::new_from_multiple(logical_resources, job_params, result)
-            })
+            estimation_result.map(|result| data::Success::new_from_multiple(job_params, result))
         }
         EstimateType::SinglePoint => {
             let estimation_result = estimation.estimate().map_err(std::convert::Into::into);
-            estimation_result
-                .map(|result| data::Success::new(logical_resources, job_params, result))
+            estimation_result.map(|result| data::Success::new(job_params, result))
         }
     }
 }
