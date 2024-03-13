@@ -11,7 +11,6 @@ fn check_maj() {
     test_expression(
         {
             "{
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
                 use q = Qubit[3];
                 mutable r = [];
@@ -107,7 +106,6 @@ fn check_inc_by_le_general() {
     test_expression(
         {
             "{  // General cases for IncByLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
                 use x1 = Qubit[10];
                 use y1 = Qubit[10];
@@ -173,7 +171,6 @@ fn check_ripple_carry_ttk_inc_by_le_general() {
     test_expression(
         {
             "{  // General cases for RippleCarryTTKIncByLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -279,7 +276,6 @@ fn check_ripple_carry_cg_inc_by_le_general() {
     test_expression(
         {
             "{  // General cases for RippleCarryCGIncByLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -436,7 +432,6 @@ fn check_inc_by_le_using_add_le_general() {
     test_expression(
         {
             "{  // General cases for IncByLEUsingAddLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -463,7 +458,6 @@ fn check_inc_by_i_general() {
     test_expression(
         {
             "{ // General cases for IncByI
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[1];
@@ -519,7 +513,6 @@ fn check_ripple_carry_cg_inc_by_i_general() {
     test_expression(
         {
             "{  // General cases for IncByIUsingIncByLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[10];
@@ -556,7 +549,6 @@ fn check_inc_by_l_general() {
     test_expression(
         {
             "{ // General cases for IncByL
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[1];
@@ -612,7 +604,6 @@ fn check_ripple_carry_cg_inc_by_l_general() {
     test_expression(
         {
             "{  // Branching cases for IncByLUsingIncByLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use y0 = Qubit[10];
@@ -691,7 +682,6 @@ fn check_add_le_general() {
     test_expression(
         {
             "{   // General cases for AddLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -761,7 +751,6 @@ fn check_ripple_carry_cg_add_le_general() {
     test_expression(
         {
             "{  // General cases for RippleCarryAddLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -829,7 +818,6 @@ fn check_lookahead_dkrs_add_le_general() {
     test_expression(
         {
             "{  // General cases for LookAheadDKRSAddLE
-                open Microsoft.Quantum.Measurement;
                 open Microsoft.Quantum.Unstable.Arithmetic;
 
                 use x1 = Qubit[10];
@@ -965,7 +953,6 @@ fn check_apply_if_less_l_non_x_action() {
     test_expression(
         "{
             open Microsoft.Quantum.Unstable.Arithmetic;
-            open Microsoft.Quantum.Measurement;
             use input = Qubit[10];
             use output1 = Qubit[10];
             use output2 = Qubit[10];

@@ -12,5 +12,5 @@ In our case we only want to flip the phase of the $|11\rangle$ state and not the
 
 @[solution]({
     "id": "superposition__even_sup_two_qubits_phase_flip_solution",
-    "codePath": "./solution.qs"
+    "codePath": "./Solution.qs"
 })

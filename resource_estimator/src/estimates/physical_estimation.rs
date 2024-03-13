@@ -5,7 +5,7 @@ use super::{
     optimization::{Point2D, Population},
     Error, ErrorBudget, LogicalPatch, Overhead,
 };
-use std::{cmp::Ordering, rc::Rc};
+use std::{borrow::Cow, cmp::Ordering, rc::Rc};
 
 /// Trait to model quantum error correction.
 ///
@@ -108,7 +108,10 @@ pub trait FactoryBuilder<E: ErrorCorrection> {
     ) -> Vec<Self::Factory>;
 }
 
-pub trait Factory {
+pub trait Factory
+where
+    Self::Parameter: std::clone::Clone,
+{
     type Parameter;
 
     fn physical_qubits(&self) -> u64;
@@ -121,7 +124,7 @@ pub trait Factory {
     /// The maximum code parameter setting for a magic state factory. This is
     /// used to constrain the search space, when looking for magic state
     /// factories.
-    fn max_code_parameter(&self) -> Self::Parameter;
+    fn max_code_parameter(&self) -> Option<Cow<Self::Parameter>>;
 }
 
 pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
@@ -137,14 +140,14 @@ pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
     physical_qubits: u64,
     runtime: u64,
     rqops: u64,
-    layout_overhead: L,
+    layout_overhead: Rc<L>,
     error_budget: ErrorBudget,
 }
 
 impl<
         E: ErrorCorrection<Parameter = impl Clone>,
         F: Factory<Parameter = E::Parameter> + Clone,
-        L: Overhead + Clone,
+        L: Overhead,
     > PhysicalResourceEstimationResult<E, F, L>
 {
     pub fn new(
@@ -206,7 +209,7 @@ impl<
             physical_qubits,
             runtime,
             rqops,
-            layout_overhead: estimation.layout_overhead().clone(),
+            layout_overhead: estimation.layout_overhead.clone(),
             error_budget: estimation.error_budget().clone(),
         }
     }
@@ -280,7 +283,7 @@ impl<
         self.rqops
     }
 
-    pub fn layout_overhead(&self) -> &L {
+    pub fn layout_overhead(&self) -> &Rc<L> {
         &self.layout_overhead
     }
 
@@ -310,7 +313,7 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
     ftp: E,
     qubit: Rc<E::Qubit>,
     factory_builder: Builder,
-    layout_overhead: L,
+    layout_overhead: Rc<L>,
     error_budget: ErrorBudget,
     // optional constraint parameters
     logical_depth_factor: Option<f64>,
@@ -322,14 +325,14 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
 impl<
         E: ErrorCorrection<Parameter = impl Clone>,
         Builder: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead + Clone,
+        L: Overhead,
     > PhysicalResourceEstimation<E, Builder, L>
 {
     pub fn new(
         ftp: E,
         qubit: Rc<E::Qubit>,
         factory_builder: Builder,
-        layout_overhead: L,
+        layout_overhead: Rc<L>,
         error_budget: ErrorBudget,
     ) -> Self {
         Self {
@@ -1166,8 +1169,9 @@ impl<
     fn find_highest_code_parameter(&self, factories: &[Builder::Factory]) -> Option<E::Parameter> {
         factories
             .iter()
-            .map(Factory::max_code_parameter)
+            .filter_map(Factory::max_code_parameter)
             .max_by(|a, b| self.ftp.code_parameter_cmp(self.qubit.as_ref(), a, b))
+            .map(Cow::into_owned)
     }
 
     /// Computes the number of logical patches required for the algorithm given

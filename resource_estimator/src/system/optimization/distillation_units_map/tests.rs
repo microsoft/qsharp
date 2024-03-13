@@ -4,7 +4,7 @@
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
-use crate::estimates::LogicalPatch;
+use crate::estimates::{DistillationUnit, LogicalPatch};
 
 use super::super::super::{
     data::{

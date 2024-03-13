@@ -15,5 +15,5 @@ Q# arrays are similar to arrays in other languages: you can access the $i$-th el
 
 @[solution]({
     "id": "superposition__even_sup_two_qubits_solution",
-    "codePath": "./solution.qs"
+    "codePath": "./Solution.qs"
 })

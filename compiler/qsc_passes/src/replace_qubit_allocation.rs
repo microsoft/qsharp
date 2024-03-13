@@ -480,10 +480,15 @@ fn create_qubit_alloc_call_expr(
     call_expr: Expr,
     array_size: Option<Expr>,
 ) -> Expr {
+    let ty = if array_size.is_none() {
+        Ty::Prim(Prim::Qubit)
+    } else {
+        Ty::Array(Box::new(Ty::Prim(Prim::Qubit)))
+    };
     Expr {
         id: assigner.next_node(),
         span,
-        ty: Ty::Prim(Prim::Qubit),
+        ty,
         kind: ExprKind::Call(
             Box::new(call_expr),
             Box::new(array_size.unwrap_or(Expr {

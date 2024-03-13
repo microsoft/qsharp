@@ -8,7 +8,7 @@ use qsc::interpret::{Debugger, Error, StepAction, StepResult};
 use qsc::line_column::Encoding;
 use qsc::{fmt_complex, target::Profile, LanguageFeatures};
 
-use crate::line_column::Range;
+use crate::line_column::{Location, Range};
 use crate::{get_source_map, serializable_type, CallbackReceiver};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -70,11 +70,10 @@ impl DebugService {
 
         StackFrameList {
             frames: frames
-                .iter()
+                .into_iter()
                 .map(|s| StackFrame {
                     name: format!("{} {}", s.name, s.functor),
-                    path: s.path.clone(),
-                    range: s.range.into(),
+                    location: s.location.into(),
                 })
                 .collect(),
         }
@@ -124,14 +123,11 @@ impl DebugService {
         }
         let bps: Vec<_> = ids.iter().map(|f| StmtId::from(*f)).collect();
 
-        match self.run_internal(
-            |msg: &str| {
-                // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-                let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
-            },
-            &bps,
-            step,
-        ) {
+        let event_cb = |msg: &str| {
+            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+        };
+        match self.run_internal(event_cb, &bps, step) {
             Ok(value) => Ok(StructStepResult::from(value).into()),
             Err(e) => Err(JsError::from(&e[0]).into()),
         }
@@ -329,13 +325,11 @@ serializable_type! {
     StackFrame,
     {
         pub name: String,
-        pub path: String,
-        pub range: Range
+        pub location: Location
     },
     r#"export interface IStackFrame {
         name: string;
-        path: string;
-        range: IRange;
+        location: ILocation
     }"#
 }
 

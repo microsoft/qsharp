@@ -2,15 +2,14 @@
 // Licensed under the MIT License.
 
 import { ShotResult, Dump, Result } from "./common.js";
-import { TelemetryEvent, log } from "../log.js";
+import { log } from "../log.js";
 import { IServiceEventTarget } from "../workers/common.js";
 
 // Create strongly typed compiler events
 export type QscEventData =
   | { type: "Message"; detail: string }
-  | { type: "DumpMachine"; detail: Dump }
-  | { type: "Result"; detail: Result }
-  | { type: "telemetry-event"; detail: TelemetryEvent };
+  | { type: "DumpMachine"; detail: { state: Dump; stateLatex: string } }
+  | { type: "Result"; detail: Result };
 
 export type QscEvents = Event & QscEventData;
 
@@ -94,11 +93,15 @@ export class QscEventTarget implements IQscEventTarget {
     this.queueUiRefresh();
   }
 
-  private onDumpMachine(dump: Dump) {
+  private onDumpMachine(detail: { state: Dump; stateLatex: string }) {
     this.ensureActiveShot();
 
     const shotIdx = this.results.length - 1;
-    this.results[shotIdx].events.push({ type: "DumpMachine", state: dump });
+    this.results[shotIdx].events.push({
+      type: "DumpMachine",
+      state: detail.state,
+      stateLatex: detail.stateLatex,
+    });
 
     this.queueUiRefresh();
   }
