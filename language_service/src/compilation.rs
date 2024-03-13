@@ -14,6 +14,7 @@ use qsc::{
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
 };
+use qsc_linter::LintConfig;
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -48,6 +49,7 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) -> Self {
         if sources.len() == 1 {
             trace!("compiling single-file document {}", sources[0].0);
@@ -70,7 +72,7 @@ impl Compilation {
             language_features,
         );
 
-        let lints = unit.lints(None);
+        let lints = unit.lints(Some(lints_config));
         let mut lints = lints
             .into_iter()
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
@@ -192,6 +194,7 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) {
         let sources = self
             .user_unit()
@@ -205,6 +208,7 @@ impl Compilation {
                 package_type,
                 target_profile,
                 language_features,
+                lints_config,
             ),
             CompilationKind::Notebook => {
                 Self::new_notebook(sources, target_profile, language_features)

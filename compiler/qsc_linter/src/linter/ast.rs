@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::{lints::ast::CombinedAstLints, Lint, LintsConfig};
+use crate::{
+    lints::ast::{AstLint, CombinedAstLints},
+    Lint, LintConfig, LintLevel,
+};
 use qsc_ast::{
     ast::{
         Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, Package, Pat, Path,
@@ -13,10 +16,20 @@ use qsc_ast::{
 /// The entry point to the AST linter. It takes a [`qsc_ast::ast::Package`]
 /// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
-pub fn run_ast_lints(package: &qsc_ast::ast::Package, config: Option<&LintsConfig>) -> Vec<Lint> {
-    let ast_config = config.map(|c| c.ast_lints.clone()).unwrap_or_default();
+pub fn run_ast_lints(package: &qsc_ast::ast::Package, config: Option<&[LintConfig]>) -> Vec<Lint> {
+    let config: Vec<(AstLint, LintLevel)> = config
+        .unwrap_or(&[])
+        .iter()
+        .filter_map(|lint_config| {
+            if let LintKind::Ast(kind) = lint_config.kind {
+                Some((kind, lint_config.level))
+            } else {
+                None
+            }
+        })
+        .collect();
 
-    let mut lints = CombinedAstLints::from(ast_config);
+    let mut lints = CombinedAstLints::from_config(config);
 
     for node in package.nodes.iter() {
         match node {
@@ -80,7 +93,7 @@ macro_rules! declare_ast_lints {
             use super::{$($lint_name),*};
 
             // Declare & implement the `AstLintsConfig` and CombinedAstLints structs.
-            declare_ast_lints!{ @CONFIG_STRUCT $($lint_name),* }
+            declare_ast_lints!{ @CONFIG_ENUM $($lint_name),* }
             declare_ast_lints!{ @COMBINED_STRUCT $($lint_name),* }
         }
 
@@ -88,7 +101,7 @@ macro_rules! declare_ast_lints {
         pub(crate) use _ast_macro_expansion::CombinedAstLints;
 
         // This will be used by the language service to configure the linter, so we make it public.
-        pub use _ast_macro_expansion::AstLintsConfig;
+        pub use _ast_macro_expansion::AstLint;
     };
 
     // Declare & implement a struct representing a lint.
@@ -115,26 +128,14 @@ macro_rules! declare_ast_lints {
         }
     };
 
-    // Declare & implement the `AstLintsConfig` structure.
-    (@CONFIG_STRUCT $($lint_name:ident),*) => {
+    // Declare the `AstLint` enum.
+    (@CONFIG_ENUM $($lint_name:ident),*) => {
         use serde::{Deserialize, Serialize};
 
-        // There is no trivial way in rust of converting an identifier from PascalCase
-        // to snake_case within `macro_rules`. Since these fields are private and cannot
-        // be accessed anywhere outside this macro, I chose to #[allow(non_snake_case)]
-        // for field names.
-        #[allow(non_snake_case)]
-        #[derive(Clone, Serialize, Deserialize)]
-        pub struct AstLintsConfig {
-            $($lint_name: LintLevel),*
-        }
-
-        impl Default for AstLintsConfig {
-            fn default() -> Self {
-                Self {
-                    $($lint_name: $lint_name::DEFAULT_LEVEL),*
-                }
-            }
+        #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        pub enum AstLint {
+            $($lint_name),*
         }
     };
 
@@ -162,17 +163,18 @@ macro_rules! declare_ast_lints {
             }
         }
 
-        impl From<AstLintsConfig> for CombinedAstLints {
-            fn from(value: AstLintsConfig) -> Self {
-                Self {
-                    buffer: Vec::default(),
-                    $($lint_name: value.$lint_name.into()),*
-                }
-            }
-        }
-
         // Most of the calls here are empty methods and they get optimized at compile time to a no-op.
         impl CombinedAstLints {
+            pub fn from_config(config: Vec<(AstLint, LintLevel)>) -> Self {
+                let mut combined_ast_lints = Self::default();
+                for (lint, level) in config {
+                    match lint {
+                        $(AstLint::$lint_name => combined_ast_lints.$lint_name.level = level),*
+                    }
+                }
+                combined_ast_lints
+            }
+
             fn check_package(&mut self, package: &Package) { $(self.$lint_name.check_package(package, &mut self.buffer));*; }
             fn check_namespace(&mut self, namespace: &Namespace) { $(self.$lint_name.check_namespace(namespace, &mut self.buffer));*; }
             fn check_item(&mut self, item: &Item) { $(self.$lint_name.check_item(item, &mut self.buffer));*; }
@@ -280,3 +282,5 @@ macro_rules! declare_ast_lints {
 }
 
 pub(crate) use declare_ast_lints;
+
+use super::LintKind;

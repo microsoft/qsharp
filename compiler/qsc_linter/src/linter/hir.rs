@@ -1,19 +1,32 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use crate::{
+    lints::hir::{CombinedHirLints, HirLint},
+    Lint, LintConfig, LintLevel,
+};
 use qsc_hir::{
     hir::{Block, CallableDecl, Expr, Ident, Item, Package, Pat, QubitInit, SpecDecl, Stmt},
     visit::Visitor,
 };
 
-use crate::{lints::hir::CombinedHirLints, Lint, LintsConfig};
-
 /// The entry point to the HIR linter. It takes a [`qsc_hir::hir::Package`]
 /// as input and outputs a [`Vec<Lint>`](Lint).
 #[must_use]
-pub fn run_hir_lints(package: &Package, config: Option<&LintsConfig>) -> Vec<Lint> {
-    let hir_config = config.map(|c| c.hir_lints.clone()).unwrap_or_default();
-    let mut lints = CombinedHirLints::from(hir_config);
+pub fn run_hir_lints(package: &Package, config: Option<&[LintConfig]>) -> Vec<Lint> {
+    let config: Vec<(HirLint, LintLevel)> = config
+        .unwrap_or(&[])
+        .iter()
+        .filter_map(|lint_config| {
+            if let LintKind::Hir(kind) = lint_config.kind {
+                Some((kind, lint_config.level))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let mut lints = CombinedHirLints::from_config(config);
 
     for stmt in &package.stmts {
         lints.visit_stmt(stmt);
@@ -64,7 +77,7 @@ macro_rules! declare_hir_lints {
             use super::{$($lint_name),*};
 
             // Declare & implement the `HirLintsConfig` and CombinedHirLints structs.
-            declare_hir_lints!{ @CONFIG_STRUCT $($lint_name),* }
+            declare_hir_lints!{ @CONFIG_ENUM $($lint_name),* }
             declare_hir_lints!{ @COMBINED_STRUCT $($lint_name),* }
         }
 
@@ -72,7 +85,7 @@ macro_rules! declare_hir_lints {
         pub(crate) use _hir_macro_expansion::CombinedHirLints;
 
         // This will be used by the language service to configure the linter, so we make it public.
-        pub use _hir_macro_expansion::HirLintsConfig;
+        pub use _hir_macro_expansion::HirLint;
     };
 
     // Declare & implement a struct representing a lint.
@@ -99,26 +112,14 @@ macro_rules! declare_hir_lints {
         }
     };
 
-    // Declare & implement the `AstLintsConfig` structure.
-    (@CONFIG_STRUCT $($lint_name:ident),*) => {
+    // Declare the `HirLint` enum.
+    (@CONFIG_ENUM $($lint_name:ident),*) => {
         use serde::{Deserialize, Serialize};
 
-        // There is no trivial way in rust of converting an identifier from PascalCase
-        // to snake_case within `macro_rules`. Since these fields are private and cannot
-        // be accessed anywhere outside this macro, I chose to #[allow(non_snake_case)]
-        // for field names.
-        #[allow(non_snake_case)]
-        #[derive(Clone, Serialize, Deserialize)]
-        pub struct HirLintsConfig {
-            $($lint_name: LintLevel),*
-        }
-
-        impl Default for HirLintsConfig {
-            fn default() -> Self {
-                Self {
-                    $($lint_name: $lint_name::DEFAULT_LEVEL),*
-                }
-            }
+        #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        pub enum HirLint {
+            $($lint_name),*
         }
     };
 
@@ -146,17 +147,18 @@ macro_rules! declare_hir_lints {
             }
         }
 
-        impl From<HirLintsConfig> for CombinedHirLints {
-            fn from(value: HirLintsConfig) -> Self {
-                Self {
-                    buffer: Vec::default(),
-                    $($lint_name: value.$lint_name.into()),*
-                }
-            }
-        }
-
         // Most of the calls here are empty methods and they get optimized at compile time to a no-op.
         impl CombinedHirLints {
+            pub fn from_config(config: Vec<(HirLint, LintLevel)>) -> Self {
+                let mut combined_ast_lints = Self::default();
+                for (lint, level) in config {
+                    match lint {
+                        $(HirLint::$lint_name => combined_ast_lints.$lint_name.level = level),*
+                    }
+                }
+                combined_ast_lints
+            }
+
             fn check_block(&mut self, block: &Block) { $(self.$lint_name.check_block(block, &mut self.buffer));* }
             fn check_callable_decl(&mut self, decl: &CallableDecl) { $(self.$lint_name.check_callable_decl(decl, &mut self.buffer));* }
             fn check_expr(&mut self, expr: &Expr) { $(self.$lint_name.check_expr(expr, &mut self.buffer));* }
@@ -223,3 +225,5 @@ macro_rules! declare_hir_lints {
 }
 
 pub(crate) use declare_hir_lints;
+
+use super::LintKind;

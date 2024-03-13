@@ -9,7 +9,7 @@ use qsc_data_structures::span::Span;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-use crate::lints::{ast::AstLintsConfig, hir::HirLintsConfig};
+use crate::lints::{ast::AstLint, hir::HirLint};
 
 /// A lint emited by the linter.
 #[derive(Debug, Clone, thiserror::Error)]
@@ -47,6 +47,7 @@ impl Diagnostic for Lint {
 /// A lint level. This defines if a lint will be treated as a warning or an error,
 /// and if the lint level can be overriden by the user.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum LintLevel {
     /// The lint is effectively disabled.
     Allow,
@@ -72,10 +73,17 @@ impl Display for LintLevel {
     }
 }
 
-/// End-user configuration for each lint level. This structure is meant to be loaded
-/// from a JSON file using [`serde::Deserialize`].
-#[derive(Default, Serialize, Deserialize)]
-pub struct LintsConfig {
-    ast_lints: AstLintsConfig,
-    hir_lints: HirLintsConfig,
+/// End-user configuration for each lint level.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LintConfig {
+    #[serde(rename = "lint")]
+    pub(crate) kind: LintKind,
+    pub(crate) level: LintLevel,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LintKind {
+    Ast(AstLint),
+    Hir(HirLint),
 }

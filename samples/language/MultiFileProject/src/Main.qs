@@ -13,6 +13,8 @@ namespace MyQuantumApp {
   operation Main() : Unit {
     let particleA = Particle(0, 0, 0);
     let particleB = Particle(1, 1, 1);
+    let x = (2 ^ 4) / 0;
+    let y = 5 / 0;
 
     let particleC = addParticles(particleA, particleB);
   }

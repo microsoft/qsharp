@@ -1033,6 +1033,7 @@ dependencies = [
  "qsc_hir",
  "qsc_parse",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 
@@ -1071,6 +1072,7 @@ dependencies = [
  "async-trait",
  "expect-test",
  "miette",
+ "qsc_linter",
  "qsc_project",
  "regex-lite",
  "serde",
