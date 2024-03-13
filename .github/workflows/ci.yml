@@ -75,11 +75,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-14]
-        is_pr:
-          - ${{ github.event_name == 'pull_request' }}
-        exclude:
-          - os: macos-14
-            is_pr: true
 
     runs-on: ${{matrix.os}}
 
@@ -114,11 +109,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-14]
-        is_pr:
-          - ${{ github.event_name == 'pull_request' }}
-        exclude:
-          - os: macos-14
-            is_pr: true
 
     runs-on: ${{matrix.os}}
 
