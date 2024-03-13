@@ -270,10 +270,10 @@ fn no_space_before_semicolons() {
     check("let x = 3  ;", &expect!["let x = 3;"]);
 }
 
-// New line after semicolons
+// Newline after semicolons
 
 #[test]
-fn new_line_after_semicolon() {
+fn newline_after_semicolon() {
     check(
         "let x = 3; let y = 2;",
         &expect![[r#"
@@ -288,6 +288,93 @@ fn preserve_eol_comment() {
         let y = 2;
         "};
     assert!(super::calculate_format_edits(input).is_empty());
+}
+
+// Newline before declaration keywords
+
+#[test]
+fn newline_before_let() {
+    check(
+        "let x = 3; {} let y = 2;",
+        &expect![[r#"
+        let x = 3;
+        {}
+        let y = 2;"#]],
+    );
+}
+
+#[test]
+fn newline_before_mutable() {
+    check(
+        "mutable x = 3; {} mutable y = 2;",
+        &expect![[r#"
+        mutable x = 3;
+        {}
+        mutable y = 2;"#]],
+    );
+}
+
+#[test]
+fn newline_before_set() {
+    check(
+        "set x = 3; {} set y = 2;",
+        &expect![[r#"
+        set x = 3;
+        {}
+        set y = 2;"#]],
+    );
+}
+
+#[test]
+fn newline_before_use() {
+    check(
+        "use q = Qubit(); {} use w = Qubit();",
+        &expect![[r#"
+        use q = Qubit();
+        {}
+        use w = Qubit();"#]],
+    );
+}
+
+#[test]
+fn newline_before_borrow() {
+    check(
+        "borrow q = Qubit(); {} borrow w = Qubit();",
+        &expect![[r#"
+        borrow q = Qubit();
+        {}
+        borrow w = Qubit();"#]],
+    );
+}
+
+// Single space before control-flow-helper keywords
+
+#[test]
+fn single_space_before_in() {
+    check("for x    in 0..2 {}", &expect![[r#"for x in 0..2 {}"#]]);
+}
+
+#[test]
+fn single_space_before_until() {
+    check(
+        "repeat {}    until x   fixup {}",
+        &expect![[r#"
+            repeat {} until x
+            fixup {}"#]],
+    );
+}
+
+#[test]
+fn single_space_before_elif_and_else() {
+    check(
+        "if x {}    elif y {}     else {}",
+        &expect!["if x {} elif y {} else {}"],
+    );
+}
+
+#[test]
+fn single_space_before_apply() {
+    check("within {}    apply {}", &expect!["within {} apply {}"]);
 }
 
 // No space between caller expressions and argument tuple
@@ -346,10 +433,10 @@ fn no_space_between_open_start_range_and_operand() {
     check("let x = ... 15;", &expect!["let x = ...15;"]);
 }
 
-// Single space before open brace and new line after, except empty blocks have no space
+// Single space before open brace and newline after, except empty blocks have no space
 
 #[test]
-fn single_space_before_open_brace_and_new_line_after() {
+fn single_space_before_open_brace_and_newline_after() {
     check(
         indoc! {r#"
         operation Foo() : Unit{ let x = 3; }
@@ -454,7 +541,7 @@ fn preserve_string_indentation() {
 // Will respect user new-lines and indentation added into expressions
 
 #[test]
-fn preserve_user_new_lines_in_expressions() {
+fn preserve_user_newlines_in_expressions() {
     let input = indoc! {r#"
         let x = [
             thing1,

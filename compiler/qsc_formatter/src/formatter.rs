@@ -197,14 +197,34 @@ fn apply_rules(
             | (_, Keyword(Keyword::Body))
             | (_, Keyword(Keyword::Adjoint))
             | (_, Keyword(Keyword::Controlled))
+            | (_, Keyword(Keyword::Let))
+            | (_, Keyword(Keyword::Mutable))
+            | (_, Keyword(Keyword::Set))
+            | (_, Keyword(Keyword::Use))
+            | (_, Keyword(Keyword::Borrow))
+            | (_, Keyword(Keyword::Fixup))
             | (_, At) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+            }
+            (_, TokenKind::Keyword(Keyword::Until))
+            | (_, TokenKind::Keyword(Keyword::In))
+            | (_, TokenKind::Keyword(Keyword::As))
+            | (_, TokenKind::Keyword(Keyword::Elif))
+            | (_, TokenKind::Keyword(Keyword::Else))
+            | (_, TokenKind::Keyword(Keyword::Apply)) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
+            (_, TokenKind::Keyword(Keyword::Auto))
+            | (_, TokenKind::Keyword(Keyword::Distribute))
+            | (_, TokenKind::Keyword(Keyword::Intrinsic))
+            | (_, TokenKind::Keyword(Keyword::Invert)) => {
+                effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, _) if new_line_in_spaces => {
                 effect_trim_whitespace(left, whitespace, right, &mut edits);
                 // Ignore the rest of the cases if the user has a newline in the whitespace.
                 // This is done because we don't currently have logic for determining when
-                // lines are too long and require new-lines, and we don't have logic
+                // lines are too long and require newlines, and we don't have logic
                 // for determining what the correct indentation should be in these cases,
                 // so we put this do-nothing case in to leave user code unchanged.
             }
@@ -232,10 +252,7 @@ fn apply_rules(
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
             }
-            (_, TokenKind::Keyword(Keyword::Auto))
-            | (_, TokenKind::Keyword(Keyword::Distribute))
-            | (_, TokenKind::Keyword(Keyword::Intrinsic))
-            | (_, TokenKind::Keyword(Keyword::Invert)) => {
+            (_, TokenKind::Keyword(Keyword::Is)) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, _) if is_value_token_right(cooked_right) => {
@@ -292,9 +309,6 @@ fn is_bin_op(cooked: &TokenKind) -> bool {
             | TokenKind::Keyword(Keyword::Or)
             // Technically the rest are not binary ops, but has the same spacing as one
             | TokenKind::Keyword(Keyword::Not)
-            | TokenKind::Keyword(Keyword::As)
-            | TokenKind::Keyword(Keyword::In)
-            | TokenKind::Keyword(Keyword::Is)
             | TokenKind::Keyword(Keyword::AdjointUpper)
             | TokenKind::Keyword(Keyword::ControlledUpper)
     )
