@@ -247,31 +247,19 @@ impl Lowerer {
 
     fn lower_block(&mut self, block: &hir::Block) -> BlockId {
         let id = self.assigner.next_block();
-        let len = self.cfg.len();
+        let set_unit = block.stmts.is_empty()
+            || !matches!(
+                block.stmts.last().expect("block should be non-empty").kind,
+                hir::StmtKind::Expr(..)
+            );
         let block = fir::Block {
             id,
             span: block.span,
             ty: self.lower_ty(&block.ty),
-            stmts: block
-                .stmts
-                .iter()
-                .map(|s| {
-                    let is_item = matches!(s.kind, hir::StmtKind::Item(_));
-                    let s = self.lower_stmt(s);
-                    if !is_item {
-                        self.cfg.push(CfgNode::Consume);
-                    }
-                    s
-                })
-                .collect(),
+            stmts: block.stmts.iter().map(|s| self.lower_stmt(s)).collect(),
         };
-        if self.cfg.len() == len {
-            // There were no statements in the block, so we need to insert a no-op to ensure a
-            // Unit value is returned for the expr.
+        if set_unit {
             self.cfg.push(CfgNode::Unit);
-        } else {
-            // Pop the last consume so the final statement can be an implicit return from the block.
-            self.cfg.pop();
         }
         self.blocks.insert(id, block);
         id
@@ -294,8 +282,6 @@ impl Lowerer {
             }
             hir::StmtKind::Semi(expr) => {
                 let expr = self.lower_expr(expr);
-                self.cfg.push(CfgNode::Consume);
-                self.cfg.push(CfgNode::Unit);
                 fir::StmtKind::Semi(expr)
             }
         };
@@ -314,11 +300,21 @@ impl Lowerer {
         let ty = self.lower_ty(&expr.ty);
 
         let kind = match &expr.kind {
-            hir::ExprKind::Array(items) => {
-                fir::ExprKind::Array(items.iter().map(|i| self.lower_expr(i)).collect())
-            }
+            hir::ExprKind::Array(items) => fir::ExprKind::Array(
+                items
+                    .iter()
+                    .map(|i| {
+                        let i = self.lower_expr(i);
+                        self.cfg.push(CfgNode::Store);
+                        i
+                    })
+                    .collect(),
+            ),
             hir::ExprKind::ArrayRepeat(value, size) => {
-                fir::ExprKind::ArrayRepeat(self.lower_expr(value), self.lower_expr(size))
+                let value = self.lower_expr(value);
+                self.cfg.push(CfgNode::Store);
+                let size = self.lower_expr(size);
+                fir::ExprKind::ArrayRepeat(value, size)
             }
             hir::ExprKind::Assign(lhs, rhs) => {
                 let idx = self.cfg.len();
@@ -341,6 +337,8 @@ impl Lowerer {
                 if matches!(op, hir::BinOp::AndL | hir::BinOp::OrL) {
                     // Put in a placeholder jump for what will be the short-circuit
                     self.cfg.push(CfgNode::Jump(0));
+                } else if !is_array {
+                    self.cfg.push(CfgNode::Store);
                 }
                 let rhs = self.lower_expr(rhs);
                 match op {
@@ -367,11 +365,13 @@ impl Lowerer {
             hir::ExprKind::AssignField(container, field, replace) => {
                 let field = lower_field(field);
                 let replace = self.lower_expr(replace);
+                self.cfg.push(CfgNode::Store);
                 let container = self.lower_expr(container);
                 fir::ExprKind::AssignField(container, field, replace)
             }
             hir::ExprKind::AssignIndex(container, index, replace) => {
                 let index = self.lower_expr(index);
+                self.cfg.push(CfgNode::Store);
                 let replace = self.lower_expr(replace);
                 let idx = self.cfg.len();
                 let container = self.lower_expr(container);
@@ -386,6 +386,8 @@ impl Lowerer {
                 if matches!(op, hir::BinOp::AndL | hir::BinOp::OrL) {
                     // Put in a placeholder jump for what will be the short-circuit
                     self.cfg.push(CfgNode::Jump(0));
+                } else {
+                    self.cfg.push(CfgNode::Store);
                 }
                 let rhs = self.lower_expr(rhs);
                 match op {
@@ -415,7 +417,10 @@ impl Lowerer {
             }
             hir::ExprKind::Block(block) => fir::ExprKind::Block(self.lower_block(block)),
             hir::ExprKind::Call(callee, arg) => {
-                fir::ExprKind::Call(self.lower_expr(callee), self.lower_expr(arg))
+                let call = self.lower_expr(callee);
+                self.cfg.push(CfgNode::Store);
+                let arg = self.lower_expr(arg);
+                fir::ExprKind::Call(call, arg)
             }
             hir::ExprKind::Fail(message) => fir::ExprKind::Fail(self.lower_expr(message)),
             hir::ExprKind::Field(container, field) => {
@@ -451,26 +456,43 @@ impl Lowerer {
                 };
                 // Update the placeholder to skip the true branch if the condition is false
                 self.cfg[branch_idx] =
-                    CfgNode::JumpUnless(else_idx.try_into().expect("nodes should fit into u32"));
+                    CfgNode::JumpIfNot(else_idx.try_into().expect("nodes should fit into u32"));
                 fir::ExprKind::If(cond, if_true, if_false)
             }
             hir::ExprKind::Index(container, index) => {
-                fir::ExprKind::Index(self.lower_expr(container), self.lower_expr(index))
+                let container = self.lower_expr(container);
+                self.cfg.push(CfgNode::Store);
+                let index = self.lower_expr(index);
+                fir::ExprKind::Index(container, index)
             }
             hir::ExprKind::Lit(lit) => lower_lit(lit),
-            hir::ExprKind::Range(start, step, end) => fir::ExprKind::Range(
-                start.as_ref().map(|s| self.lower_expr(s)),
-                step.as_ref().map(|s| self.lower_expr(s)),
-                end.as_ref().map(|e| self.lower_expr(e)),
-            ),
+            hir::ExprKind::Range(start, step, end) => {
+                let start = start.as_ref().map(|s| self.lower_expr(s));
+                if start.is_some() {
+                    self.cfg.push(CfgNode::Store);
+                }
+                let step = step.as_ref().map(|s| self.lower_expr(s));
+                if step.is_some() {
+                    self.cfg.push(CfgNode::Store);
+                }
+                let end = end.as_ref().map(|e| self.lower_expr(e));
+                fir::ExprKind::Range(start, step, end)
+            }
             hir::ExprKind::Return(expr) => {
                 let expr = self.lower_expr(expr);
                 self.cfg.push(CfgNode::Ret);
                 fir::ExprKind::Return(expr)
             }
-            hir::ExprKind::Tuple(items) => {
-                fir::ExprKind::Tuple(items.iter().map(|i| self.lower_expr(i)).collect())
-            }
+            hir::ExprKind::Tuple(items) => fir::ExprKind::Tuple(
+                items
+                    .iter()
+                    .map(|i| {
+                        let i = self.lower_expr(i);
+                        self.cfg.push(CfgNode::Store);
+                        i
+                    })
+                    .collect(),
+            ),
             hir::ExprKind::UnOp(op, operand) => {
                 fir::ExprKind::UnOp(lower_unop(*op), self.lower_expr(operand))
             }
@@ -481,12 +503,11 @@ impl Lowerer {
                 // Put a placeholder in the CFG for the jump past the loop
                 self.cfg.push(CfgNode::Jump(0));
                 let body = self.lower_block(body);
-                self.cfg.push(CfgNode::Consume);
                 self.cfg.push(CfgNode::Jump(
                     cond_idx.try_into().expect("nodes should fit into u32"),
                 ));
                 // Update the placeholder to skip the loop if the condition is false
-                self.cfg[idx] = CfgNode::JumpUnless(
+                self.cfg[idx] = CfgNode::JumpIfNot(
                     self.cfg
                         .len()
                         .try_into()
@@ -509,13 +530,16 @@ impl Lowerer {
             ),
             hir::ExprKind::UpdateIndex(lhs, mid, rhs) => {
                 let mid = self.lower_expr(mid);
+                self.cfg.push(CfgNode::Store);
                 let rhs = self.lower_expr(rhs);
+                self.cfg.push(CfgNode::Store);
                 let lhs = self.lower_expr(lhs);
                 fir::ExprKind::UpdateIndex(lhs, mid, rhs)
             }
             hir::ExprKind::UpdateField(record, field, replace) => {
                 let field = lower_field(field);
                 let replace = self.lower_expr(replace);
+                self.cfg.push(CfgNode::Store);
                 let record = self.lower_expr(record);
                 fir::ExprKind::UpdateField(record, field, replace)
             }
@@ -555,7 +579,11 @@ impl Lowerer {
 
     fn lower_string_component(&mut self, component: &hir::StringComponent) -> fir::StringComponent {
         match component {
-            hir::StringComponent::Expr(expr) => fir::StringComponent::Expr(self.lower_expr(expr)),
+            hir::StringComponent::Expr(expr) => {
+                let expr = self.lower_expr(expr);
+                self.cfg.push(CfgNode::Store);
+                fir::StringComponent::Expr(expr)
+            }
             hir::StringComponent::Lit(str) => fir::StringComponent::Lit(Rc::clone(str)),
         }
     }

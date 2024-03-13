@@ -888,17 +888,14 @@ pub enum CfgNode {
     /// An unconditional jump with to given location.
     Jump(u32),
     /// A conditional jump with to given location, where the jump is only taken if the condition is
-    /// true, and the value is not consumed.
+    /// true.
     JumpIf(u32),
     /// A conditional jump with to given location, where the jump is only taken if the condition is
-    /// false, and the value is not consumed.
+    /// false.
     JumpIfNot(u32),
-    /// A conditional jump with to given location, where the jump is only taken if the condition is
-    /// false, and the value is consumed.
-    JumpUnless(u32),
-    /// An indication that the value on the value stack should be consumed.
-    Consume,
-    /// A no-op Unit node that tells execution to insert a unit value into the value stack.
+    /// An indication that the current accumulated result value should be stored into the value stack.
+    Store,
+    /// A no-op Unit node that tells execution to insert a unit value into the current accumulated result.
     Unit,
     /// The end of the control flow graph.
     Ret,

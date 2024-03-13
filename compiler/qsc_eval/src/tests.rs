@@ -407,6 +407,16 @@ fn block_qubit_use_nested_tuple_expr() {
 }
 
 #[test]
+fn block_with_no_stmts_is_unit() {
+    check_expr("", "{}", &expect!["()"]);
+}
+
+#[test]
+fn block_with_semi_is_unit() {
+    check_expr("", "{4;}", &expect!["()"]);
+}
+
+#[test]
 fn binop_add_array() {
     check_expr("", "[1, 2] + [3, 4]", &expect!["[1, 2, 3, 4]"]);
 }

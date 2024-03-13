@@ -360,7 +360,8 @@ pub struct State {
     cfg_stack: Vec<Rc<[CfgNode]>>,
     idx: u32,
     idx_stack: Vec<u32>,
-    vals: Vec<Vec<Value>>,
+    curr_val: Option<Value>,
+    val_stack: Vec<Vec<Value>>,
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
@@ -378,7 +379,8 @@ impl State {
             cfg_stack: vec![cfg],
             idx: 0,
             idx_stack: Vec::new(),
-            vals: vec![Vec::new()],
+            curr_val: None,
+            val_stack: vec![Vec::new()],
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
@@ -394,7 +396,7 @@ impl State {
             functor,
         });
         self.cfg_stack.push(cfg);
-        self.vals.push(Vec::new());
+        self.val_stack.push(Vec::new());
         self.idx_stack.push(self.idx);
         self.idx = 0;
         self.package = id.package;
@@ -403,9 +405,7 @@ impl State {
     fn leave_frame(&mut self) {
         if let Some(frame) = self.call_stack.pop_frame() {
             self.package = frame.caller;
-            let frame_val = self.pop_val();
-            self.vals.pop();
-            self.push_val(frame_val);
+            self.val_stack.pop();
             self.idx = self
                 .idx_stack
                 .pop()
@@ -418,8 +418,16 @@ impl State {
         env.push_scope(self.call_stack.len());
     }
 
+    fn take_curr_val(&mut self) -> Value {
+        self.curr_val.take().expect("value should be present")
+    }
+
+    fn set_curr_val(&mut self, val: Value) {
+        self.curr_val = Some(val);
+    }
+
     fn pop_val(&mut self) -> Value {
-        self.vals
+        self.val_stack
             .last_mut()
             .expect("should have at least one value frame")
             .pop()
@@ -428,14 +436,15 @@ impl State {
 
     fn pop_vals(&mut self, len: usize) -> Vec<Value> {
         let last = self
-            .vals
+            .val_stack
             .last_mut()
             .expect("should have at least one value frame");
         last.drain(last.len() - len..).collect()
     }
 
-    fn push_val(&mut self, val: Value) {
-        self.vals
+    fn push_val(&mut self) {
+        let val = self.take_curr_val();
+        self.val_stack
             .last_mut()
             .expect("should have at least one value frame")
             .push(val);
@@ -517,9 +526,8 @@ impl State {
                     continue;
                 }
                 CfgNode::JumpIf(idx) => {
-                    let cond = self.pop_val();
-                    if cond.unwrap_bool() {
-                        self.push_val(Value::Bool(true));
+                    let cond = self.curr_val == Some(Value::Bool(true));
+                    if cond {
                         self.idx = *idx;
                     } else {
                         self.idx += 1;
@@ -527,32 +535,22 @@ impl State {
                     continue;
                 }
                 CfgNode::JumpIfNot(idx) => {
-                    let cond = self.pop_val();
-                    if cond.unwrap_bool() {
-                        self.idx += 1;
-                    } else {
-                        self.push_val(Value::Bool(false));
-                        self.idx = *idx;
-                    }
-                    continue;
-                }
-                CfgNode::JumpUnless(idx) => {
-                    let cond = self.pop_val();
-                    if cond.unwrap_bool() {
+                    let cond = self.curr_val == Some(Value::Bool(true));
+                    if cond {
                         self.idx += 1;
                     } else {
                         self.idx = *idx;
                     }
                     continue;
                 }
-                CfgNode::Consume => {
-                    self.pop_val();
+                CfgNode::Store => {
+                    self.push_val();
                     self.idx += 1;
                     continue;
                 }
                 CfgNode::Unit => {
                     self.idx += 1;
-                    self.push_val(Value::unit());
+                    self.set_curr_val(Value::unit());
                     continue;
                 }
                 CfgNode::Ret => {
@@ -576,11 +574,7 @@ impl State {
         // Some executions don't have any statements to execute,
         // such as a fragment that has only item definitions.
         // In that case, the values are empty and the result is unit.
-        self.vals
-            .last_mut()
-            .expect("should have at least one value frame")
-            .pop()
-            .unwrap_or_else(Value::unit)
+        self.curr_val.take().unwrap_or_else(Value::unit)
     }
 
     #[allow(clippy::similar_names)]
@@ -608,9 +602,10 @@ impl State {
                         self.eval_array_append_in_place(env, globals, *lhs)?;
                         return Ok(());
                     }
-                    let rhs_val = self.pop_val();
+                    let rhs_val = self.take_curr_val();
                     self.eval_expr(env, sim, globals, out, *lhs)?;
-                    self.push_val(rhs_val);
+                    self.push_val();
+                    self.set_curr_val(rhs_val);
                 }
                 self.eval_binop(*op, rhs_span)?;
                 self.eval_assign(env, globals, *lhs)?;
@@ -627,6 +622,7 @@ impl State {
                     self.eval_update_index_in_place(env, globals, *lhs, mid_span)?;
                     return Ok(());
                 }
+                self.push_val();
                 self.eval_expr(env, sim, globals, out, *lhs)?;
                 self.eval_update_index(mid_span)?;
                 self.eval_assign(env, globals, *lhs)?;
@@ -643,11 +639,11 @@ impl State {
             }
             ExprKind::Closure(args, callable) => {
                 let closure = resolve_closure(env, self.package, expr.span, args, *callable)?;
-                self.push_val(closure);
+                self.set_curr_val(closure);
             }
             ExprKind::Fail(..) => {
                 return Err(Error::UserFail(
-                    self.pop_val().unwrap_string().to_string(),
+                    self.take_curr_val().unwrap_string().to_string(),
                     self.to_global_span(expr.span),
                 ));
             }
@@ -660,7 +656,9 @@ impl State {
                 let rhs_span = globals.get_expr((self.package, *rhs).into()).span;
                 self.eval_index(rhs_span)?;
             }
-            ExprKind::Lit(lit) => self.push_val(lit_to_val(lit)),
+            ExprKind::Lit(lit) => {
+                self.set_curr_val(lit_to_val(lit));
+            }
             ExprKind::Range(start, step, end) => {
                 self.eval_range(start.is_some(), step.is_some(), end.is_some());
             }
@@ -676,7 +674,7 @@ impl State {
                 self.eval_update_field(field.clone());
             }
             ExprKind::Var(res, _) => {
-                self.push_val(resolve_binding(env, self.package, *res, expr.span)?);
+                self.set_curr_val(resolve_binding(env, self.package, *res, expr.span)?);
             }
             ExprKind::While(..) => {
                 panic!("while expr should be handled by control flow")
@@ -688,7 +686,7 @@ impl State {
 
     fn collect_string(&mut self, components: &[StringComponent]) {
         if let [StringComponent::Lit(str)] = components {
-            self.push_val(Value::String(Rc::clone(str)));
+            self.set_curr_val(Value::String(Rc::clone(str)));
             return;
         }
 
@@ -704,12 +702,12 @@ impl State {
                 }
             }
         }
-        self.push_val(Value::String(Rc::from(string)));
+        self.set_curr_val(Value::String(Rc::from(string)));
     }
 
     fn eval_arr(&mut self, len: usize) {
         let arr = self.pop_vals(len);
-        self.push_val(Value::Array(arr.into()));
+        self.set_curr_val(Value::Array(arr.into()));
     }
 
     fn eval_array_append_in_place(
@@ -719,7 +717,7 @@ impl State {
         lhs: ExprId,
     ) -> Result<(), Error> {
         let lhs = globals.get_expr((self.package, lhs).into());
-        let rhs = self.pop_val();
+        let rhs = self.take_curr_val();
         match (&lhs.kind, rhs) {
             (&ExprKind::Var(Res::Local(id), _), rhs) => match env.get_mut(id) {
                 Some(var) => {
@@ -729,12 +727,11 @@ impl State {
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
-        self.push_val(Value::unit());
         Ok(())
     }
 
     fn eval_arr_repeat(&mut self, span: Span) -> Result<(), Error> {
-        let size_val = self.pop_val().unwrap_int();
+        let size_val = self.take_curr_val().unwrap_int();
         let item_val = self.pop_val();
         let s = match size_val.try_into() {
             Ok(i) => Ok(i),
@@ -743,7 +740,7 @@ impl State {
                 self.to_global_span(span),
             )),
         }?;
-        self.push_val(Value::Array(vec![item_val; s].into()));
+        self.set_curr_val(Value::Array(vec![item_val; s].into()));
         Ok(())
     }
 
@@ -753,15 +750,13 @@ impl State {
         globals: &impl PackageStoreLookup,
         lhs: ExprId,
     ) -> Result<(), Error> {
-        let rhs = self.pop_val();
-        self.push_val(Value::unit());
+        let rhs = self.take_curr_val();
         self.update_binding(env, globals, lhs, rhs)
     }
 
     fn eval_bind(&mut self, env: &mut Env, globals: &impl PackageStoreLookup, pat: PatId) {
-        let val = self.pop_val();
+        let val = self.take_curr_val();
         self.bind_value(env, globals, pat, val);
-        self.push_val(Value::unit());
     }
 
     fn eval_binop(&mut self, op: BinOp, span: Span) -> Result<(), Error> {
@@ -770,9 +765,9 @@ impl State {
             BinOp::AndB => self.eval_binop_simple(eval_binop_andb),
             BinOp::Div => self.eval_binop_with_error(span, eval_binop_div)?,
             BinOp::Eq => {
-                let rhs_val = self.pop_val();
+                let rhs_val = self.take_curr_val();
                 let lhs_val = self.pop_val();
-                self.push_val(Value::Bool(lhs_val == rhs_val));
+                self.set_curr_val(Value::Bool(lhs_val == rhs_val));
             }
             BinOp::Exp => self.eval_binop_with_error(span, eval_binop_exp)?,
             BinOp::Gt => self.eval_binop_simple(eval_binop_gt),
@@ -782,9 +777,9 @@ impl State {
             BinOp::Mod => self.eval_binop_with_error(span, eval_binop_mod)?,
             BinOp::Mul => self.eval_binop_simple(eval_binop_mul),
             BinOp::Neq => {
-                let rhs_val = self.pop_val();
+                let rhs_val = self.take_curr_val();
                 let lhs_val = self.pop_val();
-                self.push_val(Value::Bool(lhs_val != rhs_val));
+                self.set_curr_val(Value::Bool(lhs_val != rhs_val));
             }
             BinOp::OrB => self.eval_binop_simple(eval_binop_orb),
             BinOp::Shl => self.eval_binop_with_error(span, eval_binop_shl)?,
@@ -799,9 +794,9 @@ impl State {
     }
 
     fn eval_binop_simple(&mut self, binop_func: impl FnOnce(Value, Value) -> Value) {
-        let rhs_val = self.pop_val();
+        let rhs_val = self.take_curr_val();
         let lhs_val = self.pop_val();
-        self.push_val(binop_func(lhs_val, rhs_val));
+        self.set_curr_val(binop_func(lhs_val, rhs_val));
     }
 
     fn eval_binop_with_error(
@@ -810,9 +805,9 @@ impl State {
         binop_func: impl FnOnce(Value, Value, PackageSpan) -> Result<Value, Error>,
     ) -> Result<(), Error> {
         let span = self.to_global_span(span);
-        let rhs_val = self.pop_val();
+        let rhs_val = self.take_curr_val();
         let lhs_val = self.pop_val();
-        self.push_val(binop_func(lhs_val, rhs_val, span)?);
+        self.set_curr_val(binop_func(lhs_val, rhs_val, span)?);
         Ok(())
     }
 
@@ -825,7 +820,7 @@ impl State {
         arg_span: Span,
         out: &mut impl Receiver,
     ) -> Result<(), Error> {
-        let arg = self.pop_val();
+        let arg = self.take_curr_val();
         let (callee_id, functor, fixed_args) = match self.pop_val() {
             Value::Closure(inner) => (inner.id, inner.functor, Some(inner.fixed_args)),
             Value::Global(id, functor) => (id, functor, None),
@@ -837,7 +832,7 @@ impl State {
         let callee = match globals.get_global(callee_id) {
             Some(Global::Callable(callable)) => callable,
             Some(Global::Udt) => {
-                self.push_val(arg);
+                self.set_curr_val(arg);
                 return Ok(());
             }
             None => return Err(Error::UnboundName(self.to_global_span(callable_span))),
@@ -866,7 +861,7 @@ impl State {
                         callee_span,
                     ));
                 }
-                self.push_val(val);
+                self.set_curr_val(val);
                 self.leave_frame();
                 Ok(())
             }
@@ -896,7 +891,7 @@ impl State {
     }
 
     fn eval_field(&mut self, field: Field) {
-        let record = self.pop_val();
+        let record = self.take_curr_val();
         let val = match (record, field) {
             (Value::Range(inner), Field::Prim(PrimField::Start)) => Value::Int(
                 inner
@@ -914,16 +909,16 @@ impl State {
             }
             _ => panic!("invalid field access"),
         };
-        self.push_val(val);
+        self.set_curr_val(val);
     }
 
     fn eval_index(&mut self, span: Span) -> Result<(), Error> {
-        let index_val = self.pop_val();
+        let index_val = self.take_curr_val();
         let arr = self.pop_val().unwrap_array();
         match &index_val {
-            Value::Int(i) => self.push_val(index_array(&arr, *i, self.to_global_span(span))?),
+            Value::Int(i) => self.set_curr_val(index_array(&arr, *i, self.to_global_span(span))?),
             Value::Range(inner) => {
-                self.push_val(slice_array(
+                self.set_curr_val(slice_array(
                     &arr,
                     inner.start,
                     inner.step,
@@ -938,7 +933,7 @@ impl State {
 
     fn eval_range(&mut self, has_start: bool, has_step: bool, has_end: bool) {
         let end = if has_end {
-            Some(self.pop_val().unwrap_int())
+            Some(self.take_curr_val().unwrap_int())
         } else {
             None
         };
@@ -952,11 +947,11 @@ impl State {
         } else {
             None
         };
-        self.push_val(Value::Range(val::Range { start, step, end }.into()));
+        self.set_curr_val(Value::Range(val::Range { start, step, end }.into()));
     }
 
     fn eval_update_index(&mut self, span: Span) -> Result<(), Error> {
-        let values = self.pop_val().unwrap_array();
+        let values = self.take_curr_val().unwrap_array();
         let update = self.pop_val();
         let index = self.pop_val();
         let span = self.to_global_span(span);
@@ -992,7 +987,7 @@ impl State {
             }
             None => return Err(Error::IndexOutOfRange(index, span)),
         }
-        self.push_val(Value::Array(values.into()));
+        self.set_curr_val(Value::Array(values.into()));
         Ok(())
     }
 
@@ -1017,7 +1012,7 @@ impl State {
                 None => return Err(Error::IndexOutOfRange(idx, span)),
             }
         }
-        self.push_val(Value::Array(values.into()));
+        self.set_curr_val(Value::Array(values.into()));
         Ok(())
     }
 
@@ -1028,7 +1023,7 @@ impl State {
         lhs: ExprId,
         span: Span,
     ) -> Result<(), Error> {
-        let update = self.pop_val();
+        let update = self.take_curr_val();
         let index = self.pop_val();
         let span = self.to_global_span(span);
         match index {
@@ -1048,15 +1043,15 @@ impl State {
 
     fn eval_tup(&mut self, len: usize) {
         let tup = self.pop_vals(len);
-        self.push_val(Value::Tuple(tup.into()));
+        self.set_curr_val(Value::Tuple(tup.into()));
     }
 
     fn eval_unop(&mut self, op: UnOp) {
-        let val = self.pop_val();
+        let val = self.take_curr_val();
         match op {
             UnOp::Functor(functor) => match val {
                 Value::Closure(inner) => {
-                    self.push_val(Value::Closure(
+                    self.set_curr_val(Value::Closure(
                         val::Closure {
                             functor: update_functor_app(functor, inner.functor),
                             ..*inner
@@ -1065,35 +1060,35 @@ impl State {
                     ));
                 }
                 Value::Global(id, app) => {
-                    self.push_val(Value::Global(id, update_functor_app(functor, app)));
+                    self.set_curr_val(Value::Global(id, update_functor_app(functor, app)));
                 }
                 _ => panic!("value should be callable"),
             },
             UnOp::Neg => match val {
-                Value::BigInt(v) => self.push_val(Value::BigInt(v.neg())),
-                Value::Double(v) => self.push_val(Value::Double(v.neg())),
-                Value::Int(v) => self.push_val(Value::Int(v.wrapping_neg())),
+                Value::BigInt(v) => self.set_curr_val(Value::BigInt(v.neg())),
+                Value::Double(v) => self.set_curr_val(Value::Double(v.neg())),
+                Value::Int(v) => self.set_curr_val(Value::Int(v.wrapping_neg())),
                 _ => panic!("value should be number"),
             },
             UnOp::NotB => match val {
-                Value::Int(v) => self.push_val(Value::Int(!v)),
-                Value::BigInt(v) => self.push_val(Value::BigInt(!v)),
+                Value::Int(v) => self.set_curr_val(Value::Int(!v)),
+                Value::BigInt(v) => self.set_curr_val(Value::BigInt(!v)),
                 _ => panic!("value should be Int or BigInt"),
             },
             UnOp::NotL => match val {
-                Value::Bool(b) => self.push_val(Value::Bool(!b)),
+                Value::Bool(b) => self.set_curr_val(Value::Bool(!b)),
                 _ => panic!("value should be bool"),
             },
             UnOp::Pos => match val {
-                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => self.push_val(val),
+                Value::BigInt(_) | Value::Int(_) | Value::Double(_) => self.set_curr_val(val),
                 _ => panic!("value should be number"),
             },
-            UnOp::Unwrap => self.push_val(val),
+            UnOp::Unwrap => self.set_curr_val(val),
         }
     }
 
     fn eval_update_field(&mut self, field: Field) {
-        let record = self.pop_val();
+        let record = self.take_curr_val();
         let value = self.pop_val();
         let update = match (record, field) {
             (Value::Range(mut inner), Field::Prim(PrimField::Start)) => {
@@ -1112,7 +1107,7 @@ impl State {
                 .expect("field path should be valid"),
             _ => panic!("invalid field access"),
         };
-        self.push_val(update);
+        self.set_curr_val(update);
     }
 
     fn bind_value(&self, env: &mut Env, globals: &impl PackageStoreLookup, pat: PatId, val: Value) {
@@ -1187,7 +1182,6 @@ impl State {
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
-        self.push_val(Value::unit());
         Ok(())
     }
 
@@ -1230,7 +1224,6 @@ impl State {
             },
             _ => unreachable!("unassignable array update pattern should be disallowed by compiler"),
         }
-        self.push_val(Value::unit());
         Ok(())
     }
 
