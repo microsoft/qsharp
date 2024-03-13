@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[cfg(not(target_family = "wasm"))]
-#[global_allocator]
-static GLOBAL: allocator::Mimalloc = allocator::Mimalloc;
+allocator::assign_global!();
 
 use clap::{crate_version, ArgGroup, Parser, ValueEnum};
 use log::info;
