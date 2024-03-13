@@ -53,10 +53,82 @@ World\""
 #[test]
 fn namespace_items_begin_on_their_own_lines() {
     check(
-        "operation Foo() : Unit {} operation Bar() : Unit {}",
+        "operation Foo() : Unit {} function Bar() : Unit {}",
         &expect![[r#"
             operation Foo() : Unit {}
-            operation Bar() : Unit {}"#]],
+            function Bar() : Unit {}"#]],
+    );
+}
+
+// Functor specializations begin on their own lines
+
+#[test]
+fn functor_specs_begin_on_their_own_lines() {
+    check(
+        "operation Foo() : Unit { body ... {} adjoint ... {} controlled (c, ...) {} controlled adjoint (c, ...) {} }",
+        &expect![[r#"
+            operation Foo() : Unit {
+                body ... {}
+                adjoint ... {}
+                controlled (c, ...) {}
+                controlled adjoint (c, ...) {}
+            }"#]],
+    );
+}
+
+#[test]
+fn single_space_between_adjoint_controlled_func_spec_keywords() {
+    check(
+        indoc! {"
+        operation Foo() : Unit {
+            body ... {}
+            adjoint ... {}
+            controlled (c, ...) {}
+            controlled     adjoint (c, ...) {}
+        }
+        operation Bar() : Unit {
+            body ... {}
+            adjoint ... {}
+            controlled (c, ...) {}
+            adjoint    controlled (c, ...) {}
+        }"},
+        &expect![[r#"
+            operation Foo() : Unit {
+                body ... {}
+                adjoint ... {}
+                controlled (c, ...) {}
+                controlled adjoint (c, ...) {}
+            }
+            operation Bar() : Unit {
+                body ... {}
+                adjoint ... {}
+                controlled (c, ...) {}
+                adjoint controlled (c, ...) {}
+            }"#]],
+    );
+}
+
+// Single spaces before generator keywords
+
+#[test]
+fn single_spaces_before_generator_keywords() {
+    check(
+        indoc! {"
+        operation Foo() : Unit {
+            body ...    intrinsic
+            adjoint ...    invert
+            controlled (c, ...)   distribute
+            controlled     adjoint (c, ...)    auto
+            adjoint ...     self
+        }"},
+        &expect![[r#"
+            operation Foo() : Unit {
+                body ... intrinsic
+                adjoint ... invert
+                controlled (c, ...) distribute
+                controlled adjoint (c, ...) auto
+                adjoint ... self
+            }"#]],
     );
 }
 
@@ -486,6 +558,63 @@ fn remove_spaces_between_empty_delimiters() {
             }
         "#]],
     );
+}
+
+// Single space before literals
+
+#[test]
+fn single_space_before_literals() {
+    check(
+        indoc! {"
+        let x =    15;
+        let x =    0xF;
+        let x =    15.0;
+        let x =    15L;
+        let x =    \"Fifteen\";
+        let x =    $\"Fifteen\";
+        let x =    PauliI;
+        let x =    PauliX;
+        let x =    PauliY;
+        let x =    PauliZ;
+        let x =    true;
+        let x =    false;
+        let x =    One;
+        let x =    Zero;
+        "},
+        &expect![[r#"
+            let x = 15;
+            let x = 0xF;
+            let x = 15.0;
+            let x = 15L;
+            let x = "Fifteen";
+            let x = $"Fifteen";
+            let x = PauliI;
+            let x = PauliX;
+            let x = PauliY;
+            let x = PauliZ;
+            let x = true;
+            let x = false;
+            let x = One;
+            let x = Zero;
+        "#]],
+    );
+}
+
+// Single space before types
+
+#[test]
+fn single_space_before_types() {
+    check(
+        "let x :   (Int,   Double,    String[],  (BigInt,  Unit),   ('T,)) =>   'T = foo;",
+        &expect![[r#"let x : (Int, Double, String[], (BigInt, Unit), ('T,)) => 'T = foo;"#]],
+    );
+}
+
+// Single space before variables
+
+#[test]
+fn single_space_before_idents() {
+    check("let x =     foo;", &expect!["let x = foo;"]);
 }
 
 // Correct indentation, which increases by four spaces when a brace-delimited block is opened and decreases when block is closed

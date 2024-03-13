@@ -217,7 +217,8 @@ fn apply_rules(
             (_, TokenKind::Keyword(Keyword::Auto))
             | (_, TokenKind::Keyword(Keyword::Distribute))
             | (_, TokenKind::Keyword(Keyword::Intrinsic))
-            | (_, TokenKind::Keyword(Keyword::Invert)) => {
+            | (_, TokenKind::Keyword(Keyword::Invert))
+            | (_, TokenKind::Keyword(Keyword::Slf)) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, _) if new_line_in_spaces => {
@@ -251,6 +252,10 @@ fn apply_rules(
                 } else {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
+            }
+            (TokenKind::DotDotDot, TokenKind::Open(Delim::Brace)) => {
+                // Special case: `... {}`
+                effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, TokenKind::Keyword(Keyword::Is))
             | (_, TokenKind::Keyword(Keyword::For))

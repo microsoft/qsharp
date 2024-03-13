@@ -101,7 +101,7 @@ impl Iterator for ConcreteTokenIterator<'_> {
                         // Their full information is contained in the following token.
                         return self.next();
                     }
-                    // This will panic if any content other than whitespace or comments are ignored when "cooking" the raw tokens
+                    // This will panic if any other non-handled raw tokens didn't get cooked
                     _ => panic!("Raw Token couldn't be converted: {raw_token:?}"),
                 };
                 Some(concrete)

@@ -162,9 +162,9 @@ impl LanguageService {
                     additionalTextEdits: i.additional_text_edits.map(|edits| {
                         edits
                             .into_iter()
-                            .map(|(span, text)| TextEdit {
-                                range: span.into(),
-                                newText: text,
+                            .map(|edit| TextEdit {
+                                range: edit.range.into(),
+                                newText: edit.new_text,
                             })
                             .collect()
                     }),
