@@ -138,11 +138,6 @@ impl<'a> Analyzer<'a> {
         assignee_expr_id: ExprId,
         value_expr_id: ExprId,
     ) -> ComputeKind {
-        // TODO (cesarzc): remove.
-        if assignee_expr_id == ExprId(25992) {
-            println!("{assignee_expr_id}");
-        }
-
         // Visit the assignee and value expressions to determine their compute kind.
         self.visit_expr(assignee_expr_id);
         self.visit_expr(value_expr_id);

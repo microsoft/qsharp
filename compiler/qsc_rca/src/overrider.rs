@@ -412,7 +412,7 @@ fn adapt_application_generator_set_to_type(
     application_generator_set: &ApplicationGeneratorSet,
     ty: &Ty,
 ) -> ApplicationGeneratorSet {
-    let inherent = adapt_compute_kind_to_type(&application_generator_set.inherent, ty);
+    let inherent = adapt_compute_kind_to_type(application_generator_set.inherent, ty);
     let mut dynamic_param_applications = Vec::new();
     for param_application in &application_generator_set.dynamic_param_applications {
         let param_application = adapt_param_application_to_type(param_application, ty);
@@ -424,7 +424,7 @@ fn adapt_application_generator_set_to_type(
     }
 }
 
-fn adapt_compute_kind_to_type(compute_kind: &ComputeKind, ty: &Ty) -> ComputeKind {
+fn adapt_compute_kind_to_type(compute_kind: ComputeKind, ty: &Ty) -> ComputeKind {
     match compute_kind {
         ComputeKind::Classical => ComputeKind::Classical,
         ComputeKind::Quantum(quantum_properties) => {
@@ -447,16 +447,12 @@ fn adapt_param_application_to_type(
 ) -> ParamApplication {
     match param_application {
         ParamApplication::Array(array_param_application) => {
-            let static_content_dynamic_size = adapt_compute_kind_to_type(
-                &array_param_application.static_content_dynamic_size,
-                ty,
-            );
-            let dynamic_content_static_size = adapt_compute_kind_to_type(
-                &array_param_application.dynamic_content_static_size,
-                ty,
-            );
+            let static_content_dynamic_size =
+                adapt_compute_kind_to_type(array_param_application.static_content_dynamic_size, ty);
+            let dynamic_content_static_size =
+                adapt_compute_kind_to_type(array_param_application.dynamic_content_static_size, ty);
             let dynamic_content_dynamic_size = adapt_compute_kind_to_type(
-                &array_param_application.dynamic_content_dynamic_size,
+                array_param_application.dynamic_content_dynamic_size,
                 ty,
             );
             ParamApplication::Array(ArrayParamApplication {
@@ -466,7 +462,7 @@ fn adapt_param_application_to_type(
             })
         }
         ParamApplication::Element(compute_kind) => {
-            let compute_kind = adapt_compute_kind_to_type(compute_kind, ty);
+            let compute_kind = adapt_compute_kind_to_type(*compute_kind, ty);
             ParamApplication::Element(compute_kind)
         }
     }
