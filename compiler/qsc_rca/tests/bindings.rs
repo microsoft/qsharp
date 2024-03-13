@@ -114,3 +114,76 @@ fn check_rca_for_immutable_classical_int_binding() {
         ],
     );
 }
+
+#[test]
+fn check_rca_for_immutable_dynamic_int_binding() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        use register = Qubit[8];
+        let results = MeasureEachZ(register);
+        let i = ResultArrayAsInt(results);
+        i"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_classical_double_binding() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        mutable d = 42.0;
+        d"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_dynamic_double_binding() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        use register = Qubit[8];
+        let results = MeasureEachZ(register);
+        let i = ResultArrayAsInt(results);
+        mutable d = IntAsDouble(i);
+        d"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicDouble)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}

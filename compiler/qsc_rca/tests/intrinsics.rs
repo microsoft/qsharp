@@ -78,7 +78,6 @@ fn check_rca_for_quantum_qis_m_body() {
     );
 }
 
-#[ignore = "work in progress"]
 #[test]
 fn check_rca_for_length() {
     let compilation_context = CompilationContext::new();
@@ -94,13 +93,13 @@ fn check_rca_for_length() {
                     dynamic_param_applications:
                         [0]: [Parameter Type Array] ArrayParamApplication:
                             static_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
                                 value_kind: Element(Dynamic)
                             dynamic_content_static_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(0x0)
                                 value_kind: Element(Static)
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
                                 value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>

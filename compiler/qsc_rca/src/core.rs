@@ -138,6 +138,11 @@ impl<'a> Analyzer<'a> {
         assignee_expr_id: ExprId,
         value_expr_id: ExprId,
     ) -> ComputeKind {
+        // TODO (cesarzc): remove.
+        if assignee_expr_id == ExprId(25992) {
+            println!("{assignee_expr_id}");
+        }
+
         // Visit the assignee and value expressions to determine their compute kind.
         self.visit_expr(assignee_expr_id);
         self.visit_expr(value_expr_id);
@@ -247,14 +252,17 @@ impl<'a> Analyzer<'a> {
         compute_kind = compute_kind.aggregate(lhs_compute_kind);
         compute_kind = compute_kind.aggregate(rhs_compute_kind);
 
-        // Additionally, since the new compute kind can be of a different type than its operands, aggregate additional
-        // runtime features depending on the binary operator expression's type (if it's dynamic).
-        if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
-            if let ValueKind::Element(RuntimeKind::Dynamic) = quantum_properties.value_kind {
-                quantum_properties.runtime_features |=
-                    derive_runtime_features_for_dynamic_type(expr_type);
-            }
+        // Additionally, since the new compute kind can be of a different type than its operands (e.g. 1 == 1),
+        // aggregate additional runtime features depending on the binary operator expression's type (if it's dynamic).
+        if let Some(value_kind) = compute_kind.value_kind() {
+            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                panic!("expected quantum variant of compute kind");
+            };
+
+            quantum_properties.runtime_features |=
+                derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
         }
+
         compute_kind
     }
 
@@ -293,19 +301,16 @@ impl<'a> Analyzer<'a> {
         };
 
         // If the call expression is dynamic, aggregate the corresponding runtime features depending on its type.
-        let default_value_kind = ValueKind::new_static_from_type(expr_type);
-        if compute_kind.is_dynamic() {
-            let dynamic_runtime_features = derive_runtime_features_for_dynamic_type(expr_type);
-            compute_kind = compute_kind.aggregate_runtime_features(
-                ComputeKind::new_with_runtime_features(
-                    dynamic_runtime_features,
-                    default_value_kind,
-                ),
-                default_value_kind,
-            );
+        if let Some(value_kind) = compute_kind.value_kind() {
+            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                panic!("expected quantum variant of Compute Kind");
+            };
+            quantum_properties.runtime_features |=
+                derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
         }
 
         // If this call happens within a dynamic scope, there might be additional runtime features being used.
+        let default_value_kind = ValueKind::new_static_from_type(expr_type);
         let application_instance = self.get_current_application_instance();
         if !application_instance.active_dynamic_scopes.is_empty() {
             // Any call that happens within a dynamic scope uses the forward branching runtime feature.
@@ -578,15 +583,19 @@ impl<'a> Analyzer<'a> {
         }
 
         // If any of the sub-expressions is dynamic, then the compute kind of an if-expression is dynamic and additional
-        // runtime features are aggregated..
+        // runtime features are aggregated.
         let is_any_sub_expr_dynamic = condition_expr_compute_kind.is_dynamic()
             || body_expr_compute_kind.is_dynamic()
             || otherwise_expr_id.map_or(false, |e| {
                 application_instance.get_expr_compute_kind(e).is_dynamic()
             });
         if is_any_sub_expr_dynamic {
-            let dynamic_runtime_features = derive_runtime_features_for_dynamic_type(expr_type);
             let dynamic_value_kind = ValueKind::new_dynamic_from_type(expr_type);
+            let dynamic_runtime_features =
+                derive_runtime_features_for_value_kind_associated_to_type(
+                    dynamic_value_kind,
+                    expr_type,
+                );
             let dynamic_compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: dynamic_runtime_features,
                 value_kind: dynamic_value_kind,
@@ -1290,11 +1299,13 @@ impl<'a> Analyzer<'a> {
                 // If a local is updated within a dynamic scope, the updated value of the local variable should be
                 // dynamic and additional runtime features may apply.
                 if !application_instance.active_dynamic_scopes.is_empty() {
-                    let value_expr = self.get_expr(value_expr_id);
+                    let local_type = &local_var_compute_kind.local.ty;
+                    let dynamic_value_kind = ValueKind::new_dynamic_from_type(local_type);
                     let dynamic_runtime_features =
-                        derive_runtime_features_for_dynamic_type(&value_expr.ty);
-                    let dynamic_value_kind =
-                        ValueKind::new_dynamic_from_type(&local_var_compute_kind.local.ty);
+                        derive_runtime_features_for_value_kind_associated_to_type(
+                            dynamic_value_kind,
+                            local_type,
+                        );
                     let dynamic_compute_kind = ComputeKind::new_with_runtime_features(
                         dynamic_runtime_features,
                         dynamic_value_kind,
@@ -1304,14 +1315,17 @@ impl<'a> Analyzer<'a> {
 
                 // If the updated compute kind is dynamic, include additional properties depending on the type of the
                 // local variable.
-                if updated_compute_kind.is_dynamic() {
+                if let Some(value_kind) = updated_compute_kind.value_kind() {
                     let ComputeKind::Quantum(updated_quantum_properties) =
                         &mut updated_compute_kind
                     else {
                         panic!("expected Quantum variant of Compute Kind");
                     };
                     updated_quantum_properties.runtime_features |=
-                        derive_runtime_features_for_dynamic_type(&local_var_compute_kind.local.ty);
+                        derive_runtime_features_for_value_kind_associated_to_type(
+                            value_kind,
+                            &local_var_compute_kind.local.ty,
+                        );
                 }
 
                 let application_instance = self.get_current_application_instance_mut();
@@ -1790,7 +1804,10 @@ fn derive_intrinsic_function_application_generator_set(
         // the output of the function is dynamic.
         // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
         // function application.
-        let runtime_features = derive_runtime_features_for_dynamic_type(&param.ty);
+        let runtime_features = derive_runtime_features_for_value_kind_associated_to_type(
+            ValueKind::new_dynamic_from_type(&param.ty),
+            &param.ty,
+        );
         let value_kind = ValueKind::new_dynamic_from_type(&callable_context.output_type);
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
             runtime_features,
@@ -1844,7 +1861,10 @@ fn derive_instrinsic_operation_application_generator_set(
         // dynamic the output of the operation is dynamic.
         // When a parameter is bound to a dynamic value, its type contributes to the runtime features used by the
         // operation application.
-        let runtime_features = derive_runtime_features_for_dynamic_type(&param.ty);
+        let runtime_features = derive_runtime_features_for_value_kind_associated_to_type(
+            ValueKind::new_dynamic_from_type(&param.ty),
+            &param.ty,
+        );
         let value_kind = ValueKind::new_dynamic_from_type(&callable_context.output_type);
         let param_compute_kind = ComputeKind::Quantum(QuantumProperties {
             runtime_features,
@@ -1869,60 +1889,140 @@ fn derive_instrinsic_operation_application_generator_set(
     }
 }
 
-fn derive_runtime_features_for_dynamic_array(content_type: &Ty) -> RuntimeFeatureFlags {
-    let mut runtime_features = RuntimeFeatureFlags::empty();
+#[allow(clippy::too_many_lines)]
+fn derive_runtime_features_for_value_kind_associated_to_type(
+    value_kind: ValueKind,
+    ty: &Ty,
+) -> RuntimeFeatureFlags {
+    fn derive_runtime_features_for_value_kind_associated_to_array(
+        value_kind: ValueKind,
+        content_type: &Ty,
+    ) -> RuntimeFeatureFlags {
+        let ValueKind::Array(content_runtime_kind, size_runtime_kind) = value_kind else {
+            panic!("expected array variant of value kind");
+        };
 
-    // A dynamic array is dynamically sized.
-    runtime_features |= RuntimeFeatureFlags::UseOfDynamicallySizedArray;
+        let mut runtime_features = RuntimeFeatureFlags::empty();
 
-    // A dynamic array has dynamic content so we need to include the runtime features used by its content.
-    runtime_features |= derive_runtime_features_for_dynamic_type(content_type);
-
-    runtime_features
-}
-
-fn derive_runtime_features_for_dynamic_arrow(arrow: &Arrow) -> RuntimeFeatureFlags {
-    match arrow.kind {
-        CallableKind::Function => RuntimeFeatureFlags::UseOfDynamicArrowFunction,
-        CallableKind::Operation => RuntimeFeatureFlags::UseOfDynamicArrowOperation,
-    }
-}
-
-fn derive_runtime_features_for_dynamic_primitive_type(prim: Prim) -> RuntimeFeatureFlags {
-    match prim {
-        Prim::BigInt => RuntimeFeatureFlags::UseOfDynamicBigInt,
-        Prim::Bool => RuntimeFeatureFlags::UseOfDynamicBool,
-        Prim::Double => RuntimeFeatureFlags::UseOfDynamicDouble,
-        Prim::Int => RuntimeFeatureFlags::UseOfDynamicInt,
-        Prim::Pauli => RuntimeFeatureFlags::UseOfDynamicPauli,
-        Prim::Qubit => RuntimeFeatureFlags::UseOfDynamicQubit,
-        Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
-            RuntimeFeatureFlags::UseOfDynamicRange
+        // A dynamic array is dynamically sized.
+        if matches!(size_runtime_kind, RuntimeKind::Dynamic) {
+            runtime_features |= RuntimeFeatureFlags::UseOfDynamicallySizedArray;
         }
-        // Results are inherently dynamic but they do not need special runtime features just to exist.
-        Prim::Result => RuntimeFeatureFlags::empty(),
-        Prim::String => RuntimeFeatureFlags::UseOfDynamicString,
-    }
-}
 
-fn derive_runtime_features_for_dynamic_tuple(element_types: &Vec<Ty>) -> RuntimeFeatureFlags {
-    let mut runtime_features = RuntimeFeatureFlags::empty();
-    for ty in element_types {
-        runtime_features |= derive_runtime_features_for_dynamic_type(ty);
-    }
-    runtime_features
-}
+        // A dynamic array has dynamic content so we need to include the runtime features used by its content.
+        if matches!(content_runtime_kind, RuntimeKind::Dynamic) {
+            let content_value_kind = ValueKind::new_dynamic_from_type(content_type);
+            runtime_features |= derive_runtime_features_for_value_kind_associated_to_type(
+                content_value_kind,
+                content_type,
+            );
+        }
 
-fn derive_runtime_features_for_dynamic_type(ty: &Ty) -> RuntimeFeatureFlags {
+        runtime_features
+    }
+
+    fn derive_runtime_features_for_value_kind_associated_to_arrow(
+        value_kind: ValueKind,
+        arrow: &Arrow,
+    ) -> RuntimeFeatureFlags {
+        let ValueKind::Element(runtime_kind) = value_kind else {
+            panic!("expected element variant of value kind");
+        };
+
+        if matches!(runtime_kind, RuntimeKind::Static) {
+            return RuntimeFeatureFlags::empty();
+        }
+
+        match arrow.kind {
+            CallableKind::Function => RuntimeFeatureFlags::UseOfDynamicArrowFunction,
+            CallableKind::Operation => RuntimeFeatureFlags::UseOfDynamicArrowOperation,
+        }
+    }
+
+    fn derive_runtime_features_for_value_kind_associated_to_primitive_type(
+        value_kind: ValueKind,
+        prim: Prim,
+    ) -> RuntimeFeatureFlags {
+        let ValueKind::Element(runtime_kind) = value_kind else {
+            panic!("expected element variant of value kind");
+        };
+
+        if matches!(runtime_kind, RuntimeKind::Static) {
+            return RuntimeFeatureFlags::empty();
+        }
+
+        match prim {
+            Prim::BigInt => RuntimeFeatureFlags::UseOfDynamicBigInt,
+            Prim::Bool => RuntimeFeatureFlags::UseOfDynamicBool,
+            Prim::Double => RuntimeFeatureFlags::UseOfDynamicDouble,
+            Prim::Int => RuntimeFeatureFlags::UseOfDynamicInt,
+            Prim::Pauli => RuntimeFeatureFlags::UseOfDynamicPauli,
+            Prim::Qubit => RuntimeFeatureFlags::UseOfDynamicQubit,
+            Prim::Range | Prim::RangeFrom | Prim::RangeTo | Prim::RangeFull => {
+                RuntimeFeatureFlags::UseOfDynamicRange
+            }
+            // Results are inherently dynamic but they do not need special runtime features just to exist.
+            Prim::Result => RuntimeFeatureFlags::empty(),
+            Prim::String => RuntimeFeatureFlags::UseOfDynamicString,
+        }
+    }
+
+    fn derive_runtime_features_for_value_kind_associated_to_primitive_tuple(
+        value_kind: ValueKind,
+        element_types: &Vec<Ty>,
+    ) -> RuntimeFeatureFlags {
+        let ValueKind::Element(runtime_kind) = value_kind else {
+            panic!("expected element variant of value kind");
+        };
+
+        if matches!(runtime_kind, RuntimeKind::Static) {
+            return RuntimeFeatureFlags::empty();
+        }
+
+        let mut runtime_features = RuntimeFeatureFlags::empty();
+        for element_type in element_types {
+            let element_value_kind = ValueKind::new_dynamic_from_type(element_type);
+            runtime_features |= derive_runtime_features_for_value_kind_associated_to_type(
+                element_value_kind,
+                element_type,
+            );
+        }
+        runtime_features
+    }
+
+    fn derive_runtime_features_for_value_kind_associated_to_udt(
+        value_kind: ValueKind,
+    ) -> RuntimeFeatureFlags {
+        let ValueKind::Element(runtime_kind) = value_kind else {
+            panic!("expected element variant of value kind");
+        };
+
+        match runtime_kind {
+            RuntimeKind::Dynamic => RuntimeFeatureFlags::UseOfDynamicUdt,
+            RuntimeKind::Static => RuntimeFeatureFlags::empty(),
+        }
+    }
+
     match ty {
-        Ty::Array(content_type) => derive_runtime_features_for_dynamic_array(content_type),
-        Ty::Arrow(arrow) => derive_runtime_features_for_dynamic_arrow(arrow),
+        Ty::Array(content_type) => {
+            derive_runtime_features_for_value_kind_associated_to_array(value_kind, content_type)
+        }
+        Ty::Arrow(arrow) => {
+            derive_runtime_features_for_value_kind_associated_to_arrow(value_kind, arrow)
+        }
         Ty::Infer(_) => panic!("cannot derive runtime features for `Infer` type"),
         // Generic types do not require additional runtime features.
         Ty::Param(_) => RuntimeFeatureFlags::empty(),
-        Ty::Prim(prim) => derive_runtime_features_for_dynamic_primitive_type(*prim),
-        Ty::Tuple(element_types) => derive_runtime_features_for_dynamic_tuple(element_types),
-        Ty::Udt(_) => RuntimeFeatureFlags::UseOfDynamicUdt,
+        Ty::Prim(prim) => {
+            derive_runtime_features_for_value_kind_associated_to_primitive_type(value_kind, *prim)
+        }
+        Ty::Tuple(element_types) => {
+            derive_runtime_features_for_value_kind_associated_to_primitive_tuple(
+                value_kind,
+                element_types,
+            )
+        }
+        Ty::Udt(_) => derive_runtime_features_for_value_kind_associated_to_udt(value_kind),
         Ty::Err => panic!("cannot derive runtime features for `Err` type"),
     }
 }

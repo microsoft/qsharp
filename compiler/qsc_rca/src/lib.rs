@@ -508,6 +508,13 @@ impl ComputeKind {
         }
     }
 
+    pub(crate) fn value_kind(self) -> Option<ValueKind> {
+        match self {
+            Self::Classical => None,
+            Self::Quantum(quantum_properties) => Some(quantum_properties.value_kind),
+        }
+    }
+
     pub(crate) fn value_kind_or_default(self, default: ValueKind) -> ValueKind {
         match self {
             Self::Classical => default,
