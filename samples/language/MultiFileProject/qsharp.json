@@ -1,8 +1,1 @@
-{
-    "lints": [
-        {
-            "lint": "needlessParens",
-            "level": "allow"
-        }
-    ]
-}
+{}
