@@ -32,35 +32,186 @@ pub struct Overrider<'a> {
 }
 
 impl<'a> Overrider<'a> {
+    #[allow(clippy::too_many_lines)]
     pub fn new(
         package_store: &'a PackageStore,
         package_store_compute_properties: PackageStoreComputeProperties,
     ) -> Self {
-        let callable_overrides_tuples: [(String, Vec<SpecOverride>); 1] = [(
-            "Microsoft.Quantum.Core.Length".into(),
-            vec![SpecOverride {
-                functor_set_value: FunctorSetValue::Empty,
-                application_generator_set: ApplicationGeneratorSet {
-                    inherent: ComputeKind::Classical,
-                    dynamic_param_applications: vec![ParamApplication::Array(
-                        ArrayParamApplication {
-                            static_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
-                                runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
-                                value_kind: ValueKind::Element(RuntimeKind::Dynamic),
-                            }),
-                            dynamic_content_static_size: ComputeKind::Quantum(QuantumProperties {
+        let callable_overrides_tuples: [(String, Vec<SpecOverride>); 5] = [
+            (
+                "Microsoft.Quantum.Core.Length".into(),
+                vec![SpecOverride {
+                    functor_set_value: FunctorSetValue::Empty,
+                    application_generator_set: ApplicationGeneratorSet {
+                        inherent: ComputeKind::Classical,
+                        dynamic_param_applications: vec![ParamApplication::Array(
+                            ArrayParamApplication {
+                                static_content_dynamic_size: ComputeKind::Quantum(
+                                    QuantumProperties {
+                                        runtime_features:
+                                            RuntimeFeatureFlags::UseOfDynamicallySizedArray,
+                                        value_kind: ValueKind::Element(RuntimeKind::Dynamic),
+                                    },
+                                ),
+                                dynamic_content_static_size: ComputeKind::Quantum(
+                                    QuantumProperties {
+                                        runtime_features: RuntimeFeatureFlags::empty(),
+                                        value_kind: ValueKind::Element(RuntimeKind::Static),
+                                    },
+                                ),
+                                dynamic_content_dynamic_size: ComputeKind::Quantum(
+                                    QuantumProperties {
+                                        runtime_features:
+                                            RuntimeFeatureFlags::UseOfDynamicallySizedArray,
+                                        value_kind: ValueKind::Element(RuntimeKind::Dynamic),
+                                    },
+                                ),
+                            },
+                        )],
+                    },
+                }],
+            ),
+            (
+                "Microsoft.Quantum.Intrinsic.H".into(),
+                vec![
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::Ctl,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
                                 runtime_features: RuntimeFeatureFlags::empty(),
                                 value_kind: ValueKind::Element(RuntimeKind::Static),
                             }),
-                            dynamic_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
-                                runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
-                                value_kind: ValueKind::Element(RuntimeKind::Dynamic),
-                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
                         },
-                    )],
-                },
-            }],
-        )];
+                    },
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::CtlAdj,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
+                                runtime_features: RuntimeFeatureFlags::empty(),
+                                value_kind: ValueKind::Element(RuntimeKind::Static),
+                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
+                        },
+                    },
+                ],
+            ),
+            (
+                "Microsoft.Quantum.Intrinsic.X".into(),
+                vec![
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::Ctl,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
+                                runtime_features: RuntimeFeatureFlags::empty(),
+                                value_kind: ValueKind::Element(RuntimeKind::Static),
+                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
+                        },
+                    },
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::CtlAdj,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
+                                runtime_features: RuntimeFeatureFlags::empty(),
+                                value_kind: ValueKind::Element(RuntimeKind::Static),
+                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
+                        },
+                    },
+                ],
+            ),
+            (
+                "Microsoft.Quantum.Intrinsic.Y".into(),
+                vec![
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::Ctl,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
+                                runtime_features: RuntimeFeatureFlags::empty(),
+                                value_kind: ValueKind::Element(RuntimeKind::Static),
+                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
+                        },
+                    },
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::CtlAdj,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
+                                runtime_features: RuntimeFeatureFlags::empty(),
+                                value_kind: ValueKind::Element(RuntimeKind::Static),
+                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
+                        },
+                    },
+                ],
+            ),
+            (
+                "Microsoft.Quantum.Intrinsic.Z".into(),
+                vec![
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::Ctl,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
+                                runtime_features: RuntimeFeatureFlags::empty(),
+                                value_kind: ValueKind::Element(RuntimeKind::Static),
+                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
+                        },
+                    },
+                    SpecOverride {
+                        functor_set_value: FunctorSetValue::CtlAdj,
+                        application_generator_set: ApplicationGeneratorSet {
+                            inherent: ComputeKind::Quantum(QuantumProperties {
+                                runtime_features: RuntimeFeatureFlags::empty(),
+                                value_kind: ValueKind::Element(RuntimeKind::Static),
+                            }),
+                            dynamic_param_applications: vec![ParamApplication::Element(
+                                ComputeKind::Quantum(QuantumProperties {
+                                    runtime_features: RuntimeFeatureFlags::UseOfDynamicQubit,
+                                    value_kind: ValueKind::Element(RuntimeKind::Static),
+                                }),
+                            )],
+                        },
+                    },
+                ],
+            ),
+        ];
         let mut overrides: FxHashMap<String, Vec<SpecOverride>> = FxHashMap::default();
         for (fully_qualified_name, application_generator_set_override) in callable_overrides_tuples
         {

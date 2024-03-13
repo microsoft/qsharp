@@ -52,6 +52,16 @@ impl<'a> Analyzer<'a> {
 
     fn analyze_cyclic_specialization(&mut self, spec_id: LocalSpecId) {
         let package_id = self.get_current_package();
+
+        // Do nothing if the compute properties for the specialization are already populated.
+        if self
+            .package_store_compute_properties
+            .find_specialization((package_id, spec_id).into())
+            .is_some()
+        {
+            return;
+        }
+
         let Some(Global::Callable(callable)) = self
             .package_store
             .get_global((package_id, spec_id.callable).into())
