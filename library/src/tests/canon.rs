@@ -177,7 +177,6 @@ fn check_apply_p() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Measurement;
             use q = Qubit[3];
             ApplyP(PauliX, q[0]);
             H(q[1]); ApplyP(PauliY, q[1]);
@@ -194,7 +193,6 @@ fn check_apply_pauli() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Measurement;
             use q = Qubit[3];
             H(q[1]);
             H(q[2]); S(q[2]);
@@ -211,7 +209,6 @@ fn check_apply_pauli_from_bit_string() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Measurement;
             use q = Qubit[3];
             ApplyPauliFromBitString(PauliX, false, [true, false, true], q);
             return MResetEachZ(q);
@@ -226,7 +223,6 @@ fn check_apply_pauli_from_int() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Measurement;
             use q = Qubit[3];
             ApplyPauliFromInt(PauliX, false, 5, q);
             return MResetEachZ(q);
@@ -241,7 +237,6 @@ fn check_apply_controlled_on_int() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Measurement;
             use c = Qubit[3];
             use t1 = Qubit();
             use t2 = Qubit();
@@ -264,7 +259,6 @@ fn check_apply_controlled_on_bitstring() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Measurement;
             use c = Qubit[4];
             use t1 = Qubit();
             use t2 = Qubit();
@@ -323,7 +317,6 @@ fn check_swap_reverse_register() {
     test_expression(
         {
             "{
-                open Microsoft.Quantum.Measurement;
                 use q = Qubit[10];
                 ApplyXorInPlace(328, q);
                 SwapReverseRegister(q);
@@ -361,7 +354,6 @@ fn check_apply_xor_in_place_l() {
     test_expression(
         {
             "{
-            open Microsoft.Quantum.Measurement;
             use q = Qubit[100];
             ApplyXorInPlaceL(953L <<< 50, q);
             let result = MeasureInteger(q[50...]);

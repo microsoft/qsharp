@@ -39,8 +39,6 @@ fn gates_are_counted() {
     verify_logical_counts(
         indoc! {"
             namespace Test {
-                open Microsoft.Quantum.Measurement;
-
                 operation Rotate(qs: Qubit[]) : Unit {
                     for q in qs {
                         Rx(1.0, q);

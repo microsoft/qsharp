@@ -3,8 +3,8 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { IDebugServiceWorker, getDebugServiceWorker } from "qsharp-lang";
-import { qsharpExtensionId, isQsharpDocument, FileAccessor } from "../common";
+import { IDebugServiceWorker, getDebugServiceWorker, log } from "qsharp-lang";
+import { qsharpExtensionId, isQsharpDocument } from "../common";
 import { QscDebugSession } from "./session";
 import { getRandomGuid } from "../utils";
 
@@ -49,13 +49,18 @@ function registerCommands(context: vscode.ExtensionContext) {
         }
 
         if (targetResource) {
+          // We'll omit config.program and let the configuration
+          // resolver fill it in with the currently open editor's URI.
+          // This will also let us correctly handle untitled files
+          // where the save prompt pops up before the debugger is launched,
+          // potentially causing the active editor URI to change if
+          // the file is saved with a different name.
           vscode.debug.startDebugging(
             undefined,
             {
               type: "qsharp",
               name: "Run Q# File",
               request: "launch",
-              program: targetResource.toString(),
               shots: 1,
               stopOnEntry: false,
             },
@@ -73,11 +78,16 @@ function registerCommands(context: vscode.ExtensionContext) {
         }
 
         if (targetResource) {
+          // We'll omit config.program and let the configuration
+          // resolver fill it in with the currently open editor's URI.
+          // This will also let us correctly handle untitled files
+          // where the save prompt pops up before the debugger is launched,
+          // potentially causing the active editor URI to change if
+          // the file is saved with a different name.
           vscode.debug.startDebugging(undefined, {
             type: "qsharp",
             name: "Debug Q# File",
             request: "launch",
-            program: targetResource.toString(),
             shots: 1,
             stopOnEntry: true,
             noDebug: false,
@@ -101,29 +111,51 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
         config.type = "qsharp";
         config.name = "Launch";
         config.request = "launch";
-        config.program = editor.document.uri.toString();
+        config.programUri = editor.document.uri.toString();
         config.shots = 1;
         config.noDebug = "noDebug" in config ? config.noDebug : false;
         config.stopOnEntry = !config.noDebug;
       }
+    } else if (config.program && folder) {
+      // A program is specified in launch.json.
+      //
+      // Variable substitution is a bit odd in VS Code. Variables such as
+      // ${file} and ${workspaceFolder} are expanded to absolute filesystem
+      // paths with platform-specific separators. To correctly convert them
+      // back to a URI, we need to use the vscode.Uri.file constructor.
+      //
+      // However, this gives us the URI scheme file:// , which is not correct
+      // when the workspace uses a virtual filesystem such as qsharp-vfs://
+      // or vscode-test-web://. So now we also need the workspace folder URI
+      // to use as the basis for our file URI.
+      //
+      // Examples of program paths that can come through variable substitution:
+      // C:\foo\bar.qs
+      // \foo\bar.qs
+      // /foo/bar.qs
+      const fileUri = vscode.Uri.file(config.program);
+      config.programUri = folder.uri
+        .with({
+          path: fileUri.path,
+        })
+        .toString();
     } else {
-      // we have a launch config, resolve the program path
-
-      // ensure we have the program uri correctly formatted
-      // this is a user specified path.
-      if (config.program) {
-        const uri = workspaceFileAccessor.resolvePathToUri(config.program);
-        config.program = uri.toString();
-      } else {
-        // Use the active editor if no program or ${file} is specified.
-        const editor = vscode.window.activeTextEditor;
-        if (editor && isQsharpDocument(editor.document)) {
-          config.program = editor.document.uri.toString();
-        }
+      // Use the active editor if no program is specified.
+      const editor = vscode.window.activeTextEditor;
+      if (editor && isQsharpDocument(editor.document)) {
+        config.programUri = editor.document.uri.toString();
       }
     }
 
-    if (!config.program) {
+    log.trace(
+      `resolveDebugConfigurationWithSubstitutedVariables config.program=${
+        config.program
+      } folder.uri=${folder?.uri.toString()} config.programUri=${
+        config.programUri
+      }`,
+    );
+
+    if (!config.programUri) {
       // abort launch
       return vscode.window
         .showInformationMessage("Cannot find a Q# program to debug")
@@ -157,35 +189,6 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
   }
 }
 
-// The path normalization, fallbacks, and uri resolution are necessary
-// due to https://github.com/microsoft/vscode-debugadapter-node/issues/298
-// We can't specify that the debug adapter should use Uri for paths and can't
-// use the DebugSession conversion functions because they don't work in the web.
-export const workspaceFileAccessor: FileAccessor = {
-  normalizePath(path: string): string {
-    return path.replace(/\\/g, "/");
-  },
-  convertToWindowsPathSeparator(path: string): string {
-    return path.replace(/\//g, "\\");
-  },
-  resolvePathToUri(path: string): vscode.Uri {
-    const normalizedPath = this.normalizePath(path);
-    return vscode.Uri.parse(normalizedPath, false);
-  },
-  async openPath(path: string): Promise<vscode.TextDocument> {
-    const uri: vscode.Uri = this.resolvePathToUri(path);
-    return this.openUri(uri);
-  },
-  async openUri(uri: vscode.Uri): Promise<vscode.TextDocument> {
-    try {
-      return await vscode.workspace.openTextDocument(uri);
-    } catch {
-      const path = this.convertToWindowsPathSeparator(uri.toString());
-      return await vscode.workspace.openTextDocument(vscode.Uri.file(path));
-    }
-  },
-};
-
 class InlineDebugAdapterFactory
   implements vscode.DebugAdapterDescriptorFactory
 {
@@ -194,12 +197,9 @@ class InlineDebugAdapterFactory
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): Promise<vscode.DebugAdapterDescriptor> {
     const worker = debugServiceWorkerFactory();
-    const uri = workspaceFileAccessor.resolvePathToUri(
-      session.configuration.program,
-    );
+    const uri = vscode.Uri.parse(session.configuration.programUri);
     const project = await loadProject(uri);
     const qscSession = new QscDebugSession(
-      workspaceFileAccessor,
       worker,
       session.configuration,
       project.sources,
