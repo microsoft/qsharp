@@ -10,10 +10,10 @@ use itertools::Itertools;
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableImpl, Expr, ExprId, Global, Item, ItemKind, LocalItemId, Package,
-        PackageStore, PackageStoreLookup, Pat, PatId, Stmt, StmtId,
+        PackageStore, PackageStoreLookup, Pat, PatId, Stmt, StmtId, StmtKind,
     },
-    ty::FunctorSetValue,
-    visit::Visitor,
+    ty::{FunctorSetValue, Ty},
+    visit::{walk_block, walk_expr, walk_stmt, Visitor},
 };
 use rustc_hash::FxHashMap;
 
@@ -176,6 +176,30 @@ impl<'a> Visitor<'a> for Overrider<'a> {
         self.package_store.get_stmt((package_id, id).into())
     }
 
+    fn visit_block(&mut self, id: BlockId) {
+        walk_block(self, id);
+        let package_id = self.get_current_package();
+        let block = self.get_block(id);
+        let application_generator_set = adapt_application_generator_set_to_type(
+            self.get_current_application_generator_set(),
+            &block.ty,
+        );
+        self.package_store_compute_properties
+            .insert_block((package_id, id).into(), application_generator_set);
+    }
+
+    fn visit_expr(&mut self, id: ExprId) {
+        walk_expr(self, id);
+        let package_id = self.get_current_package();
+        let expr = self.get_expr(id);
+        let application_generator_set = adapt_application_generator_set_to_type(
+            self.get_current_application_generator_set(),
+            &expr.ty,
+        );
+        self.package_store_compute_properties
+            .insert_expr((package_id, id).into(), application_generator_set);
+    }
+
     fn visit_package(&mut self, package: &'a Package) {
         // Go through each namespace, identifying the callables for which we have overrides.
         let namespaces = package
@@ -213,6 +237,86 @@ impl<'a> Visitor<'a> for Overrider<'a> {
                     }
                 }
             }
+        }
+    }
+
+    fn visit_stmt(&mut self, id: StmtId) {
+        walk_stmt(self, id);
+        let package_id = self.get_current_package();
+        let stmt = self.get_stmt(id);
+        let stmt_type = match stmt.kind {
+            StmtKind::Expr(expr_id) => self.get_expr(expr_id).ty.clone(),
+            StmtKind::Item(_) | StmtKind::Local(_, _, _) | StmtKind::Semi(_) => Ty::UNIT,
+        };
+        let application_generator_set = adapt_application_generator_set_to_type(
+            self.get_current_application_generator_set(),
+            &stmt_type,
+        );
+        self.package_store_compute_properties
+            .insert_stmt((package_id, id).into(), application_generator_set);
+    }
+}
+
+fn adapt_application_generator_set_to_type(
+    application_generator_set: &ApplicationGeneratorSet,
+    ty: &Ty,
+) -> ApplicationGeneratorSet {
+    let inherent = adapt_compute_kind_to_type(&application_generator_set.inherent, ty);
+    let mut dynamic_param_applications = Vec::new();
+    for param_application in &application_generator_set.dynamic_param_applications {
+        let param_application = adapt_param_application_to_type(param_application, ty);
+        dynamic_param_applications.push(param_application);
+    }
+    ApplicationGeneratorSet {
+        inherent,
+        dynamic_param_applications,
+    }
+}
+
+fn adapt_compute_kind_to_type(compute_kind: &ComputeKind, ty: &Ty) -> ComputeKind {
+    match compute_kind {
+        ComputeKind::Classical => ComputeKind::Classical,
+        ComputeKind::Quantum(quantum_properties) => {
+            let runtime_features = quantum_properties.runtime_features;
+            let mut value_kind = ValueKind::new_static_from_type(ty);
+            quantum_properties
+                .value_kind
+                .project_onto_variant(&mut value_kind);
+            ComputeKind::Quantum(QuantumProperties {
+                runtime_features,
+                value_kind,
+            })
+        }
+    }
+}
+
+fn adapt_param_application_to_type(
+    param_application: &ParamApplication,
+    ty: &Ty,
+) -> ParamApplication {
+    match param_application {
+        ParamApplication::Array(array_param_application) => {
+            let static_content_dynamic_size = adapt_compute_kind_to_type(
+                &array_param_application.static_content_dynamic_size,
+                ty,
+            );
+            let dynamic_content_static_size = adapt_compute_kind_to_type(
+                &array_param_application.dynamic_content_static_size,
+                ty,
+            );
+            let dynamic_content_dynamic_size = adapt_compute_kind_to_type(
+                &array_param_application.dynamic_content_dynamic_size,
+                ty,
+            );
+            ParamApplication::Array(ArrayParamApplication {
+                static_content_dynamic_size,
+                dynamic_content_static_size,
+                dynamic_content_dynamic_size,
+            })
+        }
+        ParamApplication::Element(compute_kind) => {
+            let compute_kind = adapt_compute_kind_to_type(compute_kind, ty);
+            ParamApplication::Element(compute_kind)
         }
     }
 }
