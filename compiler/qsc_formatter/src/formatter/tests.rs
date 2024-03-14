@@ -617,6 +617,33 @@ fn single_space_before_idents() {
     check("let x =     foo;", &expect!["let x = foo;"]);
 }
 
+// Formatter continues after error token
+
+#[test]
+fn formatter_continues_after_error_token() {
+    check(
+        indoc! {"
+        let x : '   T =     foo;
+        let x : `   T =     foo;
+        let x : &   T =     foo;
+        let x : ||  T =     foo;
+        let x : ^^  T =     foo;
+        "},
+        &expect![[r#"
+            let x : '   T = foo;
+            let x : `   T = foo;
+            let x : &   T = foo;
+            let x : ||  T = foo;
+            let x : ^^  T = foo;
+        "#]],
+    );
+}
+
+#[test]
+fn formatter_does_not_crash_on_non_terminating_string() {
+    super::calculate_format_edits("let x = \"Hello World");
+}
+
 // Correct indentation, which increases by four spaces when a brace-delimited block is opened and decreases when block is closed
 
 #[test]

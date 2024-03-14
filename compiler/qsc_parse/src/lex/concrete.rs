@@ -96,13 +96,9 @@ impl Iterator for ConcreteTokenIterator<'_> {
                         kind: ConcreteTokenKind::WhiteSpace,
                         span,
                     },
-                    raw::TokenKind::Single(raw::Single::Apos) => {
-                        // Apostrophes are handled a bit strangely.
-                        // Their full information is contained in the following token.
+                    _ => {
                         return self.next();
                     }
-                    // This will panic if any other non-handled raw tokens didn't get cooked
-                    _ => panic!("Raw Token couldn't be converted: {raw_token:?}"),
                 };
                 Some(concrete)
             }
