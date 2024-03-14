@@ -190,7 +190,7 @@ impl Lowerer {
         };
 
         self.assigner.reset_local();
-        // self.locals.clear();
+        self.locals.clear();
         for (k, v) in locals {
             self.locals.insert(k, v);
         }
