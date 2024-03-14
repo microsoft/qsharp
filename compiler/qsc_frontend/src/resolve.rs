@@ -778,6 +778,26 @@ impl GlobalTable {
         let mut errors = Vec::new();
         for node in &*package.nodes {
             match node {
+                // if a namespace is nested, create child namespaces
+                TopLevelNode::Namespace(namespace) if namespace.name.to_string().contains(".") => {
+                    let namespaces = namespace.name.to_string().split('.').collect::<Vec<_>>();
+                    let mut parent = self.scope;
+                    for namespace in namespaces {
+                        
+                        self.names.insert(
+                            namespace.id,
+                            Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
+                        );
+                        self.scope.namespaces.insert(Rc::clone(&namespace.name));
+                    }
+                    bind_global_items(
+                        &mut self.names,
+                        &mut self.scope,
+                        namespace,
+                        assigner,
+                        &mut errors,
+                    );
+                }
                 TopLevelNode::Namespace(namespace) => {
                     bind_global_items(
                         &mut self.names,
@@ -1195,6 +1215,7 @@ fn resolve_explicit_opens<'a>(
     candidates
 }
 
+/// Creates an [`ItemId`] for an item that is local to this package (internal to it).
 fn intrapackage(item: LocalItemId) -> ItemId {
     ItemId {
         package: None,
