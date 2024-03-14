@@ -9,7 +9,7 @@ use std::{
     fs::{self, DirEntry, FileType},
 };
 
-use qsc_linter::LintConfig;
+pub use qsc_linter::LintConfig;
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::Arc};
 

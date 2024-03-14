@@ -45,4 +45,8 @@ pub use qsc_eval::{
     state::{fmt_basis_state_label, fmt_complex, format_state_id, get_latex, get_phase},
 };
 
+pub mod linter {
+    pub use qsc_linter::{LintConfig, LintKind, LintLevel};
+}
+
 pub use qsc_doc_gen::{display, generate_docs};

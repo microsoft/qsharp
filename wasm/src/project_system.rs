@@ -3,6 +3,7 @@
 
 use async_trait::async_trait;
 use js_sys::JsString;
+use qsc::linter::{LintConfig, LintKind, LintLevel};
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 
 use std::iter::FromIterator;
@@ -187,6 +188,31 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
 
     };
 
+    let lints: Vec<LintConfig> = match js_sys::Reflect::get(&js_val, &JsValue::from_str("lints")) {
+        Ok(v) => match v.dyn_into::<js_sys::Array>() {
+            Ok(arr) => arr
+            .into_iter()
+            .filter_map(|x| {
+                    let lint = js_sys::Reflect::get(&x, &JsValue::from_str("lint"))
+                        .expect("expected lint according to typescript bindings");
+                    let level = js_sys::Reflect::get(&x, &JsValue::from_str("level"))
+                        .expect("expected lint according to typescript bindings");
+                    let lint = lint.as_string().expect("manifest callback returned {lint:?}, but we expected a string representing a lint name");
+                    let level = level.as_string().expect("manifest callback returned {level:?}, but we expected a string representing a lint level");
+
+                    let kind = format!(r#""{lint}""#);
+                    let level = format!(r#""{level}""#);
+                    let kind: LintKind = serde_json::from_str(&kind).ok()?;
+                    let level: LintLevel = serde_json::from_str(&level).ok()?;
+
+                    Some(LintConfig { kind, level })
+                })
+                .collect::<Vec<_>>(),
+            Err(_) => Vec::new(),
+        },
+        _ => Vec::new(),
+    };
+
     log::trace!("found manifest at {manifest_dir:?}");
 
     let manifest_dir = PathBuf::from(manifest_dir);
@@ -194,7 +220,9 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
     Some(ManifestDescriptor {
         manifest: Manifest {
             language_features,
-            ..Default::default()
+            lints,
+            author: Option::default(),
+            license: Option::default(),
         },
         manifest_dir,
     })

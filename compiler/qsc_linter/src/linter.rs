@@ -77,13 +77,18 @@ impl Display for LintLevel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LintConfig {
     #[serde(rename = "lint")]
-    pub(crate) kind: LintKind,
-    pub(crate) level: LintLevel,
+    /// Represents the lint name.
+    pub kind: LintKind,
+    /// The lint level.
+    pub level: LintLevel,
 }
 
+/// Represents a lint name.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LintKind {
+    /// AST lint name.
     Ast(AstLint),
+    /// HIR lint name.
     Hir(HirLint),
 }

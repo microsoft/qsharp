@@ -1,4 +1,14 @@
 {
   "author": "Microsoft",
-  "exclude_regexes": []
+  "exclude_regexes": [],
+  "lints": [
+    {
+        "lint": "divisionByZero",
+        "level": "warning"
+    },
+    {
+      "lint": "needlessParens",
+      "level": "allow"
+    }
+  ]
 }
