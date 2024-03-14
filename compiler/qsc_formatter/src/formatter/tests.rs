@@ -710,7 +710,30 @@ fn preserve_user_newlines_in_expressions() {
     assert!(super::calculate_format_edits(input).is_empty());
 }
 
-// Extra test case for sanity
+// Remove extra whitespace from start of code
+
+#[test]
+fn remove_extra_whitespace_from_start_of_code() {
+    let input = indoc! {r#"
+
+
+
+
+        namespace Foo {}"#};
+
+    check(input, &expect!["namespace Foo {}"]);
+}
+
+// Extra test cases for sanity
+
+#[test]
+fn preserve_comments_at_start_of_file() {
+    let input = indoc! {r#"
+        // Initial Comment
+        namespace Foo {}"#};
+
+    assert!(super::calculate_format_edits(input).is_empty());
+}
 
 #[test]
 fn sample_has_no_formatting_changes() {

@@ -41,20 +41,34 @@ pub struct ConcreteTokenIterator<'a> {
 impl<'a> ConcreteTokenIterator<'a> {
     #[must_use]
     pub fn new(code: &'a str) -> Self {
+        let mut cooked_tokens = cooked::Lexer::new(code).peekable();
+        let non_compilation_tokens = match cooked_tokens.peek() {
+            Some(first) => {
+                let lo = match first {
+                    Ok(okay) => okay.span.lo,
+                    Err(err) => err.span().lo,
+                };
+                if lo != 0 {
+                    match get_tokens_from_span(code, 0, lo) {
+                        Some(iter) => iter,
+                        None => raw::Lexer::new("").peekable(),
+                    }
+                } else {
+                    raw::Lexer::new("").peekable()
+                }
+            }
+            None => raw::Lexer::new(code).peekable(),
+        };
         Self {
             code,
-            cooked_tokens: cooked::Lexer::new(code).peekable(),
-            non_compilation_tokens: raw::Lexer::new("").peekable(),
+            cooked_tokens,
+            non_compilation_tokens,
         }
     }
 
     fn get_tokens_from_span(&mut self, lo: u32, hi: u32) {
-        let starting_offset = lo;
-        let lo = lo as usize;
-        let hi = hi as usize;
-        if let Some(slice) = self.code.get(lo..hi) {
-            self.non_compilation_tokens =
-                raw::Lexer::new_with_starting_offset(slice, starting_offset).peekable();
+        if let Some(iter) = get_tokens_from_span(self.code, lo, hi) {
+            self.non_compilation_tokens = iter;
         }
     }
 
@@ -74,6 +88,14 @@ impl<'a> ConcreteTokenIterator<'a> {
             },
         }
     }
+}
+
+fn get_tokens_from_span(code: &str, lo: u32, hi: u32) -> Option<Peekable<raw::Lexer<'_>>> {
+    let starting_offset = lo;
+    let lo = lo as usize;
+    let hi = hi as usize;
+    code.get(lo..hi)
+        .map(|slice| raw::Lexer::new_with_starting_offset(slice, starting_offset).peekable())
 }
 
 impl Iterator for ConcreteTokenIterator<'_> {

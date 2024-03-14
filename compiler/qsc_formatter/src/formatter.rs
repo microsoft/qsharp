@@ -99,8 +99,8 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
             }
             (None, None, Some(three)) => {
                 // Remove any whitespace at the start of a file
-                if three.span.lo != 0 {
-                    vec![TextEdit::new("", 0, three.span.lo)]
+                if matches!(three.kind, ConcreteTokenKind::WhiteSpace) {
+                    vec![TextEdit::new("", three.span.lo, three.span.hi)]
                 } else {
                     vec![]
                 }
