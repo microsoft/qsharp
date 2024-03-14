@@ -7,9 +7,9 @@ use qsc_ast::ast::{BinOp, ExprKind, Lit, StmtKind};
 use qsc_data_structures::span::Span;
 
 declare_ast_lints! {
-    (DivisionByZero, LintLevel::Allow, "attempt to divide by zero"),
-    (NeedlessParens, LintLevel::Warn, "unnecessary parentheses"),
-    (RedundantSemicolons, LintLevel::Warn, "redundant semicolons"),
+    (DivisionByZero, LintLevel::Warn, "attempt to divide by zero", "division by zero is not allowed"),
+    (NeedlessParens, LintLevel::Warn, "unnecessary parentheses", "remove the extra parentheses for clarity"),
+    (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
 }
 
 impl AstLintPass for DivisionByZero {

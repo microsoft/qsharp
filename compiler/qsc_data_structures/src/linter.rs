@@ -10,10 +10,12 @@ use crate::span::Span;
 pub struct Lint {
     /// A span indicating where the diagnostic is in the source code.
     pub span: Span,
-    /// This is the message the user will see in the code editor.
-    pub message: &'static str,
     /// The lint level: allow, warning, error.
     pub level: LintLevel,
+    /// The message the user will see in the code editor.
+    pub message: &'static str,
+    /// The help text the user will see in the code editor.
+    pub help: &'static str,
 }
 
 impl std::fmt::Display for Lint {
@@ -35,6 +37,10 @@ impl Diagnostic for Lint {
         let source_span = miette::SourceSpan::from(self.span);
         let labeled_span = LabeledSpan::new_with_span(Some(self.to_string()), source_span);
         Some(Box::new(vec![labeled_span].into_iter()))
+    }
+
+    fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
+        Some(Box::new(self.help))
     }
 }
 

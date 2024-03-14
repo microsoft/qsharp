@@ -8,8 +8,9 @@ macro_rules! push_lint {
     ($lint:expr, $span:expr, $buffer:expr) => {
         $buffer.push(Lint {
             span: $span,
-            message: $lint.message,
             level: $lint.level,
+            message: $lint.message,
+            help: $lint.help,
         })
     };
 }

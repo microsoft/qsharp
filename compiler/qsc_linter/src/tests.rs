@@ -18,18 +18,21 @@ fn multiple_lints() {
             [
                 SrcLint {
                     source: ";;;",
-                    message: "redundant semicolons",
                     level: Warn,
+                    message: "redundant semicolons",
+                    help: "remove the redundant semicolons",
                 },
                 SrcLint {
                     source: "((1 + 2)) / 0",
+                    level: Warn,
                     message: "attempt to divide by zero",
-                    level: Allow,
+                    help: "division by zero is not allowed",
                 },
                 SrcLint {
                     source: "((1 + 2))",
-                    message: "unnecessary parentheses",
                     level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
                 },
             ]
         "#]],
@@ -44,8 +47,9 @@ fn double_parens() {
             [
                 SrcLint {
                     source: "((1 + 2))",
-                    message: "unnecessary parentheses",
                     level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
                 },
             ]
         "#]],
@@ -60,8 +64,9 @@ fn division_by_zero() {
             [
                 SrcLint {
                     source: "2 / 0",
+                    level: Warn,
                     message: "attempt to divide by zero",
-                    level: Allow,
+                    help: "division by zero is not allowed",
                 },
             ]
         "#]],
@@ -76,13 +81,15 @@ fn needless_parens_in_assignment() {
             [
                 SrcLint {
                     source: "(42)",
-                    message: "unnecessary parentheses",
                     level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
                 },
                 SrcLint {
                     source: "42",
-                    message: "remove this stump after addding the first HIR lint",
-                    level: Warn,
+                    level: Allow,
+                    message: "this a placeholder",
+                    help: "remove after addding the first HIR lint",
                 },
             ]
         "#]],
@@ -97,18 +104,21 @@ fn needless_parens() {
             [
                 SrcLint {
                     source: "(2)",
-                    message: "unnecessary parentheses",
                     level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
                 },
                 SrcLint {
                     source: "(5 * 4 * (2 ^ 10))",
-                    message: "unnecessary parentheses",
                     level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
                 },
                 SrcLint {
                     source: "(2 ^ 10)",
-                    message: "unnecessary parentheses",
                     level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
                 },
             ]
         "#]],
@@ -123,8 +133,9 @@ fn redundant_semicolons() {
             [
                 SrcLint {
                     source: ";;;;",
-                    message: "redundant semicolons",
                     level: Warn,
+                    message: "redundant semicolons",
+                    help: "remove the redundant semicolons",
                 },
             ]
         "#]],
@@ -132,15 +143,16 @@ fn redundant_semicolons() {
 }
 
 #[test]
-fn hir_stump() {
+fn hir_placeholder() {
     check(
-        "let stump = 42;",
+        "let placeholder = 42;",
         &expect![[r#"
             [
                 SrcLint {
                     source: "42",
-                    message: "remove this stump after addding the first HIR lint",
-                    level: Warn,
+                    level: Allow,
+                    message: "this a placeholder",
+                    help: "remove after addding the first HIR lint",
                 },
             ]
         "#]],
@@ -185,16 +197,18 @@ fn wrap_in_namespace(source: &str) -> String {
 #[derive(Debug)]
 struct SrcLint {
     source: String,
-    message: &'static str,
     level: LintLevel,
+    message: &'static str,
+    help: &'static str,
 }
 
 impl SrcLint {
     fn from(lint: &Lint, source: &str) -> Self {
         Self {
             source: source[lint.span].into(),
-            message: lint.message,
             level: lint.level,
+            message: lint.message,
+            help: lint.help,
         }
     }
 }
@@ -205,10 +219,11 @@ impl std::fmt::Display for SrcLint {
             f,
             "Lint {{
                 source: {},
-                message: {},
                 level: {},
+                message: {},
+                help: {},
             }}",
-            self.source, self.message, self.level
+            self.source, self.level, self.message, self.help
         )
     }
 }

@@ -74,10 +74,10 @@ pub(crate) trait AstLintPass {
 /// declarations and implementations of [`AstLintsConfig`] and [`CombinedAstLints`] for
 /// the lint to be integrated with the our linting infrastructure.
 macro_rules! declare_ast_lints {
-    ($( ($lint_name:ident, $default_level:expr, $msg:expr) ),* $(,)?) => {
+    ($( ($lint_name:ident, $default_level:expr, $msg:expr, $help:expr) ),* $(,)?) => {
         // Declare the structs representing each lint.
         use crate::{Lint, LintLevel, linter::ast::AstLintPass};
-        $(declare_ast_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg})*
+        $(declare_ast_lints!{ @LINT_STRUCT $lint_name, $default_level, $msg, $help})*
 
         // This is a silly wrapper module to avoid contaminating the environment
         // calling the macro with unwanted imports.
@@ -105,21 +105,22 @@ macro_rules! declare_ast_lints {
     };
 
     // Declare & implement a struct representing a lint.
-    (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr) => {
+    (@LINT_STRUCT $lint_name:ident, $default_level:expr, $msg:expr, $help:expr) => {
         pub(crate) struct $lint_name {
             level: LintLevel,
             message: &'static str,
+            help: &'static str,
         }
 
         impl Default for $lint_name {
             fn default() -> Self {
-                Self { level: Self::DEFAULT_LEVEL, message: $msg }
+                Self { level: Self::DEFAULT_LEVEL, message: $msg, help: $help }
             }
         }
 
         impl From<LintLevel> for $lint_name {
             fn from(value: LintLevel) -> Self {
-                Self { level: value, message: $msg }
+                Self { level: value, message: $msg, help: $help }
             }
         }
 
