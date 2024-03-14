@@ -23,7 +23,7 @@ namespace Shors {
 
         // When chooseing parameters for `EstimateFrequency`, make sure that
         // generator and modules are not co-prime
-        let _ = EstimateFrequency(11, 2^bitsize - 1, bitsize);
+        let _ = EstimateFrequency(11, 2 ^ bitsize - 1, bitsize);
     }
 
     /// # Summary
@@ -50,7 +50,7 @@ namespace Shors {
     )
     : Int {
         mutable frequencyEstimate = 0;
-        let bitsPrecision =  2 * bitsize + 1;
+        let bitsPrecision = 2 * bitsize + 1;
 
         // Allocate qubits for the superposition of eigenstates of
         // the oracle that is used in period finding.

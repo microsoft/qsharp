@@ -20,28 +20,28 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     /// # Reference
     /// arXiv:2007.14460, p. 9, eq. 9
     newtype DoubleFactorizedChemistryProblem = (
-        // Number of orbitals (N, p. 8)
-        NumOrbitals: Int,
-        // one-body norm (ǁL⁽⁻¹⁾ǁ, p. 8, eq. 16)
-        OneBodyNorm: Double,
-        // one-body norm (¼∑ǁL⁽ʳ⁾ǁ², p. 8, eq. 16)
-        TwoBodyNorm: Double,
-        // eigenvalues in the EVD of the one-electron Hamiltonian (λₖ, p. 54, eq. 67)
-        OneBodyEigenValues: Double[],
-        // eigenvectors in the EVD of the one-electron Hamiltonian (Rₖ, p. 54, eq. 67)
-        OneBodyEigenVectors: Double[][],
-        // norms inside Λ_SH (p. 56, eq. 77)
-        Lambdas: Double[],
-        // eigenvalues in the EVDs of the two-electron Hamiltonian for all r (λₖ⁽ʳ⁾, p. 56, eq. 77)
-        TwoBodyEigenValues: Double[][],
-        // eigenvectors in the EVDs of the two-electron Hamiltonian for all r (R⁽ʳ⁾ₖ, p. 56, eq. 77)
-        TwoBodyEigenVectors: Double[][][],
+    // Number of orbitals (N, p. 8)
+    NumOrbitals : Int,
+    // one-body norm (ǁL⁽⁻¹⁾ǁ, p. 8, eq. 16)
+    OneBodyNorm : Double,
+    // one-body norm (¼∑ǁL⁽ʳ⁾ǁ², p. 8, eq. 16)
+    TwoBodyNorm : Double,
+    // eigenvalues in the EVD of the one-electron Hamiltonian (λₖ, p. 54, eq. 67)
+    OneBodyEigenValues : Double[],
+    // eigenvectors in the EVD of the one-electron Hamiltonian (Rₖ, p. 54, eq. 67)
+    OneBodyEigenVectors : Double[][],
+    // norms inside Λ_SH (p. 56, eq. 77)
+    Lambdas : Double[],
+    // eigenvalues in the EVDs of the two-electron Hamiltonian for all r (λₖ⁽ʳ⁾, p. 56, eq. 77)
+    TwoBodyEigenValues : Double[][],
+    // eigenvectors in the EVDs of the two-electron Hamiltonian for all r (R⁽ʳ⁾ₖ, p. 56, eq. 77)
+    TwoBodyEigenVectors : Double[][][],
     );
 
     newtype DoubleFactorizedChemistryParameters = (
-        // Standard deviation (ΔE, p. 8, eq. 1)
-        // Typically set to 0.001
-        StandardDeviation: Double,
+    // Standard deviation (ΔE, p. 8, eq. 1)
+    // Typically set to 0.001
+    StandardDeviation : Double,
     );
 
     /// # Summary
@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     /// gradient technique (p. 55)
     operation DoubleFactorizedChemistry(
         problem : DoubleFactorizedChemistryProblem,
-        parameters: DoubleFactorizedChemistryParameters
+        parameters : DoubleFactorizedChemistryParameters
     ) : Unit {
         let constants = ComputeConstants(problem, parameters);
 
@@ -86,9 +86,9 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     /// electron operators, which are computed from the double factorized
     /// problem and parameters.
     internal newtype DoubleFactorizedChemistryConstants = (
-        RotationAngleBitPrecision: Int,
-        StatePreparationBitPrecision: Int,
-        TargetError: Double
+        RotationAngleBitPrecision : Int,
+        StatePreparationBitPrecision : Int,
+        TargetError : Double
     );
 
     internal function ComputeConstants(
@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
             + Lg(Sqrt((IntAsDouble((problem::NumOrbitals - 1) * 8) * PI() * norm) / parameters::StandardDeviation))
             + 0.5 * Lg(1.0 / barEpsilon));
         let StatePreparationBitPrecision = Ceiling(Lg(1.0 / epsilon) + 2.5);
-        let TargetError = 2.0^IntAsDouble(1 - StatePreparationBitPrecision);
+        let TargetError = 2.0 ^ IntAsDouble(1 - StatePreparationBitPrecision);
 
         DoubleFactorizedChemistryConstants(
             RotationAngleBitPrecision,
@@ -114,8 +114,8 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     }
 
     internal newtype WalkStep = (
-        NGarbageQubits: Int,
-        StepOp: (Qubit[], Qubit[], Qubit[], Qubit[]) => Unit
+        NGarbageQubits : Int,
+        StepOp : (Qubit[], Qubit[], Qubit[], Qubit[]) => Unit
     );
 
     /// # Summary
@@ -150,7 +150,9 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         within {
             PrepareSingleQubit(problem::OneBodyNorm, problem::TwoBodyNorm, ctl);
         } apply {
-            within { X(ctl); } apply {
+            within {
+                X(ctl);
+            } apply {
                 Controlled oneElectronOperator::Apply([ctl], (register0, register1, phaseGradientRegister, [], helperParts[0]));
             }
             Controlled twoElectronOperator::Apply([ctl], (register0, register1, phaseGradientRegister, helperParts[1]));
@@ -161,8 +163,8 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     }
 
     internal newtype OneElectronOperator = (
-        NGarbageQubits: Int,
-        Apply: (Qubit[], Qubit[], Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl
+        NGarbageQubits : Int,
+        Apply : (Qubit[], Qubit[], Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl
     );
 
     /// # Summary
@@ -235,8 +237,8 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     }
 
     internal newtype TwoElectronOperator = (
-        NGarbageQubits: Int,
-        Apply: (Qubit[], Qubit[], Qubit[], Qubit[]) => Unit is Ctl
+        NGarbageQubits : Int,
+        Apply : (Qubit[], Qubit[], Qubit[], Qubit[]) => Unit is Ctl
     );
 
     /// # Summary
@@ -330,7 +332,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         mutable bitstrings = [];
 
         let tau = 2.0 * PI();
-        let preFactor = 2.0^IntAsDouble(precision);
+        let preFactor = 2.0 ^ IntAsDouble(precision);
 
         for eigenVector in eigenVectors {
             // Computes rotation angles for Majorana operator ($\vec u$ in p. 52, eq. 55)
@@ -341,7 +343,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
                 // We apply MinD, such that rounding errors do not lead to
                 // an argument for ArcCos which is larger than 1.0. (p. 52, eq. 56)
                 let theta = sins == 0.0 ? 0.0 | 0.5 * ArcCos(MinD(eigenVector[index] / sins, 1.0));
-                
+
                 // all angles as bit string
                 let factor = theta / tau;
                 set result += Reversed(IntAsBoolArray(IsNaN(factor) ? 0 | Floor(preFactor * factor), precision));

@@ -71,10 +71,14 @@ namespace Microsoft.Quantum.Applications.Cryptography {
     // ------------------------------ //
 
     /// Window size for exponentiation (c_exp)
-    internal function ExponentWindowLength_() : Int { 5 }
+    internal function ExponentWindowLength_() : Int {
+        5
+    }
 
     /// Window size for multiplication (c_mul)
-    internal function MultiplicationWindowLength_() : Int { 5 }
+    internal function MultiplicationWindowLength_() : Int {
+        5
+    }
 
     // ------------------------------- //
     // Modular arithmetic (operations) //
@@ -184,11 +188,11 @@ namespace Microsoft.Quantum.Applications.Cryptography {
     }
 
     internal function LookupData(factor : BigInt, expLength : Int, mulLength : Int, base : BigInt, mod : BigInt, sign : Int, numBits : Int) : Bool[][] {
-        mutable data = [[false, size = numBits], size = 2^(expLength + mulLength)];
-        for b in 0..2^mulLength - 1 {
-            for a in 0..2^expLength - 1 {
-                let idx = b * 2^expLength + a;
-                let value = ModulusL(factor * IntAsBigInt(b) * IntAsBigInt(sign) * (base^a), mod);
+        mutable data = [[false, size = numBits], size = 2 ^ (expLength + mulLength)];
+        for b in 0..2 ^ mulLength - 1 {
+            for a in 0..2 ^ expLength - 1 {
+                let idx = b * 2 ^ expLength + a;
+                let value = ModulusL(factor * IntAsBigInt(b) * IntAsBigInt(sign) * (base ^ a), mod);
                 set data w/= idx <- BigIntAsBoolArray(value, numBits);
             }
         }

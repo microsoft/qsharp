@@ -50,39 +50,36 @@ namespace QuantumDynamics {
 
         let len1 = 3;
         let len2 = 3;
-        let valLength = 2*len1+len2+1;
-        mutable values = [0.0, size=valLength];
+        let valLength = 2 * len1 + len2 + 1;
+        mutable values = [0.0, size = valLength];
 
-        let val1 = J*p*dt;
-        let val2 = -g*p*dt;
-        let val3 = J*(1.0 - 3.0*p)*dt/2.0;
-        let val4 = g*(1.0 - 4.0*p)*dt/2.0;
+        let val1 = J * p * dt;
+        let val2 = -g * p * dt;
+        let val3 = J * (1.0 - 3.0 * p) * dt / 2.0;
+        let val4 = g * (1.0 - 4.0 * p) * dt / 2.0;
 
         for i in 0..len1 {
 
             if (i % 2 == 0) {
                 set values w/= i <- val1;
-            }
-            else {
+            } else {
                 set values w/= i <- val2;
             }
 
         }
 
-        for i in len1+1..len1+len2 {
+        for i in len1 + 1..len1 + len2 {
             if (i % 2 == 0) {
                 set values w/= i <- val3;
-            }
-            else {
+            } else {
                 set values w/= i <- val4;
             }
         }
 
-        for i in len1+len2+1..valLength-1 {
+        for i in len1 + len2 + 1..valLength-1 {
             if (i % 2 == 0) {
                 set values w/= i <- val1;
-            }
-            else {
+            } else {
                 set values w/= i <- val2;
             }
         }
@@ -128,8 +125,8 @@ namespace QuantumDynamics {
         for row in 0..r_end {
             for col in start..2..c_end {    // Iterate through even or odd columns based on `grp`
 
-                let row2 = dir ? row+1 | row;
-                let col2 = dir ? col | col+1;
+                let row2 = dir ? row + 1 | row;
+                let col2 = dir ? col | col + 1;
 
                 Exp(P_op, theta, [qArr[row][col], qArr[row2][col2]]);
             }
@@ -151,10 +148,10 @@ namespace QuantumDynamics {
     ///
     operation IsingModel2DSim(N1 : Int, N2 : Int, J : Double, g : Double, totTime : Double, dt : Double) : Unit {
 
-        use qs = Qubit[N1*N2];
+        use qs = Qubit[N1 * N2];
         let qubitArray = Chunks(N2, qs); // qubits are re-arranged to be in an N1 x N2 array
 
-        let p = 1.0 / (4.0 - 4.0^(1.0 / 3.0));
+        let p = 1.0 / (4.0 - 4.0 ^ (1.0 / 3.0));
         let t = Ceiling(totTime / dt);
 
         let seqLen = 10 * t + 1;
@@ -162,7 +159,7 @@ namespace QuantumDynamics {
         let angSeq = SetAngleSequence(p, dt, J, g);
 
         for i in 0..seqLen - 1 {
-            let theta = (i==0 or i==seqLen-1) ? J*p*dt/2.0 | angSeq[i%10];
+            let theta = (i == 0 or i == seqLen-1) ? J * p * dt / 2.0 | angSeq[i % 10];
 
             // for even indexes
             if i % 2 == 0 {

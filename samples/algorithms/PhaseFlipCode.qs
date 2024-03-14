@@ -140,14 +140,14 @@ namespace Sample {
         // parity measurements.
         let indexOfError =
             if (parity01, parity12) == (One, Zero) {
-                0
-            } elif (parity01, parity12) == (One, One) {
-                1
-            } elif (parity01, parity12) == (Zero, One) {
-                2
-            } else {
+            0
+        } elif (parity01, parity12) == (One, One) {
+            1
+        } elif (parity01, parity12) == (Zero, One) {
+            2
+        } else {
                 -1
-            };
+        };
 
         // If an error was detected, correct that qubit.
         if indexOfError > -1 {

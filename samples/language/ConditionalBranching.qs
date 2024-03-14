@@ -13,11 +13,15 @@ namespace MyQuantumApp {
         let number = 5;
         // Conditionally messages "Fizz" if the `number`, in this case 5, is divisible by 3.
         // Since 5 is not divisible by 3, the message "Fizz" will not be printed.
-        if number % 3 == 0 { Message("Fizz"); }
+        if number % 3 == 0 {
+            Message("Fizz");
+        }
 
         // Conditionally messages "Buzz" if the `number`, in this case 5, is divisible by 5.
         // Since 5 is divisible by 5, the message "Buzz" will be printed.
-        if number % 5 == 0 { Message("Buzz"); }
+        if number % 5 == 0 {
+            Message("Buzz");
+        }
 
         let fahrenheit = 40;
 
@@ -36,6 +40,10 @@ namespace MyQuantumApp {
         let fahrenheit = 40;
 
         // `if` can also be used as an expression, to conditionally return a value.
-        let absoluteValue = if fahrenheit > 0 { fahrenheit } else { fahrenheit * -1 };        
+        let absoluteValue = if fahrenheit > 0 {
+            fahrenheit
+        } else {
+            fahrenheit * -1
+        };
     }
 }

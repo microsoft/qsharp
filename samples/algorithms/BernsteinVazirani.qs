@@ -148,7 +148,7 @@ namespace Sample {
 
         // Apply the quantum operations that encode the bit string.
         for index in IndexRange(xRegister) {
-            if ((bitStringAsInt &&& 2^index) != 0) {
+            if ((bitStringAsInt &&& 2 ^ index) != 0) {
                 CNOT(xRegister[index], yQubit);
             }
         }

@@ -40,7 +40,7 @@ namespace Sample {
             let isConstant = DeutschJozsa(fn, 5);
             if (isConstant != shouldBeConstant) {
                 let shouldBeConstantStr = shouldBeConstant ?
-                    "constant" | 
+                    "constant" |
                     "balanced";
                 fail $"{name} should be detected as {shouldBeConstantStr}";
             }
@@ -104,7 +104,7 @@ namespace Sample {
         // state so that they can be safely deallocated at the end of the block.
         // The loop also sets `result` to `true` if all measurement results are
         // `Zero`, i.e. if the function is a constant function, and sets
-        // `result` to `false` if not, which according to the assumption on 𝑓 
+        // `result` to `false` if not, which according to the assumption on 𝑓
         // means that it must be balanced.
         mutable result = true;
         for q in queryRegister {
@@ -131,7 +131,7 @@ namespace Sample {
     // A more complex constant Boolean function.
     // It applies X to every input basis vector.
     operation ConstantBoolF(args : Qubit[], target : Qubit) : Unit {
-        for i in 0..(2^Length(args))-1 {
+        for i in 0..(2 ^ Length(args))-1 {
             ApplyControlledOnInt(i, X, args, target);
         }
     }
@@ -139,7 +139,7 @@ namespace Sample {
     // A more complex balanced Boolean function.
     // It applies X to half of the input basis vectors.
     operation BalancedBoolF(args : Qubit[], target : Qubit) : Unit {
-        for i in 0..2..(2^Length(args))-1 {
+        for i in 0..2..(2 ^ Length(args))-1 {
             ApplyControlledOnInt(i, X, args, target);
         }
     }
