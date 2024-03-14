@@ -20,6 +20,8 @@ thiserror = { workspace = true }
 expect-test = { workspace = true }
 qsc_parse = { path = "../qsc_parse" }
 serde_json = { workspace = true }
+[lints]
+workspace = true
 
 [lib]
 doctest = false
