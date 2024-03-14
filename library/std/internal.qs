@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.Intrinsic {
-    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Math;

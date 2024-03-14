@@ -4,7 +4,7 @@
 namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Random;
 
     /// # Summary
     /// Given two operations, checks whether they act identically for all input states.
@@ -158,6 +158,15 @@ namespace Microsoft.Quantum.Katas {
         for index in IndexRange(control) {
             H(control[index]);
             CNOT(control[index], target[index]);
+        }
+    }
+
+
+    /// # Summary
+    /// Prepare a random uneven superposition state on the given qubit array.
+    operation PrepRandomState(qs : Qubit[]) : Unit {
+        for q in qs {
+            Ry(DrawRandomDouble(0.01, 0.99) * 2.0, q);
         }
     }
 }

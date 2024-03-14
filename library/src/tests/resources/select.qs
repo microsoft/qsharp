@@ -2,7 +2,6 @@ namespace Test {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Random;
     open Microsoft.Quantum.Unstable.TableLookup;
 

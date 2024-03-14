@@ -29,16 +29,6 @@ use qsc::interpret::{self, GenericReceiver, Interpreter};
 use system::estimate_physical_resources;
 use thiserror::Error;
 
-#[derive(Debug)]
-pub struct LogicalResources {
-    pub num_qubits: usize,
-    pub t_count: usize,
-    pub rotation_count: usize,
-    pub rotation_depth: usize,
-    pub ccz_count: usize,
-    pub measurement_count: usize,
-}
-
 #[derive(Debug, Diagnostic, Error)]
 #[error(transparent)]
 #[diagnostic(transparent)]
@@ -54,7 +44,7 @@ pub fn estimate_entry(interpreter: &mut Interpreter, params: &str) -> Result<Str
     interpreter
         .eval_entry_with_sim(&mut counter, &mut out)
         .map_err(|e| e.into_iter().map(Error::Interpreter).collect::<Vec<_>>())?;
-    estimate_physical_resources(&counter.logical_resources(), params)
+    estimate_physical_resources(counter.logical_resources(), params)
         .map_err(|e| vec![Error::Estimation(e)])
 }
 
@@ -70,6 +60,6 @@ pub fn estimate_expr(
         .run_with_sim(&mut counter, &mut out, expr)
         .map_err(|e| e.into_iter().map(Error::Interpreter).collect::<Vec<_>>())?
         .map_err(|e| vec![Error::Interpreter(e[0].clone())])?;
-    estimate_physical_resources(&counter.logical_resources(), params)
+    estimate_physical_resources(counter.logical_resources(), params)
         .map_err(|e| vec![Error::Estimation(e)])
 }

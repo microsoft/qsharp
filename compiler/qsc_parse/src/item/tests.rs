@@ -1557,3 +1557,139 @@ fn disallow_qubit_scoped_block() {
             ]"#]],
     );
 }
+
+#[test]
+fn reject_nested_namespace_with_items() {
+    check_vec(
+        parse_namespaces,
+        "namespace Outer {
+            namespace Inner {
+                function NestedFunction() : Unit {}
+                newtype NestedType = Int;
+            }
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-99] (Ident _id_ [10-15] "Outer"):
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Keyword(
+                            Namespace,
+                        ),
+                        Span {
+                            lo: 30,
+                            hi: 39,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Eof,
+                        Keyword(
+                            Newtype,
+                        ),
+                        Span {
+                            lo: 116,
+                            hi: 123,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn reject_namespace_with_multiple_nested_levels() {
+    check_vec(
+        parse_namespaces,
+        "namespace LevelOne {
+            namespace LevelTwo {
+                namespace LevelThree {
+                    function DeepFunction() : Unit {}
+                }
+            }
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-146] (Ident _id_ [10-18] "LevelOne"):
+
+            [
+                Error(
+                    Token(
+                        Close(
+                            Brace,
+                        ),
+                        Keyword(
+                            Namespace,
+                        ),
+                        Span {
+                            lo: 33,
+                            hi: 42,
+                        },
+                    ),
+                ),
+                Error(
+                    Token(
+                        Eof,
+                        Close(
+                            Brace,
+                        ),
+                        Span {
+                            lo: 163,
+                            hi: 164,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
+
+#[test]
+fn namespace_with_attributes_and_docs() {
+    check_vec(
+        parse_namespaces,
+        "/// Documentation for LevelOne
+        namespace LevelOne {
+            @ExampleAttr()
+            /// Documentation that shouldn't show up, since docstrings go above attrs
+            function InnerItem() : Unit {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-225] (Ident _id_ [49-57] "LevelOne"):
+                doc:
+                    Documentation for LevelOne
+                Item _id_ [72-215]:
+                    Attr _id_ [72-86] (Ident _id_ [73-84] "ExampleAttr"):
+                        Expr _id_ [84-86]: Unit
+                    Callable _id_ [99-215] (Function):
+                        name: Ident _id_ [194-203] "InnerItem"
+                        input: Pat _id_ [203-205]: Unit
+                        output: Type _id_ [208-212]: Path: Path _id_ [208-212] (Ident _id_ [208-212] "Unit")
+                        body: Block: Block _id_ [213-215]: <empty>"#]],
+    );
+}
+
+#[test]
+fn namespace_with_conflicting_names() {
+    check_vec(
+        parse_namespaces,
+        "namespace Conflicts {
+            function Item() : Unit {}
+            newtype Item = Int;
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-101] (Ident _id_ [10-19] "Conflicts"):
+                Item _id_ [34-59]:
+                    Callable _id_ [34-59] (Function):
+                        name: Ident _id_ [43-47] "Item"
+                        input: Pat _id_ [47-49]: Unit
+                        output: Type _id_ [52-56]: Path: Path _id_ [52-56] (Ident _id_ [52-56] "Unit")
+                        body: Block: Block _id_ [57-59]: <empty>
+                Item _id_ [72-91]:
+                    New Type (Ident _id_ [80-84] "Item"): TyDef _id_ [87-90]: Field:
+                        Type _id_ [87-90]: Path: Path _id_ [87-90] (Ident _id_ [87-90] "Int")"#]],
+    );
+}

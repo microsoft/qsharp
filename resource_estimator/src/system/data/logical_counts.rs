@@ -7,13 +7,23 @@ use crate::{
         NUM_MEASUREMENTS_PER_R, NUM_MEASUREMENTS_PER_TOF, NUM_TS_PER_ROTATION_A_COEFFICIENT,
         NUM_TS_PER_ROTATION_B_COEFFICIENT,
     },
-    LogicalResources,
 };
 use serde::{Deserialize, Serialize};
-use std::convert::From;
+
+use super::PartitioningOverhead;
+
+pub trait LayoutReportData {
+    fn num_qubits(&self) -> u64;
+    fn t_count(&self) -> u64;
+    fn rotation_count(&self) -> u64;
+    fn rotation_depth(&self) -> u64;
+    fn ccz_count(&self) -> u64;
+    fn ccix_count(&self) -> u64;
+    fn measurement_count(&self) -> u64;
+}
 
 /// Resource counts output from `qir_estimate_counts` program
-#[derive(Default, Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Default, Debug, Deserialize, Serialize)]
 #[serde(
     rename_all(deserialize = "camelCase", serialize = "camelCase"),
     deny_unknown_fields
@@ -32,20 +42,6 @@ pub struct LogicalResourceCounts {
     pub ccix_count: u64,
     #[serde(default)]
     pub measurement_count: u64,
-}
-
-impl From<&LogicalResources> for LogicalResourceCounts {
-    fn from(logical_resources: &LogicalResources) -> Self {
-        Self {
-            num_qubits: logical_resources.num_qubits as _,
-            t_count: logical_resources.t_count as _,
-            rotation_count: logical_resources.rotation_count as _,
-            rotation_depth: logical_resources.rotation_depth as _,
-            ccz_count: logical_resources.ccz_count as _,
-            ccix_count: 0,
-            measurement_count: logical_resources.measurement_count as _,
-        }
-    }
 }
 
 /// Models the logical resources after layout
@@ -89,5 +85,45 @@ impl Overhead for LogicalResourceCounts {
         } else {
             None
         }
+    }
+}
+
+impl PartitioningOverhead for LogicalResourceCounts {
+    fn has_tgates(&self) -> bool {
+        self.t_count > 0 || self.ccz_count > 0 || self.ccix_count > 0 || self.rotation_count > 0
+    }
+
+    fn has_rotations(&self) -> bool {
+        self.rotation_count > 0
+    }
+}
+
+impl LayoutReportData for LogicalResourceCounts {
+    fn num_qubits(&self) -> u64 {
+        self.num_qubits
+    }
+
+    fn t_count(&self) -> u64 {
+        self.t_count
+    }
+
+    fn rotation_count(&self) -> u64 {
+        self.rotation_count
+    }
+
+    fn rotation_depth(&self) -> u64 {
+        self.rotation_depth
+    }
+
+    fn ccz_count(&self) -> u64 {
+        self.ccz_count
+    }
+
+    fn ccix_count(&self) -> u64 {
+        self.ccix_count
+    }
+
+    fn measurement_count(&self) -> u64 {
+        self.measurement_count
     }
 }

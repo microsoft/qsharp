@@ -104,6 +104,21 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     updateIfQsharpDocument(document);
   });
 
+  // we manually send an OpenDocument telemetry event if this is a Q# document, because the
+  // below subscriptions won't fire for documents that are already open when the extension is activated
+  vscode.workspace.textDocuments.forEach((document) => {
+    if (isQsharpDocument(document)) {
+      const documentType = isQsharpNotebookCell(document)
+        ? QsharpDocumentType.JupyterCell
+        : QsharpDocumentType.Qsharp;
+      sendTelemetryEvent(
+        EventType.OpenedDocument,
+        { documentType },
+        { linesOfCode: document.lineCount },
+      );
+    }
+  });
+
   const subscriptions = [];
   subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {

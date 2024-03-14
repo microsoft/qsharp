@@ -1,5 +1,4 @@
 namespace Test {
-    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Diagnostics;

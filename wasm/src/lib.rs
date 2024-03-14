@@ -9,7 +9,7 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use project_system::into_async_rust_fn_with;
 use qsc::{
-    compile,
+    compile, format_state_id, get_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -196,7 +196,7 @@ where
             write!(
                 dump_json,
                 r#""{}": [{}, {}],"#,
-                output::format_state_id(&state.0, qubit_count),
+                format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -204,12 +204,17 @@ where
         }
         write!(
             dump_json,
-            r#""{}": [{}, {}]}}}}"#,
-            output::format_state_id(&last.0, qubit_count),
+            r#""{}": [{}, {}]}}, "#,
+            format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )
         .expect("writing to string should succeed");
+
+        let json_latex = serde_json::to_string(&get_latex(&state, qubit_count))
+            .expect("serialization should succeed");
+        write!(dump_json, r#" "stateLatex": {json_latex} }} "#)
+            .expect("writing to string should succeed");
         (self.event_cb)(&dump_json);
         Ok(())
     }

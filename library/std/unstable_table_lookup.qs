@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.ResourceEstimation;
     open Microsoft.Quantum.Unstable.Arithmetic;
 
