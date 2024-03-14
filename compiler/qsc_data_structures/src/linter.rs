@@ -40,7 +40,11 @@ impl Diagnostic for Lint {
     }
 
     fn help<'a>(&'a self) -> Option<Box<dyn Display + 'a>> {
-        Some(Box::new(self.help))
+        if self.help.is_empty() {
+            None
+        } else {
+            Some(Box::new(self.help))
+        }
     }
 }
 
