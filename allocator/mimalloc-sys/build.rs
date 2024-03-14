@@ -60,7 +60,7 @@ fn compile_mimalloc(dst: &Path) {
     println!("cargo:rustc-link-lib=static=mimalloc");
 }
 
-// Use cmake to download mimallloc source code and stage
+// Use cmake to download mimalloc source code and stage
 // it in the build directory.
 fn download_mimalloc() -> Result<PathBuf, Box<dyn Error>> {
     let build_dir = get_build_dir()?;
