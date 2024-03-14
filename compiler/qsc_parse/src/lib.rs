@@ -30,6 +30,7 @@ use thiserror::Error;
 pub struct Error(ErrorKind);
 
 impl Error {
+    #[must_use]
     pub fn with_offset(self, offset: u32) -> Self {
         Self(self.0.with_offset(offset))
     }
@@ -100,6 +101,7 @@ trait Parser<T>: FnMut(&mut ParserContext) -> Result<T> {}
 
 impl<T, F: FnMut(&mut ParserContext) -> Result<T>> Parser<T> for F {}
 
+#[must_use]
 pub fn namespaces(
     input: &str,
     language_features: LanguageFeatures,
@@ -115,6 +117,7 @@ pub fn namespaces(
     }
 }
 
+#[must_use]
 pub fn top_level_nodes(
     input: &str,
     language_features: LanguageFeatures,
@@ -130,6 +133,7 @@ pub fn top_level_nodes(
     }
 }
 
+#[must_use]
 pub fn expr(input: &str, language_features: LanguageFeatures) -> (Box<Expr>, Vec<Error>) {
     let mut scanner = ParserContext::new(input, language_features);
     match expr::expr_eof(&mut scanner) {

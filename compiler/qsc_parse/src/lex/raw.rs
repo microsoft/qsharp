@@ -246,11 +246,11 @@ impl<'a> Lexer<'a> {
             return None;
         }
 
-        let radix = if self.next_if_eq('b') {
+        let radix = if self.next_if_eq('b') || self.next_if_eq('B') {
             Radix::Binary
-        } else if self.next_if_eq('o') {
+        } else if self.next_if_eq('o') || self.next_if_eq('O') {
             Radix::Octal
-        } else if self.next_if_eq('x') {
+        } else if self.next_if_eq('x') || self.next_if_eq('X') {
             Radix::Hexadecimal
         } else {
             Radix::Decimal
@@ -295,7 +295,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn exp(&mut self) -> bool {
-        if self.next_if_eq('e') {
+        if self.next_if_eq('e') || self.next_if_eq('E') {
             self.chars.next_if(|i| i.1 == '+' || i.1 == '-');
             self.eat_while(|c| c.is_ascii_digit());
             true

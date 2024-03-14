@@ -94,11 +94,15 @@ impl Lowerer {
             .map(|s| self.lower_stmt(s))
             .collect();
 
+        let entry = hir_package.entry.as_ref().map(|e| self.lower_expr(e));
+
         self.update_package(fir_package);
 
         for (k, v) in items {
             fir_package.items.insert(k, v);
         }
+
+        fir_package.entry = entry;
 
         qsc_fir::validate::validate(fir_package);
 
@@ -683,7 +687,6 @@ fn lower_functor_set_value(value: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::
 }
 
 #[must_use]
-#[allow(clippy::module_name_repetitions)]
 fn lower_local_item_id(id: qsc_hir::hir::LocalItemId) -> LocalItemId {
     LocalItemId::from(usize::from(id))
 }

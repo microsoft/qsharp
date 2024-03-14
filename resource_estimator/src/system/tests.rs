@@ -7,7 +7,6 @@ use crate::estimates::{
     ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, Overhead, PhysicalResourceEstimation,
     PhysicalResourceEstimationResult,
 };
-use crate::LogicalResources;
 
 use super::estimate_physical_resources;
 
@@ -24,17 +23,18 @@ use std::rc::Rc;
 
 #[test]
 fn estimate_single() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
     let params: &str = "[{}]";
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
@@ -49,12 +49,13 @@ fn estimate_single() {
 
 #[test]
 fn estimate_frontier() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
@@ -62,7 +63,7 @@ fn estimate_frontier() {
         "estimateType": "frontier"
     }]"#;
 
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
@@ -78,12 +79,13 @@ fn estimate_frontier() {
 #[test]
 fn physical_estimates_crash() {
     let result = estimate_physical_resources(
-        &LogicalResources {
+        LogicalResourceCounts {
             num_qubits: 9,
             t_count: 160,
             rotation_count: 0,
             rotation_depth: 0,
             ccz_count: 8,
+            ccix_count: 0,
             measurement_count: 5,
         },
         r#"[{"qubitParams": {"name": "qubit_maj_ns_e6"},
@@ -147,7 +149,7 @@ pub fn test_no_tstates() {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -166,7 +168,7 @@ pub fn single_tstate() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -190,7 +192,7 @@ pub fn perfect_tstate() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -209,7 +211,7 @@ fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBu
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<L: Overhead + Clone>(
+fn validate_result_invariants<L: Overhead>(
     result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
 ) {
     assert_eq!(
@@ -226,7 +228,7 @@ fn validate_result_invariants<L: Overhead + Clone>(
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     assert!(
@@ -249,13 +251,13 @@ pub fn test_hubbard_e2e() -> Result<()> {
         ftp,
         qubit.clone(),
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
     let result = estimation.estimate()?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     assert_eq!(logical_qubit.code_parameter(), &17);
@@ -306,7 +308,10 @@ pub fn test_hubbard_e2e() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory1.code_distance_per_round(), vec![5, 15]);
+        assert_eq!(
+            factory1.code_parameter_per_round(),
+            vec![Some(&5), Some(&15)]
+        );
     }
 
     if let Some(factory2) = get_tfactory(&tfactories, 92000, 18000) {
@@ -319,7 +324,10 @@ pub fn test_hubbard_e2e() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory2.code_distance_per_round(), vec![5, 15]);
+        assert_eq!(
+            factory2.code_parameter_per_round(),
+            vec![Some(&5), Some(&15)]
+        );
     }
 
     Ok(())
@@ -335,13 +343,13 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
         ftp,
         qubit.clone(),
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
     let result = estimation.estimate()?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     assert_eq!(logical_qubit.code_parameter(), &5);
@@ -390,7 +398,10 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
                 String::from("15-to-1 RM prep")
             ]
         );
-        assert_eq!(factory1.code_distance_per_round(), vec![1, 3]);
+        assert_eq!(
+            factory1.code_parameter_per_round(),
+            vec![Some(&1), Some(&3)]
+        );
     }
 
     if let Some(factory2) = get_tfactory(&tfactories, 14100, 1040) {
@@ -403,7 +414,10 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
                 String::from("15-to-1 space efficient")
             ]
         );
-        assert_eq!(factory2.code_distance_per_round(), vec![1, 3]);
+        assert_eq!(
+            factory2.code_parameter_per_round(),
+            vec![Some(&1), Some(&3)]
+        );
     }
 
     Ok(())
@@ -418,7 +432,7 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -446,7 +460,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -485,7 +499,13 @@ fn prepare_chemistry_estimation_with_expected_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -523,7 +543,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
 
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
@@ -533,13 +553,13 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
     assert_eq!(logical_qubit.logical_cycle_time(), 5700);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
-    assert_eq!(result.algorithmic_logical_depth(), 411_211_118_594_u64);
+    assert_eq!(result.algorithmic_logical_depth(), 411_005_967_364);
     assert_eq!(result.num_factories(), 2);
     assert_eq!(result.physical_qubits_for_factories(), 572_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
 
-    assert_eq!(result.runtime(), 22_371_634_030_834_500_u64);
+    assert_eq!(result.runtime(), 22_363_183_367_607_300);
 
     assert_eq!(tfactory.physical_qubits(), 286_000);
     assert_eq!(tfactory.num_rounds(), 4);
@@ -553,7 +573,10 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
             String::from("15-to-1 RM prep"),
         ]
     );
-    assert_eq!(tfactory.code_distance_per_round(), vec![1, 3, 5, 15]);
+    assert_eq!(
+        tfactory.code_parameter_per_round(),
+        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+    );
 
     assert_eq!(
         result.physical_qubits(),
@@ -569,7 +592,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     Ok(())
@@ -583,7 +606,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
 
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
     let tfactory = result.factory().expect("tfactory should be valid");
 
     // constraint is not violated
@@ -593,12 +616,12 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     assert_eq!(logical_qubit.logical_cycle_time(), 5700);
 
     assert_eq!(result.layout_overhead().logical_qubits(), 2740);
-    assert_eq!(result.algorithmic_logical_depth(), 411_211_118_594_u64);
+    assert_eq!(result.algorithmic_logical_depth(), 411_005_967_364);
     assert_eq!(result.num_factories(), 2);
     assert_eq!(result.physical_qubits_for_factories(), 572_000);
     assert_eq!(result.physical_qubits_for_algorithm(), 4_351_120);
     assert_eq!(result.physical_qubits(), 4_923_120);
-    assert_eq!(result.runtime(), 22_371_634_030_834_500_u64);
+    assert_eq!(result.runtime(), 22_363_183_367_607_300);
 
     assert_eq!(tfactory.physical_qubits(), 286_000);
     assert_eq!(tfactory.num_rounds(), 4);
@@ -612,7 +635,10 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
             String::from("15-to-1 RM prep"),
         ]
     );
-    assert_eq!(tfactory.code_distance_per_round(), vec![1, 3, 5, 15]);
+    assert_eq!(
+        tfactory.code_parameter_per_round(),
+        vec![Some(&1), Some(&3), Some(&5), Some(&15)]
+    );
 
     assert_eq!(
         result.physical_qubits(),
@@ -628,7 +654,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
     );
 
     assert!(
-        result.logical_qubit().logical_error_rate() <= result.required_logical_qubit_error_rate()
+        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
     );
 
     Ok(())
@@ -654,7 +680,13 @@ fn prepare_factorization_estimation_with_optimistic_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -663,12 +695,12 @@ pub fn test_factorization_2048_max_duration_matches_regular_estimate() -> Result
 
     let result_no_max_duration = estimation.estimate_without_restrictions()?;
 
-    let logical_qubit_no_max_duration = result_no_max_duration.logical_qubit();
+    let logical_qubit_no_max_duration = result_no_max_duration.logical_patch();
 
     let max_duration_in_nanoseconds: u64 = result_no_max_duration.runtime();
     let result = estimation.estimate_with_max_duration(max_duration_in_nanoseconds)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
 
     assert_eq!(
         logical_qubit_no_max_duration.code_parameter(),
@@ -716,12 +748,12 @@ pub fn test_factorization_2048_max_num_qubits_matches_regular_estimate() -> Resu
 
     let result_no_max_num_qubits = estimation.estimate_without_restrictions()?;
 
-    let logical_qubit_no_max_num_qubits = result_no_max_num_qubits.logical_qubit();
+    let logical_qubit_no_max_num_qubits = result_no_max_num_qubits.logical_patch();
 
     let max_num_qubits = result_no_max_num_qubits.physical_qubits();
     let result = estimation.estimate_with_max_num_qubits(max_num_qubits)?;
 
-    let logical_qubit = result.logical_qubit();
+    let logical_qubit = result.logical_patch();
 
     assert_eq!(
         logical_qubit_no_max_num_qubits.code_parameter(),
@@ -783,7 +815,13 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -793,15 +831,15 @@ fn build_frontier_test() {
     let frontier_result = estimation.build_frontier();
 
     let points = frontier_result.expect("failed to estimate");
-    assert_eq!(points.len(), 195);
+    assert_eq!(points.len(), 189);
 
     for i in 0..points.len() - 1 {
         assert!(points[i].runtime() <= points[i + 1].runtime());
         assert!(points[i].physical_qubits() >= points[i + 1].physical_qubits());
         assert!(points[i].num_factories() >= points[i + 1].num_factories());
         assert!(
-            points[i].logical_qubit().code_parameter()
-                <= points[i + 1].logical_qubit().code_parameter()
+            points[i].logical_patch().code_parameter()
+                <= points[i + 1].logical_patch().code_parameter()
         );
     }
 
@@ -816,8 +854,8 @@ fn build_frontier_test() {
         shortest_runtime_result.num_factories()
     );
     assert_eq!(
-        points[0].logical_qubit().code_parameter(),
-        shortest_runtime_result.logical_qubit().code_parameter()
+        points[0].logical_patch().code_parameter(),
+        shortest_runtime_result.logical_patch().code_parameter()
     );
 
     let mut max_duration = shortest_runtime_result.runtime();
@@ -879,17 +917,24 @@ fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
 fn build_frontier_bit_flip_code_test() {
-    let estimation = prepare_bit_flip_code_resources_and_majorana_n6_qubit();
+    let estimation: PhysicalResourceEstimation<Protocol, TFactoryBuilder, LogicalResourceCounts> =
+        prepare_bit_flip_code_resources_and_majorana_n6_qubit();
 
     let frontier_result = estimation.build_frontier();
 
     let points = frontier_result.expect("failed to estimate");
-    assert_eq!(points.len(), 7);
+    assert_eq!(points.len(), 10);
 
     let shortest_runtime_result = estimation.estimate().expect("failed to estimate");
 
@@ -931,7 +976,6 @@ fn build_frontier_bit_flip_code_test() {
     );
 }
 
-#[allow(clippy::cast_lossless)]
 #[test]
 fn code_distance_tests() {
     let params = JobParams::default();
@@ -959,17 +1003,18 @@ fn code_distance_tests() {
 
 #[test]
 fn test_report() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
     let params: &str = "[{}]";
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");

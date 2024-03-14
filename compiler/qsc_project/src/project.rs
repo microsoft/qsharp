@@ -14,7 +14,7 @@ pub struct Project {
     pub manifest: crate::Manifest,
 }
 
-/// This enum represents a filesystem object type. It is analogous to [std::fs::FileType].
+/// This enum represents a filesystem object type. It is analogous to [`std::fs::FileType`].
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum EntryType {
     File,
@@ -23,7 +23,7 @@ pub enum EntryType {
     Unknown,
 }
 
-/// This trait represents a filesystem object. It is analogous to [std::fs::DirEntry].
+/// This trait represents a filesystem object. It is analogous to [`std::fs::DirEntry`].
 pub trait DirEntry {
     type Error: Send + Sync;
     fn entry_type(&self) -> Result<EntryType, Self::Error>;
@@ -90,7 +90,7 @@ pub trait FileSystemAsync {
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
                 Ok(EntryType::Folder) => {
-                    files.append(&mut self.collect_project_sources_inner(&item.path()).await?)
+                    files.append(&mut self.collect_project_sources_inner(&item.path()).await?);
                 }
                 _ => (),
             }
@@ -130,12 +130,12 @@ fn filter_hidden_files<Entry: DirEntry>(
 /// for the Q# project system to function correctly.
 pub trait FileSystem {
     type Entry: DirEntry;
-    /// Given a path, parse its contents and return a tuple representing (FileName, FileContents).
+    /// Given a path, parse its contents and return a tuple representing (`FileName`, `FileContents`).
     fn read_file(&self, path: &Path) -> miette::Result<(Arc<str>, Arc<str>)>;
 
     /// Given a path, list its directory contents (if any).
     fn list_directory(&self, path: &Path) -> miette::Result<Vec<Self::Entry>>;
-    /// Given an initial path, fetch files matching <initial_path>/**/*.qs
+    /// Given an initial path, fetch files matching <`initial_path`>/**/*.qs
     fn collect_project_sources(&self, initial_path: &Path) -> miette::Result<Vec<Self::Entry>> {
         let listing = self.list_directory(initial_path)?;
         if let Some(src_dir) = listing.into_iter().find(|x| {
@@ -162,7 +162,7 @@ pub trait FileSystem {
             match item.entry_type() {
                 Ok(EntryType::File) if item.entry_extension() == "qs" => files.push(item),
                 Ok(EntryType::Folder) => {
-                    files.append(&mut self.collect_project_sources_inner(&item.path())?)
+                    files.append(&mut self.collect_project_sources_inner(&item.path())?);
                 }
                 _ => (),
             }
@@ -170,7 +170,7 @@ pub trait FileSystem {
         Ok(files)
     }
 
-    /// Given a [ManifestDescriptor], load project sources.
+    /// Given a [`ManifestDescriptor`], load project sources.
     fn load_project(&self, manifest: &ManifestDescriptor) -> miette::Result<Project> {
         let project_path = manifest.manifest_dir.clone();
         let qs_files = self.collect_project_sources(&project_path)?;

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(clippy::needless_raw_string_hashes)]
+
 use super::Lexer;
 use crate::lex::raw::{Single, Token, TokenKind};
 use expect_test::{expect, Expect};
@@ -809,12 +811,42 @@ fn binary() {
             ]
         "#]],
     );
+    check(
+        "0B10110",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Int(
+                            Binary,
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
 }
 
 #[test]
 fn octal() {
     check(
         "0o70351",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Int(
+                            Octal,
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+    check(
+        "0O70351",
         &expect![[r#"
             [
                 Token {
@@ -986,6 +1018,21 @@ fn dot_dot_dot_int() {
 fn hexadecimal() {
     check(
         "0x123abc",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Int(
+                            Hexadecimal,
+                        ),
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+    check(
+        "0X123abc",
         &expect![[r#"
             [
                 Token {
@@ -1171,6 +1218,19 @@ fn trailing_point() {
 fn exp() {
     check(
         "1e23",
+        &expect![[r#"
+            [
+                Token {
+                    kind: Number(
+                        Float,
+                    ),
+                    offset: 0,
+                },
+            ]
+        "#]],
+    );
+    check(
+        "1E23",
         &expect![[r#"
             [
                 Token {

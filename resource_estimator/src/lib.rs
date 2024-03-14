@@ -1,8 +1,24 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! A Q# backend to compute logical overheads to compute the overhead based on
+//! the PSSPC layout method.
+
+// This crate uses lots of converstions between floating point numbers and integers, so this helps
+// avoid many needed allow statements. Comment out individual lines to see where they are needed.
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss,
+    clippy::cast_lossless
+)]
+
 mod counts;
+/// Provides traits to define a fault-tolerant quantum computing architecture
+/// and functions to perform resource estimation on such architectures.
 pub mod estimates;
+/// Models a fault-tolerant quantum computing architecture based on
+/// customizaable gate-based and Majorana qubits, planar codes, and T-factories.
 pub mod system;
 
 pub use system::estimate_physical_resources_from_json;
@@ -12,16 +28,6 @@ use miette::Diagnostic;
 use qsc::interpret::{self, GenericReceiver, Interpreter};
 use system::estimate_physical_resources;
 use thiserror::Error;
-
-#[derive(Debug)]
-pub struct LogicalResources {
-    pub num_qubits: usize,
-    pub t_count: usize,
-    pub rotation_count: usize,
-    pub rotation_depth: usize,
-    pub ccz_count: usize,
-    pub measurement_count: usize,
-}
 
 #[derive(Debug, Diagnostic, Error)]
 #[error(transparent)]
@@ -38,7 +44,7 @@ pub fn estimate_entry(interpreter: &mut Interpreter, params: &str) -> Result<Str
     interpreter
         .eval_entry_with_sim(&mut counter, &mut out)
         .map_err(|e| e.into_iter().map(Error::Interpreter).collect::<Vec<_>>())?;
-    estimate_physical_resources(&counter.logical_resources(), params)
+    estimate_physical_resources(counter.logical_resources(), params)
         .map_err(|e| vec![Error::Estimation(e)])
 }
 
@@ -54,6 +60,6 @@ pub fn estimate_expr(
         .run_with_sim(&mut counter, &mut out, expr)
         .map_err(|e| e.into_iter().map(Error::Interpreter).collect::<Vec<_>>())?
         .map_err(|e| vec![Error::Interpreter(e[0].clone())])?;
-    estimate_physical_resources(&counter.logical_resources(), params)
+    estimate_physical_resources(counter.logical_resources(), params)
         .map_err(|e| vec![Error::Estimation(e)])
 }

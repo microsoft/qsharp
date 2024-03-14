@@ -3410,8 +3410,6 @@ fn lambda_operation_empty_closure() {
     check_expr(
         "
             namespace A {
-                open Microsoft.Quantum.Measurement;
-
                 operation Foo(op : Qubit => ()) : Result {
                     use q = Qubit();
                     op(q);
@@ -3431,7 +3429,6 @@ fn lambda_operation_closure() {
     check_expr(
         "
             namespace A {
-                open Microsoft.Quantum.Measurement;
                 operation Foo(op : () => Result) : Result { op() }
                 operation Bar() : Result {
                     use q = Qubit();
@@ -3450,7 +3447,6 @@ fn lambda_operation_controlled() {
     check_expr(
         "
             namespace A {
-                open Microsoft.Quantum.Measurement;
                 operation Foo(op : Qubit => Unit is Adj + Ctl, q : Qubit) : Unit is Adj + Ctl { op(q) }
                 operation Bar() : Result[] {
                     mutable output = [];
@@ -3478,7 +3474,6 @@ fn lambda_operation_controlled_controlled() {
     check_expr(
         "
             namespace A {
-                open Microsoft.Quantum.Measurement;
                 operation Foo(op : Qubit => Unit is Adj + Ctl, q : Qubit) : Unit is Adj + Ctl { op(q) }
                 operation Bar() : Result[] {
                     mutable output = [];

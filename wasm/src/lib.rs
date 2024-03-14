@@ -7,9 +7,9 @@ use diagnostic::VSDiagnostic;
 use katas::check_solution;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use project_system::*;
+use project_system::into_async_rust_fn_with;
 use qsc::{
-    compile,
+    compile, format_state_id, get_latex,
     hir::PackageId,
     interpret::{
         self,
@@ -45,6 +45,7 @@ thread_local! {
 }
 
 #[wasm_bindgen]
+#[must_use]
 pub fn git_hash() -> String {
     let git_hash = env!("QSHARP_GIT_HASH");
     git_hash.into()
@@ -54,7 +55,8 @@ pub fn git_hash() -> String {
 // so we have to manually assert length of the interior
 // array and the content type in the function body
 // `sources` should be Vec<[String; 2]> though
-pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> SourceMap {
+#[must_use]
+pub fn get_source_map(sources: Vec<js_sys::Array>, entry: &Option<String>) -> SourceMap {
     let sources = sources.into_iter().map(|js_arr| {
         // map the inner arr elements into (String, String)
         let elem_0 = js_arr.get(0).as_string();
@@ -64,7 +66,7 @@ pub fn get_source_map(sources: Vec<js_sys::Array>, entry: Option<String>) -> Sou
             Arc::from(elem_1.unwrap_or_default()),
         )
     });
-    SourceMap::new(sources, entry.as_deref().map(|value| value.into()))
+    SourceMap::new(sources, entry.as_deref().map(std::convert::Into::into))
 }
 
 #[wasm_bindgen]
@@ -73,7 +75,7 @@ pub fn get_qir(
     language_features: Vec<String>,
 ) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
-    let sources = get_source_map(sources, None);
+    let sources = get_source_map(sources, &None);
     _get_qir(sources, language_features)
 }
 
@@ -111,7 +113,7 @@ pub fn get_estimates(
     params: &str,
     language_features: Vec<String>,
 ) -> Result<String, String> {
-    let sources = get_source_map(sources, None);
+    let sources = get_source_map(sources, &None);
 
     let language_features = LanguageFeatures::from_iter(language_features);
 
@@ -132,6 +134,7 @@ pub fn get_estimates(
 }
 
 #[wasm_bindgen]
+#[must_use]
 pub fn get_library_source_content(name: &str) -> Option<String> {
     STORE_CORE_STD.with(|(store, std)| {
         for id in [PackageId::CORE, *std] {
@@ -193,7 +196,7 @@ where
             write!(
                 dump_json,
                 r#""{}": [{}, {}],"#,
-                output::format_state_id(&state.0, qubit_count),
+                format_state_id(&state.0, qubit_count),
                 state.1.re,
                 state.1.im
             )
@@ -201,12 +204,17 @@ where
         }
         write!(
             dump_json,
-            r#""{}": [{}, {}]}}}}"#,
-            output::format_state_id(&last.0, qubit_count),
+            r#""{}": [{}, {}]}}, "#,
+            format_state_id(&last.0, qubit_count),
             last.1.re,
             last.1.im
         )
         .expect("writing to string should succeed");
+
+        let json_latex = serde_json::to_string(&get_latex(&state, qubit_count))
+            .expect("serialization should succeed");
+        write!(dump_json, r#" "stateLatex": {json_latex} }} "#)
+            .expect("writing to string should succeed");
         (self.event_cb)(&dump_json);
         Ok(())
     }
@@ -286,16 +294,12 @@ pub fn run(
 
     let language_features = LanguageFeatures::from_iter(language_features);
 
-    let sources = get_source_map(sources, Some(expr.into()));
-    match run_internal_with_features(
-        sources,
-        |msg: &str| {
-            // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
-            let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
-        },
-        shots,
-        language_features,
-    ) {
+    let sources = get_source_map(sources, &Some(expr.into()));
+    let event_cb = |msg: &str| {
+        // See example at https://rustwasm.github.io/wasm-bindgen/reference/receiving-js-closures-in-rust.html
+        let _ = event_cb.call1(&JsValue::null(), &JsValue::from(msg));
+    };
+    match run_internal_with_features(sources, event_cb, shots, language_features) {
         Ok(()) => Ok(true),
         Err(e) => Err(JsError::from(e).into()),
     }
@@ -333,6 +337,7 @@ fn check_exercise_solution_internal(
 }
 
 #[wasm_bindgen]
+#[must_use]
 pub fn check_exercise_solution(
     solution_code: &str,
     exercise_sources_js: JsValue,
@@ -357,6 +362,7 @@ struct DocFile {
 }
 
 #[wasm_bindgen]
+#[must_use]
 pub fn generate_docs() -> JsValue {
     let docs = qsc_doc_gen::generate_docs::generate_docs();
     let mut result: Vec<DocFile> = vec![];

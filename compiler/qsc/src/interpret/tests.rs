@@ -471,7 +471,7 @@ mod given_interpreter {
                 &result,
                 &output,
                 &expect![[r#"
-                    runtime error: qubits in gate invocation are not unique
+                    runtime error: qubits in invocation are not unique
                        [intrinsic.qs] [(control, target)]
                 "#]],
             );
@@ -1043,6 +1043,20 @@ mod given_interpreter {
                     "hello!",
                 );
             }
+        }
+
+        #[test]
+        fn base_prof_non_result_return() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(&mut interpreter, "123");
+            is_only_value(&result, &output, &Value::Int(123));
         }
     }
 

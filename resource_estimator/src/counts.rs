@@ -4,7 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use super::LogicalResources;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc::{interpret::Value, Backend};
@@ -17,6 +16,8 @@ use std::{
     fmt::Debug,
     iter::Sum,
 };
+
+use crate::system::LogicalResourceCounts;
 
 /// Resource counter implementation
 ///
@@ -74,14 +75,15 @@ impl Default for LogicalCounter {
 
 impl LogicalCounter {
     #[must_use]
-    pub fn logical_resources(&self) -> LogicalResources {
-        LogicalResources {
-            num_qubits: self.next_free,
-            t_count: self.t_count,
-            rotation_count: self.r_count,
-            rotation_depth: self.layers.iter().filter(|layer| layer.r != 0).count(),
-            ccz_count: self.ccz_count,
-            measurement_count: self.m_count,
+    pub fn logical_resources(&self) -> LogicalResourceCounts {
+        LogicalResourceCounts {
+            num_qubits: self.next_free as _,
+            t_count: self.t_count as _,
+            rotation_count: self.r_count as _,
+            rotation_depth: self.layers.iter().filter(|layer| layer.r != 0).count() as _,
+            ccz_count: self.ccz_count as _,
+            ccix_count: 0,
+            measurement_count: self.m_count as _,
         }
     }
 
@@ -358,9 +360,6 @@ impl LogicalCounter {
 
             1
         } else {
-            #[allow(clippy::cast_possible_truncation)]
-            #[allow(clippy::cast_sign_loss)]
-            #[allow(clippy::cast_precision_loss)]
             if r_depth < (r_count as f64 / qubits.len() as f64).ceil() as usize {
                 return Err(format!(
                     "Rotation depth {r_depth} is too small for rotation count {r_count} and {} qubits.", qubits.len()
@@ -458,7 +457,6 @@ impl Backend for LogicalCounter {
     fn rz(&mut self, theta: f64, q: usize) {
         let multiple = (theta / (PI / 4.0)).round();
         if ((multiple * (PI / 4.0)) - theta).abs() <= EPSILON {
-            #[allow(clippy::cast_possible_truncation)]
             let multiple = (multiple as i64).rem_euclid(8) as u64;
             if multiple & 1 == 1 {
                 self.t(q);

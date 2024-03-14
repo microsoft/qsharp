@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.ResourceEstimation;
     open Microsoft.Quantum.Unstable.Arithmetic;
 
@@ -196,7 +195,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         }
     }
 
-    // Checks whether specific bitstring `data` must be fixed for a given
+    // Checks whether specific bit string `data` must be fixed for a given
     // measurement result `result`.
     //
     // Returns true if the number of indices for which both result and data are

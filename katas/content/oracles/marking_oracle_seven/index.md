@@ -1,7 +1,6 @@
 **Inputs:**
 
   1. 3 qubits in an arbitrary state $|x\rangle$ (input/query register)
-    
   2. A qubit in an arbitrary state $|y\rangle$ (target qubit)
 
 **Goal:**

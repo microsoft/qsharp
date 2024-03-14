@@ -216,7 +216,7 @@ $$A = \sum_{i=0}^{2^N-1} x_i|\psi_i\rangle\langle\psi_i|$$
 Let's use our $CNOT$ gate as a simple example.
 The $CNOT$ gate has four eigenvectors.
 
-- Two, as we can clearly see, are computational basis states $|00\rangle$ and $|01\rangle$ with eigen values $1$ and $1$, respectively (the basis states that are not affected by the gate).
+- Two, as we can clearly see, are computational basis states $|00\rangle$ and $|01\rangle$ with eigenvalues $1$ and $1$, respectively (the basis states that are not affected by the gate).
 - The other two are $|1\rangle \otimes |+\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle + |11\rangle\big)$ and $|1\rangle \otimes |-\rangle = \frac{1}{\sqrt{2}}\big(|10\rangle - |11\rangle\big)$ with eigenvalues $1$ and $-1$, respectively:
 
 $$CNOT|00\rangle = |00\rangle$$
@@ -365,7 +365,7 @@ x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangl
 x_{101}|100\rangle + x_{100}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
 $$
 
-The result is the the $CINOT$ gate as we intended; so we can write
+The result is the $CINOT$ gate as we intended; so we can write
 
 $$CINOT = (SWAP \otimes I)(I \otimes CNOT)(SWAP \otimes I)$$
 
