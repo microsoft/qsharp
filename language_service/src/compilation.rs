@@ -72,7 +72,7 @@ impl Compilation {
             language_features,
         );
 
-        let lints = unit.lints(Some(lints_config));
+        let lints = qsc::linter::run_lints(&unit, Some(lints_config));
         let mut lints = lints
             .into_iter()
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))

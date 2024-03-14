@@ -6,4 +6,5 @@ pub mod functors;
 pub mod index_map;
 pub mod language_features;
 pub mod line_column;
+pub mod linter;
 pub mod span;

@@ -28,6 +28,10 @@ pub fn run_hir_lints(package: &Package, config: Option<&[LintConfig]>) -> Vec<Li
 
     let mut lints = CombinedHirLints::from_config(config);
 
+    for (_, item) in &package.items {
+        lints.visit_item(item);
+    }
+
     for stmt in &package.stmts {
         lints.visit_stmt(stmt);
     }
@@ -150,13 +154,13 @@ macro_rules! declare_hir_lints {
         // Most of the calls here are empty methods and they get optimized at compile time to a no-op.
         impl CombinedHirLints {
             pub fn from_config(config: Vec<(HirLint, LintLevel)>) -> Self {
-                let mut combined_ast_lints = Self::default();
+                let mut combined_hir_lints = Self::default();
                 for (lint, level) in config {
                     match lint {
-                        $(HirLint::$lint_name => combined_ast_lints.$lint_name.level = level),*
+                        $(HirLint::$lint_name => combined_hir_lints.$lint_name.level = level),*
                     }
                 }
-                combined_ast_lints
+                combined_hir_lints
             }
 
             fn check_block(&mut self, block: &Block) { $(self.$lint_name.check_block(block, &mut self.buffer));* }
