@@ -8,8 +8,8 @@ use qsc_data_structures::span::Span;
 
 declare_ast_lints! {
     (DivisionByZero, LintLevel::Allow, "attempt to divide by zero"),
-    (NeedlessParens, LintLevel::Warning, "unnecessary parentheses"),
-    (RedundantSemicolons, LintLevel::Warning, "redundant semicolons"),
+    (NeedlessParens, LintLevel::Warn, "unnecessary parentheses"),
+    (RedundantSemicolons, LintLevel::Warn, "redundant semicolons"),
 }
 
 impl AstLintPass for DivisionByZero {

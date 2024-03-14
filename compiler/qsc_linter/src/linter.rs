@@ -32,7 +32,7 @@ impl Diagnostic for Lint {
     fn severity(&self) -> Option<miette::Severity> {
         match self.level {
             LintLevel::Allow => None,
-            LintLevel::Warning | LintLevel::ForceWarning => Some(miette::Severity::Warning),
+            LintLevel::Warn | LintLevel::ForceWarn => Some(miette::Severity::Warning),
             LintLevel::Error | LintLevel::ForceError => Some(miette::Severity::Error),
         }
     }
@@ -52,9 +52,9 @@ pub enum LintLevel {
     /// The lint is effectively disabled.
     Allow,
     /// The lint will be treated as a warning.
-    Warning,
+    Warn,
     /// The lint will be treated as a warning and cannot be overriden by the user.
-    ForceWarning,
+    ForceWarn,
     /// The lint will be treated as an error.
     Error,
     /// The lint will be treated as an error and cannot be overriden by the user.
@@ -65,7 +65,7 @@ impl Display for LintLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let level = match self {
             LintLevel::Allow => "",
-            LintLevel::Warning | LintLevel::ForceWarning => "warning",
+            LintLevel::Warn | LintLevel::ForceWarn => "warning",
             LintLevel::Error | LintLevel::ForceError => "error",
         };
 
