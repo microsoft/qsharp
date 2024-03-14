@@ -62,7 +62,7 @@ namespace Test {
                         $"{name}: Incorrect sum={yActual}, expected={yExpected}. ctl={isCtl}, |x|={xLen}, |y|={yLen}, x={xValue}, y={yValue}.");
                     Fact(xActual == xValue,
                         $"{name}: Incorrect x={xActual}, expected={xValue}. ctl={isCtl}, |x|={xLen}, |y|={yLen}, x={xValue}, y={yValue}.");
-                    
+
                     ResetAll(x);
                     ResetAll(y);
                     Reset(ctl);
@@ -77,8 +77,8 @@ namespace Test {
         bitwidth : Int) : Unit {
 
         TestIncByLE2(name, adder, bitwidth, bitwidth);
-        TestIncByLE2(name, adder, bitwidth, bitwidth+1);
-        TestIncByLE2(name, adder, bitwidth, bitwidth+2);
+        TestIncByLE2(name, adder, bitwidth, bitwidth + 1);
+        TestIncByLE2(name, adder, bitwidth, bitwidth + 2);
     }
 
     internal operation TestIncByLECtl(

@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```qsharp
     /// CNOT(control, target);
     /// ```
-    operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl{
+    operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__cx__body(control, target);
         }
@@ -188,7 +188,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```qsharp
     /// Controlled Y([control], target);
     /// ```
-    operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl{
+    operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__cy__body(control, target);
         }
@@ -263,7 +263,7 @@ namespace Microsoft.Quantum.Canon {
     /// $$
     operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
         for i in 0..Length(qubits)-2 {
-            CNOT(qubits[i], qubits[i+1]);
+            CNOT(qubits[i], qubits[i + 1]);
         }
     }
 
@@ -287,9 +287,13 @@ namespace Microsoft.Quantum.Canon {
     /// X(q);
     /// ```
     operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl {
-        if   pauli == PauliX { X(target); }
-        elif pauli == PauliY { Y(target); }
-        elif pauli == PauliZ { Z(target); }
+        if pauli == PauliX {
+            X(target);
+        } elif pauli == PauliY {
+            Y(target);
+        } elif pauli == PauliZ {
+            Z(target);
+        }
     }
 
     /// # Summary
@@ -491,13 +495,13 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # Reference
     ///  - [Quantum Fourier transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
-    operation ApplyQFT (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl {
         let length = Length(qs);
         Fact(length >= 1, "ApplyQFT: Length(qs) must be at least 1.");
         for i in length-1..-1..0 {
             H(qs[i]);
             for j in 0..i-1 {
-                Controlled R1Frac([qs[i]], (1, j+1, qs[i-j-1]));
+                Controlled R1Frac([qs[i]], (1, j + 1, qs[i-j-1]));
             }
         }
     }
@@ -508,9 +512,9 @@ namespace Microsoft.Quantum.Canon {
     /// # Input
     /// ## register
     /// The qubits order of which should be reversed using SWAP gates
-    operation SwapReverseRegister (register : Qubit[]) : Unit is Adj + Ctl {
+    operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl {
         let length = Length(register);
-        for i in 0 .. length/2 - 1 {
+        for i in 0..length / 2 - 1 {
             SWAP(register[i], register[(length - i) - 1]);
         }
     }

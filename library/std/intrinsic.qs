@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// $$
     /// where $P_i$ is the $i$th element of `paulis`, and where
     /// $N = $`Length(paulis)`.
-    operation Exp (paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
+    operation Exp(paulis : Pauli[], theta : Double, qubits : Qubit[]) : Unit is Adj + Ctl {
         body ... {
             Fact(Length(paulis) == Length(qubits),
                 "Arrays 'pauli' and 'qubits' must have the same length");
@@ -103,35 +103,29 @@ namespace Microsoft.Quantum.Intrinsic {
 
             if len == 0 {
                 ApplyGlobalPhase(theta);
-            }
-            elif len == 1 {
+            } elif len == 1 {
                 R(newPaulis[0], angle, qubits[0]);
-            }
-            elif len == 2 {
+            } elif len == 2 {
                 within {
                     MapPauli(qubits[1], paulis[0], paulis[1]);
-                }
-                apply {
+                } apply {
                     if (paulis[0] == PauliX) {
-                        Rxx(angle , qubits[0], qubits[1]);
+                        Rxx(angle, qubits[0], qubits[1]);
                     } elif (paulis[0] == PauliY) {
                         Ryy(angle, qubits[0], qubits[1]);
                     } elif (paulis[0] == PauliZ) {
                         Rzz(angle, qubits[0], qubits[1]);
                     }
                 }
-            }
-            else { // len > 2
+            } else { // len > 2
                 within {
-                    for i in 0 .. Length(paulis) - 1 {
+                    for i in 0..Length(paulis) - 1 {
                         MapPauli(qubits[i], PauliZ, paulis[i]);
                     }
-                }
-                apply {
+                } apply {
                     within {
-                        SpreadZ(qubits[1], qubits[2 .. Length(qubits) - 1]);
-                    }
-                    apply {
+                        SpreadZ(qubits[1], qubits[2..Length(qubits) - 1]);
+                    } apply {
                         Rzz(angle, qubits[0], qubits[1]);
                     }
                 }
@@ -167,23 +161,18 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__h__body(qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CH(ctls[0], qubit);
-            }
-            elif Length(ctls) == 2 {
+            } elif Length(ctls) == 2 {
                 CCH(ctls[0], ctls[1], qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1 - (Length(ctls) % 2)];
                 within {
                     CollectControls(ctls, aux, 0);
-                }
-                apply {
+                } apply {
                     if Length(ctls) % 2 != 0 {
                         CCH(ctls[Length(ctls) - 1], aux[Length(ctls) - 3], qubit);
-                    }
-                    else {
+                    } else {
                         CCH(aux[Length(ctls) - 3], aux[Length(ctls) - 4], qubit);
                     }
                 }
@@ -199,7 +188,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// This is a no-op. It is provided for completeness and because
     /// sometimes it is useful to call the identity in an algorithm or to pass it as a parameter.
     operation I(target : Qubit) : Unit is Adj + Ctl {
-        body ... { }
+        body ... {}
         adjoint self;
     }
 
@@ -309,17 +298,14 @@ namespace Microsoft.Quantum.Intrinsic {
         if Length(bases) == 1 {
             within {
                 MapPauli(qubits[0], PauliZ, bases[0]);
-            }
-            apply {
+            } apply {
                 __quantum__qis__m__body(qubits[0])
             }
-        }
-        else {
+        } else {
             use aux = Qubit();
             within {
                 H(aux);
-            }
-            apply {
+            } apply {
                 for i in 0..Length(bases)-1 {
                     EntangleForJointMeasure(bases[i], aux, qubits[i]);
                 }
@@ -375,8 +361,7 @@ namespace Microsoft.Quantum.Intrinsic {
         use aux = Qubit();
         within {
             H(aux);
-        }
-        apply {
+        } apply {
             for i in 0..Length(bases)-1 {
                 EntangleForJointMeasure(bases[i], aux, qubits[i]);
             }
@@ -410,15 +395,12 @@ namespace Microsoft.Quantum.Intrinsic {
     operation R(pauli : Pauli, theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
         if (pauli == PauliX) {
             Rx(theta, qubit);
-        }
-        elif (pauli == PauliY) {
+        } elif (pauli == PauliY) {
             Ry(theta, qubit);
-        }
-        elif (pauli == PauliZ) {
+        } elif (pauli == PauliZ) {
             Rz(theta, qubit);
-        }
-        else { // PauliI
-            ApplyGlobalPhase( - theta / 2.0 );
+        } else { // PauliI
+            ApplyGlobalPhase( - theta / 2.0);
         }
     }
 
@@ -451,17 +433,14 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 Rz(theta, qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CR1(theta, ctls[0], qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1];
                 within {
                     CollectControls(ctls, aux, 0);
                     AdjustForSingleControl(ctls, aux);
-                }
-                apply {
+                } apply {
                     CR1(theta, aux[Length(ctls) - 2], qubit);
                 }
             }
@@ -602,12 +581,10 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__rx__body(theta, qubit);
-            }
-            else {
+            } else {
                 within {
                     MapPauli(qubit, PauliZ, PauliX);
-                }
-                apply {
+                } apply {
                     Controlled Rz(ctls, (theta, qubit));
                 }
             }
@@ -647,17 +624,14 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__rxx__body(theta, qubit0, qubit1);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CRxx(ctls[0], theta, qubit0, qubit1);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1];
                 within {
                     CollectControls(ctls, aux, 0);
                     AdjustForSingleControl(ctls, aux);
-                }
-                apply {
+                } apply {
                     CRxx(aux[Length(ctls) - 2], theta, qubit0, qubit1);
                 }
             }
@@ -699,12 +673,10 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__ry__body(theta, qubit);
-            }
-            else {
+            } else {
                 within {
                     MapPauli(qubit, PauliZ, PauliY);
-                }
-                apply {
+                } apply {
                     Controlled Rz(ctls, (theta, qubit));
                 }
             }
@@ -744,17 +716,14 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__ryy__body(theta, qubit0, qubit1);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CRyy(ctls[0], theta, qubit0, qubit1);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1];
                 within {
                     CollectControls(ctls, aux, 0);
                     AdjustForSingleControl(ctls, aux);
-                }
-                apply {
+                } apply {
                     CRyy(aux[Length(ctls) - 2], theta, qubit0, qubit1);
                 }
             }
@@ -796,17 +765,14 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__rz__body(theta, qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CRz(ctls[0], theta, qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1];
                 within {
                     CollectControls(ctls, aux, 0);
                     AdjustForSingleControl(ctls, aux);
-                }
-                apply {
+                } apply {
                     CRz(aux[Length(ctls) - 2], theta, qubit);
                 }
             }
@@ -846,17 +812,14 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__rzz__body(theta, qubit0, qubit1);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CRzz(ctls[0], theta, qubit0, qubit1);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1];
                 within {
                     CollectControls(ctls, aux, 0);
                     AdjustForSingleControl(ctls, aux);
-                }
-                apply {
+                } apply {
                     CRzz(aux[Length(ctls) - 2], theta, qubit0, qubit1);
                 }
             }
@@ -893,23 +856,18 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__s__body(qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CS(ctls[0], qubit);
-            }
-            elif Length(ctls) == 2 {
+            } elif Length(ctls) == 2 {
                 Controlled CS([ctls[0]], (ctls[1], qubit));
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 2];
                 within {
                     CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
-                }
-                apply {
+                } apply {
                     if Length(ctls) % 2 != 0 {
                         Controlled CS([ctls[Length(ctls) - 1]], (aux[Length(ctls) - 3], qubit));
-                    }
-                    else {
+                    } else {
                         Controlled CS([aux[Length(ctls) - 3]], (aux[Length(ctls) - 4], qubit));
                     }
                 }
@@ -918,23 +876,18 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled adjoint (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__s__adj(qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 Adjoint CS(ctls[0], qubit);
-            }
-            elif Length(ctls) == 2 {
+            } elif Length(ctls) == 2 {
                 Controlled Adjoint CS([ctls[0]], (ctls[1], qubit));
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 2];
                 within {
                     CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
-                }
-                apply {
+                } apply {
                     if Length(ctls) % 2 != 0 {
                         Controlled Adjoint CS([ctls[Length(ctls) - 1]], (aux[Length(ctls) - 3], qubit));
-                    }
-                    else {
+                    } else {
                         Controlled Adjoint CS([aux[Length(ctls) - 3]], (aux[Length(ctls) - 4], qubit));
                     }
                 }
@@ -980,12 +933,10 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if (Length(ctls) == 0) {
                 __quantum__qis__swap__body(qubit1, qubit2);
-            }
-            else {
+            } else {
                 within {
                     CNOT(qubit1, qubit2);
-                }
-                apply {
+                } apply {
                     Controlled CNOT(ctls, (qubit2, qubit1));
                 }
             }
@@ -1019,17 +970,14 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__t__body(qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 CT(ctls[0], qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1];
                 within {
                     CollectControls(ctls, aux, 0);
                     AdjustForSingleControl(ctls, aux);
-                }
-                apply {
+                } apply {
                     CT(aux[Length(ctls) - 2], qubit);
                 }
             }
@@ -1037,17 +985,14 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled adjoint (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__t__adj(qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 Adjoint CT(ctls[0], qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 1];
                 within {
                     CollectControls(ctls, aux, 0);
                     AdjustForSingleControl(ctls, aux);
-                }
-                apply {
+                } apply {
                     Adjoint CT(aux[Length(ctls) - 2], qubit);
                 }
             }
@@ -1078,23 +1023,18 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__x__body(qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 __quantum__qis__cx__body(ctls[0], qubit);
-            }
-            elif Length(ctls) == 2 {
+            } elif Length(ctls) == 2 {
                 __quantum__qis__ccx__body(ctls[0], ctls[1], qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 2];
                 within {
                     CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
-                }
-                apply {
+                } apply {
                     if Length(ctls) % 2 != 0 {
                         __quantum__qis__ccx__body(ctls[Length(ctls) - 1], aux[Length(ctls) - 3], qubit);
-                    }
-                    else {
+                    } else {
                         __quantum__qis__ccx__body(aux[Length(ctls) - 3], aux[Length(ctls) - 4], qubit);
                     }
                 }
@@ -1127,23 +1067,18 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if (Length(ctls) == 0) {
                 __quantum__qis__y__body(qubit);
-            }
-            elif (Length(ctls) == 1) {
+            } elif (Length(ctls) == 1) {
                 __quantum__qis__cy__body(ctls[0], qubit);
-            }
-            elif (Length(ctls) == 2) {
+            } elif (Length(ctls) == 2) {
                 CCY(ctls[0], ctls[1], qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 2];
                 within {
                     CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
-                }
-                apply {
+                } apply {
                     if Length(ctls) % 2 != 0 {
                         CCY(ctls[Length(ctls) - 1], aux[Length(ctls) - 3], qubit);
-                    }
-                    else {
+                    } else {
                         CCY(aux[Length(ctls) - 3], aux[Length(ctls) - 4], qubit);
                     }
                 }
@@ -1176,23 +1111,18 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 __quantum__qis__z__body(qubit);
-            }
-            elif Length(ctls) == 1 {
+            } elif Length(ctls) == 1 {
                 __quantum__qis__cz__body(ctls[0], qubit);
-            }
-            elif Length(ctls) == 2 {
+            } elif Length(ctls) == 2 {
                 CCZ(ctls[0], ctls[1], qubit);
-            }
-            else {
+            } else {
                 use aux = Qubit[Length(ctls) - 2];
                 within {
                     CollectControls(ctls, aux, 1 - (Length(ctls) % 2));
-                }
-                apply {
+                } apply {
                     if Length(ctls) % 2 != 0 {
                         CCZ(ctls[Length(ctls) - 1], aux[Length(ctls) - 3], qubit);
-                    }
-                    else {
+                    } else {
                         CCZ(aux[Length(ctls) - 3], aux[Length(ctls) - 4], qubit);
                     }
                 }
@@ -1212,7 +1142,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// The specific behavior of this function is simulator-dependent,
     /// but in most cases the given message will be written to the console.
     /// ```
-    function Message (msg : String) : Unit {
+    function Message(msg : String) : Unit {
         body intrinsic;
     }
 

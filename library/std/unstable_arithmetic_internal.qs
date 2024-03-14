@@ -28,12 +28,12 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
         Fact(Length(xs) <= Length(ys),
-            "Input register ys must be at lease as long as xs." );
+            "Input register ys must be at lease as long as xs.");
         for i in 1..Length(xs)-1 {
             CNOT(xs[i], ys[i]);
         }
         for i in Length(xs)-2..-1..1 {
-            CNOT(xs[i], xs[i+1]);
+            CNOT(xs[i], xs[i + 1]);
         }
     }
 
@@ -63,14 +63,14 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     internal operation ApplyInnerTTKAdderNoCarry(xs : Qubit[], ys : Qubit[])
     : Unit is Adj + Ctl {
         body (...) {
-            (Controlled ApplyInnerTTKAdderNoCarry) ([], (xs, ys));
+            (Controlled ApplyInnerTTKAdderNoCarry)([], (xs, ys));
         }
-        controlled ( controls, ... ) {
+        controlled (controls, ...) {
             Fact(Length(xs) == Length(ys),
-                "Input registers must have the same number of qubits." );
+                "Input registers must have the same number of qubits.");
 
             for idx in 0..Length(xs) - 2 {
-                CCNOT (xs[idx], ys[idx], xs[idx + 1]);
+                CCNOT(xs[idx], ys[idx], xs[idx + 1]);
             }
             for idx in Length(xs)-1..-1..1 {
                 Controlled CNOT(controls, (xs[idx], ys[idx]));
@@ -107,15 +107,15 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         body (...) {
             (Controlled ApplyInnerTTKAdderWithCarry)([], (xs, ys));
         }
-        controlled ( controls, ... ) {
-            Fact(Length(xs)+1 == Length(ys),
-                "ys must be one qubit longer then xs." );
+        controlled (controls, ...) {
+            Fact(Length(xs) + 1 == Length(ys),
+                "ys must be one qubit longer then xs.");
             Fact(Length(xs) > 0, "Array should not be empty.");
 
 
             let nQubits = Length(xs);
             for idx in 0..nQubits - 2 {
-                CCNOT(xs[idx], ys[idx], xs[idx+1]);
+                CCNOT(xs[idx], ys[idx], xs[idx + 1]);
             }
             (Controlled CCNOT)(controls, (xs[nQubits-1], ys[nQubits-1], ys[nQubits]));
             for idx in nQubits - 1..-1..1 {
@@ -255,7 +255,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
     ///   doi:10.1103/PhysRevA.87.022328
     @Config(Unrestricted)
-    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
+    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit)
     : Unit is Adj { // NOTE: Eventually this operation will be public and intrinsic.
         body (...) {
             if not CheckZero(target) {
@@ -300,7 +300,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
     ///   doi:10.1103/PhysRevA.87.022328
     @Config(Base)
-    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target: Qubit)
+    internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit)
     : Unit is Adj {
         H(target);
         T(target);
@@ -309,8 +309,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         within {
             CNOT(target, control1);
             CNOT(target, control2);
-        }
-        apply {
+        } apply {
             Adjoint T(control1);
             Adjoint T(control2);
             T(target);
@@ -323,12 +322,12 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Computes carries for the look-ahead adder
     internal operation ComputeCarries(ps : Qubit[], gs : Qubit[]) : Unit is Adj {
         let n = Length(gs);
-        Fact(Length(ps)+1 == n, "Register gs must be one qubit longer than register gs.");
+        Fact(Length(ps) + 1 == n, "Register gs must be one qubit longer than register gs.");
 
         let T = Floor(Lg(IntAsDouble(n)));
         use qs = Qubit[n - HammingWeightI(n) - T];
 
-        let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1, 1..T - 1);
+        let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2 ^ t)) - 1, 1..T - 1);
         let pWorkspace = [ps] + Partitioned(registerPartition, qs);
 
         within {
@@ -383,11 +382,11 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         let n = Length(gs);
 
         for t in 1..T {
-            let length = Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1;
+            let length = Floor(IntAsDouble(n) / IntAsDouble(2 ^ t)) - 1;
             let ps = pWorkspace[t - 1][0..2...];
 
             for m in 0..length {
-                CCNOT(gs[2^t * m + 2^(t - 1) - 1], ps[m], gs[2^t * m + 2^t - 1]);
+                CCNOT(gs[2 ^ t * m + 2 ^ (t - 1) - 1], ps[m], gs[2 ^ t * m + 2 ^ t - 1]);
             }
         }
     }
@@ -399,16 +398,16 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
 
         let start = Floor(Lg(IntAsDouble(2 * n) / 3.0));
         for t in start..-1..1 {
-            let length = Floor(IntAsDouble(n - 2^(t - 1)) / IntAsDouble(2^t));
+            let length = Floor(IntAsDouble(n - 2 ^ (t - 1)) / IntAsDouble(2 ^ t));
             let ps = pWorkspace[t - 1][1..2...];
 
             for m in 1..length {
-                CCNOT(gs[2^t * m - 1], ps[m - 1], gs[2^t * m + 2^(t - 1) - 1]);
+                CCNOT(gs[2 ^ t * m - 1], ps[m - 1], gs[2 ^ t * m + 2 ^ (t - 1) - 1]);
             }
         }
     }
 
-    internal operation PhaseGradient (qs : Qubit[]) : Unit is Adj + Ctl {
+    internal operation PhaseGradient(qs : Qubit[]) : Unit is Adj + Ctl {
         for i in IndexRange(qs) {
             R1Frac(1, i, qs[i]);
         }
@@ -423,18 +422,18 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// (if `invertControl` is false). If `invertControl` is true, the `action`
     /// is applied in the opposite situation.
     internal operation ApplyActionIfGreaterThanOrEqualConstant<'T>(
-        invertControl: Bool,
-        action: 'T => Unit is Adj + Ctl,
-        c: BigInt,
-        x: Qubit[],
-        target: 'T) : Unit is Adj + Ctl {
+        invertControl : Bool,
+        action : 'T => Unit is Adj + Ctl,
+        c : BigInt,
+        x : Qubit[],
+        target : 'T) : Unit is Adj + Ctl {
 
         let bitWidth = Length(x);
         if c == 0L {
             if not invertControl {
                 action(target);
             }
-        } elif c >= (2L^bitWidth) {
+        } elif c >= (2L ^ bitWidth) {
             if invertControl {
                 action(target);
             }
@@ -459,9 +458,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             within {
                 for i in 0..Length(cs1)-1 {
                     let op =
-                        cNormalized &&& (1L <<< (i+1)) != 0L ?
+                        cNormalized &&& (1L <<< (i + 1)) != 0L ?
                         ApplyAndAssuming0Target | ApplyOrAssuming0Target;
-                    op(cs1[i], xNormalized[i+1], qs[i]);
+                    op(cs1[i], xNormalized[i + 1], qs[i]);
                 }
             } apply {
                 let control = IsEmpty(qs) ? Tail(x) | Tail(qs);
@@ -541,8 +540,8 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// controlled version that collects controls into one qubit
     /// by applying AND chain using auxiliary qubit array.
     internal operation ApplyAsSinglyControlled<'TIn> (
-        op : ( 'TIn => Unit is Adj + Ctl ),
-        input : 'TIn ) : Unit is Adj + Ctl {
+        op : ('TIn => Unit is Adj + Ctl),
+        input : 'TIn) : Unit is Adj + Ctl {
 
         body (...) {
             op(input);
@@ -559,7 +558,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
                 within {
                     ApplyAndAssuming0Target(ctls[0], ctls[1], aux[0]);
                     for i in 1..n-2 {
-                        ApplyAndAssuming0Target(aux[i-1], ctls[i+1], aux[i]);
+                        ApplyAndAssuming0Target(aux[i-1], ctls[i + 1], aux[i]);
                     }
                 } apply {
                     Controlled op(aux[n-2..n-2], input);

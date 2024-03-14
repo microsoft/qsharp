@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.Arrays {
         let columns = rows == 0 ? 0 | Length(Head(matrix));
         let rangeLimit = MinI(rows, columns) - 1;
         mutable diagonal = [];
-        for index in 0 .. rangeLimit {
+        for index in 0..rangeLimit {
             set diagonal += [matrix[index][index]];
         }
 
@@ -280,7 +280,7 @@ namespace Microsoft.Quantum.Arrays {
     operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput)
     : 'TOutput[] {
         mutable outputs = [];
-        for _ in 1 .. nSamples {
+        for _ in 1..nSamples {
             set outputs += [op(input)];
         }
         outputs
@@ -349,7 +349,7 @@ namespace Microsoft.Quantum.Arrays {
             set toKeep w/= indexToRemove <- false;
         }
         mutable output = [];
-        for index in 0 .. arrayLength - 1 {
+        for index in 0..arrayLength - 1 {
             if toKeep[index] {
                 set output += [array[index]];
             }
@@ -572,7 +572,7 @@ namespace Microsoft.Quantum.Arrays {
     /// // `indexOfFirstEven` is 3.
     /// ```
     function IndexOf<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {
-        for index in 0 .. Length(array) - 1 {
+        for index in 0..Length(array) - 1 {
             if predicate(array[index]) {
                 return index;
             }
@@ -602,7 +602,7 @@ namespace Microsoft.Quantum.Arrays {
     /// for idx in 0 .. Length(array) - 1 { ... }
     /// ```
     function IndexRange<'TElement>(array : 'TElement[]) : Range {
-       0 .. Length(array) - 1
+        0..Length(array) - 1
     }
 
     /// # Summary
@@ -647,8 +647,11 @@ namespace Microsoft.Quantum.Arrays {
         for index in 0..interleavedLength - 1 {
             let originalIndex = index / 2;
             let value =
-                if index % 2 == 0 {first[originalIndex]}
-                else {second[originalIndex]};
+                if index % 2 == 0 {
+                first[originalIndex]
+            } else {
+                second[originalIndex]
+            };
             set interleaved += [value];
         }
         interleaved
@@ -693,7 +696,7 @@ namespace Microsoft.Quantum.Arrays {
     function IsRectangularArray<'T>(array : 'T[][]) : Bool {
         if (Length(array) > 0) {
             let columnCount = Length(Head(array));
-            for index in 1 .. Length(array) - 1 {
+            for index in 1..Length(array) - 1 {
                 if Length(array[index]) != columnCount {
                     return false;
                 }
@@ -727,7 +730,7 @@ namespace Microsoft.Quantum.Arrays {
     /// if `comparison(a, b)` and `comparison(b, c)`, then `comparison(a, c)`
     /// is assumed.
     function IsSorted<'T>(comparison : (('T, 'T) -> Bool), array : 'T[]) : Bool {
-        for index in 1 .. Length(array) - 1 {
+        for index in 1..Length(array) - 1 {
             if not comparison(array[index - 1], array[index]) {
                 return false;
             }
@@ -827,8 +830,8 @@ namespace Microsoft.Quantum.Arrays {
     /// ```qsharp
     /// let array = MappedByIndex(f, [x0, x1, x2]);
     /// ```
-	/// and
-	/// ```qsharp
+    /// and
+    /// ```qsharp
     /// let array = [f(0, x0), f(1, x1), f(2, x2)];
     /// ```
     ///
@@ -836,7 +839,7 @@ namespace Microsoft.Quantum.Arrays {
     /// - Microsoft.Quantum.Arrays.Mapped
     function MappedByIndex<'T, 'U> (mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] {
         mutable mapped = [];
-        for index in 0 .. Length(array) - 1 {
+        for index in 0..Length(array) - 1 {
             set mapped += [mapper(index, array[index])];
         }
         mapped
@@ -892,7 +895,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array containing the elements `array[0..Length(array) - 2]`.
     function Most<'T> (array : 'T[]) : 'T[] {
-        array[... Length(array) - 2]
+        array[...Length(array) - 2]
     }
 
     /// # Summary
@@ -990,10 +993,10 @@ namespace Microsoft.Quantum.Arrays {
             if partitionEndIndex >= Length(array) {
                 fail "Partitioned argument out of bounds.";
             }
-            set output w/= index <- array[partitionStartIndex .. partitionEndIndex];
+            set output w/= index <- array[partitionStartIndex..partitionEndIndex];
             set partitionStartIndex = partitionEndIndex + 1;
         }
-        set output w/= Length(partitionSizes) <- array[partitionStartIndex .. Length(array) - 1];
+        set output w/= Length(partitionSizes) <- array[partitionStartIndex..Length(array) - 1];
         output
     }
 
@@ -1012,7 +1015,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array containing the elements `array[1..Length(array) - 1]`.
     function Rest<'T> (array : 'T[]) : 'T[] {
-        array[1 ...]
+        array[1...]
     }
 
     /// # Summary
@@ -1030,7 +1033,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array containing the elements `array[Length(array) - 1]` .. `array[0]`.
     function Reversed<'T>(array : 'T[]) : 'T[] {
-        array[... -1 ...]
+        array[...-1...]
     }
 
     /// # Summary
@@ -1055,10 +1058,10 @@ namespace Microsoft.Quantum.Arrays {
     /// let numbers = SequenceI(0, _); // function to create sequence from 0 to `to`
     /// let naturals = SequenceI(1, _); // function to create sequence from 1 to `to`
     /// ```
-    function SequenceI (from : Int, to : Int) : Int[] {
+    function SequenceI(from : Int, to : Int) : Int[] {
         Fact(to >= from, $"`to` must be larger than `from`.");
         mutable array = [];
-        for index in from .. to {
+        for index in from..to {
             set array += [index];
         }
         array
@@ -1086,7 +1089,7 @@ namespace Microsoft.Quantum.Arrays {
     /// let arr2 = SequenceL(23L, 29L); // [23L, 24L, 25L, 26L, 27L, 28L, 29L]
     /// let arr3 = SequenceL(-5L, -2L); // [-5L, -4L, -3L, -2L]
     /// ```
-    function SequenceL (from : BigInt, to : BigInt) : BigInt[] {
+    function SequenceL(from : BigInt, to : BigInt) : BigInt[] {
         Fact(to >= from, "`to` must be larger than `from`");
         mutable array = [];
         mutable current = from;
@@ -1269,9 +1272,9 @@ namespace Microsoft.Quantum.Arrays {
         Fact(columnCount > 0, "Matrix must have at least 1 column");
         Fact(IsRectangularArray(matrix), "Matrix is not a rectangular array");
         mutable transposed = [];
-        for columnIndex in 0 .. columnCount - 1 {
+        for columnIndex in 0..columnCount - 1 {
             mutable newRow = [];
-            for rowIndex in 0 .. rowCount - 1 {
+            for rowIndex in 0..rowCount - 1 {
                 set newRow += [matrix[rowIndex][columnIndex]];
             }
             set transposed += [newRow];
@@ -1327,7 +1330,7 @@ namespace Microsoft.Quantum.Arrays {
     function Unzipped<'T, 'U>(array : ('T, 'U)[]) : ('T[], 'U[]) {
         mutable first = [];
         mutable second = [];
-        for index in 0 .. Length(array) - 1  {
+        for index in 0..Length(array) - 1 {
             let (left, right) = array[index];
             set first += [left];
             set second += [right];
@@ -1353,7 +1356,7 @@ namespace Microsoft.Quantum.Arrays {
     /// An array of indices where `predicate` is true.
     function Where<'T>(predicate : ('T -> Bool), array : 'T[]) : Int[] {
         mutable indexes = [];
-        for index in 0 .. Length(array) - 1 {
+        for index in 0..Length(array) - 1 {
             if predicate(array[index]) {
                 set indexes += [index];
             }
@@ -1396,8 +1399,8 @@ namespace Microsoft.Quantum.Arrays {
             "The size of the window must be a positive integer no greater than the size of the array");
 
         mutable windows = [];
-        for index in 0 .. arrayLength - size {
-            set windows += [array[index .. index + size - 1]];
+        for index in 0..arrayLength - size {
+            set windows += [array[index..index + size - 1]];
         }
         windows
     }
@@ -1435,7 +1438,7 @@ namespace Microsoft.Quantum.Arrays {
     function Zipped<'T, 'U>(left : 'T[], right : 'U[]) : ('T, 'U)[] {
         let arrayLength = MinI(Length(left), Length(right));
         mutable zipped = [];
-        for index in 0 .. arrayLength - 1 {
+        for index in 0..arrayLength - 1 {
             set zipped += [(left[index], right[index])];
         }
         zipped

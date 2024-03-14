@@ -44,7 +44,11 @@ namespace Microsoft.Quantum.Convert {
     /// A `Result` representing the `input`.
     @Config(Unrestricted)
     function BoolAsResult(input : Bool) : Result {
-        if input {One} else {Zero}
+        if input {
+            One
+        } else {
+            Zero
+        }
     }
 
     /// # Summary
@@ -58,7 +62,7 @@ namespace Microsoft.Quantum.Convert {
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
 
         mutable number = 0;
-        for i in 0 .. nBits - 1 {
+        for i in 0..nBits - 1 {
             if (bits[i]) {
                 set number |||= 1 <<< i;
             }
@@ -89,7 +93,7 @@ namespace Microsoft.Quantum.Convert {
         mutable runningValue = number;
         mutable result = [];
         for _ in 1..bits {
-            set result += [ (runningValue &&& 1) != 0 ];
+            set result += [(runningValue &&& 1) != 0];
             set runningValue >>>= 1;
         }
         Fact(runningValue == 0, $"`number`={number} is too large to fit into {bits} bits.");
@@ -119,7 +123,7 @@ namespace Microsoft.Quantum.Convert {
                 set result += 1L <<< i;
             }
         }
-        
+
         result
     }
 
@@ -145,7 +149,7 @@ namespace Microsoft.Quantum.Convert {
         mutable runningValue = number;
         mutable result = [];
         for _ in 1..bits {
-            set result += [ (runningValue &&& 1L) != 0L ];
+            set result += [(runningValue &&& 1L) != 0L];
             set runningValue >>>= 1;
         }
         Fact(runningValue == 0L, $"`number`={number} is too large to fit into {bits} bits.");
@@ -174,7 +178,7 @@ namespace Microsoft.Quantum.Convert {
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
 
         mutable number = 0;
-        for idxBit in 0 .. nBits - 1 {
+        for idxBit in 0..nBits - 1 {
             if (results[idxBit] == One) {
                 set number |||= 1 <<< idxBit;
             }
@@ -217,7 +221,11 @@ namespace Microsoft.Quantum.Convert {
     function BoolArrayAsResultArray(input : Bool[]) : Result[] {
         mutable output = [];
         for b in input {
-            set output += [if b {One} else {Zero}];
+            set output += [if b {
+                One
+            } else {
+                Zero
+            }];
         }
 
         output
@@ -233,7 +241,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// Complex number c = r⋅e^(t𝑖).
-    function ComplexAsComplexPolar (input : Complex) : ComplexPolar {
+    function ComplexAsComplexPolar(input : Complex) : ComplexPolar {
         return ComplexPolar(AbsComplex(input), ArgComplex(input));
     }
 
@@ -247,7 +255,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// Complex number c = x + y𝑖.
-    function ComplexPolarAsComplex (input : ComplexPolar) : Complex {
+    function ComplexPolarAsComplex(input : ComplexPolar) : Complex {
         return Complex(
             input::Magnitude * Cos(input::Argument),
             input::Magnitude * Sin(input::Argument)
