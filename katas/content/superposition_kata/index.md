@@ -73,6 +73,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__bell_state",
+    "title": "Bell State",
+    "path": "./bell_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__uneven_superpositions",
     "title": "Uneven superpositions"

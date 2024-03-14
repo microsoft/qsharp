@@ -11,3 +11,5 @@
 A video explanation of complex division can be found [here](https://www.youtube.com/watch?v=Z8j5RDOibV4).
 
 </details>
+
+> Q# function `DividedByC` from `Microsoft.Quantum.Math` namespace divides two complex numbers. For educational purposes, try to do this task by hand.

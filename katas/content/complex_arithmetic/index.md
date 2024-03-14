@@ -254,8 +254,41 @@ Using this fact we can represent complex numbers using **polar coordinates**. In
 Another way to think about this is that we're taking a point that is $1$ unit away (which is on the unit circle) in the specified direction, and multiplying it by the desired distance. And to get the point on the unit circle, we can use $e^{i\theta}$.
 
 A complex number of the format $r \cdot e^{i\theta}$ will be represented by a point which is $r$ units away from the origin, in the direction specified by the angle $\theta$.
+Sometimes $\theta$ will be referred to as the number's **argument** or **phase**.
 
-Sometimes $\theta$ will be referred to as the number's **phase**.
+> In Q#, complex numbers in polar form are represented as user-defined type `ComplexPolar` from the `Microsoft.Quantum.Math` namespace. 
+> 
+> You can convert a complex number $x = $r \cdot e^{i\theta}$ into a tuple of two `Double` numbers using unwrap operator and tuple deconstruction: `let (r, theta) = x!;`, 
+> or access its real and imaginary parts using their names: `let (r, theta) = (x::Magnitude, x::Argument);`.
+> 
+> You can construct a complex number from its real and imaginary parts as follows: `let x = ComplexPolar(r, theta);`.
+
+@[exercise]({ 
+    "id": "complex_arithmetic__cartesian_to_polar", 
+    "title": "Cartesian to Polar Conversion", 
+    "path": "./cartesian_to_polar/", 
+    "qsDependencies": [ 
+        "./Common.qs"
+    ] 
+})
+
+@[exercise]({ 
+    "id": "complex_arithmetic__polar_to_cartesian", 
+    "title": "Polar to Cartesian Conversion", 
+    "path": "./polar_to_cartesian/", 
+    "qsDependencies": [ 
+        "./Common.qs"
+    ] 
+})
+
+@[exercise]({ 
+    "id": "complex_arithmetic__polar_multiplication", 
+    "title": "Polar Multiplication", 
+    "path": "./polar_multiplication/", 
+    "qsDependencies": [ 
+        "./Common.qs"
+    ] 
+})
 
 
 @[section]({

@@ -140,14 +140,14 @@ pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
     physical_qubits: u64,
     runtime: u64,
     rqops: u64,
-    layout_overhead: L,
+    layout_overhead: Rc<L>,
     error_budget: ErrorBudget,
 }
 
 impl<
         E: ErrorCorrection<Parameter = impl Clone>,
         F: Factory<Parameter = E::Parameter> + Clone,
-        L: Overhead + Clone,
+        L: Overhead,
     > PhysicalResourceEstimationResult<E, F, L>
 {
     pub fn new(
@@ -209,7 +209,7 @@ impl<
             physical_qubits,
             runtime,
             rqops,
-            layout_overhead: estimation.layout_overhead().clone(),
+            layout_overhead: estimation.layout_overhead.clone(),
             error_budget: estimation.error_budget().clone(),
         }
     }
@@ -283,7 +283,7 @@ impl<
         self.rqops
     }
 
-    pub fn layout_overhead(&self) -> &L {
+    pub fn layout_overhead(&self) -> &Rc<L> {
         &self.layout_overhead
     }
 
@@ -313,7 +313,7 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
     ftp: E,
     qubit: Rc<E::Qubit>,
     factory_builder: Builder,
-    layout_overhead: L,
+    layout_overhead: Rc<L>,
     error_budget: ErrorBudget,
     // optional constraint parameters
     logical_depth_factor: Option<f64>,
@@ -325,14 +325,14 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
 impl<
         E: ErrorCorrection<Parameter = impl Clone>,
         Builder: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead + Clone,
+        L: Overhead,
     > PhysicalResourceEstimation<E, Builder, L>
 {
     pub fn new(
         ftp: E,
         qubit: Rc<E::Qubit>,
         factory_builder: Builder,
-        layout_overhead: L,
+        layout_overhead: Rc<L>,
         error_budget: ErrorBudget,
     ) -> Self {
         Self {
