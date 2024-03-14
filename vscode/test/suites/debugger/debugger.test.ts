@@ -375,10 +375,10 @@ suite("Q# Debugger Tests", function suite() {
           sourceReference: 0,
           adapterData: "qsharp-adapter-data",
         },
-        line: 165,
+        line: 159,
         column: 13,
         name: "H ",
-        endLine: 165,
+        endLine: 159,
         endColumn: 44,
       },
       {
