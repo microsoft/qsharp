@@ -14,7 +14,7 @@ from ._qsharp import (
     ShotResult,
 )
 
-from ._native import Result, Pauli, QSharpError, TargetProfile, StateDumpData
+from ._native import Result, Pauli, QSharpError, TargetProfile
 
 # IPython notebook specific features
 try:
