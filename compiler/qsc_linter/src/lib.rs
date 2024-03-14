@@ -9,18 +9,19 @@
 //!
 //! # Usage
 //!
-//! The entry points to the linter are the `run_*_lints` functions, which take
-//! a `qsc_*::*::Package` as input and output a [`Vec<Lint>`](Lint).
+//! The entry points to the linter is the `run_lints` function, which takes
+//! a [`qsc_frontend::compile::CompileUnit`] as input and output a [`Vec<Lint>`](Lint).
 //!
 //! ## Example
 //!
 //! ```
-//! use linter::run_ast_lints;;
-//! use qsc_ast::ast::Package;
+//! use linter::run_lints;;
+//! use qsc::compile::compile;
 //!
-//! let package: Package = ...;
-//! let user_config: Option<LintsConfig> = serde::from_json(...);
-//! let lints: Vec<Lint> = run_ast_lints(&package, user_config.as_ref());
+//! let unit: CompileUnit = compile(...);
+//!
+//! // The second argument is an optional user configuration.
+//! let lints: Vec<Lint> = run_ast_lints(&package, None);
 //! ```
 //!
 //! # How to add a new Lint
