@@ -30,7 +30,7 @@ fn multiple_lints() {
                 },
                 SrcLint {
                     source: "((1 + 2))",
-                    level: Warn,
+                    level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
                 },
@@ -47,7 +47,7 @@ fn double_parens() {
             [
                 SrcLint {
                     source: "((1 + 2))",
-                    level: Warn,
+                    level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
                 },
@@ -81,7 +81,7 @@ fn needless_parens_in_assignment() {
             [
                 SrcLint {
                     source: "(42)",
-                    level: Warn,
+                    level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
                 },
@@ -104,19 +104,19 @@ fn needless_parens() {
             [
                 SrcLint {
                     source: "(2)",
-                    level: Warn,
+                    level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
                 },
                 SrcLint {
                     source: "(5 * 4 * (2 ^ 10))",
-                    level: Warn,
+                    level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
                 },
                 SrcLint {
                     source: "(2 ^ 10)",
-                    level: Warn,
+                    level: Allow,
                     message: "unnecessary parentheses",
                     help: "remove the extra parentheses for clarity",
                 },
@@ -231,9 +231,6 @@ impl std::fmt::Display for SrcLint {
 fn run_lints(compile_unit: &CompileUnit, config: Option<&[LintConfig]>) -> Vec<Lint> {
     let mut ast_lints = run_ast_lints(&compile_unit.ast.package, config);
     let mut hir_lints = run_hir_lints(&compile_unit.package, config);
-
-    println!("{:#?}", &compile_unit.package);
-
     let mut lints = Vec::new();
     lints.append(&mut ast_lints);
     lints.append(&mut hir_lints);
