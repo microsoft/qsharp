@@ -27,6 +27,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator"
+version = "0.0.0"
+dependencies = [
+ "mimalloc-sys",
+]
+
+[[package]]
 name = "anes"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -235,6 +242,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
+name = "cmake"
+version = "0.1.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a31c789563b815f77f4250caee12365734369f942439b7defd71e18a48197130"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -434,6 +450,7 @@ dependencies = [
 name = "fuzz"
 version = "0.0.0"
 dependencies = [
+ "allocator",
  "libfuzzer-sys",
  "qsc",
 ]
@@ -658,6 +675,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "mimalloc-sys"
+version = "0.0.0"
+dependencies = [
+ "cc",
+ "cmake",
 ]
 
 [[package]]
@@ -891,6 +916,7 @@ dependencies = [
 name = "qsc"
 version = "0.0.0"
 dependencies = [
+ "allocator",
  "clap",
  "criterion",
  "env_logger",
@@ -1117,6 +1143,7 @@ dependencies = [
 name = "qsharp"
 version = "0.0.0"
 dependencies = [
+ "allocator",
  "miette",
  "num-bigint",
  "num-complex",
