@@ -7,7 +7,8 @@ use std::f64::consts;
 
 use crate::backend::{Backend, SparseSim};
 use crate::debug::map_hir_package_to_fir;
-use crate::tests::eval_expr;
+use crate::tests::eval_cfg;
+use crate::Env;
 use crate::{
     output::{GenericReceiver, Receiver},
     val::Value,
@@ -192,11 +193,12 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     fir_store.insert(map_hir_package_to_fir(std_id), std_fir);
     fir_store.insert(map_hir_package_to_fir(id), unit_fir);
 
-    eval_expr(
+    eval_cfg(
         entry,
         &mut CustomSim::default(),
         &fir_store,
         map_hir_package_to_fir(id),
+        &mut Env::default(),
         out,
     )
     .map_err(|e| e.0)

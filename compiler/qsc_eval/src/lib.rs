@@ -28,6 +28,7 @@ use qsc_fir::fir::{
 };
 use qsc_fir::ty::Ty;
 use rand::{rngs::StdRng, SeedableRng};
+use std::ops;
 use std::{
     cell::RefCell,
     fmt::{self, Display, Formatter},
@@ -170,6 +171,26 @@ impl Display for Spec {
             Spec::CtlAdj => f.write_str("controlled adjoint"),
         }
     }
+}
+
+/// Utility function to identify a subset of a control flow graph corresponding to a given
+/// range.
+#[must_use]
+pub fn sub_cfg(cfg: &Rc<[CfgNode]>, range: ops::Range<usize>) -> Rc<[CfgNode]> {
+    let start: u32 = range
+        .start
+        .try_into()
+        .expect("cfg ranges should fit into u32");
+    cfg[range]
+        .iter()
+        .map(|node| match node {
+            CfgNode::Jump(idx) => CfgNode::Jump(idx - start),
+            CfgNode::JumpIf(idx) => CfgNode::JumpIf(idx - start),
+            CfgNode::JumpIfNot(idx) => CfgNode::JumpIfNot(idx - start),
+            _ => *node,
+        })
+        .collect::<Vec<_>>()
+        .into()
 }
 
 /// Evaluates the given code with the given context.
@@ -480,24 +501,20 @@ impl State {
             let cfg = self
                 .cfg_stack
                 .last()
-                .expect("should have at least one stack frame")
-                .clone();
-            let res = match cfg
-                .get(self.idx as usize)
-                .expect("should have next node in CFG")
-            {
-                CfgNode::Bind(pat) => {
+                .expect("should have at least one stack frame");
+            let res = match cfg.get(self.idx as usize) {
+                Some(CfgNode::Bind(pat)) => {
                     self.idx += 1;
                     self.eval_bind(env, globals, *pat);
                     continue;
                 }
-                CfgNode::Expr(expr) => {
+                Some(CfgNode::Expr(expr)) => {
                     self.idx += 1;
                     self.eval_expr(env, sim, globals, out, *expr)
                         .map_err(|e| (e, self.get_stack_frames()))?;
                     continue;
                 }
-                CfgNode::Stmt(stmt) => {
+                Some(CfgNode::Stmt(stmt)) => {
                     self.idx += 1;
                     self.current_span = globals.get_stmt((self.package, *stmt).into()).span;
 
@@ -521,11 +538,11 @@ impl State {
                         }
                     }
                 }
-                CfgNode::Jump(idx) => {
+                Some(CfgNode::Jump(idx)) => {
                     self.idx = *idx;
                     continue;
                 }
-                CfgNode::JumpIf(idx) => {
+                Some(CfgNode::JumpIf(idx)) => {
                     let cond = self.curr_val == Some(Value::Bool(true));
                     if cond {
                         self.idx = *idx;
@@ -534,7 +551,7 @@ impl State {
                     }
                     continue;
                 }
-                CfgNode::JumpIfNot(idx) => {
+                Some(CfgNode::JumpIfNot(idx)) => {
                     let cond = self.curr_val == Some(Value::Bool(true));
                     if cond {
                         self.idx += 1;
@@ -543,19 +560,28 @@ impl State {
                     }
                     continue;
                 }
-                CfgNode::Store => {
+                Some(CfgNode::Store) => {
                     self.push_val();
                     self.idx += 1;
                     continue;
                 }
-                CfgNode::Unit => {
+                Some(CfgNode::Unit) => {
                     self.idx += 1;
                     self.set_curr_val(Value::unit());
                     continue;
                 }
-                CfgNode::Ret => {
+                Some(CfgNode::Ret) => {
                     self.leave_frame();
                     env.leave_scope();
+                    continue;
+                }
+                None => {
+                    // We have reached the end of the current cfg without reaching an explicit return node,
+                    // usually indicating the partial execution of a single sub-expression.
+                    // This means we should leave the current frame but not the current environment scope,
+                    // so bound variables are still accessible after completion.
+                    self.leave_frame();
+                    assert!(self.cfg_stack.is_empty());
                     continue;
                 }
             };

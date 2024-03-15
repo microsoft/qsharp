@@ -19,6 +19,7 @@ use std::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
     hash::{Hash, Hasher},
+    ops,
     rc::Rc,
     result,
     str::FromStr,
@@ -943,6 +944,8 @@ pub struct Stmt {
     pub span: Span,
     /// The statement kind.
     pub kind: StmtKind,
+    /// The locations within the containing control flow graph for the current statement.
+    pub cfg_range: ops::Range<usize>,
 }
 
 impl Display for Stmt {
@@ -993,6 +996,8 @@ pub struct Expr {
     pub ty: Ty,
     /// The expression kind.
     pub kind: ExprKind,
+    /// The locations within the containing control flow graph for the current expression.
+    pub cfg_range: ops::Range<usize>,
 }
 
 impl Display for Expr {

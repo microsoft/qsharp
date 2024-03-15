@@ -267,6 +267,7 @@ impl Lowerer {
 
     fn lower_stmt(&mut self, stmt: &hir::Stmt) -> fir::StmtId {
         let id = self.assigner.next_stmt();
+        let cfg_start_idx = self.cfg.len();
         self.cfg.push(CfgNode::Stmt(id));
         let kind = match &stmt.kind {
             hir::StmtKind::Expr(expr) => fir::StmtKind::Expr(self.lower_expr(expr)),
@@ -289,6 +290,7 @@ impl Lowerer {
             id,
             span: stmt.span,
             kind,
+            cfg_range: cfg_start_idx..self.cfg.len(),
         };
         self.stmts.insert(id, stmt);
         id
@@ -297,6 +299,7 @@ impl Lowerer {
     #[allow(clippy::too_many_lines)]
     fn lower_expr(&mut self, expr: &hir::Expr) -> ExprId {
         let id = self.assigner.next_expr();
+        let cfg_start_idx = self.cfg.len();
         let ty = self.lower_ty(&expr.ty);
 
         let kind = match &expr.kind {
@@ -572,6 +575,7 @@ impl Lowerer {
             span: expr.span,
             ty,
             kind,
+            cfg_range: cfg_start_idx..self.cfg.len(),
         };
         self.exprs.insert(id, expr);
         id
