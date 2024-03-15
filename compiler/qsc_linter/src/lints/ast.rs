@@ -8,7 +8,7 @@ use qsc_data_structures::span::Span;
 
 declare_ast_lints! {
     (DivisionByZero, LintLevel::Warn, "attempt to divide by zero", "division by zero is not allowed"),
-    (NeedlessParens, LintLevel::Warn, "unnecessary parentheses", "remove the extra parentheses for clarity"),
+    (NeedlessParens, LintLevel::Allow, "unnecessary parentheses", "remove the extra parentheses for clarity"),
     (RedundantSemicolons, LintLevel::Warn, "redundant semicolons", "remove the redundant semicolons"),
 }
 
@@ -32,7 +32,7 @@ impl NeedlessParens {
     /// are also needless.
     fn push(&self, parent: &qsc_ast::ast::Expr, child: &qsc_ast::ast::Expr, buf: &mut Vec<Lint>) {
         if let ExprKind::Paren(expr) = &*child.kind {
-            if precedence(parent) > precedence(expr) {
+            if precedence(parent) < precedence(expr) {
                 push_lint!(self, child.span, buf);
             }
         }
@@ -98,20 +98,22 @@ impl AstLintPass for RedundantSemicolons {
 
 fn precedence(expr: &qsc_ast::ast::Expr) -> u8 {
     match &*expr.kind {
-        ExprKind::Lit(_) => 0,
-        ExprKind::Paren(_) => 1,
-        ExprKind::UnOp(_, _) => 2,
+        ExprKind::Lit(_) => 15,
+        ExprKind::Paren(_) => 14,
+        ExprKind::UnOp(_, _) => 13,
         ExprKind::BinOp(op, _, _) => match op {
-            BinOp::Exp => 3,
-            BinOp::Div | BinOp::Mod | BinOp::Mul => 4,
-            BinOp::Add | BinOp::Sub => 5,
-            BinOp::Shl | BinOp::Shr => 6,
-            BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte => 7,
-            BinOp::Eq | BinOp::Neq => 8,
-            BinOp::OrB | BinOp::XorB | BinOp::AndB => 9,
-            BinOp::OrL | BinOp::AndL => 10,
+            BinOp::Exp => 12,
+            BinOp::Div | BinOp::Mod | BinOp::Mul => 10,
+            BinOp::Add | BinOp::Sub => 9,
+            BinOp::Shl | BinOp::Shr => 8,
+            BinOp::AndB => 7,
+            BinOp::XorB => 6,
+            BinOp::OrB => 5,
+            BinOp::Gt | BinOp::Gte | BinOp::Lt | BinOp::Lte | BinOp::Eq | BinOp::Neq => 4,
+            BinOp::AndL => 3,
+            BinOp::OrL => 2,
         },
-        ExprKind::Assign(_, _) | ExprKind::AssignOp(_, _, _) => 11,
-        _ => u8::MAX,
+        ExprKind::Assign(_, _) | ExprKind::AssignOp(_, _, _) => 1,
+        _ => 0,
     }
 }
