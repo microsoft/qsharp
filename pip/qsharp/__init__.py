@@ -10,9 +10,11 @@ from ._qsharp import (
     set_quantum_seed,
     set_classical_seed,
     dump_machine,
+    StateDump,
+    ShotResult,
 )
 
-from ._native import Result, Pauli, QSharpError, TargetProfile, StateDump
+from ._native import Result, Pauli, QSharpError, TargetProfile
 
 # IPython notebook specific features
 try:
@@ -39,4 +41,5 @@ __all__ = [
     "QSharpError",
     "TargetProfile",
     "StateDump",
+    "ShotResult",
 ]
