@@ -10,7 +10,7 @@
 //! # Usage
 //!
 //! The entry points to the linter is the `run_lints` function, which takes
-//! a [`qsc_frontend::compile::CompileUnit`] as input and output a [`Vec<Lint>`](Lint).
+//! a [`qsc_frontend::compile::CompileUnit`] as input and outputs a [`Vec<Lint>`](Lint).
 //!
 //! ## Example
 //!
