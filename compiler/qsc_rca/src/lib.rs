@@ -80,22 +80,22 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
 
     fn get_block(&self, id: StoreBlockId) -> &ApplicationGeneratorSet {
         self.find_block(id)
-            .expect("block compute properties should exist")
+            .expect("block compute properties not found")
     }
 
     fn get_expr(&self, id: StoreExprId) -> &ApplicationGeneratorSet {
         self.find_expr(id)
-            .expect("expression compute properties should exist")
+            .expect("expression compute properties not found")
     }
 
     fn get_item(&self, id: StoreItemId) -> &ItemComputeProperties {
         self.find_item(id)
-            .expect("item compute properties should exist")
+            .expect("item compute properties not found")
     }
 
     fn get_stmt(&self, id: StoreStmtId) -> &ApplicationGeneratorSet {
         self.find_stmt(id)
-            .expect("statement compute properties should exist")
+            .expect("statement compute properties not found")
     }
 }
 
@@ -204,6 +204,34 @@ impl PackageComputeProperties {
         self.stmts.clear();
         self.exprs.clear();
     }
+
+    #[must_use]
+    pub fn get_block(&self, id: BlockId) -> &ApplicationGeneratorSet {
+        self.blocks
+            .get(id)
+            .expect("block compute properties not found")
+    }
+
+    #[must_use]
+    pub fn get_expr(&self, id: ExprId) -> &ApplicationGeneratorSet {
+        self.exprs
+            .get(id)
+            .expect("expression compute properties not found")
+    }
+
+    #[must_use]
+    pub fn get_item(&self, id: LocalItemId) -> &ItemComputeProperties {
+        self.items
+            .get(id)
+            .expect("item compute properties not found")
+    }
+
+    #[must_use]
+    pub fn get_stmt(&self, id: StmtId) -> &ApplicationGeneratorSet {
+        self.stmts
+            .get(id)
+            .expect("statement compute properties not found")
+    }
 }
 
 /// The compute properties of an item.
@@ -267,7 +295,7 @@ impl Display for CallableComputeProperties {
 pub struct ApplicationGeneratorSet {
     /// The inherent compute kind of a program element, which is determined by binding all the parameters it depends on
     /// to static values.
-    pub(crate) inherent: ComputeKind,
+    pub inherent: ComputeKind,
     /// Each element in the vector represents the compute kind(s) of a call application when the parameter associated to
     /// the vector index is bound to a dynamic value.
     pub(crate) dynamic_param_applications: Vec<ParamApplication>,
@@ -725,6 +753,22 @@ bitflags! {
 }
 
 impl RuntimeFeatureFlags {
+    /// Determines the runtime features that contribute to the provided runtime capabilities.
+    #[must_use]
+    pub fn contributing_features(&self, runtime_capabilities: RuntimeCapabilityFlags) -> Self {
+        let mut contributing_features = Self::empty();
+        for feature in self.iter() {
+            if feature
+                .runtime_capabilities()
+                .intersects(runtime_capabilities)
+            {
+                contributing_features |= feature;
+            }
+        }
+
+        contributing_features
+    }
+
     /// Maps program contructs to runtime capabilities.
     #[must_use]
     pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
