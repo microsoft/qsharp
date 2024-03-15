@@ -6,10 +6,12 @@ from ._qsharp import (
     eval,
     run,
     compile,
+    circuit,
     estimate,
     set_quantum_seed,
     set_classical_seed,
     dump_machine,
+    dump_circuit,
 )
 
 from ._native import Result, Pauli, QSharpError, TargetProfile, StateDump
@@ -32,7 +34,9 @@ __all__ = [
     "set_quantum_seed",
     "set_classical_seed",
     "dump_machine",
+    "dump_circuit",
     "compile",
+    "circuit",
     "estimate",
     "Result",
     "Pauli",

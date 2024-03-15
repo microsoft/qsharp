@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Interpreter, TargetProfile, StateDump, QSharpError, Output
+from ._native import Interpreter, TargetProfile, StateDump, QSharpError, Output, Circuit
 from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -82,14 +82,20 @@ def init(
             raise QSharpError(
                 f"Error parsing {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
             ) from e
-        
+
     # if no features were passed in as an argument, use the features from the manifest.
     # this way we prefer the features from the argument over those from the manifest.
     if language_features == [] and manifest_descriptor != None:
-        language_features = manifest_descriptor["manifest"].get("languageFeatures") or []
+        language_features = (
+            manifest_descriptor["manifest"].get("languageFeatures") or []
+        )
 
     _interpreter = Interpreter(
-        target_profile, language_features, manifest_descriptor, read_file, list_directory
+        target_profile,
+        language_features,
+        manifest_descriptor,
+        read_file,
+        list_directory,
     )
 
     # Return the configuration information to provide a hint to the
@@ -228,6 +234,24 @@ def compile(entry_expr: str) -> QirInputData:
     return QirInputData("main", ll_str)
 
 
+def circuit(
+    entry_expr: Optional[str] = None, *, operation: Optional[str] = None
+) -> Circuit:
+    """
+    Synthesizes a circuit for a Q# program. Either an entry
+    expression or an operation must be provided.
+
+    :param entry_expr: An entry expression.
+
+    :param operation: The operation to synthesize. This can be a name of
+    an operation of a lambda expression. The operation must take only
+    qubits or arrays of qubits as parameters.
+
+    :raises QSharpError: If there is an error synthesizing the circuit.
+    """
+    return get_interpreter().circuit(entry_expr, operation)
+
+
 def estimate(
     entry_expr, params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
 ) -> EstimatorResult:
@@ -252,6 +276,7 @@ def estimate(
         json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
     )
 
+
 def set_quantum_seed(seed: Optional[int]) -> None:
     """
     Sets the seed for the random number generator used for quantum measurements.
@@ -261,6 +286,7 @@ def set_quantum_seed(seed: Optional[int]) -> None:
         If None, the seed will be generated from entropy.
     """
     get_interpreter().set_quantum_seed(seed)
+
 
 def set_classical_seed(seed: Optional[int]) -> None:
     """
@@ -273,6 +299,7 @@ def set_classical_seed(seed: Optional[int]) -> None:
     """
     get_interpreter().set_classical_seed(seed)
 
+
 def dump_machine() -> StateDump:
     """
     Returns the sparse state vector of the simulator as a StateDump object.
@@ -280,3 +307,13 @@ def dump_machine() -> StateDump:
     :returns: The state of the simulator.
     """
     return get_interpreter().dump_machine()
+
+
+def dump_circuit() -> Circuit:
+    """
+    Dumps the current circuit state of the interpreter.
+
+    This circuit will contain the gates that have been applied
+    in the simulator up to the current point.
+    """
+    return get_interpreter().dump_circuit()

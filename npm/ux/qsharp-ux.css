@@ -23,6 +23,8 @@ It is recommended that the page these components are included in using a CSS res
 modern-normalize (see https://mattbrictson.com/blog/css-normalize-and-reset for more information).
 */
 
+@import "qsharp-circuit.css";
+
 /* Global variables for styling */
 
 /* TODO: Use the qs- prefixes and apply consistently */
