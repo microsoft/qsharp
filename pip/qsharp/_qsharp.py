@@ -86,10 +86,16 @@ def init(
     # if no features were passed in as an argument, use the features from the manifest.
     # this way we prefer the features from the argument over those from the manifest.
     if language_features == [] and manifest_descriptor != None:
-        language_features = manifest_descriptor["manifest"].get("languageFeatures") or []
+        language_features = (
+            manifest_descriptor["manifest"].get("languageFeatures") or []
+        )
 
     _interpreter = Interpreter(
-        target_profile, language_features, manifest_descriptor, read_file, list_directory
+        target_profile,
+        language_features,
+        manifest_descriptor,
+        read_file,
+        list_directory,
     )
 
     # Return the configuration information to provide a hint to the
@@ -252,6 +258,7 @@ def estimate(
         json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
     )
 
+
 def set_quantum_seed(seed: Optional[int]) -> None:
     """
     Sets the seed for the random number generator used for quantum measurements.
@@ -261,6 +268,7 @@ def set_quantum_seed(seed: Optional[int]) -> None:
         If None, the seed will be generated from entropy.
     """
     get_interpreter().set_quantum_seed(seed)
+
 
 def set_classical_seed(seed: Optional[int]) -> None:
     """
@@ -272,6 +280,7 @@ def set_classical_seed(seed: Optional[int]) -> None:
         If None, the seed will be generated from entropy.
     """
     get_interpreter().set_classical_seed(seed)
+
 
 class StateDump:
     """
@@ -308,6 +317,7 @@ class StateDump:
 
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
+
 
 def dump_machine() -> StateDump:
     """
