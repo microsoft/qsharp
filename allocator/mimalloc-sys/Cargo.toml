@@ -1,0 +1,20 @@
+[package]
+name = "mimalloc-sys"
+build = "build.rs"
+links = "mimalloc"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true
+
+[build-dependencies]
+cmake = "0.1"
+cc = "1.0"
+

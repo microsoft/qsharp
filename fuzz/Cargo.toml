@@ -16,6 +16,9 @@ cargo-fuzz = true
 libfuzzer-sys = { workspace = true, optional = true }
 qsc = { path = "../compiler/qsc" }
 
+[target.'cfg(not(any(target_family = "wasm")))'.dependencies]
+allocator = { path = "../allocator" }
+
 [features]
 do_fuzz = [ "dep:libfuzzer-sys" ]
 
