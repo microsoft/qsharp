@@ -265,7 +265,7 @@ impl GeneratorSetsBuilder {
         let variants_index = usize::from(param_index) + 1usize;
         let variants = &mut self.application_instances[variants_index]
             .drain(..)
-            .collect_vec();
+            .collect::<Vec<_>>();
 
         // The kind of parameter application we create depends on the number of variants that the parameter has.
         if variants.len() == DYNAMIC_ELEMENTS_PARAM_VARIANTS {
