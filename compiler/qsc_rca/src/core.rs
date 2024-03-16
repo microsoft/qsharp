@@ -645,6 +645,7 @@ impl<'a> Analyzer<'a> {
         start_expr_id: Option<ExprId>,
         step_expr_id: Option<ExprId>,
         end_expr_id: Option<ExprId>,
+        expr_type: &Ty,
     ) -> ComputeKind {
         // Visit the start, step and end expressions to determine their compute kind.
         start_expr_id.iter().for_each(|e| self.visit_expr(*e));
@@ -666,6 +667,15 @@ impl<'a> Analyzer<'a> {
         compute_kind = compute_kind.aggregate(start_expr_compute_kind);
         compute_kind = compute_kind.aggregate(step_expr_compute_kind);
         compute_kind = compute_kind.aggregate(end_expr_compute_kind);
+
+        // Additionally, if the compute kind of the range is dynamic, mark it with the appropriate runtime feature.
+        if compute_kind.is_dynamic() {
+            let static_value_kind = ValueKind::new_static_from_type(expr_type);
+            compute_kind = compute_kind.aggregate(ComputeKind::new_with_runtime_features(
+                RuntimeFeatureFlags::UseOfDynamicRange,
+                static_value_kind,
+            ));
+        }
         compute_kind
     }
 
@@ -1493,6 +1503,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 start_expr_id.to_owned(),
                 step_expr_id.to_owned(),
                 end_expr_id.to_owned(),
+                &expr.ty,
             ),
             ExprKind::Return(value_expr_id) => self.analyze_expr_return(*value_expr_id),
             ExprKind::String(components) => self.analyze_expr_string(components),

@@ -77,6 +77,51 @@ fn check_rca_for_dynamic_int() {
 }
 
 #[test]
+fn check_rca_for_dynamic_pauli() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        M(q) == Zero ? PauliX | PauliY"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicPauli)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_dynamic_range() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let step = M(q) == Zero ? 1 | 2;
+        1..step..10"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicRange)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
 fn check_rca_for_dynamic_double() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
