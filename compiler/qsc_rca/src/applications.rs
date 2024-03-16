@@ -249,7 +249,7 @@ impl GeneratorSetsBuilder {
 
     fn close_inherent(&mut self) -> ApplicationInstanceComputeProperties {
         // The inherent param application is always the first one.
-        let mut variants = self.application_instances[0].drain(..).collect_vec();
+        let mut variants = self.application_instances[0].drain(..).collect::<Vec<_>>();
         let inherent_application_instance = variants
             .pop()
             .expect("inherent application instance could not be popped");
