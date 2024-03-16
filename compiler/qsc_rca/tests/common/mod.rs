@@ -127,8 +127,7 @@ pub fn check_last_statement_compute_properties(
     let last_package_id = package_store_compute_properties
         .iter()
         .map(|(package_id, _)| package_id)
-        .sorted()
-        .last()
+        .max()
         .expect("at least one package should exist");
     let package_compute_properties = package_store_compute_properties.get(last_package_id);
     let last_statement_id = package_compute_properties
