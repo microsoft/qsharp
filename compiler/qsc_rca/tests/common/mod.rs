@@ -134,8 +134,7 @@ pub fn check_last_statement_compute_properties(
         .stmts
         .iter()
         .map(|(stmt_id, _)| stmt_id)
-        .sorted()
-        .last()
+        .max()
         .expect("at least one statement should exist");
     let stmt_compute_properties = package_compute_properties
         .stmts
