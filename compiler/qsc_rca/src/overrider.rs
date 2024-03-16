@@ -370,7 +370,7 @@ impl<'a> Visitor<'a> for Overrider<'a> {
                         _ => None,
                     }
                 })
-                .collect_vec();
+                .collect::<Vec<_>>();
 
             // If a callable has overrides, populate them.
             for (callable_id, callable_name) in callables {
