@@ -12,7 +12,6 @@ version.workspace = true
 [dependencies]
 bitflags = { workspace = true }
 indenter = { workspace = true }
-itertools = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_frontend = { path = "../qsc_frontend" }

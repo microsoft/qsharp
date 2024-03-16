@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use expect_test::Expect;
-use itertools::Itertools;
 use qsc::incremental::Compiler;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};

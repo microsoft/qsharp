@@ -6,7 +6,6 @@ use crate::{
     ArrayParamApplication, ComputeKind, PackageId, ParamApplication, QuantumProperties,
     RuntimeFeatureFlags, RuntimeKind, ValueKind,
 };
-use itertools::Itertools;
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableImpl, Expr, ExprId, Global, Item, ItemKind, LocalItemId, Package,

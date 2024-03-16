@@ -7,7 +7,6 @@ use crate::{
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, RuntimeKind,
     ValueKind,
 };
-use itertools::Itertools;
 use qsc_fir::{
     fir::{BlockId, ExprId, LocalVarId, StmtId},
     ty::Ty,
