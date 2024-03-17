@@ -303,16 +303,34 @@ impl Lowerer {
         let ty = self.lower_ty(&expr.ty);
 
         let kind = match &expr.kind {
-            hir::ExprKind::Array(items) => fir::ExprKind::Array(
-                items
+            hir::ExprKind::Array(items) => {
+                if items
                     .iter()
-                    .map(|i| {
-                        let i = self.lower_expr(i);
-                        self.cfg.push(CfgNode::Store);
-                        i
-                    })
-                    .collect(),
-            ),
+                    .all(|i| matches!(i.kind, hir::ExprKind::Lit(..)))
+                {
+                    fir::ExprKind::ArrayLit(
+                        items
+                            .iter()
+                            .map(|i| {
+                                let i = self.lower_expr(i);
+                                self.cfg.pop();
+                                i
+                            })
+                            .collect(),
+                    )
+                } else {
+                    fir::ExprKind::Array(
+                        items
+                            .iter()
+                            .map(|i| {
+                                let i = self.lower_expr(i);
+                                self.cfg.push(CfgNode::Store);
+                                i
+                            })
+                            .collect(),
+                    )
+                }
+            }
             hir::ExprKind::ArrayRepeat(value, size) => {
                 let value = self.lower_expr(value);
                 self.cfg.push(CfgNode::Store);

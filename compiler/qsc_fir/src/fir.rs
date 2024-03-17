@@ -1015,6 +1015,8 @@ impl Display for Expr {
 pub enum ExprKind {
     /// An array: `[a, b, c]`.
     Array(Vec<ExprId>),
+    /// An array of literal values, ie: `[1, 2, 3]`.
+    ArrayLit(Vec<ExprId>),
     /// An array constructed by repeating a value: `[a, size = b]`.
     ArrayRepeat(ExprId, ExprId),
     /// An assignment: `set a = b`.
@@ -1074,6 +1076,7 @@ impl Display for ExprKind {
         let mut indent = set_indentation(indented(f), 0);
         match self {
             ExprKind::Array(exprs) => display_array(indent, exprs)?,
+            ExprKind::ArrayLit(exprs) => display_array(indent, exprs)?,
             ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, *val, *size)?,
             ExprKind::Assign(lhs, rhs) => display_assign(indent, *lhs, *rhs)?,
             ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, *lhs, *rhs)?,

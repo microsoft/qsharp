@@ -617,6 +617,7 @@ impl State {
 
         match &expr.kind {
             ExprKind::Array(arr) => self.eval_arr(arr.len()),
+            ExprKind::ArrayLit(arr) => self.eval_arr_lit(arr, globals),
             ExprKind::ArrayRepeat(..) => self.eval_arr_repeat(expr.span)?,
             ExprKind::Assign(lhs, _) => self.eval_assign(env, globals, *lhs)?,
             ExprKind::AssignOp(op, lhs, rhs) => {
@@ -734,6 +735,19 @@ impl State {
     fn eval_arr(&mut self, len: usize) {
         let arr = self.pop_vals(len);
         self.set_curr_val(Value::Array(arr.into()));
+    }
+
+    fn eval_arr_lit(&mut self, arr: &Vec<ExprId>, globals: &impl PackageStoreLookup) {
+        let mut new_arr: Rc<Vec<Value>> = Rc::new(Vec::with_capacity(arr.len()));
+        for id in arr {
+            let ExprKind::Lit(lit) = &globals.get_expr((self.package, *id).into()).kind else {
+                panic!("expr kind should be lit")
+            };
+            Rc::get_mut(&mut new_arr)
+                .expect("array should be uniquely referenced")
+                .push(lit_to_val(lit));
+        }
+        self.curr_val = Some(Value::Array(new_arr));
     }
 
     fn eval_array_append_in_place(
