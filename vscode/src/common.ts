@@ -21,14 +21,6 @@ export function isQsharpNotebookCell(document: TextDocument): boolean {
 
 export const qsharpExtensionId = "qsharp-vscode";
 
-export interface FileAccessor {
-  normalizePath(path: string): string;
-  convertToWindowsPathSeparator(path: string): string;
-  resolvePathToUri(path: string): Uri;
-  openPath(path: string): Promise<TextDocument>;
-  openUri(uri: Uri): Promise<TextDocument>;
-}
-
 export function basename(path: string): string | undefined {
   return path.replace(/\/+$/, "").split("/").pop();
 }

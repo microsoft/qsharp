@@ -1,12 +1,15 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::estimates::{optimization::Point2D, Factory};
+use crate::{
+    estimates::{optimization::Point2D, Factory},
+    system::modeling::TFactory,
+};
 
 use super::{
     super::super::{
         data,
-        modeling::{PhysicalQubit, Protocol, TFactory, TFactoryDistillationUnitTemplate},
+        modeling::{PhysicalQubit, Protocol, TFactoryDistillationUnitTemplate},
     },
     find_nondominated_population, find_nondominated_tfactories,
 };

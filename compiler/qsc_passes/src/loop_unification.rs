@@ -147,7 +147,7 @@ impl LoopUni<'_> {
             Expr {
                 id: self.assigner.next_node(),
                 span: array_id.span,
-                ty: array_id.ty.clone(),
+                ty: Ty::Prim(Prim::Int),
                 kind: ExprKind::Call(
                     Box::new(len_callee),
                     Box::new(array_id.gen_local_ref(self.assigner)),

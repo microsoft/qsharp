@@ -23,12 +23,13 @@ Code from this repository powers the Q# development experience on <https://quant
 
 ## Building
 
-To build this repository there are 4 dependencies that need to be installed. These are:
+To build this repository there are dependencies that need to be installed. These are:
 
 - Python (<https://python.org>)
 - Rust (<https://www.rust-lang.org/tools/install>)
 - Node.js (<https://nodejs.org/>)
 - wasm-pack (<https://rustwasm.github.io/wasm-pack/installer/>)
+- cmake (<https://cmake.org/>) and a C compiler
 
 The build script will check these dependencies and their versions and fail if not met. (Or run
 `python ./prereqs.py` directly to check if the minimum required versions are installed).

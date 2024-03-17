@@ -24,7 +24,7 @@ This kata introduces you to Deutsch algorithm - the single-qubit variant of Deut
     "title": "The Problem"
 })
 
-You are given a classical function that takes one bit as an input and returns one bit: $f(x): \{0, 1\} \to \{0, 1\}$. You are guaranteed that the function $f$ is
+You are given a classical function that takes one bit as an input and returns one bit: $f(x): \\{0, 1\\} \to \\{0, 1\\}$. You are guaranteed that the function $f$ is
 
 - either *constant* (returns the same value for all inputs) 
 - or *variable* (returns different values for different inputs). 
@@ -111,7 +111,7 @@ After that, you'll try to implement the oracle for the fourth function on your o
     "title": "Solving the Problem: Deutsch Algorithm"
 })
 
-Now let's return to the problem of figuring out whether the given function is constant or balanced for single-bit functions.
+Now let's return to the problem of figuring out whether the given function is constant or variable for single-bit functions.
 What can we do if we are given a quantum oracle $U_f$ implementing the function $f(x)$?
 
 There are two possible inputs to the function, $|0\rangle$ and $|1\rangle$. Let's see what happens if we apply the oracle to their superposition:
@@ -131,7 +131,7 @@ Overll, the algorithm is very straightforward:
 2. Apply the $H$ gate to the qubit.
 3. Apply the oracle.
 4. Apply the $H$ gate to the qubit again.
-5. Measure the qubit: if it is in the $|0\rangle$ state, the function is constant, otherwise it is balanced.
+5. Measure the qubit: if it is in the $|0\rangle$ state, the function is constant, otherwise it is variable.
 
 Note that this algorithm requires only **1** oracle call, and always produces the correct result (is deterministic).
 
@@ -150,7 +150,7 @@ Note that this algorithm requires only **1** oracle call, and always produces th
     "title": "Running Deutsch Algorithm End to End"
 })
 
-The last demo in this kata shows you how to combine the oracles you've seen so far and the Deutsch algorithm you've implemented into an end-to-end application that will check whether each oracle implements a constant or a balanced function.
+The last demo in this kata shows you how to combine the oracles you've seen so far and the Deutsch algorithm you've implemented into an end-to-end application that will check whether each oracle implements a constant or a variable function.
 
 @[example]({"id": "deutsch_algo__e2edemo", "codePath": "./examples/DeutschAlgorithmDemo.qs"})
 
@@ -164,3 +164,5 @@ Congratulations! In this kata you have learned Deutsch algorithm.
 
 - Deutsch algorithm is the smallest example of a quantum algorithm that allows to answer a question about a function in fewer queries than its classical counterpart: one query to a quantum oracle versus two queries to a classical function.
 - Quantum oracles don't allow you to evaluate the function on all inputs at once! Instead, Deutsch algorithm finds a clever way to aggregate information about both function values into a single bit that indicates whether they are equal or not.
+
+Next, you will learn about the more general case of this problem and the algorithm to solve it in the Deutsch-Jozsa Algorithm kata.

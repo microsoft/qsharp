@@ -1,5 +1,6 @@
 [
   "getting_started",
+  "complex_arithmetic",
   "qubit",
   "single_qubit_gates",
   "multi_qubit_systems",
@@ -8,5 +9,6 @@
   "multi_qubit_measurements",
   "random_numbers",
   "oracles",
-  "deutsch_algo"
+  "deutsch_algo",
+  "deutsch_jozsa"
 ]

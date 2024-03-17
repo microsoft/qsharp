@@ -10,7 +10,7 @@ namespace Kata {
                                (PhaseOracle_X, "f(x) = x"), 
                                (PhaseOracle_OneMinusX, "f(x) = 1-x")] {
             let isConstant = DeutschAlgorithm(oracle);
-            Message($"{name} identified as {isConstant ? "constant" | "balanced"}");
+            Message($"{name} identified as {isConstant ? "constant" | "variable"}");
         }
     }
 
