@@ -288,7 +288,7 @@ impl<'a> Analyzer<'a> {
             // on the expression's type.
             let value_kind = ValueKind::new_dynamic_from_type(expr_type);
             ComputeKind::Quantum(QuantumProperties {
-                runtime_features: RuntimeFeatureFlags::DynamicCallee,
+                runtime_features: RuntimeFeatureFlags::CallToDynamicCallee,
                 value_kind,
             })
         } else {
@@ -442,7 +442,7 @@ impl<'a> Analyzer<'a> {
             // on the expression's type.
             let value_kind = ValueKind::new_dynamic_from_type(expr_type);
             return ComputeKind::Quantum(QuantumProperties {
-                runtime_features: RuntimeFeatureFlags::UnresolvedCallee,
+                runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
                 value_kind,
             });
         };

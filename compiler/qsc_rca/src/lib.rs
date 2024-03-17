@@ -732,13 +732,13 @@ bitflags! {
         /// Use of a dynamic arrow operation.
         const UseOfDynamicArrowOperation = 1 << 11;
         /// A function with cycles used with a dynamic argument.
-        const CyclicFunctionUsesDynamicArg = 1 << 12;
+        const CallToCyclicFunctionWithDynamicArg = 1 << 12;
         /// An operation specialization with cycles is used.
-        const UseOfCyclicOperation = 1 << 13;
+        const CallToCyclicOperation = 1 << 13;
         /// A callee expression is dynamic.
-        const DynamicCallee = 1 << 14;
+        const CallToDynamicCallee = 1 << 14;
         /// A callee expression could not be resolved to a specific callable.
-        const UnresolvedCallee = 1 << 15;
+        const CallToUnresolvedCallee = 1 << 15;
         /// Forward branching on dynamic value.
         const ForwardBranchingOnDynamicValue = 1 << 16;
         /// Qubit allocation that happens within a dynamic scope.
@@ -809,16 +809,16 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg) {
+        if self.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::UseOfCyclicOperation) {
+        if self.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::DynamicCallee) {
+        if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::UnresolvedCallee) {
+        if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::ForwardBranchingOnDynamicValue) {

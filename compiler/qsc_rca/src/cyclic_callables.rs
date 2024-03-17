@@ -141,7 +141,7 @@ impl<'a> Analyzer<'a> {
             // Since using cyclic functions with dynamic parameters requires advanced runtime capabilities, we use the
             // corresponding runtime feature.
             let param_compute_kind = ComputeKind::new_with_runtime_features(
-                RuntimeFeatureFlags::CyclicFunctionUsesDynamicArg,
+                RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg,
                 value_kind,
             );
 
@@ -172,7 +172,7 @@ impl<'a> Analyzer<'a> {
         // value kind is dynamic.
         let value_kind = ValueKind::new_dynamic_from_type(output_type);
         let inherent_compute_kind = ComputeKind::new_with_runtime_features(
-            RuntimeFeatureFlags::UseOfCyclicOperation,
+            RuntimeFeatureFlags::CallToCyclicOperation,
             value_kind,
         );
 
