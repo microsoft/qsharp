@@ -28,8 +28,6 @@ qsc_passes = { path = "../qsc_passes" }
 qsc_project = { path = "../qsc_project", features = ["fs"] }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
-
-[target.'cfg(not(any(target_family = "wasm")))'.dependencies]
 allocator = { path = "../../allocator" }
 
 [dev-dependencies]
