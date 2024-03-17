@@ -747,7 +747,7 @@ impl State {
                 .expect("array should be uniquely referenced")
                 .push(lit_to_val(lit));
         }
-        self.curr_val = Some(Value::Array(new_arr));
+        self.set_curr_val(Value::Array(new_arr));
     }
 
     fn eval_array_append_in_place(
