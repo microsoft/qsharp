@@ -9,20 +9,20 @@
 
 /* Background color for the circuit diagram */
 .qs-circuit {
-  background: var(--vscode-editor-background, #ffffff);
+  background: var(--main-background);
 }
 
 /* Wires and gate outlines */
 .qs-circuit line,
 .qs-circuit circle,
 .qs-circuit rect {
-  stroke: var(--vscode-editor-foreground, #000000);
+  stroke: var(--main-color);
   stroke-width: 1;
 }
 
 /* Text for qubit labels */
 .qs-circuit text {
-  fill: var(--vscode-editor-foreground, #000000);
+  fill: var(--main-color);
   dominant-baseline: middle;
   text-anchor: middle;
   font-family: Arial;
@@ -41,14 +41,14 @@
 /* Dot and line for controlled gates */
 .qs-circuit .gate > line,
 .qs-circuit .control-dot {
-  fill: var(--vscode-editor-foreground, #000000);
+  fill: var(--main-color);
 }
 
 /* X gate */
 .qs-circuit .gate > .oplus > line,
 .qs-circuit .gate > .oplus > circle {
-  fill: var(--vscode-editor-background, #ffffff);
-  stroke: var(--vscode-editor-foreground, #000000);
+  fill: var(--main-background);
+  stroke: var(--main-color);
   stroke-width: 2;
 }
 
