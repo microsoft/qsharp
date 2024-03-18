@@ -137,15 +137,6 @@ export class QscDebugSession extends LoggingDebugSession {
         this.breakpointLocations.set(path, mapped);
       } else {
         log.warn(`compilation failed. ${failureMessage}`);
-        sendTelemetryEvent(
-          EventType.InitializeRuntimeEnd,
-          {
-            associationId,
-            reason: "compilation failed",
-            flowStatus: UserFlowStatus.Aborted,
-          },
-          { timeToCompleteMs: performance.now() - start },
-        );
         this.failureMessage = failureMessage;
       }
     }
