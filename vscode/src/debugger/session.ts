@@ -142,7 +142,13 @@ export class QscDebugSession extends LoggingDebugSession {
     }
     sendTelemetryEvent(
       EventType.InitializeRuntimeEnd,
-      { associationId, flowStatus: UserFlowStatus.Succeeded },
+      {
+        associationId,
+        flowStatus:
+          this.failureMessage === ""
+            ? UserFlowStatus.Succeeded
+            : UserFlowStatus.Failed,
+      },
       { timeToCompleteMs: performance.now() - start },
     );
   }
