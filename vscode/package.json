@@ -266,6 +266,11 @@
         "category": "Q#"
       },
       {
+        "command": "qsharp-vscode.showCircuit",
+        "title": "Show circuit",
+        "category": "Q#"
+      },
+      {
         "command": "qsharp-vscode.workspacesRefresh",
         "category": "Q#",
         "title": "Refresh Azure Quantum workspaces",

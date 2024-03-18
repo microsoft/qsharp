@@ -18,3 +18,27 @@ export function Circuit(props: { circuit: qviz.Circuit }) {
 
   return <div class="qs-circuit" ref={circuitDiv}></div>;
 }
+
+export function CircuitPanel(props: {
+  title: string;
+  subtitle: string;
+  circuit?: qviz.Circuit;
+  errorHtml?: string;
+}) {
+  return (
+    <div>
+      <div>
+        <h1>{props.title}</h1>
+        <h2>{props.subtitle}</h2>
+      </div>
+      {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : <></>}
+      <div>
+        Tip: you can generate a circuit diagram for any operation that takes
+        qubits or arrays of qubits as input.
+      </div>
+      <div>{props.errorHtml ? <div>{props.errorHtml}</div> : <></>}</div>
+    </div>
+  );
+}
+
+export type CircuitData = qviz.Circuit;

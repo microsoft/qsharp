@@ -274,25 +274,27 @@ impl LanguageService {
         let code_lenses = self.0.get_code_lenses(uri);
         code_lenses
             .into_iter()
-            .filter_map(|lens| {
+            .map(|lens| {
                 let range = lens.range.into();
                 let (command, args) = match lens.command {
                     qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
                     qsls::protocol::CodeLensCommand::Debug => ("debug", None),
                     qsls::protocol::CodeLensCommand::Run => ("run", None),
                     qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
-                    // Circuit code lens will be returned when VS Code is able to display circuits
-                    // https://github.com/microsoft/qsharp/issues/1085
-                    qsls::protocol::CodeLensCommand::Circuit(_) => return None,
+                    qsls::protocol::CodeLensCommand::Circuit(args) => (
+                        "circuit",
+                        args.map(|args| OperationInfo {
+                            operation: args.operation,
+                            total_num_qubits: args.total_num_qubits,
+                        }),
+                    ),
                 };
-                Some(
-                    CodeLens {
-                        range,
-                        command: command.to_string(),
-                        args,
-                    }
-                    .into(),
-                )
+                CodeLens {
+                    range,
+                    command: command.to_string(),
+                    args,
+                }
+                .into()
             })
             .collect()
     }
@@ -413,14 +415,31 @@ serializable_type! {
         range: Range,
         command: String,
         #[serde(skip_serializing_if = "Option::is_none")]
-        args: Option<(String, String, String)>,
+        args: Option<OperationInfo>,
     },
-    r#"export interface ICodeLens {
+    r#"export type ICodeLens = {
         range: IRange;
         command: "histogram" | "estimate" | "debug" | "run";
-        args?: [string, string, string];
+    } | {
+        range: IRange;
+        command: "circuit";
+        args?: IOperationInfo
     }"#,
     ICodeLens
+}
+
+serializable_type! {
+    OperationInfo,
+    {
+        pub operation: String,
+        #[serde(rename = "totalNumQubits")]
+        pub total_num_qubits: u32,
+    },
+    r#"export interface IOperationInfo {
+        operation: string;
+        totalNumQubits: number;
+    }"#,
+    IOperationInfo
 }
 
 serializable_type! {

@@ -8,7 +8,7 @@ use crate::{
 use miette::{Diagnostic, LabeledSpan, Severity};
 use qsc::{self, error::WithSource, interpret, SourceName, Span};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Write, iter};
+use std::{fmt::Write, iter, sync::Arc};
 use wasm_bindgen::prelude::*;
 
 serializable_type! {
@@ -186,4 +186,28 @@ where
         range,
         message: labeled_span.label().map(ToString::to_string),
     }
+}
+
+pub fn interpret_errors_into_vs_diagnostics(
+    errs: &[interpret::Error],
+) -> Vec<(String, VSDiagnostic)> {
+    let default_uri: Arc<str> = Arc::from("<project>");
+    errs.iter()
+        .map(|err| {
+            let labels = match err {
+                interpret::Error::Compile(e) => error_labels(e),
+                interpret::Error::Pass(e) => error_labels(e),
+                interpret::Error::Eval(e) => error_labels(e.error()),
+                interpret::Error::NoEntryPoint
+                | interpret::Error::UnsupportedRuntimeCapabilities
+                | interpret::Error::NoCircuitForOperation => Vec::new(),
+            };
+
+            let doc = labels
+                .first()
+                .map_or(default_uri.clone(), |l| l.source_name.clone());
+
+            (doc.to_string(), VSDiagnostic::new(labels, &doc, err))
+        })
+        .collect()
 }
