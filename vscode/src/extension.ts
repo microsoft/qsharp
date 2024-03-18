@@ -18,7 +18,7 @@ import {
   qsharpLanguageId,
 } from "./common.js";
 import { createCompletionItemProvider } from "./completion";
-import { getTarget } from "./config";
+import { getEnableFormating, getTarget } from "./config";
 import { activateDebugger } from "./debugger/activate";
 import { createDefinitionProvider } from "./definition";
 import { startCheckingQSharp } from "./diagnostics";
@@ -182,8 +182,24 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     ...registerQSharpNotebookCellUpdateHandlers(languageService),
   );
 
+  // format document
+  const isFormattingEnabled = getEnableFormating();
+  const formatterEvent = {
+    event: undefined as vscode.Disposable | undefined,
+  };
+  log.debug("Enable formatting set to: " + isFormattingEnabled);
+  if (isFormattingEnabled) {
+    formatterEvent.event =
+      vscode.languages.registerDocumentFormattingEditProvider(
+        qsharpLanguageId,
+        createFormatProvider(languageService),
+      );
+  }
+
   // synchronize configuration
-  subscriptions.push(registerConfigurationChangeHandlers(languageService));
+  subscriptions.push(
+    registerConfigurationChangeHandlers(languageService, formatterEvent),
+  );
 
   // completions
   subscriptions.push(
@@ -191,14 +207,6 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
       qsharpLanguageId,
       createCompletionItemProvider(languageService),
       "@", // for attribute completion
-    ),
-  );
-
-  // format document
-  subscriptions.push(
-    vscode.languages.registerDocumentFormattingEditProvider(
-      qsharpLanguageId,
-      createFormatProvider(languageService),
     ),
   );
 
@@ -275,6 +283,23 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
   });
 }
 
+async function updateLanguageServiceEnableFormatting(
+  languageService: ILanguageService,
+  formatterEvent: any,
+) {
+  const isFormattingEnabled = getEnableFormating();
+  log.debug("Enable formatting set to: " + isFormattingEnabled);
+  if (isFormattingEnabled) {
+    formatterEvent.event =
+      vscode.languages.registerDocumentFormattingEditProvider(
+        qsharpLanguageId,
+        createFormatProvider(languageService),
+      );
+  } else {
+    formatterEvent.event?.dispose();
+  }
+}
+
 async function loadLanguageService(baseUri: vscode.Uri) {
   const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
@@ -297,10 +322,13 @@ async function loadLanguageService(baseUri: vscode.Uri) {
 
 function registerConfigurationChangeHandlers(
   languageService: ILanguageService,
+  formatterEvent: any,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("Q#.targetProfile")) {
       updateLanguageServiceProfile(languageService);
+    } else if (event.affectsConfiguration("Q#.enableFormatting")) {
+      updateLanguageServiceEnableFormatting(languageService, formatterEvent);
     }
   });
 }
