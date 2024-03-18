@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// `false` indicates if cached estimates have been incorporated into the overall costs
     /// and the code fragment should be skipped.
     @Config(Unrestricted)
-    function BeginEstimateCaching(name : String, variant : Int) : Bool {
+    function BeginEstimateCaching(name: String, variant: Int): Bool {
         body intrinsic;
     }
 
@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// Instructs the resource estimator to stop estimates caching
     /// because the code fragment in consideration is over. This function
     /// is only available when using resource estimator execution target.
-    function EndEstimateCaching() : Unit {
+    function EndEstimateCaching(): Unit {
         body intrinsic;
     }
 
@@ -116,14 +116,14 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// to physical resource estimates. Only PSSPCLayout() is supported at this time.
     /// ## arguments
     /// Operation takes these qubits as its arguments.
-    operation AccountForEstimates(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit is Adj {
+    operation AccountForEstimates(estimates: (Int, Int)[], layout: Int, arguments: Qubit[]): Unit is Adj {
         body ... {
             AccountForEstimatesInternal(estimates, layout, arguments);
         }
         adjoint self;
     }
 
-    internal operation AccountForEstimatesInternal(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit {
+    internal operation AccountForEstimatesInternal(estimates: (Int, Int)[], layout: Int, arguments: Qubit[]): Unit {
         body intrinsic;
     }
 

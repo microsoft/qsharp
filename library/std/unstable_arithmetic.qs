@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// The second input qubit.
     /// ## z
     /// A qubit onto which the majority function will be applied.
-    operation MAJ(x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl {
+    operation MAJ (x : Qubit, y : Qubit, z : Qubit) : Unit is Adj + Ctl {
         CNOT(z, y);
         CNOT(z, x);
         CCNOT(y, x, z);
@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Remarks
     /// This operation is implemented in-place, without explicit allocation of
     /// additional auxiliary qubits.
-    operation ReflectAboutInteger(index : Int, reg : Qubit[]) : Unit is Adj + Ctl {
+    operation ReflectAboutInteger (index : Int, reg : Qubit[]) : Unit is Adj + Ctl {
         within {
             // Evaluation optimization for case index == 0
             if index == 0 {
@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Length(ys) = n > 0, c is a Int number, 0 ≤ c < 2ⁿ.
     /// NOTE: Use IncByIUsingIncByLE directly if the choice of implementation
     /// is important.
-    operation IncByI(c : Int, ys : Qubit[]) : Unit is Adj + Ctl {
+    operation IncByI (c : Int, ys : Qubit[]) : Unit is Adj + Ctl {
         IncByIUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
     }
 
@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
     /// NOTE: Use IncByLUsingIncByLE directly if the choice of implementation
     /// is important.
-    operation IncByL(c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
+    operation IncByL (c : BigInt, ys : Qubit[]) : Unit is Adj + Ctl {
         IncByLUsingIncByLE(RippleCarryTTKIncByLE, c, ys);
     }
 
@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// and Length(xs) ≤ Length(ys) = n.
     /// NOTE: Use operations like RippleCarryCGIncByLE directly if
     /// the choice of implementation is important.
-    operation IncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    operation IncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         RippleCarryTTKIncByLE(xs, ys);
     }
 
@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// Length(xs) = Length(ys) ≤ Length(zs) = n, assuming zs is 0-initialized.
     /// NOTE: Use operations like RippleCarryCGAddLE directly if
     /// the choice of implementation is important.
-    operation AddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+    operation AddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         RippleCarryCGAddLE(xs, ys, zs);
     }
 
@@ -151,7 +151,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     ///       "Quantum Addition Circuits and Unbounded Fan-Out"
     ///       by Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro
     ///
-    operation RippleCarryTTKIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    operation RippleCarryTTKIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
 
@@ -166,8 +166,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
                     ApplyInnerTTKAdderNoCarry(xs, ys);
                 }
             }
-            CNOT(xs[0], ys[0]);
-        } elif xsLen + 1 == ysLen {
+            CNOT (xs[0], ys[0]);
+        }
+        elif xsLen + 1 == ysLen {
             if xsLen > 1 {
                 CNOT(xs[xsLen-1], ys[ysLen-1]);
                 within {
@@ -175,11 +176,13 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
                 } apply {
                     ApplyInnerTTKAdderWithCarry(xs, ys);
                 }
-            } else {
+            }
+            else {
                 CCNOT(xs[0], ys[0], ys[1]);
             }
             CNOT(xs[0], ys[0]);
-        } elif xsLen + 2 <= ysLen {
+        }
+        elif xsLen + 2 <= ysLen {
             // Pad xs so that its length is one qubit shorter than ys.
             use padding = Qubit[ysLen - xsLen - 1];
             RippleCarryTTKIncByLE(xs + padding, ys);
@@ -200,7 +203,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    operation RippleCarryCGIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    operation RippleCarryCGIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
 
@@ -257,7 +260,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Reference
     ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
     ///       "Halving the cost of quantum addition" by Craig Gidney.
-    operation RippleCarryCGAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
+    operation RippleCarryCGAddLE (xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
         Fact(Length(ys) == xsLen, "Registers `xs` and `ys` must be of same length.");
@@ -266,7 +269,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         // Since zs is zero-initialized, its bits at indexes higher than
         // xsLen remain unused as there will be no carry into them.
         let top = MinI(zsLen-2, xsLen-1);
-        for k in 0..top {
+        for k in 0 .. top {
             FullAdder(zs[k], xs[k], ys[k], zs[k + 1]);
         }
 
@@ -338,7 +341,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Reference
     ///     - [arXiv:quant-ph/0008033](https://arxiv.org/abs/quant-ph/0008033)
     ///      "Addition on a Quantum Computer" by Thomas G. Draper
-    operation FourierTDIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
+    operation FourierTDIncByLE (xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         within {
             ApplyQFT(ys);
         } apply {
@@ -355,7 +358,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Description
     /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register
     /// Length(ys) = n > 0, c is a BigInt number, 0 ≤ c < 2ⁿ.
-    operation IncByLUsingIncByLE(
+    operation IncByLUsingIncByLE (
         adder : (Qubit[], Qubit[]) => Unit is Adj + Ctl,
         c : BigInt,
         ys : Qubit[]) : Unit is Adj + Ctl {
@@ -363,7 +366,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1.");
         Fact(c >= 0L, "Constant `c` must be non-negative.");
-        Fact(c < 2L ^ ysLen, "Constant `c` must be smaller than 2^Length(ys).");
+        Fact(c < 2L^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
 
         if c != 0L {
             // If c has j trailing zeros, then the j least significant
@@ -387,7 +390,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// # Description
     /// Computes ys += c modulo 2ⁿ, where ys is a little-endian register
     /// Length(ys) = n > 0, c is an Int number, 0 ≤ c < 2ⁿ.
-    operation IncByIUsingIncByLE(
+    operation IncByIUsingIncByLE (
         adder : (Qubit[], Qubit[]) => Unit is Adj + Ctl,
         c : Int,
         ys : Qubit[]) : Unit is Adj + Ctl {
@@ -395,7 +398,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1.");
         Fact(c >= 0, "Constant `c` must be non-negative.");
-        Fact(c < 2 ^ ysLen, "Constant `c` must be smaller than 2^Length(ys).");
+        Fact(c < 2^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
 
         if c != 0 {
             // If c has j trailing zeros than the j least significant

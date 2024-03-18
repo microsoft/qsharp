@@ -11,7 +11,8 @@ namespace Microsoft.Quantum.Intrinsic {
             S(target);
             H(target);
             T(target);
-        } apply {
+        }
+        apply {
             CNOT(control, target);
         }
     }
@@ -21,7 +22,8 @@ namespace Microsoft.Quantum.Intrinsic {
             S(target);
             H(target);
             T(target);
-        } apply {
+        }
+        apply {
             CCNOT(control1, control2, target);
         }
     }
@@ -31,20 +33,22 @@ namespace Microsoft.Quantum.Intrinsic {
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
                 // Noop
-            } elif Length(ctls) == 1 {
+            }
+            elif Length(ctls) == 1 {
                 Rz(theta, ctls[0]);
-            } else {
+            }
+            else {
                 Controlled R1(ctls[1..(Length(ctls) - 1)], (theta, ctls[0]));
             }
         }
     }
 
     internal operation CR1(theta : Double, control : Qubit, target : Qubit) : Unit is Adj {
-        Rz(theta / 2.0, target);
-        Rz(theta / 2.0, control);
-        CNOT(control, target);
-        Rz(-theta / 2.0, target);
-        CNOT(control, target);
+        Rz(theta/2.0, target);
+        Rz(theta/2.0, control);
+        CNOT(control,target);
+        Rz(-theta/2.0, target);
+        CNOT(control,target);
     }
 
     internal operation CRz(control : Qubit, theta : Double, target : Qubit) : Unit is Adj {
@@ -72,21 +76,28 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     internal operation MapPauli(qubit : Qubit, from : Pauli, to : Pauli) : Unit is Adj {
-        if from == to {} elif (from == PauliZ and to == PauliX) or (from == PauliX and to == PauliZ) {
+        if from == to {
+        }
+        elif (from == PauliZ and to == PauliX) or (from == PauliX and to == PauliZ) {
             H(qubit);
-        } elif from == PauliZ and to == PauliY {
+        }
+        elif from == PauliZ and to == PauliY {
             H(qubit);
             S(qubit);
             H(qubit);
-        } elif from == PauliY and to == PauliZ {
+        }
+        elif from == PauliY and to == PauliZ {
             H(qubit);
             Adjoint S(qubit);
             H(qubit);
-        } elif from == PauliY and to == PauliX {
+        }
+        elif from == PauliY and to == PauliX {
             S(qubit);
-        } elif from == PauliX and to == PauliY {
+        }
+        elif from == PauliX and to == PauliY {
             Adjoint S(qubit);
-        } else {
+        }
+        else {
             fail "Unsupported input";
         }
     }
@@ -94,9 +105,11 @@ namespace Microsoft.Quantum.Intrinsic {
     internal operation EntangleForJointMeasure(basis : Pauli, aux : Qubit, qubit : Qubit) : Unit {
         if basis == PauliX {
             Controlled X([aux], qubit);
-        } elif basis == PauliZ {
+        }
+        elif basis == PauliZ {
             Controlled Z([aux], qubit);
-        } elif basis == PauliY {
+        }
+        elif basis == PauliY {
             Controlled Y([aux], qubit);
         }
     }
@@ -151,15 +164,15 @@ namespace Microsoft.Quantum.Intrinsic {
     internal operation PhaseCCX(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         // https://arxiv.org/pdf/1210.0974.pdf#page=2
         H(target);
-        CNOT(target, control1);
-        CNOT(control1, control2);
+        CNOT(target,control1);
+        CNOT(control1,control2);
         T(control2);
         Adjoint T(control1);
         T(target);
-        CNOT(target, control1);
-        CNOT(control1, control2);
+        CNOT(target,control1);
+        CNOT(control1,control2);
         Adjoint T(control2);
-        CNOT(target, control2);
+        CNOT(target,control2);
         H(target);
     }
 
@@ -174,7 +187,8 @@ namespace Microsoft.Quantum.Intrinsic {
     internal operation CCY(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         within {
             MapPauli(target, PauliX, PauliY);
-        } apply {
+        }
+        apply {
             CCNOT(control1, control2, target);
         }
     }
@@ -182,7 +196,8 @@ namespace Microsoft.Quantum.Intrinsic {
     internal operation CRxx(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
-        } apply {
+        }
+        apply {
             Controlled Rx([control], (theta, qubit0));
         }
     }
@@ -190,7 +205,8 @@ namespace Microsoft.Quantum.Intrinsic {
     internal operation CRyy(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
-        } apply {
+        }
+        apply {
             Controlled Ry([control], (theta, qubit0));
         }
     }
@@ -198,14 +214,15 @@ namespace Microsoft.Quantum.Intrinsic {
     internal operation CRzz(control : Qubit, theta : Double, qubit0 : Qubit, qubit1 : Qubit) : Unit {
         within {
             CNOT(qubit1, qubit0);
-        } apply {
+        }
+        apply {
             Controlled Rz([control], (theta, qubit0));
         }
     }
 
-    internal function IndicesOfNonIdentity(paulies : Pauli[]) : Int[] {
+    internal function IndicesOfNonIdentity (paulies : Pauli[]) : Int[] {
         mutable indices = [];
-        for i in 0..Length(paulies) - 1 {
+        for i in 0 .. Length(paulies) - 1 {
             if (paulies[i] != PauliI) {
                 set indices += [i];
             }
@@ -213,19 +230,19 @@ namespace Microsoft.Quantum.Intrinsic {
         indices
     }
 
-    internal function RemovePauliI(paulis : Pauli[], qubits : Qubit[]) : (Pauli[], Qubit[]) {
+    internal function RemovePauliI (paulis : Pauli[], qubits : Qubit[]) : (Pauli[], Qubit[]) {
         let indices = IndicesOfNonIdentity(paulis);
         let newPaulis = Subarray(indices, paulis);
         let newQubits = Subarray(indices, qubits);
         return (newPaulis, newQubits);
     }
 
-    internal operation SpreadZ(from : Qubit, to : Qubit[]) : Unit is Adj {
+    internal operation SpreadZ (from : Qubit, to : Qubit[]) : Unit is Adj {
         if (Length(to) > 0) {
             if (Length(to) > 1) {
                 let half = Length(to) / 2;
-                SpreadZ(to[0], to[half + 1..Length(to) - 1]);
-                SpreadZ(from, to[1..half]);
+                SpreadZ(to[0], to[half + 1 .. Length(to) - 1]);
+                SpreadZ(from, to[1 .. half]);
             }
             CNOT(to[0], from);
         }

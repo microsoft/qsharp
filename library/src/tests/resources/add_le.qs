@@ -45,8 +45,8 @@ namespace Test {
         bitwidth : Int) : Unit {
 
         TestAddLE3(name, adder, bitwidth, bitwidth, bitwidth);
-        TestAddLE3(name, adder, bitwidth, bitwidth, bitwidth + 1);
-        TestAddLE3(name, adder, bitwidth, bitwidth, bitwidth + 2);
+        TestAddLE3(name, adder, bitwidth, bitwidth, bitwidth+1);
+        TestAddLE3(name, adder, bitwidth, bitwidth, bitwidth+2);
     }
 
 
