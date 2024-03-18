@@ -8,6 +8,8 @@ import { loadProject } from "./projectSystem";
 import type { IOperationInfo, VSDiagnostic } from "../../npm/lib/web/qsc_wasm";
 import { getTarget, getTargetFriendlyName } from "./config";
 import { sendMessageToPanel } from "./webviewPanel";
+import { getRandomGuid } from "./utils";
+import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
 
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 
@@ -15,6 +17,9 @@ export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,
 ) {
+  const associationId = getRandomGuid();
+  sendTelemetryEvent(EventType.TriggerCircuit, { associationId }, {});
+
   const compilerWorkerScriptPath = Uri.joinPath(
     extensionUri,
     "./out/compilerWorker.js",
@@ -27,9 +32,16 @@ export async function showCircuitCommand(
 
   sendMessageToPanel("circuit", true, undefined);
 
+  let timeout = false;
+
   // Start the worker, run the code, and send the results to the webview
   const worker = getCompilerWorker(compilerWorkerScriptPath);
   const compilerTimeout = setTimeout(() => {
+    timeout = true;
+    sendTelemetryEvent(EventType.CircuitEnd, {
+      associationId,
+      flowStatus: UserFlowStatus.Aborted,
+    });
     log.info("terminating circuit worker due to timeout");
     worker.terminate();
   }, compilerRunTimeoutMs);
@@ -46,6 +58,7 @@ export async function showCircuitCommand(
   }
 
   try {
+    sendTelemetryEvent(EventType.CircuitStart, { associationId }, {});
     const circuit = await worker.getCircuit(sources, targetProfile, operation);
     clearTimeout(compilerTimeout);
 
@@ -56,7 +69,18 @@ export async function showCircuitCommand(
       subtitle,
     };
     sendMessageToPanel("circuit", false, message);
+
+    sendTelemetryEvent(EventType.CircuitEnd, {
+      associationId,
+      flowStatus: UserFlowStatus.Succeeded,
+    });
   } catch (e: any) {
+    if (!timeout) {
+      sendTelemetryEvent(EventType.CircuitEnd, {
+        associationId,
+        flowStatus: UserFlowStatus.Failed,
+      });
+    }
     log.error("Circuit error. ", e.toString());
     clearTimeout(compilerTimeout);
 
