@@ -190,6 +190,7 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
     switch (type) {
       case "workspace":
         this.iconPath = new vscode.ThemeIcon("notebook");
+        // TODO: Use "alert" icon on connection errors
         break;
       case "providerHeader": {
         break;
