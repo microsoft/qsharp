@@ -560,7 +560,10 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "a");
             is_only_value(&result, &output, &Value::Int(1));
-            let (result, output) = line(&mut interpreter, "function B() : Int { let inner_b = 3; inner_b }");
+            let (result, output) = line(
+                &mut interpreter,
+                "function B() : Int { let inner_b = 3; inner_b }",
+            );
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = line(&mut interpreter, "B()");
             is_only_value(&result, &output, &Value::Int(3));
