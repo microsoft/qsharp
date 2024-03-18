@@ -438,12 +438,9 @@ impl State {
     fn leave_frame(&mut self) {
         if let Some(frame) = self.call_stack.pop_frame() {
             self.package = frame.caller;
-            self.val_stack.pop();
-            self.idx = self
-                .idx_stack
-                .pop()
-                .expect("should have at least one index");
-        }
+        };
+        self.val_stack.pop();
+        self.idx = self.idx_stack.pop().unwrap_or_default();
         self.exec_graph_stack.pop();
     }
 
@@ -590,9 +587,9 @@ impl State {
                 None => {
                     // We have reached the end of the current graph without reaching an explicit return node,
                     // usually indicating the partial execution of a single sub-expression.
-                    // This means we should leave the current frame but not the current environment scope,
+                    // This means we should pop the execution graph but not the current environment scope,
                     // so bound variables are still accessible after completion.
-                    self.leave_frame();
+                    self.exec_graph_stack.pop();
                     assert!(self.exec_graph_stack.is_empty());
                     continue;
                 }

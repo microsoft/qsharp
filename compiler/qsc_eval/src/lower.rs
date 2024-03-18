@@ -53,11 +53,7 @@ impl Lowerer {
 
     pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
-        let entry_exec_graph = self
-            .exec_graph
-            .drain(..)
-            .chain(once(ExecGraphNode::Ret))
-            .collect();
+        let entry_exec_graph = self.exec_graph.drain(..).collect();
         let items: IndexMap<LocalItemId, fir::Item> = package
             .items
             .values()
