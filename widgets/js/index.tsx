@@ -216,6 +216,11 @@ function renderHistogram({ model, el }: RenderArgs) {
 }
 
 function renderCircuit({ model, el }: RenderArgs) {
-  const circuitJson = model.get("circuit_json") as string;
-  prender(<Circuit circuit={JSON.parse(circuitJson)}></Circuit>, el);
+  const onChange = () => {
+    const circuitJson = model.get("circuit_json") as string;
+    prender(<Circuit circuit={JSON.parse(circuitJson)}></Circuit>, el);
+  };
+
+  onChange();
+  model.on("change:circuit_json", onChange);
 }
