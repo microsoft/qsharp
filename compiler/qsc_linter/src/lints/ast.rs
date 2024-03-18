@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::push_lint;
+use super::lint;
 use crate::linter::ast::declare_ast_lints;
 use qsc_ast::ast::{BinOp, ExprKind, Lit, StmtKind};
 use qsc_data_structures::span::Span;
@@ -17,7 +17,7 @@ impl AstLintPass for DivisionByZero {
         if let ExprKind::BinOp(BinOp::Div, _, ref rhs) = *expr.kind {
             if let ExprKind::Lit(ref lit) = *rhs.kind {
                 if let Lit::Int(0) = **lit {
-                    push_lint!(self, expr.span, buffer);
+                    buffer.push(lint!(self, expr.span));
                 }
             }
         }
@@ -30,10 +30,15 @@ impl NeedlessParens {
     /// and `expr` has higher precedence than `+`, then the
     /// parentheses are needless. Parentheses around a literal
     /// are also needless.
-    fn push(&self, parent: &qsc_ast::ast::Expr, child: &qsc_ast::ast::Expr, buf: &mut Vec<Lint>) {
+    fn push(
+        &self,
+        parent: &qsc_ast::ast::Expr,
+        child: &qsc_ast::ast::Expr,
+        buffer: &mut Vec<Lint>,
+    ) {
         if let ExprKind::Paren(expr) = &*child.kind {
             if precedence(parent) < precedence(expr) {
-                push_lint!(self, child.span, buf);
+                buffer.push(lint!(self, child.span));
             }
         }
     }
@@ -57,7 +62,7 @@ impl AstLintPass for NeedlessParens {
     fn check_stmt(&self, stmt: &qsc_ast::ast::Stmt, buffer: &mut Vec<Lint>) {
         if let StmtKind::Local(_, _, right) = &*stmt.kind {
             if let ExprKind::Paren(_) = &*right.kind {
-                push_lint!(self, right.span, buffer);
+                buffer.push(lint!(self, right.span));
             }
         }
     }
@@ -68,7 +73,7 @@ impl RedundantSemicolons {
     /// found two or more semicolons.
     fn maybe_push(&self, seq: &mut Option<Span>, buffer: &mut Vec<Lint>) {
         if let Some(span) = seq.take() {
-            push_lint!(self, span, buffer);
+            buffer.push(lint!(self, span));
         }
     }
 }
