@@ -1168,6 +1168,8 @@ dependencies = [
  "qsc_linter",
  "qsc_project",
  "rustc-hash",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

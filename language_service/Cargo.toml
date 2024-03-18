@@ -12,6 +12,8 @@ repository.workspace = true
 expect-test = { workspace = true }
 indoc = { workspace = true }
 tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [dependencies]
 futures = { workspace = true }

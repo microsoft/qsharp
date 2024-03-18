@@ -8,6 +8,7 @@ use super::{CompilationState, CompilationStateUpdater};
 use crate::protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate};
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
+use qsc_linter::LintConfig;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, fmt::Write, future::ready, rc::Rc, sync::Arc};
@@ -1252,6 +1253,66 @@ async fn doc_switches_project_on_close() {
     );
 }
 
+#[tokio::test]
+async fn loading_lints_config_from_manifest() {
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{
+                        "lints": [
+                            {
+                                "lint": "divisionByZero",
+                                "level": "error"
+                            },
+                            {
+                                "lint": "needlessParens",
+                                "level": "warn"
+                            }
+                        ]
+                    }"#,
+                ),
+                dir(
+                    "src",
+                    [file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }")],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let received_errors = RefCell::new(Vec::new());
+    let updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Load the manifest.
+    let manifest = updater
+        .load_manifest(&"project/src/this_file.qs".into())
+        .await
+        .expect("manifest should exist");
+
+    check_lints_config(
+        &manifest.lints,
+        &expect![[r#"
+            [
+                LintConfig {
+                    kind: Ast(
+                        DivisionByZero,
+                    ),
+                    level: Error,
+                },
+                LintConfig {
+                    kind: Ast(
+                        NeedlessParens,
+                    ),
+                    level: Warn,
+                },
+            ]"#]],
+    );
+}
+
 type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);
 
 fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
@@ -1279,6 +1340,33 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
             ))
         },
         |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().get_manifest(file)))),
+    )
+}
+
+fn new_updater_with_file_system<'a>(
+    received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    fs: &'a FsNode,
+) -> CompilationStateUpdater<'a> {
+    let diagnostic_receiver = move |update: DiagnosticUpdate| {
+        let mut v = received_errors.borrow_mut();
+
+        v.push((
+            update.uri.to_string(),
+            update.version,
+            update
+                .errors
+                .iter()
+                .map(|e| e.error().clone())
+                .collect::<Vec<_>>(),
+        ));
+    };
+
+    CompilationStateUpdater::new(
+        Rc::new(RefCell::new(CompilationState::default())),
+        diagnostic_receiver,
+        |file: String| Box::pin(ready(fs.read_file(file))),
+        |dir_name: String| Box::pin(ready(fs.list_directory(dir_name))),
+        |file| Box::pin(ready(fs.get_manifest(file))),
     )
 }
 
@@ -1326,6 +1414,11 @@ fn check_state(
 ) {
     assert_open_documents(updater, expected_open_documents);
     assert_compilation_sources(updater, expected_compilation_sources);
+}
+
+/// Checks that the lints config is being loaded from the qsharp.json manifest
+fn check_lints_config(lints_config: &[LintConfig], expected_config: &Expect) {
+    expected_config.assert_eq(&format!("{lints_config:#?}"));
 }
 
 thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
@@ -1431,6 +1524,7 @@ impl FsNode {
         let mut curr = Some(self);
         let mut curr_path = String::new();
         let mut last_manifest_dir = None;
+        let mut last_manifest = None;
 
         for part in file.split('/') {
             curr = curr.and_then(|node| match node {
@@ -1438,8 +1532,9 @@ impl FsNode {
                     if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
                         // The semantics of get_manifest is that we only return the manifest
                         // if we've succeeded in parsing it
-                        if manifest.as_ref() == "{}" {
+                        if let Ok(manifest) = serde_json::from_str::<Manifest>(manifest) {
                             last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                            last_manifest = Some(manifest);
                         }
                     }
                     curr_path = format!("{curr_path}{part}/");
@@ -1452,7 +1547,7 @@ impl FsNode {
         match curr {
             Some(FsNode::Dir(_)) | None => None,
             Some(FsNode::File(_)) => last_manifest_dir.map(|dir| ManifestDescriptor {
-                manifest: Manifest::default(),
+                manifest: last_manifest.unwrap_or_default(),
                 manifest_dir: dir.into(),
             }),
         }
