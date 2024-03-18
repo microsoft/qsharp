@@ -733,22 +733,24 @@ bitflags! {
         const UseOfDynamicArrowOperation = 1 << 11;
         /// A function with cycles used with a dynamic argument.
         const CallToCyclicFunctionWithDynamicArg = 1 << 12;
-        /// An operation specialization with cycles is used.
-        const CallToCyclicOperation = 1 << 13;
+        /// An operation specialization with cycles exists.
+        const CyclicOperationSpec = 1 << 13;
+        /// A call to an operation with cycles.
+        const CallToCyclicOperation = 1 << 14;
         /// A callee expression is dynamic.
-        const CallToDynamicCallee = 1 << 14;
+        const CallToDynamicCallee = 1 << 15;
         /// A callee expression could not be resolved to a specific callable.
-        const CallToUnresolvedCallee = 1 << 15;
+        const CallToUnresolvedCallee = 1 << 16;
         /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 1 << 16;
+        const ForwardBranchingOnDynamicValue = 1 << 17;
         /// Qubit allocation that happens within a dynamic scope.
-        const DynamicQubitAllocation = 1 << 17;
+        const DynamicQubitAllocation = 1 << 18;
         /// Result allocation that happens within a dynamic scope.
-        const DynamicResultAllocation = 1 << 18;
+        const DynamicResultAllocation = 1 << 19;
         /// Use of a dynamic index to access or update an array.
-        const UseOfDynamicIndex = 1 << 19;
+        const UseOfDynamicIndex = 1 << 20;
         /// Use of a closure.
-        const UseOfClosure = 1 << 20;
+        const UseOfClosure = 1 << 21;
     }
 }
 
@@ -812,7 +814,7 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
-        if self.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
+        if self.contains(RuntimeFeatureFlags::CyclicOperationSpec) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
         if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {

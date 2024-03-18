@@ -402,6 +402,22 @@ impl<'a> Analyzer<'a> {
             compute_kind.aggregate_value_kind(value_kind);
         }
 
+        // To distinguish between a cyclic operation and a call to a cyclic operation, replace the cyclic operation
+        // runtime feature (if any) by a call to a cyclic operation.
+        if let ComputeKind::Quantum(quantum_properties) = &mut compute_kind {
+            if quantum_properties
+                .runtime_features
+                .contains(RuntimeFeatureFlags::CyclicOperationSpec)
+            {
+                quantum_properties
+                    .runtime_features
+                    .remove(RuntimeFeatureFlags::CyclicOperationSpec);
+                quantum_properties
+                    .runtime_features
+                    .insert(RuntimeFeatureFlags::CallToCyclicOperation);
+            }
+        }
+
         // If the callable output has type parameters, there might be a discrepancy in the value kind variant we derive
         // from the application generator set and the value kind variant that corresponds to the call expression type.
         // Fix that discrepancy here.
