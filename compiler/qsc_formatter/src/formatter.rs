@@ -29,6 +29,13 @@ impl TextEdit {
     }
 }
 
+#[derive(Clone, Copy)]
+enum NewlineContext {
+    NoContext,
+    Newlines,
+    Spaces,
+}
+
 fn make_indent_string(level: usize) -> String {
     "    ".repeat(level)
 }
@@ -56,7 +63,7 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
     let mut edits = vec![];
 
     let mut indent_level: usize = 0;
-    let mut delim_context_stack: Vec<bool> = vec![];
+    let mut delim_context_stack: Vec<NewlineContext> = vec![];
 
     // The sliding window used is over three adjacent tokens
     #[allow(unused_assignments)]
@@ -72,15 +79,6 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
 
         let mut edits_for_triple = match (&one, &two, &three) {
             (Some(one), Some(two), Some(three)) => {
-                // match one.kind {
-                //     ConcreteTokenKind::Syntax(TokenKind::Open(Delim::Brace)) => indent_level += 1,
-                //     ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) => {
-                //         indent_level = indent_level.saturating_sub(1)
-                //     }
-                //     ConcreteTokenKind::WhiteSpace => continue,
-                //     _ => {}
-                // }
-
                 if matches!(one.kind, ConcreteTokenKind::WhiteSpace) {
                     // first token is whitespace, continue scanning
                     continue;
@@ -132,18 +130,15 @@ fn apply_rules(
     right: &ConcreteToken,
     code: &str,
     indent_level: &mut usize,
-    delim_context_stack: &mut Vec<bool>,
+    delim_context_stack: &mut Vec<NewlineContext>,
 ) -> Vec<TextEdit> {
     let mut edits = vec![];
     // when we get here, neither left nor right should be whitespace
 
-    // if the right is a close brace, the indent level should be one less
-    // if let ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) = right.kind {
-    //     *indent_level = indent_level.saturating_sub(1);
-    // }
-
     let are_newlines_in_spaces = whitespace.contains('\n');
-    let mut is_newline_context = delim_context_stack.last().map_or(false, |b| *b);
+    let mut newline_context = delim_context_stack
+        .last()
+        .map_or(NewlineContext::NoContext, |b| *b);
 
     use qsc_frontend::keyword::Keyword;
     use qsc_frontend::lex::cooked::ClosedBinOp;
@@ -154,27 +149,27 @@ fn apply_rules(
             // Don't change the indentation if empty sequence.
         }
         (Syntax(Open(_)), _) if are_newlines_in_spaces => {
-            is_newline_context = true;
-            delim_context_stack.push(is_newline_context);
+            newline_context = NewlineContext::Newlines;
+            delim_context_stack.push(newline_context);
             *indent_level += 1;
         }
         (Syntax(Open(_)), Syntax(cooked_right)) if is_newline_keyword_or_ampersat(cooked_right) => {
-            is_newline_context = true;
-            delim_context_stack.push(is_newline_context);
+            newline_context = NewlineContext::Newlines;
+            delim_context_stack.push(newline_context);
             *indent_level += 1;
         }
         (Syntax(Open(_)), Comment) => {
-            is_newline_context = true;
-            delim_context_stack.push(is_newline_context);
+            newline_context = NewlineContext::Newlines;
+            delim_context_stack.push(newline_context);
             *indent_level += 1;
         }
         (Syntax(Open(_)), _) => {
-            is_newline_context = false;
-            delim_context_stack.push(is_newline_context);
+            newline_context = NewlineContext::Spaces;
+            delim_context_stack.push(newline_context);
         }
         (_, Syntax(Close(_))) => {
             delim_context_stack.pop();
-            if is_newline_context {
+            if matches!(newline_context, NewlineContext::Newlines) {
                 *indent_level = indent_level.saturating_sub(1);
             }
         }
@@ -210,6 +205,9 @@ fn apply_rules(
                 // and the type-parameter delimiters which would have different
                 // spacing rules.
             }
+            (Semi, _) if matches!(newline_context, NewlineContext::Spaces) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
             (Semi, _) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
@@ -220,13 +218,13 @@ fn apply_rules(
                 // close empty delimiter blocks, i.e. (), [], {}
                 effect_no_space(left, whitespace, right, &mut edits);
             }
-            (Comma, _) | (Open(_), _) if is_newline_context => {
+            (Comma, _) | (Open(_), _) if matches!(newline_context, NewlineContext::Newlines) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
             (Comma, _) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (_, Close(_)) if is_newline_context => {
+            (_, Close(_)) if matches!(newline_context, NewlineContext::Newlines) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
             (At, Ident) => {
