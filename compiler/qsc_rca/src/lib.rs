@@ -817,6 +817,9 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::CyclicOperationSpec) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
+        if self.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
+            runtume_capabilities |= RuntimeCapabilityFlags::all();
+        }
         if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::all();
         }
