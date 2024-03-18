@@ -164,7 +164,7 @@ pub struct Namespace {
     /// The documentation.
     pub doc: Rc<str>,
     /// The namespace name.
-    pub name: Box<Ident>,
+    pub name: VecIdent,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
 }
@@ -259,7 +259,7 @@ pub enum ItemKind {
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
-    Open(Box<Ident>, Option<Box<Ident>>),
+    Open(VecIdent, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
 }
@@ -1273,7 +1273,7 @@ pub struct Path {
     /// The span.
     pub span: Span,
     /// The namespace.
-    pub namespace: Option<Box<Ident>>,
+    pub namespace: Option<VecIdent>,
     /// The declaration name.
     pub name: Box<Ident>,
 }
@@ -1281,7 +1281,14 @@ pub struct Path {
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(ns) = &self.namespace {
-            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
+            write!(
+                f,
+                "Path {} {} ({}) ({})",
+                self.id,
+                self.span,
+                ns,
+                self.name
+            )?;
         } else {
             write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
         }
@@ -1304,6 +1311,40 @@ pub struct Ident {
     pub span: Span,
     /// The identifier name.
     pub name: Rc<str>,
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
+pub struct VecIdent(pub Vec<Ident>);
+
+impl From<VecIdent> for Vec<Rc<str>> {
+    fn from(v: VecIdent) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+
+impl From<Vec<Ident>> for VecIdent {
+    fn from(v: Vec<Ident>) -> Self {
+        VecIdent(v)
+    }
+}
+
+impl From<VecIdent> for Vec<Ident> {
+    fn from(v: VecIdent) -> Self {
+        v.0
+    }
+}
+
+impl Display for VecIdent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let idents = self.0.iter();
+        write!(f, "{}", idents.map(|i| i.name.to_string()).collect::<Vec<String>>().join("."))
+    }
+}
+impl VecIdent {
+    pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
+        self.0.iter()
+    }
 }
 
 impl Default for Ident {

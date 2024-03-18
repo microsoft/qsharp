@@ -14,7 +14,7 @@ use super::{ConfigAttr, RuntimeCapabilityFlags};
 #[derive(PartialEq, Hash, Clone, Debug)]
 pub struct TrackedName {
     pub name: Rc<str>,
-    pub namespace: Rc<str>,
+    pub namespace: Vec<Rc<str>>,
 }
 
 pub(crate) struct Conditional {
@@ -51,12 +51,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name.clone(),
+                                namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name.clone(),
+                            namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
                         }),
                         _ => {}
                     }
@@ -66,12 +66,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.name.clone(),
+                                namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.name.clone(),
+                            namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
                         }),
                         _ => {}
                     }
@@ -89,12 +89,12 @@ impl MutVisitor for Conditional {
                     ItemKind::Callable(callable) => {
                         self.included_names.push(TrackedName {
                             name: callable.name.name.clone(),
-                            namespace: Rc::from(""),
+                            namespace: Vec::default(),
                         });
                     }
                     ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                         name: ident.name.clone(),
-                        namespace: Rc::from(""),
+                        namespace: Vec::default(),
                     }),
                     _ => {}
                 }
@@ -103,12 +103,12 @@ impl MutVisitor for Conditional {
                     ItemKind::Callable(callable) => {
                         self.dropped_names.push(TrackedName {
                             name: callable.name.name.clone(),
-                            namespace: Rc::from(""),
+                            namespace: Vec::default(),
                         });
                     }
                     ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                         name: ident.name.clone(),
-                        namespace: Rc::from(""),
+                        namespace: Vec::default()
                     }),
                     _ => {}
                 }

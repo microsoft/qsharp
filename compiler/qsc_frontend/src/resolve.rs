@@ -17,7 +17,7 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
+use std::{collections::hash_map::Entry, fmt::Display, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -236,11 +236,28 @@ pub enum LocalKind {
     Var(NodeId),
 }
 
+/// An ID that corresponds to a namespace in the global scope.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct NamespaceId(usize);
+impl NamespaceId {
+    pub fn new(value: usize) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for NamespaceId {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Namespace {}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct GlobalScope {
     tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
     terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
-    namespaces: FxHashSet<Rc<str>>,
+    // this is basically an index map, where indices are used as
+    // namespace ids
+    namespaces: Vec<Rc<str>>,
     intrinsics: FxHashSet<Rc<str>>,
 }
 
@@ -251,6 +268,12 @@ impl GlobalScope {
             NameKind::Term => &self.terms,
         };
         namespaces.get(namespace).and_then(|items| items.get(name))
+    }
+
+    fn insert_namespace(&mut self, name: Rc<str>) -> NamespaceId {
+        let id = self.namespaces.len();
+        self.namespaces.insert(id, name);
+        NamespaceId::new(id)
     }
 }
 
@@ -413,7 +436,7 @@ impl Resolver {
                     {
                         self.errors.push(Error::NotAvailable(
                             name,
-                            format!("{}.{}", dropped_name.namespace, dropped_name.name),
+                            format!("{}.{}", dropped_name.namespace.into_iter().collect::<Vec<_>>().join("."), dropped_name.name),
                             span,
                         ));
                     } else {
@@ -764,7 +787,7 @@ impl GlobalTable {
             scope: GlobalScope {
                 tys,
                 terms: FxHashMap::default(),
-                namespaces: FxHashSet::default(),
+                namespaces: Vec::default(),
                 intrinsics: FxHashSet::default(),
             },
         }
@@ -779,16 +802,14 @@ impl GlobalTable {
         for node in &*package.nodes {
             match node {
                 // if a namespace is nested, create child namespaces
-                TopLevelNode::Namespace(namespace) if namespace.name.to_string().contains(".") => {
-                    let namespaces = namespace.name.to_string().split('.').collect::<Vec<_>>();
+                TopLevelNode::Namespace(namespace) => {
                     let mut parent = self.scope;
-                    for namespace in namespaces {
-                        
+                    for namespace in namespace.name {
                         self.names.insert(
                             namespace.id,
                             Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
                         );
-                        self.scope.namespaces.insert(Rc::clone(&namespace.name));
+                        self.scope.namespaces.push(Rc::clone(&namespace.name));
                     }
                     bind_global_items(
                         &mut self.names,
@@ -841,7 +862,7 @@ impl GlobalTable {
                     }
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
-                    self.scope.namespaces.insert(global.name);
+                    let namespace_id = self.scope.insert_namespace(global.name);
                 }
                 (_, hir::Visibility::Internal) => {}
             }
@@ -860,7 +881,7 @@ fn bind_global_items(
         namespace.name.id,
         Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
     );
-    scope.namespaces.insert(Rc::clone(&namespace.name.name));
+    let namespace_id = scope.insert_namespace(Rc::clone(&namespace.name.name));
 
     for item in &*namespace.items {
         match bind_global_item(
@@ -1009,13 +1030,14 @@ fn resolve<'a>(
     globals: &GlobalScope,
     scopes: impl Iterator<Item = &'a Scope>,
     name: &Ident,
-    namespace: &Option<Box<Ident>>,
+    namespace: &Option<Vec<Ident>>,
 ) -> Result<Res, Error> {
     let scopes = scopes.collect::<Vec<_>>();
     let mut candidates = FxHashMap::default();
     let mut vars = true;
     let name_str = &(*name.name);
     let namespace = namespace.as_ref().map_or("", |i| &i.name);
+    dbg!(&"checking namespace", namespace);
     for scope in scopes {
         if namespace.is_empty() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {

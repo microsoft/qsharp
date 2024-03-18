@@ -77,24 +77,6 @@ pub(super) fn ident(s: &mut ParserContext) -> Result<Box<Ident>> {
     }
 }
 
-/// This function parses a [Path] from the given context
-/// and converts it into a single ident, which contains dots (`.`)
-pub(super) fn dot_ident(s: &mut ParserContext) -> Result<Box<Ident>> {
-    let p = path(s)?;
-    let mut name = String::new();
-    if let Some(namespace) = p.namespace {
-        name.push_str(&namespace.name);
-        name.push('.');
-    }
-    name.push_str(&p.name.name);
-
-    Ok(Box::new(Ident {
-        id: p.id,
-        span: p.span,
-        name: name.into(),
-    }))
-}
-
 /// A `path` is a dot-separated list of idents like "Foo.Bar.Baz"
 /// this can be either a namespace name (in an open statement or namespace declaration) or
 /// it can be a direct reference to something in a namespace, like `Microsoft.Quantum.Diagnostics.DumpMachine()`
@@ -110,11 +92,16 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
         (Some(first), Some(last)) => {
             let lo = first.span.lo;
             let hi = last.span.hi;
-            Some(Box::new(Ident {
-                id: NodeId::default(),
-                span: Span { lo, hi },
-                name: join(parts.iter().map(|i| &i.name), ".").into(),
-            }))
+            Some(
+                parts
+                    .iter()
+                    .map(|part| Ident {
+                        id: NodeId::default(),
+                        span: part.span,
+                        name: part.name.clone(),
+                    })
+                    .collect::<Vec<_>>().into(),
+            )
         }
         _ => None,
     };
