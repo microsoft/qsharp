@@ -30,6 +30,6 @@ namespace MyQuantumApp {
         // `Map` takes a callable and applies it to all elements in
         // an array
         let incremented = Mapped(x -> x + 1, intArray);
-
+ 
     }
 }

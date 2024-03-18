@@ -14,7 +14,7 @@ namespace Sample {
         // Allocate the two qubits that will be entangled.
         use (q1, q2) = (Qubit(), Qubit());
 
-        // Set the first qubit in superposition by calling the `H` operation,
+        // Set the first qubit in superposition by calling the `H` operation, 
         // which applies a Hadamard transformation to the qubit.
         // Then, entangle the two qubits using the `CNOT` operation.
         H(q1);

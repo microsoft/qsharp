@@ -42,7 +42,7 @@ namespace Sample {
         // Allocate a qubit.
         use q = Qubit();
 
-        // Set the qubit into superposition of 0 and 1 using the Hadamard
+        // Set the qubit into superposition of 0 and 1 using the Hadamard 
         // operation `H`.
         H(q);
 

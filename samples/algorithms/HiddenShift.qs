@@ -81,7 +81,7 @@ namespace Sample {
     /// - [*Martin Roetteler*,
     ///    Proc. SODA 2010, ACM, pp. 448-457, 2010]
     ///   (https://doi.org/10.1137/1.9781611973075.37)
-    operation FindHiddenShift(
+    operation FindHiddenShift (
         Ufstar : (Qubit[] => Unit),
         Ug : (Qubit[] => Unit),
         n : Int)
@@ -142,7 +142,7 @@ namespace Sample {
     operation BentFunction(register : Qubit[]) : Unit {
         Fact(Length(register) % 2 == 0, "Length of register must be even.");
         let u = Length(register) / 2;
-        let xs = register[0..u - 1];
+        let xs = register[0 .. u - 1];
         let ys = register[u...];
         for index in 0..u-1 {
             CZ(xs[index], ys[index]);

@@ -15,7 +15,7 @@ namespace Sample {
     open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
-    operation Main() : Result[] {
+    operation Main () : Result[] {
         // Allocate the message and target qubits.
         use (message, target) = (Qubit(), Qubit());
 

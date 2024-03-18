@@ -8,10 +8,10 @@ namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Result {
         use q = Qubit();
-
+        
         // A `Pauli` can be declared as a literal.
         let pauliDimension = PauliX;
-
+        
         // Measuring along a dimension returns a `Result`:
         let result = Measure([pauliDimension], [q]);
 

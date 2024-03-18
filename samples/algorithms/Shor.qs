@@ -79,11 +79,12 @@ namespace Sample {
                 set foundFactors = true;
                 set factors = (gcd, number / gcd);
             }
-            set attempt = attempt + 1;
+            set attempt = attempt+1;
             if (attempt > 100) {
                 fail "Failed to find factors: too many attempts!";
             }
-        } until foundFactors
+        }
+        until foundFactors
         fixup {
             Message("The estimated period did not yield a valid factor. " +
                 "Trying again.");
@@ -234,7 +235,8 @@ namespace Sample {
         if frequencyEstimate != 0 {
             return PeriodFromFrequency(
                 modulus, frequencyEstimate, bitsPrecision, 1);
-        } else {
+        }
+        else {
             Message("The estimated frequency was 0, trying again.");
             return 1;
         }
@@ -256,10 +258,10 @@ namespace Sample {
     ///
     /// # Output
     /// The numerator k of dyadic fraction k/2^bitsPrecision approximating s/r.
-    operation EstimateFrequency(generator : Int, modulus : Int, bitsize : Int)
+    operation EstimateFrequency(generator : Int,modulus : Int, bitsize : Int)
     : Int {
         mutable frequencyEstimate = 0;
-        let bitsPrecision = 2 * bitsize + 1;
+        let bitsPrecision =  2 * bitsize + 1;
         Message($"Estimating frequency with bitsPrecision={bitsPrecision}.");
 
         // Allocate qubits for the superposition of eigenstates of the oracle

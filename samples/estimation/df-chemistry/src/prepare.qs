@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
     operation PrepareUniformSuperposition(numStates : Int, qs : Qubit[]) : Unit is Adj + Ctl {
         Fact(numStates >= 1, "numStates must be positive");
-        Fact(numStates <= 2 ^ Length(qs), $"numStates must be smaller or equal to {2 ^ Length(qs)}");
+        Fact(numStates <= 2^Length(qs), $"numStates must be smaller or equal to {2^Length(qs)}");
 
         let qsAdjusted = qs[...Ceiling(Lg(IntAsDouble(numStates))) - 1];
 
@@ -52,10 +52,10 @@ namespace Microsoft.Quantum.Applications.Chemistry {
     }
 
     newtype PrepareArbitrarySuperposition = (
-        NIndexQubits : Int,
-        NGarbageQubits : Int,
-        Prepare : (Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl,
-        PrepareWithSelect : ((Bool[][], Qubit[], Qubit[]) => Unit is Adj + Ctl, Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl
+        NIndexQubits: Int,
+        NGarbageQubits: Int,
+        Prepare: (Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl,
+        PrepareWithSelect: ((Bool[][], Qubit[], Qubit[]) => Unit is Adj + Ctl, Qubit[], Qubit[], Qubit[]) => Unit is Adj + Ctl
     );
 
     function MakePrepareArbitrarySuperposition(targetError : Double, coefficients : Double[])
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         return PrepareArbitrarySuperposition(nIndexQubits, nGarbageQubits, op, opWithSelect);
     }
 
-    function MakePrepareArbitrarySuperpositionWithData(targetError : Double, coefficients : Double[], data : Bool[][]) : PrepareArbitrarySuperposition {
+    function MakePrepareArbitrarySuperpositionWithData(targetError : Double, coefficients : Double[], data: Bool[][]) : PrepareArbitrarySuperposition {
         let nBitsPrecision = -Ceiling(Lg(0.5 * targetError)) + 1;
         let positiveCoefficients = Mapped(AbsD, coefficients);
         let (keepCoeff, altIndex) = DiscretizedProbabilityDistribution(nBitsPrecision, positiveCoefficients);
@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         Fact(targetError > 0.0, "targetError must be positive");
         Fact(nCoefficients > 0, "nCoefficients must be positive");
 
-        let nBitsPrecision = -Ceiling(Lg(0.5 * targetError)) + 1;
+        let nBitsPrecision = -Ceiling(Lg(0.5*targetError)) + 1;
         let nIndexQubits = Ceiling(Lg(IntAsDouble(nCoefficients)));
         let nGarbageQubits = nIndexQubits + 2 * nBitsPrecision + 1;
         (nIndexQubits, nGarbageQubits)
@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
     // Computes discretized probability distribution as described in Section 3
     // and Fig. 13 in [arXiv:1805.03662](https://arxiv.org/pdf/1805.03662.pdf)
-    internal function DiscretizedProbabilityDistribution(bitsPrecision : Int, coefficients : Double[])
+    internal function DiscretizedProbabilityDistribution(bitsPrecision: Int, coefficients: Double[])
     : (Int[], Int[]) {
         let oneNorm = PNorm(1.0, coefficients);
         let nCoefficients = Length(coefficients);
@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
         // Uniformly distribute excess bars across coefficients.
         for idx in 0..AbsI(bars) - 1 {
-            set keepCoeff w/= idx <- keepCoeff[idx] + (bars > 0 ? -1 | + 1);
+            set keepCoeff w/= idx <- keepCoeff[idx] + (bars > 0 ? -1 | +1);
         }
 
         mutable barSink = [];
@@ -178,10 +178,10 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
     // Used in QuantumROM implementation.
     internal operation PrepareQuantumROMState(
-        nBitsPrecision : Int, nCoeffs : Int, nBitsIndices : Int,
-        keepCoeff : Int[], altIndex : Int[], data : Bool[][],
-        selectOperation : (Bool[][], Qubit[], Qubit[]) => Unit is Adj + Ctl,
-        indexRegister : Qubit[], dataQubits : Qubit[], garbageRegister : Qubit[]
+        nBitsPrecision: Int, nCoeffs: Int, nBitsIndices: Int,
+        keepCoeff: Int[], altIndex: Int[], data : Bool[][],
+        selectOperation: (Bool[][], Qubit[], Qubit[]) => Unit is Adj + Ctl,
+        indexRegister: Qubit[], dataQubits : Qubit[], garbageRegister: Qubit[]
     )
     : Unit is Adj + Ctl {
         let garbageIdx0 = nBitsIndices;
