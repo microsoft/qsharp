@@ -257,7 +257,11 @@ pub struct GlobalScope {
     terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
     // this is basically an index map, where indices are used as
     // namespace ids
-    namespaces: Vec<Vec<Rc<str>>>,
+    // TODO maybe what we can do here is only store top-level namespaces here
+    // and bury the rest in the hierarchy?
+    // or, store the hierarchical structure right here on the below field,
+    // and then map the namespace IDs to a vec of entries
+    namespaces: Vec<Rc<str>>,
     intrinsics: FxHashSet<Rc<str>>,
 }
 
@@ -279,7 +283,7 @@ impl GlobalScope {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum ScopeKind {
-    Namespace(Rc<str>),
+    Namespace(Vec<Rc<str>>),
     Callable,
     Block,
 }
@@ -486,7 +490,7 @@ impl Resolver {
         }
     }
 
-    fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<ast::Ident>) {
+    fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<Box<ast::Ident>>) {
         let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
         if self.globals.namespaces.contains(&name.into()) {
             self.current_scope_mut()
@@ -616,7 +620,7 @@ impl With<'_> {
 
 impl AstVisitor<'_> for With<'_> {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let kind = ScopeKind::Namespace(Rc::clone(&namespace.name.name));
+        let kind = ScopeKind::Namespace(namespace.name.into());
         self.with_scope(namespace.span, kind, |visitor| {
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
@@ -804,12 +808,13 @@ impl GlobalTable {
                 // if a namespace is nested, create child namespaces
                 TopLevelNode::Namespace(namespace) => {
                     let mut parent = self.scope;
-                    for namespace in namespace.name {
-                        self.names.insert(
-                            namespace.id,
-                            Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
-                        );
-                        self.scope.namespaces.push(Rc::clone(&namespace.name));
+                    for namespace in namespace.name.iter() {
+                        todo!("add nested namespaces here")
+                        // self.names.insert(
+                        //     namespace.id,
+                        //     Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
+                        // );
+                        // parent.namespaces.push(Rc::clone(&namespace.name));
                     }
                     bind_global_items(
                         &mut self.names,
