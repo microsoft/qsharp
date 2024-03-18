@@ -33,30 +33,43 @@ def test_stdout_multiple_lines() -> None:
 
     assert f.getvalue() == "STATE:\n|0⟩: 1.0000+0.0000𝑖\nHello!\n"
 
+
 def test_quantum_seed() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.set_quantum_seed(42)
-    value1 = qsharp.eval("{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    value1 = qsharp.eval(
+        "{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }"
+    )
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.set_quantum_seed(42)
-    value2 = qsharp.eval("{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    value2 = qsharp.eval(
+        "{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }"
+    )
     assert value1 == value2
     qsharp.set_quantum_seed(None)
-    value3 = qsharp.eval("{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    value3 = qsharp.eval(
+        "{ use qs = Qubit[32]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }"
+    )
     assert value1 != value3
 
 
 def test_classical_seed() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.set_classical_seed(42)
-    value1 = qsharp.eval("{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }")
+    value1 = qsharp.eval(
+        "{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }"
+    )
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.set_classical_seed(42)
-    value2 = qsharp.eval("{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }")
+    value2 = qsharp.eval(
+        "{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }"
+    )
     assert value1 == value2
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     qsharp.set_classical_seed(None)
-    value3 = qsharp.eval("{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }")
+    value3 = qsharp.eval(
+        "{ mutable res = []; for _ in 0..15{ set res += [(Microsoft.Quantum.Random.DrawRandomInt(0, 100), Microsoft.Quantum.Random.DrawRandomDouble(0.0, 1.0))]; }; res }"
+    )
     assert value1 != value3
 
 
@@ -86,34 +99,119 @@ def test_dump_machine() -> None:
     for idx in state_dump:
         assert idx in state_dump
 
+
 def test_dump_operation() -> None:
     qsharp.init(target_profile=qsharp.TargetProfile.Unrestricted)
     res = qsharp.utils.dump_operation("qs => ()", 1)
-    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(1.0, 0.0)]]
+    assert res == [
+        [complex(1.0, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(1.0, 0.0)],
+    ]
     res = qsharp.utils.dump_operation("qs => H(qs[0])", 1)
-    assert res == [[complex(0.707107, 0.0), complex(0.707107, 0.0)],
-                   [complex(0.707107, 0.0), complex(-0.707107, 0.0)]]
+    assert res == [
+        [complex(0.707107, 0.0), complex(0.707107, 0.0)],
+        [complex(0.707107, 0.0), complex(-0.707107, 0.0)],
+    ]
     res = qsharp.utils.dump_operation("qs => CNOT(qs[0], qs[1])", 2)
-    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)]]
+    assert res == [
+        [complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
+        [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)],
+    ]
     res = qsharp.utils.dump_operation("qs => CCNOT(qs[0], qs[1], qs[2])", 3)
-    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)]]
-    qsharp.eval("operation ApplySWAP(qs : Qubit[]) : Unit is Ctl + Adj { SWAP(qs[0], qs[1]); }")
+    assert res == [
+        [
+            complex(1.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+        ],
+        [
+            complex(0.0, 0.0),
+            complex(1.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+        ],
+        [
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(1.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+        ],
+        [
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(1.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+        ],
+        [
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(1.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+        ],
+        [
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(1.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+        ],
+        [
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(1.0, 0.0),
+        ],
+        [
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(0.0, 0.0),
+            complex(1.0, 0.0),
+            complex(0.0, 0.0),
+        ],
+    ]
+    qsharp.eval(
+        "operation ApplySWAP(qs : Qubit[]) : Unit is Ctl + Adj { SWAP(qs[0], qs[1]); }"
+    )
     res = qsharp.utils.dump_operation("ApplySWAP", 2)
-    assert res == [[complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
-                   [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)]]
+    assert res == [
+        [complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(1.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0)],
+        [complex(0.0, 0.0), complex(0.0, 0.0), complex(0.0, 0.0), complex(1.0, 0.0)],
+    ]
     res = qsharp.utils.dump_operation("qs => ()", 8)
     for i in range(8):
         for j in range(8):

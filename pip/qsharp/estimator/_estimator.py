@@ -17,6 +17,7 @@ try:
 except ImportError:
     has_markdown = False
 
+
 class EstimatorError(BaseException):
     """
     An error returned from the resource estimation.
@@ -28,6 +29,7 @@ class EstimatorError(BaseException):
 
     def __str__(self):
         return self.message
+
 
 @dataclass
 class AutoValidatingParams:
@@ -151,12 +153,12 @@ class EstimatorQubitParams(AutoValidatingParams):
     one_qubit_gate_time: Optional[str] = validating_field(check_time)
     two_qubit_gate_time: Optional[str] = validating_field(check_time)
     t_gate_time: Optional[str] = validating_field(check_time)
-    one_qubit_measurement_error_rate: Union[
-        None, float, MeasurementErrorRate
-    ] = validating_field(_check_error_rate_or_process_and_readout)
-    two_qubit_joint_measurement_error_rate: Union[
-        None, float, MeasurementErrorRate
-    ] = validating_field(_check_error_rate_or_process_and_readout)
+    one_qubit_measurement_error_rate: Union[None, float, MeasurementErrorRate] = (
+        validating_field(_check_error_rate_or_process_and_readout)
+    )
+    two_qubit_joint_measurement_error_rate: Union[None, float, MeasurementErrorRate] = (
+        validating_field(_check_error_rate_or_process_and_readout)
+    )
     one_qubit_gate_error_rate: Optional[float] = validating_field(_check_error_rate)
     two_qubit_gate_error_rate: Optional[float] = validating_field(_check_error_rate)
     t_gate_error_rate: Optional[float] = validating_field(_check_error_rate)
@@ -206,16 +208,16 @@ class EstimatorQubitParams(AutoValidatingParams):
         qubit_params = super().as_dict(validate)
         if len(qubit_params) != 0:
             if isinstance(self.one_qubit_measurement_error_rate, MeasurementErrorRate):
-                qubit_params[
-                    "oneQubitMeasurementErrorRate"
-                ] = self.one_qubit_measurement_error_rate.as_dict(validate)
+                qubit_params["oneQubitMeasurementErrorRate"] = (
+                    self.one_qubit_measurement_error_rate.as_dict(validate)
+                )
 
             if isinstance(
                 self.two_qubit_joint_measurement_error_rate, MeasurementErrorRate
             ):
-                qubit_params[
-                    "twoQubitJointMeasurementErrorRate"
-                ] = self.two_qubit_joint_measurement_error_rate.as_dict(validate)
+                qubit_params["twoQubitJointMeasurementErrorRate"] = (
+                    self.two_qubit_joint_measurement_error_rate.as_dict(validate)
+                )
 
         return qubit_params
 
@@ -323,18 +325,18 @@ class DistillationUnitSpecification(AutoValidatingParams):
                     self.physical_qubit_specification.as_dict(validate)
                 )
                 if len(physical_qubit_specification_dict) != 0:
-                    specification_dict[
-                        "physicalQubitSpecification"
-                    ] = physical_qubit_specification_dict
+                    specification_dict["physicalQubitSpecification"] = (
+                        physical_qubit_specification_dict
+                    )
 
             if self.logical_qubit_specification is not None:
                 logical_qubit_specification_dict = (
                     self.logical_qubit_specification.as_dict(validate)
                 )
                 if len(logical_qubit_specification_dict) != 0:
-                    specification_dict[
-                        "logicalQubitSpecification"
-                    ] = logical_qubit_specification_dict
+                    specification_dict["logicalQubitSpecification"] = (
+                        logical_qubit_specification_dict
+                    )
 
             if self.logical_qubit_specification_first_round_override is not None:
                 logical_qubit_specification_first_round_override_dict = (
@@ -549,7 +551,7 @@ class EstimatorResult(dict):
         if isinstance(data, list) and len(data) == 1:
             data = data[0]
             if not EstimatorResult._is_succeeded(data):
-                raise EstimatorError(data['code'] ,data['message'])
+                raise EstimatorError(data["code"], data["message"])
 
         if isinstance(data, dict):
             self._data = data
@@ -561,7 +563,7 @@ class EstimatorResult(dict):
                 self.summary = HTMLWrapper(self._item_result_summary_table())
                 self.diagram = EstimatorResultDiagram(self.data().copy())
             else:
-                self._error = EstimatorError(data['code'] ,data['message'])
+                self._error = EstimatorError(data["code"], data["message"])
 
         elif isinstance(data, list):
             super().__init__(

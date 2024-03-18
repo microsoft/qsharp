@@ -49,22 +49,32 @@ def test_dump_output() -> None:
     )
     assert called
 
+
 def test_quantum_seed() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
     e.set_quantum_seed(42)
-    value1 = e.interpret("{ use qs = Qubit[16]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    value1 = e.interpret(
+        "{ use qs = Qubit[16]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }"
+    )
     e = Interpreter(TargetProfile.Unrestricted)
     e.set_quantum_seed(42)
-    value2 = e.interpret("{ use qs = Qubit[16]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }")
+    value2 = e.interpret(
+        "{ use qs = Qubit[16]; for q in qs { H(q); }; Microsoft.Quantum.Measurement.MResetEachZ(qs) }"
+    )
     assert value1 == value2
+
 
 def test_classical_seed() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
     e.set_classical_seed(42)
-    value1 = e.interpret("{ mutable res = []; for _ in 0..15{ set res += [Microsoft.Quantum.Random.DrawRandomInt(0, 100)]; }; res }")
+    value1 = e.interpret(
+        "{ mutable res = []; for _ in 0..15{ set res += [Microsoft.Quantum.Random.DrawRandomInt(0, 100)]; }; res }"
+    )
     e = Interpreter(TargetProfile.Unrestricted)
     e.set_classical_seed(42)
-    value2 = e.interpret("{ mutable res = []; for _ in 0..15{ set res += [Microsoft.Quantum.Random.DrawRandomInt(0, 100)]; }; res }")
+    value2 = e.interpret(
+        "{ mutable res = []; for _ in 0..15{ set res += [Microsoft.Quantum.Random.DrawRandomInt(0, 100)]; }; res }"
+    )
     assert value1 == value2
 
 
