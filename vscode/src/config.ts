@@ -32,12 +32,3 @@ export function getEnableFormating(): boolean {
     .getConfiguration("Q#")
     .get<boolean>("enableFormatting", true);
 }
-
-export async function setEnableFormating(isEnabled: boolean) {
-  const config = vscode.workspace.getConfiguration("Q#");
-  await config.update(
-    "enableFormatting",
-    isEnabled,
-    vscode.ConfigurationTarget.Global,
-  );
-}

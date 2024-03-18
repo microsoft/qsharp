@@ -112,7 +112,7 @@
         "Q#.enableFormatting": {
           "type": "boolean",
           "default": "true",
-          "description": "Enables the Q# formatter to be used to format code."
+          "description": "Enables the Q# formatter."
         }
       }
     },
