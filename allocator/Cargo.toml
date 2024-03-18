@@ -1,0 +1,15 @@
+[package]
+name = "allocator"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+mimalloc-sys = { path = "./mimalloc-sys" }
+
+[lints]
+workspace = true
+

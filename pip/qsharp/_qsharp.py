@@ -1,7 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Interpreter, TargetProfile, StateDump, QSharpError, Output, Circuit
+from ._native import (
+    Interpreter,
+    TargetProfile,
+    StateDumpData,
+    QSharpError,
+    Output,
+    Circuit,
+)
 from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -300,13 +307,50 @@ def set_classical_seed(seed: Optional[int]) -> None:
     get_interpreter().set_classical_seed(seed)
 
 
+class StateDump:
+    """
+    A state dump returned from the Q# interpreter.
+    """
+
+    """
+    The number of allocated qubits at the time of the dump.
+    """
+    qubit_count: int
+
+    __inner: dict
+    __data: StateDumpData
+
+    def __init__(self, data: StateDumpData):
+        self.__data = data
+        self.__inner = data.get_dict()
+        self.qubit_count = data.qubit_count
+
+    def __getitem__(self, index: int) -> complex:
+        return self.__inner.__getitem__(index)
+
+    def __iter__(self):
+        return self.__inner.__iter__()
+
+    def __len__(self) -> int:
+        return len(self.__inner)
+
+    def __repr__(self) -> str:
+        return self.__data.__repr__()
+
+    def __str__(self) -> str:
+        return self.__data.__str__()
+
+    def _repr_html_(self) -> str:
+        return self.__data._repr_html_()
+
+
 def dump_machine() -> StateDump:
     """
     Returns the sparse state vector of the simulator as a StateDump object.
 
     :returns: The state of the simulator.
     """
-    return get_interpreter().dump_machine()
+    return StateDump(get_interpreter().dump_machine())
 
 
 def dump_circuit() -> Circuit:

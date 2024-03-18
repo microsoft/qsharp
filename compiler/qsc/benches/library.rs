@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+allocator::assign_global!();
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::compile;
 use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags};
