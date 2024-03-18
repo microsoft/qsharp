@@ -56,6 +56,7 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
     let mut edits = vec![];
 
     let mut indent_level: usize = 0;
+    let mut delim_context_stack: Vec<bool> = vec![];
 
     // The sliding window used is over three adjacent tokens
     #[allow(unused_assignments)]
@@ -71,14 +72,14 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
 
         let mut edits_for_triple = match (&one, &two, &three) {
             (Some(one), Some(two), Some(three)) => {
-                match one.kind {
-                    ConcreteTokenKind::Syntax(TokenKind::Open(Delim::Brace)) => indent_level += 1,
-                    ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) => {
-                        indent_level = indent_level.saturating_sub(1)
-                    }
-                    ConcreteTokenKind::WhiteSpace => continue,
-                    _ => {}
-                }
+                // match one.kind {
+                //     ConcreteTokenKind::Syntax(TokenKind::Open(Delim::Brace)) => indent_level += 1,
+                //     ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) => {
+                //         indent_level = indent_level.saturating_sub(1)
+                //     }
+                //     ConcreteTokenKind::WhiteSpace => continue,
+                //     _ => {}
+                // }
 
                 if matches!(one.kind, ConcreteTokenKind::WhiteSpace) {
                     // first token is whitespace, continue scanning
@@ -90,11 +91,19 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
                         get_token_contents(code, two),
                         three,
                         code,
-                        indent_level,
+                        &mut indent_level,
+                        &mut delim_context_stack,
                     )
                 } else {
                     // one, two are adjacent tokens with no whitespace in the middle
-                    apply_rules(one, "", two, code, indent_level)
+                    apply_rules(
+                        one,
+                        "",
+                        two,
+                        code,
+                        &mut indent_level,
+                        &mut delim_context_stack,
+                    )
                 }
             }
             (None, None, Some(three)) => {
@@ -122,35 +131,70 @@ fn apply_rules(
     whitespace: &str,
     right: &ConcreteToken,
     code: &str,
-    indent_level: usize,
+    indent_level: &mut usize,
+    delim_context_stack: &mut Vec<bool>,
 ) -> Vec<TextEdit> {
     let mut edits = vec![];
     // when we get here, neither left nor right should be whitespace
 
     // if the right is a close brace, the indent level should be one less
-    let indent_level = if let ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) = right.kind
-    {
-        indent_level.saturating_sub(1)
-    } else {
-        indent_level
-    };
+    // if let ConcreteTokenKind::Syntax(TokenKind::Close(Delim::Brace)) = right.kind {
+    //     *indent_level = indent_level.saturating_sub(1);
+    // }
 
-    let new_line_in_spaces = whitespace.contains('\n');
+    let are_newlines_in_spaces = whitespace.contains('\n');
+    let mut is_newline_context = delim_context_stack.last().map_or(false, |b| *b);
 
     use qsc_frontend::keyword::Keyword;
     use qsc_frontend::lex::cooked::ClosedBinOp;
     use ConcreteTokenKind::*;
     use TokenKind::*;
     match (&left.kind, &right.kind) {
+        (Syntax(Open(_)), Syntax(Close(_))) => {
+            // Don't change the indentation if empty sequence.
+        }
+        (Syntax(Open(_)), _) if are_newlines_in_spaces => {
+            is_newline_context = true;
+            delim_context_stack.push(is_newline_context);
+            *indent_level += 1;
+        }
+        (Syntax(Open(_)), Syntax(cooked_right)) if is_newline_keyword_or_ampersat(cooked_right) => {
+            is_newline_context = true;
+            delim_context_stack.push(is_newline_context);
+            *indent_level += 1;
+        }
+        (Syntax(Open(_)), Comment) => {
+            is_newline_context = true;
+            delim_context_stack.push(is_newline_context);
+            *indent_level += 1;
+        }
+        (Syntax(Open(_)), _) => {
+            is_newline_context = false;
+            delim_context_stack.push(is_newline_context);
+        }
+        (_, Syntax(Close(_))) => {
+            delim_context_stack.pop();
+            if is_newline_context {
+                *indent_level = indent_level.saturating_sub(1);
+            }
+        }
+        _ => {}
+    }
+
+    match (&left.kind, &right.kind) {
         (Comment | Syntax(DocComment), _) => {
             // remove whitespace at the ends of comments
             effect_trim_comment(left, &mut edits, code);
-            effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+            effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+        }
+        (Syntax(Open(_)), Comment) => {
+            effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
         }
         (_, Comment) => {
-            if new_line_in_spaces {
-                effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+            if are_newlines_in_spaces {
+                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
+            // else do nothing, preserving the user's spaces before the comment
         }
         (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
             (ClosedBinOp(ClosedBinOp::Minus), _) | (_, ClosedBinOp(ClosedBinOp::Minus)) => {
@@ -167,7 +211,7 @@ fn apply_rules(
                 // spacing rules.
             }
             (Semi, _) => {
-                effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
             (_, Semi) => {
                 effect_no_space(left, whitespace, right, &mut edits);
@@ -175,6 +219,15 @@ fn apply_rules(
             (Open(l), Close(r)) if l == r => {
                 // close empty delimiter blocks, i.e. (), [], {}
                 effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (Comma, _) | (Open(_), _) if is_newline_context => {
+                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+            }
+            (Comma, _) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
+            (_, Close(_)) if is_newline_context => {
+                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
             (At, Ident) => {
                 effect_no_space(left, whitespace, right, &mut edits);
@@ -186,25 +239,8 @@ fn apply_rules(
             | (Keyword(Keyword::Controlled), Keyword(Keyword::Adjoint)) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (Open(Delim::Brace), _)
-            | (_, Close(Delim::Brace))
-            | (_, Keyword(Keyword::Internal))
-            | (_, Keyword(Keyword::Operation))
-            | (_, Keyword(Keyword::Function))
-            | (_, Keyword(Keyword::Newtype))
-            | (_, Keyword(Keyword::Namespace))
-            | (_, Keyword(Keyword::Open))
-            | (_, Keyword(Keyword::Body))
-            | (_, Keyword(Keyword::Adjoint))
-            | (_, Keyword(Keyword::Controlled))
-            | (_, Keyword(Keyword::Let))
-            | (_, Keyword(Keyword::Mutable))
-            | (_, Keyword(Keyword::Set))
-            | (_, Keyword(Keyword::Use))
-            | (_, Keyword(Keyword::Borrow))
-            | (_, Keyword(Keyword::Fixup))
-            | (_, At) => {
-                effect_correct_indentation(left, whitespace, right, &mut edits, indent_level);
+            (_, _) if is_newline_keyword_or_ampersat(cooked_right) => {
+                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
             (_, TokenKind::Keyword(Keyword::Until))
             | (_, TokenKind::Keyword(Keyword::In))
@@ -221,7 +257,7 @@ fn apply_rules(
             | (_, TokenKind::Keyword(Keyword::Slf)) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (_, _) if new_line_in_spaces => {
+            (_, _) if are_newlines_in_spaces => {
                 effect_trim_whitespace(left, whitespace, right, &mut edits);
                 // Ignore the rest of the cases if the user has a newline in the whitespace.
                 // This is done because we don't currently have logic for determining when
@@ -237,6 +273,9 @@ fn apply_rules(
             | (_, Close(Delim::Bracket | Delim::Paren)) => {
                 effect_no_space(left, whitespace, right, &mut edits);
             }
+            (Open(Delim::Brace), _) | (_, Close(Delim::Brace)) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
             (_, Open(Delim::Bracket | Delim::Paren)) => {
                 if is_value_token_left(cooked_left) || is_prefix(cooked_left) {
                     // i.e. foo() or { foo }[3]
@@ -246,16 +285,15 @@ fn apply_rules(
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
             }
+            (_, Open(Delim::Brace)) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
             (_, TokenKind::DotDotDot) => {
                 if is_value_token_left(cooked_left) {
                     effect_no_space(left, whitespace, right, &mut edits);
                 } else {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
-            }
-            (TokenKind::DotDotDot, TokenKind::Open(Delim::Brace)) => {
-                // Special case: `... {}`
-                effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, TokenKind::Keyword(Keyword::Is))
             | (_, TokenKind::Keyword(Keyword::For))
@@ -354,6 +392,31 @@ fn is_keyword_value(keyword: &Keyword) -> bool {
         True | False | Zero | One | PauliI | PauliX | PauliY | PauliZ | Underscore
         // Adj and Ctl are not really values, but have the same spacing as values
         | Adj | Ctl
+    )
+}
+
+fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
+    use Keyword::*;
+    matches!(
+        cooked,
+        TokenKind::At
+            | TokenKind::Keyword(
+                Internal
+                    | Operation
+                    | Function
+                    | Newtype
+                    | Namespace
+                    | Open
+                    | Body
+                    | Adjoint
+                    | Controlled
+                    | Let
+                    | Mutable
+                    | Set
+                    | Use
+                    | Borrow
+                    | Fixup
+            )
     )
 }
 

@@ -65,7 +65,8 @@ fn namespace_items_begin_on_their_own_lines() {
 #[test]
 fn functor_specs_begin_on_their_own_lines() {
     check(
-        "operation Foo() : Unit { body ... {} adjoint ... {} controlled (c, ...) {} controlled adjoint (c, ...) {} }",
+        "operation Foo() : Unit { body ... {} adjoint ... {} controlled (c, ...) {} controlled adjoint (c, ...) {}
+        }",
         &expect![[r#"
             operation Foo() : Unit {
                 body ... {}
@@ -520,13 +521,11 @@ fn single_space_before_open_brace_and_newline_after() {
                 let x = 3;
             }
             operation Bar() : Unit
-            {
-                {
-                    let x = 3;
-                } {
-                    let x = 4;
-                }
-            }
+            { {
+                let x = 3;
+            } {
+                let x = 4;
+            } }
         "#]],
     );
 }
@@ -605,8 +604,8 @@ fn single_space_before_literals() {
 #[test]
 fn single_space_before_types() {
     check(
-        "let x :   (Int,   Double,    String[],  (BigInt,  Unit),   ('T,)) =>   'T = foo;",
-        &expect![[r#"let x : (Int, Double, String[], (BigInt, Unit), ('T,)) => 'T = foo;"#]],
+        "let x :   (Int,   Double,    String[],  (BigInt,  Unit),   ('T, )) =>   'T = foo;",
+        &expect![[r#"let x : (Int, Double, String[], (BigInt, Unit), ('T, )) => 'T = foo;"#]],
     );
 }
 
@@ -682,6 +681,86 @@ fn formatting_corrects_indentation() {
                     return 5;
                 }
             }
+        "#]],
+    );
+}
+
+#[test]
+fn nested_delimiter_indentation() {
+    check(
+        indoc! {r#"
+        let x = [
+            (1)
+        ];
+            let y = 3;
+    "#},
+        &expect![[r#"
+            let x = [
+                (1)
+            ];
+            let y = 3;
+        "#]],
+    );
+}
+
+#[test]
+fn delimiter_comments() {
+    check(
+        indoc! {r#"
+        let x = [ // this is a comment
+            (1)
+        ];
+            let y = 3;
+    "#},
+        &expect![[r#"
+            let x = [
+                // this is a comment
+                (1)
+            ];
+            let y = 3;
+    "#]],
+    );
+}
+
+#[test]
+fn test() {
+    check(
+        indoc! {r#"
+        (
+            first, second)
+    "#},
+        &expect![[r#"
+            (
+                first,
+                second
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn delimiter_newlines_indentation() {
+    check(
+        r#"
+        let x = [ a,  b,  c ];
+        let y = [   a,
+            b,  c ];
+        let z = [
+
+
+            a,  b, c
+        ];
+"#,
+        &expect![[r#"
+            let x = [a, b, c];
+            let y = [a, b, c];
+            let z = [
+
+
+                a,
+                b,
+                c
+            ];
         "#]],
     );
 }
