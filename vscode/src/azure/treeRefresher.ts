@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import * as vscode from "vscode";
-
 import { log } from "qsharp-lang";
 import { WorkspaceConnection, WorkspaceTreeProvider } from "./treeView";
 
@@ -86,23 +84,12 @@ export function startRefreshCycle(
 
     try {
       await treeProvider.refreshWorkspace(workspace);
+      workspace.lastRequestError = undefined;
     } catch (e: any) {
       log.error("Error refreshing in workspace refresh cycle: ", e);
-      // If authentication fails in the Azure request, message will contain: 'Azure Quantum request failed with status 401.'
-      // TODO: Current service-side bug where 500 Server Error can occur for errors that should be 401 or 404
-      if (e.message?.includes("status 401")) {
-        // If we get a 401, we should stop trying to refresh the workspace
-        vscode.window.showErrorMessage(
-          `Access denied querying workspace ${workspace.name}.`,
-          {
-            modal: true,
-            detail:
-              "Remove and re-add the workspace to update credentials if required",
-          },
-        );
-        return true;
-      }
-      // Other errors could throw due to transient network errors, etc. so just keep trying next time
+      workspace.lastRequestError = e.message || "Unexpected request failure";
+      treeProvider.updateWorkspace(workspace); // Manually update to reflect the failure status
+      // Errors could throw due to transient network errors, ApiKey being disabled temporarily, etc. so just keep trying next time
       return false;
     }
 

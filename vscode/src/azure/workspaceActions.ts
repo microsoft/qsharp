@@ -96,10 +96,16 @@ async function getWorkspaceWithConnectionString(): Promise<
       !partsMap.has("apikey") ||
       !partsMap.has("quantumendpoint")
     ) {
-      vscode.window.showErrorMessage(
-        "Invalid connection string. Please follow the placeholder format",
+      const action = await vscode.window.showErrorMessage(
+        "Invalid connection string. Please follow the placeholder format.",
+        { modal: true },
+        "Retry",
       );
-      continue;
+      if (action === "Retry") {
+        continue;
+      } else {
+        return;
+      }
     }
 
     const workspaceId =
@@ -146,7 +152,6 @@ async function getWorkspaceWithConnectionString(): Promise<
         errorText,
         { modal: true },
         "Retry",
-        "Cancel",
       );
       if (action === "Retry") {
         continue;
