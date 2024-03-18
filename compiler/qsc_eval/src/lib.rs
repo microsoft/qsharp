@@ -22,7 +22,7 @@ use num_bigint::BigInt;
 use output::Receiver;
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap, span::Span};
 use qsc_fir::fir::{
-    self, BinOp, CallableImpl, CfgNode, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
+    self, BinOp, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Field, Functor, Global, Lit,
     LocalItemId, LocalVarId, PackageId, PackageStoreLookup, PatId, PatKind, PrimField, Res, StmtId,
     StoreItemId, StringComponent, UnOp,
 };
@@ -176,17 +176,20 @@ impl Display for Spec {
 /// Utility function to identify a subset of a control flow graph corresponding to a given
 /// range.
 #[must_use]
-pub fn sub_cfg(cfg: &Rc<[CfgNode]>, range: ops::Range<usize>) -> Rc<[CfgNode]> {
+pub fn exec_graph_section(
+    graph: &Rc<[ExecGraphNode]>,
+    range: ops::Range<usize>,
+) -> Rc<[ExecGraphNode]> {
     let start: u32 = range
         .start
         .try_into()
-        .expect("cfg ranges should fit into u32");
-    cfg[range]
+        .expect("exec graph ranges should fit into u32");
+    graph[range]
         .iter()
         .map(|node| match node {
-            CfgNode::Jump(idx) => CfgNode::Jump(idx - start),
-            CfgNode::JumpIf(idx) => CfgNode::JumpIf(idx - start),
-            CfgNode::JumpIfNot(idx) => CfgNode::JumpIfNot(idx - start),
+            ExecGraphNode::Jump(idx) => ExecGraphNode::Jump(idx - start),
+            ExecGraphNode::JumpIf(idx) => ExecGraphNode::JumpIf(idx - start),
+            ExecGraphNode::JumpIfNot(idx) => ExecGraphNode::JumpIfNot(idx - start),
             _ => *node,
         })
         .collect::<Vec<_>>()
@@ -201,13 +204,13 @@ pub fn sub_cfg(cfg: &Rc<[CfgNode]>, range: ops::Range<usize>) -> Rc<[CfgNode]> {
 pub fn eval(
     package: PackageId,
     seed: Option<u64>,
-    cfg: Rc<[CfgNode]>,
+    exec_graph: Rc<[ExecGraphNode]>,
     globals: &impl PackageStoreLookup,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, cfg, seed);
+    let mut state = State::new(package, exec_graph, seed);
     let res = state.eval(globals, env, sim, receiver, &[], StepAction::Continue)?;
     let StepResult::Return(value) = res else {
         panic!("eval should always return a value");
@@ -378,7 +381,7 @@ impl Default for Env {
 }
 
 pub struct State {
-    cfg_stack: Vec<Rc<[CfgNode]>>,
+    exec_graph_stack: Vec<Rc<[ExecGraphNode]>>,
     idx: u32,
     idx_stack: Vec<u32>,
     curr_val: Option<Value>,
@@ -391,13 +394,17 @@ pub struct State {
 
 impl State {
     #[must_use]
-    pub fn new(package: PackageId, cfg: Rc<[CfgNode]>, classical_seed: Option<u64>) -> Self {
+    pub fn new(
+        package: PackageId,
+        exec_graph: Rc<[ExecGraphNode]>,
+        classical_seed: Option<u64>,
+    ) -> Self {
         let rng = match classical_seed {
             Some(seed) => RefCell::new(StdRng::seed_from_u64(seed)),
             None => RefCell::new(StdRng::from_entropy()),
         };
         Self {
-            cfg_stack: vec![cfg],
+            exec_graph_stack: vec![exec_graph],
             idx: 0,
             idx_stack: Vec::new(),
             curr_val: None,
@@ -409,14 +416,19 @@ impl State {
         }
     }
 
-    fn push_frame(&mut self, cfg: Rc<[CfgNode]>, id: StoreItemId, functor: FunctorApp) {
+    fn push_frame(
+        &mut self,
+        exec_graph: Rc<[ExecGraphNode]>,
+        id: StoreItemId,
+        functor: FunctorApp,
+    ) {
         self.call_stack.push_frame(Frame {
             span: self.current_span,
             id,
             caller: self.package,
             functor,
         });
-        self.cfg_stack.push(cfg);
+        self.exec_graph_stack.push(exec_graph);
         self.val_stack.push(Vec::new());
         self.idx_stack.push(self.idx);
         self.idx = 0;
@@ -432,7 +444,7 @@ impl State {
                 .pop()
                 .expect("should have at least one index");
         }
-        self.cfg_stack.pop();
+        self.exec_graph_stack.pop();
     }
 
     fn push_scope(&mut self, env: &mut Env) {
@@ -497,24 +509,24 @@ impl State {
     ) -> Result<StepResult, (Error, Vec<Frame>)> {
         let current_frame = self.call_stack.len();
 
-        while !self.cfg_stack.is_empty() {
-            let cfg = self
-                .cfg_stack
+        while !self.exec_graph_stack.is_empty() {
+            let exec_graph = self
+                .exec_graph_stack
                 .last()
                 .expect("should have at least one stack frame");
-            let res = match cfg.get(self.idx as usize) {
-                Some(CfgNode::Bind(pat)) => {
+            let res = match exec_graph.get(self.idx as usize) {
+                Some(ExecGraphNode::Bind(pat)) => {
                     self.idx += 1;
                     self.eval_bind(env, globals, *pat);
                     continue;
                 }
-                Some(CfgNode::Expr(expr)) => {
+                Some(ExecGraphNode::Expr(expr)) => {
                     self.idx += 1;
                     self.eval_expr(env, sim, globals, out, *expr)
                         .map_err(|e| (e, self.get_stack_frames()))?;
                     continue;
                 }
-                Some(CfgNode::Stmt(stmt)) => {
+                Some(ExecGraphNode::Stmt(stmt)) => {
                     self.idx += 1;
                     self.current_span = globals.get_stmt((self.package, *stmt).into()).span;
 
@@ -538,11 +550,11 @@ impl State {
                         }
                     }
                 }
-                Some(CfgNode::Jump(idx)) => {
+                Some(ExecGraphNode::Jump(idx)) => {
                     self.idx = *idx;
                     continue;
                 }
-                Some(CfgNode::JumpIf(idx)) => {
+                Some(ExecGraphNode::JumpIf(idx)) => {
                     let cond = self.curr_val == Some(Value::Bool(true));
                     if cond {
                         self.idx = *idx;
@@ -551,7 +563,7 @@ impl State {
                     }
                     continue;
                 }
-                Some(CfgNode::JumpIfNot(idx)) => {
+                Some(ExecGraphNode::JumpIfNot(idx)) => {
                     let cond = self.curr_val == Some(Value::Bool(true));
                     if cond {
                         self.idx += 1;
@@ -560,28 +572,28 @@ impl State {
                     }
                     continue;
                 }
-                Some(CfgNode::Store) => {
+                Some(ExecGraphNode::Store) => {
                     self.push_val();
                     self.idx += 1;
                     continue;
                 }
-                Some(CfgNode::Unit) => {
+                Some(ExecGraphNode::Unit) => {
                     self.idx += 1;
                     self.set_curr_val(Value::unit());
                     continue;
                 }
-                Some(CfgNode::Ret) => {
+                Some(ExecGraphNode::Ret) => {
                     self.leave_frame();
                     env.leave_scope();
                     continue;
                 }
                 None => {
-                    // We have reached the end of the current cfg without reaching an explicit return node,
+                    // We have reached the end of the current graph without reaching an explicit return node,
                     // usually indicating the partial execution of a single sub-expression.
                     // This means we should leave the current frame but not the current environment scope,
                     // so bound variables are still accessible after completion.
                     self.leave_frame();
-                    assert!(self.cfg_stack.is_empty());
+                    assert!(self.exec_graph_stack.is_empty());
                     continue;
                 }
             };
@@ -913,7 +925,7 @@ impl State {
                     Spec::CtlAdj => specialized_implementation.ctl_adj.as_ref(),
                 }
                 .expect("missing specialization should be a compilation error");
-                self.push_frame(spec_decl.cfg.clone(), callee_id, functor);
+                self.push_frame(spec_decl.exec_graph.clone(), callee_id, functor);
                 self.push_scope(env);
 
                 self.bind_args_for_spec(

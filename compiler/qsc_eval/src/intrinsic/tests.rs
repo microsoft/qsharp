@@ -7,7 +7,7 @@ use std::f64::consts;
 
 use crate::backend::{Backend, SparseSim};
 use crate::debug::map_hir_package_to_fir;
-use crate::tests::eval_cfg;
+use crate::tests::eval_graph;
 use crate::Env;
 use crate::{
     output::{GenericReceiver, Receiver},
@@ -181,7 +181,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     )
     .is_empty());
     let unit_fir = fir_lowerer.lower_package(&unit.package);
-    let entry = unit_fir.entry_cfg.clone();
+    let entry = unit_fir.entry_exec_graph.clone();
 
     let id = store.insert(unit);
 
@@ -193,7 +193,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     fir_store.insert(map_hir_package_to_fir(std_id), std_fir);
     fir_store.insert(map_hir_package_to_fir(id), unit_fir);
 
-    eval_cfg(
+    eval_graph(
         entry,
         &mut CustomSim::default(),
         &fir_store,

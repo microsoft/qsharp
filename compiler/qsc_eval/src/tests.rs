@@ -9,13 +9,14 @@ use std::rc::Rc;
 use crate::{
     backend::{Backend, SparseSim},
     debug::{map_hir_package_to_fir, Frame},
+    exec_graph_section,
     output::{GenericReceiver, Receiver},
-    sub_cfg, val, Env, Error, State, StepAction, StepResult, Value,
+    val, Env, Error, State, StepAction, StepResult, Value,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_fir::fir::{self, CfgNode, StmtId};
+use qsc_fir::fir::{self, ExecGraphNode, StmtId};
 use qsc_fir::fir::{PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
@@ -24,15 +25,15 @@ use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 /// Creates a new environment and simulator.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub(super) fn eval_cfg(
-    cfg: Rc<[CfgNode]>,
+pub(super) fn eval_graph(
+    graph: Rc<[ExecGraphNode]>,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     globals: &impl PackageStoreLookup,
     package: PackageId,
     env: &mut Env,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, cfg, None);
+    let mut state = State::new(package, graph, None);
     let StepResult::Return(value) =
         state.eval(globals, env, sim, out, &[], StepAction::Continue)?
     else {
@@ -77,7 +78,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     );
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = fir_lowerer.lower_package(&unit.package);
-    let entry = unit_fir.entry_cfg.clone();
+    let entry = unit_fir.entry_exec_graph.clone();
     let id = store.insert(unit);
 
     let mut fir_store = fir::PackageStore::new();
@@ -89,7 +90,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     fir_store.insert(map_hir_package_to_fir(id), unit_fir);
 
     let mut out = Vec::new();
-    match eval_cfg(
+    match eval_graph(
         entry,
         &mut SparseSim::new(),
         &fir_store,
@@ -146,7 +147,7 @@ fn check_partial_eval_stmt(
     let unit_fir = fir_lowerer.lower_package(&unit.package);
     fir_expect.assert_eq(&unit_fir.to_string());
 
-    let entry = unit_fir.entry_cfg.clone();
+    let entry = unit_fir.entry_exec_graph.clone();
     let id = store.insert(unit);
 
     let mut fir_store = fir::PackageStore::new();
@@ -163,8 +164,8 @@ fn check_partial_eval_stmt(
     let (last_stmt, most_stmts) = stmts.split_last().expect("should have at least one stmt");
     for stmt_id in most_stmts {
         let stmt = fir_store.get_stmt((id, *stmt_id).into());
-        match eval_cfg(
-            sub_cfg(&entry, stmt.cfg_range.clone()),
+        match eval_graph(
+            exec_graph_section(&entry, stmt.exec_graph_range.clone()),
             &mut SparseSim::new(),
             &fir_store,
             id,
@@ -177,8 +178,8 @@ fn check_partial_eval_stmt(
     }
 
     let stmt = fir_store.get_stmt((id, *last_stmt).into());
-    match eval_cfg(
-        sub_cfg(&entry, stmt.cfg_range.clone()),
+    match eval_graph(
+        exec_graph_section(&entry, stmt.exec_graph_range.clone()),
         &mut SparseSim::new(),
         &fir_store,
         id,

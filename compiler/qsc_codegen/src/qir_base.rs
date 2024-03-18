@@ -49,7 +49,7 @@ pub fn generate_qir(
     let result = eval(
         package,
         None,
-        unit.entry_cfg.clone(),
+        unit.entry_exec_graph.clone(),
         &fir_store,
         &mut Env::default(),
         &mut sim,

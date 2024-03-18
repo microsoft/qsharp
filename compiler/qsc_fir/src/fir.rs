@@ -556,7 +556,7 @@ pub struct Package {
     /// The entry expression for an executable package.
     pub entry: Option<ExprId>,
     /// The control flow graph for the entry expression in the package.
-    pub entry_cfg: Rc<[CfgNode]>,
+    pub entry_exec_graph: Rc<[ExecGraphNode]>,
     /// The blocks in the package.
     pub blocks: IndexMap<BlockId, Block>,
     /// The expressions in the package.
@@ -864,7 +864,7 @@ pub struct SpecDecl {
     /// The input of the specialization.
     pub input: Option<PatId>,
     /// The flattened control flow graph for the execution of the specialization.
-    pub cfg: Rc<[CfgNode]>,
+    pub exec_graph: Rc<[ExecGraphNode]>,
 }
 
 impl Display for SpecDecl {
@@ -879,7 +879,7 @@ impl Display for SpecDecl {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 /// A node within the control flow graph.
-pub enum CfgNode {
+pub enum ExecGraphNode {
     /// A binding of a value to a variable.
     Bind(PatId),
     /// An expression to execute.
@@ -945,7 +945,7 @@ pub struct Stmt {
     /// The statement kind.
     pub kind: StmtKind,
     /// The locations within the containing control flow graph for the current statement.
-    pub cfg_range: ops::Range<usize>,
+    pub exec_graph_range: ops::Range<usize>,
 }
 
 impl Display for Stmt {
@@ -997,7 +997,7 @@ pub struct Expr {
     /// The expression kind.
     pub kind: ExprKind,
     /// The locations within the containing control flow graph for the current expression.
-    pub cfg_range: ops::Range<usize>,
+    pub exec_graph_range: ops::Range<usize>,
 }
 
 impl Display for Expr {

@@ -43,7 +43,7 @@ use qsc_eval::{
     val::{self},
     Env, State, VariableInfo,
 };
-use qsc_fir::fir::{self, CfgNode, Global, PackageStoreLookup};
+use qsc_fir::fir::{self, ExecGraphNode, Global, PackageStoreLookup};
 use qsc_fir::{
     fir::{Block, BlockId, Expr, ExprId, Package, PackageId, Pat, PatId, Stmt, StmtId},
     visit::{self, Visitor},
@@ -177,11 +177,11 @@ impl Interpreter {
         &mut self,
         receiver: &mut impl Receiver,
     ) -> std::result::Result<Value, Vec<Error>> {
-        let cfg = self.get_entry_cfg()?;
+        let graph = self.get_entry_exec_graph()?;
         eval(
             self.source_package,
             self.classical_seed,
-            cfg,
+            graph,
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -197,14 +197,14 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
     ) -> std::result::Result<Value, Vec<Error>> {
-        let cfg = self.get_entry_cfg()?;
+        let graph = self.get_entry_exec_graph()?;
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
         }
         eval(
             self.source_package,
             self.classical_seed,
-            cfg,
+            graph,
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -213,10 +213,10 @@ impl Interpreter {
         )
     }
 
-    fn get_entry_cfg(&self) -> std::result::Result<Rc<[CfgNode]>, Vec<Error>> {
+    fn get_entry_exec_graph(&self) -> std::result::Result<Rc<[ExecGraphNode]>, Vec<Error>> {
         let unit = self.fir_store.get(self.source_package);
         if unit.entry.is_some() {
-            return Ok(unit.entry_cfg.clone());
+            return Ok(unit.entry_exec_graph.clone());
         };
         Err(vec![Error::NoEntryPoint])
     }
@@ -237,7 +237,7 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
-        let (_, cfg) = self.lower(&increment);
+        let (_, graph) = self.lower(&increment);
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -250,7 +250,7 @@ impl Interpreter {
         eval(
             self.package,
             self.classical_seed,
-            cfg.into(),
+            graph.into(),
             self.compiler.package_store(),
             &self.fir_store,
             &mut self.env,
@@ -298,7 +298,7 @@ impl Interpreter {
         receiver: &mut impl Receiver,
         expr: &str,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        let cfg = self.compile_entry_expr(expr)?;
+        let graph = self.compile_entry_expr(expr)?;
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -307,7 +307,7 @@ impl Interpreter {
         Ok(eval(
             self.package,
             self.classical_seed,
-            cfg.into(),
+            graph.into(),
             self.compiler.package_store(),
             &self.fir_store,
             &mut Env::default(),
@@ -316,7 +316,10 @@ impl Interpreter {
         ))
     }
 
-    fn compile_entry_expr(&mut self, expr: &str) -> std::result::Result<Vec<CfgNode>, Vec<Error>> {
+    fn compile_entry_expr(
+        &mut self,
+        expr: &str,
+    ) -> std::result::Result<Vec<ExecGraphNode>, Vec<Error>> {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
@@ -324,7 +327,7 @@ impl Interpreter {
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
-        let (_, cfg) = self.lower(&increment);
+        let (_, graph) = self.lower(&increment);
 
         // The AST and HIR packages in `increment` only contain an entry
         // expression and no statements. The HIR *can* contain items if the entry
@@ -340,18 +343,18 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        Ok(cfg)
+        Ok(graph)
     }
 
     fn lower(
         &mut self,
         unit_addition: &qsc_frontend::incremental::Increment,
-    ) -> (Vec<StmtId>, Vec<CfgNode>) {
+    ) -> (Vec<StmtId>, Vec<ExecGraphNode>) {
         let fir_package = self.fir_store.get_mut(self.package);
         (
             self.lowerer
                 .lower_and_update_package(fir_package, &unit_addition.hir),
-            self.lowerer.cfg(),
+            self.lowerer.take_exec_graph(),
         )
     }
 
@@ -389,11 +392,11 @@ impl Debugger {
         )?;
         let source_package_id = interpreter.source_package;
         let unit = interpreter.fir_store.get(source_package_id);
-        let entry_cfg = unit.entry_cfg.clone();
+        let entry_exec_graph = unit.entry_exec_graph.clone();
         Ok(Self {
             interpreter,
             position_encoding,
-            state: State::new(source_package_id, entry_cfg, None),
+            state: State::new(source_package_id, entry_exec_graph, None),
         })
     }
 
@@ -519,15 +522,23 @@ impl Debugger {
 fn eval(
     package: PackageId,
     classical_seed: Option<u64>,
-    cfg: Rc<[CfgNode]>,
+    exec_graph: Rc<[ExecGraphNode]>,
     package_store: &PackageStore,
     fir_store: &fir::PackageStore,
     env: &mut Env,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     receiver: &mut impl Receiver,
 ) -> InterpretResult {
-    qsc_eval::eval(package, classical_seed, cfg, fir_store, env, sim, receiver)
-        .map_err(|(error, call_stack)| eval_error(package_store, fir_store, call_stack, error))
+    qsc_eval::eval(
+        package,
+        classical_seed,
+        exec_graph,
+        fir_store,
+        env,
+        sim,
+        receiver,
+    )
+    .map_err(|(error, call_stack)| eval_error(package_store, fir_store, call_stack, error))
 }
 
 /// Represents a stack frame for debugging.
