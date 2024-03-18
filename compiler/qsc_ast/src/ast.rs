@@ -1323,6 +1323,14 @@ impl From<VecIdent> for Vec<Rc<str>> {
 }
 
 
+impl From<&VecIdent> for Vec<Rc<str>> {
+    fn from(v: &VecIdent) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+
+
 impl From<Vec<Ident>> for VecIdent {
     fn from(v: Vec<Ident>) -> Self {
         VecIdent(v)
@@ -1344,6 +1352,13 @@ impl Display for VecIdent {
 impl VecIdent {
     pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
         self.0.iter()
+    }
+    
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+        }
     }
 }
 

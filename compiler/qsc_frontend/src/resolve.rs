@@ -270,9 +270,9 @@ impl GlobalScope {
         namespaces.get(namespace).and_then(|items| items.get(name))
     }
 
-    fn insert_namespace(&mut self, name: Rc<str>) -> NamespaceId {
+    fn insert_namespace(&mut self, name: VecIdent) -> NamespaceId {
         let id = self.namespaces.len();
-        self.namespaces.insert(id, name);
+        self.namespaces.insert(id, name.into());
         NamespaceId::new(id)
     }
 }
@@ -292,7 +292,7 @@ enum NameKind {
 
 #[derive(Debug, Clone)]
 struct Open {
-    namespace: Rc<str>,
+    namespace: Vec<Rc<str>>,
     span: Span,
 }
 
@@ -494,12 +494,12 @@ impl Resolver {
                 .entry(alias)
                 .or_default()
                 .push(Open {
-                    namespace: Rc::clone(&name.name),
-                    span: name.span,
+                    namespace: name.into(),
+                    span: name.span(),
                 });
         } else {
             self.errors
-                .push(Error::NotFound(name.name.to_string(), name.span));
+                .push(Error::NotFound(name.to_string(), name.span()));
         }
     }
 
