@@ -159,6 +159,9 @@ impl Lowerer {
     }
 
     fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
+        self.assigner.stash_local();
+        let locals = self.locals.drain().collect::<Vec<_>>();
+
         let id = self.lower_id(decl.id);
         let kind = lower_callable_kind(decl.kind);
         let name = self.lower_ident(&decl.name);
@@ -188,6 +191,9 @@ impl Lowerer {
 
         self.assigner.reset_local();
         self.locals.clear();
+        for (k, v) in locals {
+            self.locals.insert(k, v);
+        }
 
         fir::CallableDecl {
             id,
