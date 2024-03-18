@@ -15,7 +15,7 @@ pub use qsc_eval::{
     debug::Frame,
     output::{self, GenericReceiver},
     val::Closure,
-    val::Range as EvalRange,
+    val::Range as ValueRange,
     val::Result,
     val::Value,
     StepAction, StepResult,
