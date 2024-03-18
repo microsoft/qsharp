@@ -137,7 +137,7 @@ impl With<'_> {
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
-        let name = self.lower_vec_ident(&namespace.name);
+        let name = self.lower_vec_ident(&namespace.name.0);
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,

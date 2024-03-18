@@ -6,7 +6,7 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{self, CallableBody, CallableDecl, Ident, NodeId, SpecBody, SpecGen, TopLevelNode},
+    ast::{self, CallableBody, CallableDecl, Ident, NodeId, SpecBody, SpecGen, TopLevelNode, VecIdent},
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -257,7 +257,7 @@ pub struct GlobalScope {
     terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
     // this is basically an index map, where indices are used as
     // namespace ids
-    namespaces: Vec<Rc<str>>,
+    namespaces: Vec<Vec<Rc<str>>>,
     intrinsics: FxHashSet<Rc<str>>,
 }
 
@@ -486,9 +486,9 @@ impl Resolver {
         }
     }
 
-    fn bind_open(&mut self, name: &ast::Ident, alias: &Option<Box<ast::Ident>>) {
+    fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<ast::Ident>) {
         let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-        if self.globals.namespaces.contains(&name.name) {
+        if self.globals.namespaces.contains(&name.into()) {
             self.current_scope_mut()
                 .opens
                 .entry(alias)
@@ -1030,7 +1030,7 @@ fn resolve<'a>(
     globals: &GlobalScope,
     scopes: impl Iterator<Item = &'a Scope>,
     name: &Ident,
-    namespace: &Option<Vec<Ident>>,
+    namespace: &Option<VecIdent>,
 ) -> Result<Res, Error> {
     let scopes = scopes.collect::<Vec<_>>();
     let mut candidates = FxHashMap::default();
