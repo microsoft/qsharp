@@ -3,7 +3,7 @@
 
 use async_trait::async_trait;
 use js_sys::JsString;
-use qsc::linter::{LintConfig, LintKind, LintLevel};
+use qsc::linter::LintConfig;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor, ProjectSystemCallbacks};
 
 use std::iter::FromIterator;
@@ -191,7 +191,7 @@ pub(crate) fn get_manifest_transformer(js_val: JsValue, _: String) -> Option<Man
     let lints: Vec<LintConfig> = match js_sys::Reflect::get(&js_val, &JsValue::from_str("lints")) {
         Ok(v) => match v.dyn_into::<js_sys::Array>() {
             Ok(arr) => arr
-            .into_iter()
+                .into_iter()
                 .filter_map(|x| serde_wasm_bindgen::from_value::<LintConfig>(x).ok())
                 .collect::<Vec<_>>(),
             Err(_) => Vec::new(),

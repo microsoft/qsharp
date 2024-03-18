@@ -196,8 +196,6 @@ pub struct Error(pub(super) ErrorKind);
 pub(super) enum ErrorKind {
     #[error("syntax error")]
     Parse(#[from] qsc_parse::Error),
-    #[error(transparent)]
-    Lint(#[from] qsc_data_structures::linter::Lint),
     #[error("name error")]
     Resolve(#[from] resolve::Error),
     #[error("type error")]
