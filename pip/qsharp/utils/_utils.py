@@ -40,5 +40,10 @@ def dump_operation(operation: str, num_qubits: int) -> List[List[complex]]:
             if entry is None:
                 matrix[i] += [complex(0, 0)]
             else:
-                matrix[i] += [complex(round(factor * entry.real, ndigits), round(factor * entry.imag, ndigits))]
+                matrix[i] += [
+                    complex(
+                        round(factor * entry.real, ndigits),
+                        round(factor * entry.imag, ndigits),
+                    )
+                ]
     return matrix

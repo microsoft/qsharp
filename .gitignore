@@ -15,3 +15,5 @@ __pycache__/
 /fuzz/artifacts
 /fuzz/coverage
 /fuzz/Cargo.lock
+.mypy_cache/
+.pytest_cache/
