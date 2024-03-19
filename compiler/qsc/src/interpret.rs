@@ -84,10 +84,10 @@ pub enum Error {
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
     UnsupportedRuntimeCapabilities,
-    #[error("expression does not evaluate to an operation that takes qubits")]
+    #[error("expression does not evaluate to an operation that takes qubit parameters")]
     #[diagnostic(code("Qsc.Interpret.NoCircuitForOperation"))]
     #[diagnostic(help(
-        "provide the name of a callable or a lambda expression that only takes qubits"
+        "provide the name of a callable or a lambda expression that only takes qubits as parameters"
     ))]
     NoCircuitForOperation,
 }
