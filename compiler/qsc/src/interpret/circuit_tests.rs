@@ -71,6 +71,60 @@ fn one_gate() {
 }
 
 #[test]
+fn rotation_gate() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    Rx(Microsoft.Quantum.Math.PI()/2.0, q);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    // The wire isn't visible here since the gate label is longer
+    // than the static column width, but we can live with it.
+    expect![[r"
+        q_0     rx(1.5708)
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn classical_for_loop() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    for i in 0..5 {
+                        X(q);
+                    }
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── X ──── X ──── X ──── X ──── X ──── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn m_base_profile() {
     let mut interpreter = interpreter(
         r"
@@ -424,23 +478,18 @@ fn adjoint_operation() {
             @EntryPoint()
             operation Main() : Result[] { [] }
 
-            operation SWAP (q1 : Qubit, q2 : Qubit) : Unit
+            operation Foo (q : Qubit) : Unit
                 is Adj + Ctl {
 
                 body (...) {
-                    CNOT(q1, q2);
-                    CNOT(q2, q1);
-                    CNOT(q1, q2);
+                    X(q);
                 }
 
                 adjoint (...) {
-                    SWAP(q1, q2);
+                    Y(q);
                 }
 
                 controlled (cs, ...) {
-                    CNOT(q1, q2);
-                    Controlled CNOT(cs, (q2, q1));
-                    CNOT(q1, q2);
                 }
             }
         }",
@@ -448,13 +497,12 @@ fn adjoint_operation() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Adjoint Test.SWAP".into()))
+        .circuit(CircuitEntryPoint::Operation("Adjoint Test.Foo".into()))
         .expect("circuit generation should succeed");
 
-    expect![[r"
-        q_0    ── ● ──── X ──── ● ──
-        q_1    ── X ──── ● ──── X ──
-    "]]
+    expect![[r#"
+        q_0    ── Y ──
+    "#]]
     .assert_eq(&circ.to_string());
 }
 
