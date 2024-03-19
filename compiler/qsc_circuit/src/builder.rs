@@ -335,14 +335,7 @@ fn gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
         is_adjoint: false,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -355,14 +348,7 @@ fn adjoint_gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operati
         is_adjoint: true,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -378,22 +364,8 @@ fn controlled_gate<const M: usize, const N: usize>(
         is_controlled: true,
         is_adjoint: false,
         is_measurement: false,
-        controls: controls
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        controls: controls.iter().map(|q| Register::quantum(q.0)).collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -405,16 +377,8 @@ fn measurement_gate(qubit: usize, result: usize) -> Operation {
         is_controlled: false,
         is_adjoint: false,
         is_measurement: true,
-        controls: vec![Register {
-            r#type: 0,
-            q_id: qubit,
-            c_id: None,
-        }],
-        targets: vec![Register {
-            r#type: 1,
-            q_id: qubit,
-            c_id: Some(result),
-        }],
+        controls: vec![Register::quantum(qubit)],
+        targets: vec![Register::classical(qubit, result)],
         children: vec![],
     }
 }
@@ -427,14 +391,7 @@ fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [HardwareId; N
         is_adjoint: false,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -447,14 +404,7 @@ fn custom_gate(name: &str, targets: &[HardwareId], display_args: Option<String>)
         is_adjoint: false,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }

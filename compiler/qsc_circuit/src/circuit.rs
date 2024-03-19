@@ -36,14 +36,35 @@ pub struct Operation {
     pub children: Vec<Operation>,
 }
 
+static QUANTUM_REGISTER: usize = 0;
+static CLASSICAL_REGISTER: usize = 1;
+
 #[derive(Serialize, Debug, Eq, Hash, PartialEq, Clone)]
 pub struct Register {
     #[serde(rename = "qId")]
     pub q_id: usize,
-    pub r#type: usize, // 0: quantum, 1: classical
+    pub r#type: usize,
     #[serde(rename = "cId")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub c_id: Option<usize>,
+}
+
+impl Register {
+    pub fn quantum(q_id: usize) -> Self {
+        Self {
+            q_id,
+            r#type: QUANTUM_REGISTER,
+            c_id: None,
+        }
+    }
+
+    pub fn classical(q_id: usize, c_id: usize) -> Self {
+        Self {
+            q_id,
+            r#type: CLASSICAL_REGISTER,
+            c_id: Some(c_id),
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Serialize, Debug)]
@@ -235,7 +256,7 @@ impl Display for Circuit {
                 .targets
                 .iter()
                 .filter_map(|reg| {
-                    let reg = (reg.q_id, if reg.r#type == 0 { None } else { reg.c_id });
+                    let reg = (reg.q_id, reg.c_id);
                     register_to_row.get(&reg)
                 })
                 .collect::<Vec<_>>();
@@ -245,7 +266,7 @@ impl Display for Circuit {
                 .controls
                 .iter()
                 .filter_map(|reg| {
-                    let reg = (reg.q_id, if reg.r#type == 0 { None } else { reg.c_id });
+                    let reg = (reg.q_id, reg.c_id);
                     register_to_row.get(&reg)
                 })
                 .collect::<Vec<_>>();
@@ -369,11 +390,7 @@ mod tests {
                     is_adjoint: false,
                     is_measurement: false,
                     controls: vec![],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
+                    targets: vec![Register::quantum(0)],
                     children: vec![],
                 },
                 Operation {
@@ -382,16 +399,8 @@ mod tests {
                     is_controlled: true,
                     is_adjoint: false,
                     is_measurement: false,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 1,
-                        r#type: 0,
-                        c_id: None,
-                    }],
+                    controls: vec![Register::quantum(0)],
+                    targets: vec![Register::quantum(1)],
                     children: vec![],
                 },
                 Operation {
@@ -400,16 +409,8 @@ mod tests {
                     is_controlled: false,
                     is_adjoint: false,
                     is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
+                    controls: vec![Register::quantum(0)],
+                    targets: vec![Register::classical(0, 0)],
                     children: vec![],
                 },
                 Operation {
@@ -418,16 +419,8 @@ mod tests {
                     is_controlled: false,
                     is_adjoint: false,
                     is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 1,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 1,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
+                    controls: vec![Register::quantum(1)],
+                    targets: vec![Register::classical(1, 0)],
                     children: vec![],
                 },
             ],
@@ -462,16 +455,8 @@ mod tests {
                     is_controlled: false,
                     is_adjoint: false,
                     is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
+                    controls: vec![Register::quantum(0)],
+                    targets: vec![Register::classical(0, 0)],
                     children: vec![],
                 },
                 Operation {
@@ -480,16 +465,8 @@ mod tests {
                     is_controlled: true,
                     is_adjoint: false,
                     is_measurement: false,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
-                    targets: vec![Register {
-                        q_id: 2,
-                        r#type: 0,
-                        c_id: None,
-                    }],
+                    controls: vec![Register::classical(0, 0)],
+                    targets: vec![Register::quantum(2)],
                     children: vec![],
                 },
                 Operation {
@@ -498,16 +475,8 @@ mod tests {
                     is_controlled: true,
                     is_adjoint: false,
                     is_measurement: false,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 2,
-                        r#type: 0,
-                        c_id: None,
-                    }],
+                    controls: vec![Register::quantum(0)],
+                    targets: vec![Register::quantum(2)],
                     children: vec![],
                 },
             ],
@@ -546,16 +515,8 @@ mod tests {
                     is_controlled: false,
                     is_adjoint: false,
                     is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
+                    controls: vec![Register::quantum(0)],
+                    targets: vec![Register::classical(0, 0)],
                     children: vec![],
                 },
                 Operation {
@@ -564,16 +525,8 @@ mod tests {
                     is_controlled: false,
                     is_adjoint: false,
                     is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(1),
-                    }],
+                    controls: vec![Register::quantum(0)],
+                    targets: vec![Register::classical(0, 1)],
                     children: vec![],
                 },
             ],
@@ -601,11 +554,7 @@ mod tests {
                 is_adjoint: false,
                 is_measurement: false,
                 controls: vec![],
-                targets: vec![Register {
-                    q_id: 0,
-                    r#type: 0,
-                    c_id: None,
-                }],
+                targets: vec![Register::quantum(0)],
                 children: vec![],
             }],
             qubits: vec![Qubit {
@@ -632,18 +581,7 @@ mod tests {
                 is_adjoint: false,
                 is_measurement: false,
                 controls: vec![],
-                targets: vec![
-                    Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    },
-                    Register {
-                        q_id: 2,
-                        r#type: 0,
-                        c_id: None,
-                    },
-                ],
+                targets: vec![Register::quantum(0), Register::quantum(2)],
                 children: vec![],
             }],
             qubits: vec![
