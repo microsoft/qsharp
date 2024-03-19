@@ -184,12 +184,12 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 
   // format document
   const isFormattingEnabled = getEnableFormating();
-  const formatterEvent = {
-    event: undefined as vscode.Disposable | undefined,
+  const formatterHandle = {
+    handle: undefined as vscode.Disposable | undefined,
   };
   log.debug("Enable formatting set to: " + isFormattingEnabled);
   if (isFormattingEnabled) {
-    formatterEvent.event =
+    formatterHandle.handle =
       vscode.languages.registerDocumentFormattingEditProvider(
         qsharpLanguageId,
         createFormatProvider(languageService),
@@ -198,7 +198,7 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
 
   // synchronize configuration
   subscriptions.push(
-    registerConfigurationChangeHandlers(languageService, formatterEvent),
+    registerConfigurationChangeHandlers(languageService, formatterHandle),
   );
 
   // completions
@@ -285,18 +285,18 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
 
 async function updateLanguageServiceEnableFormatting(
   languageService: ILanguageService,
-  formatterEvent: any,
+  formatterHandle: any,
 ) {
   const isFormattingEnabled = getEnableFormating();
   log.debug("Enable formatting set to: " + isFormattingEnabled);
   if (isFormattingEnabled) {
-    formatterEvent.event =
+    formatterHandle.handle =
       vscode.languages.registerDocumentFormattingEditProvider(
         qsharpLanguageId,
         createFormatProvider(languageService),
       );
   } else {
-    formatterEvent.event?.dispose();
+    formatterHandle.handle?.dispose();
   }
 }
 
@@ -322,13 +322,13 @@ async function loadLanguageService(baseUri: vscode.Uri) {
 
 function registerConfigurationChangeHandlers(
   languageService: ILanguageService,
-  formatterEvent: any,
+  formatterHandle: any,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("Q#.targetProfile")) {
       updateLanguageServiceProfile(languageService);
     } else if (event.affectsConfiguration("Q#.enableFormatting")) {
-      updateLanguageServiceEnableFormatting(languageService, formatterEvent);
+      updateLanguageServiceEnableFormatting(languageService, formatterHandle);
     }
   });
 }

@@ -24,7 +24,19 @@ class QSharpFormatProvider implements vscode.DocumentFormattingEditProvider {
       document.uri.toString(),
     );
 
-    if (!lsEdits) return [];
+    if (!lsEdits) {
+      // telemetry end format
+      sendTelemetryEvent(
+        EventType.FormatEnd,
+        { associationId },
+        {
+          timeToCompleteMs: performance.now() - start,
+          numberOfEdits: 0,
+        },
+      );
+      return [];
+    }
+
     const edits = lsEdits.map(
       (edit) => new vscode.TextEdit(toVscodeRange(edit.range), edit.newText),
     );
