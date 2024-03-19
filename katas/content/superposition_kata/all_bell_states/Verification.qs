@@ -21,16 +21,15 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         for index in 0 .. 3 {
+            Message($"Testing index = {index}...");            
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                 Kata.AllBellStates(_, index),
-                AllBellStates(_, index),
+                AllBellStates_Reference(_, index),
                 2) {
-                Message($"The test case for index = {index} did not pass.");
                 return false;
             }
         }
 
-        Message("Correct!");
         return true;
     }
 }
