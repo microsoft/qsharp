@@ -8,7 +8,6 @@ use super::{CompilationState, CompilationStateUpdater};
 use crate::protocol::{DiagnosticUpdate, NotebookMetadata, WorkspaceConfigurationUpdate};
 use expect_test::{expect, Expect};
 use qsc::{compile::ErrorKind, target::Profile, PackageType};
-use qsc_linter::LintConfig;
 use qsc_project::{EntryType, JSFileEntry, Manifest, ManifestDescriptor};
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, fmt::Write, future::ready, rc::Rc, sync::Arc};
@@ -1261,22 +1260,14 @@ async fn loading_lints_config_from_manifest() {
             [
                 file(
                     "qsharp.json",
-                    r#"{
-                        "lints": [
-                            {
-                                "lint": "divisionByZero",
-                                "level": "error"
-                            },
-                            {
-                                "lint": "needlessParens",
-                                "level": "warn"
-                            }
-                        ]
-                    }"#,
+                    r#"{ "lints": [{ "lint": "divisionByZero", "level": "error" }, { "lint": "needlessParens", "level": "error" }] }"#,
                 ),
                 dir(
                     "src",
-                    [file("this_file.qs", "// DISK CONTENTS\n namespace Foo { }")],
+                    [file(
+                        "this_file.qs",
+                        "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }",
+                    )],
                 ),
             ],
         )]
@@ -1285,16 +1276,11 @@ async fn loading_lints_config_from_manifest() {
     );
 
     let received_errors = RefCell::new(Vec::new());
-    let updater = new_updater_with_file_system(&received_errors, &fs);
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
 
-    // Load the manifest.
-    let manifest = updater
-        .load_manifest(&"project/src/this_file.qs".into())
-        .await
-        .expect("manifest should exist");
-
+    // Check the LintConfig.
     check_lints_config(
-        &manifest.lints,
+        &updater,
         &expect![[r#"
             [
                 LintConfig {
@@ -1307,9 +1293,49 @@ async fn loading_lints_config_from_manifest() {
                     kind: Ast(
                         NeedlessParens,
                     ),
-                    level: Warn,
+                    level: Error,
                 },
             ]"#]],
+    )
+    .await;
+
+    updater
+        .update_document(
+            "project/src/this_file.qs",
+            1,
+            "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }",
+        )
+        .await;
+
+    // Check generated lints.
+    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    check_lints(
+        lints,
+        &expect![[r#"
+        [
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 58,
+                        hi: 65,
+                    },
+                    level: Error,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
+                },
+            ),
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 50,
+                        hi: 55,
+                    },
+                    level: Error,
+                    message: "attempt to divide by zero",
+                    help: "division by zero is not allowed",
+                },
+            ),
+        ]"#]],
     );
 }
 
@@ -1417,8 +1443,19 @@ fn check_state(
 }
 
 /// Checks that the lints config is being loaded from the qsharp.json manifest
-fn check_lints_config(lints_config: &[LintConfig], expected_config: &Expect) {
+async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_config: &Expect) {
+    let manifest = updater
+        .load_manifest(&"project/src/this_file.qs".into())
+        .await
+        .expect("manifest should exist");
+
+    let lints_config = manifest.lints;
+
     expected_config.assert_eq(&format!("{lints_config:#?}"));
+}
+
+fn check_lints(lints: &[ErrorKind], expected_lints: &Expect) {
+    expected_lints.assert_eq(&format!("{lints:#?}"));
 }
 
 thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
