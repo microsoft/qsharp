@@ -266,18 +266,17 @@ pub struct GlobalScope {
 }
 
 impl GlobalScope {
-    fn get(&self, kind: NameKind, namespace: &str, name: &str) -> Option<&Res> {
-        let namespaces = match kind {
-            NameKind::Ty => &self.tys,
-            NameKind::Term => &self.terms,
-        };
-        namespaces.get(namespace).and_then(|items| items.get(name))
+    fn get(&self, kind: NameKind, namespace: &[Rc<str>], name: &str) -> Option<&Res> {
+        todo!("resolve Vec<Rc<str>> to namespace id")
+        // let namespaces = match kind {
+        //     NameKind::Ty => &self.tys,
+        //     NameKind::Term => &self.terms,
+        // };
+        // namespaces.get(namespace).and_then(|items| items.get(name))
     }
 
     fn insert_namespace(&mut self, name: VecIdent) -> NamespaceId {
-        let id = self.namespaces.len();
-        self.namespaces.insert(id, name.into());
-        NamespaceId::new(id)
+       todo!("store namespace in nested fashion");
     }
 }
 
@@ -440,7 +439,7 @@ impl Resolver {
                     {
                         self.errors.push(Error::NotAvailable(
                             name,
-                            format!("{}.{}", dropped_name.namespace.into_iter().collect::<Vec<_>>().join("."), dropped_name.name),
+                            format!("{}.{}", dropped_name.namespace.iter().map(|x| x.to_string()).collect::<Vec<_>>().join("."), dropped_name.name),
                             span,
                         ));
                     } else {
@@ -492,7 +491,7 @@ impl Resolver {
 
     fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<Box<ast::Ident>>) {
         let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-        if self.globals.namespaces.contains(&name.into()) {
+        if self.globals.namespaces.contains(todo!("refactor this contains method to do a nested lookup")) {
             self.current_scope_mut()
                 .opens
                 .entry(alias)
@@ -620,7 +619,7 @@ impl With<'_> {
 
 impl AstVisitor<'_> for With<'_> {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let kind = ScopeKind::Namespace(namespace.name.into());
+        let kind = ScopeKind::Namespace(namespace.name.clone().into());
         self.with_scope(namespace.span, kind, |visitor| {
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
@@ -807,7 +806,6 @@ impl GlobalTable {
             match node {
                 // if a namespace is nested, create child namespaces
                 TopLevelNode::Namespace(namespace) => {
-                    let mut parent = self.scope;
                     for namespace in namespace.name.iter() {
                         todo!("add nested namespaces here")
                         // self.names.insert(
@@ -867,7 +865,8 @@ impl GlobalTable {
                     }
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
-                    let namespace_id = self.scope.insert_namespace(global.name);
+                    todo!("insert the namespace into the global scope")
+                    // let namespace_id = self.scope.insert(global.name);
                 }
                 (_, hir::Visibility::Internal) => {}
             }
@@ -882,17 +881,18 @@ fn bind_global_items(
     assigner: &mut Assigner,
     errors: &mut Vec<Error>,
 ) {
-    names.insert(
-        namespace.name.id,
-        Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
-    );
-    let namespace_id = scope.insert_namespace(Rc::clone(&namespace.name.name));
+    todo!("what is going on below?");
+    // names.insert(
+    //     namespace.name.id,
+    //     Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
+    // );
+    let namespace_id = scope.insert_namespace(namespace.name);
 
     for item in &*namespace.items {
         match bind_global_item(
             names,
             scope,
-            &namespace.name.name,
+            namespace_id,
             || intrapackage(assigner.next_item()),
             item,
         ) {
@@ -947,7 +947,7 @@ fn ast_attrs_as_hir_attrs(attrs: &[Box<ast::Attr>]) -> Vec<hir::Attr> {
 fn bind_global_item(
     names: &mut Names,
     scope: &mut GlobalScope,
-    namespace: &Rc<str>,
+    namespace: NamespaceId,
     next_id: impl FnOnce() -> ItemId,
     item: &ast::Item,
 ) -> Result<(), Vec<Error>> {
@@ -960,7 +960,7 @@ fn bind_global_item(
             let mut errors = Vec::new();
             match scope
                 .terms
-                .entry(Rc::clone(namespace))
+                .entry(todo!("refactor this to use namespace id"))
                 .or_default()
                 .entry(Rc::clone(&decl.name.name))
             {
@@ -995,12 +995,12 @@ fn bind_global_item(
             match (
                 scope
                     .terms
-                    .entry(Rc::clone(namespace))
+                    .entry(todo!("refactor this API to take namespace IDs"))
                     .or_default()
                     .entry(Rc::clone(&name.name)),
                 scope
                     .tys
-                    .entry(Rc::clone(namespace))
+                    .entry(todo!("refactor this API to take namespace IDs"))
                     .or_default()
                     .entry(Rc::clone(&name.name)),
             ) {
@@ -1041,7 +1041,9 @@ fn resolve<'a>(
     let mut candidates = FxHashMap::default();
     let mut vars = true;
     let name_str = &(*name.name);
-    let namespace = namespace.as_ref().map_or("", |i| &i.name);
+    let namespace: &str = todo!("delete this");
+    todo!("resolve Vec<Rc<str>> to namespace id -- copilot suggestion. We need to handle nested resolve logic here");
+    // let namespace = namespace.as_ref().map_or("", |i| &i.name);
     dbg!(&"checking namespace", namespace);
     for scope in scopes {
         if namespace.is_empty() {
@@ -1093,7 +1095,7 @@ fn resolve<'a>(
     }
 
     if candidates.is_empty() {
-        if let Some(&res) = globals.get(kind, namespace, name_str) {
+        if let Some(&res) = globals.get(kind, todo!("should be able to pass namespace id in here"), name_str) {
             // An unopened global is the last resort.
             return Ok(res);
         }
@@ -1119,8 +1121,8 @@ fn resolve<'a>(
         opens.sort_unstable_by_key(|open| open.span);
         Err(Error::Ambiguous {
             name: name_str.to_string(),
-            first_open: opens[0].namespace.to_string(),
-            second_open: opens[1].namespace.to_string(),
+            first_open: opens[0].namespace.join("."),
+            second_open: opens[1].namespace.join("."),
             name_span: name.span,
             first_open_span: opens[0].span,
             second_open_span: opens[1].span,
@@ -1220,7 +1222,7 @@ fn resolve_implicit_opens<'a, 'b>(
 ) -> FxHashMap<Res, &'a str> {
     let mut candidates = FxHashMap::default();
     for namespace in namespaces {
-        if let Some(&res) = globals.get(kind, namespace, name) {
+        if let Some(&res) = globals.get(kind, todo!("this should become namespace id"), name) {
             candidates.insert(res, *namespace);
         }
     }
