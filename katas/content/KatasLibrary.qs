@@ -142,7 +142,7 @@ namespace Microsoft.Quantum.Katas {
         Adjoint op(targetRegister);
     }
 
-        /// # Summary
+    /// # Summary
     /// Shows the comparison of the quantum state between a specific operation and a reference operation.
     operation ShowQuantumStateComparisonWithIndex(
         targetRegister : Qubit[],
