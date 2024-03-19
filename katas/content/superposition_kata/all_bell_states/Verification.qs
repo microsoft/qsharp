@@ -21,7 +21,7 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         for index in 0 .. 3 {
-            if not CheckOperationsEquivalenceOnZeroStateAndIndexWithFeedback(
+            if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                 Kata.AllBellStates,
                 AllBellStates_Reference,
                 2,
