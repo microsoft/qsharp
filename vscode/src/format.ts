@@ -4,7 +4,7 @@
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
 import { toVscodeRange } from "./common";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import { EventType, FormatEvent, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 
 export function createFormattingProvider(languageService: ILanguageService) {
@@ -20,11 +20,16 @@ class QSharpFormattingProvider
 
   private async getFormatChanges(
     document: vscode.TextDocument,
+    eventKind: FormatEvent,
     range?: vscode.Range,
   ) {
     // telemetry start format
     const associationId = getRandomGuid();
-    sendTelemetryEvent(EventType.FormatStart, { associationId }, {});
+    sendTelemetryEvent(
+      EventType.FormatStart,
+      { associationId, event: eventKind },
+      {},
+    );
     const start = performance.now();
 
     const lsEdits = await this.languageService.getFormatChanges(
@@ -68,14 +73,14 @@ class QSharpFormattingProvider
     return edits;
   }
 
+  async provideDocumentFormattingEdits(document: vscode.TextDocument) {
+    return await this.getFormatChanges(document, FormatEvent.OnDocument);
+  }
+
   async provideDocumentRangeFormattingEdits(
     document: vscode.TextDocument,
     range: vscode.Range,
   ) {
-    return await this.getFormatChanges(document, range);
-  }
-
-  async provideDocumentFormattingEdits(document: vscode.TextDocument) {
-    return await this.getFormatChanges(document);
+    return await this.getFormatChanges(document, FormatEvent.OnRange, range);
   }
 }
