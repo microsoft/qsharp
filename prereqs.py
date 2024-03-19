@@ -200,7 +200,7 @@ def check_prereqs(install=False):
             cmake_major == cmake_ver[0] and cmake_minor < cmake_ver[1]
         ):
             print(
-                f"CMake v{cmake_ver[0]}.{cmake_ver[1]} or later is required. Please update to Latest Release from https://cmake.org/download/"
+                f"CMake v{cmake_ver[0]}.{cmake_ver[1]} or later is required. Please update to the latest release (rather than RC) from https://cmake.org/download/"
             )
             exit(1)
     else:
