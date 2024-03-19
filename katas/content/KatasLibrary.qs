@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
-        /// # Summary
+    /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits with a given index. If they don't, prints user feedback.
     operation CheckOperationsEquivalenceOnZeroStateAndIndexWithFeedback(
