@@ -7,6 +7,7 @@ import { log } from "qsharp-lang";
 import { EventType, sendTelemetryEvent, UserFlowStatus } from "../telemetry";
 import { getRandomGuid } from "../utils";
 import { azureRequest, AzureUris, ResponseTypes } from "./networkRequests";
+import { EndEventProperties } from "./workspaceActions";
 
 export const scopes = {
   armMgmt: "https://management.azure.com/user_impersonation",
@@ -56,24 +57,18 @@ export async function getAuthSession(
 }
 
 export async function getTenantIdAndToken(
-  associationId: string,
-  start: number,
+  endEventProperties: EndEventProperties,
 ) {
+  const associationId = endEventProperties.associationId;
+
   // For the MSA case, you need to query the tenants first and get the underlying AzureAD
   // tenant for the 'guest' MSA. See https://stackoverflow.microsoft.com/a/76246/108570
   const firstAuth = await getAuthSession([scopes.armMgmt], associationId);
 
   if (!firstAuth) {
     log.error("No authentication session returned");
-    sendTelemetryEvent(
-      EventType.QueryWorkspacesEnd,
-      {
-        associationId,
-        reason: "no auth session returned",
-        flowStatus: UserFlowStatus.Failed,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
+    endEventProperties.reason = "no auth session returned";
+    endEventProperties.flowStatus = UserFlowStatus.Failed;
     vscode.window.showErrorMessage(
       "Authentication failed or permission was denied",
     );
@@ -90,15 +85,8 @@ export async function getTenantIdAndToken(
   log.trace(`Got tenants: ${JSON.stringify(tenants, null, 2)}`);
   if (!tenants?.value?.length) {
     log.error("No tenants returned");
-    sendTelemetryEvent(
-      EventType.QueryWorkspacesEnd,
-      {
-        associationId,
-        reason: "no tenants exist for account",
-        flowStatus: UserFlowStatus.Failed,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
+    endEventProperties.reason = "no tenants exist for account";
+    endEventProperties.flowStatus = UserFlowStatus.Failed;
     vscode.window.showErrorMessage(
       "There a no tenants listed for the account. Ensure the account has an Azure subscription.",
     );
@@ -116,15 +104,8 @@ export async function getTenantIdAndToken(
       title: "Select a tenant",
     });
     if (!choice) {
-      sendTelemetryEvent(
-        EventType.QueryWorkspacesEnd,
-        {
-          associationId,
-          reason: "aborted tenant choice",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        { timeToCompleteMs: performance.now() - start },
-      );
+      endEventProperties.reason = "aborted tenant choice";
+      endEventProperties.flowStatus = UserFlowStatus.Aborted;
       return;
     }
     tenantId = choice.detail;
@@ -142,15 +123,9 @@ export async function getTenantIdAndToken(
       associationId,
     );
     if (!tenantAuth) {
-      sendTelemetryEvent(
-        EventType.QueryWorkspacesEnd,
-        {
-          associationId,
-          reason: "authentication session did not return",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        { timeToCompleteMs: performance.now() - start },
-      );
+      endEventProperties.reason =
+        "authentication session did not return a value";
+      endEventProperties.flowStatus = UserFlowStatus.Aborted;
       // The user may have cancelled the login
       log.debug("No AAD authentication session returned during 2nd auth");
       vscode.window.showErrorMessage(

@@ -26,6 +26,58 @@ export function getAzurePortalWorkspaceLink(workspace: WorkspaceConnection) {
   return `https://portal.azure.com/#resource${workspace.id}/overview`;
 }
 
+export type EndEventProperties = {
+  associationId: string;
+  reason: string;
+  flowStatus: UserFlowStatus;
+};
+
+export async function queryWorkspaces(): Promise<
+  WorkspaceConnection | undefined
+> {
+  log.debug("Querying for account workspaces");
+
+  // Show a quick-pick to ask if they want to connect via AzureAD or a connection string
+  const choice = await vscode.window.showQuickPick(
+    [
+      { label: "Azure account", type: "aad" },
+      { label: "Connection string", type: "connStr" },
+    ],
+    { canPickMany: false, title: "Select an authentication method" },
+  );
+  if (!choice?.type) return;
+
+  const start = performance.now();
+  const associationId = getRandomGuid();
+  const endEventProperties: EndEventProperties = {
+    associationId,
+    reason: "",
+    flowStatus: UserFlowStatus.Succeeded,
+  };
+
+  sendTelemetryEvent(EventType.QueryWorkspaceStart, { associationId }, {});
+  try {
+    switch (choice?.type) {
+      case "connStr":
+        endEventProperties.reason = "Queried via connection string";
+        return await getWorkspaceWithConnectionString(endEventProperties);
+      case "aad":
+        endEventProperties.reason = "Queried via AzureAD";
+        return await getWorkspaceWithAzureAD(endEventProperties);
+      default:
+        throw Error("Unexpected connection type");
+    }
+  } catch (e: any) {
+    // Handle exceptions in Azure requests, etc.
+    endEventProperties.reason = e.message || "Unexpected exception occurred";
+    endEventProperties.flowStatus = UserFlowStatus.Failed;
+  } finally {
+    sendTelemetryEvent(EventType.QueryWorkspaceEnd, endEventProperties, {
+      timeToCompleteMs: performance.now() - start,
+    });
+  }
+}
+
 export function getPythonCodeForWorkspace(
   id: string,
   endpointUri: string,
@@ -70,17 +122,20 @@ workspace = azure.quantum.Workspace(
   return pythonCode;
 }
 
-async function getWorkspaceWithConnectionString(): Promise<
-  WorkspaceConnection | undefined
-> {
-  // TODO: Telemetry
+async function getWorkspaceWithConnectionString(
+  endEventProperties: EndEventProperties,
+): Promise<WorkspaceConnection | undefined> {
   for (;;) {
     const connStr = await vscode.window.showInputBox({
       prompt: "Enter the connection string",
       placeHolder:
         "SubscriptionId=<guid>;ResourceGroupName=<name>;WorkspaceName=<name>;ApiKey=<secret>;QuantumEndpoint=<serviceUri>;",
     });
-    if (!connStr) return;
+    if (!connStr) {
+      endEventProperties.reason = "no connection string entered";
+      endEventProperties.flowStatus = UserFlowStatus.Aborted;
+      return;
+    }
 
     const partsMap = new Map<string, string>();
     connStr.split(";").forEach((part) => {
@@ -104,6 +159,8 @@ async function getWorkspaceWithConnectionString(): Promise<
       if (action === "Retry") {
         continue;
       } else {
+        endEventProperties.reason = "invalid connection string entered";
+        endEventProperties.flowStatus = UserFlowStatus.Aborted;
         return;
       }
     }
@@ -132,7 +189,10 @@ async function getWorkspaceWithConnectionString(): Promise<
       const associationId = getRandomGuid();
       const providerStatus: ResponseTypes.ProviderStatusList =
         await azureRequest(quantumUris.providerStatus(), token, associationId);
-      if (!providerStatus.value?.length) throw Error("No providers returned");
+      if (!providerStatus.value?.length) {
+        // There should always be providers, so this is an exceptional condition
+        throw Error("No providers returned");
+      }
     } catch (e: any) {
       log.debug("Workspace connection error", e);
       // e.g. check for 401 (invalid key), 404 (invalid workspace), failed network requests (invalid endpoint), etc.
@@ -156,6 +216,8 @@ async function getWorkspaceWithConnectionString(): Promise<
       if (action === "Retry") {
         continue;
       } else {
+        endEventProperties.reason = errorText;
+        endEventProperties.flowStatus = UserFlowStatus.Aborted;
         return;
       }
     }
@@ -166,30 +228,22 @@ async function getWorkspaceWithConnectionString(): Promise<
 
 async function chooseWorkspaceFromSubscription(
   subId: string,
-  associationId: string,
   token: string,
-  start: number,
+  endEventProperties: EndEventProperties,
 ) {
   // *** Fetch the Quantum Workspaces in the subscription ***
   const workspaces: ResponseTypes.WorkspaceList = await azureRequest(
     AzureUris.workspaces(subId),
     token,
-    associationId,
+    endEventProperties.associationId,
   );
   if (log.getLogLevel() >= 5) {
     log.trace(`Got workspaces: ${JSON.stringify(workspaces, null, 2)}`);
   }
   if (!workspaces.value.length) {
     log.info("No workspaces returned for the subscription");
-    sendTelemetryEvent(
-      EventType.QueryWorkspacesEnd,
-      {
-        associationId,
-        reason: "no quantum workspaces in azure subscription",
-        flowStatus: UserFlowStatus.Aborted,
-      },
-      { timeToCompleteMs: performance.now() - start },
-    );
+    endEventProperties.reason = "no quantum workspaces in azure subscription";
+    endEventProperties.flowStatus = UserFlowStatus.Aborted;
     vscode.window.showErrorMessage(
       "No Quantum Workspaces found in the Azure subscription",
     );
@@ -211,15 +265,8 @@ async function chooseWorkspaceFromSubscription(
       title: "Select a workspace",
     });
     if (!choice) {
-      sendTelemetryEvent(
-        EventType.QueryWorkspacesEnd,
-        {
-          associationId,
-          reason: "aborted workspace selection",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        { timeToCompleteMs: performance.now() - start },
-      );
+      endEventProperties.reason = "aborted workspace selection";
+      endEventProperties.flowStatus = UserFlowStatus.Aborted;
       return;
     }
     workspace = choice.selection;
@@ -229,13 +276,12 @@ async function chooseWorkspaceFromSubscription(
 
 async function chooseSubscriptionFromTenant(
   tenantToken: string,
-  associationId: string,
-  start: number,
+  endEventProperties: EndEventProperties,
 ) {
   const subs: ResponseTypes.SubscriptionList = await azureRequest(
     AzureUris.subscriptions(),
     tenantToken,
-    associationId,
+    endEventProperties.associationId,
   );
   log.trace(`Got subscriptions: ${JSON.stringify(subs, null, 2)}`);
   if (!subs?.value?.length) {
@@ -243,6 +289,8 @@ async function chooseSubscriptionFromTenant(
     vscode.window.showErrorMessage(
       "No Azure subscriptions found for the account and tenant",
     );
+    endEventProperties.reason = "no subscriptions found";
+    endEventProperties.flowStatus = UserFlowStatus.Failed;
     return;
   }
 
@@ -258,15 +306,8 @@ async function chooseSubscriptionFromTenant(
     });
     if (!choice) {
       // User probably cancelled
-      sendTelemetryEvent(
-        EventType.QueryWorkspacesEnd,
-        {
-          associationId,
-          reason: "aborted subscription choice",
-          flowStatus: UserFlowStatus.Aborted,
-        },
-        { timeToCompleteMs: performance.now() - start },
-      );
+      endEventProperties.reason = "aborted subscription choice";
+      endEventProperties.flowStatus = UserFlowStatus.Aborted;
       return;
     }
     subId = choice.detail;
@@ -274,29 +315,23 @@ async function chooseSubscriptionFromTenant(
   return subId;
 }
 
-async function getWorkspaceWithAzureAD(): Promise<
-  WorkspaceConnection | undefined
-> {
-  const associationId = getRandomGuid();
-  const start = performance.now();
-  sendTelemetryEvent(EventType.QueryWorkspacesStart, { associationId }, {});
-
+async function getWorkspaceWithAzureAD(
+  endEventProperties: EndEventProperties,
+): Promise<WorkspaceConnection | undefined> {
   // *** Authenticate and retrieve tenants the user has Azure resources for ***
-  const tenantAuth = await getTenantIdAndToken(associationId, start);
+  const tenantAuth = await getTenantIdAndToken(endEventProperties);
   if (!tenantAuth) return;
 
   const subscriptionId = await chooseSubscriptionFromTenant(
     tenantAuth.tenantToken,
-    associationId,
-    start,
+    endEventProperties,
   );
   if (!subscriptionId) return;
 
   const workspace = await chooseWorkspaceFromSubscription(
     subscriptionId,
-    associationId,
     tenantAuth.tenantToken,
-    start,
+    endEventProperties,
   );
   if (!workspace) return;
 
@@ -320,30 +355,6 @@ async function getWorkspaceWithAzureAD(): Promise<
   }
 
   return result;
-}
-
-export async function queryWorkspaces(): Promise<
-  WorkspaceConnection | undefined
-> {
-  log.debug("Querying for account workspaces");
-
-  // Show a quick-pick to ask if they want to connect via AzureAD or a connection string
-  const choice = await vscode.window.showQuickPick(
-    [
-      { label: "Azure account", type: "aad" },
-      { label: "Connection string", type: "connStr" },
-    ],
-    { canPickMany: false, title: "Select an authentication method" },
-  );
-
-  switch (choice?.type) {
-    case "connStr":
-      return await getWorkspaceWithConnectionString();
-    case "aad":
-      return await getWorkspaceWithAzureAD();
-    default:
-      return;
-  }
 }
 
 // Reference for existing queries in Python SDK and Azure schema:
