@@ -64,24 +64,6 @@ namespace Microsoft.Quantum.Katas {
 
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
-    /// `inputSize` qubits, with a given index.
-    operation CheckOperationsEquivalenceOnZeroStateAndIndex(
-        op : ((Qubit[], Int) => Unit),
-        reference : ((Qubit[], Int) => Unit is Adj),
-        inputSize : Int,
-        index : Int)
-    : Bool {
-        Fact(inputSize > 0, "`inputSize` must be positive");
-        use target = Qubit[inputSize];
-        op(target, index);
-        Adjoint reference(target, index);
-        let isCorrect = CheckAllZero(target);
-        ResetAll(target);
-        isCorrect
-    }    
-
-    /// # Summary
-    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits.
     /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
     /// it.
@@ -142,30 +124,6 @@ namespace Microsoft.Quantum.Katas {
         Adjoint op(targetRegister);
     }
 
-        /// # Summary
-    /// Shows the comparison of the quantum state between a specific operation and a reference operation.
-    operation ShowQuantumStateComparisonWithIndex(
-        targetRegister : Qubit[],
-        index : Int,
-        op : ((Qubit[], Int) => Unit is Adj + Ctl),
-        reference : ((Qubit[], Int) => Unit is Adj + Ctl))
-    : Unit {
-        Message("Initial quantum state:");
-        DumpMachine();
-
-        // Apply the reference operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        reference(targetRegister, index);
-        Message("Expected quantum state after applying the operation:");
-        DumpMachine();
-        Adjoint reference(targetRegister, index);
-
-        // Apply the specific operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        op(targetRegister, index);
-        Message("Actual quantum state after applying the operation:");
-        DumpMachine();
-        Adjoint op(targetRegister, index);
-    }
-
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits. If they don't, prints user feedback.
@@ -186,28 +144,6 @@ namespace Microsoft.Quantum.Katas {
             ShowQuantumStateComparison(target, testImpl, refImpl);
             ResetAll(target);
         }
-        isCorrect
-    }
-
-        /// # Summary
-    /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
-    /// `inputSize` qubits with a given index. If they don't, prints user feedback.
-    operation CheckOperationsEquivalenceOnZeroStateAndIndexWithFeedback(
-        testImpl : ((Qubit[], Int) => Unit is Adj + Ctl),
-        refImpl : ((Qubit[], Int) => Unit is Adj + Ctl),
-        inputSize : Int,
-        index : Int
-    ) : Bool {
-
-        let isCorrect = CheckOperationsEquivalenceOnZeroStateAndIndex(testImpl, refImpl, inputSize, index);
-
-        // Output different feedback to the user depending on whether the exercise was correct.
-        if not isCorrect {
-            use target = Qubit[inputSize];
-            ShowQuantumStateComparisonWithIndex(target, index, testImpl, refImpl);
-            ResetAll(target);
-        }
-        
         isCorrect
     }
 

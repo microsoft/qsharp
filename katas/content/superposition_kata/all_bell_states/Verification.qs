@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
-    operation AllBellStates (qs : Qubit[], index : Int) : Unit is Adj + Ctl {
+    operation AllBellStates_Reference (qs : Qubit[], index : Int) : Unit is Adj + Ctl {
         H(qs[0]);
         
         if index == 1 {
@@ -23,7 +23,7 @@ namespace Kata.Verification {
         for index in 0 .. 3 {
             if not CheckOperationsEquivalenceOnZeroStateAndIndexWithFeedback(
                 Kata.AllBellStates,
-                AllBellStates,
+                AllBellStates_Reference,
                 2,
                 index) {
                 Message("Incorrect");
