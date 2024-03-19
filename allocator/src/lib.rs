@@ -3,7 +3,7 @@
 
 #[cfg(all(
     not(target_family = "wasm"),
-    not(all(system = "windows", target_arch = "arm"))
+    not(all(system = "windows", target_arch = "aarch64"))
 ))]
 pub mod mimalloc;
 
@@ -13,7 +13,7 @@ macro_rules! assign_global {
     () => {
         #[cfg(all(
             not(target_family = "wasm"),
-            not(all(system = "windows", target_arch = "arm"))
+            not(all(system = "windows", target_arch = "aarch64"))
         ))]
         #[global_allocator]
         static GLOBAL: allocator::mimalloc::Mimalloc = allocator::mimalloc::Mimalloc;
