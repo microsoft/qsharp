@@ -40,6 +40,7 @@ export async function showCircuitCommand(
     timeout = true;
     sendTelemetryEvent(EventType.CircuitEnd, {
       associationId,
+      reason: "timeout",
       flowStatus: UserFlowStatus.Aborted,
     });
     log.info("terminating circuit worker due to timeout");
@@ -75,12 +76,6 @@ export async function showCircuitCommand(
       flowStatus: UserFlowStatus.Succeeded,
     });
   } catch (e: any) {
-    if (!timeout) {
-      sendTelemetryEvent(EventType.CircuitEnd, {
-        associationId,
-        flowStatus: UserFlowStatus.Failed,
-      });
-    }
     log.error("Circuit error. ", e.toString());
     clearTimeout(compilerTimeout);
 
@@ -89,6 +84,14 @@ export async function showCircuitCommand(
     let errorHtml = "There was an error generating the circuit.";
     if (errors) {
       errorHtml = errorsToHtml(errors);
+    }
+
+    if (!timeout) {
+      sendTelemetryEvent(EventType.CircuitEnd, {
+        associationId,
+        reason: errors && errors[0] ? errors[0][1].code : undefined,
+        flowStatus: UserFlowStatus.Failed,
+      });
     }
 
     const message = {
@@ -112,7 +115,20 @@ function errorsToHtml(errors: [string, VSDiagnostic][]): string {
       `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
     );
 
-    errorHtml += `<a href="${openCommandUri}">${uri.fsPath}</a>:${error[1].range.start.line}:${error[1].range.start.character}: ${error[1].message} (${error[1].code})<br/>`;
+    const fsPath = escapeHtml(uri.fsPath);
+    const errorText = escapeHtml(
+      `:${error[1].range.start.line}:${error[1].range.start.character}: ${error[1].message} (${error[1].code})`,
+    );
+    errorHtml += `<a href="${openCommandUri}">${fsPath}</a>${errorText}<br/>`;
   }
   return errorHtml;
+}
+
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }

@@ -36,7 +36,11 @@ export function CircuitPanel(props: {
         Tip: you can generate a circuit diagram for any operation that takes
         qubits or arrays of qubits as input.
       </div>
-      <div>{props.errorHtml ? <div>{props.errorHtml}</div> : null}</div>
+      <div>
+        {props.errorHtml ? (
+          <div dangerouslySetInnerHTML={{ __html: props.errorHtml }}></div>
+        ) : null}
+      </div>
     </div>
   );
 }

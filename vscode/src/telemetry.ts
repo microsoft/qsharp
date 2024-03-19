@@ -218,7 +218,11 @@ type EventTypes = {
     measurements: Empty;
   };
   [EventType.CircuitEnd]: {
-    properties: { associationId: string; flowStatus: UserFlowStatus };
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
     measurements: { timeToCompleteMs: number };
   };
 };

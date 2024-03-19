@@ -62,7 +62,9 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens | undefined {
       break;
     case "circuit":
       if (
-        !vscode.workspace.getConfiguration("Q#").get<boolean>("featureCircuits")
+        !vscode.workspace
+          .getConfiguration("Q#")
+          .get<boolean>("showCircuitCodeLens")
       ) {
         return undefined;
       }
