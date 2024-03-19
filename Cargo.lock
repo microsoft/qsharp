@@ -932,6 +932,7 @@ dependencies = [
  "qsc_doc_gen",
  "qsc_eval",
  "qsc_fir",
+ "qsc_formatter",
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
@@ -1021,6 +1022,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_formatter"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "indoc",
+ "qsc_data_structures",
+ "qsc_frontend",
+]
+
+[[package]]
 name = "qsc_frontend"
 version = "0.0.0"
 dependencies = [
@@ -1053,6 +1064,7 @@ version = "0.0.0"
 dependencies = [
  "enum-iterator",
  "expect-test",
+ "indoc",
  "miette",
  "num-bigint",
  "num-traits",
