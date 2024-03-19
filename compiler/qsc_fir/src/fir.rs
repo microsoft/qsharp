@@ -1075,8 +1075,7 @@ impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            ExprKind::Array(exprs) => display_array(indent, exprs)?,
-            ExprKind::ArrayLit(exprs) => display_array(indent, exprs)?,
+            ExprKind::Array(exprs) | ExprKind::ArrayLit(exprs) => display_array(indent, exprs)?,
             ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, *val, *size)?,
             ExprKind::Assign(lhs, rhs) => display_assign(indent, *lhs, *rhs)?,
             ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, *lhs, *rhs)?,
