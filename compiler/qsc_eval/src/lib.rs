@@ -980,7 +980,7 @@ impl State {
         let arr = self.pop_val().unwrap_array();
         match &index_val {
             Value::Int(i) => {
-                self.set_val_register(index_array(&arr, *i, self.to_global_span(span))?)
+                self.set_val_register(index_array(&arr, *i, self.to_global_span(span))?);
             }
             Value::Range(inner) => {
                 self.set_val_register(slice_array(
