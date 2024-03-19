@@ -1,7 +1,7 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
-    operation AllBellStates (qs : Qubit[], index : Int) : Unit is Adj + Ctl {
+    operation AllBellStates_Reference (qs : Qubit[], index : Int) : Unit is Adj + Ctl {
         H(qs[0]);
         
         if index == 1 {
