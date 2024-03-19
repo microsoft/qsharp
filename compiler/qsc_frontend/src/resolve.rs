@@ -280,18 +280,18 @@ pub struct NamespaceTreeRoot {
     tree: NamespaceTreeNode,
 }
 impl NamespaceTreeRoot {
-    fn insert_namespace(&mut self, name: VecIdent) -> NamespaceId {
+    fn insert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.assigner += 1;
         let id = self.assigner;
         let node = self.new_namespace_node(Default::default());
-        let mut components_iter = name.iter();
+        let mut components_iter = name.into().iter();
         // construct the initial rover for the breadth-first insertion
         // (this is like a BFS but we create a new node if one doesn't exist)
         let mut rover_node = &mut self.tree;
         // create the rest of the nodes
         for component in components_iter {
             rover_node = rover_node.children
-                .entry(components_iter.next().expect("can't create namespace with no names -- this is an internal invariant violation").name)
+                .entry(Rc::clone(components_iter.next().expect("can't create namespace with no names -- this is an internal invariant violation")))
                 .or_insert_with(|| self.new_namespace_node(Default::default()));
         }
 
@@ -308,8 +308,8 @@ impl NamespaceTreeRoot {
         }
     }
 
-    fn contains_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
-        self.tree.contains_namespace(ns)
+    fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+        self.tree.find_namespace(ns)
     }
 }
 impl Default for NamespaceTreeRoot {
@@ -335,9 +335,9 @@ impl NamespaceTreeNode {
     }
 
     fn contains(&self, ns: &VecIdent) -> bool {
-        self.contains_namespace(ns).is_some()
+        self.find_namespace(ns).is_some()
     }
-    fn contains_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+    fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
         // look up a namespace in the tree and return the id
         // do a breadth-first search through NamespaceTree for the namespace
         // if it's not found, return None
@@ -354,8 +354,8 @@ impl NamespaceTreeNode {
 }
 
 impl GlobalScope {
-    fn contains_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
-        self.namespaces.contains_namespace(ns)
+    fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+        self.namespaces.find_namespace(ns)
     }
 
     fn get(&self, kind: NameKind, namespace: &[Rc<str>], name: &str) -> Option<&Res> {
@@ -367,7 +367,9 @@ impl GlobalScope {
         // namespaces.get(namespace).and_then(|items| items.get(name))
     }
 
-    fn insert_namespace(&mut self, name: VecIdent) -> NamespaceId {
+    /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
+    /// item contents. This returns a [NamespaceId] which you can use to add more tys and terms to the scope.
+    fn insert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.namespaces.insert_namespace(name)
     }
 }
@@ -595,7 +597,7 @@ impl Resolver {
         if self
             .globals
             .namespaces
-            .contains(todo!("refactor this contains method to do a nested lookup"))
+            .find_namespace(&name).is_some()
         {
             self.current_scope_mut()
                 .opens
@@ -887,8 +889,12 @@ impl GlobalTable {
         for (name, res) in builtins {
             core.insert(name, res);
         }
-        let mut tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>> = FxHashMap::default();
-        tys.insert("Microsoft.Quantum.Core".into(), core);
+
+        let mut scope = GlobalScope::default();
+        let ns = scope.insert_namespace(vec![Rc::from("Microsoft"), Rc::from("Quantum"), Rc::from("Core")]);
+
+        let mut tys = FxHashMap::default();
+        tys.insert(ns, core);
 
         Self {
             names: IndexMap::new(),
