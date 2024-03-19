@@ -977,7 +977,6 @@ dependencies = [
  "expect-test",
  "miette",
  "serde",
- "thiserror",
 ]
 
 [[package]]
