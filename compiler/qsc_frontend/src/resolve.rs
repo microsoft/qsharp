@@ -6,7 +6,9 @@ mod tests;
 
 use miette::Diagnostic;
 use qsc_ast::{
-    ast::{self, CallableBody, CallableDecl, Ident, NodeId, SpecBody, SpecGen, TopLevelNode, VecIdent},
+    ast::{
+        self, CallableBody, CallableDecl, Ident, NodeId, SpecBody, SpecGen, TopLevelNode, VecIdent,
+    },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -17,7 +19,13 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{collections::hash_map::Entry, fmt::Display, rc::Rc, str::FromStr, vec};
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fmt::Display,
+    rc::Rc,
+    str::FromStr,
+    vec,
+};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -237,7 +245,7 @@ pub enum LocalKind {
 }
 
 /// An ID that corresponds to a namespace in the global scope.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Default)]
 pub struct NamespaceId(usize);
 impl NamespaceId {
     pub fn new(value: usize) -> Self {
@@ -253,19 +261,103 @@ impl Display for NamespaceId {
 
 #[derive(Debug, Clone, Default)]
 pub struct GlobalScope {
-    tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
-    terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Res>>,
+    tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    terms: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
     // this is basically an index map, where indices are used as
     // namespace ids
     // TODO maybe what we can do here is only store top-level namespaces here
     // and bury the rest in the hierarchy?
     // or, store the hierarchical structure right here on the below field,
     // and then map the namespace IDs to a vec of entries
-    namespaces: Vec<Rc<str>>,
+    namespaces: NamespaceTreeRoot,
     intrinsics: FxHashSet<Rc<str>>,
 }
 
+#[derive(Debug, Clone)]
+
+pub struct NamespaceTreeRoot {
+    assigner: usize,
+    tree: NamespaceTreeNode,
+}
+impl NamespaceTreeRoot {
+    fn insert_namespace(&mut self, name: VecIdent) -> NamespaceId {
+        self.assigner += 1;
+        let id = self.assigner;
+        let node = self.new_namespace_node(Default::default());
+        let mut components_iter = name.iter();
+        // construct the initial rover for the breadth-first insertion
+        // (this is like a BFS but we create a new node if one doesn't exist)
+        let mut rover_node = &mut self.tree;
+        // create the rest of the nodes
+        for component in components_iter {
+            rover_node = rover_node.children
+                .entry(components_iter.next().expect("can't create namespace with no names -- this is an internal invariant violation").name)
+                .or_insert_with(|| self.new_namespace_node(Default::default()));
+        }
+
+        rover_node.id
+    }
+    fn new_namespace_node(
+        &mut self,
+        children: HashMap<Rc<str>, NamespaceTreeNode>,
+    ) -> NamespaceTreeNode {
+        self.assigner += 1;
+        NamespaceTreeNode {
+            id: NamespaceId::new(self.assigner),
+            children,
+        }
+    }
+
+    fn contains_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+        self.tree.contains_namespace(ns)
+    }
+}
+impl Default for NamespaceTreeRoot {
+    fn default() -> Self {
+        Self {
+            assigner: 0,
+            tree: NamespaceTreeNode {
+                children: HashMap::new(),
+                id: NamespaceId::new(0),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NamespaceTreeNode {
+    children: HashMap<Rc<str>, NamespaceTreeNode>,
+    id: NamespaceId,
+}
+impl NamespaceTreeNode {
+    fn get(&self, component: &Ident) -> Option<&NamespaceTreeNode> {
+        self.children.get(&component.name)
+    }
+
+    fn contains(&self, ns: &VecIdent) -> bool {
+        self.contains_namespace(ns).is_some()
+    }
+    fn contains_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+        // look up a namespace in the tree and return the id
+        // do a breadth-first search through NamespaceTree for the namespace
+        // if it's not found, return None
+        let mut buf = Rc::new(self);
+        for component in ns.iter() {
+            if let Some(next_ns) = buf.get(component) {
+                buf = Rc::new(next_ns);
+            } else {
+                return None;
+            }
+        }
+        return Some(buf.id);
+    }
+}
+
 impl GlobalScope {
+    fn contains_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+        self.namespaces.contains_namespace(ns)
+    }
+
     fn get(&self, kind: NameKind, namespace: &[Rc<str>], name: &str) -> Option<&Res> {
         todo!("resolve Vec<Rc<str>> to namespace id")
         // let namespaces = match kind {
@@ -276,7 +368,7 @@ impl GlobalScope {
     }
 
     fn insert_namespace(&mut self, name: VecIdent) -> NamespaceId {
-       todo!("store namespace in nested fashion");
+        self.namespaces.insert_namespace(name)
     }
 }
 
@@ -439,7 +531,16 @@ impl Resolver {
                     {
                         self.errors.push(Error::NotAvailable(
                             name,
-                            format!("{}.{}", dropped_name.namespace.iter().map(|x| x.to_string()).collect::<Vec<_>>().join("."), dropped_name.name),
+                            format!(
+                                "{}.{}",
+                                dropped_name
+                                    .namespace
+                                    .iter()
+                                    .map(|x| x.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join("."),
+                                dropped_name.name
+                            ),
                             span,
                         ));
                     } else {
@@ -491,7 +592,11 @@ impl Resolver {
 
     fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<Box<ast::Ident>>) {
         let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-        if self.globals.namespaces.contains(todo!("refactor this contains method to do a nested lookup")) {
+        if self
+            .globals
+            .namespaces
+            .contains(todo!("refactor this contains method to do a nested lookup"))
+        {
             self.current_scope_mut()
                 .opens
                 .entry(alias)
@@ -790,7 +895,7 @@ impl GlobalTable {
             scope: GlobalScope {
                 tys,
                 terms: FxHashMap::default(),
-                namespaces: Vec::default(),
+                namespaces: Default::default(),
                 intrinsics: FxHashSet::default(),
             },
         }
@@ -1095,7 +1200,11 @@ fn resolve<'a>(
     }
 
     if candidates.is_empty() {
-        if let Some(&res) = globals.get(kind, todo!("should be able to pass namespace id in here"), name_str) {
+        if let Some(&res) = globals.get(
+            kind,
+            todo!("should be able to pass namespace id in here"),
+            name_str,
+        ) {
             // An unopened global is the last resort.
             return Ok(res);
         }
