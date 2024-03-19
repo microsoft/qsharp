@@ -30,7 +30,7 @@ namespace Kata.Verification {
             }
         }
 
-        Message("Correct");
+        Message("Correct!");
         return true;
     }
 }
