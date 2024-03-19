@@ -19,7 +19,7 @@ node_ver = (
     17,
 )
 wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
-cmake_ver = (3, 21)  # Ensure CMake version 3.10 or later is installed
+cmake_ver = (3, 21)  # Ensure CMake version 3.21 or later is installed
 rust_fmt_ver = (1, 7, 0)  # Current version when Rust 1.76 shipped
 clippy_ver = (0, 1, 76)
 
