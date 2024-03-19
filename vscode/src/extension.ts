@@ -308,7 +308,9 @@ async function updateLanguageServiceEnableFormatting(
       );
   } else {
     formatterHandle.DocumentFormattingHandle?.dispose();
+    formatterHandle.DocumentFormattingHandle = undefined;
     formatterHandle.DocumentRangeFormattingHandle?.dispose();
+    formatterHandle.DocumentRangeFormattingHandle = undefined;
   }
 }
 
