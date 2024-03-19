@@ -57,7 +57,7 @@ This unitary transformation transforms the computational basis into the Bell bas
 We see that this transformation converts $|00\rangle$ into the first Bell state, $|01\rangle$ into the second Bell state, etc. 
 We just need to make sure we set the qubits to the correct state before applying this transformation, using $X$ gates to change the initial $|0\rangle$ states to $|1\rangle$ if needed. 
 
-In Q#, we can use the <a href="https://docs.microsoft.com/qsharp/api/qsharp/microsoft.quantum.convert.intasboolarray">IntAsBoolArray</a> function to convert the input `index` to the right bit pattern.
+In Q#, we can use the <a href="https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.convert/intasboolarray">IntAsBoolArray</a> function to convert the input `index` to the right bit pattern.
 
 @[solution]({
     "id": "superposition__all_bell_states_solution_b",
