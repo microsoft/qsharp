@@ -3741,10 +3741,10 @@ fn partial_eval_stmt_with_bound_variable() {
                     Expr 25960 [0-19] [Type Unit]: Expr Block: 2097
                     Expr 25961 [9-10] [Type Int]: Lit: Int(3)
                     Expr 25962 [12-15] [Type Int]: Expr Block: 2098
-                    Expr 25963 [13-14] [Type Int]: Var: Local 0
+                    Expr 25963 [13-14] [Type Int]: Var: Local 22
                     Expr 25964 [16-18] [Type Unit]: Unit
                 Pats:
-                    Pat 2896 [5-6] [Type Int]: Bind: Ident 0 [5-6] "x""#]],
+                    Pat 2896 [5-6] [Type Int]: Bind: Ident 22 [5-6] "x""#]],
         &expect!["3"],
     );
 }
@@ -3781,19 +3781,19 @@ fn partial_eval_stmt_with_mutable_variable_update() {
                     Expr 25962 [16-26] [Type Unit]: AssignOp (Add):
                         25963
                         25964
-                    Expr 25963 [20-21] [Type Int]: Var: Local 0
+                    Expr 25963 [20-21] [Type Int]: Var: Local 22
                     Expr 25964 [25-26] [Type Int]: Lit: Int(1)
                     Expr 25965 [28-31] [Type Int]: Expr Block: 2098
-                    Expr 25966 [29-30] [Type Int]: Var: Local 0
+                    Expr 25966 [29-30] [Type Int]: Var: Local 22
                     Expr 25967 [32-42] [Type Unit]: Assign:
                         25968
                         25969
-                    Expr 25968 [36-37] [Type Int]: Var: Local 0
+                    Expr 25968 [36-37] [Type Int]: Var: Local 22
                     Expr 25969 [40-42] [Type Int]: UnOp (Neg):
                         25970
                     Expr 25970 [41-42] [Type Int]: Lit: Int(1)
                 Pats:
-                    Pat 2896 [9-10] [Type Int]: Bind: Ident 0 [9-10] "x""#]],
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
         &expect!["1"],
     );
 }
@@ -3830,19 +3830,19 @@ fn partial_eval_stmt_with_mutable_variable_update_out_of_order_works() {
                     Expr 25962 [16-26] [Type Unit]: AssignOp (Add):
                         25963
                         25964
-                    Expr 25963 [20-21] [Type Int]: Var: Local 0
+                    Expr 25963 [20-21] [Type Int]: Var: Local 22
                     Expr 25964 [25-26] [Type Int]: Lit: Int(1)
                     Expr 25965 [28-31] [Type Int]: Expr Block: 2098
-                    Expr 25966 [29-30] [Type Int]: Var: Local 0
+                    Expr 25966 [29-30] [Type Int]: Var: Local 22
                     Expr 25967 [32-42] [Type Unit]: Assign:
                         25968
                         25969
-                    Expr 25968 [36-37] [Type Int]: Var: Local 0
+                    Expr 25968 [36-37] [Type Int]: Var: Local 22
                     Expr 25969 [40-42] [Type Int]: UnOp (Neg):
                         25970
                     Expr 25970 [41-42] [Type Int]: Lit: Int(1)
                 Pats:
-                    Pat 2896 [9-10] [Type Int]: Bind: Ident 0 [9-10] "x""#]],
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
         &expect!["-1"],
     );
 }
@@ -3884,19 +3884,19 @@ fn partial_eval_stmt_with_mutable_variable_update_repeat_stmts_works() {
                     Expr 25962 [16-26] [Type Unit]: AssignOp (Add):
                         25963
                         25964
-                    Expr 25963 [20-21] [Type Int]: Var: Local 0
+                    Expr 25963 [20-21] [Type Int]: Var: Local 22
                     Expr 25964 [25-26] [Type Int]: Lit: Int(1)
                     Expr 25965 [28-31] [Type Int]: Expr Block: 2098
-                    Expr 25966 [29-30] [Type Int]: Var: Local 0
+                    Expr 25966 [29-30] [Type Int]: Var: Local 22
                     Expr 25967 [32-42] [Type Unit]: Assign:
                         25968
                         25969
-                    Expr 25968 [36-37] [Type Int]: Var: Local 0
+                    Expr 25968 [36-37] [Type Int]: Var: Local 22
                     Expr 25969 [40-42] [Type Int]: UnOp (Neg):
                         25970
                     Expr 25970 [41-42] [Type Int]: Lit: Int(1)
                 Pats:
-                    Pat 2896 [9-10] [Type Int]: Bind: Ident 0 [9-10] "x""#]],
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
         &expect!["2"],
     );
 }
@@ -3932,11 +3932,11 @@ fn partial_eval_stmt_with_bool_short_circuit() {
                     Expr 25963 [17-27] [Type Bool]: BinOp (OrL):
                         25964
                         25965
-                    Expr 25964 [17-18] [Type Bool]: Var: Local 0
+                    Expr 25964 [17-18] [Type Bool]: Var: Local 22
                     Expr 25965 [22-27] [Type Bool]: Lit: Bool(false)
                     Expr 25966 [30-32] [Type Unit]: Unit
                 Pats:
-                    Pat 2896 [5-6] [Type Bool]: Bind: Ident 0 [5-6] "x""#]],
+                    Pat 2896 [5-6] [Type Bool]: Bind: Ident 22 [5-6] "x""#]],
         &expect!["true"],
     );
 }
@@ -3972,11 +3972,11 @@ fn partial_eval_stmt_with_bool_no_short_circuit() {
                     Expr 25963 [18-27] [Type Bool]: BinOp (OrL):
                         25964
                         25965
-                    Expr 25964 [18-19] [Type Bool]: Var: Local 0
+                    Expr 25964 [18-19] [Type Bool]: Var: Local 22
                     Expr 25965 [23-27] [Type Bool]: Lit: Bool(true)
                     Expr 25966 [30-32] [Type Unit]: Unit
                 Pats:
-                    Pat 2896 [5-6] [Type Bool]: Bind: Ident 0 [5-6] "x""#]],
+                    Pat 2896 [5-6] [Type Bool]: Bind: Ident 22 [5-6] "x""#]],
         &expect!["true"],
     );
 }
@@ -4019,18 +4019,18 @@ fn partial_eval_stmt_with_loop() {
                     Expr 25963 [22-27] [Type Bool]: BinOp (Lt):
                         25964
                         25965
-                    Expr 25964 [22-23] [Type Int]: Var: Local 0
+                    Expr 25964 [22-23] [Type Int]: Var: Local 22
                     Expr 25965 [26-27] [Type Int]: Lit: Int(3)
                     Expr 25966 [30-40] [Type Unit]: AssignOp (Add):
                         25967
                         25968
-                    Expr 25967 [34-35] [Type Int]: Var: Local 0
+                    Expr 25967 [34-35] [Type Int]: Var: Local 22
                     Expr 25968 [39-40] [Type Int]: Lit: Int(1)
                     Expr 25969 [44-47] [Type Int]: Expr Block: 2099
-                    Expr 25970 [45-46] [Type Int]: Var: Local 0
+                    Expr 25970 [45-46] [Type Int]: Var: Local 22
                     Expr 25971 [48-50] [Type Unit]: Unit
                 Pats:
-                    Pat 2896 [9-10] [Type Int]: Bind: Ident 0 [9-10] "x""#]],
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
         &expect!["3"],
     );
 }
@@ -4050,11 +4050,11 @@ fn partial_eval_stmt_function_calls() {
                 Entry Expression: 25960
                 Items:
                     Item 0 [41-102] (Public):
-                        Namespace (Ident 1 [51-55] "Test"): Item 1
+                        Namespace (Ident 23 [51-55] "Test"): Item 1
                     Item 1 [62-100] (Public):
                         Parent: 0
                         Callable 0 [62-100] (function):
-                            name: Ident 2 [71-75] "Add1"
+                            name: Ident 0 [71-75] "Add1"
                             input: 2897
                             output: Int
                             functors: empty set
@@ -4089,7 +4089,7 @@ fn partial_eval_stmt_function_calls() {
                     Expr 25962 [9-18] [Type (Int -> Int)]: Var: Item 1
                     Expr 25963 [19-20] [Type Int]: Lit: Int(4)
                     Expr 25964 [23-26] [Type Int]: Expr Block: 2098
-                    Expr 25965 [24-25] [Type Int]: Var: Local 0
+                    Expr 25965 [24-25] [Type Int]: Var: Local 22
                     Expr 25966 [27-39] [Type Int]: Call:
                         25967
                         25968
@@ -4098,11 +4098,11 @@ fn partial_eval_stmt_function_calls() {
                     Expr 25969 [93-98] [Type Int]: BinOp (Add):
                         25970
                         25971
-                    Expr 25970 [93-94] [Type Int]: Var: Local 3
+                    Expr 25970 [93-94] [Type Int]: Var: Local 1
                     Expr 25971 [97-98] [Type Int]: Lit: Int(1)
                 Pats:
-                    Pat 2896 [5-6] [Type Int]: Bind: Ident 0 [5-6] "x"
-                    Pat 2897 [76-83] [Type Int]: Bind: Ident 3 [76-77] "x""#]],
+                    Pat 2896 [5-6] [Type Int]: Bind: Ident 22 [5-6] "x"
+                    Pat 2897 [76-83] [Type Int]: Bind: Ident 1 [76-77] "x""#]],
         &expect!["5"],
     );
 }
@@ -4148,10 +4148,10 @@ fn partial_eval_stmt_function_calls_from_library() {
                         res: Item 1 (Package 0)
                         generics:
                             Int
-                    Expr 25968 [28-29] [Type (Int)[]]: Var: Local 0
+                    Expr 25968 [28-29] [Type (Int)[]]: Var: Local 22
                     Expr 25969 [32-33] [Type Int]: Lit: Int(3)
                 Pats:
-                    Pat 2896 [5-6] [Type (Int)[]]: Bind: Ident 0 [5-6] "x""#]],
+                    Pat 2896 [5-6] [Type (Int)[]]: Bind: Ident 22 [5-6] "x""#]],
         &expect!["3"],
     );
 }
