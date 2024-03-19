@@ -1,5 +1,3 @@
-### Solutions
-
 > The [Bell states](https://en.wikipedia.org/wiki/Bell_state) form an orthonormal basis in the 4-dimensional space that describes the states of a 2-qubit system. 
 You can check that the norm of each of these states is 1, and their inner product of each pair of states is 0.
 
