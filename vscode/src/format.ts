@@ -4,20 +4,32 @@
 import { ILanguageService } from "qsharp-lang";
 import * as vscode from "vscode";
 import { toVscodeRange } from "./common";
-import { EventType, sendTelemetryEvent } from "./telemetry";
+import { EventType, FormatEvent, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 
-export function createFormatProvider(languageService: ILanguageService) {
-  return new QSharpFormatProvider(languageService);
+export function createFormattingProvider(languageService: ILanguageService) {
+  return new QSharpFormattingProvider(languageService);
 }
 
-class QSharpFormatProvider implements vscode.DocumentFormattingEditProvider {
+class QSharpFormattingProvider
+  implements
+    vscode.DocumentFormattingEditProvider,
+    vscode.DocumentRangeFormattingEditProvider
+{
   constructor(public languageService: ILanguageService) {}
 
-  async provideDocumentFormattingEdits(document: vscode.TextDocument) {
+  private async getFormatChanges(
+    document: vscode.TextDocument,
+    eventKind: FormatEvent,
+    range?: vscode.Range,
+  ) {
     // telemetry start format
     const associationId = getRandomGuid();
-    sendTelemetryEvent(EventType.FormatStart, { associationId }, {});
+    sendTelemetryEvent(
+      EventType.FormatStart,
+      { associationId, event: eventKind },
+      {},
+    );
     const start = performance.now();
 
     const lsEdits = await this.languageService.getFormatChanges(
@@ -37,9 +49,16 @@ class QSharpFormatProvider implements vscode.DocumentFormattingEditProvider {
       return [];
     }
 
-    const edits = lsEdits.map(
+    let edits = lsEdits.map(
       (edit) => new vscode.TextEdit(toVscodeRange(edit.range), edit.newText),
     );
+
+    if (range) {
+      edits = edits.filter(
+        (e) =>
+          range.start.isBefore(e.range.end) && range.end.isAfter(e.range.start),
+      );
+    }
 
     // telemetry end format
     sendTelemetryEvent(
@@ -52,5 +71,16 @@ class QSharpFormatProvider implements vscode.DocumentFormattingEditProvider {
     );
 
     return edits;
+  }
+
+  async provideDocumentFormattingEdits(document: vscode.TextDocument) {
+    return await this.getFormatChanges(document, FormatEvent.OnDocument);
+  }
+
+  async provideDocumentRangeFormattingEdits(
+    document: vscode.TextDocument,
+    range: vscode.Range,
+  ) {
+    return await this.getFormatChanges(document, FormatEvent.OnRange, range);
   }
 }
