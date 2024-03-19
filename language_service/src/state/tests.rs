@@ -1254,6 +1254,7 @@ async fn doc_switches_project_on_close() {
 
 #[tokio::test]
 async fn loading_lints_config_from_manifest() {
+    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
     let fs = FsNode::Dir(
         [dir(
             "project",
@@ -1266,7 +1267,7 @@ async fn loading_lints_config_from_manifest() {
                     "src",
                     [file(
                         "this_file.qs",
-                        "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }",
+                        this_file_qs,
                     )],
                 ),
             ],
@@ -1275,8 +1276,9 @@ async fn loading_lints_config_from_manifest() {
         .collect(),
     );
 
+    let fs = Rc::new(RefCell::new(fs));
     let received_errors = RefCell::new(Vec::new());
-    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+    let updater = new_updater_with_file_system(&received_errors, &fs);
 
     // Check the LintConfig.
     check_lints_config(
@@ -1298,13 +1300,39 @@ async fn loading_lints_config_from_manifest() {
             ]"#]],
     )
     .await;
+}
 
+#[tokio::test]
+async fn lints_update_after_manifest_change() {
+    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{ "lints": [{ "lint": "divisionByZero", "level": "error" }, { "lint": "needlessParens", "level": "error" }] }"#,
+                ),
+                dir(
+                    "src",
+                    [file(
+                        "this_file.qs",
+                        this_file_qs,
+                    )],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Triger a document update.
     updater
-        .update_document(
-            "project/src/this_file.qs",
-            1,
-            "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }",
-        )
+        .update_document("project/src/this_file.qs", 1, this_file_qs)
         .await;
 
     // Check generated lints.
@@ -1331,6 +1359,48 @@ async fn loading_lints_config_from_manifest() {
                         hi: 55,
                     },
                     level: Error,
+                    message: "attempt to divide by zero",
+                    help: "division by zero is not allowed",
+                },
+            ),
+        ]"#]],
+    );
+
+    // Modify the manifest.
+    fs
+        .borrow_mut()
+        .write_file("project/qsharp.json", r#"{ "lints": [{ "lint": "divisionByZero", "level": "warn" }, { "lint": "needlessParens", "level": "warn" }] }"#)
+        .expect("qsharp.json should exist");
+
+    // Triger a document update
+    updater
+        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .await;
+
+    // Check lints again
+    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    check_lints(
+        lints,
+        &expect![[r#"
+        [
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 58,
+                        hi: 65,
+                    },
+                    level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
+                },
+            ),
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 50,
+                        hi: 55,
+                    },
+                    level: Warn,
                     message: "attempt to divide by zero",
                     help: "division by zero is not allowed",
                 },
@@ -1371,7 +1441,7 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
 
 fn new_updater_with_file_system<'a>(
     received_errors: &'a RefCell<Vec<ErrorInfo>>,
-    fs: &'a FsNode,
+    fs: &Rc<RefCell<FsNode>>,
 ) -> CompilationStateUpdater<'a> {
     let diagnostic_receiver = move |update: DiagnosticUpdate| {
         let mut v = received_errors.borrow_mut();
@@ -1387,12 +1457,16 @@ fn new_updater_with_file_system<'a>(
         ));
     };
 
+    let fs1 = fs.clone();
+    let fs2 = fs.clone();
+    let fs3 = fs.clone();
+
     CompilationStateUpdater::new(
         Rc::new(RefCell::new(CompilationState::default())),
         diagnostic_receiver,
-        |file: String| Box::pin(ready(fs.read_file(file))),
-        |dir_name: String| Box::pin(ready(fs.list_directory(dir_name))),
-        |file| Box::pin(ready(fs.get_manifest(file))),
+        move |file: String| Box::pin(ready(fs1.borrow().read_file(file))),
+        move |dir_name: String| Box::pin(ready(fs2.borrow().list_directory(dir_name))),
+        move |file| Box::pin(ready(fs3.borrow().get_manifest(file))),
     )
 }
 
@@ -1513,6 +1587,12 @@ enum FsNode {
     File(Arc<str>),
 }
 
+/// A file system operation error.
+#[derive(Debug)]
+enum FsError {
+    NotFound,
+}
+
 impl FsNode {
     fn read_file(&self, file: String) -> (Arc<str>, Arc<str>) {
         let mut curr = Some(self);
@@ -1527,6 +1607,24 @@ impl FsNode {
         match curr {
             Some(FsNode::File(contents)) => (file.into(), contents.clone()),
             Some(FsNode::Dir(_)) | None => (file.into(), "".into()),
+        }
+    }
+
+    fn write_file(&mut self, file: &str, contents: &str) -> Result<(), FsError> {
+        let mut curr = Some(self);
+
+        for part in file.split('/') {
+            curr = curr.and_then(|node| match node {
+                FsNode::Dir(dir) => dir.get_mut(part),
+                FsNode::File(_) => None,
+            });
+        }
+
+        if let Some(FsNode::File(curr_contents)) = curr {
+            *curr_contents = contents.into();
+            Ok(())
+        } else {
+            Err(FsError::NotFound)
         }
     }
 
