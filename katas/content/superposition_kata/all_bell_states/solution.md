@@ -35,8 +35,8 @@ What transformation do we need to apply to get to the final state?
 
 The final sequence of steps is as follows:
 1. Apply the H gate to the first qubit. 
-2. Apply the Z gate to the first qubit if `index = 1` or `index == 3`.
-3. Apply the X gate to the second qubit if `index = 2` or `index == 3`.
+2. Apply the Z gate to the first qubit if `index == 1` or `index == 3`.
+3. Apply the X gate to the second qubit if `index == 2` or `index == 3`.
 4. Apply the CNOT gate with the first qubit as control and the second qubit as target.
 
 @[solution]({
