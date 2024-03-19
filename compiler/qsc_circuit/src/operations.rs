@@ -104,7 +104,7 @@ fn operation_circuit_entry_expr(
 
 /// The number of qubits to allocate for each qubit array
 /// in the operation arguments.
-static NUM_QUBITS: u32 = 2;
+const NUM_QUBITS: u32 = 2;
 
 fn get_qubit_param_info(input: &Ty) -> (Vec<u32>, u32) {
     match input {

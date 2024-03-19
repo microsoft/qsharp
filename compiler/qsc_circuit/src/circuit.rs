@@ -36,8 +36,8 @@ pub struct Operation {
     pub children: Vec<Operation>,
 }
 
-static QUANTUM_REGISTER: usize = 0;
-static CLASSICAL_REGISTER: usize = 1;
+const QUANTUM_REGISTER: usize = 0;
+const CLASSICAL_REGISTER: usize = 1;
 
 #[derive(Serialize, Debug, Eq, Hash, PartialEq, Clone)]
 pub struct Register {
@@ -192,17 +192,17 @@ impl Row {
     }
 }
 
-static COLUMN_WIDTH: usize = 7;
-static QUBIT_WIRE: &str = "───────";
-static CLASSICAL_WIRE: &str = "═══════";
-static QUBIT_WIRE_CROSS: &str = "───┼───";
-static CLASSICAL_WIRE_CROSS: &str = "═══╪═══";
-static CLASSICAL_WIRE_START: &str = "   ╘═══";
-static QUBIT_WIRE_DASHED_CROSS: &str = "───┆───";
-static CLASSICAL_WIRE_DASHED_CROSS: &str = "═══┆═══";
-static VERTICAL_DASHED: &str = "   ┆   ";
-static VERTICAL: &str = "   │   ";
-static BLANK: &str = "       ";
+const COLUMN_WIDTH: usize = 7;
+const QUBIT_WIRE: &str = "───────";
+const CLASSICAL_WIRE: &str = "═══════";
+const QUBIT_WIRE_CROSS: &str = "───┼───";
+const CLASSICAL_WIRE_CROSS: &str = "═══╪═══";
+const CLASSICAL_WIRE_START: &str = "   ╘═══";
+const QUBIT_WIRE_DASHED_CROSS: &str = "───┆───";
+const CLASSICAL_WIRE_DASHED_CROSS: &str = "═══┆═══";
+const VERTICAL_DASHED: &str = "   ┆   ";
+const VERTICAL: &str = "   │   ";
+const BLANK: &str = "       ";
 
 /// "q_0  "
 #[allow(clippy::doc_markdown)]
