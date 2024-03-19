@@ -31,12 +31,12 @@ export function CircuitPanel(props: {
         <h1>{props.title}</h1>
         <h2>{props.subtitle}</h2>
       </div>
-      {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : <></>}
+      {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : null}
       <div>
         Tip: you can generate a circuit diagram for any operation that takes
         qubits or arrays of qubits as input.
       </div>
-      <div>{props.errorHtml ? <div>{props.errorHtml}</div> : <></>}</div>
+      <div>{props.errorHtml ? <div>{props.errorHtml}</div> : null}</div>
     </div>
   );
 }
