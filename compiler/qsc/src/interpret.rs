@@ -459,7 +459,7 @@ impl Interpreter {
 
 /// Describes the entry point for circuit generation.
 pub enum CircuitEntryPoint {
-    /// An operation. This must be an callable name or a lambda
+    /// An operation. This must be a callable name or a lambda
     /// expression that only takes qubits as arguments.
     /// The callable name must be visible in the current package.
     Operation(String),
