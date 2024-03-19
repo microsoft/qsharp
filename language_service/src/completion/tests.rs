@@ -151,8 +151,9 @@ fn ignore_unstable_callable() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n            ",
+                                    range: Range {
                                         start: Position {
                                             line: 2,
                                             column: 12,
@@ -162,8 +163,7 @@ fn ignore_unstable_callable() {
                                             column: 12,
                                         },
                                     },
-                                    "open FakeStdLib;\n            ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -203,8 +203,9 @@ fn ignore_internal_callable() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n            ",
+                                    range: Range {
                                         start: Position {
                                             line: 2,
                                             column: 12,
@@ -214,8 +215,7 @@ fn ignore_internal_callable() {
                                             column: 12,
                                         },
                                     },
-                                    "open FakeStdLib;\n            ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -334,8 +334,9 @@ fn in_block_contains_std_functions() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n    ",
+                                    range: Range {
                                         start: Position {
                                             line: 1,
                                             column: 4,
@@ -345,8 +346,7 @@ fn in_block_contains_std_functions() {
                                             column: 4,
                                         },
                                     },
-                                    "open FakeStdLib;\n    ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -363,8 +363,9 @@ fn in_block_contains_std_functions() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n    ",
+                                    range: Range {
                                         start: Position {
                                             line: 1,
                                             column: 4,
@@ -374,8 +375,7 @@ fn in_block_contains_std_functions() {
                                             column: 4,
                                         },
                                     },
-                                    "open FakeStdLib;\n    ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -392,8 +392,9 @@ fn in_block_contains_std_functions() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n    ",
+                                    range: Range {
                                         start: Position {
                                             line: 1,
                                             column: 4,
@@ -403,8 +404,7 @@ fn in_block_contains_std_functions() {
                                             column: 4,
                                         },
                                     },
-                                    "open FakeStdLib;\n    ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -566,8 +566,9 @@ fn in_block_from_other_namespace() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open Other;\n    ",
+                                    range: Range {
                                         start: Position {
                                             line: 1,
                                             column: 4,
@@ -577,8 +578,7 @@ fn in_block_from_other_namespace() {
                                             column: 4,
                                         },
                                     },
-                                    "open Other;\n    ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -618,8 +618,9 @@ fn auto_open_multiple_files() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open Foo;\n ",
+                                    range: Range {
                                         start: Position {
                                             line: 0,
                                             column: 16,
@@ -629,8 +630,7 @@ fn auto_open_multiple_files() {
                                             column: 16,
                                         },
                                     },
-                                    "open Foo;\n ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -797,8 +797,9 @@ fn stdlib_udt() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n    ",
+                                    range: Range {
                                         start: Position {
                                             line: 1,
                                             column: 4,
@@ -808,8 +809,7 @@ fn stdlib_udt() {
                                             column: 4,
                                         },
                                     },
-                                    "open FakeStdLib;\n    ",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -876,8 +876,9 @@ fn notebook_top_level() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n",
+                                    range: Range {
                                         start: Position {
                                             line: 0,
                                             column: 0,
@@ -887,8 +888,7 @@ fn notebook_top_level() {
                                             column: 0,
                                         },
                                     },
-                                    "open FakeStdLib;\n",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -922,8 +922,9 @@ fn notebook_top_level_global() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n",
+                                    range: Range {
                                         start: Position {
                                             line: 0,
                                             column: 0,
@@ -933,8 +934,7 @@ fn notebook_top_level_global() {
                                             column: 0,
                                         },
                                     },
-                                    "open FakeStdLib;\n",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -1001,8 +1001,9 @@ fn notebook_block() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n",
+                                    range: Range {
                                         start: Position {
                                             line: 0,
                                             column: 0,
@@ -1012,8 +1013,7 @@ fn notebook_block() {
                                             column: 0,
                                         },
                                     },
-                                    "open FakeStdLib;\n",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -1056,8 +1056,9 @@ fn notebook_auto_open_start_of_cell_empty() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n",
+                                    range: Range {
                                         start: Position {
                                             line: 0,
                                             column: 0,
@@ -1067,8 +1068,7 @@ fn notebook_auto_open_start_of_cell_empty() {
                                             column: 0,
                                         },
                                     },
-                                    "open FakeStdLib;\n",
-                                ),
+                                },
                             ],
                         ),
                     },
@@ -1100,8 +1100,9 @@ fn notebook_auto_open_start_of_cell() {
                         ),
                         additional_text_edits: Some(
                             [
-                                (
-                                    Range {
+                                TextEdit {
+                                    new_text: "open FakeStdLib;\n   ",
+                                    range: Range {
                                         start: Position {
                                             line: 0,
                                             column: 3,
@@ -1111,8 +1112,7 @@ fn notebook_auto_open_start_of_cell() {
                                             column: 3,
                                         },
                                     },
-                                    "open FakeStdLib;\n   ",
-                                ),
+                                },
                             ],
                         ),
                     },

@@ -8,13 +8,13 @@
 /jupyterlab @billti @idavis @minestarks
 /language_service @billti @idavis @minestarks @ScottCarda-MS
 /library @cesarzc @DmitryVasilevsky @swernli
-/npm @billti @cesarzc @minestarks
+/npm @billti @cesarzc @minestarks @sezna
 /pip @billti @idavis @minestarks
 /playground @billti @cesarzc @minestarks
 /resource_estimator @billti @ivanbasov @swernli
 /samples @cesarzc @DmitryVasilevsky @sezna @swernli
-/vscode @billti @idavis @minestarks
-/wasm @billti @cesarzc @swernli
+/vscode @billti @idavis @minestarks @sezna
+/wasm @billti @cesarzc @sezna @swernli
 
 /Cargo.lock @idavis @minestarks @swernli
 /Cargo.toml @idavis @minestarks @swernli

@@ -227,9 +227,7 @@ fn validate_result_invariants<L: Overhead>(
             * result.num_factories()
     );
 
-    assert!(
-        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
-    );
+    assert!(result.logical_patch().logical_error_rate() <= result.required_logical_error_rate());
 
     assert!(
         (result
@@ -591,9 +589,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
             * result.num_factories()
     );
 
-    assert!(
-        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
-    );
+    assert!(result.logical_patch().logical_error_rate() <= result.required_logical_error_rate());
 
     Ok(())
 }
@@ -653,9 +649,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
             * result.num_factories()
     );
 
-    assert!(
-        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
-    );
+    assert!(result.logical_patch().logical_error_rate() <= result.required_logical_error_rate());
 
     Ok(())
 }

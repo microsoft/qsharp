@@ -9,6 +9,13 @@
     "license": {
       "title": "License",
       "type": "string"
+    },
+    "languageFeatures": {
+      "title": "Language features",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

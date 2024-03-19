@@ -11,6 +11,7 @@ pub struct Assigner {
     next_pat: PatId,
     next_stmt: StmtId,
     next_local: LocalVarId,
+    stashed_local: LocalVarId,
 }
 
 impl Assigner {
@@ -23,6 +24,7 @@ impl Assigner {
             next_pat: PatId::default(),
             next_stmt: StmtId::default(),
             next_local: LocalVarId::default(),
+            stashed_local: LocalVarId::default(),
         }
     }
 
@@ -62,8 +64,14 @@ impl Assigner {
         id
     }
 
-    pub fn reset_local(&mut self) {
+    pub fn stash_local(&mut self) {
+        self.stashed_local = self.next_local;
         self.next_local = LocalVarId::default();
+    }
+
+    pub fn reset_local(&mut self) {
+        self.next_local = self.stashed_local;
+        self.stashed_local = LocalVarId::default();
     }
 }
 
