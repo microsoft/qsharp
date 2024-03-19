@@ -935,6 +935,7 @@ dependencies = [
  "qsc_formatter",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_linter",
  "qsc_passes",
  "qsc_project",
  "rustc-hash",
@@ -1059,6 +1060,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_linter"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "miette",
+ "qsc",
+ "qsc_ast",
+ "qsc_data_structures",
+ "qsc_frontend",
+ "qsc_hir",
+ "qsc_parse",
+ "qsc_passes",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "qsc_parse"
 version = "0.0.0"
 dependencies = [
@@ -1094,6 +1113,7 @@ dependencies = [
  "async-trait",
  "expect-test",
  "miette",
+ "qsc_linter",
  "qsc_project",
  "regex-lite",
  "serde",
@@ -1156,8 +1176,11 @@ dependencies = [
  "log",
  "miette",
  "qsc",
+ "qsc_linter",
  "qsc_project",
  "rustc-hash",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 
