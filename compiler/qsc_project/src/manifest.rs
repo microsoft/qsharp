@@ -10,13 +10,13 @@ use std::{
 };
 
 pub use qsc_linter::LintConfig;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{path::PathBuf, sync::Arc};
 
 pub const MANIFEST_FILE_NAME: &str = "qsharp.json";
 
 /// A Q# manifest, used to describe project metadata.
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Manifest {
     pub author: Option<String>,

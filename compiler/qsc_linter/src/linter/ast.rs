@@ -131,9 +131,9 @@ macro_rules! declare_ast_lints {
 
     // Declare the `AstLint` enum.
     (@CONFIG_ENUM $($lint_name:ident),*) => {
-        use serde::{Deserialize, Serialize};
+        use serde::Deserialize;
 
-        #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Copy, Deserialize)]
         #[serde(rename_all = "camelCase")]
         pub enum AstLint {
             $($lint_name),*
