@@ -6,8 +6,6 @@
 **Goal:**  Change the state of the qubits to one of the Bell states, based on the value of index:
 
 <table>
-  <col width="50"/>
-  <col width="200"/>
   <tr>
     <th style="text-align:center">Index</th>
     <th style="text-align:center">State</th>

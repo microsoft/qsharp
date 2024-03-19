@@ -22,11 +22,9 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         for index in 0 .. 3 {
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-                Kata.AllBellStates,
-                AllBellStates_Reference,
-                2,
-                index) {
-                Message("Incorrect");
+                Kata.AllBellStates(_, index),
+                AllBellStates(_, index),
+                2) {
                 Message($"The test case for index = {index} did not pass.");
                 return false;
             }
