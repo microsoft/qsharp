@@ -9,6 +9,23 @@
     "license": {
       "title": "License",
       "type": "string"
+    },
+    "lints": {
+      "title": "Lints",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lint": {
+            "type": "string",
+            "enum": ["divisionByZero", "needlessParens", "redundantSemicolons"]
+          },
+          "level": {
+            "type": "string",
+            "enum": ["allow", "warn", "error"]
+          }
+        }
+      }
     }
   }
 }
