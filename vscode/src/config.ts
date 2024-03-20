@@ -38,3 +38,15 @@ export function getTargetFriendlyName(targetProfile?: string) {
       return "Q#: invalid";
   }
 }
+
+export function getEnableFormating(): boolean {
+  return vscode.workspace
+    .getConfiguration("Q#")
+    .get<boolean>("enableFormatting", true);
+}
+
+export function getShowCircuitCodeLens(): boolean {
+  return vscode.workspace
+    .getConfiguration("Q#")
+    .get<boolean>("showCircuitCodeLens", false);
+}

@@ -54,6 +54,7 @@ export interface ILanguageService {
     documentUri: string,
     position: IPosition,
   ): Promise<ICompletionList>;
+  getFormatChanges(documentUri: string): Promise<ITextEdit[]>;
   getHover(
     documentUri: string,
     position: IPosition,
@@ -167,6 +168,10 @@ export class QSharpLanguageService implements ILanguageService {
     return this.languageService.get_completions(documentUri, position);
   }
 
+  async getFormatChanges(documentUri: string): Promise<ITextEdit[]> {
+    return this.languageService.get_format_changes(documentUri);
+  }
+
   async getHover(
     documentUri: string,
     position: IPosition,
@@ -275,6 +280,7 @@ export const languageServiceProtocol: ServiceProtocol<
     closeDocument: "request",
     closeNotebookDocument: "request",
     getCompletions: "request",
+    getFormatChanges: "request",
     getHover: "request",
     getDefinition: "request",
     getReferences: "request",

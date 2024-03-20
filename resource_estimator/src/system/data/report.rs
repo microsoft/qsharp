@@ -71,7 +71,7 @@ impl Report {
 
         let mut entries = vec![];
         entries.push(ReportEntry::new("jobParams/qecScheme/name", "QEC scheme", r#"Name of QEC scheme"#, r#"You can load pre-defined QEC schemes by using the name `surface_code` or `floquet_code`. The latter only works with Majorana qubits."#));
-        entries.push(ReportEntry::new("logicalQubit/codeDistance", "Code distance", r#"Required code distance for error correction"#, &format!(r#"The code distance is the smallest odd integer greater or equal to $\dfrac{{2\log({} / {})}}{{\log({}/{})}} - 1$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.required_logical_patch_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_patch().physical_qubit().clifford_error_rate())));
+        entries.push(ReportEntry::new("logicalQubit/codeDistance", "Code distance", r#"Required code distance for error correction"#, &format!(r#"The code distance is the smallest odd integer greater or equal to $\dfrac{{2\log({} / {})}}{{\log({}/{})}} - 1$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.required_logical_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_patch().physical_qubit().clifford_error_rate())));
         entries.push(ReportEntry::new("physicalCountsFormatted/physicalQubitsPerLogicalQubit", "Physical qubits", r#"Number of physical qubits per logical qubit"#, &format!(r#"The number of physical qubits per logical qubit are evaluated using the formula {} that can be user-specified."#, job_params.qec_scheme().physical_qubits_per_logical_qubit.as_ref().expect("physical qubits per logical qubit should be set"))));
         entries.push(ReportEntry::new("physicalCountsFormatted/logicalCycleTime", "Logical cycle time", r#"Duration of a logical cycle in nanoseconds"#, &format!(r#"The runtime of one logical cycle in nanoseconds is evaluated using the formula {} that can be user-specified."#, job_params.qec_scheme().logical_cycle_time.as_ref().expect("logical cycle time should be set"))));
         entries.push(ReportEntry::new("physicalCountsFormatted/logicalErrorRate", "Logical qubit error rate", r#"Logical qubit error rate"#, &format!(r#"The logical qubit error rate is computed as ${} \cdot \left(\dfrac{{{}}}{{{}}}\right)^\frac{{{} + 1}}{{2}}$"#, job_params.qec_scheme().crossing_prefactor.expect("crossing prefactor should be set"), result.logical_patch().physical_qubit().clifford_error_rate(), job_params.qec_scheme().error_correction_threshold.expect("error correction threshold should be set"), result.logical_patch().code_parameter())));
@@ -391,7 +391,7 @@ impl FormattedPhysicalResourceCounts {
         );
 
         let required_logical_qubit_error_rate =
-            format!("{:.2e}", result.required_logical_patch_error_rate());
+            format!("{:.2e}", result.required_logical_error_rate());
 
         let no_tstates_msg = "No T states in algorithm";
         let no_rotations_msg = "No rotations in algorithm";

@@ -10,6 +10,7 @@
 //
 //   @ARM_AAD_TOKEN = eyJ0eXAiOi...
 //   @QUANTUM_TOKEN = eyJhbGciOi...
+//   @QUANTUM_KEY = Xy..uA
 //   @BLOB_SASPARAMS = sv=2019-07-07&sig=5vxLvO...
 //   @QUANTUM_SUBID = 916dfd6d-030c-...
 //   @QUANTUM_RG = MyAzResourceGroup
@@ -54,6 +55,11 @@ GET https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/
 Authorization: Bearer {{QUANTUM_TOKEN}}
 Content-type: application/json
 
+### Provider status via API key
+GET https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/providerStatus?api-version=2022-09-12-preview
+x-ms-quantum-api-key: {{QUANTUM_KEY}}
+Content-type: application/json
+
 ### Get jobs for the workspace
 GET https://{{QUANTUM_ENDPOINT}}/subscriptions/{{QUANTUM_SUBID}}/resourceGroups/{{QUANTUM_RG}}/providers/Microsoft.Quantum/Workspaces/{{QUANTUM_WORKSPACE}}/jobs?api-version=2022-09-12-preview
 Authorization: Bearer {{QUANTUM_TOKEN}}
@@ -70,6 +76,7 @@ Authorization: Bearer {{QUANTUM_TOKEN}}
 
 
 // === Working with blob storage ===
+// *** TODO: The following requests should be using the quantum service proxy now, not going direct to storage.
 
 // From here on, the requests are to blob storage, not the quantum endpoint.
 

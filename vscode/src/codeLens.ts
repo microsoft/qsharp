@@ -5,6 +5,7 @@ import { ILanguageService, qsharpLibraryUriScheme } from "qsharp-lang";
 import * as vscode from "vscode";
 import { ICodeLens } from "../../npm/lib/web/qsc_wasm";
 import { toVscodeRange } from "./common";
+import { getShowCircuitCodeLens } from "./config";
 
 export function createCodeLensProvider(languageService: ILanguageService) {
   return new QSharpCodeLensProvider(languageService);
@@ -61,11 +62,7 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens | undefined {
       tooltip = "Run program";
       break;
     case "circuit":
-      if (
-        !vscode.workspace
-          .getConfiguration("Q#")
-          .get<boolean>("showCircuitCodeLens")
-      ) {
+      if (!getShowCircuitCodeLens()) {
         return undefined;
       }
       title = "Circuit";

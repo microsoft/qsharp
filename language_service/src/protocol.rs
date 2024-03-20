@@ -43,7 +43,7 @@ pub struct CompletionItem {
     pub kind: CompletionItemKind,
     pub sort_text: Option<String>,
     pub detail: Option<String>,
-    pub additional_text_edits: Option<Vec<(Range, String)>>,
+    pub additional_text_edits: Option<Vec<TextEdit>>,
 }
 
 impl CompletionItem {
@@ -87,6 +87,12 @@ impl Hash for CompletionItem {
 pub struct Hover {
     pub contents: String,
     pub span: Range,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TextEdit {
+    pub new_text: String,
+    pub range: Range,
 }
 
 #[derive(Debug, PartialEq)]
