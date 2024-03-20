@@ -3750,3 +3750,34 @@ fn use_range_field_names_in_udt() {
         "#]],
     );
 }
+
+#[test]
+fn lambda_on_array_where_item_used_in_call_should_be_inferred() {
+    check(
+        indoc! {"
+            namespace A {
+                function B() : Unit {
+                    let f = qs => C(qs[0]);
+                }
+                operation C(q : Qubit) : Unit is Ctl + Adj { }
+            }
+        "},
+        "",
+        &expect![[r##"
+            #6 28-30 "()" : Unit
+            #10 38-77 "{\n        let f = qs => C(qs[0]);\n    }" : Unit
+            #12 52-53 "f" : (Qubit[] => Unit)
+            #14 56-70 "qs => C(qs[0])" : (Qubit[] => Unit)
+            #15 56-58 "qs" : Qubit[]
+            #17 62-70 "C(qs[0])" : Unit
+            #18 62-63 "C" : (Qubit => Unit is Adj + Ctl)
+            #21 63-70 "(qs[0])" : Qubit
+            #22 64-69 "qs[0]" : Qubit
+            #23 64-66 "qs" : Qubit[]
+            #26 67-68 "0" : Int
+            #30 93-104 "(q : Qubit)" : Qubit
+            #31 94-103 "q : Qubit" : Qubit
+            #42 125-128 "{ }" : Unit
+        "##]],
+    );
+}

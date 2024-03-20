@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use super::super::{
     error::InvalidInput::{self, InvalidErrorBudget},
     modeling::{PhysicalQubit, ProtocolSpecification},
-    LogicalResourceCounts,
 };
 use crate::estimates::ErrorBudget;
 
@@ -127,21 +126,15 @@ impl ErrorBudgetSpecification {
 
     pub fn partitioning(
         &self,
-        counts: &LogicalResourceCounts,
+        counts: &impl PartitioningOverhead,
     ) -> core::result::Result<ErrorBudget, InvalidInput> {
-        let has_tgates = counts.t_count > 0
-            || counts.ccz_count > 0
-            || counts.ccix_count > 0
-            || counts.rotation_count > 0;
-        let has_rotations = counts.rotation_count > 0;
-
         match *self {
             ErrorBudgetSpecification::Total(total) => {
                 if total <= 0.0 || total >= 1.0 {
                     return Err(InvalidErrorBudget(total));
                 }
 
-                Ok(match (has_tgates, has_rotations) {
+                Ok(match (counts.has_tgates(), counts.has_rotations()) {
                     (true, true) => ErrorBudget::new(total / 3.0, total / 3.0, total / 3.0),
                     (true, false) => ErrorBudget::new(total / 2.0, total / 2.0, 0.0),
                     (false, false) => ErrorBudget::new(total, 0.0, 0.0),
@@ -162,11 +155,11 @@ impl ErrorBudgetSpecification {
                     return Err(InvalidErrorBudget(logical));
                 }
 
-                if tstates < 0.0 || (has_tgates && tstates == 0.0) {
+                if tstates < 0.0 || (counts.has_tgates() && tstates == 0.0) {
                     return Err(InvalidErrorBudget(tstates));
                 }
 
-                if rotations < 0.0 || (has_rotations && rotations == 0.0) {
+                if rotations < 0.0 || (counts.has_rotations() && rotations == 0.0) {
                     return Err(InvalidErrorBudget(rotations));
                 }
 
@@ -180,6 +173,15 @@ impl Default for ErrorBudgetSpecification {
     fn default() -> Self {
         Self::Total(1e-3)
     }
+}
+
+/// Logical overheads need ot implement this trait, if one wants to partition an
+/// error budget based on the overhead.
+pub trait PartitioningOverhead {
+    /// There are T gates in the overhead
+    fn has_tgates(&self) -> bool;
+    /// There are rotations in the overhead
+    fn has_rotations(&self) -> bool;
 }
 
 #[derive(Debug, Deserialize, Serialize)]

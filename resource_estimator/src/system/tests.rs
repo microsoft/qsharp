@@ -7,7 +7,6 @@ use crate::estimates::{
     ErrorBudget, ErrorCorrection, Factory, FactoryBuilder, Overhead, PhysicalResourceEstimation,
     PhysicalResourceEstimationResult,
 };
-use crate::LogicalResources;
 
 use super::estimate_physical_resources;
 
@@ -24,17 +23,18 @@ use std::rc::Rc;
 
 #[test]
 fn estimate_single() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
     let params: &str = "[{}]";
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
@@ -49,12 +49,13 @@ fn estimate_single() {
 
 #[test]
 fn estimate_frontier() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
@@ -62,7 +63,7 @@ fn estimate_frontier() {
         "estimateType": "frontier"
     }]"#;
 
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");
@@ -78,12 +79,13 @@ fn estimate_frontier() {
 #[test]
 fn physical_estimates_crash() {
     let result = estimate_physical_resources(
-        &LogicalResources {
+        LogicalResourceCounts {
             num_qubits: 9,
             t_count: 160,
             rotation_count: 0,
             rotation_depth: 0,
             ccz_count: 8,
+            ccix_count: 0,
             measurement_count: 5,
         },
         r#"[{"qubitParams": {"name": "qubit_maj_ns_e6"},
@@ -147,7 +149,7 @@ pub fn test_no_tstates() {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -166,7 +168,7 @@ pub fn single_tstate() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -190,7 +192,7 @@ pub fn perfect_tstate() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -209,7 +211,7 @@ fn hubbard_overhead_and_partitioning() -> Result<(LogicalResourceCounts, ErrorBu
     Ok((logical_counts, partitioning))
 }
 
-fn validate_result_invariants<L: Overhead + Clone>(
+fn validate_result_invariants<L: Overhead>(
     result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
 ) {
     assert_eq!(
@@ -225,9 +227,7 @@ fn validate_result_invariants<L: Overhead + Clone>(
             * result.num_factories()
     );
 
-    assert!(
-        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
-    );
+    assert!(result.logical_patch().logical_error_rate() <= result.required_logical_error_rate());
 
     assert!(
         (result
@@ -249,7 +249,7 @@ pub fn test_hubbard_e2e() -> Result<()> {
         ftp,
         qubit.clone(),
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -341,7 +341,7 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
         ftp,
         qubit.clone(),
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -430,7 +430,7 @@ pub fn test_hubbard_e2e_increasing_max_duration() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -458,7 +458,7 @@ pub fn test_hubbard_e2e_increasing_max_num_qubits() -> Result<()> {
         ftp,
         qubit,
         TFactoryBuilder::default(),
-        layout_overhead,
+        Rc::new(layout_overhead),
         partitioning,
     );
 
@@ -497,7 +497,13 @@ fn prepare_chemistry_estimation_with_expected_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -583,9 +589,7 @@ pub fn test_chemistry_based_max_duration() -> Result<()> {
             * result.num_factories()
     );
 
-    assert!(
-        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
-    );
+    assert!(result.logical_patch().logical_error_rate() <= result.required_logical_error_rate());
 
     Ok(())
 }
@@ -645,9 +649,7 @@ pub fn test_chemistry_based_max_num_qubits() -> Result<()> {
             * result.num_factories()
     );
 
-    assert!(
-        result.logical_patch().logical_error_rate() <= result.required_logical_patch_error_rate()
-    );
+    assert!(result.logical_patch().logical_error_rate() <= result.required_logical_error_rate());
 
     Ok(())
 }
@@ -672,7 +674,13 @@ fn prepare_factorization_estimation_with_optimistic_majorana(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("partitioning should succeed");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -801,7 +809,13 @@ fn prepare_ising20x20_estimation_with_pessimistic_gate_based(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -897,7 +911,13 @@ fn prepare_bit_flip_code_resources_and_majorana_n6_qubit(
     let partitioning = ErrorBudgetSpecification::Total(1e-3)
         .partitioning(&counts)
         .expect("cannot setup error budget partitioning");
-    PhysicalResourceEstimation::new(ftp, qubit, TFactoryBuilder::default(), counts, partitioning)
+    PhysicalResourceEstimation::new(
+        ftp,
+        qubit,
+        TFactoryBuilder::default(),
+        Rc::new(counts),
+        partitioning,
+    )
 }
 
 #[test]
@@ -977,17 +997,18 @@ fn code_distance_tests() {
 
 #[test]
 fn test_report() {
-    let logical_resources = LogicalResources {
+    let logical_resources = LogicalResourceCounts {
         num_qubits: 100,
         t_count: 0,
         rotation_count: 112_110,
         rotation_depth: 2001,
         ccz_count: 0,
+        ccix_count: 0,
         measurement_count: 0,
     };
 
     let params: &str = "[{}]";
-    let result = estimate_physical_resources(&logical_resources, params);
+    let result = estimate_physical_resources(logical_resources, params);
 
     let json_value: Vec<Value> =
         serde_json::from_str(&result.expect("result is err")).expect("Failed to parse JSON");

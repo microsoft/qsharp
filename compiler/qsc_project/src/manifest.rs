@@ -9,6 +9,7 @@ use std::{
     fs::{self, DirEntry, FileType},
 };
 
+pub use qsc_linter::LintConfig;
 use serde::Deserialize;
 use std::{path::PathBuf, sync::Arc};
 
@@ -22,6 +23,8 @@ pub struct Manifest {
     pub license: Option<String>,
     #[serde(default)]
     pub language_features: Vec<String>,
+    #[serde(default)]
+    pub lints: Vec<LintConfig>,
 }
 
 /// Describes the contents and location of a Q# manifest file.

@@ -19,6 +19,7 @@ node_ver = (
     17,
 )
 wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
+cmake_ver = (3, 21)  # Ensure CMake version 3.21 or later is installed
 rust_fmt_ver = (1, 7, 0)  # Current version when Rust 1.76 shipped
 clippy_ver = (0, 1, 76)
 
@@ -180,6 +181,30 @@ def check_prereqs(install=False):
             exit(1)
     else:
         print("Unable to determine the wasm-pack version")
+
+    ### Check the cmake version ###
+    try:
+        cmake_version = subprocess.check_output(["cmake", "--version"])
+    except FileNotFoundError:
+        print("CMake not found. Install from https://cmake.org/")
+        exit(1)
+
+    version_match = re.search(
+        r"cmake version\s(\d+)\.(\d+).\d+", cmake_version.decode()
+    )
+    if version_match:
+        cmake_major = int(version_match.group(1))
+        cmake_minor = int(version_match.group(2))
+        print(f"Detected CMake version: {cmake_major}.{cmake_minor}")
+        if cmake_major < cmake_ver[0] or (
+            cmake_major == cmake_ver[0] and cmake_minor < cmake_ver[1]
+        ):
+            print(
+                f"CMake v{cmake_ver[0]}.{cmake_ver[1]} or later is required. Please update to the latest release (rather than RC) from https://cmake.org/download/"
+            )
+            exit(1)
+    else:
+        raise Exception("Unable to determine the CMake version.")
 
 
 if __name__ == "__main__":

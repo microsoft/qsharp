@@ -13,8 +13,7 @@ use pyo3::{
     exceptions::PyException,
     prelude::*,
     pyclass::CompareOp,
-    types::PyList,
-    types::{PyDict, PyString, PyTuple},
+    types::{PyComplex, PyDict, PyList, PyString, PyTuple},
 };
 use qsc::{
     fir,
@@ -37,7 +36,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Result>()?;
     m.add_class::<Pauli>()?;
     m.add_class::<Output>()?;
-    m.add_class::<StateDump>()?;
+    m.add_class::<StateDumpData>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
 
@@ -88,6 +87,7 @@ impl FromPyObject<'_> for PyManifestDescriptor {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
                 language_features,
+                lints: vec![],
             },
             manifest_dir: manifest_dir.into(),
         }))
@@ -179,9 +179,9 @@ impl Interpreter {
     /// Dumps the quantum state of the interpreter.
     /// Returns a tuple of (amplitudes, num_qubits), where amplitudes is a dictionary from integer indices to
     /// pairs of real and imaginary amplitudes.
-    fn dump_machine(&mut self) -> StateDump {
+    fn dump_machine(&mut self) -> StateDumpData {
         let (state, qubit_count) = self.interpreter.get_quantum_state();
-        StateDump(DisplayableState(state, qubit_count))
+        StateDumpData(DisplayableState(state, qubit_count))
     }
 
     fn run(
@@ -303,9 +303,9 @@ impl Output {
         }
     }
 
-    fn state_dump(&self) -> Option<StateDump> {
+    fn state_dump(&self) -> Option<StateDumpData> {
         match &self.0 {
-            DisplayableOutput::State(state) => Some(StateDump(state.clone())),
+            DisplayableOutput::State(state) => Some(StateDumpData(state.clone())),
             DisplayableOutput::Message(_) => None,
         }
     }
@@ -313,10 +313,10 @@ impl Output {
 
 #[pyclass(unsendable)]
 /// Captured simlation state dump.
-pub(crate) struct StateDump(pub(crate) DisplayableState);
+pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 
 #[pymethods]
-impl StateDump {
+impl StateDumpData {
     fn get_dict(&self, py: Python) -> PyResult<Py<PyDict>> {
         Ok(PyDict::from_sequence(
             py,
@@ -328,7 +328,10 @@ impl StateDump {
                     .map(|(k, v)| {
                         PyTuple::new(
                             py,
-                            &[k.clone().into_py(py), PyTuple::new(py, [v.re, v.im]).into()],
+                            &[
+                                k.clone().into_py(py),
+                                PyComplex::from_doubles(py, v.re, v.im).into(),
+                            ],
                         )
                     })
                     .collect::<Vec<_>>(),
@@ -341,18 +344,6 @@ impl StateDump {
     #[getter]
     fn get_qubit_count(&self) -> usize {
         self.0 .1
-    }
-
-    // Pass by value is needed for compatiblity with the pyo3 API.
-    #[allow(clippy::needless_pass_by_value)]
-    fn __getitem__(&self, key: BigUint) -> Option<(f64, f64)> {
-        self.0 .0.iter().find_map(|state| {
-            if state.0 == key {
-                Some((state.1.re, state.1.im))
-            } else {
-                None
-            }
-        })
     }
 
     fn __len__(&self) -> usize {

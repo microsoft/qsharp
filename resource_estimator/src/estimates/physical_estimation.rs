@@ -56,20 +56,95 @@ pub trait ErrorCorrection {
     /// the `Self::code_parameter_range` method and returns the first parameter
     /// for which the logical error rate is less or equal the required logical
     /// error rate.
+    ///
+    /// This method assumes that the code parameters that are returned from
+    /// `Self::code_parameter_range` are ordered by the logical error rate per
+    /// qubit, starting from the largest one.
     fn compute_code_parameter(
         &self,
         qubit: &Self::Qubit,
         required_logical_error_rate: f64,
     ) -> Result<Self::Parameter, String> {
         for parameter in self.code_parameter_range(None) {
-            if let Ok(probability) = self.logical_error_rate(qubit, &parameter) {
-                if probability <= required_logical_error_rate {
+            if let (Ok(probability), Ok(logical_qubits)) = (
+                self.logical_error_rate(qubit, &parameter),
+                self.logical_qubits(&parameter),
+            ) {
+                if probability / (logical_qubits as f64) <= required_logical_error_rate {
                     return Ok(parameter);
                 }
             }
         }
 
         Err("No code parameter achieves required logical error rate".into())
+    }
+
+    /// Computes the code parameter assignment that requires the fewest number
+    /// of physical qubits
+    ///
+    /// Compared to the default implementation `Self::compute_code_parameter`,
+    /// this method evaluates _all_ possible parameters, filters those which
+    /// fulfill the required logical error rate, and then chooses the one among
+    /// them, which requires the smallest number of physical qubits.
+    fn compute_code_parameter_for_smallest_size(
+        &self,
+        qubit: &Self::Qubit,
+        required_logical_error_rate: f64,
+    ) -> Result<Self::Parameter, String> {
+        let mut best: Option<(Self::Parameter, f64)> = None;
+
+        for parameter in self.code_parameter_range(None) {
+            if let (Ok(probability), Ok(logical_qubits), Ok(physical_qubits)) = (
+                self.logical_error_rate(qubit, &parameter),
+                self.logical_qubits(&parameter),
+                self.physical_qubits(&parameter),
+            ) {
+                let physical_qubits_per_logical_qubits =
+                    physical_qubits as f64 / logical_qubits as f64;
+                if (probability / (logical_qubits as f64) <= required_logical_error_rate)
+                    && best
+                        .as_ref()
+                        .map_or(true, |&(_, pq)| physical_qubits_per_logical_qubits < pq)
+                {
+                    best = Some((parameter, physical_qubits_per_logical_qubits));
+                }
+            }
+        }
+
+        best.map(|(p, _)| p)
+            .ok_or_else(|| "No code parameter achieves required logical error rate".into())
+    }
+
+    /// Computes the code parameter assignment that provides the fastest logical
+    /// cycle time
+    ///
+    /// Compared to the default implementation `Self::compute_code_parameter`,
+    /// this method evaluates _all_ possible parameters, filters those which
+    /// fulfill the required logical error rate, and then chooses the one among
+    /// them, which provides the fastest logical cycle time.
+    fn compute_code_parameter_for_smallest_runtime(
+        &self,
+        qubit: &Self::Qubit,
+        required_logical_error_rate: f64,
+    ) -> Result<Self::Parameter, String> {
+        let mut best: Option<(Self::Parameter, u64)> = None;
+
+        for parameter in self.code_parameter_range(None) {
+            if let (Ok(probability), Ok(logical_qubits), Ok(logical_cycle_time)) = (
+                self.logical_error_rate(qubit, &parameter),
+                self.logical_qubits(&parameter),
+                self.logical_cycle_time(qubit, &parameter),
+            ) {
+                if (probability / (logical_qubits as f64) <= required_logical_error_rate)
+                    && best.as_ref().map_or(true, |&(_, t)| logical_cycle_time < t)
+                {
+                    best = Some((parameter, logical_cycle_time));
+                }
+            }
+        }
+
+        best.map(|(p, _)| p)
+            .ok_or_else(|| "No code parameter achieves required logical error rate".into())
     }
 
     /// Returns an iterator of all possible code parameters
@@ -132,7 +207,7 @@ pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
     num_cycles: u64,
     factory: Option<F>,
     num_factories: u64,
-    required_logical_patch_error_rate: f64,
+    required_logical_error_rate: f64,
     required_logical_magic_state_error_rate: Option<f64>,
     num_factory_runs: u64,
     physical_qubits_for_factories: u64,
@@ -140,14 +215,14 @@ pub struct PhysicalResourceEstimationResult<E: ErrorCorrection, F, L> {
     physical_qubits: u64,
     runtime: u64,
     rqops: u64,
-    layout_overhead: L,
+    layout_overhead: Rc<L>,
     error_budget: ErrorBudget,
 }
 
 impl<
         E: ErrorCorrection<Parameter = impl Clone>,
         F: Factory<Parameter = E::Parameter> + Clone,
-        L: Overhead + Clone,
+        L: Overhead,
     > PhysicalResourceEstimationResult<E, F, L>
 {
     pub fn new(
@@ -156,7 +231,7 @@ impl<
         num_cycles: u64,
         factory: Option<F>,
         num_factories: u64,
-        required_logical_patch_error_rate: f64,
+        required_logical_error_rate: f64,
         required_logical_magic_state_error_rate: Option<f64>,
     ) -> Self {
         // Compute statistics for single factory
@@ -201,7 +276,7 @@ impl<
             num_cycles,
             factory,
             num_factories,
-            required_logical_patch_error_rate,
+            required_logical_error_rate,
             required_logical_magic_state_error_rate,
             num_factory_runs,
             physical_qubits_for_factories,
@@ -209,7 +284,7 @@ impl<
             physical_qubits,
             runtime,
             rqops,
-            layout_overhead: estimation.layout_overhead().clone(),
+            layout_overhead: estimation.layout_overhead.clone(),
             error_budget: estimation.error_budget().clone(),
         }
     }
@@ -251,8 +326,10 @@ impl<
         self.num_factories
     }
 
-    pub fn required_logical_patch_error_rate(&self) -> f64 {
-        self.required_logical_patch_error_rate
+    /// The required logical error rate for one logical operation on one logical
+    /// qubit
+    pub fn required_logical_error_rate(&self) -> f64 {
+        self.required_logical_error_rate
     }
 
     pub fn required_logical_magic_state_error_rate(&self) -> Option<f64> {
@@ -283,7 +360,7 @@ impl<
         self.rqops
     }
 
-    pub fn layout_overhead(&self) -> &L {
+    pub fn layout_overhead(&self) -> &Rc<L> {
         &self.layout_overhead
     }
 
@@ -313,7 +390,7 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
     ftp: E,
     qubit: Rc<E::Qubit>,
     factory_builder: Builder,
-    layout_overhead: L,
+    layout_overhead: Rc<L>,
     error_budget: ErrorBudget,
     // optional constraint parameters
     logical_depth_factor: Option<f64>,
@@ -325,14 +402,14 @@ pub struct PhysicalResourceEstimation<E: ErrorCorrection, Builder, L> {
 impl<
         E: ErrorCorrection<Parameter = impl Clone>,
         Builder: FactoryBuilder<E, Factory = impl Factory<Parameter = E::Parameter> + Clone>,
-        L: Overhead + Clone,
+        L: Overhead,
     > PhysicalResourceEstimation<E, Builder, L>
 {
     pub fn new(
         ftp: E,
         qubit: Rc<E::Qubit>,
         factory_builder: Builder,
-        layout_overhead: L,
+        layout_overhead: Rc<L>,
         error_budget: ErrorBudget,
     ) -> Self {
         Self {
@@ -556,11 +633,11 @@ impl<
             required_logical_patch_error_rate,
             required_logical_magic_state_error_rate,
         ) = loop {
-            let required_logical_patch_error_rate = self.required_logical_error_rate(num_cycles);
+            let required_logical_error_rate = self.required_logical_error_rate(num_cycles);
 
             let code_parameter = self
                 .ftp
-                .compute_code_parameter(&self.qubit, required_logical_patch_error_rate)
+                .compute_code_parameter(&self.qubit, required_logical_error_rate)
                 .map_err(Error::CodeParameterComputationFailed)?;
 
             let logical_patch =
@@ -574,13 +651,7 @@ impl<
                 .num_magic_states(num_magic_states_per_rotation.unwrap_or_default())
                 == 0
             {
-                break (
-                    logical_patch,
-                    None,
-                    0,
-                    required_logical_patch_error_rate,
-                    None,
-                );
+                break (logical_patch, None, 0, required_logical_error_rate, None);
             }
 
             // The required magic state error rate is computed by dividing the total
@@ -620,7 +691,7 @@ impl<
                         logical_patch,
                         Some(factory),
                         num_factories,
-                        required_logical_patch_error_rate,
+                        required_logical_error_rate,
                         Some(required_logical_magic_state_error_rate),
                     );
                 }
@@ -1189,9 +1260,10 @@ impl<
         self.num_logical_patches(patch) * patch.physical_qubits()
     }
 
-    /// Computes required logical error rate
+    /// Computes required logical error rate for a logical operation one one
+    /// qubit
     ///
-    /// The logical volume is the number of logical patches times the number of
+    /// The logical volume is the number of logical qubits times the number of
     /// cycles.  We obtain the required logical error rate by dividing the error
     /// budget for logical operations by the volume.
     fn required_logical_error_rate(&self, num_cycles: u64) -> f64 {

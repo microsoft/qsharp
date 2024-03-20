@@ -19,8 +19,10 @@ num-complex = { workspace = true }
 qsc_codegen = { path = "../qsc_codegen" }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_doc_gen = { path = "../qsc_doc_gen" }
+qsc_formatter = { path = "../qsc_formatter" }
 qsc_eval = { path = "../qsc_eval" }
 qsc_frontend = { path = "../qsc_frontend" }
+qsc_linter = { path = "../qsc_linter" }
 qsc_ast = { path = "../qsc_ast" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
@@ -29,6 +31,7 @@ qsc_project = { path = "../qsc_project", features = ["fs"] }
 qsc_rca = { path = "../qsc_rca" }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
+allocator = { path = "../../allocator" }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["cargo_bench_support"] }

@@ -4,7 +4,6 @@
 #[cfg(test)]
 mod tests;
 
-use super::LogicalResources;
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc::{interpret::Value, Backend};
@@ -17,6 +16,8 @@ use std::{
     fmt::Debug,
     iter::Sum,
 };
+
+use crate::system::LogicalResourceCounts;
 
 /// Resource counter implementation
 ///
@@ -74,14 +75,15 @@ impl Default for LogicalCounter {
 
 impl LogicalCounter {
     #[must_use]
-    pub fn logical_resources(&self) -> LogicalResources {
-        LogicalResources {
-            num_qubits: self.next_free,
-            t_count: self.t_count,
-            rotation_count: self.r_count,
-            rotation_depth: self.layers.iter().filter(|layer| layer.r != 0).count(),
-            ccz_count: self.ccz_count,
-            measurement_count: self.m_count,
+    pub fn logical_resources(&self) -> LogicalResourceCounts {
+        LogicalResourceCounts {
+            num_qubits: self.next_free as _,
+            t_count: self.t_count as _,
+            rotation_count: self.r_count as _,
+            rotation_depth: self.layers.iter().filter(|layer| layer.r != 0).count() as _,
+            ccz_count: self.ccz_count as _,
+            ccix_count: 0,
+            measurement_count: self.m_count as _,
         }
     }
 

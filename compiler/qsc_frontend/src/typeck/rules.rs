@@ -312,9 +312,18 @@ impl<'a> Context<'a> {
                 )
             }
             ExprKind::Index(container, index) => {
+                let container_span = container.span;
                 let container = self.infer_expr(container);
                 let index = self.infer_expr(index);
                 let item_ty = self.inferrer.fresh_ty(TySource::not_divergent(expr.span));
+                let container_item_ty = self
+                    .inferrer
+                    .fresh_ty(TySource::not_divergent(container_span));
+                self.inferrer.eq(
+                    container_span,
+                    container.ty.clone(),
+                    Ty::Array(Box::new(container_item_ty)),
+                );
                 self.inferrer.class(
                     expr.span,
                     Class::HasIndex {

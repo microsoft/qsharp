@@ -8,6 +8,8 @@ pub mod interpret;
 pub mod location;
 pub mod target;
 
+pub use qsc_formatter::formatter;
+
 pub use qsc_frontend::compile::{
     CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
 };
@@ -44,5 +46,9 @@ pub use qsc_eval::{
     backend::{Backend, SparseSim},
     state::{fmt_basis_state_label, fmt_complex, format_state_id, get_latex, get_phase},
 };
+
+pub mod linter {
+    pub use qsc_linter::{run_lints, LintConfig, LintKind, LintLevel};
+}
 
 pub use qsc_doc_gen::{display, generate_docs};
