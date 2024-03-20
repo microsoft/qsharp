@@ -306,6 +306,96 @@ fn custom_intrinsic() {
     let mut interpreter = interpreter(
         r"
     namespace Test {
+        operation foo(q: Qubit): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            foo(q);
+        }
+    }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ─ foo ─
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_classical_arg() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        operation foo(n: Int): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            X(q);
+            foo(4);
+        }
+    }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    // A custom intrinsic that doesn't take qubits just doesn't
+    // show up on the circuit.
+    expect![[r"
+        q_0    ── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_one_classical_arg() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        operation foo(n: Int, q: Qubit): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            X(q);
+            foo(4, q);
+        }
+    }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    // A custom intrinsic that doesn't take qubits just doesn't
+    // show up on the circuit.
+    expect![[r"
+        q_0    ── X ── foo(4)
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_mixed_args() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
         open Microsoft.Quantum.ResourceEstimation;
 
         @EntryPoint()
@@ -334,16 +424,16 @@ fn custom_intrinsic() {
     // This is one gate that spans ten target wires, even though the
     // text visualization doesn't convey that clearly.
     expect![[r"
-        q_0     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_1     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_2     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_3     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_4     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_5     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_6     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_7     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_8     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_9     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
+        q_0     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_1     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_2     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_3     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_4     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_5     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_6     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_7     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_8     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_9     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
     "]]
     .assert_eq(&circ.to_string());
 
@@ -500,9 +590,9 @@ fn adjoint_operation() {
         .circuit(CircuitEntryPoint::Operation("Adjoint Test.Foo".into()))
         .expect("circuit generation should succeed");
 
-    expect![[r#"
+    expect![[r"
         q_0    ── Y ──
-    "#]]
+    "]]
     .assert_eq(&circ.to_string());
 }
 

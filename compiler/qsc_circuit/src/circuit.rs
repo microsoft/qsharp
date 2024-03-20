@@ -257,7 +257,7 @@ impl Display for Circuit {
                 .iter()
                 .filter_map(|reg| {
                     let reg = (reg.q_id, reg.c_id);
-                    register_to_row.get(&reg)
+                    register_to_row.get(&reg).cloned()
                 })
                 .collect::<Vec<_>>();
 
@@ -267,23 +267,24 @@ impl Display for Circuit {
                 .iter()
                 .filter_map(|reg| {
                     let reg = (reg.q_id, reg.c_id);
-                    register_to_row.get(&reg)
+                    register_to_row.get(&reg).cloned()
                 })
                 .collect::<Vec<_>>();
 
-            // We'll need the entire range of rows for this operation so we can
+            let mut all_rows = targets.clone();
+            all_rows.extend(controls.iter());
+            all_rows.sort_unstable();
+            // We'll need to know the entire range of rows for this operation so we can
             // figure out the starting column and also so we can draw any
             // vertical lines that cross wires.
-            let mut all_rows = targets.iter().chain(controls.iter()).collect::<Vec<_>>();
-            all_rows.sort_unstable();
-            let (first, last) = all_rows
-                .split_first()
-                .map_or((0, 0), |s| (***s.0, ***s.1.last().unwrap_or(s.0)));
+            let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
+                (*first, tail.last().unwrap_or(first) + 1)
+            });
 
             // The starting column - the first available column in all
             // the rows that this operation spans.
             let mut column = 1;
-            for row in &rows[first..=last] {
+            for row in &rows[begin..end] {
                 if row.next_column > column {
                     column = row.next_column;
                 }
@@ -291,7 +292,7 @@ impl Display for Circuit {
 
             // Add the operation to the diagram
             for i in targets {
-                let row = &mut rows[*i];
+                let row = &mut rows[i];
                 if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
                     row.start_classical(column);
                 } else {
@@ -301,7 +302,7 @@ impl Display for Circuit {
 
             if o.is_controlled || o.is_measurement {
                 for i in controls {
-                    let row = &mut rows[*i];
+                    let row = &mut rows[i];
                     if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
                         row.add_object(column, "M");
                     } else {
@@ -313,13 +314,13 @@ impl Display for Circuit {
                 // control and target wires and crossing any in between
                 // (vertical lines may overlap if there are multiple controls/targets,
                 // this is ok in practice)
-                for row in rows.iter_mut().take(last + 1).skip(first) {
+                for row in &mut rows[begin..end] {
                     row.add_vertical(column);
                 }
             } else {
                 // No control wire. Draw dashed vertical lines to connect
                 // target wires if there are multiple targets
-                for row in rows.iter_mut().take(last + 1).skip(first) {
+                for row in &mut rows[begin..end] {
                     row.add_dashed_vertical(column);
                 }
             }
