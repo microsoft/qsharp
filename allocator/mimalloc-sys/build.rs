@@ -73,6 +73,7 @@ fn download_mimalloc() -> Result<PathBuf, Box<dyn Error>> {
     config
         .no_build_target(true)
         .env("ALLOCATOR_MIMALLOC_TAG", ALLOCATOR_MIMALLOC_TAG)
+        .generator("Visual Studio 17 2022")
         .very_verbose(true);
 
     let dst = config.build();
