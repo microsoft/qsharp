@@ -15,21 +15,15 @@ import {
   getAzurePortalWorkspaceLink,
   getJobFiles,
   getPythonCodeForWorkspace,
-  getTokenForWorkspace,
   queryWorkspaces,
   submitJob,
 } from "./workspaceActions";
-import {
-  QuantumUris,
-  checkCorsConfig,
-  compileToBitcode,
-  useProxy,
-} from "./networkRequests";
+import { QuantumUris } from "./networkRequests";
 import { getQirForActiveWindow } from "../qirGeneration";
 import { targetSupportQir } from "./providerProperties";
 import { startRefreshCycle } from "./treeRefresher";
+import { getTokenForWorkspace } from "./auth";
 
-const corsDocsUri = "https://aka.ms/qdk.cors";
 const workspacesSecret = "qsharp-vscode.workspaces";
 
 export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
@@ -126,16 +120,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         }
         if (!qir) return;
 
-        // Note: Below compilation to be removed when all regions support .ll text directly
-        const compilerService: string | undefined = vscode.workspace
-          .getConfiguration("Q#")
-          .get("compilerService"); // e.g. in settings.json: "Q#.compilerService": "https://qsx-proxy.azurewebsites.net/api/compile"
-
-        const payload = !compilerService
-          ? qir
-          : await compileToBitcode(compilerService, qir, providerId);
-        // End of compilation to be removed
-
         const quantumUris = new QuantumUris(
           treeItem.workspace.endpointUri,
           treeItem.workspace.id,
@@ -148,7 +132,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
           const jobId = await submitJob(
             token,
             quantumUris,
-            payload,
+            qir,
             providerId,
             target.id,
           );
@@ -198,6 +182,7 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         name: elem.name,
         endpointUri: elem.endpointUri,
         tenantId: elem.tenantId,
+        apiKey: elem.apiKey,
         providers: [],
         jobs: [],
       });
@@ -217,32 +202,6 @@ export async function initAzureWorkspaces(context: vscode.ExtensionContext) {
         await saveWorkspaceList();
         // Just kick off the refresh loop, no need to await
         startRefreshCycle(workspaceTreeProvider, workspace);
-
-        // Check if the storage account has CORS configured correctly.
-        // NOTE: This should be removed once talking directly to Azure storage is no longer required.
-        const quantumUris = new QuantumUris(
-          workspace.endpointUri,
-          workspace.id,
-        );
-
-        const token = await getTokenForWorkspace(workspace);
-        if (!token) return;
-        try {
-          if (!useProxy) await checkCorsConfig(token, quantumUris);
-        } catch (e: any) {
-          log.debug("CORS check failed. ", e);
-
-          const selection = await vscode.window.showWarningMessage(
-            "The Quantum Workspace added needs to have CORS configured to be able to submit jobs or fetch results. " +
-              `Would you like to visit the documentation page at ${corsDocsUri} for details on how to configure this?`,
-            { modal: true },
-            { title: "Open CORS documentation", action: "open" },
-            { title: "Cancel", action: "cancel", isCloseAffordance: true },
-          );
-          if (selection?.action === "open") {
-            vscode.env.openExternal(vscode.Uri.parse(corsDocsUri));
-          }
-        }
       }
     }),
   );

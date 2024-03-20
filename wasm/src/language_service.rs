@@ -162,9 +162,9 @@ impl LanguageService {
                     additionalTextEdits: i.additional_text_edits.map(|edits| {
                         edits
                             .into_iter()
-                            .map(|(span, text)| TextEdit {
-                                range: span.into(),
-                                newText: text,
+                            .map(|edit| TextEdit {
+                                range: edit.range.into(),
+                                newText: edit.new_text,
                             })
                             .collect()
                     }),
@@ -193,6 +193,20 @@ impl LanguageService {
         locations
             .into_iter()
             .map(|loc| Location::from(loc).into())
+            .collect()
+    }
+
+    pub fn get_format_changes(&self, uri: &str) -> Vec<ITextEdit> {
+        let edits = self.0.get_format_changes(uri);
+        edits
+            .into_iter()
+            .map(|edit| {
+                TextEdit {
+                    range: edit.range.into(),
+                    newText: edit.new_text,
+                }
+                .into()
+            })
             .collect()
     }
 

@@ -765,8 +765,6 @@ mod debugger_stepping {
 
         debugger.interpreter.set_quantum_seed(Some(2));
 
-        debugger.set_entry().expect("set_entry should succeed");
-
         let mut out = std::io::sink();
         let mut r = GenericReceiver::new(&mut out);
 

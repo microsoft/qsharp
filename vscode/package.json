@@ -108,6 +108,11 @@
             "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification."
           ],
           "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
+        },
+        "Q#.enableFormatting": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Enables the Q# formatter."
         }
       }
     },

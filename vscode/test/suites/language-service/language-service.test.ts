@@ -108,6 +108,57 @@ suite("Q# Language Service Tests", function suite() {
     );
   });
 
+  test("Format Document", async () => {
+    await vscode.workspace.openTextDocument(docUri);
+
+    const actualFormatEdits = (await vscode.commands.executeCommand(
+      "vscode.executeFormatDocumentProvider",
+      docUri,
+    )) as vscode.TextEdit[];
+
+    assert.lengthOf(actualFormatEdits, 1);
+    assert.equal(actualFormatEdits[0].range.start.line, 7);
+    assert.equal(actualFormatEdits[0].range.start.character, 27);
+    assert.equal(actualFormatEdits[0].range.end.line, 8);
+    assert.equal(actualFormatEdits[0].range.end.character, 4);
+    assert.equal(actualFormatEdits[0].newText, "");
+  });
+
+  test("Format Document Range", async () => {
+    await vscode.workspace.openTextDocument(docUri);
+
+    const noEditRange = new vscode.Range(
+      new vscode.Position(7, 24),
+      new vscode.Position(7, 27),
+    );
+    const editRange = new vscode.Range(
+      new vscode.Position(7, 27),
+      new vscode.Position(8, 4),
+    );
+
+    let actualFormatEdits = (await vscode.commands.executeCommand(
+      "vscode.executeFormatRangeProvider",
+      docUri,
+      noEditRange,
+    )) as vscode.TextEdit[];
+
+    // assert that edits outside the range aren't returned
+    assert.isUndefined(actualFormatEdits);
+
+    actualFormatEdits = (await vscode.commands.executeCommand(
+      "vscode.executeFormatRangeProvider",
+      docUri,
+      editRange,
+    )) as vscode.TextEdit[];
+
+    assert.lengthOf(actualFormatEdits, 1);
+    assert.equal(actualFormatEdits[0].range.start.line, 7);
+    assert.equal(actualFormatEdits[0].range.start.character, 27);
+    assert.equal(actualFormatEdits[0].range.end.line, 8);
+    assert.equal(actualFormatEdits[0].range.end.character, 4);
+    assert.equal(actualFormatEdits[0].newText, "");
+  });
+
   test("Code Lens", async () => {
     const doc = await vscode.workspace.openTextDocument(docUri);
 

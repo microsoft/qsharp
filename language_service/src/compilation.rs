@@ -6,6 +6,7 @@ use qsc::{
     ast,
     compile::{self, Error},
     display::Lookup,
+    error::WithSource,
     hir::{self, PackageId},
     incremental::Compiler,
     line_column::{Encoding, Position},
@@ -13,6 +14,7 @@ use qsc::{
     target::Profile,
     CompileUnit, LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
 };
+use qsc_linter::LintConfig;
 use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
@@ -47,6 +49,7 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) -> Self {
         if sources.len() == 1 {
             trace!("compiling single-file document {}", sources[0].0);
@@ -60,7 +63,7 @@ impl Compilation {
         let std_package_id =
             package_store.insert(compile::std(&package_store, target_profile.into()));
 
-        let (unit, errors) = compile::compile(
+        let (unit, mut errors) = compile::compile(
             &package_store,
             &[std_package_id],
             source_map,
@@ -68,6 +71,13 @@ impl Compilation {
             target_profile.into(),
             language_features,
         );
+
+        let lints = qsc::linter::run_lints(&unit, Some(lints_config));
+        let mut lints = lints
+            .into_iter()
+            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
+            .collect();
+        errors.append(&mut lints);
 
         let package_id = package_store.insert(unit);
 
@@ -184,6 +194,7 @@ impl Compilation {
         package_type: PackageType,
         target_profile: Profile,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) {
         let sources = self
             .user_unit()
@@ -197,6 +208,7 @@ impl Compilation {
                 package_type,
                 target_profile,
                 language_features,
+                lints_config,
             ),
             CompilationKind::Notebook => {
                 Self::new_notebook(sources, target_profile, language_features)

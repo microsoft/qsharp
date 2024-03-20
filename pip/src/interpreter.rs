@@ -88,6 +88,7 @@ impl FromPyObject<'_> for PyManifestDescriptor {
                 author: get_dict_opt_string(manifest, "author")?,
                 license: get_dict_opt_string(manifest, "license")?,
                 language_features,
+                lints: vec![],
             },
             manifest_dir: manifest_dir.into(),
         }))

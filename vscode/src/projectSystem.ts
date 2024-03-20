@@ -14,6 +14,7 @@ import { updateQSharpJsonDiagnostics } from "./diagnostics";
 export async function getManifest(uri: string): Promise<{
   manifestDirectory: string;
   languageFeatures: string[] | undefined;
+  lints: { lint: string; level: string }[];
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
   if (manifestDocument === null) {
@@ -164,9 +165,13 @@ async function readFileUri(
 async function getManifestThrowsOnParseFailure(uri: string): Promise<{
   manifestDirectory: string;
   languageFeatures: string[] | undefined;
+  lints: { lint: string; level: string }[];
 } | null> {
   const manifestDocument = await findManifestDocument(uri);
-  let parsedManifest: { languageFeatures: string[] | undefined } | null = null;
+  let parsedManifest: {
+    languageFeatures: string[];
+    lints: { lint: string; level: string }[] | undefined;
+  } | null = null;
 
   if (manifestDocument) {
     try {
@@ -188,6 +193,7 @@ async function getManifestThrowsOnParseFailure(uri: string): Promise<{
     return {
       manifestDirectory: manifestDirectory.toString(),
       languageFeatures: parsedManifest?.languageFeatures,
+      lints: parsedManifest?.lints || [],
     };
   }
   return null;
@@ -198,6 +204,7 @@ let projectLoader: any | undefined = undefined;
 export async function loadProject(documentUri: vscode.Uri): Promise<{
   sources: [string, string][];
   languageFeatures: string[];
+  lints: { lint: string; level: string }[];
 }> {
   // get the project using this.program
   const manifest = await getManifestThrowsOnParseFailure(
@@ -210,6 +217,7 @@ export async function loadProject(documentUri: vscode.Uri): Promise<{
     return {
       sources: [[documentUri.toString(), file.getText()]],
       languageFeatures: [],
+      lints: [],
     };
   }
 
@@ -221,5 +229,6 @@ export async function loadProject(documentUri: vscode.Uri): Promise<{
   return {
     sources: project,
     languageFeatures: manifest.languageFeatures || [],
+    lints: manifest.lints,
   };
 }
