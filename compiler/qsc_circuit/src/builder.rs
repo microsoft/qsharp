@@ -10,7 +10,7 @@ use num_complex::Complex;
 use qsc_codegen::remapper::{HardwareId, Remapper};
 use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{backend::Backend, val::Value};
-use std::mem::take;
+use std::{fmt::Write, mem::take, rc::Rc};
 
 /// Backend implementation that builds a circuit representation.
 pub struct Builder {
@@ -195,20 +195,15 @@ impl Backend for Builder {
         // The qubit arguments are treated as the targets for custom gates.
         // Any remaining arguments will be kept in the display_args field
         // to be shown as part of the gate label when the circuit is rendered.
-        let (qubit_args, other_args) = self.split_qubit_args(&arg);
+        let (qubit_args, classical_args) = self.split_qubit_args(arg);
+
         self.push_gate(custom_gate(
             name,
             &qubit_args,
-            if other_args.is_empty() {
+            if classical_args.is_empty() {
                 None
             } else {
-                Some(
-                    other_args
-                        .into_iter()
-                        .map(|v| v.to_string())
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                )
+                Some(classical_args)
             },
         ));
         Some(Ok(Value::unit()))
@@ -290,37 +285,82 @@ impl Builder {
         circuit
     }
 
-    /// Splits the qubit arguments from non-qubit arguments so that the qubits
+    /// Splits the qubit arguments from classical arguments so that the qubits
     /// can be treated as the targets for custom gates.
-    fn split_qubit_args(&mut self, arg: &Value) -> (Vec<HardwareId>, Vec<Value>) {
+    /// The classical arguments get formatted into a comma-separated list.
+    fn split_qubit_args(&mut self, arg: Value) -> (Vec<HardwareId>, String) {
+        let arg = if let Value::Tuple(vals) = arg {
+            vals
+        } else {
+            // Single arguments are not passed as tuples, wrap in an array
+            Rc::new([arg])
+        };
         let mut qubits = vec![];
-        let mut other = vec![];
+        let mut classical_args = String::new();
+        self.push_vals(&arg, &mut qubits, &mut classical_args);
+        (qubits, classical_args)
+    }
+
+    /// Pushes all qubit values into `qubits`, and formats all classical values into `classical_args`.
+    fn push_val(&mut self, arg: &Value, qubits: &mut Vec<HardwareId>, classical_args: &mut String) {
         match arg {
+            Value::Array(vals) => {
+                self.push_list::<'[', ']'>(vals, qubits, classical_args);
+            }
+            Value::Tuple(vals) => {
+                self.push_list::<'(', ')'>(vals, qubits, classical_args);
+            }
             Value::Qubit(q) => {
-                let mapped_q = self.map(q.0);
-                qubits.push(mapped_q);
-            }
-            Value::Array(a) => {
-                for v in a.iter() {
-                    let (q, o) = self.split_qubit_args(v);
-                    qubits.extend(q);
-                    other.extend(o);
-                }
-            }
-            Value::Tuple(t) => {
-                for v in t.iter() {
-                    let (q, o) = self.split_qubit_args(v);
-                    qubits.extend(q);
-                    other.extend(o);
-                }
+                qubits.push(self.map(q.0));
             }
             v => {
-                other.push(v.clone());
+                let _ = write!(classical_args, "{v}");
             }
         }
         qubits.sort_unstable_by_key(|q| q.0);
         qubits.dedup_by_key(|q| q.0);
-        (qubits, other)
+    }
+
+    /// Pushes all qubit values into `qubits`, and formats all
+    /// classical values into `classical_args` as a list.
+    fn push_list<const OPEN: char, const CLOSE: char>(
+        &mut self,
+        vals: &[Value],
+        qubits: &mut Vec<HardwareId>,
+        classical_args: &mut String,
+    ) {
+        classical_args.push(OPEN);
+        let start = classical_args.len();
+        self.push_vals(vals, qubits, classical_args);
+        if classical_args.len() > start {
+            classical_args.push(CLOSE);
+        } else {
+            classical_args.pop();
+        }
+    }
+
+    /// Pushes all qubit values into `qubits`, and formats all
+    /// classical values into `classical_args` as comma-separated values.
+    fn push_vals(
+        &mut self,
+        vals: &[Value],
+        qubits: &mut Vec<HardwareId>,
+        classical_args: &mut String,
+    ) {
+        let mut any = false;
+        for v in vals.iter() {
+            let start = classical_args.len();
+            self.push_val(v, qubits, classical_args);
+            if classical_args.len() > start {
+                any = true;
+                classical_args.push_str(", ");
+            }
+        }
+        if any {
+            // remove trailing comma
+            classical_args.pop();
+            classical_args.pop();
+        }
     }
 }
 
@@ -335,14 +375,7 @@ fn gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operation {
         is_adjoint: false,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -355,14 +388,7 @@ fn adjoint_gate<const N: usize>(name: &str, targets: [HardwareId; N]) -> Operati
         is_adjoint: true,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -378,22 +404,8 @@ fn controlled_gate<const M: usize, const N: usize>(
         is_controlled: true,
         is_adjoint: false,
         is_measurement: false,
-        controls: controls
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        controls: controls.iter().map(|q| Register::quantum(q.0)).collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -405,16 +417,8 @@ fn measurement_gate(qubit: usize, result: usize) -> Operation {
         is_controlled: false,
         is_adjoint: false,
         is_measurement: true,
-        controls: vec![Register {
-            r#type: 0,
-            q_id: qubit,
-            c_id: None,
-        }],
-        targets: vec![Register {
-            r#type: 1,
-            q_id: qubit,
-            c_id: Some(result),
-        }],
+        controls: vec![Register::quantum(qubit)],
+        targets: vec![Register::classical(qubit, result)],
         children: vec![],
     }
 }
@@ -427,14 +431,7 @@ fn rotation_gate<const N: usize>(name: &str, theta: f64, targets: [HardwareId; N
         is_adjoint: false,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
@@ -447,14 +444,7 @@ fn custom_gate(name: &str, targets: &[HardwareId], display_args: Option<String>)
         is_adjoint: false,
         is_measurement: false,
         controls: vec![],
-        targets: targets
-            .iter()
-            .map(|q| Register {
-                r#type: 0,
-                q_id: q.0,
-                c_id: None,
-            })
-            .collect(),
+        targets: targets.iter().map(|q| Register::quantum(q.0)).collect(),
         children: vec![],
     }
 }
