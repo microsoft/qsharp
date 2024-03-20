@@ -291,7 +291,7 @@ def test_unsupported_operation_circuit() -> None:
         circuit = e.circuit(operation="Foo")
     assert (
         str(excinfo.value).find(
-            "expression does not evaluate to an operation that takes qubits"
+            "expression does not evaluate to an operation that takes qubit parameters"
         )
         != -1
     )
