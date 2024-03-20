@@ -1330,7 +1330,6 @@ impl From<&VecIdent> for Vec<Rc<str>> {
 }
 
 
-
 impl From<Vec<Ident>> for VecIdent {
     fn from(v: Vec<Ident>) -> Self {
         VecIdent(v)

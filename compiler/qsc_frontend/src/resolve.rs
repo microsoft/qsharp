@@ -279,6 +279,7 @@ pub struct NamespaceTreeRoot {
     assigner: usize,
     tree: NamespaceTreeNode,
 }
+
 impl NamespaceTreeRoot {
     fn insert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.assigner += 1;
