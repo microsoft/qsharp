@@ -52,6 +52,11 @@ impl Table {
     pub fn resolve_term(&self, namespace: NamespaceId, name: &str) -> Option<&Term> {
         self.terms.get(&namespace).and_then(|terms| terms.get(name))
     }
+    
+    pub fn find_namespace(&self, vec: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
+        // find a namespace if it exists and return its id
+        self.namespaces.find_namespace(vec)
+    }
 }
 
 impl FromIterator<Global> for Table {
@@ -119,8 +124,8 @@ impl NamespaceTreeRoot {
         }
     }
 
-    fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
-        self.tree.find_namespace(ns)
+    fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
+        self.tree.find_namespace(ns.into())
     }
 }
 impl Default for NamespaceTreeRoot {
@@ -141,17 +146,18 @@ pub struct NamespaceTreeNode {
     id: NamespaceId,
 }
 impl NamespaceTreeNode {
-    fn get(&self, component: &Ident) -> Option<&NamespaceTreeNode> {
-        self.children.get(&component.name)
+    fn get(&self, component: &Rc<str>) -> Option<&NamespaceTreeNode> {
+        self.children.get(component)
     }
 
     fn contains(&self, ns: &VecIdent) -> bool {
         self.find_namespace(ns).is_some()
     }
-    fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+    fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         // look up a namespace in the tree and return the id
         // do a breadth-first search through NamespaceTree for the namespace
         // if it's not found, return None
+        let ns = ns.into();
         let mut buf = Rc::new(self);
         for component in ns.iter() {
             if let Some(next_ns) = buf.get(component) {

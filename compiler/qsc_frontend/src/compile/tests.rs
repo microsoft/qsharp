@@ -3,6 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use std::rc::Rc;
+
 use crate::compile::RuntimeCapabilityFlags;
 
 use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
@@ -339,9 +341,10 @@ fn insert_core_call() {
 
     impl MutVisitor for Inserter<'_> {
         fn visit_block(&mut self, block: &mut Block) {
+            let ns = self.core.find_namespace(vec![Rc::from("QIR"), Rc::from("Runtime")]).expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
-                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
+                .resolve_term(ns, "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme

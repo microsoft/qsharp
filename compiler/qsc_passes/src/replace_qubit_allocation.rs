@@ -238,9 +238,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_alloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
+        let ns = self.core.find_namespace(vec![
+            "QIR".into(),
+            "Runtime".into(),
+        ]).unwrap();
         let mut call_expr = create_gen_core_ref(
             self.core,
-            "QIR.Runtime",
+            ns,
             "__quantum__rt__qubit_allocate",
             Vec::new(),
             ident.span,
@@ -250,9 +254,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_array_alloc_stmt(&mut self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
+        let ns = self.core.find_namespace(vec![
+            "QIR".into(),
+            "Runtime".into(),
+        ]).unwrap();
         let mut call_expr = create_gen_core_ref(
             self.core,
-            "QIR.Runtime",
+            ns,
             "AllocateQubitArray",
             Vec::new(),
             ident.span,
@@ -262,9 +270,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
+        let ns = self.core.find_namespace(vec![
+            "QIR".into(),
+            "Runtime".into(),
+        ]).unwrap();
         let mut call_expr = create_gen_core_ref(
             self.core,
-            "QIR.Runtime",
+            ns,
             "__quantum__rt__qubit_release",
             Vec::new(),
             ident.span,
@@ -274,9 +286,13 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_array_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
+        let ns = self.core.find_namespace(vec![
+            "QIR".into(),
+            "Runtime".into(),
+        ]).unwrap();
         let mut call_expr = create_gen_core_ref(
             self.core,
-            "QIR.Runtime",
+            ns,
             "ReleaseQubitArray",
             Vec::new(),
             ident.span,
@@ -412,11 +428,15 @@ fn create_qubit_global_alloc(
     qubit_init: QubitInit,
 ) -> StmtKind {
     fn qubit_alloc_expr(assigner: &mut Assigner, core: &Table, qubit_init: QubitInit) -> Expr {
+        let ns = core.find_namespace(vec![
+            "QIR".into(),
+            "Runtime".into(),
+        ]).unwrap();
         match qubit_init.kind {
             QubitInitKind::Array(mut expr) => {
                 let mut call_expr = create_gen_core_ref(
                     core,
-                    "QIR.Runtime",
+                    ns,
                     "AllocateQubitArray",
                     Vec::new(),
                     qubit_init.span,
@@ -432,7 +452,7 @@ fn create_qubit_global_alloc(
             QubitInitKind::Single => {
                 let mut call_expr = create_gen_core_ref(
                     core,
-                    "QIR.Runtime",
+                    ns,
                     "__quantum__rt__qubit_allocate",
                     Vec::new(),
                     qubit_init.span,

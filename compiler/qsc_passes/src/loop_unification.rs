@@ -133,9 +133,14 @@ impl LoopUni<'_> {
         let Ty::Array(item_ty) = &array_id.ty else {
             panic!("iterator should have array type");
         };
+        let ns = self.core.find_namespace(vec![
+            "Microsoft".into(),
+            "Quantum".into(),
+            "Core".into(),
+        ]).unwrap();
         let mut len_callee = create_gen_core_ref(
             self.core,
-            "Microsoft.Quantum.Core",
+            ns,
             "Length",
             vec![GenericArg::Ty((**item_ty).clone())],
             array_id.span,

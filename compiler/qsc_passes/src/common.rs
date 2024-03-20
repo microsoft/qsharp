@@ -4,7 +4,7 @@
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
-    global::Table,
+    global::{NamespaceId, Table},
     hir::{
         Expr, ExprKind, Field, Ident, Mutability, NodeId, Pat, PatKind, PrimField, Res, Stmt,
         StmtKind,
@@ -81,7 +81,7 @@ impl IdentTemplate {
 
 pub(crate) fn create_gen_core_ref(
     core: &Table,
-    namespace: &str,
+    namespace: NamespaceId,
     name: &str,
     generics: Vec<GenericArg>,
     span: Span,

@@ -1175,6 +1175,10 @@ impl VecIdent {
             hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
         }
     }
+    
+    pub fn starts_with(&self, arg: &str) -> bool {
+        self.0.first().map(|i| &*i.name == arg).unwrap_or_default()
+    }
 }
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

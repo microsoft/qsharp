@@ -20,11 +20,7 @@ use qsc_hir::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    collections::{hash_map::Entry, HashMap},
-    fmt::Display,
-    rc::Rc,
-    str::FromStr,
-    vec,
+    cell::RefCell, collections::{hash_map::Entry, HashMap}, fmt::Display, rc::Rc, str::FromStr, vec
 };
 use thiserror::Error;
 
@@ -285,17 +281,18 @@ impl NamespaceTreeRoot {
         self.assigner += 1;
         let id = self.assigner;
         let node = self.new_namespace_node(Default::default());
-        let mut components_iter = name.into().iter();
+        let mut components_iter = name.into();
+        let mut components_iter = components_iter.iter();
         // construct the initial rover for the breadth-first insertion
         // (this is like a BFS but we create a new node if one doesn't exist)
-        let mut rover_node = &mut self.tree;
+        let self_cell = RefCell::new(self);
+        let mut rover_node = &mut self_cell.borrow_mut().tree;
         // create the rest of the nodes
         for component in components_iter {
             rover_node = rover_node.children
-                .entry(Rc::clone(components_iter.next().expect("can't create namespace with no names -- this is an internal invariant violation")))
-                .or_insert_with(|| self.new_namespace_node(Default::default()));
+                .entry(Rc::clone(component))
+                .or_insert_with(|| self_cell.borrow_mut().new_namespace_node(Default::default()));
         }
-
         rover_node.id
     }
     fn new_namespace_node(
@@ -370,7 +367,7 @@ impl GlobalScope {
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
     /// item contents. This returns a [NamespaceId] which you can use to add more tys and terms to the scope.
-    fn insert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
+    fn upsert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.namespaces.insert_namespace(name)
     }
 }
@@ -892,7 +889,7 @@ impl GlobalTable {
         }
 
         let mut scope = GlobalScope::default();
-        let ns = scope.insert_namespace(vec![Rc::from("Microsoft"), Rc::from("Quantum"), Rc::from("Core")]);
+        let ns = scope.upsert_namespace(vec![Rc::from("Microsoft"), Rc::from("Quantum"), Rc::from("Core")]);
 
         let mut tys = FxHashMap::default();
         tys.insert(ns, core);
@@ -956,11 +953,12 @@ impl GlobalTable {
             global.visibility == hir::Visibility::Public
                 || matches!(&global.kind, global::Kind::Term(t) if t.intrinsic)
         }) {
+            let namespace = self.scope.upsert_namespace(global.namespace);
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
                     self.scope
                         .tys
-                        .entry(global.namespace)
+                        .entry(namespace)
                         .or_default()
                         .insert(global.name, Res::Item(ty.id, global.status));
                 }
@@ -968,7 +966,7 @@ impl GlobalTable {
                     if visibility == hir::Visibility::Public {
                         self.scope
                             .terms
-                            .entry(global.namespace)
+                            .entry(namespace)
                             .or_default()
                             .insert(global.name.clone(), Res::Item(term.id, global.status));
                     }
@@ -998,7 +996,7 @@ fn bind_global_items(
     //     namespace.name.id,
     //     Res::Item(intrapackage(assigner.next_item()), ItemStatus::Available),
     // );
-    let namespace_id = scope.insert_namespace(namespace.name);
+    let namespace_id = scope.upsert_namespace(namespace.name);
 
     for item in &*namespace.items {
         match bind_global_item(
