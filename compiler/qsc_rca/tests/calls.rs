@@ -117,3 +117,112 @@ fn check_rca_for_call_to_cyclic_operation_with_dynamic_argument() {
         ],
     );
 }
+
+#[test]
+fn check_rca_for_call_to_static_closure_function() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Math;
+        let f = i -> IsCoprimeI(11, i);
+        f(13)"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+
+    // Note that the output of the closure function is dynamic due to closures currently considered always dynamic
+    // because we are not performing detailed analysis on them.
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | CallToDynamicCallee | UseOfClosure)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_call_to_dynamic_closure_function() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Math;
+        use q = Qubit();
+        let dynamicInt = M(q) == Zero ? 11 | 13;
+        let f = i -> IsCoprimeI(dynamicInt, i);
+        f(17)"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+
+    // Note that the "use of dynamic integer" runtime feature is missing because we are currently not performing
+    // detailed analysis on closures.
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | CallToDynamicCallee | UseOfClosure)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_call_to_static_closure_operation() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Math;
+        use qubit = Qubit();
+        let theta = PI();
+        let f = q => Rx(theta, q);
+        f(qubit)"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+
+    // Note that closures currently considered always dynamic because we are not performing detailed analysis on them.
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+        ApplicationsGeneratorSet:
+            inherent: Quantum: QuantumProperties:
+                runtime_features: RuntimeFeatureFlags(CallToDynamicCallee | UseOfClosure)
+                value_kind: Element(Static)
+            dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_call_to_dynamic_closure_operation() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Math;
+        use qubit = Qubit();
+        let theta = M(qubit) == Zero ? PI() | PI() / 2.0;
+        let f = q => Rx(theta, q);
+        f(qubit)"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+
+    // Note that the "use of dynamic bool" and the "use of dynamic double" runtime features are missing because we are
+    // currently not performing detailed analysis on closures.
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+        ApplicationsGeneratorSet:
+            inherent: Quantum: QuantumProperties:
+                runtime_features: RuntimeFeatureFlags(CallToDynamicCallee | UseOfClosure)
+                value_kind: Element(Static)
+            dynamic_param_applications: <empty>"#
+        ],
+    );
+}
