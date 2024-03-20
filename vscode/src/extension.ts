@@ -39,7 +39,7 @@ import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
-import { createFormatProvider } from "./format.js";
+import { createFormattingProvider } from "./format.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import {
   EventType,
@@ -185,14 +185,20 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // format document
   const isFormattingEnabled = getEnableFormating();
   const formatterHandle = {
-    handle: undefined as vscode.Disposable | undefined,
+    DocumentFormattingHandle: undefined as vscode.Disposable | undefined,
+    DocumentRangeFormattingHandle: undefined as vscode.Disposable | undefined,
   };
   log.debug("Enable formatting set to: " + isFormattingEnabled);
   if (isFormattingEnabled) {
-    formatterHandle.handle =
+    formatterHandle.DocumentFormattingHandle =
       vscode.languages.registerDocumentFormattingEditProvider(
         qsharpLanguageId,
-        createFormatProvider(languageService),
+        createFormattingProvider(languageService),
+      );
+    formatterHandle.DocumentRangeFormattingHandle =
+      vscode.languages.registerDocumentRangeFormattingEditProvider(
+        qsharpLanguageId,
+        createFormattingProvider(languageService),
       );
   }
 
@@ -290,13 +296,21 @@ async function updateLanguageServiceEnableFormatting(
   const isFormattingEnabled = getEnableFormating();
   log.debug("Enable formatting set to: " + isFormattingEnabled);
   if (isFormattingEnabled) {
-    formatterHandle.handle =
+    formatterHandle.DocumentFormattingHandle =
       vscode.languages.registerDocumentFormattingEditProvider(
         qsharpLanguageId,
-        createFormatProvider(languageService),
+        createFormattingProvider(languageService),
+      );
+    formatterHandle.DocumentRangeFormattingHandle =
+      vscode.languages.registerDocumentRangeFormattingEditProvider(
+        qsharpLanguageId,
+        createFormattingProvider(languageService),
       );
   } else {
-    formatterHandle.handle?.dispose();
+    formatterHandle.DocumentFormattingHandle?.dispose();
+    formatterHandle.DocumentFormattingHandle = undefined;
+    formatterHandle.DocumentRangeFormattingHandle?.dispose();
+    formatterHandle.DocumentRangeFormattingHandle = undefined;
   }
 }
 

@@ -19,6 +19,7 @@ use std::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
     hash::{Hash, Hasher},
+    ops,
     rc::Rc,
     result,
     str::FromStr,
@@ -548,12 +549,14 @@ pub trait PackageLookup {
 /// within the containing node. Node ids are used to identify nodes within
 /// the package and require mapping from the HIR node id to the new FIR node id.
 /// `PackageId`s and `LocalItemId`s are 1:1 from the HIR and are not remapped.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,
     /// The entry expression for an executable package.
     pub entry: Option<ExprId>,
+    /// The control flow graph for the entry expression in the package.
+    pub entry_exec_graph: Rc<[ExecGraphNode]>,
     /// The blocks in the package.
     pub blocks: IndexMap<BlockId, Block>,
     /// The expressions in the package.
@@ -860,6 +863,8 @@ pub struct SpecDecl {
     pub block: BlockId,
     /// The input of the specialization.
     pub input: Option<PatId>,
+    /// The flattened control flow graph for the execution of the specialization.
+    pub exec_graph: Rc<[ExecGraphNode]>,
 }
 
 impl Display for SpecDecl {
@@ -870,6 +875,31 @@ impl Display for SpecDecl {
             self.id, self.span, self.input, self.block
         )
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+/// A node within the control flow graph.
+pub enum ExecGraphNode {
+    /// A binding of a value to a variable.
+    Bind(PatId),
+    /// An expression to execute.
+    Expr(ExprId),
+    /// A statement to track for debugging.
+    Stmt(StmtId),
+    /// An unconditional jump with to given location.
+    Jump(u32),
+    /// A conditional jump with to given location, where the jump is only taken if the condition is
+    /// true.
+    JumpIf(u32),
+    /// A conditional jump with to given location, where the jump is only taken if the condition is
+    /// false.
+    JumpIfNot(u32),
+    /// An indication that the current accumulated result value should be stored into the value stack.
+    Store,
+    /// A no-op Unit node that tells execution to insert a unit value into the current accumulated result.
+    Unit,
+    /// The end of the control flow graph.
+    Ret,
 }
 
 /// A sequenced block of statements.
@@ -914,6 +944,8 @@ pub struct Stmt {
     pub span: Span,
     /// The statement kind.
     pub kind: StmtKind,
+    /// The locations within the containing control flow graph for the current statement.
+    pub exec_graph_range: ops::Range<usize>,
 }
 
 impl Display for Stmt {
@@ -964,6 +996,8 @@ pub struct Expr {
     pub ty: Ty,
     /// The expression kind.
     pub kind: ExprKind,
+    /// The locations within the containing control flow graph for the current expression.
+    pub exec_graph_range: ops::Range<usize>,
 }
 
 impl Display for Expr {
@@ -981,6 +1015,8 @@ impl Display for Expr {
 pub enum ExprKind {
     /// An array: `[a, b, c]`.
     Array(Vec<ExprId>),
+    /// An array of literal values, ie: `[1, 2, 3]`.
+    ArrayLit(Vec<ExprId>),
     /// An array constructed by repeating a value: `[a, size = b]`.
     ArrayRepeat(ExprId, ExprId),
     /// An assignment: `set a = b`.
@@ -1039,7 +1075,7 @@ impl Display for ExprKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
         match self {
-            ExprKind::Array(exprs) => display_array(indent, exprs)?,
+            ExprKind::Array(exprs) | ExprKind::ArrayLit(exprs) => display_array(indent, exprs)?,
             ExprKind::ArrayRepeat(val, size) => display_array_repeat(indent, *val, *size)?,
             ExprKind::Assign(lhs, rhs) => display_assign(indent, *lhs, *rhs)?,
             ExprKind::AssignOp(op, lhs, rhs) => display_assign_op(indent, *op, *lhs, *rhs)?,

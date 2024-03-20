@@ -209,7 +209,7 @@ type EventTypes = {
     measurements: { timeToCompleteMs: number };
   };
   [EventType.FormatStart]: {
-    properties: { associationId: string };
+    properties: { associationId: string; event: FormatEvent };
     measurements: Empty;
   };
   [EventType.FormatEnd]: {
@@ -235,6 +235,12 @@ export enum UserFlowStatus {
 export enum DebugEvent {
   StepIn = "StepIn",
   Continue = "Continue",
+}
+
+export enum FormatEvent {
+  OnDocument = "OnDocument",
+  OnRange = "OnRange",
+  OnType = "OnType",
 }
 
 let reporter: TelemetryReporter | undefined;
