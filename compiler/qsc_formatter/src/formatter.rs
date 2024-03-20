@@ -36,6 +36,21 @@ enum NewlineContext {
     Spaces,
 }
 
+#[derive(Clone, Copy)]
+enum TypeParameterListState {
+    NoState,
+    SeenCallableKeyword,
+    SeenCallableName,
+    InTypeParamList,
+}
+
+struct FormatterState<'a> {
+    code: &'a str,
+    indent_level: usize,
+    delim_newlines_stack: Vec<NewlineContext>,
+    type_param_state: TypeParameterListState,
+}
+
 fn make_indent_string(level: usize) -> String {
     "    ".repeat(level)
 }
@@ -62,8 +77,12 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
     let tokens = concrete::ConcreteTokenIterator::new(code);
     let mut edits = vec![];
 
-    let mut indent_level: usize = 0;
-    let mut delim_context_stack: Vec<NewlineContext> = vec![];
+    let mut state = FormatterState {
+        code,
+        indent_level: 0,
+        delim_newlines_stack: vec![],
+        type_param_state: TypeParameterListState::NoState,
+    };
 
     // The sliding window used is over three adjacent tokens
     #[allow(unused_assignments)]
@@ -84,24 +103,10 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
                     continue;
                 } else if matches!(two.kind, ConcreteTokenKind::WhiteSpace) {
                     // whitespace in the middle
-                    apply_rules(
-                        one,
-                        get_token_contents(code, two),
-                        three,
-                        code,
-                        &mut indent_level,
-                        &mut delim_context_stack,
-                    )
+                    apply_rules(one, get_token_contents(code, two), three, &mut state)
                 } else {
                     // one, two are adjacent tokens with no whitespace in the middle
-                    apply_rules(
-                        one,
-                        "",
-                        two,
-                        code,
-                        &mut indent_level,
-                        &mut delim_context_stack,
-                    )
+                    apply_rules(one, "", two, &mut state)
                 }
             }
             (None, None, Some(three)) => {
@@ -128,15 +133,14 @@ fn apply_rules(
     left: &ConcreteToken,
     whitespace: &str,
     right: &ConcreteToken,
-    code: &str,
-    indent_level: &mut usize,
-    delim_context_stack: &mut Vec<NewlineContext>,
+    state: &mut FormatterState,
 ) -> Vec<TextEdit> {
     let mut edits = vec![];
     // when we get here, neither left nor right should be whitespace
 
     let are_newlines_in_spaces = whitespace.contains('\n');
-    let mut newline_context = delim_context_stack
+    let mut newline_context = state
+        .delim_newlines_stack
         .last()
         .map_or(NewlineContext::NoContext, |b| *b);
 
@@ -144,33 +148,90 @@ fn apply_rules(
     use qsc_frontend::lex::cooked::ClosedBinOp;
     use ConcreteTokenKind::*;
     use TokenKind::*;
-    match (&left.kind, &right.kind) {
-        (Syntax(Open(_)), Syntax(Close(_))) => {
+
+    // Save the left token's status as a delimiter before updating the delimiter state
+    let left_delim_state = to_delim_enum(&left.kind, state.type_param_state);
+
+    // If we are leaving a type param list, reset the state
+    if matches!(&left.kind, Syntax(Gt))
+        && matches!(
+            state.type_param_state,
+            TypeParameterListState::InTypeParamList
+        )
+    {
+        state.type_param_state = TypeParameterListState::NoState
+    }
+
+    match &right.kind {
+        Comment => {
+            // comments don't update state
+        }
+        Syntax(Keyword(Keyword::Operation | Keyword::Function)) => {
+            state.type_param_state = TypeParameterListState::SeenCallableKeyword;
+        }
+        Syntax(Ident)
+            if matches!(
+                state.type_param_state,
+                TypeParameterListState::SeenCallableKeyword
+            ) =>
+        {
+            state.type_param_state = TypeParameterListState::SeenCallableName;
+        }
+        Syntax(Lt)
+            if matches!(
+                state.type_param_state,
+                TypeParameterListState::SeenCallableName
+            ) =>
+        {
+            state.type_param_state = TypeParameterListState::InTypeParamList;
+        }
+        Syntax(AposIdent | Comma | Gt)
+            if matches!(
+                state.type_param_state,
+                TypeParameterListState::InTypeParamList
+            ) =>
+        {
+            // type param identifiers and commas don't take us out of the type parameter list context
+            // Gt only takes us out of the list once we are past it (it is the left-hand token)
+        }
+        _ => {
+            state.type_param_state = TypeParameterListState::NoState;
+        }
+    }
+
+    // Save the right token's status as a delimiter after updating the delimiter state
+    let right_delim_state = to_delim_enum(&right.kind, state.type_param_state);
+
+    let does_right_required_newline =
+        matches!(&right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
+
+    match (left_delim_state, right_delim_state) {
+        (Delimiter::Open, Delimiter::Close) => {
             // Don't change the indentation if empty sequence.
         }
-        (Syntax(Open(_)), _) if are_newlines_in_spaces => {
+        (Delimiter::Open, _) if are_newlines_in_spaces => {
             newline_context = NewlineContext::Newlines;
-            delim_context_stack.push(newline_context);
-            *indent_level += 1;
+            state.delim_newlines_stack.push(newline_context);
+            state.indent_level += 1;
         }
-        (Syntax(Open(_)), Syntax(cooked_right)) if is_newline_keyword_or_ampersat(cooked_right) => {
+        (Delimiter::Open, _) if does_right_required_newline => {
             newline_context = NewlineContext::Newlines;
-            delim_context_stack.push(newline_context);
-            *indent_level += 1;
+            state.delim_newlines_stack.push(newline_context);
+            state.indent_level += 1;
         }
-        (Syntax(Open(_)), Comment) => {
+        (Delimiter::Open, _) if matches!(right.kind, Comment) => {
             newline_context = NewlineContext::Newlines;
-            delim_context_stack.push(newline_context);
-            *indent_level += 1;
+            state.delim_newlines_stack.push(newline_context);
+            state.indent_level += 1;
         }
-        (Syntax(Open(_)), _) => {
+        (Delimiter::Open, _) => {
             newline_context = NewlineContext::Spaces;
-            delim_context_stack.push(newline_context);
+            state.delim_newlines_stack.push(newline_context);
         }
-        (_, Syntax(Close(_))) => {
-            delim_context_stack.pop();
+        (_, Delimiter::Close) => {
+            state.delim_newlines_stack.pop();
             if matches!(newline_context, NewlineContext::Newlines) {
-                *indent_level = indent_level.saturating_sub(1);
+                state.indent_level = state.indent_level.saturating_sub(1);
             }
         }
         _ => {}
@@ -179,15 +240,15 @@ fn apply_rules(
     match (&left.kind, &right.kind) {
         (Comment | Syntax(DocComment), _) => {
             // remove whitespace at the ends of comments
-            effect_trim_comment(left, &mut edits, code);
-            effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+            effect_trim_comment(left, &mut edits, state.code);
+            effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
         }
-        (Syntax(Open(_)), Comment) => {
-            effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+        (_, Comment) if matches!(left_delim_state, Delimiter::Open) => {
+            effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
         }
         (_, Comment) => {
             if are_newlines_in_spaces {
-                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+                effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
             }
             // else do nothing, preserving the user's spaces before the comment
         }
@@ -198,18 +259,11 @@ fn apply_rules(
                 // to be able to differentiate between the unary `-` and the binary `-`
                 // which would have different spacing rules.
             }
-            (Gt, _) | (_, Gt) | (Lt, _) | (_, Lt) => {
-                // This case is used to ignore the spacing around a `<` and `>`.
-                // This is done because we currently don't have the architecture
-                // to be able to differentiate between the comparison operators
-                // and the type-parameter delimiters which would have different
-                // spacing rules.
-            }
             (Semi, _) if matches!(newline_context, NewlineContext::Spaces) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
             (Semi, _) => {
-                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+                effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
             }
             (_, Semi) => {
                 effect_no_space(left, whitespace, right, &mut edits);
@@ -218,17 +272,43 @@ fn apply_rules(
                 // close empty delimiter blocks, i.e. (), [], {}
                 effect_no_space(left, whitespace, right, &mut edits);
             }
-            (Comma, _) | (Open(_), _) if matches!(newline_context, NewlineContext::Newlines) => {
-                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+            (Lt, Gt)
+                if matches!(
+                    state.type_param_state,
+                    TypeParameterListState::InTypeParamList
+                ) =>
+            {
+                // close empty delimiter blocks <>
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (_, _)
+                if matches!(left_delim_state, Delimiter::Open)
+                    && matches!(newline_context, NewlineContext::Newlines) =>
+            {
+                effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
+            }
+            (Comma, _) if matches!(newline_context, NewlineContext::Newlines) => {
+                effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
             }
             (Comma, _) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (_, Close(_)) if matches!(newline_context, NewlineContext::Newlines) => {
-                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+            (_, _)
+                if matches!(right_delim_state, Delimiter::Close)
+                    && matches!(newline_context, NewlineContext::Newlines) =>
+            {
+                effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
             }
             (Open(Delim::Bracket | Delim::Paren), _)
             | (_, Close(Delim::Bracket | Delim::Paren)) => {
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (Lt, _) | (_, Gt)
+                if matches!(
+                    state.type_param_state,
+                    TypeParameterListState::InTypeParamList
+                ) =>
+            {
                 effect_no_space(left, whitespace, right, &mut edits);
             }
             (Open(Delim::Brace), _) | (_, Close(Delim::Brace)) => {
@@ -244,8 +324,8 @@ fn apply_rules(
             | (Keyword(Keyword::Controlled), Keyword(Keyword::Adjoint)) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (_, _) if is_newline_keyword_or_ampersat(cooked_right) => {
-                effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
+            (_, _) if does_right_required_newline => {
+                effect_correct_indentation(left, whitespace, right, &mut edits, state.indent_level);
             }
             (_, TokenKind::Keyword(Keyword::Until))
             | (_, TokenKind::Keyword(Keyword::In))
@@ -274,8 +354,13 @@ fn apply_rules(
             | (_, String(StringToken::Interpolated(InterpolatedStart::RBrace, _))) => {
                 effect_no_space(left, whitespace, right, &mut edits);
             }
-            (_, Open(Delim::Bracket | Delim::Paren)) => {
-                if is_value_token_left(cooked_left) || is_prefix(cooked_left) {
+            (_, Open(Delim::Brace)) => {
+                // Special-case braces to always have a leading single space
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
+            (_, _) if matches!(right_delim_state, Delimiter::Open) => {
+                // Otherwise, all open delims have the same logic
+                if is_value_token_left(cooked_left, left_delim_state) || is_prefix(cooked_left) {
                     // i.e. foo() or { foo }[3]
                     effect_no_space(left, whitespace, right, &mut edits);
                 } else {
@@ -283,11 +368,8 @@ fn apply_rules(
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
             }
-            (_, Open(Delim::Brace)) => {
-                effect_single_space(left, whitespace, right, &mut edits);
-            }
             (_, TokenKind::DotDotDot) => {
-                if is_value_token_left(cooked_left) {
+                if is_value_token_left(cooked_left, left_delim_state) {
                     effect_no_space(left, whitespace, right, &mut edits);
                 } else {
                     effect_single_space(left, whitespace, right, &mut edits);
@@ -303,7 +385,7 @@ fn apply_rules(
             | (_, TokenKind::Keyword(Keyword::Fail)) => {
                 effect_single_space(left, whitespace, right, &mut edits);
             }
-            (_, _) if is_value_token_right(cooked_right) => {
+            (_, _) if is_value_token_right(cooked_right, right_delim_state) => {
                 if is_prefix(cooked_left) {
                     effect_no_space(left, whitespace, right, &mut edits);
                 } else {
@@ -331,6 +413,31 @@ fn apply_rules(
         _ => {}
     }
     edits
+}
+
+#[derive(Clone, Copy)]
+enum Delimiter {
+    Open,
+    Close,
+    NonDelim,
+}
+
+fn to_delim_enum(kind: &ConcreteTokenKind, type_param_state: TypeParameterListState) -> Delimiter {
+    match kind {
+        ConcreteTokenKind::Syntax(TokenKind::Open(_)) => Delimiter::Open,
+        ConcreteTokenKind::Syntax(TokenKind::Lt)
+            if matches!(type_param_state, TypeParameterListState::InTypeParamList) =>
+        {
+            Delimiter::Open
+        }
+        ConcreteTokenKind::Syntax(TokenKind::Close(_)) => Delimiter::Close,
+        ConcreteTokenKind::Syntax(TokenKind::Gt)
+            if matches!(type_param_state, TypeParameterListState::InTypeParamList) =>
+        {
+            Delimiter::Close
+        }
+        _ => Delimiter::NonDelim,
+    }
 }
 
 fn is_bin_op(cooked: &TokenKind) -> bool {
@@ -424,29 +531,39 @@ fn is_value_lit(cooked: &TokenKind) -> bool {
         cooked,
         TokenKind::BigInt(_)
             | TokenKind::Float
-            | TokenKind::Ident
-            | TokenKind::AposIdent
             | TokenKind::Int(_)
             | TokenKind::String(StringToken::Normal)
     )
 }
 
-fn is_value_token_left(cooked: &TokenKind) -> bool {
+fn is_value_token_left(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+    // a closed delim represents a value on the left
+    if matches!(delim_state, Delimiter::Close) {
+        return true;
+    }
+
     match cooked {
         _ if is_value_lit(cooked) => true,
-        TokenKind::String(StringToken::Interpolated(_, InterpolatedEnding::Quote)) => true,
         TokenKind::Keyword(keyword) if is_keyword_value(keyword) => true,
-        TokenKind::Close(_) => true, // a closed delim represents a value on the left
+        TokenKind::Ident
+        | TokenKind::AposIdent
+        | TokenKind::String(StringToken::Interpolated(_, InterpolatedEnding::Quote)) => true,
         _ => false,
     }
 }
 
-fn is_value_token_right(cooked: &TokenKind) -> bool {
+fn is_value_token_right(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+    // an open delim represents a value on the right
+    if matches!(delim_state, Delimiter::Open) {
+        return true;
+    }
+
     match cooked {
         _ if is_value_lit(cooked) => true,
-        TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, _)) => true,
         TokenKind::Keyword(keyword) if is_keyword_value(keyword) => true,
-        TokenKind::Open(_) => true, // an open delim represents a value on the right
+        TokenKind::Ident
+        | TokenKind::AposIdent
+        | TokenKind::String(StringToken::Interpolated(InterpolatedStart::DollarQuote, _)) => true,
         _ => false,
     }
 }

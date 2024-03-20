@@ -847,16 +847,36 @@ fn comma_no_context_uses_space() {
 fn test() {
     check(
         indoc! {r#"
-        (
-            first, second)
+        {
+            operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput) : 'TOutput[] {
+                mutable outputs = [];
+                for _ in 1 .. nSamples {
+                    set outputs += [op(input)];
+                }
+                outputs
+            }
+        }
     "#},
         &expect![[r#"
-            (
-                first,
-                second
-            )
+        {
+            operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput) : 'TOutput[] {
+                mutable outputs = [];
+                for _ in 1..nSamples {
+                    set outputs += [op(input)];
+                }
+                outputs
+            }
+        }
         "#]],
     );
+}
+
+#[test]
+fn test2() {
+    check(
+        indoc! {r#"1 > 0"#},
+        &expect!["1 > 0"],
+    )
 }
 
 #[test]
