@@ -42,10 +42,7 @@ impl DebugService {
         match Debugger::new(source_map, target.into(), Encoding::Utf16, features) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
-                match self.debugger_mut().set_entry() {
-                    Ok(()) => String::new(),
-                    Err(e) => render_errors(e),
-                }
+                String::new()
             }
             Err(e) => render_errors(e),
         }

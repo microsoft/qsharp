@@ -26,3 +26,9 @@ export async function setTarget(target: TargetProfile) {
     vscode.ConfigurationTarget.Global,
   );
 }
+
+export function getEnableFormating(): boolean {
+  return vscode.workspace
+    .getConfiguration("Q#")
+    .get<boolean>("enableFormatting", true);
+}

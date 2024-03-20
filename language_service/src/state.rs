@@ -10,6 +10,7 @@ use crate::protocol::WorkspaceConfigurationUpdate;
 use log::{error, trace};
 use miette::Diagnostic;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
+use qsc_linter::LintConfig;
 use qsc_project::{FileSystemAsync, JSFileEntry};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{cell::RefCell, fmt::Debug, future::Future, mem::take, pin::Pin, rc::Rc, sync::Arc};
@@ -67,6 +68,7 @@ struct Configuration {
     pub target_profile: Profile,
     pub package_type: PackageType,
     pub language_features: LanguageFeatures,
+    pub lints_config: Vec<LintConfig>,
 }
 
 impl Default for Configuration {
@@ -75,6 +77,7 @@ impl Default for Configuration {
             target_profile: Profile::Unrestricted,
             package_type: PackageType::Exe,
             language_features: LanguageFeatures::default(),
+            lints_config: Vec::default(),
         }
     }
 }
@@ -84,6 +87,7 @@ struct PartialConfiguration {
     pub target_profile: Option<Profile>,
     pub package_type: Option<PackageType>,
     pub language_features: Option<LanguageFeatures>,
+    pub lints_config: Option<Vec<LintConfig>>,
 }
 
 impl PartialConfiguration {
@@ -125,6 +129,7 @@ struct LoadManifestResult {
     compilation_uri: Arc<str>,
     sources: Vec<(Arc<str>, Arc<str>)>,
     language_features: LanguageFeatures,
+    lints: Vec<LintConfig>,
 }
 
 impl<'a> CompilationStateUpdater<'a> {
@@ -169,12 +174,14 @@ impl<'a> CompilationStateUpdater<'a> {
             compilation_uri,
             sources,
             language_features,
+            lints: lints_config,
         } = project.unwrap_or_else(|| {
             // If we are in single file mode, use the file's path as the compilation identifier.
             LoadManifestResult {
                 compilation_uri: doc_uri.clone(),
                 sources: vec![(doc_uri.clone(), text.clone())],
                 language_features: LanguageFeatures::default(),
+                lints: Vec::default(),
             }
         });
 
@@ -200,7 +207,12 @@ impl<'a> CompilationStateUpdater<'a> {
             }
         }
 
-        self.insert_buffer_aware_compilation(sources, &compilation_uri, language_features);
+        self.insert_buffer_aware_compilation(
+            sources,
+            &compilation_uri,
+            language_features,
+            &lints_config,
+        );
 
         self.publish_diagnostics();
     }
@@ -221,6 +233,7 @@ impl<'a> CompilationStateUpdater<'a> {
                         .language_features
                         .iter()
                         .collect::<LanguageFeatures>(),
+                    lints: manifest.manifest.lints.clone(),
                 }),
                 Err(e) => {
                     error!("failed to load manifest: {e:?}, defaulting to single-file mode");
@@ -242,6 +255,7 @@ impl<'a> CompilationStateUpdater<'a> {
         mut sources: Vec<(Arc<str>, Arc<str>)>,
         compilation_uri: &Arc<str>,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) {
         self.with_state_mut(|state| {
             // replace source with one from memory if it exists
@@ -259,6 +273,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 self.configuration.package_type,
                 self.configuration.target_profile,
                 language_features,
+                lints_config,
             );
 
             state.compilations.insert(
@@ -284,9 +299,15 @@ impl<'a> CompilationStateUpdater<'a> {
                 sources,
                 compilation_uri,
                 language_features,
+                lints: lints_config,
             }) = project
             {
-                self.insert_buffer_aware_compilation(sources, &compilation_uri, language_features);
+                self.insert_buffer_aware_compilation(
+                    sources,
+                    &compilation_uri,
+                    language_features,
+                    &lints_config,
+                );
             }
         }
 
@@ -346,6 +367,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 target_profile: notebook_metadata.target_profile,
                 package_type: None,
                 language_features: Some(notebook_metadata.language_features),
+                lints_config: None,
             };
             let configuration = merge_configurations(&notebook_configuration, &configuration);
 
@@ -470,10 +492,15 @@ impl<'a> CompilationStateUpdater<'a> {
                 let language_features = package_specific_configuration
                     .language_features
                     .unwrap_or_default();
+                let lints_config = package_specific_configuration
+                    .lints_config
+                    .clone()
+                    .unwrap_or_default();
                 compilation.recompile(
                     configuration.package_type,
                     configuration.target_profile,
                     language_features,
+                    &lints_config,
                 );
             }
         });
@@ -570,5 +597,9 @@ fn merge_configurations(
         language_features: compilation_overrides
             .language_features
             .unwrap_or(workspace_scope.language_features),
+        lints_config: compilation_overrides
+            .lints_config
+            .clone()
+            .unwrap_or(workspace_scope.lints_config.clone()),
     }
 }

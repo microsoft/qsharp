@@ -7,7 +7,7 @@ edition.workspace = true
 license.workspace = true
 version.workspace = true
 
-[dependencies]
+[target.'cfg(not(any(target_family = "wasm", all(target_family = "windows", target_arch = "aarch64"))))'.dependencies]
 mimalloc-sys = { path = "./mimalloc-sys" }
 
 [lints]

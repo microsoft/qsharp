@@ -36,6 +36,7 @@ fn basic_manifest() {
                     ),
                     license: None,
                     language_features: [],
+                    lints: [],
                 },
             }"#]],
     );
@@ -67,6 +68,7 @@ fn circular_imports() {
                     ),
                     license: None,
                     language_features: [],
+                    lints: [],
                 },
             }"#]],
     );
@@ -98,6 +100,7 @@ fn different_files_same_manifest() {
                     ),
                     license: None,
                     language_features: [],
+                    lints: [],
                 },
             }"#]],
     );
@@ -119,6 +122,7 @@ fn empty_manifest() {
                     author: None,
                     license: None,
                     language_features: [],
+                    lints: [],
                 },
             }"#]],
     );
@@ -152,6 +156,7 @@ fn folder_structure() {
                     author: None,
                     license: None,
                     language_features: [],
+                    lints: [],
                 },
             }"#]],
     );
@@ -180,6 +185,7 @@ fn hidden_files() {
                     author: None,
                     license: None,
                     language_features: [],
+                    lints: [],
                 },
             }"#]],
     );
@@ -212,6 +218,7 @@ fn peer_file() {
                     author: None,
                     license: None,
                     language_features: [],
+                    lints: [],
                 },
             }"#]],
     );
@@ -235,6 +242,7 @@ fn language_feature() {
                     language_features: [
                         "v2-preview-syntax",
                     ],
+                    lints: [],
                 },
             }"#]],
     );

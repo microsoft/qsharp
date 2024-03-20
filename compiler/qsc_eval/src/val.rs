@@ -16,16 +16,30 @@ pub enum Value {
     Array(Rc<Vec<Value>>),
     BigInt(BigInt),
     Bool(bool),
-    Closure(Rc<[Value]>, StoreItemId, FunctorApp),
+    Closure(Box<Closure>),
     Double(f64),
     Global(StoreItemId, FunctorApp),
     Int(i64),
     Pauli(Pauli),
     Qubit(Qubit),
-    Range(Option<i64>, i64, Option<i64>),
+    Range(Box<Range>),
     Result(Result),
     String(Rc<str>),
     Tuple(Rc<[Value]>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Closure {
+    pub fixed_args: Rc<[Value]>,
+    pub id: StoreItemId,
+    pub functor: FunctorApp,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Range {
+    pub start: Option<i64>,
+    pub step: i64,
+    pub end: Option<i64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -103,7 +117,7 @@ impl Display for Value {
                 Pauli::Y => write!(f, "PauliY"),
             },
             Value::Qubit(v) => write!(f, "Qubit{}", (v.0)),
-            &Value::Range(start, step, end) => match (start, step, end) {
+            Value::Range(inner) => match (inner.start, inner.step, inner.end) {
                 (Some(start), DEFAULT_RANGE_STEP, Some(end)) => write!(f, "{start}..{end}"),
                 (Some(start), DEFAULT_RANGE_STEP, None) => write!(f, "{start}..."),
                 (Some(start), step, Some(end)) => write!(f, "{start}..{step}..{end}"),
@@ -268,10 +282,10 @@ impl Value {
     /// This will panic if the [Value] is not a [`Value::Range`].
     #[must_use]
     pub fn unwrap_range(self) -> (Option<i64>, i64, Option<i64>) {
-        let Value::Range(start, step, end) = self else {
+        let Value::Range(inner) = self else {
             panic!("value should be Range, got {}", self.type_name());
         };
-        (start, step, end)
+        (inner.start, inner.step, inner.end)
     }
 
     /// Convert the [Value] into a measurement result

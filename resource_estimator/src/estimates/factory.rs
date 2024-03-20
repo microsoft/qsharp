@@ -15,6 +15,7 @@ pub trait DistillationUnit<P> {
     fn failure_probability(&self, input_error_rate: f64) -> f64;
 }
 
+#[derive(Debug)]
 pub enum FactoryBuildError {
     LowFailureProbability,
     HighFailureProbability,
