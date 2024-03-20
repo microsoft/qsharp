@@ -7,9 +7,9 @@ use common::{check_last_statement_compute_properties, CompilationContext};
 use expect_test::expect;
 
 #[test]
-fn check_rca_for_classical_result() {
+fn check_rca_for_classical_string() {
     let mut compilation_context = CompilationContext::new();
-    compilation_context.update(r#"Zero"#);
+    compilation_context.update(r#""Foo""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
         package_store_compute_properties,
@@ -23,12 +23,12 @@ fn check_rca_for_classical_result() {
 }
 
 #[test]
-fn check_rca_for_dynamic_result() {
+fn check_rca_for_dynamic_string() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
         use q = Qubit();
-        M(q)"#,
+        M(q) == Zero ? "Foo" | "Bar""#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -37,7 +37,7 @@ fn check_rca_for_dynamic_result() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicString)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
@@ -45,9 +45,9 @@ fn check_rca_for_dynamic_result() {
 }
 
 #[test]
-fn check_rca_for_classical_bool() {
+fn check_rca_for_classical_interpolated_string() {
     let mut compilation_context = CompilationContext::new();
-    compilation_context.update(r#"true"#);
+    compilation_context.update(r#"$"Foo {Zero}""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
         package_store_compute_properties,
@@ -61,92 +61,12 @@ fn check_rca_for_classical_bool() {
 }
 
 #[test]
-fn check_rca_for_dynamic_bool() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        open Microsoft.Quantum.Convert;
-        use q = Qubit();
-        ResultAsBool(M(q))"#,
-    );
-    let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(
-        package_store_compute_properties,
-        &expect![
-            r#"
-            ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_classical_int() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(r#"42"#);
-    let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(
-        package_store_compute_properties,
-        &expect![
-            r#"
-            ApplicationsGeneratorSet:
-                inherent: Classical
-                dynamic_param_applications: <empty>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_dynamic_int() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
-        use register = Qubit[8];
-        let results = MeasureEachZ(register);
-        ResultArrayAsInt(results)"#,
-    );
-    let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(
-        package_store_compute_properties,
-        &expect![
-            r#"
-            ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_classical_pauli() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(r#"PauliX"#);
-    let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(
-        package_store_compute_properties,
-        &expect![
-            r#"
-            ApplicationsGeneratorSet:
-                inherent: Classical
-                dynamic_param_applications: <empty>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_dynamic_pauli() {
+fn check_rca_for_dynamic_interpolated_string() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
         use q = Qubit();
-        M(q) == Zero ? PauliX | PauliY"#,
+        $"Foo {M(q)}""#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -155,7 +75,7 @@ fn check_rca_for_dynamic_pauli() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicPauli)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicString)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
@@ -163,9 +83,9 @@ fn check_rca_for_dynamic_pauli() {
 }
 
 #[test]
-fn check_rca_for_classical_range() {
+fn check_rca_for_classical_nested_interpolated_string() {
     let mut compilation_context = CompilationContext::new();
-    compilation_context.update(r#"1..2..10"#);
+    compilation_context.update(r#"$"Foo {$"{true}"}""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
         package_store_compute_properties,
@@ -179,13 +99,12 @@ fn check_rca_for_classical_range() {
 }
 
 #[test]
-fn check_rca_for_dynamic_range() {
+fn check_rca_for_dynamic_nested_interpolated_string() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
         use q = Qubit();
-        let step = M(q) == Zero ? 1 | 2;
-        1..step..10"#,
+        $"Foo {$"{M(q) == Zero}"}""#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -194,7 +113,7 @@ fn check_rca_for_dynamic_range() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicRange)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicString)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
@@ -202,9 +121,9 @@ fn check_rca_for_dynamic_range() {
 }
 
 #[test]
-fn check_rca_for_classical_double() {
+fn check_rca_for_classical_concatenated_string() {
     let mut compilation_context = CompilationContext::new();
-    compilation_context.update(r#"42.0"#);
+    compilation_context.update(r#""Foo" + "Bar""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
         package_store_compute_properties,
@@ -218,54 +137,13 @@ fn check_rca_for_classical_double() {
 }
 
 #[test]
-fn check_rca_for_dynamic_double() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(
-        r#"
-        open Microsoft.Quantum.Convert;
-        open Microsoft.Quantum.Measurement;
-        use register = Qubit[8];
-        let results = MeasureEachZ(register);
-        let i = ResultArrayAsInt(results);
-        IntAsDouble(i)"#,
-    );
-    let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(
-        package_store_compute_properties,
-        &expect![
-            r#"
-            ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicDouble)
-                    value_kind: Element(Dynamic)
-                dynamic_param_applications: <empty>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_classical_big_int() {
-    let mut compilation_context = CompilationContext::new();
-    compilation_context.update(r#"42L"#);
-    let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(
-        package_store_compute_properties,
-        &expect![
-            r#"
-            ApplicationsGeneratorSet:
-                inherent: Classical
-                dynamic_param_applications: <empty>"#
-        ],
-    );
-}
-
-#[test]
-fn check_rca_for_dynamic_big_int() {
+fn check_rca_for_dynamic_concatenated_string() {
     let mut compilation_context = CompilationContext::new();
     compilation_context.update(
         r#"
         use q = Qubit();
-        M(q) == Zero ? 0L | 42L"#,
+        let s = M(q) == Zero ? "Foo" | "Bar";
+        s + "Baz""#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -274,7 +152,45 @@ fn check_rca_for_dynamic_big_int() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicBigInt)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicString)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_classical_string_comparison() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(r#""Foo" == "Bar""#);
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_dynamic_string_comparison() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        $"{M(q)}" == "Zero""#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicString)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
