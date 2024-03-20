@@ -9,10 +9,10 @@ use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
         LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId, PatKind, SpecDecl,
-        Stmt, StmtId, StmtKind, StringComponent,
+        Stmt, StmtId, StmtKind,
     },
     ty::FunctorSetValue,
-    visit::Visitor,
+    visit::{walk_expr, Visitor},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
@@ -194,69 +194,11 @@ impl<'a> Visitor<'a> for CycleDetector<'a> {
 
     fn visit_expr(&mut self, expr_id: ExprId) {
         let expr = self.get_expr(expr_id);
-        match &expr.kind {
-            ExprKind::Array(exprs) => exprs.iter().for_each(|e| self.visit_expr(*e)),
-            ExprKind::ArrayRepeat(item, size) => {
-                self.visit_expr(*item);
-                self.visit_expr(*size);
-            }
-            ExprKind::Assign(lhs, rhs)
-            | ExprKind::AssignOp(_, lhs, rhs)
-            | ExprKind::BinOp(_, lhs, rhs) => {
-                self.visit_expr(*lhs);
-                self.visit_expr(*rhs);
-            }
-            ExprKind::AssignField(record, _, replace)
-            | ExprKind::UpdateField(record, _, replace) => {
-                self.visit_expr(*record);
-                self.visit_expr(*replace);
-            }
-            ExprKind::AssignIndex(array, index, replace) => {
-                self.visit_expr(*array);
-                self.visit_expr(*index);
-                self.visit_expr(*replace);
-            }
-            ExprKind::Block(block) => self.visit_block(*block),
-            ExprKind::Call(callee, args) => self.walk_call_expr(*callee, *args),
-            ExprKind::Fail(msg) => self.visit_expr(*msg),
-            ExprKind::Field(record, _) => self.visit_expr(*record),
-            ExprKind::If(cond, body, otherwise) => {
-                self.visit_expr(*cond);
-                self.visit_expr(*body);
-                otherwise.iter().for_each(|e| self.visit_expr(*e));
-            }
-            ExprKind::Index(array, index) => {
-                self.visit_expr(*array);
-                self.visit_expr(*index);
-            }
-            ExprKind::Return(expr) | ExprKind::UnOp(_, expr) => {
-                self.visit_expr(*expr);
-            }
-            ExprKind::Range(start, step, end) => {
-                start.iter().for_each(|s| self.visit_expr(*s));
-                step.iter().for_each(|s| self.visit_expr(*s));
-                end.iter().for_each(|e| self.visit_expr(*e));
-            }
-            ExprKind::String(components) => {
-                for component in components {
-                    match component {
-                        StringComponent::Expr(expr) => self.visit_expr(*expr),
-                        StringComponent::Lit(_) => {}
-                    }
-                }
-            }
-            ExprKind::UpdateIndex(e1, e2, e3) => {
-                self.visit_expr(*e1);
-                self.visit_expr(*e2);
-                self.visit_expr(*e3);
-            }
-            ExprKind::Tuple(exprs) => exprs.iter().for_each(|e| self.visit_expr(*e)),
-            ExprKind::While(cond, block) => {
-                self.visit_expr(*cond);
-                self.visit_block(*block);
-            }
-            ExprKind::Closure(_, _) | ExprKind::Hole | ExprKind::Lit(_) | ExprKind::Var(_, _) => {}
+        if let ExprKind::Call(callee, args) = &expr.kind {
+            self.walk_call_expr(*callee, *args);
+            return;
         }
+        walk_expr(self, expr_id);
     }
 
     fn visit_item(&mut self, item: &'a Item) {

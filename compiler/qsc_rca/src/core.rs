@@ -1472,7 +1472,7 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
     fn visit_expr(&mut self, expr_id: ExprId) {
         let expr = self.get_expr(expr_id);
         let mut compute_kind = match &expr.kind {
-            ExprKind::Array(exprs) => self.analyze_expr_array(exprs),
+            ExprKind::Array(exprs) | ExprKind::ArrayLit(exprs) => self.analyze_expr_array(exprs),
             ExprKind::ArrayRepeat(value_expr_id, size_expr_id) => {
                 self.analyze_expr_array_repeat(*value_expr_id, *size_expr_id)
             }
