@@ -30,7 +30,7 @@ dynamic = ["description", "authors", "urls", "keywords"]
 source = "nodejs"
 
 [tool.hatch.metadata.hooks.nodejs]
-fields = ["description", "authors", "urls"]
+fields = ["description", "authors", "urls", "keywords"]
 
 [tool.hatch.build.targets.sdist]
 artifacts = ["qsharp-jupyterlab/labextension"]
