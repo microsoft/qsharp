@@ -50,6 +50,10 @@ fn compile_mimalloc(dst: &Path) {
 
     // turning on optimizations doesn't seem to make a difference
     //build.opt_level(3);
+    match std::env::var("CMAKE_GENERATOR") {
+        Ok(val) => println!("CMAKE_GENERATOR value: {val}"),
+        Err(_) => println!("CMAKE_GENERATOR value not set"),
+    }
 
     build.compile("mimalloc");
 
