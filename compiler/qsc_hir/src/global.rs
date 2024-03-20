@@ -33,6 +33,8 @@ pub struct Term {
     pub intrinsic: bool,
 }
 
+
+/// A lookup table used for looking up global core items for insertion in `qsc_passes`.
 #[derive(Default)]
 pub struct Table {
     tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Ty>>,
