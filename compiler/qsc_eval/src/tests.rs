@@ -3,36 +3,39 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use core::panic;
+use std::rc::Rc;
+
 use crate::{
     backend::{Backend, SparseSim},
     debug::{map_hir_package_to_fir, Frame},
+    exec_graph_section,
     output::{GenericReceiver, Receiver},
     val, Env, Error, State, StepAction, StepResult, Value,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_fir::fir;
-use qsc_fir::fir::{ExprId, PackageId, PackageStoreLookup};
+use qsc_fir::fir::{self, ExecGraphNode, StmtId};
+use qsc_fir::fir::{PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
-/// Evaluates the given expression with the given context.
+/// Evaluates the given control flow graph with the given context.
 /// Creates a new environment and simulator.
 /// # Errors
 /// Returns the first error encountered during execution.
-pub(super) fn eval_expr(
-    expr: ExprId,
+pub(super) fn eval_graph(
+    graph: Rc<[ExecGraphNode]>,
     sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
     globals: &impl PackageStoreLookup,
     package: PackageId,
+    env: &mut Env,
     out: &mut impl Receiver,
 ) -> Result<Value, (Error, Vec<Frame>)> {
-    let mut state = State::new(package, None);
-    let mut env = Env::default();
-    state.push_expr(expr);
+    let mut state = State::new(package, graph, None);
     let StepResult::Return(value) =
-        state.eval(globals, &mut env, sim, out, &[], StepAction::Continue)?
+        state.eval(globals, env, sim, out, &[], StepAction::Continue)?
     else {
         unreachable!("eval_expr should always return a value");
     };
@@ -75,7 +78,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     );
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = fir_lowerer.lower_package(&unit.package);
-    let entry = unit_fir.entry.expect("package should have entry");
+    let entry = unit_fir.entry_exec_graph.clone();
     let id = store.insert(unit);
 
     let mut fir_store = fir::PackageStore::new();
@@ -87,15 +90,104 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     fir_store.insert(map_hir_package_to_fir(id), unit_fir);
 
     let mut out = Vec::new();
-    match eval_expr(
+    match eval_graph(
         entry,
         &mut SparseSim::new(),
         &fir_store,
         map_hir_package_to_fir(id),
+        &mut Env::default(),
         &mut GenericReceiver::new(&mut out),
     ) {
         Ok(value) => expect.assert_eq(&value.to_string()),
         Err(err) => expect.assert_debug_eq(&err),
+    }
+}
+
+fn check_partial_eval_stmt(
+    file: &str,
+    expr: &str,
+    stmts: &[StmtId],
+    fir_expect: &Expect,
+    result_expect: &Expect,
+) {
+    let mut fir_lowerer = crate::lower::Lowerer::new();
+    let mut core = compile::core();
+    run_core_passes(&mut core);
+    let core_fir = fir_lowerer.lower_package(&core.package);
+    let mut store = PackageStore::new(core);
+
+    let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
+    assert!(std.errors.is_empty());
+    assert!(run_default_passes(
+        store.core(),
+        &mut std,
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all()
+    )
+    .is_empty());
+    let std_fir = fir_lowerer.lower_package(&std.package);
+    let std_id = store.insert(std);
+
+    let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
+    let mut unit = compile(
+        &store,
+        &[std_id],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(unit.errors.is_empty(), "{:?}", unit.errors);
+    let pass_errors = run_default_passes(
+        store.core(),
+        &mut unit,
+        PackageType::Lib,
+        RuntimeCapabilityFlags::all(),
+    );
+    assert!(pass_errors.is_empty(), "{pass_errors:?}");
+    let unit_fir = fir_lowerer.lower_package(&unit.package);
+    fir_expect.assert_eq(&unit_fir.to_string());
+
+    let entry = unit_fir.entry_exec_graph.clone();
+    let id = store.insert(unit);
+
+    let mut fir_store = fir::PackageStore::new();
+    fir_store.insert(
+        map_hir_package_to_fir(qsc_hir::hir::PackageId::CORE),
+        core_fir,
+    );
+    fir_store.insert(map_hir_package_to_fir(std_id), std_fir);
+    let id = map_hir_package_to_fir(id);
+    fir_store.insert(id, unit_fir);
+
+    let mut out = Vec::new();
+    let mut env = Env::default();
+    let (last_stmt, most_stmts) = stmts.split_last().expect("should have at least one stmt");
+    for stmt_id in most_stmts {
+        let stmt = fir_store.get_stmt((id, *stmt_id).into());
+        match eval_graph(
+            exec_graph_section(&entry, stmt.exec_graph_range.clone()),
+            &mut SparseSim::new(),
+            &fir_store,
+            id,
+            &mut env,
+            &mut GenericReceiver::new(&mut out),
+        ) {
+            Ok(_) => {}
+            Err(err) => panic!("Unexpected error: {:?}", err),
+        }
+    }
+
+    let stmt = fir_store.get_stmt((id, *last_stmt).into());
+    match eval_graph(
+        exec_graph_section(&entry, stmt.exec_graph_range.clone()),
+        &mut SparseSim::new(),
+        &fir_store,
+        id,
+        &mut env,
+        &mut GenericReceiver::new(&mut out),
+    ) {
+        Ok(value) => result_expect.assert_eq(&value.to_string()),
+        Err(err) => result_expect.assert_debug_eq(&err),
     }
 }
 
@@ -356,7 +448,7 @@ fn block_qubit_use_array_invalid_count_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 1573,
+                            lo: 1568,
                             hi: 1625,
                         },
                         id: StoreItemId {
@@ -403,6 +495,16 @@ fn block_qubit_use_nested_tuple_expr() {
         }"},
         &expect!["([Qubit0, Qubit1, Qubit2], (Qubit3, Qubit4))"],
     );
+}
+
+#[test]
+fn block_with_no_stmts_is_unit() {
+    check_expr("", "{}", &expect!["()"]);
+}
+
+#[test]
+fn block_with_semi_is_unit() {
+    check_expr("", "{4;}", &expect!["()"]);
 }
 
 #[test]
@@ -461,6 +563,11 @@ fn binop_andl() {
 #[test]
 fn binop_andl_false() {
     check_expr("", "true and false", &expect!["false"]);
+}
+
+#[test]
+fn binop_andl_shortcut() {
+    check_expr("", r#"false and (fail "Should Fail")"#, &expect!["false"]);
 }
 
 #[test]
@@ -2958,7 +3065,7 @@ fn call_adjoint_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 190,
+                            lo: 185,
                             hi: 214,
                         },
                         id: StoreItemId {
@@ -3022,7 +3129,7 @@ fn call_adjoint_adjoint_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 124,
+                            lo: 119,
                             hi: 145,
                         },
                         id: StoreItemId {
@@ -3081,7 +3188,7 @@ fn call_adjoint_self_expr() {
                 [
                     Frame {
                         span: Span {
-                            lo: 116,
+                            lo: 111,
                             hi: 137,
                         },
                         id: StoreItemId {
@@ -3570,5 +3677,481 @@ fn partial_app_mutable_arg() {
             (r1, r2)
         }",
         &expect!["((0, 1), (0, 2))"],
+    );
+}
+
+#[test]
+fn partial_eval_simple_stmt() {
+    check_partial_eval_stmt(
+        "",
+        "{3; {4} 5;}",
+        &[5011_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-11] [Type Unit]:
+                        5009
+                        5010
+                        5012
+                    Block 2098 [4-7] [Type Int]:
+                        5011
+                Stmts:
+                    Stmt 5009 [1-3]: Semi: 25961
+                    Stmt 5010 [4-7]: Expr: 25962
+                    Stmt 5011 [5-6]: Expr: 25963
+                    Stmt 5012 [8-10]: Semi: 25964
+                Exprs:
+                    Expr 25960 [0-11] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [1-2] [Type Int]: Lit: Int(3)
+                    Expr 25962 [4-7] [Type Int]: Expr Block: 2098
+                    Expr 25963 [5-6] [Type Int]: Lit: Int(4)
+                    Expr 25964 [8-9] [Type Int]: Lit: Int(5)
+                Pats:"#]],
+        &expect!["4"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_with_bound_variable() {
+    check_partial_eval_stmt(
+        "",
+        "{let x = 3; {x} ()}",
+        &[5009_u32.into(), 5011_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-19] [Type Unit]:
+                        5009
+                        5010
+                        5012
+                    Block 2098 [12-15] [Type Int]:
+                        5011
+                Stmts:
+                    Stmt 5009 [1-11]: Local (Immutable):
+                        2896
+                        25961
+                    Stmt 5010 [12-15]: Expr: 25962
+                    Stmt 5011 [13-14]: Expr: 25963
+                    Stmt 5012 [16-18]: Expr: 25964
+                Exprs:
+                    Expr 25960 [0-19] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [9-10] [Type Int]: Lit: Int(3)
+                    Expr 25962 [12-15] [Type Int]: Expr Block: 2098
+                    Expr 25963 [13-14] [Type Int]: Var: Local 22
+                    Expr 25964 [16-18] [Type Unit]: Unit
+                Pats:
+                    Pat 2896 [5-6] [Type Int]: Bind: Ident 22 [5-6] "x""#]],
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_with_mutable_variable_update() {
+    check_partial_eval_stmt(
+        "",
+        "{mutable x = 0; set x += 1; {x} set x = -1;}",
+        &[5009_u32.into(), 5010_u32.into(), 5012_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-44] [Type Unit]:
+                        5009
+                        5010
+                        5011
+                        5013
+                    Block 2098 [28-31] [Type Int]:
+                        5012
+                Stmts:
+                    Stmt 5009 [1-15]: Local (Mutable):
+                        2896
+                        25961
+                    Stmt 5010 [16-27]: Semi: 25962
+                    Stmt 5011 [28-31]: Expr: 25965
+                    Stmt 5012 [29-30]: Expr: 25966
+                    Stmt 5013 [32-43]: Semi: 25967
+                Exprs:
+                    Expr 25960 [0-44] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [13-14] [Type Int]: Lit: Int(0)
+                    Expr 25962 [16-26] [Type Unit]: AssignOp (Add):
+                        25963
+                        25964
+                    Expr 25963 [20-21] [Type Int]: Var: Local 22
+                    Expr 25964 [25-26] [Type Int]: Lit: Int(1)
+                    Expr 25965 [28-31] [Type Int]: Expr Block: 2098
+                    Expr 25966 [29-30] [Type Int]: Var: Local 22
+                    Expr 25967 [32-42] [Type Unit]: Assign:
+                        25968
+                        25969
+                    Expr 25968 [36-37] [Type Int]: Var: Local 22
+                    Expr 25969 [40-42] [Type Int]: UnOp (Neg):
+                        25970
+                    Expr 25970 [41-42] [Type Int]: Lit: Int(1)
+                Pats:
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
+        &expect!["1"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_with_mutable_variable_update_out_of_order_works() {
+    check_partial_eval_stmt(
+        "",
+        "{mutable x = 0; set x += 1; {x} set x = -1;}",
+        &[5009_u32.into(), 5013_u32.into(), 5012_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-44] [Type Unit]:
+                        5009
+                        5010
+                        5011
+                        5013
+                    Block 2098 [28-31] [Type Int]:
+                        5012
+                Stmts:
+                    Stmt 5009 [1-15]: Local (Mutable):
+                        2896
+                        25961
+                    Stmt 5010 [16-27]: Semi: 25962
+                    Stmt 5011 [28-31]: Expr: 25965
+                    Stmt 5012 [29-30]: Expr: 25966
+                    Stmt 5013 [32-43]: Semi: 25967
+                Exprs:
+                    Expr 25960 [0-44] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [13-14] [Type Int]: Lit: Int(0)
+                    Expr 25962 [16-26] [Type Unit]: AssignOp (Add):
+                        25963
+                        25964
+                    Expr 25963 [20-21] [Type Int]: Var: Local 22
+                    Expr 25964 [25-26] [Type Int]: Lit: Int(1)
+                    Expr 25965 [28-31] [Type Int]: Expr Block: 2098
+                    Expr 25966 [29-30] [Type Int]: Var: Local 22
+                    Expr 25967 [32-42] [Type Unit]: Assign:
+                        25968
+                        25969
+                    Expr 25968 [36-37] [Type Int]: Var: Local 22
+                    Expr 25969 [40-42] [Type Int]: UnOp (Neg):
+                        25970
+                    Expr 25970 [41-42] [Type Int]: Lit: Int(1)
+                Pats:
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
+        &expect!["-1"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_with_mutable_variable_update_repeat_stmts_works() {
+    check_partial_eval_stmt(
+        "",
+        "{mutable x = 0; set x += 1; {x} set x = -1;}",
+        &[
+            5009_u32.into(),
+            5010_u32.into(),
+            5010_u32.into(),
+            5012_u32.into(),
+        ],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-44] [Type Unit]:
+                        5009
+                        5010
+                        5011
+                        5013
+                    Block 2098 [28-31] [Type Int]:
+                        5012
+                Stmts:
+                    Stmt 5009 [1-15]: Local (Mutable):
+                        2896
+                        25961
+                    Stmt 5010 [16-27]: Semi: 25962
+                    Stmt 5011 [28-31]: Expr: 25965
+                    Stmt 5012 [29-30]: Expr: 25966
+                    Stmt 5013 [32-43]: Semi: 25967
+                Exprs:
+                    Expr 25960 [0-44] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [13-14] [Type Int]: Lit: Int(0)
+                    Expr 25962 [16-26] [Type Unit]: AssignOp (Add):
+                        25963
+                        25964
+                    Expr 25963 [20-21] [Type Int]: Var: Local 22
+                    Expr 25964 [25-26] [Type Int]: Lit: Int(1)
+                    Expr 25965 [28-31] [Type Int]: Expr Block: 2098
+                    Expr 25966 [29-30] [Type Int]: Var: Local 22
+                    Expr 25967 [32-42] [Type Unit]: Assign:
+                        25968
+                        25969
+                    Expr 25968 [36-37] [Type Int]: Var: Local 22
+                    Expr 25969 [40-42] [Type Int]: UnOp (Neg):
+                        25970
+                    Expr 25970 [41-42] [Type Int]: Lit: Int(1)
+                Pats:
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
+        &expect!["2"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_with_bool_short_circuit() {
+    check_partial_eval_stmt(
+        "",
+        "{let x = true; { x or false } ();}",
+        &[5009_u32.into(), 5011_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-34] [Type Unit]:
+                        5009
+                        5010
+                        5012
+                    Block 2098 [15-29] [Type Bool]:
+                        5011
+                Stmts:
+                    Stmt 5009 [1-14]: Local (Immutable):
+                        2896
+                        25961
+                    Stmt 5010 [15-29]: Expr: 25962
+                    Stmt 5011 [17-27]: Expr: 25963
+                    Stmt 5012 [30-33]: Semi: 25966
+                Exprs:
+                    Expr 25960 [0-34] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [9-13] [Type Bool]: Lit: Bool(true)
+                    Expr 25962 [15-29] [Type Bool]: Expr Block: 2098
+                    Expr 25963 [17-27] [Type Bool]: BinOp (OrL):
+                        25964
+                        25965
+                    Expr 25964 [17-18] [Type Bool]: Var: Local 22
+                    Expr 25965 [22-27] [Type Bool]: Lit: Bool(false)
+                    Expr 25966 [30-32] [Type Unit]: Unit
+                Pats:
+                    Pat 2896 [5-6] [Type Bool]: Bind: Ident 22 [5-6] "x""#]],
+        &expect!["true"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_with_bool_no_short_circuit() {
+    check_partial_eval_stmt(
+        "",
+        "{let x = false; { x or true } ();}",
+        &[5009_u32.into(), 5011_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-34] [Type Unit]:
+                        5009
+                        5010
+                        5012
+                    Block 2098 [16-29] [Type Bool]:
+                        5011
+                Stmts:
+                    Stmt 5009 [1-15]: Local (Immutable):
+                        2896
+                        25961
+                    Stmt 5010 [16-29]: Expr: 25962
+                    Stmt 5011 [18-27]: Expr: 25963
+                    Stmt 5012 [30-33]: Semi: 25966
+                Exprs:
+                    Expr 25960 [0-34] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [9-14] [Type Bool]: Lit: Bool(false)
+                    Expr 25962 [16-29] [Type Bool]: Expr Block: 2098
+                    Expr 25963 [18-27] [Type Bool]: BinOp (OrL):
+                        25964
+                        25965
+                    Expr 25964 [18-19] [Type Bool]: Var: Local 22
+                    Expr 25965 [23-27] [Type Bool]: Lit: Bool(true)
+                    Expr 25966 [30-32] [Type Unit]: Unit
+                Pats:
+                    Pat 2896 [5-6] [Type Bool]: Bind: Ident 22 [5-6] "x""#]],
+        &expect!["true"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_with_loop() {
+    check_partial_eval_stmt(
+        "",
+        "{mutable x = 0; while x < 3 { set x += 1; } {x} ();}",
+        &[5009_u32.into(), 5010_u32.into(), 5013_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-52] [Type Unit]:
+                        5009
+                        5010
+                        5012
+                        5014
+                    Block 2098 [28-43] [Type Unit]:
+                        5011
+                    Block 2099 [44-47] [Type Int]:
+                        5013
+                Stmts:
+                    Stmt 5009 [1-15]: Local (Mutable):
+                        2896
+                        25961
+                    Stmt 5010 [16-43]: Expr: 25962
+                    Stmt 5011 [30-41]: Semi: 25966
+                    Stmt 5012 [44-47]: Expr: 25969
+                    Stmt 5013 [45-46]: Expr: 25970
+                    Stmt 5014 [48-51]: Semi: 25971
+                Exprs:
+                    Expr 25960 [0-52] [Type Unit]: Expr Block: 2097
+                    Expr 25961 [13-14] [Type Int]: Lit: Int(0)
+                    Expr 25962 [16-43] [Type Unit]: While:
+                        25963
+                        2098
+                    Expr 25963 [22-27] [Type Bool]: BinOp (Lt):
+                        25964
+                        25965
+                    Expr 25964 [22-23] [Type Int]: Var: Local 22
+                    Expr 25965 [26-27] [Type Int]: Lit: Int(3)
+                    Expr 25966 [30-40] [Type Unit]: AssignOp (Add):
+                        25967
+                        25968
+                    Expr 25967 [34-35] [Type Int]: Var: Local 22
+                    Expr 25968 [39-40] [Type Int]: Lit: Int(1)
+                    Expr 25969 [44-47] [Type Int]: Expr Block: 2099
+                    Expr 25970 [45-46] [Type Int]: Var: Local 22
+                    Expr 25971 [48-50] [Type Unit]: Unit
+                Pats:
+                    Pat 2896 [9-10] [Type Int]: Bind: Ident 22 [9-10] "x""#]],
+        &expect!["3"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_function_calls() {
+    check_partial_eval_stmt(
+        indoc! {"
+            namespace Test {
+                function Add1(x : Int) : Int { x + 1 }
+            }
+        "},
+        "{let x = Test.Add1(4); {x} Test.Add1(3)}",
+        &[5009_u32.into(), 5011_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                    Item 0 [41-102] (Public):
+                        Namespace (Ident 23 [51-55] "Test"): Item 1
+                    Item 1 [62-100] (Public):
+                        Parent: 0
+                        Callable 0 [62-100] (function):
+                            name: Ident 0 [71-75] "Add1"
+                            input: 2897
+                            output: Int
+                            functors: empty set
+                            implementation: Spec:
+                                SpecImpl:
+                                    body: SpecDecl 942 [62-100]: None 2099
+                                    adj: <none>
+                                    ctl: <none>
+                                    ctl-adj: <none>
+                Blocks:
+                    Block 2097 [0-40] [Type Int]:
+                        5009
+                        5010
+                        5012
+                    Block 2098 [23-26] [Type Int]:
+                        5011
+                    Block 2099 [91-100] [Type Int]:
+                        5013
+                Stmts:
+                    Stmt 5009 [1-22]: Local (Immutable):
+                        2896
+                        25961
+                    Stmt 5010 [23-26]: Expr: 25964
+                    Stmt 5011 [24-25]: Expr: 25965
+                    Stmt 5012 [27-39]: Expr: 25966
+                    Stmt 5013 [93-98]: Expr: 25969
+                Exprs:
+                    Expr 25960 [0-40] [Type Int]: Expr Block: 2097
+                    Expr 25961 [9-21] [Type Int]: Call:
+                        25962
+                        25963
+                    Expr 25962 [9-18] [Type (Int -> Int)]: Var: Item 1
+                    Expr 25963 [19-20] [Type Int]: Lit: Int(4)
+                    Expr 25964 [23-26] [Type Int]: Expr Block: 2098
+                    Expr 25965 [24-25] [Type Int]: Var: Local 22
+                    Expr 25966 [27-39] [Type Int]: Call:
+                        25967
+                        25968
+                    Expr 25967 [27-36] [Type (Int -> Int)]: Var: Item 1
+                    Expr 25968 [37-38] [Type Int]: Lit: Int(3)
+                    Expr 25969 [93-98] [Type Int]: BinOp (Add):
+                        25970
+                        25971
+                    Expr 25970 [93-94] [Type Int]: Var: Local 1
+                    Expr 25971 [97-98] [Type Int]: Lit: Int(1)
+                Pats:
+                    Pat 2896 [5-6] [Type Int]: Bind: Ident 22 [5-6] "x"
+                    Pat 2897 [76-83] [Type Int]: Bind: Ident 1 [76-77] "x""#]],
+        &expect!["5"],
+    );
+}
+
+#[test]
+fn partial_eval_stmt_function_calls_from_library() {
+    check_partial_eval_stmt(
+        "",
+        "{let x = [1, 2, 3]; {Length(x)} 3}",
+        &[5009_u32.into(), 5011_u32.into()],
+        &expect![[r#"
+            Package:
+                Entry Expression: 25960
+                Items:
+                Blocks:
+                    Block 2097 [0-34] [Type Int]:
+                        5009
+                        5010
+                        5012
+                    Block 2098 [20-31] [Type Int]:
+                        5011
+                Stmts:
+                    Stmt 5009 [1-19]: Local (Immutable):
+                        2896
+                        25961
+                    Stmt 5010 [20-31]: Expr: 25965
+                    Stmt 5011 [21-30]: Expr: 25966
+                    Stmt 5012 [32-33]: Expr: 25969
+                Exprs:
+                    Expr 25960 [0-34] [Type Int]: Expr Block: 2097
+                    Expr 25961 [9-18] [Type (Int)[]]: Array:
+                        25962
+                        25963
+                        25964
+                    Expr 25962 [10-11] [Type Int]: Lit: Int(1)
+                    Expr 25963 [13-14] [Type Int]: Lit: Int(2)
+                    Expr 25964 [16-17] [Type Int]: Lit: Int(3)
+                    Expr 25965 [20-31] [Type Int]: Expr Block: 2098
+                    Expr 25966 [21-30] [Type Int]: Call:
+                        25967
+                        25968
+                    Expr 25967 [21-27] [Type ((Int)[] -> Int)]: Var:
+                        res: Item 1 (Package 0)
+                        generics:
+                            Int
+                    Expr 25968 [28-29] [Type (Int)[]]: Var: Local 22
+                    Expr 25969 [32-33] [Type Int]: Lit: Int(3)
+                Pats:
+                    Pat 2896 [5-6] [Type (Int)[]]: Bind: Ident 22 [5-6] "x""#]],
+        &expect!["3"],
     );
 }

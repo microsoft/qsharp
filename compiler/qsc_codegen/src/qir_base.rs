@@ -42,7 +42,6 @@ pub fn generate_qir(
 
     let package = map_hir_package_to_fir(package);
     let unit = fir_store.get(package);
-    let entry_expr = unit.entry.expect("package should have entry");
 
     let mut sim = BaseProfSim::default();
     let mut stdout = std::io::sink();
@@ -50,7 +49,7 @@ pub fn generate_qir(
     let result = eval(
         package,
         None,
-        entry_expr.into(),
+        unit.entry_exec_graph.clone(),
         &fir_store,
         &mut Env::default(),
         &mut sim,
