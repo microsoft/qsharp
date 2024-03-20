@@ -214,6 +214,7 @@ if build_pip:
     step_start("Building the pip package")
 
     python_bin = use_python_env(pip_src)
+    print("CMAKE_GENERATOR set to: ", os.environ.get("CMAKE_GENERATOR"))
 
     # copy the process env vars
     pip_env: dict[str, str] = os.environ.copy()

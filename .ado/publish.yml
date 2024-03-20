@@ -234,7 +234,7 @@ jobs:
 
   - script: |
       echo ##vso[task.setvariable variable=CARGO_BUILD_TARGET]aarch64-pc-windows-msvc
-      echo ##vso[task.setvariable variable=CMAKE_GENERATOR]Visual Studio 17 2022
+      echo "##vso[task.setvariable variable=CMAKE_GENERATOR]Visual Studio 17 2022"
     displayName: Set cargo build target for Windows aarch64
     condition: and(eq(variables['Agent.OS'], 'Windows_NT'), eq(variables['arch'], 'aarch64'))
 
