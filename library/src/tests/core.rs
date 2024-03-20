@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use super::test_expression;
-use qsc::interpret::Value;
+use qsc::interpret::{Value, ValueRange};
 
 // Tests for Microsoft.Quantum.Core namespace
 
@@ -73,18 +73,45 @@ fn check_range_empty_n2_n1_n3() {
 
 #[test]
 fn check_range_reverse_1_5() {
-    test_expression("RangeReverse(1..5)", &Value::Range(Some(5), -1, Some(1)));
+    test_expression(
+        "RangeReverse(1..5)",
+        &Value::Range(
+            ValueRange {
+                start: Some(5),
+                step: -1,
+                end: Some(1),
+            }
+            .into(),
+        ),
+    );
 }
 
 #[test]
 fn check_range_reverse_1_n1_5() {
-    test_expression("RangeReverse(1..-1..5)", &Value::Range(Some(5), 1, Some(1)));
+    test_expression(
+        "RangeReverse(1..-1..5)",
+        &Value::Range(
+            ValueRange {
+                start: Some(5),
+                step: 1,
+                end: Some(1),
+            }
+            .into(),
+        ),
+    );
 }
 
 #[test]
 fn check_range_reverse_1_7_10() {
     test_expression(
         "RangeReverse(1..7..10)",
-        &Value::Range(Some(8), -7, Some(1)),
+        &Value::Range(
+            ValueRange {
+                start: Some(8),
+                step: -7,
+                end: Some(1),
+            }
+            .into(),
+        ),
     );
 }
