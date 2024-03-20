@@ -228,6 +228,7 @@ if build_pip:
         "wheel",
         "--wheel-dir",
         wheels_dir,
+        "-v",
         pip_src,
     ]
     subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
