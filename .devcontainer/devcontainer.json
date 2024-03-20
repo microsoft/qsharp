@@ -1,10 +1,9 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/cpp
+// README at: https://github.com/devcontainers/templates/tree/main/src/rust
 {
 	"name": "qsharp",
-	"image": "mcr.microsoft.com/devcontainers/cpp",
+	"image": "mcr.microsoft.com/devcontainers/python:3",
 	"features": {
-		"ghcr.io/devcontainers/features/python:1": {},
 		"ghcr.io/devcontainers/features/node:1": {
 			"nodeGypDependencies": true,
 			"version": "lts"
