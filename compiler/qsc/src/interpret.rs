@@ -84,10 +84,10 @@ pub enum Error {
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
     UnsupportedRuntimeCapabilities,
-    #[error("expression does not evaluate to an operation that takes qubits")]
+    #[error("expression does not evaluate to an operation that takes qubit parameters")]
     #[diagnostic(code("Qsc.Interpret.NoCircuitForOperation"))]
     #[diagnostic(help(
-        "provide the name of a callable or a lambda expression that only takes qubits"
+        "provide the name of a callable or a lambda expression that only takes qubits as parameters"
     ))]
     NoCircuitForOperation,
 }
@@ -459,7 +459,7 @@ impl Interpreter {
 
 /// Describes the entry point for circuit generation.
 pub enum CircuitEntryPoint {
-    /// An operation. This must be an callable name or a lambda
+    /// An operation. This must be a callable name or a lambda
     /// expression that only takes qubits as arguments.
     /// The callable name must be visible in the current package.
     Operation(String),

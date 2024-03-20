@@ -71,6 +71,60 @@ fn one_gate() {
 }
 
 #[test]
+fn rotation_gate() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    Rx(Microsoft.Quantum.Math.PI()/2.0, q);
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    // The wire isn't visible here since the gate label is longer
+    // than the static column width, but we can live with it.
+    expect![[r"
+        q_0     rx(1.5708)
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn classical_for_loop() {
+    let mut interpreter = interpreter(
+        r"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    for i in 0..5 {
+                        X(q);
+                    }
+                }
+            }
+        ",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── X ──── X ──── X ──── X ──── X ──── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
 fn m_base_profile() {
     let mut interpreter = interpreter(
         r"
@@ -252,6 +306,96 @@ fn custom_intrinsic() {
     let mut interpreter = interpreter(
         r"
     namespace Test {
+        operation foo(q: Qubit): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            foo(q);
+        }
+    }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ─ foo ─
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_classical_arg() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        operation foo(n: Int): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            X(q);
+            foo(4);
+        }
+    }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    // A custom intrinsic that doesn't take qubits just doesn't
+    // show up on the circuit.
+    expect![[r"
+        q_0    ── X ──
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_one_classical_arg() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
+        operation foo(n: Int, q: Qubit): Unit {
+            body intrinsic;
+        }
+
+        @EntryPoint()
+        operation Main() : Unit {
+            use q = Qubit();
+            X(q);
+            foo(4, q);
+        }
+    }",
+        Profile::Unrestricted,
+    );
+
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint)
+        .expect("circuit generation should succeed");
+
+    // A custom intrinsic that doesn't take qubits just doesn't
+    // show up on the circuit.
+    expect![[r"
+        q_0    ── X ── foo(4)
+    "]]
+    .assert_eq(&circ.to_string());
+}
+
+#[test]
+fn custom_intrinsic_mixed_args() {
+    let mut interpreter = interpreter(
+        r"
+    namespace Test {
         open Microsoft.Quantum.ResourceEstimation;
 
         @EntryPoint()
@@ -280,16 +424,16 @@ fn custom_intrinsic() {
     // This is one gate that spans ten target wires, even though the
     // text visualization doesn't convey that clearly.
     expect![[r"
-        q_0     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_1     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_2     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_3     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_4     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_5     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_6     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_7     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_8     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
-        q_9     AccountForEstimatesInternal(0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 1)
+        q_0     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_1     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_2     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_3     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_4     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_5     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_6     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_7     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_8     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
+        q_9     AccountForEstimatesInternal([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6)], 1)
     "]]
     .assert_eq(&circ.to_string());
 
@@ -424,23 +568,18 @@ fn adjoint_operation() {
             @EntryPoint()
             operation Main() : Result[] { [] }
 
-            operation SWAP (q1 : Qubit, q2 : Qubit) : Unit
+            operation Foo (q : Qubit) : Unit
                 is Adj + Ctl {
 
                 body (...) {
-                    CNOT(q1, q2);
-                    CNOT(q2, q1);
-                    CNOT(q1, q2);
+                    X(q);
                 }
 
                 adjoint (...) {
-                    SWAP(q1, q2);
+                    Y(q);
                 }
 
                 controlled (cs, ...) {
-                    CNOT(q1, q2);
-                    Controlled CNOT(cs, (q2, q1));
-                    CNOT(q1, q2);
                 }
             }
         }",
@@ -448,12 +587,11 @@ fn adjoint_operation() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Adjoint Test.SWAP".into()))
+        .circuit(CircuitEntryPoint::Operation("Adjoint Test.Foo".into()))
         .expect("circuit generation should succeed");
 
     expect![[r"
-        q_0    ── ● ──── X ──── ● ──
-        q_1    ── X ──── ● ──── X ──
+        q_0    ── Y ──
     "]]
     .assert_eq(&circ.to_string());
 }
@@ -465,26 +603,6 @@ fn lambda() {
         namespace Test {
             @EntryPoint()
             operation Main() : Result[] { [] }
-
-            operation SWAP (q1 : Qubit, q2 : Qubit) : Unit
-                is Adj + Ctl {
-
-                body (...) {
-                    CNOT(q1, q2);
-                    CNOT(q2, q1);
-                    CNOT(q1, q2);
-                }
-
-                adjoint (...) {
-                    SWAP(q1, q2);
-                }
-
-                controlled (cs, ...) {
-                    CNOT(q1, q2);
-                    Controlled CNOT(cs, (q2, q1));
-                    CNOT(q1, q2);
-                }
-            }
         }",
         Profile::Unrestricted,
     );

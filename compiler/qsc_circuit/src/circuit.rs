@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 use std::{fmt::Display, fmt::Write, ops::Not, vec};
@@ -36,14 +39,35 @@ pub struct Operation {
     pub children: Vec<Operation>,
 }
 
+const QUANTUM_REGISTER: usize = 0;
+const CLASSICAL_REGISTER: usize = 1;
+
 #[derive(Serialize, Debug, Eq, Hash, PartialEq, Clone)]
 pub struct Register {
     #[serde(rename = "qId")]
     pub q_id: usize,
-    pub r#type: usize, // 0: quantum, 1: classical
+    pub r#type: usize,
     #[serde(rename = "cId")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub c_id: Option<usize>,
+}
+
+impl Register {
+    pub fn quantum(q_id: usize) -> Self {
+        Self {
+            q_id,
+            r#type: QUANTUM_REGISTER,
+            c_id: None,
+        }
+    }
+
+    pub fn classical(q_id: usize, c_id: usize) -> Self {
+        Self {
+            q_id,
+            r#type: CLASSICAL_REGISTER,
+            c_id: Some(c_id),
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Serialize, Debug)]
@@ -171,17 +195,17 @@ impl Row {
     }
 }
 
-static COLUMN_WIDTH: usize = 7;
-static QUBIT_WIRE: &str = "───────";
-static CLASSICAL_WIRE: &str = "═══════";
-static QUBIT_WIRE_CROSS: &str = "───┼───";
-static CLASSICAL_WIRE_CROSS: &str = "═══╪═══";
-static CLASSICAL_WIRE_START: &str = "   ╘═══";
-static QUBIT_WIRE_DASHED_CROSS: &str = "───┆───";
-static CLASSICAL_WIRE_DASHED_CROSS: &str = "═══┆═══";
-static VERTICAL_DASHED: &str = "   ┆   ";
-static VERTICAL: &str = "   │   ";
-static BLANK: &str = "       ";
+const COLUMN_WIDTH: usize = 7;
+const QUBIT_WIRE: &str = "───────";
+const CLASSICAL_WIRE: &str = "═══════";
+const QUBIT_WIRE_CROSS: &str = "───┼───";
+const CLASSICAL_WIRE_CROSS: &str = "═══╪═══";
+const CLASSICAL_WIRE_START: &str = "   ╘═══";
+const QUBIT_WIRE_DASHED_CROSS: &str = "───┆───";
+const CLASSICAL_WIRE_DASHED_CROSS: &str = "═══┆═══";
+const VERTICAL_DASHED: &str = "   ┆   ";
+const VERTICAL: &str = "   │   ";
+const BLANK: &str = "       ";
 
 /// "q_0  "
 #[allow(clippy::doc_markdown)]
@@ -235,8 +259,8 @@ impl Display for Circuit {
                 .targets
                 .iter()
                 .filter_map(|reg| {
-                    let reg = (reg.q_id, if reg.r#type == 0 { None } else { reg.c_id });
-                    register_to_row.get(&reg)
+                    let reg = (reg.q_id, reg.c_id);
+                    register_to_row.get(&reg).cloned()
                 })
                 .collect::<Vec<_>>();
 
@@ -245,24 +269,25 @@ impl Display for Circuit {
                 .controls
                 .iter()
                 .filter_map(|reg| {
-                    let reg = (reg.q_id, if reg.r#type == 0 { None } else { reg.c_id });
-                    register_to_row.get(&reg)
+                    let reg = (reg.q_id, reg.c_id);
+                    register_to_row.get(&reg).cloned()
                 })
                 .collect::<Vec<_>>();
 
-            // We'll need the entire range of rows for this operation so we can
+            let mut all_rows = targets.clone();
+            all_rows.extend(controls.iter());
+            all_rows.sort_unstable();
+            // We'll need to know the entire range of rows for this operation so we can
             // figure out the starting column and also so we can draw any
             // vertical lines that cross wires.
-            let mut all_rows = targets.iter().chain(controls.iter()).collect::<Vec<_>>();
-            all_rows.sort_unstable();
-            let (first, last) = all_rows
-                .split_first()
-                .map_or((0, 0), |s| (***s.0, ***s.1.last().unwrap_or(s.0)));
+            let (begin, end) = all_rows.split_first().map_or((0, 0), |(first, tail)| {
+                (*first, tail.last().unwrap_or(first) + 1)
+            });
 
             // The starting column - the first available column in all
             // the rows that this operation spans.
             let mut column = 1;
-            for row in &rows[first..=last] {
+            for row in &rows[begin..end] {
                 if row.next_column > column {
                     column = row.next_column;
                 }
@@ -270,7 +295,7 @@ impl Display for Circuit {
 
             // Add the operation to the diagram
             for i in targets {
-                let row = &mut rows[*i];
+                let row = &mut rows[i];
                 if matches!(row.wire, Wire::Classical { .. }) && o.is_measurement {
                     row.start_classical(column);
                 } else {
@@ -280,7 +305,7 @@ impl Display for Circuit {
 
             if o.is_controlled || o.is_measurement {
                 for i in controls {
-                    let row = &mut rows[*i];
+                    let row = &mut rows[i];
                     if matches!(row.wire, Wire::Qubit { .. }) && o.is_measurement {
                         row.add_object(column, "M");
                     } else {
@@ -292,13 +317,13 @@ impl Display for Circuit {
                 // control and target wires and crossing any in between
                 // (vertical lines may overlap if there are multiple controls/targets,
                 // this is ok in practice)
-                for row in rows.iter_mut().take(last + 1).skip(first) {
+                for row in &mut rows[begin..end] {
                     row.add_vertical(column);
                 }
             } else {
                 // No control wire. Draw dashed vertical lines to connect
                 // target wires if there are multiple targets
-                for row in rows.iter_mut().take(last + 1).skip(first) {
+                for row in &mut rows[begin..end] {
                     row.add_dashed_vertical(column);
                 }
             }
@@ -317,358 +342,5 @@ impl Display for Circuit {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use expect_test::expect;
-
-    #[test]
-    fn empty() {
-        let c = Circuit {
-            operations: vec![],
-            qubits: vec![],
-        };
-
-        expect![[""]].assert_eq(&c.to_string());
-    }
-
-    #[test]
-    fn no_gates() {
-        let c = Circuit {
-            operations: vec![],
-            qubits: vec![
-                Qubit {
-                    id: 0,
-                    num_children: 0,
-                },
-                Qubit {
-                    id: 1,
-                    num_children: 0,
-                },
-            ],
-        };
-
-        expect![[r"
-            q_0
-            q_1
-        "]]
-        .assert_eq(&c.to_string());
-    }
-
-    #[test]
-    fn bell() {
-        let c = Circuit {
-            operations: vec![
-                Operation {
-                    gate: "H".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: vec![],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    children: vec![],
-                },
-                Operation {
-                    gate: "X".to_string(),
-                    display_args: None,
-                    is_controlled: true,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 1,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    children: vec![],
-                },
-                Operation {
-                    gate: "Measure".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
-                    children: vec![],
-                },
-                Operation {
-                    gate: "Measure".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 1,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 1,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
-                    children: vec![],
-                },
-            ],
-            qubits: vec![
-                Qubit {
-                    id: 0,
-                    num_children: 1,
-                },
-                Qubit {
-                    id: 1,
-                    num_children: 1,
-                },
-            ],
-        };
-
-        expect![[r"
-            q_0    ── H ──── ● ──── M ──
-                             │      ╘═══
-            q_1    ───────── X ──── M ──
-                                    ╘═══
-        "]]
-        .assert_eq(&c.to_string());
-    }
-
-    #[test]
-    fn control_classical() {
-        let c = Circuit {
-            operations: vec![
-                Operation {
-                    gate: "Measure".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
-                    children: vec![],
-                },
-                Operation {
-                    gate: "X".to_string(),
-                    display_args: None,
-                    is_controlled: true,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
-                    targets: vec![Register {
-                        q_id: 2,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    children: vec![],
-                },
-                Operation {
-                    gate: "X".to_string(),
-                    display_args: None,
-                    is_controlled: true,
-                    is_adjoint: false,
-                    is_measurement: false,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 2,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    children: vec![],
-                },
-            ],
-            qubits: vec![
-                Qubit {
-                    id: 0,
-                    num_children: 1,
-                },
-                Qubit {
-                    id: 1,
-                    num_children: 0,
-                },
-                Qubit {
-                    id: 2,
-                    num_children: 0,
-                },
-            ],
-        };
-
-        expect![[r"
-            q_0    ── M ─────────── ● ──
-                      ╘═════ ● ═════╪═══
-            q_1    ──────────┼──────┼───
-            q_2    ───────── X ──── X ──
-        "]]
-        .assert_eq(&c.to_string());
-    }
-
-    #[test]
-    fn two_measurements() {
-        let c = Circuit {
-            operations: vec![
-                Operation {
-                    gate: "Measure".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(0),
-                    }],
-                    children: vec![],
-                },
-                Operation {
-                    gate: "Measure".to_string(),
-                    display_args: None,
-                    is_controlled: false,
-                    is_adjoint: false,
-                    is_measurement: true,
-                    controls: vec![Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    }],
-                    targets: vec![Register {
-                        q_id: 0,
-                        r#type: 1,
-                        c_id: Some(1),
-                    }],
-                    children: vec![],
-                },
-            ],
-            qubits: vec![Qubit {
-                id: 0,
-                num_children: 2,
-            }],
-        };
-
-        expect![[r"
-            q_0    ── M ──── M ──
-                      ╘══════╪═══
-                             ╘═══
-        "]]
-        .assert_eq(&c.to_string());
-    }
-
-    #[test]
-    fn with_args() {
-        let c = Circuit {
-            operations: vec![Operation {
-                gate: "rx".to_string(),
-                display_args: Some("1.5708".to_string()),
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: false,
-                controls: vec![],
-                targets: vec![Register {
-                    q_id: 0,
-                    r#type: 0,
-                    c_id: None,
-                }],
-                children: vec![],
-            }],
-            qubits: vec![Qubit {
-                id: 0,
-                num_children: 0,
-            }],
-        };
-
-        // This looks wonky because the gate label is longer
-        // than the static column width, but we can live with it.
-        expect![[r"
-            q_0     rx(1.5708)
-        "]]
-        .assert_eq(&c.to_string());
-    }
-
-    #[test]
-    fn two_targets() {
-        let c = Circuit {
-            operations: vec![Operation {
-                gate: "rzz".to_string(),
-                display_args: Some("1.0000".to_string()),
-                is_controlled: false,
-                is_adjoint: false,
-                is_measurement: false,
-                controls: vec![],
-                targets: vec![
-                    Register {
-                        q_id: 0,
-                        r#type: 0,
-                        c_id: None,
-                    },
-                    Register {
-                        q_id: 2,
-                        r#type: 0,
-                        c_id: None,
-                    },
-                ],
-                children: vec![],
-            }],
-            qubits: vec![
-                Qubit {
-                    id: 0,
-                    num_children: 0,
-                },
-                Qubit {
-                    id: 1,
-                    num_children: 0,
-                },
-                Qubit {
-                    id: 2,
-                    num_children: 0,
-                },
-            ],
-        };
-
-        // This looks wonky because the gate label is longer
-        // than the static column width, but we can live with it.
-        expect![[r"
-            q_0     rzz(1.0000)
-            q_1    ───┆───
-            q_2     rzz(1.0000)
-        "]]
-        .assert_eq(&c.to_string());
     }
 }
