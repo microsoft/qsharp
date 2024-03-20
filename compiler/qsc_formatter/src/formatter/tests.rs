@@ -723,6 +723,127 @@ fn delimiter_comments() {
 }
 
 #[test]
+fn brace_no_newlines() {
+    check(
+        indoc! {r#"
+        { Foo();
+            Bar(); Baz()
+        }
+    "#},
+        &expect![[r#"
+            { Foo(); Bar(); Baz() }
+        "#]],
+    );
+}
+
+#[test]
+fn brace_newlines() {
+    check(
+        indoc! {r#"
+        {
+            Foo(); Bar(); Baz() }
+    "#},
+        &expect![[r#"
+            {
+                Foo();
+                Bar();
+                Baz()
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn parens_no_newlines() {
+    check(
+        indoc! {r#"
+        ( Foo(),
+            Bar(), Baz()
+        )
+    "#},
+        &expect![[r#"
+            (Foo(), Bar(), Baz())
+        "#]],
+    );
+}
+
+#[test]
+fn parens_newlines() {
+    check(
+        indoc! {r#"
+        (
+            Foo(), Bar(), Baz() )
+    "#},
+        &expect![[r#"
+            (
+                Foo(),
+                Bar(),
+                Baz()
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn bracket_no_newlines() {
+    check(
+        indoc! {r#"
+        [ Foo(),
+            Bar(), Baz()
+        ]
+    "#},
+        &expect![[r#"
+            [Foo(), Bar(), Baz()]
+        "#]],
+    );
+}
+
+#[test]
+fn bracket_newlines() {
+    check(
+        indoc! {r#"
+        [
+            Foo(), Bar(), Baz() ]
+    "#},
+        &expect![[r#"
+            [
+                Foo(),
+                Bar(),
+                Baz()
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn semi_no_context_uses_newlines() {
+    check(
+        indoc! {r#"
+        Foo(); Bar(); Baz()
+    "#},
+        &expect![[r#"
+            Foo();
+            Bar();
+            Baz()
+        "#]],
+    );
+}
+
+#[test]
+fn comma_no_context_uses_space() {
+    check(
+        indoc! {r#"
+        Foo(),
+        Bar(),
+        Baz()
+    "#},
+        &expect![[r#"
+            Foo(), Bar(), Baz()
+        "#]],
+    );
+}
+
+#[test]
 fn test() {
     check(
         indoc! {r#"

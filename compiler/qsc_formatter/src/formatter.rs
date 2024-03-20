@@ -227,6 +227,13 @@ fn apply_rules(
             (_, Close(_)) if matches!(newline_context, NewlineContext::Newlines) => {
                 effect_correct_indentation(left, whitespace, right, &mut edits, *indent_level);
             }
+            (Open(Delim::Bracket | Delim::Paren), _)
+            | (_, Close(Delim::Bracket | Delim::Paren)) => {
+                effect_no_space(left, whitespace, right, &mut edits);
+            }
+            (Open(Delim::Brace), _) | (_, Close(Delim::Brace)) => {
+                effect_single_space(left, whitespace, right, &mut edits);
+            }
             (At, Ident) => {
                 effect_no_space(left, whitespace, right, &mut edits);
             }
@@ -266,13 +273,6 @@ fn apply_rules(
             (String(StringToken::Interpolated(_, InterpolatedEnding::LBrace)), _)
             | (_, String(StringToken::Interpolated(InterpolatedStart::RBrace, _))) => {
                 effect_no_space(left, whitespace, right, &mut edits);
-            }
-            (Open(Delim::Bracket | Delim::Paren), _)
-            | (_, Close(Delim::Bracket | Delim::Paren)) => {
-                effect_no_space(left, whitespace, right, &mut edits);
-            }
-            (Open(Delim::Brace), _) | (_, Close(Delim::Brace)) => {
-                effect_single_space(left, whitespace, right, &mut edits);
             }
             (_, Open(Delim::Bracket | Delim::Paren)) => {
                 if is_value_token_left(cooked_left) || is_prefix(cooked_left) {
