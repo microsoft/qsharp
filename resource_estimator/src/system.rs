@@ -22,8 +22,9 @@ mod serialization;
 use crate::estimates::{Overhead, PhysicalResourceEstimation};
 use std::rc::Rc;
 
+pub use self::modeling::{GateBasedPhysicalQubit, PhysicalQubit, Protocol};
+use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};
-use self::{modeling::Protocol, optimization::TFactoryBuilder};
 use data::{EstimateType, JobParams};
 pub use data::{LayoutReportData, PartitioningOverhead};
 use serde::Serialize;
