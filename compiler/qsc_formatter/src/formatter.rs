@@ -29,18 +29,37 @@ impl TextEdit {
     }
 }
 
+/// This is to keep track of whether the formatter is currently
+/// processing a sequence with newline separators or single-space
+/// separator.
 #[derive(Clone, Copy)]
 enum NewlineContext {
+    /// The formatter is not in a sequence, so separators should
+    /// use their default logic: newlines for `;` and single
+    /// spaces for `,`.
     NoContext,
+    /// In a sequence that uses newline separators.
     Newlines,
+    /// In a sequence that uses single-space separators.
     Spaces,
 }
 
+/// This is to keep track of whether or not the formatter
+/// is currently in a callable's type-parameter list. This
+/// is necessary to disambiguate the `<` and `>` characters
+/// that delimit the type-parameter list from the binary
+/// comparison operators.
 #[derive(Clone, Copy)]
 enum TypeParameterListState {
+    /// Not in a type-parameter list.
     NoState,
+    /// Not in a list but have seen the callable keyword,
+    /// either `function` or `operation`.
     SeenCallableKeyword,
+    /// Not in a list but have seen the callable identifier.
     SeenCallableName,
+    /// In the type-parameter list, or have seen the
+    /// starting `<`.
     InTypeParamList,
 }
 
@@ -139,103 +158,25 @@ fn apply_rules(
     // when we get here, neither left nor right should be whitespace
 
     let are_newlines_in_spaces = whitespace.contains('\n');
-    let mut newline_context = state
-        .delim_newlines_stack
-        .last()
-        .map_or(NewlineContext::NoContext, |b| *b);
+    let does_right_required_newline =
+        matches!(&right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
 
     use qsc_frontend::keyword::Keyword;
     use qsc_frontend::lex::cooked::ClosedBinOp;
     use ConcreteTokenKind::*;
     use TokenKind::*;
 
-    // Save the left token's status as a delimiter before updating the delimiter state
-    let left_delim_state = to_delim_enum(&left.kind, state.type_param_state);
+    let (left_delim_state, right_delim_state) =
+        update_type_param_state(&left.kind, &right.kind, state);
 
-    // If we are leaving a type param list, reset the state
-    if matches!(&left.kind, Syntax(Gt))
-        && matches!(
-            state.type_param_state,
-            TypeParameterListState::InTypeParamList
-        )
-    {
-        state.type_param_state = TypeParameterListState::NoState
-    }
-
-    match &right.kind {
-        Comment => {
-            // comments don't update state
-        }
-        Syntax(Keyword(Keyword::Operation | Keyword::Function)) => {
-            state.type_param_state = TypeParameterListState::SeenCallableKeyword;
-        }
-        Syntax(Ident)
-            if matches!(
-                state.type_param_state,
-                TypeParameterListState::SeenCallableKeyword
-            ) =>
-        {
-            state.type_param_state = TypeParameterListState::SeenCallableName;
-        }
-        Syntax(Lt)
-            if matches!(
-                state.type_param_state,
-                TypeParameterListState::SeenCallableName
-            ) =>
-        {
-            state.type_param_state = TypeParameterListState::InTypeParamList;
-        }
-        Syntax(AposIdent | Comma | Gt)
-            if matches!(
-                state.type_param_state,
-                TypeParameterListState::InTypeParamList
-            ) =>
-        {
-            // type param identifiers and commas don't take us out of the type parameter list context
-            // Gt only takes us out of the list once we are past it (it is the left-hand token)
-        }
-        _ => {
-            state.type_param_state = TypeParameterListState::NoState;
-        }
-    }
-
-    // Save the right token's status as a delimiter after updating the delimiter state
-    let right_delim_state = to_delim_enum(&right.kind, state.type_param_state);
-
-    let does_right_required_newline =
-        matches!(&right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
-
-    match (left_delim_state, right_delim_state) {
-        (Delimiter::Open, Delimiter::Close) => {
-            // Don't change the indentation if empty sequence.
-        }
-        (Delimiter::Open, _) if are_newlines_in_spaces => {
-            newline_context = NewlineContext::Newlines;
-            state.delim_newlines_stack.push(newline_context);
-            state.indent_level += 1;
-        }
-        (Delimiter::Open, _) if does_right_required_newline => {
-            newline_context = NewlineContext::Newlines;
-            state.delim_newlines_stack.push(newline_context);
-            state.indent_level += 1;
-        }
-        (Delimiter::Open, _) if matches!(right.kind, Comment) => {
-            newline_context = NewlineContext::Newlines;
-            state.delim_newlines_stack.push(newline_context);
-            state.indent_level += 1;
-        }
-        (Delimiter::Open, _) => {
-            newline_context = NewlineContext::Spaces;
-            state.delim_newlines_stack.push(newline_context);
-        }
-        (_, Delimiter::Close) => {
-            state.delim_newlines_stack.pop();
-            if matches!(newline_context, NewlineContext::Newlines) {
-                state.indent_level = state.indent_level.saturating_sub(1);
-            }
-        }
-        _ => {}
-    }
+    let newline_context = update_indent_level(
+        left_delim_state,
+        right_delim_state,
+        state,
+        are_newlines_in_spaces,
+        does_right_required_newline,
+        matches!(right.kind, Comment),
+    );
 
     match (&left.kind, &right.kind) {
         (Comment | Syntax(DocComment), _) => {
@@ -438,6 +379,125 @@ fn to_delim_enum(kind: &ConcreteTokenKind, type_param_state: TypeParameterListSt
         }
         _ => Delimiter::NonDelim,
     }
+}
+
+/// Updates the type_param_state of the FormatterState based
+/// on the left and right token kinds. Returns the delimiter
+/// state of the left and right tokens.
+fn update_type_param_state(
+    left_kind: &ConcreteTokenKind,
+    right_kind: &ConcreteTokenKind,
+    state: &mut FormatterState,
+) -> (Delimiter, Delimiter) {
+    use qsc_frontend::keyword::Keyword;
+    use ConcreteTokenKind::*;
+    use TokenKind::*;
+
+    // Save the left token's status as a delimiter before updating the delimiter state
+    let left_delim_state = to_delim_enum(left_kind, state.type_param_state);
+
+    // If we are leaving a type param list, reset the state
+    if matches!(left_kind, Syntax(Gt))
+        && matches!(
+            state.type_param_state,
+            TypeParameterListState::InTypeParamList
+        )
+    {
+        state.type_param_state = TypeParameterListState::NoState
+    }
+
+    match right_kind {
+        Comment => {
+            // comments don't update state
+        }
+        Syntax(Keyword(Keyword::Operation | Keyword::Function)) => {
+            state.type_param_state = TypeParameterListState::SeenCallableKeyword;
+        }
+        Syntax(Ident)
+            if matches!(
+                state.type_param_state,
+                TypeParameterListState::SeenCallableKeyword
+            ) =>
+        {
+            state.type_param_state = TypeParameterListState::SeenCallableName;
+        }
+        Syntax(Lt)
+            if matches!(
+                state.type_param_state,
+                TypeParameterListState::SeenCallableName
+            ) =>
+        {
+            state.type_param_state = TypeParameterListState::InTypeParamList;
+        }
+        Syntax(AposIdent | Comma | Gt)
+            if matches!(
+                state.type_param_state,
+                TypeParameterListState::InTypeParamList
+            ) =>
+        {
+            // type param identifiers and commas don't take us out of the type parameter list context
+            // Gt only takes us out of the list once we are past it (it is the left-hand token)
+        }
+        _ => {
+            state.type_param_state = TypeParameterListState::NoState;
+        }
+    }
+
+    // Save the right token's status as a delimiter after updating the delimiter state
+    let right_delim_state = to_delim_enum(right_kind, state.type_param_state);
+
+    (left_delim_state, right_delim_state)
+}
+
+/// Updates the indent level and manages the `delim_newlines_stack`
+/// of the FormatterState.
+/// Returns the current newline context.
+fn update_indent_level(
+    left_delim_state: Delimiter,
+    right_delim_state: Delimiter,
+    state: &mut FormatterState,
+    are_newlines_in_spaces: bool,
+    does_right_required_newline: bool,
+    is_right_comment: bool,
+) -> NewlineContext {
+    let mut newline_context = state
+        .delim_newlines_stack
+        .last()
+        .map_or(NewlineContext::NoContext, |b| *b);
+
+    match (left_delim_state, right_delim_state) {
+        (Delimiter::Open, Delimiter::Close) => {
+            // Don't change the indentation if empty sequence.
+        }
+        (Delimiter::Open, _) if are_newlines_in_spaces => {
+            newline_context = NewlineContext::Newlines;
+            state.delim_newlines_stack.push(newline_context);
+            state.indent_level += 1;
+        }
+        (Delimiter::Open, _) if does_right_required_newline => {
+            newline_context = NewlineContext::Newlines;
+            state.delim_newlines_stack.push(newline_context);
+            state.indent_level += 1;
+        }
+        (Delimiter::Open, _) if is_right_comment => {
+            newline_context = NewlineContext::Newlines;
+            state.delim_newlines_stack.push(newline_context);
+            state.indent_level += 1;
+        }
+        (Delimiter::Open, _) => {
+            newline_context = NewlineContext::Spaces;
+            state.delim_newlines_stack.push(newline_context);
+        }
+        (_, Delimiter::Close) => {
+            state.delim_newlines_stack.pop();
+            if matches!(newline_context, NewlineContext::Newlines) {
+                state.indent_level = state.indent_level.saturating_sub(1);
+            }
+        }
+        _ => {}
+    }
+
+    newline_context
 }
 
 fn is_bin_op(cooked: &TokenKind) -> bool {
