@@ -20,6 +20,11 @@ impl<K, V> IndexMap<K, V> {
         Self::default()
     }
 
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+
     // `Iter` does implement `Iterator`, but it has an additional bound on `K`.
     #[allow(clippy::iter_not_returning_iterator)]
     #[must_use]

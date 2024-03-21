@@ -219,6 +219,12 @@
           "command": "qsharp-vscode.workspacePythonCode",
           "when": "view == quantum-workspaces && viewItem == workspace"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "qsharp-vscode.createProject",
+          "when": "explorerResourceIsFolder"
+        }
       ]
     },
     "views": {
@@ -236,6 +242,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "qsharp-vscode.createProject",
+        "title": "Create Q# project",
+        "category": "Q#"
+      },
       {
         "command": "qsharp-vscode.webOpener",
         "title": "Internal web opener",
