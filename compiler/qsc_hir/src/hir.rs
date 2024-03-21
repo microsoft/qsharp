@@ -1179,6 +1179,18 @@ impl VecIdent {
     pub fn starts_with(&self, arg: &str) -> bool {
         self.0.first().map(|i| &*i.name == arg).unwrap_or_default()
     }
+
+    pub fn starts_with_sequence(&self, arg: &[&str]) -> bool {
+        if arg.len() > self.0.len() {
+            return false;
+        }
+        for (i, s) in arg.iter().enumerate() {
+            if &*self.0[i].name != *s {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

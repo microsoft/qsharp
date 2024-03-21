@@ -9,6 +9,7 @@ use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
 use crate::qsc_utils::{into_range, span_contains};
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
+use qsc::hir::global::NamespaceId;
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
@@ -264,7 +265,7 @@ impl CompletionListBuilder {
         compilation: &Compilation,
         opens: &[(Rc<str>, Option<Rc<str>>)],
         insert_open_range: Option<Range>,
-        current_namespace_name: &Option<Rc<str>>,
+        current_namespace_name: &Option<NamespaceId>,
         indent: &String,
     ) {
         let core = &compilation
@@ -386,7 +387,7 @@ impl CompletionListBuilder {
         package_id: PackageId,
         opens: &'a [(Rc<str>, Option<Rc<str>>)],
         insert_open_at: Option<Range>,
-        current_namespace_name: Option<Rc<str>>,
+        current_namespace_name: Option<NamespaceId>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
@@ -403,7 +404,7 @@ impl CompletionListBuilder {
             if let Some(item_id) = i.parent {
                 if let Some(parent) = package.items.get(item_id) {
                     if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                        if namespace.name.starts_with("Microsoft.Quantum.Unstable") {
+                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
                             return None;
                         }
                         // If the item's visibility is internal, the item may be ignored
@@ -411,10 +412,14 @@ impl CompletionListBuilder {
                             if !is_user_package {
                                 return None; // ignore item if not in the user's package
                             }
+                            let namespace = compilation
+                                .package_store
+                                .get(package_id)
+                                .expect("package should exist");
                             // ignore item if the user is not in the item's namespace
                             match &current_namespace_name {
                                 Some(curr_ns) => {
-                                    if *curr_ns != namespace.name {
+                                    if *curr_ns != namespace {
                                         return None;
                                     }
                                 }
@@ -602,7 +607,7 @@ struct ContextFinder {
     context: Context,
     opens: Vec<(Rc<str>, Option<Rc<str>>)>,
     start_of_namespace: Option<u32>,
-    current_namespace_name: Option<Rc<str>>,
+    current_namespace_name: Option<NamespaceId>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -632,7 +637,7 @@ impl Visitor<'_> for ContextFinder {
 
         if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
             self.opens.push((
-                todo!("should namespace open be using namespace ID or rc str?"),//name.into(),
+                todo!("should namespace open be using namespace ID or rc str?"), //name.into(),
                 alias.as_ref().map(|alias| alias.name.clone()),
             ));
         }
