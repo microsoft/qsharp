@@ -67,7 +67,7 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private breakpointLocations: Map<string, IBreakpointLocationData[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
-  private variableHandles = new Handles<"locals" | "quantum">();
+  private variableHandles = new Handles<"locals" | "quantum" | "circuit">();
   private failureMessage: string;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
@@ -732,12 +732,17 @@ export class QscDebugSession extends LoggingDebugSession {
     log.trace(`scopesRequest: %O`, args);
     response.body = {
       scopes: [
+        new Scope("Locals", this.variableHandles.create("locals"), false),
         new Scope(
           "Quantum State",
           this.variableHandles.create("quantum"),
-          true,
+          true, // expensive
         ),
-        new Scope("Locals", this.variableHandles.create("locals"), false),
+        new Scope(
+          "Quantum Circuit",
+          this.variableHandles.create("circuit"),
+          true, // expensive
+        ),
       ],
     };
     log.trace(`scopesResponse: %O`, response);
@@ -756,48 +761,76 @@ export class QscDebugSession extends LoggingDebugSession {
     };
 
     const handle = this.variableHandles.get(args.variablesReference);
-    if (handle === "locals") {
-      const locals = await this.debugService.getLocalVariables();
-      const variables = locals.map((local) => {
-        const variable: DebugProtocol.Variable = {
-          name: local.name,
-          value: local.value,
-          variablesReference: 0,
-        };
-        if (this.supportsVariableType) {
-          variable.type = local.var_type;
+    switch (handle) {
+      case "locals":
+        {
+          const locals = await this.debugService.getLocalVariables();
+          const variables = locals.map((local) => {
+            const variable: DebugProtocol.Variable = {
+              name: local.name,
+              value: local.value,
+              variablesReference: 0,
+            };
+            if (this.supportsVariableType) {
+              variable.type = local.var_type;
+            }
+            return variable;
+          });
+          response.body = {
+            variables: variables,
+          };
         }
-        return variable;
-      });
-      response.body = {
-        variables: variables,
-      };
-    } else if (handle === "quantum") {
-      const associationId = getRandomGuid();
-      const start = performance.now();
-      sendTelemetryEvent(
-        EventType.RenderQuantumStateStart,
-        { associationId },
-        {},
-      );
-      const state = await this.debugService.captureQuantumState();
-      const variables: DebugProtocol.Variable[] = state.map((entry) => {
-        const variable: DebugProtocol.Variable = {
-          name: entry.name,
-          value: entry.value,
-          variablesReference: 0,
-          type: "Complex",
-        };
-        return variable;
-      });
-      sendTelemetryEvent(
-        EventType.RenderQuantumStateEnd,
-        { associationId },
-        { timeToCompleteMs: performance.now() - start },
-      );
-      response.body = {
-        variables: variables,
-      };
+        break;
+      case "quantum":
+        {
+          const associationId = getRandomGuid();
+          const start = performance.now();
+          sendTelemetryEvent(
+            EventType.RenderQuantumStateStart,
+            { associationId },
+            {},
+          );
+          const state = await this.debugService.captureQuantumState();
+          const variables: DebugProtocol.Variable[] = state.map((entry) => {
+            const variable: DebugProtocol.Variable = {
+              name: entry.name,
+              value: entry.value,
+              variablesReference: 0,
+              type: "Complex",
+            };
+            return variable;
+          });
+          sendTelemetryEvent(
+            EventType.RenderQuantumStateEnd,
+            { associationId },
+            { timeToCompleteMs: performance.now() - start },
+          );
+          response.body = {
+            variables: variables,
+          };
+        }
+        break;
+      case "circuit":
+        {
+          // This will get invoked when the "Quantum Circuit" scope is expanded
+          // in the Variables view, but instead of showing any values in the variables
+          // view, we can pop open the circuit diagram panel.
+          const circuit = await this.debugService.getCircuit();
+          updateCircuitPanel(
+            this.targetProfile,
+            vscode.Uri.parse(this.sources[0][0]).path,
+            circuit,
+          );
+          // Keep updating the circuit for the rest of this session, even if
+          // the Variables scope gets collapsed by the user. If we don't do this,
+          // the diagram won't get updated with each step even though the circuit
+          // panel is still being shown, which is misleading.
+          this.config.showCircuit = true;
+          response.body = {
+            variables: [],
+          };
+        }
+        break;
     }
 
     log.trace(`variablesResponse: %O`, response);
