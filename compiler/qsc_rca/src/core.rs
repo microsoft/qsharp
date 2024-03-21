@@ -382,7 +382,7 @@ impl<'a> Analyzer<'a> {
         // Derive the compute kind based on the value kind of the arguments.
         let arg_value_kinds = self.derive_arg_value_kinds(&arg_exprs);
         let mut compute_kind =
-            application_generator_set.derive_application_compute_kind(&arg_value_kinds);
+            application_generator_set.generate_application_compute_kind(&arg_value_kinds);
 
         // Aggregate the runtime features of the qubit controls expressions.
         let mut has_dynamic_controls = false;

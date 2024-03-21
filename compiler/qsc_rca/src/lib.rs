@@ -324,7 +324,7 @@ impl Display for ApplicationGeneratorSet {
 
 impl ApplicationGeneratorSet {
     #[must_use]
-    pub fn derive_application_compute_kind(&self, args_value_kinds: &[ValueKind]) -> ComputeKind {
+    pub fn generate_application_compute_kind(&self, args_value_kinds: &[ValueKind]) -> ComputeKind {
         assert!(self.dynamic_param_applications.len() == args_value_kinds.len());
         let mut compute_kind = self.inherent;
         for (arg_value_kind, param_application) in args_value_kinds
@@ -803,28 +803,28 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowFunction) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CyclicOperationSpec) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
-            runtume_capabilities |= RuntimeCapabilityFlags::all();
+            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::ForwardBranchingOnDynamicValue) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
