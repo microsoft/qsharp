@@ -277,6 +277,9 @@ pub struct NamespaceTreeRoot {
 }
 
 impl NamespaceTreeRoot {
+    pub fn tree(&self) -> &NamespaceTreeNode {
+        &self.tree
+    }
     fn insert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.assigner += 1;
         let id = self.assigner;
@@ -324,10 +327,13 @@ impl Default for NamespaceTreeRoot {
 
 #[derive(Debug, Clone)]
 pub struct NamespaceTreeNode {
-    children: HashMap<Rc<str>, NamespaceTreeNode>,
-    id: NamespaceId,
+    pub children: HashMap<Rc<str>, NamespaceTreeNode>,
+    pub id: NamespaceId,
 }
 impl NamespaceTreeNode {
+    pub fn children(&self) -> &HashMap<Rc<str>, NamespaceTreeNode> {
+        &self.children
+    }
     fn get(&self, component: &Ident) -> Option<&NamespaceTreeNode> {
         self.children.get(&component.name)
     }

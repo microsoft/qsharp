@@ -88,7 +88,7 @@ impl FromIterator<Global> for Table {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NamespaceTreeRoot {
     assigner: usize,
     tree: NamespaceTreeNode,
@@ -147,6 +147,12 @@ pub struct NamespaceTreeNode {
     id: NamespaceId,
 }
 impl NamespaceTreeNode {
+    pub fn new(id: NamespaceId, children: HashMap<Rc<str>, NamespaceTreeNode>) -> Self {
+        Self {
+            children,
+            id,
+        }
+    }
     fn get(&self, component: &Rc<str>) -> Option<&NamespaceTreeNode> {
         self.children.get(component)
     }

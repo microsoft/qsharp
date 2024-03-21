@@ -9,11 +9,11 @@ pub mod location;
 pub mod target;
 
 pub use qsc_frontend::compile::{
-    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
+    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName
 };
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res};
+    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res, NamespaceTreeRoot, NamespaceTreeNode};
 }
 
 pub mod fir {

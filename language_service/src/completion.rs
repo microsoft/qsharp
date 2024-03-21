@@ -7,6 +7,7 @@ mod tests;
 use crate::compilation::{Compilation, CompilationKind};
 use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
 use crate::qsc_utils::{into_range, span_contains};
+use qsc::ast::ast;
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
 use qsc::hir::global::NamespaceId;
@@ -405,6 +406,7 @@ impl CompletionListBuilder {
                                 .ast
                                 .namespaces
                                 ;
+        convert_ast_namespaces_into_hir_namespaces(namespaces);
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
             if let Some(item_id) = i.parent {
@@ -544,6 +546,20 @@ impl CompletionListBuilder {
             }
             _ => None,
         })
+    }
+}
+
+fn convert_ast_namespaces_into_hir_namespaces(namespaces: qsc::resolve::NamespaceTreeRoot) -> qsc::hir::global::NamespaceTreeRoot {
+    let mut hir_namespaces = Vec::new();
+    let mut assigner = 0;
+    for (namespace, qsc::resolve::NamespaceTreeNode { children, id }) in namespaces.tree().children() {
+        let hir_namespace = qsc::hir::global::NamespaceTreeNode::new(id, children.clone());
+        if namespace.id > assigner { assigner = namespace.id + 1; };
+        hir_namespaces.push(hir_namespace);
+    }
+
+    qsc::hir::global::NamespaceTreeRoot {
+        namespaces: hir_namespaces,
     }
 }
 
