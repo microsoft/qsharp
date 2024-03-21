@@ -113,7 +113,7 @@ fn compile(
     let mut errors = globals.add_local_package(&mut assigner, &package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(&mut assigner).visit_package(&package);
-    let (names, locals, mut resolve_errors) = resolver.into_result();
+    let (names, locals, mut resolve_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolve_errors);
     (package, names, locals, errors)
 }

@@ -398,7 +398,13 @@ impl CompletionListBuilder {
         let display = CodeDisplay { compilation };
 
         let is_user_package = compilation.user_package_id == package_id;
-
+        let namespaces = compilation
+                                .package_store
+                                .get(package_id)
+                                .expect("package should exist")
+                                .ast
+                                .namespaces
+                                ;
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
             if let Some(item_id) = i.parent {
@@ -412,14 +418,12 @@ impl CompletionListBuilder {
                             if !is_user_package {
                                 return None; // ignore item if not in the user's package
                             }
-                            let namespace = compilation
-                                .package_store
-                                .get(package_id)
-                                .expect("package should exist");
+                            let ns_id = namespaces.find_namespace(namespace).expect("namespace should exist");
+
                             // ignore item if the user is not in the item's namespace
                             match &current_namespace_name {
                                 Some(curr_ns) => {
-                                    if *curr_ns != namespace {
+                                    if *curr_ns != ns_id {
                                         return None;
                                     }
                                 }

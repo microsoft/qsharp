@@ -88,6 +88,7 @@ impl FromIterator<Global> for Table {
     }
 }
 
+#[derive(Debug)]
 pub struct NamespaceTreeRoot {
     assigner: usize,
     tree: NamespaceTreeNode,

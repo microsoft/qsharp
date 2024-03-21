@@ -306,7 +306,7 @@ impl NamespaceTreeRoot {
         }
     }
 
-    fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+    pub fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
         self.tree.find_namespace(ns)
     }
 }
@@ -456,8 +456,8 @@ impl Resolver {
         }
     }
 
-    pub(super) fn into_result(self) -> (Names, Locals, Vec<Error>) {
-        (self.names, self.locals, self.errors)
+    pub(super) fn into_result(self) -> (Names, Locals, Vec<Error>, NamespaceTreeRoot) {
+        (self.names, self.locals, self.errors, self.globals.namespaces)
     }
 
     pub(super) fn extend_dropped_names(&mut self, dropped_names: Vec<TrackedName>) {
@@ -672,6 +672,10 @@ impl Resolver {
             .expect("there should be at least one scope at location");
 
         self.locals.get_scope_mut(scope_id)
+    }
+    
+    pub(crate) fn namespaces(&self) -> NamespaceTreeRoot {
+        self.globals.namespaces.clone()
     }
 }
 
