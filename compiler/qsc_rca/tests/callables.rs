@@ -3,7 +3,9 @@
 
 pub mod common;
 
-use common::{check_last_statement_compute_properties, CompilationContext};
+use common::{
+    check_callable_compute_properties, check_last_statement_compute_properties, CompilationContext,
+};
 use expect_test::expect;
 
 #[test]
@@ -111,6 +113,38 @@ fn check_rca_for_closure_operation_with_dynamic_captured_value() {
                     runtime_features: RuntimeFeatureFlags(UseOfClosure)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
+        ],
+    );
+}
+
+#[test]
+fn check_rca_for_operation_with_one_classical_return_and_one_dynamic_return() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo() : Int {
+            use q = Qubit();
+            if M(q) == Zero {
+                return 0;
+            }
+            return 1;
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Quantum: QuantumProperties:
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue | ReturnWithinDynamicScope)
+                        value_kind: Element(Dynamic)
+                    dynamic_param_applications: <empty>
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
         ],
     );
 }

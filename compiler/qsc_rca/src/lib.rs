@@ -749,8 +749,12 @@ bitflags! {
         const DynamicResultAllocation = 1 << 19;
         /// Use of a dynamic index to access or update an array.
         const UseOfDynamicIndex = 1 << 20;
+        /// A return expression withing a dynamic scope.
+        const ReturnWithinDynamicScope = 1 << 21;
+        /// A loop with a dynamic condition.
+        const LoopWithDynamicCondition = 1 << 22;
         /// Use of a closure.
-        const UseOfClosure = 1 << 21;
+        const UseOfClosure = 1 << 23;
     }
 }
 
@@ -837,6 +841,12 @@ impl RuntimeFeatureFlags {
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::ReturnWithinDynamicScope) {
+            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+        }
+        if self.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
+            runtume_capabilities |= RuntimeCapabilityFlags::BackwardsBranching;
         }
         if self.contains(RuntimeFeatureFlags::UseOfClosure) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;

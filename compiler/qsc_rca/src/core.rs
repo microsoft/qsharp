@@ -702,18 +702,22 @@ impl<'a> Analyzer<'a> {
         // Visit the value expression to determine its compute kind.
         self.visit_expr(value_expr_id);
 
-        // Add the value expression ID to the return expressions tracked by the application instance.
-        let application_instance = self.get_current_application_instance_mut();
-        let value_expression_compute_kind =
-            *application_instance.get_expr_compute_kind(value_expr_id);
-        application_instance.return_expressions.push(value_expr_id);
+        // The compute kind of the return expression depends on whether the expression happens within a dynamic scope.
+        let application_instance = self.get_current_application_instance();
+        let mut compute_kind = if application_instance.active_dynamic_scopes.is_empty() {
+            ComputeKind::Classical
+        } else {
+            ComputeKind::Quantum(QuantumProperties {
+                runtime_features: RuntimeFeatureFlags::ReturnWithinDynamicScope,
+                value_kind: ValueKind::Element(RuntimeKind::Static),
+            })
+        };
 
-        // The compute kind of the return expression itself consists of only the runtime features of the value
-        // expression.
+        // Now just aggregate the runtime features of the value expression.
         let default_value_kind = ValueKind::Element(RuntimeKind::Static);
-        let mut compute_kind = ComputeKind::Classical;
-        compute_kind = compute_kind
-            .aggregate_runtime_features(value_expression_compute_kind, default_value_kind);
+        let value_expr_compute_kind = *application_instance.get_expr_compute_kind(value_expr_id);
+        compute_kind =
+            compute_kind.aggregate_runtime_features(value_expr_compute_kind, default_value_kind);
         compute_kind
     }
 
@@ -916,6 +920,15 @@ impl<'a> Analyzer<'a> {
             .aggregate_runtime_features(condition_expr_compute_kind, default_value_kind);
         compute_kind =
             compute_kind.aggregate_runtime_features(block_compute_kind, default_value_kind);
+
+        // If the condition is dynamic, we require an additional runtime feature.
+        if condition_expr_compute_kind.is_dynamic() {
+            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                panic!("if the loop condition is quantum, the loop expression must be quantum too");
+            };
+            quantum_properties.runtime_features |= RuntimeFeatureFlags::LoopWithDynamicCondition;
+        }
+
         compute_kind
     }
 
@@ -1524,7 +1537,16 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 end_expr_id.to_owned(),
                 &expr.ty,
             ),
-            ExprKind::Return(value_expr_id) => self.analyze_expr_return(*value_expr_id),
+            ExprKind::Return(value_expr_id) => {
+                let compute_kind = self.analyze_expr_return(*value_expr_id);
+
+                // Track the return expression at the application instance level.
+                let application_instance = self.get_current_application_instance_mut();
+                application_instance
+                    .return_expressions
+                    .push((expr_id, *value_expr_id));
+                compute_kind
+            }
             ExprKind::String(components) => self.analyze_expr_string(components),
             ExprKind::Tuple(exprs) => self.analyze_expr_tuple(exprs),
             ExprKind::UnOp(_, operand_expr_id) => self.analyze_expr_un_op(*operand_expr_id),

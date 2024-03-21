@@ -226,3 +226,31 @@ fn check_rca_for_call_to_dynamic_closure_operation() {
         ],
     );
 }
+
+#[test]
+fn check_rca_for_call_to_operation_with_one_classical_return_and_one_dynamic_return() {
+    let mut compilation_context = CompilationContext::new();
+    compilation_context.update(
+        r#"
+        operation Foo() : Int {
+            use q = Qubit();
+            if M(q) == Zero {
+                return 0;
+            }
+            return 1;
+        }
+        Foo()"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![
+            r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | ForwardBranchingOnDynamicValue | ReturnWithinDynamicScope)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#
+        ],
+    );
+}
