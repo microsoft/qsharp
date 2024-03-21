@@ -33,6 +33,7 @@ export interface IDebugService {
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
   captureQuantumState(): Promise<Array<IQuantumState>>;
+  getCircuit(): Promise<object>;
   getStackFrames(): Promise<IStackFrame[]>;
   evalContinue(
     bps: number[],
@@ -79,8 +80,35 @@ export class QSharpDebugService implements IDebugService {
     );
   }
 
+  async getBreakpoints(path: string): Promise<IBreakpointSpan[]> {
+    return this.debugService.get_breakpoints(path).spans;
+  }
+
+  async getLocalVariables(): Promise<Array<IVariable>> {
+    const variable_list = this.debugService.get_locals();
+    return variable_list.variables;
+  }
+
+  async captureQuantumState(): Promise<Array<IQuantumState>> {
+    const state = this.debugService.capture_quantum_state();
+    return state.entries;
+  }
+
+  async getCircuit(): Promise<object> {
+    return this.debugService.get_circuit();
+  }
+
   async getStackFrames(): Promise<IStackFrame[]> {
     return this.debugService.get_stack_frames().frames;
+  }
+
+  async evalContinue(
+    bps: number[],
+    eventHandler: IQscEventTarget,
+  ): Promise<IStructStepResult> {
+    const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
+    const ids = new Uint32Array(bps);
+    return this.debugService.eval_continue(event_cb, ids);
   }
 
   async evalNext(
@@ -108,29 +136,6 @@ export class QSharpDebugService implements IDebugService {
     const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
     const ids = new Uint32Array(bps);
     return this.debugService.eval_step_out(event_cb, ids);
-  }
-
-  async evalContinue(
-    bps: number[],
-    eventHandler: IQscEventTarget,
-  ): Promise<IStructStepResult> {
-    const event_cb = (msg: string) => onCompilerEvent(msg, eventHandler);
-    const ids = new Uint32Array(bps);
-    return this.debugService.eval_continue(event_cb, ids);
-  }
-
-  async getBreakpoints(path: string): Promise<IBreakpointSpan[]> {
-    return this.debugService.get_breakpoints(path).spans;
-  }
-
-  async captureQuantumState(): Promise<Array<IQuantumState>> {
-    const state = this.debugService.capture_quantum_state();
-    return state.entries;
-  }
-
-  async getLocalVariables(): Promise<Array<IVariable>> {
-    const variable_list = this.debugService.get_locals();
-    return variable_list.variables;
   }
 
   async dispose() {
@@ -180,6 +185,7 @@ export const debugServiceProtocol: ServiceProtocol<
     getBreakpoints: "request",
     getLocalVariables: "request",
     captureQuantumState: "request",
+    getCircuit: "request",
     getStackFrames: "request",
     evalContinue: "requestWithProgress",
     evalNext: "requestWithProgress",
