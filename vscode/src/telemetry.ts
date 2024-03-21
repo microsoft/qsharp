@@ -42,6 +42,7 @@ export enum EventType {
   HistogramEnd = "Qsharp.HistogramEnd",
   FormatStart = "Qsharp.FormatStart",
   FormatEnd = "Qsharp.FormatEnd",
+  CreateProject = "Qsharp.CreateProject",
   TriggerCircuit = "Qsharp.TriggerCircuit",
   CircuitStart = "Qsharp.CircuitStart",
   CircuitEnd = "Qsharp.CircuitEnd",
@@ -218,6 +219,10 @@ type EventTypes = {
   [EventType.FormatEnd]: {
     properties: { associationId: string };
     measurements: { timeToCompleteMs: number; numberOfEdits: number };
+  };
+  [EventType.CreateProject]: {
+    properties: Empty;
+    measurements: Empty;
   };
   [EventType.TriggerCircuit]: {
     properties: { associationId: string };
