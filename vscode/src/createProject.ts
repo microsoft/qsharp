@@ -2,24 +2,48 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import { samples } from "qsharp-lang";
+import { log, samples } from "qsharp-lang";
+import { EventType, sendTelemetryEvent } from "./telemetry";
 
 export async function initProjectCreator(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "qsharp-vscode.createProject",
       async (folderUri: vscode.Uri | undefined) => {
-        if (!folderUri) {
-          // Was run from the command palette. So use the currently open root folder.
-          if (!vscode.workspace.workspaceFolders?.length) return; // No folders open
+        sendTelemetryEvent(EventType.CreateProject, {}, {});
 
-          // TODO: Could show the workspace folder quick-pick if more than 1 root folder open.
-          folderUri = vscode.workspace.workspaceFolders[0].uri;
+        if (!folderUri) {
+          // This was run from the command palette, not the context menu, so create the project
+          // in the root of an open workspace folder.
+          const workspaceCount = vscode.workspace.workspaceFolders?.length || 0;
+          if (workspaceCount === 0) {
+            // No workspaces open
+            vscode.window.showErrorMessage(
+              "You must have a folder open to create a Q# project in",
+            );
+            return;
+          } else if (workspaceCount === 1) {
+            folderUri = vscode.workspace.workspaceFolders![0].uri;
+          } else {
+            const workspaceChoice = await vscode.window.showWorkspaceFolderPick(
+              { placeHolder: "Pick the workspace folder for the project" },
+            );
+            if (!workspaceChoice) return;
+            folderUri = workspaceChoice.uri;
+          }
         }
 
         const edit = new vscode.WorkspaceEdit();
         const projUri = vscode.Uri.joinPath(folderUri, "qsharp.json");
         const mainUri = vscode.Uri.joinPath(folderUri, "src", "main.qs");
+
+        const sample = samples.find((elem) => elem.title === "Minimal");
+        if (!sample) {
+          // Should never happen.
+          log.error("Unable to find the Minimal sample");
+          return;
+        }
+
         edit.createFile(projUri);
         edit.createFile(mainUri);
 
@@ -27,11 +51,15 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
           new vscode.TextEdit(new vscode.Range(0, 0, 0, 0), "{}"),
         ]);
         edit.set(mainUri, [
-          // Assumes the 'minimal' sample is at index 0. May want to do something
-          // more foolproof (or even have a dedicate code sample for projects)
-          new vscode.TextEdit(new vscode.Range(0, 0, 0, 0), samples[0].code),
+          new vscode.TextEdit(new vscode.Range(0, 0, 0, 0), sample.code),
         ]);
-        await vscode.workspace.applyEdit(edit);
+
+        // This doesn't throw on failure, it just returns false
+        if (!(await vscode.workspace.applyEdit(edit))) {
+          vscode.window.showErrorMessage(
+            "Unable to apply edits. Check the project files don't already exist and that the file system is writable",
+          );
+        }
       },
     ),
   );
