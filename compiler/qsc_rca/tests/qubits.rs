@@ -104,7 +104,7 @@ fn check_rca_for_dynamic_multi_qubit_allcation() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicRange | UseOfDynamicQubit | UseOfDynamicallySizedArray | ForwardBranchingOnDynamicValue | DynamicQubitAllocation)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicRange | UseOfDynamicQubit | UseOfDynamicallySizedArray | ForwardBranchingOnDynamicValue | DynamicQubitAllocation | LoopWithDynamicCondition)
                     value_kind: Array(Content: Dynamic, Size: Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
