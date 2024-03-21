@@ -35,7 +35,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
 
         const edit = new vscode.WorkspaceEdit();
         const projUri = vscode.Uri.joinPath(folderUri, "qsharp.json");
-        const mainUri = vscode.Uri.joinPath(folderUri, "src", "main.qs");
+        const mainUri = vscode.Uri.joinPath(folderUri, "src", "Main.qs");
 
         const sample = samples.find((elem) => elem.title === "Minimal");
         if (!sample) {
