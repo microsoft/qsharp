@@ -28,6 +28,7 @@ qsc_fir = { path = "../qsc_fir" }
 qsc_hir = { path = "../qsc_hir" }
 qsc_passes = { path = "../qsc_passes" }
 qsc_project = { path = "../qsc_project", features = ["fs"] }
+qsc_rca = { path = "../qsc_rca" }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }
 allocator = { path = "../../allocator" }
@@ -66,4 +67,8 @@ harness = false
 
 [[bench]]
 name = "eval"
+harness = false
+
+[[bench]]
+name = "rca"
 harness = false
