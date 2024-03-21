@@ -1,0 +1,11 @@
+[package]
+name = "qsc_rir"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+qsc_data_structures = { path = "../qsc_data_structures" }
