@@ -96,8 +96,145 @@ Matrix addition has the following properties:
 
 @[exercise]({ 
     "id": "linear_algebra__addition", 
-    "title": "Matrix Addition", 
+    "title": "Add Matrices", 
     "path": "./addition/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({ 
+    "id": "linear_algebra__scalar_multiplication", 
+    "title": "Scalar Multiplication" 
+})
+
+The next matrix operation is **scalar multiplication** - multiplying the entire matrix by a scalar (real or complex number):
+
+$$a \cdot
+\begin{bmatrix}
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
+    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
+\end{bmatrix} =
+\begin{bmatrix}
+    a \cdot x_{0,0} & a \cdot x_{0,1} & \dotsb & a \cdot x_{0,m-1} \\\\
+    a \cdot x_{1,0} & a \cdot x_{1,1} & \dotsb & a \cdot x_{1,m-1} \\\\
+    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    a \cdot x_{n-1,0} & a \cdot x_{n-1,1} & \dotsb & a \cdot x_{n-1,m-1}
+\end{bmatrix}$$
+
+Scalar multiplication has the following properties:
+
+* Associativity: $x \cdot (yA) = (x \cdot y)A$
+* Distributivity over matrix addition: $x(A + B) = xA + xB$
+* Distributivity over scalar addition: $(x + y)A = xA + yA$
+
+@[exercise]({ 
+    "id": "linear_algebra__scalar_multiplication_ex", 
+    "title": "Multiply a Matrix by a Scalar", 
+    "path": "./scalar_multiplication/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({ 
+    "id": "linear_algebra__matrix_multiplication", 
+    "title": "Matrix Multiplication" 
+})
+
+**Matrix multiplication** is a very important and somewhat unusual operation. The unusual thing about it is that neither its operands nor its output are the same size: an $n \times m$ matrix multiplied by an $m \times k$ matrix results in an $n \times k$ matrix. 
+That is, for matrix multiplication to be applicable, the number of columns in the first matrix must equal the number of rows in the second matrix.
+
+Here is how matrix product is calculated: if we are calculating $AB = C$, then
+
+$$C_{i,j} = A_{i,0} \cdot B_{0,j} + A_{i,1} \cdot B_{1,j} + \dotsb + A_{i,m-1} \cdot B_{m-1,j} = \sum_{t = 0}^{m-1} A_{i,t} \cdot B_{t,j}$$
+
+Here is a small example:
+
+$$\begin{bmatrix}
+    1 & 2 & 3 \\\\
+    4 & 5 & 6
+\end{bmatrix}
+\begin{bmatrix}
+    1 \\\\
+    2 \\\\
+    3
+\end{bmatrix} =
+\begin{bmatrix}
+    1 \cdot 1 + 2 \cdot 2 + 3 \cdot 3 \\\\
+    4 \cdot 1 + 5 \cdot 2 + 6 \cdot 3
+\end{bmatrix} =
+\begin{bmatrix}
+    14 \\\\
+    32
+\end{bmatrix}$$
+
+Matrix multiplication has the following properties:
+
+* Associativity: $A(BC) = (AB)C$
+* Distributivity over matrix addition: $A(B + C) = AB + AC$ and $(A + B)C = AC + BC$
+* Associativity with scalar multiplication: $xAB = x(AB) = A(xB)$
+
+> Note that matrix multiplication is **not commutative:** $AB$ rarely equals $BA$.
+
+Another very important property of matrix multiplication is that a matrix multiplied by a vector produces another vector.
+
+An **identity matrix** $I_n$ is a special $n \times n$ matrix which has $1$s on the main diagonal, and $0$s everywhere else:
+
+$$I_n =
+\begin{bmatrix}
+    1 & 0 & \dotsb & 0 \\\\
+    0 & 1 & \dotsb & 0 \\\\
+    \vdots & \vdots & \ddots & \vdots \\\\
+    0 & 0 & \dotsb & 1
+\end{bmatrix}$$
+
+What makes it special is that multiplying any matrix (of compatible size) by $I_n$ returns the original matrix. To put it another way, if $A$ is an $n \times m$ matrix:
+
+$$AI_m = I_nA = A$$
+
+This is why $I_n$ is called an identity matrix - it acts as a **multiplicative identity**. In other words, it is the matrix equivalent of the number $1$.
+
+@[exercise]({ 
+    "id": "linear_algebra__matrix_multiplication_ex", 
+    "title": "Multiply Two Matrices", 
+    "path": "./multiplication/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({
+    "id": "linear_algebra__inverse_matrices", 
+    "title": "Inverse Matrices" 
+})
+
+A square $n \times n$ matrix $A$ is **invertible** if it has an inverse $n \times n$ matrix $A^{-1}$ with the following property:
+
+$$AA^{-1} = A^{-1}A = I_n$$
+
+In other words, $A^{-1}$ acts as the **multiplicative inverse** of $A$.
+
+Another, equivalent definition highlights what makes this an interesting property. For any matrices $B$ and $C$ of compatible sizes:
+
+$$A^{-1}(AB) = A(A^{-1}B) = B$$
+$$(CA)A^{-1} = (CA^{-1})A = C$$
+
+A square matrix has a property called the **determinant**, with the determinant of matrix $A$ being written as $|A|$. A matrix is invertible if and only if its determinant isn't equal to $0$.
+
+For a $2 \times 2$ matrix $A$, the determinant is defined as $|A| = A_{0,0} \cdot A_{1,1} - A_{0,1} \cdot A_{1,0}$.
+
+For larger matrices, the determinant is defined through determinants of sub-matrices. You can learn more from [Wikipedia](https://en.wikipedia.org/wiki/Determinant) or from [Wolfram MathWorld](http://mathworld.wolfram.com/Determinant.html).
+
+@[exercise]({ 
+    "id": "linear_algebra__inverse_matrix_ex", 
+    "title": "Invert a Matrix", 
+    "path": "./inverse/", 
     "qsDependencies": [
         "./Common.qs"
     ] 
