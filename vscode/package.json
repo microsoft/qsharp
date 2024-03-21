@@ -132,6 +132,11 @@
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp",
           "group": "navigation@2"
+        },
+        {
+          "command": "qsharp-vscode.debugEditorContentsWithCircuit",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@2"
         }
       ],
       "commandPalette": [
@@ -141,6 +146,10 @@
         },
         {
           "command": "qsharp-vscode.runEditorContents",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.debugEditorContentsWithCircuit",
           "when": "resourceLangId == qsharp"
         },
         {
@@ -259,6 +268,13 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.debugEditorContentsWithCircuit",
+        "title": "Debug Q# File with Circuit Diagram",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(debug-alt)"
       },
       {
         "command": "qsharp-vscode.showHistogram",
@@ -406,6 +422,11 @@
               "trace": {
                 "type": "boolean",
                 "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": false
+              },
+              "showCircuit": {
+                "type": "boolean",
+                "description": "Display the quantum circuit diagram while running.",
                 "default": false
               }
             }

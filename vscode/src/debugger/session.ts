@@ -6,32 +6,32 @@
 import * as vscode from "vscode";
 
 import {
+  Breakpoint,
   ExitedEvent,
+  Handles,
   InitializedEvent,
   Logger,
   LoggingDebugSession,
-  TerminatedEvent,
-  logger,
-  Breakpoint,
-  StoppedEvent,
-  Thread,
-  StackFrame,
-  Source,
   OutputEvent,
-  Handles,
   Scope,
+  Source,
+  StackFrame,
+  StoppedEvent,
+  TerminatedEvent,
+  Thread,
+  logger,
 } from "@vscode/debugadapter";
-import { basename, isQsharpDocument, toVscodeRange } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IDebugServiceWorker,
-  log,
-  StepResultId,
   IStructStepResult,
   QscEventTarget,
+  StepResultId,
+  log,
 } from "qsharp-lang";
-import { createDebugConsoleEventTarget } from "./output";
-import { ILaunchRequestArguments } from "./types";
+import { updateCircuitPanel } from "../circuit";
+import { basename, isQsharpDocument, toVscodeRange } from "../common";
+import { getTarget } from "../config";
 import {
   DebugEvent,
   EventType,
@@ -39,7 +39,8 @@ import {
   sendTelemetryEvent,
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
-import { getTarget } from "../config";
+import { createDebugConsoleEventTarget } from "./output";
+import { ILaunchRequestArguments } from "./types";
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -70,6 +71,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private failureMessage: string;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
+  private targetProfile = getTarget();
 
   public constructor(
     private debugService: IDebugServiceWorker,
@@ -106,10 +108,9 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(associationId: string): Promise<void> {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const targetProfile = getTarget();
     const failureMessage = await this.debugService.loadSource(
       this.sources,
-      targetProfile,
+      this.targetProfile,
       this.config.entry,
       this.languageFeatures,
     );
@@ -305,27 +306,40 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   private async eval_step(step: () => Promise<IStructStepResult>) {
-    await step().then(
-      async (result) => {
-        if (result.id == StepResultId.BreakpointHit) {
-          const evt = new StoppedEvent(
-            "breakpoint",
-            QscDebugSession.threadID,
-          ) as DebugProtocol.StoppedEvent;
-          evt.body.hitBreakpointIds = [result.value];
-          log.trace(`raising breakpoint event`);
-          this.sendEvent(evt);
-        } else if (result.id == StepResultId.Return) {
-          await this.endSession(`ending session`, 0);
-        } else {
-          log.trace(`step result: ${result.id} ${result.value}`);
-          this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));
-        }
-      },
-      (error) => {
-        this.endSession(`ending session due to error: ${error}`, 1);
-      },
-    );
+    let result: IStructStepResult | undefined;
+    let error;
+    try {
+      result = await step();
+    } catch (e) {
+      error = e;
+    }
+
+    if (this.config.showCircuit) {
+      const circuit = await this.debugService.getCircuit();
+      updateCircuitPanel(
+        this.targetProfile,
+        vscode.Uri.parse(this.sources[0][0]).path,
+        circuit,
+      );
+    }
+
+    if (!result) {
+      await this.endSession(`ending session due to error: ${error}`, 1);
+      return;
+    } else if (result.id == StepResultId.BreakpointHit) {
+      const evt = new StoppedEvent(
+        "breakpoint",
+        QscDebugSession.threadID,
+      ) as DebugProtocol.StoppedEvent;
+      evt.body.hitBreakpointIds = [result.value];
+      log.trace(`raising breakpoint event`);
+      this.sendEvent(evt);
+    } else if (result.id == StepResultId.Return) {
+      await this.endSession(`ending session`, 0);
+    } else {
+      log.trace(`step result: ${result.id} ${result.value}`);
+      this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));
+    }
   }
 
   private async continue(): Promise<void> {

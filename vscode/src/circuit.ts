@@ -46,30 +46,21 @@ export async function showCircuitCommand(
     log.info("terminating circuit worker due to timeout");
     worker.terminate();
   }, compilerRunTimeoutMs);
-  let title;
-  let subtitle;
-  const targetProfile = getTarget();
   const sources = await loadProject(editor.document.uri);
-  if (operation) {
-    title = `${operation.operation} with ${operation.totalNumQubits} input qubits`;
-    subtitle = `${getTargetFriendlyName(targetProfile)} `;
-  } else {
-    title = basename(editor.document.uri.path) || "Circuit";
-    subtitle = `${getTargetFriendlyName(targetProfile)}`;
-  }
+  const targetProfile = getTarget();
 
   try {
     sendTelemetryEvent(EventType.CircuitStart, { associationId }, {});
+
     const circuit = await worker.getCircuit(sources, targetProfile, operation);
     clearTimeout(compilerTimeout);
 
-    const message = {
-      command: "circuit",
+    updateCircuitPanel(
+      targetProfile,
+      editor.document.uri.path,
       circuit,
-      title,
-      subtitle,
-    };
-    sendMessageToPanel("circuit", false, message);
+      operation,
+    );
 
     sendTelemetryEvent(EventType.CircuitEnd, {
       associationId,
@@ -94,17 +85,44 @@ export async function showCircuitCommand(
       });
     }
 
-    const message = {
-      command: "circuit",
-      title,
-      subtitle,
+    updateCircuitPanel(
+      targetProfile,
+      editor.document.uri.path,
       errorHtml,
-    };
-    sendMessageToPanel("circuit", false, message);
+      operation,
+    );
   } finally {
     log.info("terminating circuit worker");
     worker.terminate();
   }
+}
+
+export function updateCircuitPanel(
+  targetProfile: string,
+  docPath: string,
+  circuitOrErrorHtml: object | string,
+  operation?: IOperationInfo | undefined,
+) {
+  let title;
+  let subtitle;
+  if (operation) {
+    title = `${operation.operation} with ${operation.totalNumQubits} input qubits`;
+    subtitle = `${getTargetFriendlyName(targetProfile)} `;
+  } else {
+    title = basename(docPath) || "Circuit";
+    subtitle = `${getTargetFriendlyName(targetProfile)}`;
+  }
+
+  const message = {
+    command: "circuit",
+    title,
+    subtitle,
+    circuit:
+      typeof circuitOrErrorHtml === "object" ? circuitOrErrorHtml : undefined,
+    errorHtml:
+      typeof circuitOrErrorHtml === "string" ? circuitOrErrorHtml : undefined,
+  };
+  sendMessageToPanel("circuit", false, message);
 }
 
 function errorsToHtml(errors: [string, VSDiagnostic][]): string {
