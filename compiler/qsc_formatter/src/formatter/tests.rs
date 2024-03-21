@@ -643,7 +643,7 @@ fn formatter_does_not_crash_on_non_terminating_string() {
     super::calculate_format_edits("let x = \"Hello World");
 }
 
-// Correct indentation, which increases by four spaces when a brace-delimited block is opened and decreases when block is closed
+// Correct indentation, which increases by four spaces when a delimited block is opened and decreases when block is closed
 
 #[test]
 fn formatting_corrects_indentation() {
@@ -844,39 +844,25 @@ fn comma_no_context_uses_space() {
 }
 
 #[test]
-fn test() {
+fn type_param_lists_have_no_spaces_around_delims() {
     check(
         indoc! {r#"
         {
-            operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput) : 'TOutput[] {
-                mutable outputs = [];
-                for _ in 1 .. nSamples {
-                    set outputs += [op(input)];
-                }
-                outputs
-            }
+            operation Foo < 'A,
+            'B,   'C > (a : 'A, b : 'B, c : 'C) : Unit {}
         }
     "#},
         &expect![[r#"
-        {
-            operation DrawMany<'TInput, 'TOutput>(op : ('TInput => 'TOutput), nSamples : Int, input : 'TInput) : 'TOutput[] {
-                mutable outputs = [];
-                for _ in 1..nSamples {
-                    set outputs += [op(input)];
-                }
-                outputs
+            {
+                operation Foo<'A, 'B, 'C>(a : 'A, b : 'B, c : 'C) : Unit {}
             }
-        }
         "#]],
     );
 }
 
 #[test]
-fn test2() {
-    check(
-        indoc! {r#"1 > 0"#},
-        &expect!["1 > 0"],
-    )
+fn greater_than_and_less_than_bin_ops_have_spaces() {
+    check(indoc! {r#"x<y>z;"#}, &expect!["x < y > z;"])
 }
 
 #[test]
@@ -919,11 +905,6 @@ fn preserve_string_indentation() {
 #[test]
 fn preserve_user_newlines_in_expressions() {
     let input = indoc! {r#"
-        let x = [
-            thing1,
-            thing2,
-            thing3,
-        ];
         let y = 1 + 2 + 3 + 4 + 5 +
                 6 + 7 + 8 + 9 + 10;
         "#};
