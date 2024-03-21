@@ -346,8 +346,11 @@ impl<
         self.layout_overhead.logical_depth(&self.error_budget)
     }
 
-    pub fn num_magic_states(&self) -> u64 {
-        self.layout_overhead.num_magic_states(&self.error_budget, 0)
+    /// The argument index indicates for which type of magic state (starting
+    /// from 0) the number is requested for.
+    pub fn num_magic_states(&self, index: usize) -> u64 {
+        self.layout_overhead
+            .num_magic_states(&self.error_budget, index)
     }
 }
 
@@ -433,6 +436,10 @@ impl<
     pub fn build_frontier(
         &self,
     ) -> Result<Vec<PhysicalResourceEstimationResult<E, Builder::Factory, L>>, Error> {
+        if self.factory_builder.num_magic_state_types() != 1 {
+            return Err(Error::MultipleMagicStatesNotSupported);
+        }
+
         let num_cycles_required_by_layout_overhead = self.compute_num_cycles()?;
 
         // The required magic state error rate is computed by dividing the total
@@ -520,13 +527,14 @@ impl<
                 // Here we compute the number of factories required limited by the
                 // maximum number of cycles allowed by the duration constraint (and the error rate).
                 let min_num_factories =
-                    self.num_factories(&logical_patch, &factory, max_num_cycles_allowed);
+                    self.num_factories(&logical_patch, 0, &factory, max_num_cycles_allowed);
 
                 let mut num_factories = min_num_factories;
 
                 loop {
                     let num_cycles_required_for_magic_states = self
                         .compute_num_cycles_required_for_magic_states(
+                            0,
                             num_factories,
                             factory.as_ref(),
                             &logical_patch,
@@ -634,6 +642,7 @@ impl<
 
                 if let Some((factory, num_cycles_required, num_factories)) = self
                     .try_pick_factory_for_code_parameter_and_max_factories(
+                        index,
                         &factories,
                         &logical_patch,
                         num_cycles,
@@ -668,6 +677,7 @@ impl<
 
     fn try_pick_factory_for_code_parameter_and_max_factories<'a>(
         &self,
+        magic_state_index: usize,
         factories: &[Cow<'a, Builder::Factory>],
         logical_patch: &LogicalPatch<E>,
         num_cycles: u64,
@@ -680,19 +690,25 @@ impl<
                 num_cycles,
             )
         {
-            let num_factories = self.num_factories(logical_patch, &factory, num_cycles);
+            let num_factories =
+                self.num_factories(logical_patch, magic_state_index, &factory, num_cycles);
             return Some((factory, num_cycles, num_factories));
         }
         if let Some((factory, num_cycles_required)) = self
             .try_find_factory_for_code_parameter_duration_and_max_factories(
+                magic_state_index,
                 factories,
                 logical_patch,
                 max_allowed_num_cycles_for_code_parameter,
             )
         {
             if num_cycles_required <= max_allowed_num_cycles_for_code_parameter {
-                let num_factories =
-                    self.num_factories(logical_patch, &factory, num_cycles_required);
+                let num_factories = self.num_factories(
+                    logical_patch,
+                    magic_state_index,
+                    &factory,
+                    num_cycles_required,
+                );
                 return Some((factory, num_cycles_required, num_factories));
             }
         }
@@ -732,6 +748,10 @@ impl<
         &self,
         max_duration_in_nanoseconds: u64,
     ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+        if self.factory_builder.num_magic_state_types() != 1 {
+            return Err(Error::MultipleMagicStatesNotSupported);
+        }
+
         let InitialOptimizationValues {
             min_code_parameter,
             num_cycles_required_by_layout_overhead,
@@ -822,10 +842,11 @@ impl<
                 max_num_cycles_allowed,
             ) {
                 let num_factories =
-                    self.num_factories(&logical_patch, &factory, max_num_cycles_allowed);
+                    self.num_factories(&logical_patch, 0, &factory, max_num_cycles_allowed);
 
                 let num_cycles_required_for_magic_states = self
                     .compute_num_cycles_required_for_magic_states(
+                        0,
                         num_factories,
                         &factory,
                         &logical_patch,
@@ -873,6 +894,10 @@ impl<
         &self,
         max_num_qubits: u64,
     ) -> Result<PhysicalResourceEstimationResult<E, Builder::Factory, L>, Error> {
+        if self.factory_builder.num_magic_state_types() != 1 {
+            return Err(Error::MultipleMagicStatesNotSupported);
+        }
+
         let InitialOptimizationValues {
             min_code_parameter,
             num_cycles_required_by_layout_overhead,
@@ -965,6 +990,7 @@ impl<
 
                 let num_cycles_required_for_magic_states = self
                     .compute_num_cycles_required_for_magic_states(
+                        0,
                         num_factories,
                         &factory,
                         &logical_patch,
@@ -1013,6 +1039,7 @@ impl<
     /// duration constraint (and the error rate).
     fn compute_num_cycles_required_for_magic_states(
         &self,
+        magic_state_index: usize,
         num_factories: u64,
         factory: &Builder::Factory,
         logical_patch: &LogicalPatch<E>,
@@ -1021,7 +1048,7 @@ impl<
 
         let required_runs = self
             .layout_overhead
-            .num_magic_states(&self.error_budget, 0)
+            .num_magic_states(&self.error_budget, magic_state_index)
             .div_ceil(magic_states_per_run);
 
         let required_duration = required_runs * factory.duration();
@@ -1049,7 +1076,7 @@ impl<
         factory: &Builder::Factory,
         num_cycles: u64,
     ) -> bool {
-        let num_factories = self.num_factories(logical_patch, factory, num_cycles);
+        let num_factories = self.num_factories(logical_patch, 0, factory, num_cycles);
 
         if let Some(max_factories) = self.max_factories {
             if max_factories < num_factories {
@@ -1086,12 +1113,14 @@ impl<
 
     fn try_find_factory_for_code_parameter_duration_and_max_factories<'a>(
         &self,
+        magic_state_index: usize,
         factories: &[Cow<'a, Builder::Factory>],
         logical_patch: &LogicalPatch<E>,
         max_allowed_num_cycles_for_code_parameter: u64,
     ) -> Option<(Cow<'a, Builder::Factory>, u64)> {
         if let Some(max_factories) = self.max_factories {
             return self.try_pick_factory_with_num_cycles_and_max_factories(
+                magic_state_index,
                 factories,
                 logical_patch,
                 max_allowed_num_cycles_for_code_parameter,
@@ -1108,6 +1137,7 @@ impl<
 
     fn try_pick_factory_with_num_cycles_and_max_factories<'a>(
         &self,
+        magic_state_index: usize,
         factories: &[Cow<'a, Builder::Factory>],
         logical_patch: &LogicalPatch<E>,
         max_allowed_num_cycles_for_code_parameter: u64,
@@ -1117,7 +1147,9 @@ impl<
             .iter()
             .map(|factory| {
                 let magic_states_per_run = max_factories * factory.num_output_states();
-                let required_runs = ((self.layout_overhead.num_magic_states(&self.error_budget, 0)
+                let required_runs = ((self
+                    .layout_overhead
+                    .num_magic_states(&self.error_budget, magic_state_index)
                     as f64)
                     / magic_states_per_run as f64)
                     .ceil() as u64;
@@ -1235,7 +1267,13 @@ impl<
         }
 
         // We cannot perform resource estimation when there are neither magic states nor cycles
-        if self.layout_overhead.num_magic_states(&self.error_budget, 0) == 0 && num_cycles == 0 {
+        if num_cycles == 0
+            && (0..self.factory_builder.num_magic_state_types()).all(|index| {
+                self.layout_overhead
+                    .num_magic_states(&self.error_budget, index)
+                    == 0
+            })
+        {
             return Err(Error::AlgorithmHasNoResources);
         }
 
@@ -1248,11 +1286,14 @@ impl<
     fn num_factories(
         &self,
         logical_patch: &LogicalPatch<E>,
+        magic_state_index: usize,
         factory: &Builder::Factory,
         num_cycles: u64,
     ) -> u64 {
-        let num_magic_states_big =
-            u128::from(self.layout_overhead.num_magic_states(&self.error_budget, 0));
+        let num_magic_states_big = u128::from(
+            self.layout_overhead
+                .num_magic_states(&self.error_budget, magic_state_index),
+        );
         let duration_big = u128::from(factory.duration());
         let output_magic_count_big = u128::from(factory.num_output_states());
         let logical_cycle_time_big = u128::from(logical_patch.logical_cycle_time());

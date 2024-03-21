@@ -1,6 +1,9 @@
 use crate::estimates::{ErrorCorrection, Factory, FactoryBuilder};
 use std::borrow::Cow;
 
+/// Implements `Factory` to combine two factories for dispatching
+///
+/// It requires that all factories define the same code parameter type.
 #[derive(Clone)]
 pub enum FactoryDispatch2<F1, F2> {
     F1(F1),
@@ -39,6 +42,9 @@ impl<F1: Factory, F2: Factory<Parameter = F1::Parameter>> Factory for FactoryDis
     }
 }
 
+/// Implements `FactoryBuilder` to combine two factory builders for dispatching
+///
+/// It will use `FactoryDispatch2` as factory type for the builder.
 pub struct BuilderDispatch2<B1, B2> {
     b1: B1,
     b2: B2,
@@ -95,6 +101,8 @@ impl<E: ErrorCorrection, B1: FactoryBuilder<E>, B2: FactoryBuilder<E>> FactoryBu
         }
     }
 
+    /// Since this builder dispatch is for two factory builders, it can support
+    /// two different magic state types.
     fn num_magic_state_types(&self) -> usize {
         2
     }
