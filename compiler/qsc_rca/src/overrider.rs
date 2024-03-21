@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::LocalSpecId, scaffolding::PackageStoreComputeProperties, ApplicationGeneratorSet,
-    ArrayParamApplication, ComputeKind, PackageId, ParamApplication, QuantumProperties,
-    RuntimeFeatureFlags, RuntimeKind, ValueKind,
+    common::LocalSpecId, scaffolding::InternalPackageStoreComputeProperties,
+    ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, PackageId, ParamApplication,
+    QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind,
 };
 use qsc_fir::{
     fir::{
@@ -24,7 +24,7 @@ struct SpecOverride {
 
 pub struct Overrider<'a> {
     package_store: &'a PackageStore,
-    package_store_compute_properties: PackageStoreComputeProperties,
+    package_store_compute_properties: InternalPackageStoreComputeProperties,
     overrides: FxHashMap<String, Vec<SpecOverride>>,
     current_package: Option<PackageId>,
     current_application_generator_set: Option<ApplicationGeneratorSet>,
@@ -34,7 +34,7 @@ impl<'a> Overrider<'a> {
     #[allow(clippy::too_many_lines)]
     pub fn new(
         package_store: &'a PackageStore,
-        package_store_compute_properties: PackageStoreComputeProperties,
+        package_store_compute_properties: InternalPackageStoreComputeProperties,
     ) -> Self {
         let callable_overrides_tuples: [(String, Vec<SpecOverride>); 5] = [
             (
@@ -225,7 +225,7 @@ impl<'a> Overrider<'a> {
         }
     }
 
-    pub fn populate_overrides(mut self) -> PackageStoreComputeProperties {
+    pub fn populate_overrides(mut self) -> InternalPackageStoreComputeProperties {
         for (package_id, package) in self.package_store {
             self.populate_package_internal(package_id, package);
         }

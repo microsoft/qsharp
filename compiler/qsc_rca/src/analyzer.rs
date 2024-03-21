@@ -2,14 +2,15 @@
 // Licensed under the MIT License.
 
 use crate::{
-    core, cyclic_callables, overrider::Overrider, scaffolding, PackageStoreComputeProperties,
+    core, cyclic_callables, overrider::Overrider,
+    scaffolding::InternalPackageStoreComputeProperties, PackageStoreComputeProperties,
 };
 use qsc_fir::fir::{PackageId, PackageStore};
 
 /// A runtime capabilities analyzer.
 pub struct Analyzer<'a> {
     package_store: &'a PackageStore,
-    scaffolding: scaffolding::PackageStoreComputeProperties,
+    scaffolding: InternalPackageStoreComputeProperties,
 }
 
 impl<'a> Analyzer<'a> {
@@ -17,7 +18,7 @@ impl<'a> Analyzer<'a> {
     pub fn init(package_store: &'a PackageStore) -> Self {
         Self {
             package_store,
-            scaffolding: scaffolding::PackageStoreComputeProperties::init(package_store),
+            scaffolding: InternalPackageStoreComputeProperties::init(package_store),
         }
     }
 

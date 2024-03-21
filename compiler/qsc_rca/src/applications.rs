@@ -3,7 +3,7 @@
 
 use crate::{
     common::{initialize_locals_map, InputParam, InputParamIndex, Local, LocalKind, LocalsLookup},
-    scaffolding::PackageComputeProperties,
+    scaffolding::InternalPackageComputeProperties,
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, RuntimeKind,
     ValueKind,
 };
@@ -130,7 +130,7 @@ impl GeneratorSetsBuilder {
     /// If a main block ID is provided, it returns the applications generator set representing the block.
     pub fn save_to_package_compute_properties(
         mut self,
-        package_compute_properties: &mut PackageComputeProperties,
+        package_compute_properties: &mut InternalPackageComputeProperties,
         main_block: Option<BlockId>,
     ) -> Option<ApplicationGeneratorSet> {
         // Get the compute properties of the inherent application instance and the non-static parameter applications.
@@ -313,7 +313,7 @@ impl GeneratorSetsBuilder {
     fn save_application_generator_sets(
         inherent_application_compute_properties: &mut ApplicationInstanceComputeProperties,
         dynamic_param_applications_compute_properties: &mut [ParamApplicationComputeProperties],
-        package_compute_properties: &mut PackageComputeProperties,
+        package_compute_properties: &mut InternalPackageComputeProperties,
     ) {
         let input_params_count = dynamic_param_applications_compute_properties.len();
 

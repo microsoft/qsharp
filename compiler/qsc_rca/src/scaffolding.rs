@@ -3,7 +3,8 @@
 
 use crate::{
     common::GlobalSpecId, ApplicationGeneratorSet, CallableComputeProperties,
-    ComputePropertiesLookup,
+    ComputePropertiesLookup, ItemComputeProperties, PackageComputeProperties,
+    PackageStoreComputeProperties,
 };
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
@@ -16,18 +17,20 @@ use qsc_fir::{
 
 /// Scaffolding used to build the package store compute properties.
 #[derive(Debug)]
-pub struct PackageStoreComputeProperties(IndexMap<PackageId, PackageComputeProperties>);
+pub struct InternalPackageStoreComputeProperties(
+    IndexMap<PackageId, InternalPackageComputeProperties>,
+);
 
-impl From<crate::PackageStoreComputeProperties> for PackageStoreComputeProperties {
-    fn from(value: crate::PackageStoreComputeProperties) -> Self {
-        let mut scaffolding = IndexMap::<PackageId, PackageComputeProperties>::default();
+impl From<PackageStoreComputeProperties> for InternalPackageStoreComputeProperties {
+    fn from(value: PackageStoreComputeProperties) -> Self {
+        let mut scaffolding = IndexMap::<PackageId, InternalPackageComputeProperties>::default();
         for (package_id, package_compute_properties) in value.0 {
-            let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
+            let mut items = IndexMap::<LocalItemId, InternalItemComputeProperties>::new();
             for (item_id, item_compute_properties) in package_compute_properties.items {
-                let item_scaffolding = ItemComputeProperties::from(item_compute_properties);
+                let item_scaffolding = InternalItemComputeProperties::from(item_compute_properties);
                 items.insert(item_id, item_scaffolding);
             }
-            let package_compute_properties = PackageComputeProperties {
+            let package_compute_properties = InternalPackageComputeProperties {
                 items,
                 blocks: package_compute_properties.blocks,
                 stmts: package_compute_properties.stmts,
@@ -40,18 +43,18 @@ impl From<crate::PackageStoreComputeProperties> for PackageStoreComputePropertie
     }
 }
 
-impl From<PackageStoreComputeProperties> for crate::PackageStoreComputeProperties {
-    fn from(value: PackageStoreComputeProperties) -> Self {
+impl From<InternalPackageStoreComputeProperties> for PackageStoreComputeProperties {
+    fn from(value: InternalPackageStoreComputeProperties) -> Self {
         let mut package_store_compute_properties =
-            IndexMap::<PackageId, crate::PackageComputeProperties>::default();
+            IndexMap::<PackageId, PackageComputeProperties>::default();
         for (package_id, package_scaffolding) in value.0 {
-            let mut items = IndexMap::<LocalItemId, crate::ItemComputeProperties>::new();
+            let mut items = IndexMap::<LocalItemId, ItemComputeProperties>::new();
             for (item_id, item_scaffolding) in package_scaffolding.items {
-                let item_compute_properties = crate::ItemComputeProperties::from(item_scaffolding);
+                let item_compute_properties = ItemComputeProperties::from(item_scaffolding);
                 items.insert(item_id, item_compute_properties);
             }
 
-            let package_compute_properties = crate::PackageComputeProperties {
+            let package_compute_properties = PackageComputeProperties {
                 items,
                 blocks: package_scaffolding.blocks,
                 stmts: package_scaffolding.stmts,
@@ -63,7 +66,7 @@ impl From<PackageStoreComputeProperties> for crate::PackageStoreComputePropertie
     }
 }
 
-impl ComputePropertiesLookup for PackageStoreComputeProperties {
+impl ComputePropertiesLookup for InternalPackageStoreComputeProperties {
     fn find_block(&self, id: StoreBlockId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.package).blocks.get(id.block)
     }
@@ -72,7 +75,7 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
         self.get(id.package).exprs.get(id.expr)
     }
 
-    fn find_item(&self, _: StoreItemId) -> Option<&crate::ItemComputeProperties> {
+    fn find_item(&self, _: StoreItemId) -> Option<&ItemComputeProperties> {
         unimplemented!()
     }
 
@@ -90,7 +93,7 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
             .expect("expression compute properties should exist")
     }
 
-    fn get_item(&self, _: StoreItemId) -> &crate::ItemComputeProperties {
+    fn get_item(&self, _: StoreItemId) -> &ItemComputeProperties {
         unimplemented!()
     }
 
@@ -100,27 +103,29 @@ impl ComputePropertiesLookup for PackageStoreComputeProperties {
     }
 }
 
-impl PackageStoreComputeProperties {
+impl InternalPackageStoreComputeProperties {
     pub fn find_specialization(&self, id: GlobalSpecId) -> Option<&ApplicationGeneratorSet> {
         self.get(id.callable.package)
             .items
             .get(id.callable.item)
             .and_then(|item_compute_properties| match item_compute_properties {
-                ItemComputeProperties::NonCallable => None,
-                ItemComputeProperties::Specializations(specializations) => Some(specializations),
+                InternalItemComputeProperties::NonCallable => None,
+                InternalItemComputeProperties::Specializations(specializations) => {
+                    Some(specializations)
+                }
             })
             .and_then(|specializations| {
                 specializations.get(SpecializationIndex::from(id.functor_set_value))
             })
     }
 
-    pub fn get(&self, id: PackageId) -> &PackageComputeProperties {
+    pub fn get(&self, id: PackageId) -> &InternalPackageComputeProperties {
         self.0
             .get(id)
             .expect("package compute properties should be present in store")
     }
 
-    pub fn get_mut(&mut self, id: PackageId) -> &mut PackageComputeProperties {
+    pub fn get_mut(&mut self, id: PackageId) -> &mut InternalPackageComputeProperties {
         self.0
             .get_mut(id)
             .expect("package compute properties should be present in store")
@@ -132,9 +137,9 @@ impl PackageStoreComputeProperties {
     }
 
     pub fn init(package_store: &fir::PackageStore) -> Self {
-        let mut packages = IndexMap::<PackageId, PackageComputeProperties>::default();
+        let mut packages = IndexMap::<PackageId, InternalPackageComputeProperties>::default();
         for (package_id, _) in package_store {
-            packages.insert(package_id, PackageComputeProperties::default());
+            packages.insert(package_id, InternalPackageComputeProperties::default());
         }
         Self(packages)
     }
@@ -147,14 +152,15 @@ impl PackageStoreComputeProperties {
         self.get_mut(id.package).exprs.insert(id.expr, value);
     }
 
-    pub fn insert_item(&mut self, id: StoreItemId, value: ItemComputeProperties) {
+    pub fn insert_item(&mut self, id: StoreItemId, value: InternalItemComputeProperties) {
         self.get_mut(id.package).items.insert(id.item, value);
     }
 
     pub fn insert_spec(&mut self, id: GlobalSpecId, value: ApplicationGeneratorSet) {
         let items = &mut self.get_mut(id.callable.package).items;
         if let Some(item_compute_properties) = items.get_mut(id.callable.item) {
-            if let ItemComputeProperties::Specializations(specializations) = item_compute_properties
+            if let InternalItemComputeProperties::Specializations(specializations) =
+                item_compute_properties
             {
                 // The item already exists but not the specialization.
                 specializations.insert(SpecializationIndex::from(id.functor_set_value), value);
@@ -167,7 +173,7 @@ impl PackageStoreComputeProperties {
             specializations.insert(SpecializationIndex::from(id.functor_set_value), value);
             items.insert(
                 id.callable.item,
-                ItemComputeProperties::Specializations(specializations),
+                InternalItemComputeProperties::Specializations(specializations),
             );
         }
     }
@@ -179,9 +185,9 @@ impl PackageStoreComputeProperties {
 
 /// Scaffolding used to build the compute properties of a package.
 #[derive(Debug, Default)]
-pub struct PackageComputeProperties {
+pub struct InternalPackageComputeProperties {
     /// The compute properties of the package items.
-    pub items: IndexMap<LocalItemId, ItemComputeProperties>,
+    pub items: IndexMap<LocalItemId, InternalItemComputeProperties>,
     /// The application generator sets of the package blocks.
     pub blocks: IndexMap<BlockId, ApplicationGeneratorSet>,
     /// The application generator sets of the package statements.
@@ -192,33 +198,31 @@ pub struct PackageComputeProperties {
 
 /// Scaffolding used to build the compute properties of an item.
 #[derive(Debug, Default)]
-pub enum ItemComputeProperties {
+pub enum InternalItemComputeProperties {
     #[default]
     NonCallable,
     Specializations(SpecializationsComputeProperties),
 }
 
-impl From<crate::ItemComputeProperties> for ItemComputeProperties {
-    fn from(value: crate::ItemComputeProperties) -> Self {
+impl From<ItemComputeProperties> for InternalItemComputeProperties {
+    fn from(value: ItemComputeProperties) -> Self {
         match value {
-            crate::ItemComputeProperties::NonCallable => ItemComputeProperties::NonCallable,
-            crate::ItemComputeProperties::Callable(callable_compute_properties) => {
-                ItemComputeProperties::Specializations(SpecializationsComputeProperties::from(
-                    callable_compute_properties,
-                ))
+            ItemComputeProperties::NonCallable => InternalItemComputeProperties::NonCallable,
+            ItemComputeProperties::Callable(callable_compute_properties) => {
+                InternalItemComputeProperties::Specializations(
+                    SpecializationsComputeProperties::from(callable_compute_properties),
+                )
             }
         }
     }
 }
 
-impl From<ItemComputeProperties> for crate::ItemComputeProperties {
-    fn from(value: ItemComputeProperties) -> Self {
+impl From<InternalItemComputeProperties> for ItemComputeProperties {
+    fn from(value: InternalItemComputeProperties) -> Self {
         match value {
-            ItemComputeProperties::NonCallable => crate::ItemComputeProperties::NonCallable,
-            ItemComputeProperties::Specializations(specializations) => {
-                crate::ItemComputeProperties::Callable(CallableComputeProperties::from(
-                    specializations,
-                ))
+            InternalItemComputeProperties::NonCallable => ItemComputeProperties::NonCallable,
+            InternalItemComputeProperties::Specializations(specializations) => {
+                ItemComputeProperties::Callable(CallableComputeProperties::from(specializations))
             }
         }
     }

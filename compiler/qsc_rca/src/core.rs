@@ -7,7 +7,7 @@ use crate::{
         derive_callable_input_params, try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId,
         InputParam, Local, LocalKind, TyExt,
     },
-    scaffolding::{ItemComputeProperties, PackageStoreComputeProperties},
+    scaffolding::{InternalItemComputeProperties, InternalPackageStoreComputeProperties},
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ComputePropertiesLookup,
     ParamApplication, QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind,
 };
@@ -25,14 +25,14 @@ use qsc_fir::{
 
 pub struct Analyzer<'a> {
     package_store: &'a PackageStore,
-    package_store_compute_properties: PackageStoreComputeProperties,
+    package_store_compute_properties: InternalPackageStoreComputeProperties,
     active_contexts: Vec<AnalysisContext>,
 }
 
 impl<'a> Analyzer<'a> {
     pub fn new(
         package_store: &'a PackageStore,
-        package_store_compute_properties: PackageStoreComputeProperties,
+        package_store_compute_properties: InternalPackageStoreComputeProperties,
     ) -> Self {
         Self {
             package_store,
@@ -41,14 +41,17 @@ impl<'a> Analyzer<'a> {
         }
     }
 
-    pub fn analyze_all(mut self) -> PackageStoreComputeProperties {
+    pub fn analyze_all(mut self) -> InternalPackageStoreComputeProperties {
         for (package_id, package) in self.package_store {
             self.analyze_package_internal(package_id, package);
         }
         self.package_store_compute_properties
     }
 
-    pub fn analyze_package(mut self, package_id: PackageId) -> PackageStoreComputeProperties {
+    pub fn analyze_package(
+        mut self,
+        package_id: PackageId,
+    ) -> InternalPackageStoreComputeProperties {
         let package = self.package_store.get(package_id);
         self.analyze_package_internal(package_id, package);
         self.package_store_compute_properties
@@ -1563,8 +1566,10 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         let current_item_context = self.get_current_item_context();
         match &item.kind {
             ItemKind::Namespace(_, _) | ItemKind::Ty(_, _) => {
-                self.package_store_compute_properties
-                    .insert_item(current_item_context.id, ItemComputeProperties::NonCallable);
+                self.package_store_compute_properties.insert_item(
+                    current_item_context.id,
+                    InternalItemComputeProperties::NonCallable,
+                );
             }
             ItemKind::Callable(decl) => {
                 self.visit_callable_decl(decl);

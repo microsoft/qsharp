@@ -4,7 +4,7 @@
 use crate::{
     common::{derive_callable_input_params, InputParam, LocalSpecId},
     cycle_detection::CycleDetector,
-    scaffolding::PackageStoreComputeProperties,
+    scaffolding::InternalPackageStoreComputeProperties,
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ParamApplication,
     RuntimeFeatureFlags, ValueKind,
 };
@@ -19,7 +19,7 @@ use qsc_fir::{
 
 pub struct Analyzer<'a> {
     package_store: &'a PackageStore,
-    package_store_compute_properties: PackageStoreComputeProperties,
+    package_store_compute_properties: InternalPackageStoreComputeProperties,
     current_package: Option<PackageId>,
     current_application_generator_set: Option<ApplicationGeneratorSet>,
 }
@@ -27,7 +27,7 @@ pub struct Analyzer<'a> {
 impl<'a> Analyzer<'a> {
     pub fn new(
         package_store: &'a PackageStore,
-        package_store_compute_properties: PackageStoreComputeProperties,
+        package_store_compute_properties: InternalPackageStoreComputeProperties,
     ) -> Self {
         Self {
             package_store,
@@ -37,14 +37,17 @@ impl<'a> Analyzer<'a> {
         }
     }
 
-    pub fn analyze_all(mut self) -> PackageStoreComputeProperties {
+    pub fn analyze_all(mut self) -> InternalPackageStoreComputeProperties {
         for (package_id, package) in self.package_store {
             self.analyze_package_internal(package_id, package);
         }
         self.package_store_compute_properties
     }
 
-    pub fn analyze_package(mut self, package_id: PackageId) -> PackageStoreComputeProperties {
+    pub fn analyze_package(
+        mut self,
+        package_id: PackageId,
+    ) -> InternalPackageStoreComputeProperties {
         let package = self.package_store.get(package_id);
         self.analyze_package_internal(package_id, package);
         self.package_store_compute_properties
