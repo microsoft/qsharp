@@ -7,6 +7,7 @@ use crate::{
     ApplicationGeneratorSet, ComputeKind, QuantumProperties, RuntimeFeatureFlags, RuntimeKind,
     ValueKind,
 };
+use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::{
     fir::{BlockId, ExprId, LocalVarId, StmtId},
     ty::Ty,
@@ -546,12 +547,12 @@ impl ApplicationInstance {
 }
 
 #[derive(Debug, Default)]
-pub struct LocalsComputeKindMap(FxHashMap<LocalVarId, LocalComputeKind>);
+pub struct LocalsComputeKindMap(IndexMap<LocalVarId, LocalComputeKind>);
 
 impl LocalsLookup for LocalsComputeKindMap {
     fn find(&self, local_var_id: LocalVarId) -> Option<&Local> {
         self.0
-            .get(&local_var_id)
+            .get(local_var_id)
             .map(|local_compute_kind| &local_compute_kind.local)
     }
 }
@@ -560,13 +561,13 @@ impl LocalsComputeKindMap {
     pub fn aggregate_compute_kind(&mut self, local_var_id: LocalVarId, delta: ComputeKind) {
         let local_compute_kind = self
             .0
-            .get_mut(&local_var_id)
+            .get_mut(local_var_id)
             .expect("local compute kind does not exist");
         local_compute_kind.compute_kind = local_compute_kind.compute_kind.aggregate(delta);
     }
 
     pub fn find_local_compute_kind(&self, local_var_id: LocalVarId) -> Option<&LocalComputeKind> {
-        self.0.get(&local_var_id)
+        self.0.get(local_var_id)
     }
 
     pub fn get_local_compute_kind(&self, local_var_id: LocalVarId) -> &LocalComputeKind {
