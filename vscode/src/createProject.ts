@@ -57,7 +57,7 @@ export async function initProjectCreator(context: vscode.ExtensionContext) {
         // This doesn't throw on failure, it just returns false
         if (!(await vscode.workspace.applyEdit(edit))) {
           vscode.window.showErrorMessage(
-            "Unable to apply edits. Check the project files don't already exist and that the file system is writable",
+            "Unable to create the project. Check the project files don't already exist and that the file system is writable",
           );
         }
       },
