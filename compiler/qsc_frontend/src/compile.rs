@@ -9,7 +9,7 @@ pub mod preprocess;
 use crate::{
     error::WithSource,
     lower::{self, Lowerer},
-    resolve::{self, Locals, Names, NamespaceTreeRoot, Resolver},
+    resolve::{self, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
 use bitflags::bitflags;
@@ -23,9 +23,7 @@ use qsc_ast::{
     visit::Visitor as _,
 };
 use qsc_data_structures::{
-    index_map::{self, IndexMap},
-    language_features::LanguageFeatures,
-    span::Span,
+    index_map::{self, IndexMap}, language_features::LanguageFeatures, namespaces::NamespaceTreeRoot, span::Span
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,

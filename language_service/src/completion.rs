@@ -10,10 +10,11 @@ use crate::qsc_utils::{into_range, span_contains};
 use qsc::ast::ast;
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
-use qsc::hir::global::NamespaceId;
+
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
+use qsc::NamespaceId;
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
@@ -400,12 +401,11 @@ impl CompletionListBuilder {
 
         let is_user_package = compilation.user_package_id == package_id;
         let namespaces = compilation
-                                .package_store
-                                .get(package_id)
-                                .expect("package should exist")
-                                .ast
-                                .namespaces
-                                ;
+            .package_store
+            .get(package_id)
+            .expect("package should exist")
+            .ast
+            .namespaces;
         convert_ast_namespaces_into_hir_namespaces(namespaces);
         package.items.values().filter_map(move |i| {
             // We only want items whose parents are namespaces
@@ -420,7 +420,9 @@ impl CompletionListBuilder {
                             if !is_user_package {
                                 return None; // ignore item if not in the user's package
                             }
-                            let ns_id = namespaces.find_namespace(namespace).expect("namespace should exist");
+                            let ns_id = namespaces
+                                .find_namespace(namespace)
+                                .expect("namespace should exist");
 
                             // ignore item if the user is not in the item's namespace
                             match &current_namespace_name {
@@ -549,18 +551,22 @@ impl CompletionListBuilder {
     }
 }
 
-fn convert_ast_namespaces_into_hir_namespaces(namespaces: qsc::resolve::NamespaceTreeRoot) -> qsc::hir::global::NamespaceTreeRoot {
+fn convert_ast_namespaces_into_hir_namespaces(
+    namespaces: qsc::resolve::NamespaceTreeRoot,
+) -> qsc::hir::global::NamespaceTreeRoot {
     let mut hir_namespaces = Vec::new();
     let mut assigner = 0;
-    for (namespace, qsc::resolve::NamespaceTreeNode { children, id }) in namespaces.tree().children() {
+    for (namespace, qsc::resolve::NamespaceTreeNode { children, id }) in
+        namespaces.tree().children()
+    {
         let hir_namespace = qsc::hir::global::NamespaceTreeNode::new(id, children.clone());
-        if namespace.id > assigner { assigner = namespace.id + 1; };
+        if namespace.id > assigner {
+            assigner = namespace.id + 1;
+        };
         hir_namespaces.push(hir_namespace);
     }
 
-    qsc::hir::global::NamespaceTreeRoot {
-        namespaces: hir_namespaces,
-    }
+    qsc::hir::global::NamespaceTreeRoot::new(hir_namespaces, assigner)
 }
 
 fn local_completion(

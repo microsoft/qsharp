@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{namespaces::NamespaceId, span::Span};
 use qsc_hir::{
     assigner::Assigner,
-    global::{NamespaceId, Table},
+    global::{ Table},
     hir::{
         Expr, ExprKind, Field, Ident, Mutability, NodeId, Pat, PatKind, PrimField, Res, Stmt,
         StmtKind,

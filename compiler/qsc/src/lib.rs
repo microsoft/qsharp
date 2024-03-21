@@ -13,7 +13,7 @@ pub use qsc_frontend::compile::{
 };
 
 pub mod resolve {
-    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res, NamespaceTreeRoot, NamespaceTreeNode};
+    pub use qsc_frontend::resolve::{Local, LocalKind, Locals, Res};
 }
 
 pub mod fir {
@@ -32,7 +32,7 @@ pub mod project {
     pub use qsc_project::{DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor};
 }
 
-pub use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+pub use qsc_data_structures::{language_features::LanguageFeatures, span::Span, namespaces::*};
 
 pub use qsc_passes::{PackageType, PassContext};
 

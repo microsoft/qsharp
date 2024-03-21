@@ -4,8 +4,7 @@
 //! The high-level intermediate representation for Q#. HIR is lowered from the AST.
 
 #![warn(missing_docs)]
-
-use crate::{global::NamespaceTreeRoot, ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt}};
+use crate::{ ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt}};
 use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
