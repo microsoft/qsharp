@@ -8,13 +8,10 @@ use crate::{
     system::{constants::FLOAT_COMPARISON_EPSILON, modeling::Protocol, Result},
 };
 
-use super::{
-    super::super::constants::{
-        IDLE_ERROR_RATE, INSTRUCTION_SET, ONE_QUBIT_GATE_ERROR_RATE, ONE_QUBIT_GATE_TIME,
-        ONE_QUBIT_MEASUREMENT_ERROR_RATE, ONE_QUBIT_MEASUREMENT_TIME, PROCESS, READOUT,
-        TWO_QUBIT_JOINT_MEASUREMENT_ERROR_RATE, T_GATE_ERROR_RATE,
-    },
-    GateBasedPhysicalQubit, MajoranaQubit,
+use super::super::super::constants::{
+    IDLE_ERROR_RATE, INSTRUCTION_SET, ONE_QUBIT_GATE_ERROR_RATE, ONE_QUBIT_GATE_TIME,
+    ONE_QUBIT_MEASUREMENT_ERROR_RATE, ONE_QUBIT_MEASUREMENT_TIME, PROCESS, READOUT,
+    TWO_QUBIT_JOINT_MEASUREMENT_ERROR_RATE, T_GATE_ERROR_RATE,
 };
 use serde_json::json;
 
@@ -22,32 +19,6 @@ use super::PhysicalQubit;
 
 fn load_qubit_from_json_string(data: &str) -> PhysicalQubit {
     serde_json::from_str(data).expect("test json should be parsable")
-}
-
-impl PhysicalQubit {
-    pub fn qubit_gate_ns_e3() -> Self {
-        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_ns_e3())
-    }
-
-    pub fn qubit_gate_ns_e4() -> Self {
-        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_ns_e4())
-    }
-
-    pub fn qubit_gate_us_e3() -> Self {
-        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_us_e3())
-    }
-
-    pub fn qubit_gate_us_e4() -> Self {
-        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_us_e4())
-    }
-
-    pub fn qubit_maj_ns_e4() -> Self {
-        Self::Majorana(MajoranaQubit::qubit_maj_ns_e4())
-    }
-
-    pub fn qubit_maj_ns_e6() -> Self {
-        Self::Majorana(MajoranaQubit::qubit_maj_ns_e6())
-    }
 }
 
 #[test]

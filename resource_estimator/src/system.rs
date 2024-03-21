@@ -22,7 +22,7 @@ mod serialization;
 use crate::estimates::{Overhead, PhysicalResourceEstimation};
 use std::rc::Rc;
 
-pub use self::modeling::{GateBasedPhysicalQubit, PhysicalQubit, Protocol};
+pub use self::modeling::{GateBasedPhysicalQubit, MajoranaQubit, PhysicalQubit, Protocol};
 use self::optimization::TFactoryBuilder;
 pub use self::{data::LogicalResourceCounts, error::Error};
 use data::{EstimateType, JobParams};
