@@ -446,7 +446,7 @@ impl CompletionListBuilder {
                                             }
                                         });
                                         qualification = match open {
-                                            Some(alias) => alias.as_ref().cloned(),
+                                            Some(alias) => alias.clone(),
                                             None => match insert_open_at {
                                                 Some(start) => {
                                                     additional_edits.push(TextEdit {
