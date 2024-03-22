@@ -3,10 +3,12 @@
 
 //! These tests use bindings to check that RCA for the use of different static and dynamic types is correct.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{check_last_statement_compute_properties, CompilationContext};
+pub mod test_utils;
+
 use expect_test::expect;
+use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_immutable_classical_result_binding() {
