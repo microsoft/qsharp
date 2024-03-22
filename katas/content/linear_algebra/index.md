@@ -12,10 +12,9 @@ This kata doesn't come close to covering the full breadth of the topic, but it s
 
 * Matrices and vectors
 * Basic matrix operations
-* Operations and properties of complex matrices
+* Operations and properties of complex-valued matrices
 * Inner and outer vector products
 * Tensor product
-* Eigenvalues and eigenvectors
 
 **What you should know to start working on this kata:**
 
@@ -241,10 +240,310 @@ For larger matrices, the determinant is defined through determinants of sub-matr
 })
 
 
+@[section]({
+    "id": "linear_algebra__transpose", 
+    "title": "Transpose" 
+})
+
+The **transpose** operation, denoted as $A^T$, is essentially a reflection of the matrix across the diagonal: $A^T_{i,j} = A_{j,i}$.
+
+Given an $n \times m$ matrix $A$, its transpose is the $m \times n$ matrix $A^T$, such that if:
+
+$$A =
+\begin{bmatrix}
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
+    \vdots & \vdots & \ddots & \vdots \\\\
+    x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
+\end{bmatrix}$$
+
+then:
+
+$$A^T =
+\begin{bmatrix}
+    x_{0,0} & x_{1,0} & \dotsb & x_{n-1,0} \\\\
+    x_{0,1} & x_{1,1} & \dotsb & x_{n-1,1} \\\\
+    \vdots & \vdots & \ddots & \vdots \\\\
+    x_{0,m-1} & x_{1,m-1} & \dotsb & x_{n-1,m-1}
+\end{bmatrix}$$
+
+For example:
+
+$$\begin{bmatrix}
+    1 & 2 \\\\
+    3 & 4 \\\\
+    5 & 6
+\end{bmatrix}^T =
+\begin{bmatrix}
+    1 & 3 & 5 \\\\
+    2 & 4 & 6
+\end{bmatrix}$$
+
+A **symmetric** matrix is a square matrix which equals its own transpose: $A = A^T$. To put it another way, it has reflection symmetry (hence the name) across the main diagonal. For example, the following matrix is symmetric:
+
+$$\begin{bmatrix}
+    1 & 2 & 3 \\\\
+    2 & 4 & 5 \\\\
+    3 & 5 & 6
+\end{bmatrix}$$
+
+The transpose of a matrix product is equal to the product of transposed matrices, taken in reverse order:
+
+$$(AB)^T = B^TA^T$$
+
+@[exercise]({ 
+    "id": "linear_algebra__transpose_ex", 
+    "title": "Transpose a Matrix", 
+    "path": "./transpose/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({
+    "id": "linear_algebra__conjugate", 
+    "title": "Conjugate" 
+})
+
+The next important single-matrix operation is the **matrix conjugate**, denoted as $\overline{A}$. This operation makes sense only for complex-valued matrices; as the name might suggest, it involves taking the complex conjugate of every element of the matrix: if
+
+$$A =
+\begin{bmatrix}
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
+    \vdots & \vdots & \ddots & \vdots \\\\
+    x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
+\end{bmatrix}$$
+
+Then:
+
+$$\overline{A} =
+\begin{bmatrix}
+    \overline{x}\_{0,0} & \overline{x}\_{0,1} & \dotsb & \overline{x}\_{0,m-1} \\\\
+    \overline{x}\_{1,0} & \overline{x}\_{1,1} & \dotsb & \overline{x}\_{1,m-1} \\\\
+    \vdots & \vdots & \ddots & \vdots \\\\
+    \overline{x}\_{n-1,0} & \overline{x}\_{n-1,1} & \dotsb & \overline{x}\_{n-1,m-1}
+\end{bmatrix}$$
+
+> As a reminder, a conjugate of a complex number $x = a + bi$ is $\overline{x} = a - bi$.
+
+The conjugate of a matrix product equals to the product of conjugates of the matrices:
+
+$$\overline{AB} = (\overline{A})(\overline{B})$$
+
+@[exercise]({ 
+    "id": "linear_algebra__conjugate_ex", 
+    "title": "Conjugate of a Matrix", 
+    "path": "./conjugate/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({
+    "id": "linear_algebra__adjoint", 
+    "title": "Adjoint" 
+})
+
+The final important single-matrix operation is a combination of the previous two. The **conjugate transpose**, also called the **adjoint** of matrix $A$, is defined as $A^\dagger = \overline{(A^T)} = (\overline{A})^T$.
+
+A matrix is known as **Hermitian** or **self-adjoint** if it equals its own adjoint: $A = A^\dagger$. For example, the following matrix is Hermitian:
+
+$$\begin{bmatrix}
+    1 & i \\\\
+    -i & 2
+\end{bmatrix}$$
+
+The adjoint of a matrix product can be calculated as follows:
+
+$$(AB)^\dagger = B^\dagger A^\dagger$$
+
+@[exercise]({ 
+    "id": "linear_algebra__adjoint_ex", 
+    "title": "Adjoint of a Matrix", 
+    "path": "./adjoint/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({
+    "id": "linear_algebra__unitary", 
+    "title": "Unitary Matrices" 
+})
+
+**Unitary matrices** are very important for quantum computing. A matrix is unitary when it is invertible, and its inverse is equal to its adjoint: $U^{-1} = U^\dagger$. That is, an $n \times n$ square matrix $U$ is unitary if and only if $UU^\dagger = U^\dagger U = I_n$.
+
+## 🔎 Analyze
+
+Is this matrix unitary?
+
+$$A = \begin{bmatrix}
+    \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\\\
+    \frac{i}{\sqrt{2}} & \frac{-i}{\sqrt{2}}
+\end{bmatrix} = 
+\frac{1}{\sqrt{2}} \begin{bmatrix}
+    1 & 1 \\\\
+    i & -i
+\end{bmatrix}$$
+
+<details>
+<summary><b>Solution</b></summary>
+To check whether the input matrix is unitary, we will need to perform the following steps:
+
+1. Calculate the adjoint of the input matrix $A^\dagger$.
+
+$$A^\dagger = \frac{1}{\sqrt{2}} \begin{bmatrix}
+    1 & -i \\\\
+    1 & i
+\end{bmatrix}$$
+
+2. Multiply it by the input matrix.
+
+$$AA^\dagger = \frac12 \begin{bmatrix}
+    1 & 1 \\\\
+    i & -i
+\end{bmatrix} \begin{bmatrix}
+    1 & -i \\\\
+    1 & i
+\end{bmatrix} = \frac12 \begin{bmatrix}
+    1 \cdot 1 + 1 \cdot 1 & 1 \cdot (-i) + 1 \cdot i \\\\
+    i \cdot 1 + (-i) \cdot 1 & i \cdot (-i) + (-i) \cdot i
+\end{bmatrix} = \begin{bmatrix}
+    1 & 0 \\\\
+    0 & 1
+\end{bmatrix}$$
+
+If the multiplication result $AA^\dagger$ is an identity matrix, which is indeed the case, 
+and the product $A^\dagger A$ is also an identity matrix (which you can verify in a similar manner),
+the matrix is unitary.
+
+</details>
+
+
+@[section]({
+    "id": "linear_algebra__inner_product", 
+    "title": "Inner Product" 
+})
+
+The **inner product** is yet another important matrix operation that is only applied to vectors. Given two vectors $V$ and $W$ of the same size, their inner product $\langle V , W \rangle$ is defined as a product of matrices $V^\dagger$ and $W$:
+
+$$\langle V , W \rangle = V^\dagger W$$
+
+Let's break this down so it's a bit easier to understand. A $1 \times n$ matrix (the adjoint of an $n \times 1$ vector) multiplied by an $n \times 1$ vector results in a $1 \times 1$ matrix (which is equivalent to a scalar). The result of an inner product is that scalar. 
+
+To put it another way, to calculate the inner product of two vectors, take the corresponding elements $V_k$ and $W_k$, multiply the complex conjugate of $V_k$ by $W_k$, and add up those products:
+
+$$\langle V , W \rangle = \sum_{k=0}^{n-1}\overline{V_k}W_k$$
+
+If you are familiar with the **dot product**, you will notice that it is equivalent to inner product for real-numbered vectors.
+
+> We use our definition for these tutorials because it matches the notation used in quantum computing. You might encounter other sources which define the inner product a little differently: $\langle V , W \rangle = W^\dagger V = V^T\overline{W}$, in contrast to the $V^\dagger W$ that we use. These definitions are almost equivalent, with some differences in the scalar multiplication by a complex number.
+
+An immediate application for the inner product is computing the **vector norm**. The norm of vector $V$ is defined as $||V|| = \sqrt{\langle V , V \rangle}$. This condenses the vector down to a single non-negative real value. If the vector represents coordinates in space, the norm happens to be the length of the vector. A vector is called **normalized** if its norm is equal to $1$.
+
+The inner product has the following properties:
+
+* Distributivity over addition: $\langle V + W , X \rangle = \langle V , X \rangle + \langle W , X \rangle$ and $\langle V , W + X \rangle = \langle V , W \rangle + \langle V , X \rangle$
+* Partial associativity with scalar multiplication: $x \cdot \langle V , W \rangle = \langle \overline{x}V , W \rangle = \langle V , xW \rangle$
+* Skew symmetry: $\langle V , W \rangle = \overline{\langle W , V \rangle}$
+* Multiplying a vector by a unitary matrix **preserves the vector's inner product with itself** (and therefore the vector's norm): $\langle UV , UV \rangle = \langle V , V \rangle$
+
+> Note that just like matrix multiplication, the inner product is **not commutative**: $\langle V , W \rangle$ won't always equal $\langle W , V \rangle$.
+
+@[exercise]({ 
+    "id": "linear_algebra__inner_product_ex", 
+    "title": "Inner Product of Two Vectors", 
+    "path": "./inner_product/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+@[exercise]({ 
+    "id": "linear_algebra__normalized_vector", 
+    "title": "Normalized Vector", 
+    "path": "./normalized_vector/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({
+    "id": "linear_algebra__outer_product", 
+    "title": "Outer Product" 
+})
+
+The **outer product** of two vectors $V$ and $W$ is defined as $VW^\dagger$. That is, the outer product of an $n \times 1$ vector and an $m \times 1$ vector is an $n \times m$ matrix. If we denote the outer product of $V$ and $W$ as $X$, then $X_{i,j} = V_i \cdot \overline{W_j}$. 
+
+@[exercise]({ 
+    "id": "linear_algebra__outer_product_ex", 
+    "title": "Outer Product of Two Vectors", 
+    "path": "./outer_product/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
+
+@[section]({
+    "id": "linear_algebra__tensor_product", 
+    "title": "Tensor Product" 
+})
+
+The **tensor product** is a different way of multiplying matrices. Rather than multiplying rows by columns, the tensor product multiplies the second matrix by every element of the first matrix.
+
+Given $n \times m$ matrix $A$ and $k \times l$ matrix $B$, their tensor product $A \otimes B$ is an $(n \cdot k) \times (m \cdot l)$ matrix defined as follows:
+
+$$A \otimes B =
+\begin{bmatrix}
+    A_{0,0} \cdot B & A_{0,1} \cdot B & \dotsb & A_{0,m-1} \cdot B \\\\
+    A_{1,0} \cdot B & A_{1,1} \cdot B & \dotsb & A_{1,m-1} \cdot B \\\\
+    \vdots & \vdots & \ddots & \vdots \\\\
+    A_{n-1,0} \cdot B & A_{n-1,1} \cdot B & \dotsb & A_{n-1,m-1} \cdot B
+\end{bmatrix} =$$
+$$= \begin{bmatrix}
+    A_{0,0} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & b_{k-1,l-1} \end{bmatrix} & \dotsb &
+    A_{0,m-1} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix} \\\\
+    \vdots & \ddots & \vdots \\\\
+    A_{n-1,0} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix} & \dotsb &
+    A_{n-1,m-1} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix}
+\end{bmatrix} =$$
+$$= \begin{bmatrix}
+    A_{0,0} \cdot B_{0,0} & \dotsb & A_{0,0} \cdot B_{0,l-1} & \dotsb & A_{0,m-1} \cdot B_{0,0} & \dotsb & A_{0,m-1} \cdot B_{0,l-1} \\\\
+    \vdots & \ddots & \vdots & \dotsb & \vdots & \ddots & \vdots \\\\
+    A_{0,0} \cdot B_{k-1,0} & \dotsb & A_{0,0} \cdot B_{k-1,l-1} & \dotsb & A_{0,m-1} \cdot B_{k-1,0} & \dotsb & A_{0,m-1} \cdot B_{k-1,l-1} \\\\
+    \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots \\\\
+    A_{n-1,0} \cdot B_{0,0} & \dotsb & A_{n-1,0} \cdot B_{0,l-1} & \dotsb & A_{n-1,m-1} \cdot B_{0,0} & \dotsb & A_{n-1,m-1} \cdot B_{0,l-1} \\\\
+    \vdots & \ddots & \vdots & \dotsb & \vdots & \ddots & \vdots \\\\
+    A_{n-1,0} \cdot B_{k-1,0} & \dotsb & A_{n-1,0} \cdot B_{k-1,l-1} & \dotsb & A_{n-1,m-1} \cdot B_{k-1,0} & \dotsb & A_{n-1,m-1} \cdot B_{k-1,l-1}
+\end{bmatrix}$$
+
+Notice that the tensor product of two vectors is another vector: if $V$ is an $n \times 1$ vector, and $W$ is an $m \times 1$ vector, $V \otimes W$ is an $(n \cdot m) \times 1$ vector.
+
+The tensor product has the following properties:
+
+* Distributivity over addition: $(A + B) \otimes C = A \otimes C + B \otimes C$, $A \otimes (B + C) = A \otimes B + A \otimes C$
+* Associativity with scalar multiplication: $x(A \otimes B) = (xA) \otimes B = A \otimes (xB)$
+* Mixed-product property (relation with matrix multiplication): $(A \otimes B) (C \otimes D) = (AC) \otimes (BD)$
+
+@[exercise]({ 
+    "id": "linear_algebra__tensor_product_ex", 
+    "title": "Tensor Product of Two Matrices", 
+    "path": "./tensor_product/", 
+    "qsDependencies": [
+        "./Common.qs"
+    ] 
+})
+
 
 @[section]({
     "id": "linear_algebra__conclusion", 
     "title": "Conclusion" 
 })
 
-Congratulations! You should now know enough linear algebra to get started with quantum computing!
+Congratulations! Now you know enough linear algebra to get started with quantum computing!
