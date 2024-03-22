@@ -18,6 +18,7 @@
   "private": true,
   "devDependencies": {
     "@anywidget/types": "^0.1.4",
+    "@microsoft/quantum-viz.js": "^1.0.5",
     "@types/chai": "^4.3.8",
     "@types/markdown-it": "^13.0.6",
     "@types/mocha": "^10.0.2",
