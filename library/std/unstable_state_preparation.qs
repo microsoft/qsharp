@@ -115,11 +115,15 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         let coefficientsPadded = Padded(-2 ^ nQubits, ComplexPolar(0.0, 0.0), coefficients);
         let idxTarget = 0;
         // Determine what controls to apply
-        let rngControl = nQubits > 1 ? (1 .. (nQubits - 1)) | (1..0);
+        let rngControl = nQubits > 1 ? (1..(nQubits - 1)) | (1..0);
         // Note we use the reversed qubits array to get the endianness ordering that we expect
         // when corresponding qubit state to state vector index.
         Adjoint ApproximatelyUnprepareArbitraryState(
-            tolerance, coefficientsPadded, rngControl, idxTarget, Reversed(qubits)
+            tolerance,
+            coefficientsPadded,
+            rngControl,
+            idxTarget,
+            Reversed(qubits)
         );
     }
 
@@ -130,7 +134,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         coefficients : ComplexPolar[],
         rngControl : Range,
         idxTarget : Int,
-        register: Qubit[]
+        register : Qubit[]
     ) : Unit is Adj + Ctl {
 
         // For each 2D block, compute disentangling single-qubit rotation parameters
@@ -201,7 +205,8 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         coefficients : Double[],
         pauli : Pauli,
         control : Qubit[],
-        target : Qubit) : Unit is Adj + Ctl {
+        target : Qubit
+    ) : Unit is Adj + Ctl {
 
         if pauli == PauliZ {
             ApproximatelyMultiplexZ(tolerance, coefficients, control, target);
@@ -225,13 +230,14 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// # Summary
     /// Implementation step of arbitrary state preparation procedure.
     internal function StatePreparationSBMComputeCoefficients(
-        coefficients : ComplexPolar[]) : (Double[], Double[], ComplexPolar[]) {
+        coefficients : ComplexPolar[]
+    ) : (Double[], Double[], ComplexPolar[]) {
 
         mutable disentanglingZ = [];
         mutable disentanglingY = [];
         mutable newCoefficients = [];
 
-        for idxCoeff in 0 .. 2 .. Length(coefficients) - 1 {
+        for idxCoeff in 0..2..Length(coefficients) - 1 {
             let (rt, phi, theta) = BlochSphereCoordinates(coefficients[idxCoeff], coefficients[idxCoeff + 1]);
             set disentanglingZ += [0.5 * phi];
             set disentanglingY += [0.5 * theta];
@@ -256,9 +262,10 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     ///
     /// # Output
     /// A tuple containing `(ComplexPolar(r, t), phi, theta)`.
-    internal function BlochSphereCoordinates (
+    internal function BlochSphereCoordinates(
         a0 : ComplexPolar,
-        a1 : ComplexPolar) : (ComplexPolar, Double, Double) {
+        a1 : ComplexPolar
+    ) : (ComplexPolar, Double, Double) {
 
         let abs0 = AbsComplexPolar(a0);
         let abs1 = AbsComplexPolar(a1);
@@ -314,7 +321,8 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         tolerance : Double,
         coefficients : Double[],
         control : Qubit[],
-        target : Qubit) : Unit is Adj + Ctl {
+        target : Qubit
+    ) : Unit is Adj + Ctl {
 
         body (...) {
             // pad coefficients length at tail to a power of 2.
@@ -343,12 +351,12 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
             // pad coefficients length to a power of 2.
             let coefficientsPadded = Padded(2 ^ (Length(control) + 1), 0.0, Padded(-2 ^ Length(control), 0.0, coefficients));
             let (coefficients0, coefficients1) = MultiplexZCoefficients(coefficientsPadded);
-            ApproximatelyMultiplexZ(tolerance,coefficients0, control, target);
-            if AnyOutsideToleranceD(tolerance,coefficients1) {
+            ApproximatelyMultiplexZ(tolerance, coefficients0, control, target);
+            if AnyOutsideToleranceD(tolerance, coefficients1) {
                 within {
                     Controlled X(controlRegister, target);
                 } apply {
-                    ApproximatelyMultiplexZ(tolerance,coefficients1, control, target);
+                    ApproximatelyMultiplexZ(tolerance, coefficients1, control, target);
                 }
             }
         }
@@ -361,7 +369,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
         mutable coefficients0 = [];
         mutable coefficients1 = [];
 
-        for idxCoeff in 0 .. newCoefficientsLength - 1 {
+        for idxCoeff in 0..newCoefficientsLength - 1 {
             set coefficients0 += [0.5 * (coefficients[idxCoeff] + coefficients[idxCoeff + newCoefficientsLength])];
             set coefficients1 += [0.5 * (coefficients[idxCoeff] - coefficients[idxCoeff + newCoefficientsLength])];
         }

@@ -138,16 +138,15 @@ namespace Sample {
 
         // Determine which of the three qubits is has the error based on the
         // parity measurements.
-        let indexOfError =
-            if (parity01, parity12) == (One, Zero) {
-                0
-            } elif (parity01, parity12) == (One, One) {
-                1
-            } elif (parity01, parity12) == (Zero, One) {
-                2
-            } else {
+        let indexOfError = if (parity01, parity12) == (One, Zero) {
+            0
+        } elif (parity01, parity12) == (One, One) {
+            1
+        } elif (parity01, parity12) == (Zero, One) {
+            2
+        } else {
                 -1
-            };
+        };
 
         // If an error was detected, correct that qubit.
         if indexOfError > -1 {

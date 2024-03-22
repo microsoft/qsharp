@@ -43,6 +43,7 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
         indent_level: 0,
         delim_newlines_stack: vec![],
         type_param_state: TypeParameterListState::NoState,
+        spec_decl_state: SpecDeclState::NoState,
     };
 
     // The sliding window used is over three adjacent tokens
@@ -143,6 +144,21 @@ enum TypeParameterListState {
     InTypeParamList,
 }
 
+/// This is to keep track of whether or not the formatter
+/// is currently processing a functor specialization
+/// declaration.
+#[derive(Clone, Copy)]
+enum SpecDeclState {
+    /// Not in a location relevant to this state.
+    NoState,
+    /// Formatter is on the specialization keyword.
+    /// (it is the left-hand token)
+    OnSpecKeyword,
+    /// Formatter is on the specialization ellipse.
+    /// (it is the left-hand token)
+    OnEllipse,
+}
+
 /// Enum for a token's status as a delimiter.
 /// `<` and `>` are delimiters only with type-parameter lists,
 /// which is determined using the TypeParameterListState enum.
@@ -185,6 +201,7 @@ struct Formatter<'a> {
     indent_level: usize,
     delim_newlines_stack: Vec<NewlineContext>,
     type_param_state: TypeParameterListState,
+    spec_decl_state: SpecDeclState,
 }
 
 impl<'a> Formatter<'a> {
@@ -204,6 +221,8 @@ impl<'a> Formatter<'a> {
 
         let are_newlines_in_spaces = whitespace.contains('\n');
         let does_right_required_newline = matches!(&right.kind, Syntax(cooked_right) if is_newline_keyword_or_ampersat(cooked_right));
+
+        self.update_spec_decl_state(&left.kind);
 
         let (left_delim_state, right_delim_state) =
             self.update_type_param_state(&left.kind, &right.kind);
@@ -372,15 +391,23 @@ impl<'a> Formatter<'a> {
                 | (_, String(StringToken::Interpolated(InterpolatedStart::RBrace, _))) => {
                     effect_no_space(left, whitespace, right, &mut edits);
                 }
-                (_, Open(Delim::Brace)) => {
-                    // Special-case braces to always have a leading single space
+                (DotDotDot, _) if matches!(self.spec_decl_state, SpecDeclState::OnEllipse) => {
+                    // Special-case specialization declaration ellipses to have a space after
                     effect_single_space(left, whitespace, right, &mut edits);
+                }
+                (_, Open(Delim::Brace)) => {
+                    // Special-case braces to have a leading single space with values
+                    if is_prefix(cooked_left) {
+                        effect_no_space(left, whitespace, right, &mut edits);
+                    } else {
+                        effect_single_space(left, whitespace, right, &mut edits);
+                    }
                 }
                 (_, _) if matches!(right_delim_state, Delimiter::Open) => {
                     // Otherwise, all open delims have the same logic
                     if is_value_token_left(cooked_left, left_delim_state) || is_prefix(cooked_left)
                     {
-                        // i.e. foo() or { foo }[3]
+                        // i.e. foo() or foo[3]
                         effect_no_space(left, whitespace, right, &mut edits);
                     } else {
                         // i.e. let x = (1, 2, 3);
@@ -440,6 +467,27 @@ impl<'a> Formatter<'a> {
             _ => {}
         }
         edits
+    }
+
+    fn update_spec_decl_state(&mut self, left_kind: &ConcreteTokenKind) {
+        use qsc_frontend::keyword::Keyword;
+        use ConcreteTokenKind::*;
+        use TokenKind::*;
+
+        match left_kind {
+            Comment => {
+                // Comments don't update state
+            }
+            Syntax(Keyword(Keyword::Body | Keyword::Adjoint | Keyword::Controlled)) => {
+                self.spec_decl_state = SpecDeclState::OnSpecKeyword;
+            }
+            Syntax(DotDotDot) if matches!(self.spec_decl_state, SpecDeclState::OnSpecKeyword) => {
+                self.spec_decl_state = SpecDeclState::OnEllipse;
+            }
+            _ => {
+                self.spec_decl_state = SpecDeclState::NoState;
+            }
+        }
     }
 
     /// Updates the type_param_state of the FormatterState based

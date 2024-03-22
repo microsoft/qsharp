@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.Measurement {
     /// # Remarks
     /// This operation does not reset the measured qubits to the |0⟩ state,
     /// leaving them in the state that corresponds to the measurement result.
-    operation MeasureAllZ (register : Qubit[]) : Result {
+    operation MeasureAllZ(register : Qubit[]) : Result {
         Measure(Repeated(PauliZ, Length(register)), register)
     }
 
@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.Measurement {
     /// # Remarks
     /// This operation does not reset the measured qubits to the |0⟩ state,
     /// leaving them in the state that corresponds to the measurement results.
-    operation MeasureEachZ (register : Qubit[]) : Result[] {
+    operation MeasureEachZ(register : Qubit[]) : Result[] {
         mutable results = [];
         for qubit in register {
             set results += [M(qubit)];
@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.Measurement {
     /// An array of qubits to be measured.
     /// # Output
     /// An array of measurement results.
-    operation MResetEachZ (register : Qubit[]) : Result[] {
+    operation MResetEachZ(register : Qubit[]) : Result[] {
         mutable results = [];
         for qubit in register {
             set results += [MResetZ(qubit)];
@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.Measurement {
     ///
     /// # Output
     /// The result of measuring `target` in the Pauli X basis.
-    operation MResetX (target : Qubit) : Result {
+    operation MResetX(target : Qubit) : Result {
         // Map the qubit's state from the Z-basis to the X-basis.
         // Then measure and reset the qubit.
         H(target);
@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.Measurement {
     ///
     /// # Output
     /// The result of measuring `target` in the Pauli Y basis.
-    operation MResetY (target : Qubit) : Result {
+    operation MResetY(target : Qubit) : Result {
         // Map the qubit's state from the Z-basis to the Y-basis.
         // Then measure and reset the qubit.
         // Note: this use HSadj instead of HSH since that is sufficient for measurement.
@@ -127,7 +127,7 @@ namespace Microsoft.Quantum.Measurement {
     ///
     /// # Output
     /// The result of measuring `target` in the Pauli Z basis.
-    operation MResetZ (target : Qubit) : Result {
+    operation MResetZ(target : Qubit) : Result {
         __quantum__qis__mresetz__body(target)
     }
 

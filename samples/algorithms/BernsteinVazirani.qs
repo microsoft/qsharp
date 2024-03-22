@@ -44,7 +44,8 @@ namespace Sample {
             let decodedInteger = ResultArrayAsInt(decodedBitString);
             Fact(
                 decodedInteger == integer,
-                $"Decoded integer {decodedInteger}, but expected {integer}.");
+                $"Decoded integer {decodedInteger}, but expected {integer}."
+            );
 
             Message($"Successfully decoded bit string as int: {decodedInteger}");
             set decodedIntegers += [decodedInteger];
@@ -78,8 +79,7 @@ namespace Sample {
     /// - [ *Ethan Bernstein and Umesh Vazirani*,
     ///     SIAM J. Comput., 26(5), 1411–1473, 1997 ]
     ///   (https://doi.org/10.1137/S0097539796300921)
-    operation BernsteinVazirani(Uf : ((Qubit[], Qubit) => Unit), n : Int)
-    : Result[] {
+    operation BernsteinVazirani(Uf : ((Qubit[], Qubit) => Unit), n : Int) : Result[] {
         // We allocate n + 1 clean qubits. Note that the function Uf is defined
         // on inputs of the form (x, y), where x has n bits and y has 1 bit.
         use queryRegister = Qubit[n];
@@ -135,20 +135,19 @@ namespace Sample {
     operation ApplyParityOperation(
         bitStringAsInt : Int,
         xRegister : Qubit[],
-        yQubit : Qubit)
-    : Unit {
+        yQubit : Qubit
+    ) : Unit {
         // `xRegister` muts have enough qubits to represent the integer.
         let requiredBits = BitSizeI(bitStringAsInt);
         let availableQubits = Length(xRegister);
         Fact(
             availableQubits >= requiredBits,
-            $"Integer value {bitStringAsInt} requires {requiredBits} bits to " +
-            $"be represented but the quantum register only has " +
-            $"{availableQubits} qubits");
+            $"Integer value {bitStringAsInt} requires {requiredBits} bits to " + $"be represented but the quantum register only has " + $"{availableQubits} qubits"
+        );
 
         // Apply the quantum operations that encode the bit string.
         for index in IndexRange(xRegister) {
-            if ((bitStringAsInt &&& 2^index) != 0) {
+            if ((bitStringAsInt &&& 2 ^ index) != 0) {
                 CNOT(xRegister[index], yQubit);
             }
         }
@@ -158,8 +157,7 @@ namespace Sample {
     /// Returns black-box operations (Qubit[], Qubit) => () of the form
     /// U_f |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉.
     /// We define 𝑓 by providing the bit string 𝑟⃗ as an integer.
-    operation EncodeIntegerAsParityOperation(bitStringAsInt : Int)
-    : (Qubit[], Qubit) => Unit {
+    operation EncodeIntegerAsParityOperation(bitStringAsInt : Int) : (Qubit[], Qubit) => Unit {
         return ApplyParityOperation(bitStringAsInt, _, _);
     }
 }

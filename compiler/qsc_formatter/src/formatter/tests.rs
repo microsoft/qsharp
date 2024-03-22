@@ -904,121 +904,174 @@ fn preserve_string_indentation() {
 
 #[test]
 fn newline_after_brace_before_value() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     {
         let x = 3;
     } x
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
         {
             let x = 3;
         }
         x
-    "#]])
+    "#]],
+    )
 }
 
 #[test]
 fn newline_after_brace_before_functor() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     {
         let x = 3;
     } Adjoint Foo();
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
         {
             let x = 3;
         }
         Adjoint Foo();
-    "#]])
+    "#]],
+    )
 }
 
 #[test]
 fn newline_after_brace_before_not_keyword() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     {
         let x = 3;
     } not true
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
         {
             let x = 3;
         }
         not true
-    "#]])
+    "#]],
+    )
 }
 
 #[test]
 fn newline_after_brace_before_starter_keyword() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     {
         let x = 3;
     } if true {}
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
         {
             let x = 3;
         }
         if true {}
-    "#]])
+    "#]],
+    )
 }
 
 #[test]
 fn newline_after_brace_before_brace() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     {
         let x = 3;
     } {}
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
         {
             let x = 3;
         }
         {}
-    "#]])
+    "#]],
+    )
 }
 
 #[test]
 fn space_after_brace_before_operator() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     {
         let x = 3;
     }   +   {}
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
         {
             let x = 3;
         } + {}
-    "#]])
+    "#]],
+    )
 }
 
 #[test]
 fn newline_after_brace_before_delim() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     {} ()
     {} []
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
         {}
         () {}
         []
-    "#]])
+    "#]],
+    )
 }
 
 // Copy operator can have single space or newline
 
 #[test]
 fn copy_operator_with_newline_is_indented() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     let x = arr
               w/ 0 <- 10
     w/ 1 <- 11
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
     let x = arr
         w/ 0 <- 10
         w/ 1 <- 11
-    "#]])
+    "#]],
+    )
 }
 
 #[test]
 fn copy_operator_with_space_has_single_space() {
-    check(indoc! {r#"
+    check(
+        indoc! {r#"
     let x = arr    w/ 0 <- 10    w/ 1 <- 11
-    "#}, &expect![[r#"
+    "#},
+        &expect![[r#"
     let x = arr w/ 0 <- 10 w/ 1 <- 11
-    "#]])
+    "#]],
+    )
+}
+
+#[test]
+fn no_space_around_ellipse() {
+    check(
+        indoc! {r#"
+    {} ... {}
+    "#},
+        &expect![[r#"
+            {}...{}
+        "#]],
+    )
+}
+
+#[test]
+fn single_space_after_spec_decl_ellipse() {
+    check(
+        indoc! {r#"
+    body ...auto
+    adjoint ...{}
+    "#},
+        &expect![[r#"
+        body ... auto
+        adjoint ... {}
+        "#]],
+    )
 }
 
 // Remove extra whitespace from start of code

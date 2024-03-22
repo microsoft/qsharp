@@ -2,21 +2,22 @@ namespace Test {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Arrays;
 
-    operation PrepareEntangledState (
+    operation PrepareEntangledState(
         left : Qubit[],
-        right : Qubit[]) : Unit is Adj + Ctl {
+        right : Qubit[]
+    ) : Unit is Adj + Ctl {
 
-        for idxQubit in 0 .. Length(left) - 1
-        {
+        for idxQubit in 0..Length(left) - 1 {
             H(left[idxQubit]);
             Controlled X([left[idxQubit]], right[idxQubit]);
         }
     }
 
-    operation AssertOperationsEqualReferenced (
+    operation AssertOperationsEqualReferenced(
         nQubits : Int,
         actual : (Qubit[] => Unit),
-        expected : (Qubit[] => Unit is Adj)) : Unit {
+        expected : (Qubit[] => Unit is Adj)
+    ) : Unit {
 
         // Prepare a reference register entangled with the target register.
         use (reference, target) = (Qubit[nQubits], Qubit[nQubits]) {
@@ -33,14 +34,14 @@ namespace Test {
 
     /// # Summary
     /// Hard-code 1 qubit QFT
-    operation QFT1 (target : Qubit[]) : Unit is Adj {
+    operation QFT1(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 1, $"`Length(target!)` must be 1");
         H((target)[0]);
     }
 
     /// # Summary
     /// Hard-code 2 qubit QFT
-    operation QFT2 (target : Qubit[]) : Unit is Adj {
+    operation QFT2(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 2, $"`Length(target!)` must be 2");
         let (q1, q2) = ((target)[0], (target)[1]);
         H(q1);
@@ -50,7 +51,7 @@ namespace Test {
 
     /// # Summary
     /// Hard-code 3 qubit QFT
-    operation QFT3 (target : Qubit[]) : Unit is Adj {
+    operation QFT3(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 3, $"`Length(target)` must be 3");
         let (q1, q2, q3) = ((target)[0], (target)[1], (target)[2]);
         H(q1);
@@ -63,7 +64,7 @@ namespace Test {
 
     /// # Summary
     /// Hard-code 4 qubit QFT
-    operation QFT4 (target : Qubit[]) : Unit is Adj {
+    operation QFT4(target : Qubit[]) : Unit is Adj {
         Fact(Length(target) == 4, $"`Length(target!)` must be 4");
         let (q1, q2, q3, q4) = ((target)[0], (target)[1], (target)[2], (target)[3]);
         H(q1);
@@ -80,8 +81,8 @@ namespace Test {
 
     /// # Summary
     /// Compares QFT to the hard-coded implementations
-    operation TestQFT(n: Int) : Unit {
-        Fact(n>=1 and n<=4, "Only have four tests for QFT.");
+    operation TestQFT(n : Int) : Unit {
+        Fact(n >= 1 and n <= 4, "Only have four tests for QFT.");
         let testOperations = [QFT1, QFT2, QFT3, QFT4];
         AssertOperationsEqualReferenced(n, testOperations[n-1], q => ApplyQFT(Reversed(q)));
     }
