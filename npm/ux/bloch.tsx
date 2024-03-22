@@ -6,10 +6,10 @@
 /* TODO:
 
 - Show the state vector / linear combination
+- Show as a history running below the gates using LaTeX
 - Add the trailing dots with a slider for history and fade out speed
 - Animiate the axes (including for H) when rotating
   - Maybe add a new geo/mesh for axis with rotation arrow that rotates with the qubit
-- Have the marker indicate the phase/direction
 - Show the matrix to be applied when hovering over a gate
 
 To convert basis coeffeicients a & b into a point on the Bloch sphere:
@@ -402,15 +402,22 @@ To calculate the distance the point travels as the rotation is applied.
   }
 }
 
-export function BlochSphere(props: { gates?: string[] }) {
+export function BlochSphere(props: {
+  gates?: string[];
+  renderLaTeX: (nodes: HTMLElement[]) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<BlochRenderer | null>(null);
+  const latexDiv = useRef<HTMLDivElement>(null);
 
   const [gates, setGates] = useState<string[]>(props.gates || []);
 
   useEffect(() => {
     if (canvasRef.current) {
       renderer.current = new BlochRenderer(canvasRef.current);
+    }
+    if (latexDiv.current) {
+      props.renderLaTeX([latexDiv.current]);
     }
   }, []);
 
@@ -440,6 +447,7 @@ export function BlochSphere(props: { gates?: string[] }) {
           console.error("Unknown gate: " + gate);
       }
     }
+    props.renderLaTeX([latexDiv.current!]);
   }
 
   function reset() {
@@ -447,7 +455,15 @@ export function BlochSphere(props: { gates?: string[] }) {
     if (renderer.current) {
       renderer.current.reset();
     }
+
+    // TODO: Reset any saved history
+    if (latexDiv.current) {
+      props.renderLaTeX([latexDiv.current]);
+    }
   }
+
+  const demoMatrix = `\\begin{bmatrix}1 & 0 \\\\ 0 & e^{i {\\pi \\over 2}} \\end{bmatrix} \\theta \\begin{bmatrix} i \\over 2 \\\\ 0 \\\\ 1 \\over 2 \\\\ 0 \\end{bmatrix}
+  `;
 
   return (
     <div style="position: relative;">
@@ -475,6 +491,10 @@ export function BlochSphere(props: { gates?: string[] }) {
         <button type="button" onClick={reset}>
           Reset
         </button>
+      </div>
+      <div ref={latexDiv}>
+        <div>Put the current state here $$\theta \over \pi$$</div>
+        <div>{demoMatrix}</div>
       </div>
     </div>
   );

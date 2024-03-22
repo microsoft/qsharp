@@ -119,6 +119,11 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     setCurrentNavItem(name);
   }
 
+  function onRenderLaTeX(nodes: HTMLElement[]) {
+    MathJax.typesetClear(nodes);
+    MathJax.typesetPromise(nodes);
+  }
+
   return (
     <>
       <header class="page-header">Q# playground</header>
@@ -163,7 +168,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           languageService={languageService}
         ></Katas>
       ) : (
-        <BlochSphere />
+        <BlochSphere renderLaTeX={onRenderLaTeX} />
       )}
       <div id="popup"></div>
     </>
