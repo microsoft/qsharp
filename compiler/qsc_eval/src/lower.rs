@@ -44,6 +44,27 @@ impl Lowerer {
         }
     }
 
+    fn reset(&mut self) {
+        self.nodes.clear();
+        self.locals.clear();
+        self.exprs.clear();
+        self.pats.clear();
+        self.stmts.clear();
+        self.blocks.clear();
+        self.assigner = Assigner::new();
+        self.exec_graph.clear();
+    }
+
+    fn is_cleared(&self) -> bool {
+        self.nodes.is_empty()
+            && self.locals.is_empty()
+            && self.exprs.is_empty()
+            && self.pats.is_empty()
+            && self.stmts.is_empty()
+            && self.blocks.is_empty()
+            && self.exec_graph.is_empty()
+    }
+
     pub fn take_exec_graph(&mut self) -> Vec<ExecGraphNode> {
         self.exec_graph
             .drain(..)
@@ -52,8 +73,11 @@ impl Lowerer {
     }
 
     pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {
-        // Use a new assigner so we get fresh IDs in case this lowerer was used to lower other packages before.
-        self.assigner = Assigner::new();
+        assert!(
+            self.is_cleared(),
+            "Lowerer must be reset before lowering a package"
+        );
+
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let entry_exec_graph = self.exec_graph.drain(..).collect();
         let items: IndexMap<LocalItemId, fir::Item> = package
@@ -83,6 +107,10 @@ impl Lowerer {
             stmts,
         };
         qsc_fir::validate::validate(&package);
+
+        // Reset all internal state so we next package gets fresh state.
+        self.reset();
+
         package
     }
 
