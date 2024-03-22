@@ -170,7 +170,7 @@ pub fn get_circuit(
 #[allow(clippy::needless_pass_by_value)]
 fn interpret_errors_into_vs_diagnostics_json(errs: Vec<qsc::interpret::Error>) -> String {
     serde_json::to_string(&interpret_errors_into_vs_diagnostics(&errs))
-        .expect("serializing errors to json should succeed (or should it?)")
+        .expect("serializing errors to json should succeed")
 }
 
 #[wasm_bindgen]

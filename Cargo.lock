@@ -1161,6 +1161,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_rir"
+version = "0.0.0"
+dependencies = [
+ "qsc_data_structures",
+]
+
+[[package]]
 name = "qsc_wasm"
 version = "0.0.0"
 dependencies = [

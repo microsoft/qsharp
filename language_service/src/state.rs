@@ -539,14 +539,11 @@ impl<'a> CompilationStateUpdater<'a> {
 
 impl CompilationState {
     pub(crate) fn get_compilation(&self, uri: &str) -> Option<&Compilation> {
-        let Some(compilation_uri) = &self
+        let compilation_uri = &self
             .open_documents
             .get(uri)
             .as_ref()
-            .map(|x| x.compilation.clone())
-        else {
-            return None;
-        };
+            .map(|x| x.compilation.clone())?;
 
         trace!("document: {uri} compilation_uri: {compilation_uri}");
 

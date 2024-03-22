@@ -116,7 +116,7 @@
         },
         "Q#.showCircuitCodeLens": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
         }
       }
@@ -186,6 +186,10 @@
         },
         {
           "command": "qsharp-vscode.showHelp",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.showCircuit",
           "when": "resourceLangId == qsharp"
         },
         {

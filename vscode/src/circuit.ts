@@ -1,15 +1,19 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getCompilerWorker, log } from "qsharp-lang";
+import {
+  IOperationInfo,
+  VSDiagnostic,
+  getCompilerWorker,
+  log,
+} from "qsharp-lang";
 import { Uri, window } from "vscode";
 import { basename, isQsharpDocument } from "./common";
-import { loadProject } from "./projectSystem";
-import type { IOperationInfo, VSDiagnostic } from "../../npm/lib/web/qsc_wasm";
 import { getTarget, getTargetFriendlyName } from "./config";
-import { sendMessageToPanel } from "./webviewPanel";
-import { getRandomGuid } from "./utils";
+import { loadProject } from "./projectSystem";
 import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
+import { getRandomGuid } from "./utils";
+import { sendMessageToPanel } from "./webviewPanel";
 
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 
@@ -125,19 +129,53 @@ export function updateCircuitPanel(
   sendMessageToPanel("circuit", false, message);
 }
 
+/**
+ * Formats an array of compiler/runtime errors into HTML to be presented to the user.
+ *
+ * @param {[string, VSDiagnostic][]} errors
+ *  The string is the document URI or "<project>" if the error isn't associated with a specific document.
+ *  The VSDiagnostic is the error information.
+ *
+ * @returns {string} - The HTML formatted errors, to be set as the inner contents of a container element.
+ */
 function errorsToHtml(errors: [string, VSDiagnostic][]): string {
   let errorHtml = "";
   for (const error of errors) {
-    const uri = Uri.parse(error[0]);
-    const openCommandUri = Uri.parse(
-      `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
-    );
+    let location;
+    const document = error[0];
+    try {
+      // If the error location is a document URI, create a link to that document.
+      // We use the `vscode.open` command (https://code.visualstudio.com/api/references/commands#commands)
+      // to open the document in the editor.
+      // The line and column information is displayed, but are not part of the link.
+      //
+      // At the time of writing this is the only way we know to create a direct
+      // link to a Q# document from a Web View.
+      //
+      // If we wanted to handle line/column information from the link, an alternate
+      // implementation might be having our own command that navigates to the correct
+      // location. Then this would be a link to that command instead.
+      const uri = Uri.parse(document, true);
+      const openCommandUri = Uri.parse(
+        `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
+        true,
+      );
+      const fsPath = escapeHtml(uri.fsPath);
+      const lineColumn = escapeHtml(
+        `:${error[1].range.start.line}:${error[1].range.start.character}`,
+      );
+      location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
+    } catch (e) {
+      // Likely could not parse document URI - it must be a project level error,
+      // use the document name directly
+      location = escapeHtml(error[0]);
+    }
 
-    const fsPath = escapeHtml(uri.fsPath);
-    const errorText = escapeHtml(
-      `:${error[1].range.start.line}:${error[1].range.start.character}: ${error[1].message} (${error[1].code})`,
-    );
-    errorHtml += `<a href="${openCommandUri}">${fsPath}</a>${errorText}<br/>`;
+    const message = escapeHtml(
+      `(${error[1].code}) ${error[1].message}`,
+    ).replace("\n", "<br/>");
+
+    errorHtml += `${location}: ${message}<br/>`;
   }
   return errorHtml;
 }

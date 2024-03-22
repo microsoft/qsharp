@@ -8,7 +8,7 @@ use crate::{
 use miette::{Diagnostic, LabeledSpan, Severity};
 use qsc::{self, error::WithSource, interpret, SourceName, Span};
 use serde::{Deserialize, Serialize};
-use std::{fmt::Write, iter, sync::Arc};
+use std::{fmt::Write, iter};
 use wasm_bindgen::prelude::*;
 
 serializable_type! {
@@ -188,10 +188,13 @@ where
     }
 }
 
+/// Returns an array of tuples where:
+/// - the first element of the tuple is the document URI, or <project> if the error doesn't have a span
+/// - the second element of the tuple is a [`VSDiagnostic`] that represents the error
 pub fn interpret_errors_into_vs_diagnostics(
     errs: &[interpret::Error],
 ) -> Vec<(String, VSDiagnostic)> {
-    let default_uri: Arc<str> = Arc::from("<project>");
+    let default_uri = "<project>";
     errs.iter()
         .map(|err| {
             let labels = match err {
@@ -205,9 +208,10 @@ pub fn interpret_errors_into_vs_diagnostics(
 
             let doc = labels
                 .first()
-                .map_or(default_uri.clone(), |l| l.source_name.clone());
+                .map_or_else(|| default_uri.to_string(), |l| l.source_name.to_string());
 
-            (doc.to_string(), VSDiagnostic::new(labels, &doc, err))
+            let vsdiagnostic = VSDiagnostic::new(labels, &doc, err);
+            (doc, vsdiagnostic)
         })
         .collect()
 }

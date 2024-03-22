@@ -32,14 +32,14 @@ export function CircuitPanel(props: {
         <h2>{props.subtitle}</h2>
       </div>
       {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : null}
-      <div>
-        Tip: you can generate a circuit diagram for any operation that takes
-        qubits or arrays of qubits as input.
-      </div>
-      <div>
+      <div class="qs-circuit-error">
         {props.errorHtml ? (
           <div dangerouslySetInnerHTML={{ __html: props.errorHtml }}></div>
         ) : null}
+      </div>
+      <div>
+        Tip: you can generate a circuit diagram for any operation that takes
+        qubits or arrays of qubits as input.
       </div>
     </div>
   );

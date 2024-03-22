@@ -6,9 +6,6 @@
 //! execution on a quantum kernel and does not consider these elements when determining the capabilities. Additionally,
 //! this implementation also provides details on why the program requires each capability.
 
-#![warn(clippy::mod_module_files, clippy::pedantic, clippy::unwrap_used)]
-#![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-
 mod analyzer;
 mod applications;
 mod common;
