@@ -127,8 +127,8 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
         : isQsharpDocument(document)
-        ? QsharpDocumentType.Qsharp
-        : QsharpDocumentType.Other;
+          ? QsharpDocumentType.Qsharp
+          : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,
