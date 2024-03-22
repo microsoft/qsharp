@@ -11,18 +11,17 @@ pub struct Program {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct BlockId(u32);
 
-#[derive(Clone, Debug)]
-pub struct Block(pub Vec<Stmt>);
+/// A block is a collection of instructions.
+pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct CallableId(u32);
 
 /// A callable.
-#[derive(Clone, Debug)]
 pub struct Callable {
     /// The ID of the callable.
     pub id: CallableId,
@@ -34,21 +33,14 @@ pub struct Callable {
     pub output_type: Option<Ty>,
     /// The callable body.
     /// N.B. `None` bodys represent an intrinsic.
-    pub body: Option<Block>,
+    pub body: Option<BlockId>,
 }
 
-#[derive(Clone, Debug)]
-pub enum Stmt {
-    Binding(Variable, Instruction),
-    Instruction(Instruction),
-}
-
-#[derive(Clone, Debug)]
 pub enum Instruction {
     Store(Variable, Value),
     Call(CallableId, Vec<Value>),
-    Jump(Block),
-    Branch(Value, Block, Block),
+    Jump(BlockId),
+    Branch(Value, BlockId, BlockId),
     Add(Value, Value),
     Sub(Value, Value),
     Mul(Value, Value),
@@ -62,16 +54,14 @@ pub enum Instruction {
     BitwiseXor(Value, Value),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Default)]
 pub struct VariableId(u32);
 
-#[derive(Clone, Debug)]
 pub struct Variable {
     pub variable_id: VariableId,
     pub ty: Ty,
 }
 
-#[derive(Clone, Debug)]
 pub enum Ty {
     Qubit,
     Result,
@@ -80,13 +70,12 @@ pub enum Ty {
     Double,
 }
 
-#[derive(Clone, Debug)]
 pub enum Value {
     Literal(Literal),
     Variable(Variable),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy)]
 pub enum Literal {
     Qubit(u32),
     Result(u32),
