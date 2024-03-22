@@ -978,6 +978,26 @@ fn array_pair() {
 }
 
 #[test]
+fn array_of_floats_missing_comma() {
+    check(
+        expr,
+        "[1. 0. 0.]",
+        &expect![[r#"
+        Error(
+            Token(
+                Comma,
+                Float,
+                Span {
+                    lo: 4,
+                    hi: 6,
+                },
+            ),
+        )
+    "#]],
+    )
+}
+
+#[test]
 fn array_repeat() {
     check(
         expr,
