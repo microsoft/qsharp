@@ -3685,23 +3685,23 @@ fn partial_eval_simple_stmt() {
     check_partial_eval_stmt(
         "",
         "{3; {4} 5;}",
-        &[2_u32.into()],
+        &[5011_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-11] [Type Unit]:
-                        0
-                        1
-                        3
+                        5009
+                        5010
+                        5012
                     Block 1 [4-7] [Type Int]:
-                        2
+                        5011
                 Stmts:
-                    Stmt 0 [1-3]: Semi: 1
-                    Stmt 1 [4-7]: Expr: 2
-                    Stmt 2 [5-6]: Expr: 3
-                    Stmt 3 [8-10]: Semi: 4
+                    Stmt 5009 [1-3]: Semi: 1
+                    Stmt 5010 [4-7]: Expr: 2
+                    Stmt 5011 [5-6]: Expr: 3
+                    Stmt 5012 [8-10]: Semi: 4
                 Exprs:
                     Expr 0 [0-11] [Type Unit]: Expr Block: 0
                     Expr 1 [1-2] [Type Int]: Lit: Int(3)
@@ -3718,25 +3718,25 @@ fn partial_eval_stmt_with_bound_variable() {
     check_partial_eval_stmt(
         "",
         "{let x = 3; {x} ()}",
-        &[0_u32.into(), 2_u32.into()],
+        &[5009_u32.into(), 5011_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-19] [Type Unit]:
-                        0
-                        1
-                        3
+                        5009
+                        5010
+                        5012
                     Block 1 [12-15] [Type Int]:
-                        2
+                        5011
                 Stmts:
-                    Stmt 0 [1-11]: Local (Immutable):
+                    Stmt 5009 [1-11]: Local (Immutable):
                         0
                         1
-                    Stmt 1 [12-15]: Expr: 2
-                    Stmt 2 [13-14]: Expr: 3
-                    Stmt 3 [16-18]: Expr: 4
+                    Stmt 5010 [12-15]: Expr: 2
+                    Stmt 5011 [13-14]: Expr: 3
+                    Stmt 5012 [16-18]: Expr: 4
                 Exprs:
                     Expr 0 [0-19] [Type Unit]: Expr Block: 0
                     Expr 1 [9-10] [Type Int]: Lit: Int(3)
@@ -3754,27 +3754,27 @@ fn partial_eval_stmt_with_mutable_variable_update() {
     check_partial_eval_stmt(
         "",
         "{mutable x = 0; set x += 1; {x} set x = -1;}",
-        &[0_u32.into(), 1_u32.into(), 3_u32.into()],
+        &[5009_u32.into(), 5010_u32.into(), 5012_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
-                        0
-                        1
-                        2
-                        4
+                        5009
+                        5010
+                        5011
+                        5013
                     Block 1 [28-31] [Type Int]:
-                        3
+                        5012
                 Stmts:
-                    Stmt 0 [1-15]: Local (Mutable):
+                    Stmt 5009 [1-15]: Local (Mutable):
                         0
                         1
-                    Stmt 1 [16-27]: Semi: 2
-                    Stmt 2 [28-31]: Expr: 5
-                    Stmt 3 [29-30]: Expr: 6
-                    Stmt 4 [32-43]: Semi: 7
+                    Stmt 5010 [16-27]: Semi: 2
+                    Stmt 5011 [28-31]: Expr: 5
+                    Stmt 5012 [29-30]: Expr: 6
+                    Stmt 5013 [32-43]: Semi: 7
                 Exprs:
                     Expr 0 [0-44] [Type Unit]: Expr Block: 0
                     Expr 1 [13-14] [Type Int]: Lit: Int(0)
@@ -3803,27 +3803,27 @@ fn partial_eval_stmt_with_mutable_variable_update_out_of_order_works() {
     check_partial_eval_stmt(
         "",
         "{mutable x = 0; set x += 1; {x} set x = -1;}",
-        &[0_u32.into(), 4_u32.into(), 3_u32.into()],
+        &[5009_u32.into(), 5013_u32.into(), 5012_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
-                        0
-                        1
-                        2
-                        4
+                        5009
+                        5010
+                        5011
+                        5013
                     Block 1 [28-31] [Type Int]:
-                        3
+                        5012
                 Stmts:
-                    Stmt 0 [1-15]: Local (Mutable):
+                    Stmt 5009 [1-15]: Local (Mutable):
                         0
                         1
-                    Stmt 1 [16-27]: Semi: 2
-                    Stmt 2 [28-31]: Expr: 5
-                    Stmt 3 [29-30]: Expr: 6
-                    Stmt 4 [32-43]: Semi: 7
+                    Stmt 5010 [16-27]: Semi: 2
+                    Stmt 5011 [28-31]: Expr: 5
+                    Stmt 5012 [29-30]: Expr: 6
+                    Stmt 5013 [32-43]: Semi: 7
                 Exprs:
                     Expr 0 [0-44] [Type Unit]: Expr Block: 0
                     Expr 1 [13-14] [Type Int]: Lit: Int(0)
@@ -3852,27 +3852,32 @@ fn partial_eval_stmt_with_mutable_variable_update_repeat_stmts_works() {
     check_partial_eval_stmt(
         "",
         "{mutable x = 0; set x += 1; {x} set x = -1;}",
-        &[0_u32.into(), 1_u32.into(), 1_u32.into(), 3_u32.into()],
+        &[
+            5009_u32.into(),
+            5010_u32.into(),
+            5010_u32.into(),
+            5012_u32.into(),
+        ],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-44] [Type Unit]:
-                        0
-                        1
-                        2
-                        4
+                        5009
+                        5010
+                        5011
+                        5013
                     Block 1 [28-31] [Type Int]:
-                        3
+                        5012
                 Stmts:
-                    Stmt 0 [1-15]: Local (Mutable):
+                    Stmt 5009 [1-15]: Local (Mutable):
                         0
                         1
-                    Stmt 1 [16-27]: Semi: 2
-                    Stmt 2 [28-31]: Expr: 5
-                    Stmt 3 [29-30]: Expr: 6
-                    Stmt 4 [32-43]: Semi: 7
+                    Stmt 5010 [16-27]: Semi: 2
+                    Stmt 5011 [28-31]: Expr: 5
+                    Stmt 5012 [29-30]: Expr: 6
+                    Stmt 5013 [32-43]: Semi: 7
                 Exprs:
                     Expr 0 [0-44] [Type Unit]: Expr Block: 0
                     Expr 1 [13-14] [Type Int]: Lit: Int(0)
@@ -3901,25 +3906,25 @@ fn partial_eval_stmt_with_bool_short_circuit() {
     check_partial_eval_stmt(
         "",
         "{let x = true; { x or false } ();}",
-        &[0_u32.into(), 2_u32.into()],
+        &[5009_u32.into(), 5011_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-34] [Type Unit]:
-                        0
-                        1
-                        3
+                        5009
+                        5010
+                        5012
                     Block 1 [15-29] [Type Bool]:
-                        2
+                        5011
                 Stmts:
-                    Stmt 0 [1-14]: Local (Immutable):
+                    Stmt 5009 [1-14]: Local (Immutable):
                         0
                         1
-                    Stmt 1 [15-29]: Expr: 2
-                    Stmt 2 [17-27]: Expr: 3
-                    Stmt 3 [30-33]: Semi: 6
+                    Stmt 5010 [15-29]: Expr: 2
+                    Stmt 5011 [17-27]: Expr: 3
+                    Stmt 5012 [30-33]: Semi: 6
                 Exprs:
                     Expr 0 [0-34] [Type Unit]: Expr Block: 0
                     Expr 1 [9-13] [Type Bool]: Lit: Bool(true)
@@ -3941,25 +3946,25 @@ fn partial_eval_stmt_with_bool_no_short_circuit() {
     check_partial_eval_stmt(
         "",
         "{let x = false; { x or true } ();}",
-        &[0_u32.into(), 2_u32.into()],
+        &[5009_u32.into(), 5011_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-34] [Type Unit]:
-                        0
-                        1
-                        3
+                        5009
+                        5010
+                        5012
                     Block 1 [16-29] [Type Bool]:
-                        2
+                        5011
                 Stmts:
-                    Stmt 0 [1-15]: Local (Immutable):
+                    Stmt 5009 [1-15]: Local (Immutable):
                         0
                         1
-                    Stmt 1 [16-29]: Expr: 2
-                    Stmt 2 [18-27]: Expr: 3
-                    Stmt 3 [30-33]: Semi: 6
+                    Stmt 5010 [16-29]: Expr: 2
+                    Stmt 5011 [18-27]: Expr: 3
+                    Stmt 5012 [30-33]: Semi: 6
                 Exprs:
                     Expr 0 [0-34] [Type Unit]: Expr Block: 0
                     Expr 1 [9-14] [Type Bool]: Lit: Bool(false)
@@ -3981,30 +3986,30 @@ fn partial_eval_stmt_with_loop() {
     check_partial_eval_stmt(
         "",
         "{mutable x = 0; while x < 3 { set x += 1; } {x} ();}",
-        &[0_u32.into(), 1_u32.into(), 4_u32.into()],
+        &[5009_u32.into(), 5010_u32.into(), 5013_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-52] [Type Unit]:
-                        0
-                        1
-                        3
-                        5
+                        5009
+                        5010
+                        5012
+                        5014
                     Block 1 [28-43] [Type Unit]:
-                        2
+                        5011
                     Block 2 [44-47] [Type Int]:
-                        4
+                        5013
                 Stmts:
-                    Stmt 0 [1-15]: Local (Mutable):
+                    Stmt 5009 [1-15]: Local (Mutable):
                         0
                         1
-                    Stmt 1 [16-43]: Expr: 2
-                    Stmt 2 [30-41]: Semi: 6
-                    Stmt 3 [44-47]: Expr: 9
-                    Stmt 4 [45-46]: Expr: 10
-                    Stmt 5 [48-51]: Semi: 11
+                    Stmt 5010 [16-43]: Expr: 2
+                    Stmt 5011 [30-41]: Semi: 6
+                    Stmt 5012 [44-47]: Expr: 9
+                    Stmt 5013 [45-46]: Expr: 10
+                    Stmt 5014 [48-51]: Semi: 11
                 Exprs:
                     Expr 0 [0-52] [Type Unit]: Expr Block: 0
                     Expr 1 [13-14] [Type Int]: Lit: Int(0)
@@ -4039,7 +4044,7 @@ fn partial_eval_stmt_function_calls() {
             }
         "},
         "{let x = Test.Add1(4); {x} Test.Add1(3)}",
-        &[0_u32.into(), 2_u32.into()],
+        &[5009_u32.into(), 5011_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
@@ -4061,21 +4066,21 @@ fn partial_eval_stmt_function_calls() {
                                     ctl-adj: <none>
                 Blocks:
                     Block 0 [0-40] [Type Int]:
-                        0
-                        1
-                        3
+                        5009
+                        5010
+                        5012
                     Block 1 [23-26] [Type Int]:
-                        2
+                        5011
                     Block 2 [91-100] [Type Int]:
-                        4
+                        5013
                 Stmts:
-                    Stmt 0 [1-22]: Local (Immutable):
+                    Stmt 5009 [1-22]: Local (Immutable):
                         0
                         1
-                    Stmt 1 [23-26]: Expr: 4
-                    Stmt 2 [24-25]: Expr: 5
-                    Stmt 3 [27-39]: Expr: 6
-                    Stmt 4 [93-98]: Expr: 9
+                    Stmt 5010 [23-26]: Expr: 4
+                    Stmt 5011 [24-25]: Expr: 5
+                    Stmt 5012 [27-39]: Expr: 6
+                    Stmt 5013 [93-98]: Expr: 9
                 Exprs:
                     Expr 0 [0-40] [Type Int]: Expr Block: 0
                     Expr 1 [9-21] [Type Int]: Call:
@@ -4107,25 +4112,25 @@ fn partial_eval_stmt_function_calls_from_library() {
     check_partial_eval_stmt(
         "",
         "{let x = [1, 2, 3]; {Length(x)} 3}",
-        &[0_u32.into(), 2_u32.into()],
+        &[5009_u32.into(), 5011_u32.into()],
         &expect![[r#"
             Package:
                 Entry Expression: 0
                 Items:
                 Blocks:
                     Block 0 [0-34] [Type Int]:
-                        0
-                        1
-                        3
+                        5009
+                        5010
+                        5012
                     Block 1 [20-31] [Type Int]:
-                        2
+                        5011
                 Stmts:
-                    Stmt 0 [1-19]: Local (Immutable):
+                    Stmt 5009 [1-19]: Local (Immutable):
                         0
                         1
-                    Stmt 1 [20-31]: Expr: 5
-                    Stmt 2 [21-30]: Expr: 6
-                    Stmt 3 [32-33]: Expr: 9
+                    Stmt 5010 [20-31]: Expr: 5
+                    Stmt 5011 [21-30]: Expr: 6
+                    Stmt 5012 [32-33]: Expr: 9
                 Exprs:
                     Expr 0 [0-34] [Type Int]: Expr Block: 0
                     Expr 1 [9-18] [Type (Int)[]]: Array:
