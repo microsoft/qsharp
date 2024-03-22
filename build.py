@@ -133,6 +133,7 @@ def step_end():
     if os.getenv("GITHUB_ACTIONS") == "true":
         print(f"::endgroup::")
 
+
 def use_python_env(folder):
     # Check if in a virtual environment
     if (
@@ -227,6 +228,7 @@ if build_pip:
         "wheel",
         "--wheel-dir",
         wheels_dir,
+        "-v",
         pip_src,
     ]
     subprocess.run(pip_build_args, check=True, text=True, cwd=pip_src, env=pip_env)
@@ -323,8 +325,14 @@ if build_wasm:
 
 if build_samples:
     step_start("Building qsharp samples")
-    project_directories = [dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]]
-    single_file_directories = [candidate for candidate in os.walk(samples_src) if all([not proj_dir[0] in candidate[0] for proj_dir in project_directories])]
+    project_directories = [
+        dir for dir in os.walk(samples_src) if "qsharp.json" in dir[2]
+    ]
+    single_file_directories = [
+        candidate
+        for candidate in os.walk(samples_src)
+        if all([not proj_dir[0] in candidate[0] for proj_dir in project_directories])
+    ]
 
     files = [
         os.path.join(dp, f)
@@ -332,7 +340,7 @@ if build_samples:
         for f in filenames
         if os.path.splitext(f)[1] == ".qs"
     ]
-    projects =  [
+    projects = [
         os.path.join(dp, f)
         for dp, _, filenames in project_directories
         for f in filenames
@@ -344,7 +352,12 @@ if build_samples:
     for file in files:
         subprocess.run((cargo_args + ["--", file]), check=True, text=True, cwd=root_dir)
     for project in projects:
-        subprocess.run((cargo_args + ["--", "--qsharp-json", project]), check=True, text=True, cwd=root_dir)
+        subprocess.run(
+            (cargo_args + ["--", "--qsharp-json", project]),
+            check=True,
+            text=True,
+            cwd=root_dir,
+        )
     step_end()
 
 if build_npm:
@@ -414,8 +427,13 @@ if build_pip and build_widgets and args.integration_tests:
     step_start("Running notebook samples integration tests")
     # Find all notebooks in the samples directory. Skip the basic sample and the azure submission sample, since those won't run
     # nicely in automation.
-    notebook_files = [os.path.join(dp, f) for dp, _, filenames in os.walk(samples_src) for f in filenames if f.endswith(".ipynb")
-                    and not (f.startswith("sample.") or f.startswith("azure_submission."))]
+    notebook_files = [
+        os.path.join(dp, f)
+        for dp, _, filenames in os.walk(samples_src)
+        for f in filenames
+        if f.endswith(".ipynb")
+        and not (f.startswith("sample.") or f.startswith("azure_submission."))
+    ]
     python_bin = use_python_env(samples_src)
 
     # copy the process env vars
@@ -442,7 +460,9 @@ if build_pip and build_widgets and args.integration_tests:
         "install",
         widgets_src,
     ]
-    subprocess.run(pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env)
+    subprocess.run(
+        pip_install_args, check=True, text=True, cwd=widgets_src, env=pip_env
+    )
 
     # Install other dependencies
     pip_install_args = [
@@ -459,17 +479,27 @@ if build_pip and build_widgets and args.integration_tests:
     for notebook in notebook_files:
         print(f"Running {notebook}")
         # Run the notebook process, capturing stdout and only displaying it if there is an error
-        result = subprocess.run([python_bin,
-                        "-m",
-                        "nbconvert",
-                        "--to",
-                        "notebook",
-                        "--stdout",
-                        "--ExecutePreprocessor.timeout=60",
-                        "--sanitize-html",
-                        "--execute",
-                        notebook],
-                        check=False, text=True, cwd=root_dir, env=pip_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, encoding="utf-8")
+        result = subprocess.run(
+            [
+                python_bin,
+                "-m",
+                "nbconvert",
+                "--to",
+                "notebook",
+                "--stdout",
+                "--ExecutePreprocessor.timeout=60",
+                "--sanitize-html",
+                "--execute",
+                notebook,
+            ],
+            check=False,
+            text=True,
+            cwd=root_dir,
+            env=pip_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            encoding="utf-8",
+        )
         if result.returncode != 0:
             print(result.stdout)
             raise Exception(f"Error running {notebook}")

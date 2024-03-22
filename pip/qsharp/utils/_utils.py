@@ -16,13 +16,14 @@ def dump_operation(operation: str, num_qubits: int) -> List[List[complex]]:
     :returns: The matrix representing the operation.
     """
     code = f"""{{
-        let op : (Qubit[] => Unit) = {operation};
+        let op = {operation};
         use (targets, extra) = (Qubit[{num_qubits}], Qubit[{num_qubits}]);
             for i in 0..{num_qubits}-1 {{
                 H(targets[i]);
                 CNOT(targets[i], extra[i]);
             }}
-            (op)(targets);
+            operation ApplyOp (op : (Qubit[] => Unit), targets : Qubit[]) : Unit {{ op(targets); }}
+            ApplyOp(op, targets);
             Microsoft.Quantum.Diagnostics.DumpMachine();
             ResetAll(targets + extra);
     }}"""
@@ -39,5 +40,10 @@ def dump_operation(operation: str, num_qubits: int) -> List[List[complex]]:
             if entry is None:
                 matrix[i] += [complex(0, 0)]
             else:
-                matrix[i] += [complex(round(factor * entry[0], ndigits), round(factor *entry[1], ndigits))]
+                matrix[i] += [
+                    complex(
+                        round(factor * entry.real, ndigits),
+                        round(factor * entry.imag, ndigits),
+                    )
+                ]
     return matrix

@@ -45,6 +45,7 @@ class Interpreter:
         :param list_directory: A function that lists the contents of a directory.
         """
         ...
+
     def interpret(self, input: str, output_fn: Callable[[Output], None]) -> Any:
         """
         Interprets Q# source code.
@@ -57,9 +58,8 @@ class Interpreter:
         :raises QSharpError: If there is an error interpreting the input.
         """
         ...
-    def run(
-        self, entry_expr: str, output_fn: Callable[[Output], None]
-    ) -> Any:
+
+    def run(self, entry_expr: str, output_fn: Callable[[Output], None]) -> Any:
         """
         Runs the given Q# expression with an independent instance of the simulator.
 
@@ -71,6 +71,7 @@ class Interpreter:
         :raises QSharpError: If there is an error interpreting the input.
         """
         ...
+
     def qir(self, entry_expr: str) -> str:
         """
         Generates QIR from Q# source code.
@@ -80,6 +81,7 @@ class Interpreter:
         :returns qir: The QIR string.
         """
         ...
+
     def estimate(self, entry_expr: str, params: str) -> str:
         """
         Estimates resources for Q# source code.
@@ -90,6 +92,7 @@ class Interpreter:
         :returns resources: The estimated resources.
         """
         ...
+
     def set_quantum_seed(self, seed: Optional[int]) -> None:
         """
         Sets the seed for the quantum random number generator.
@@ -98,6 +101,7 @@ class Interpreter:
             the seed will be generated from entropy.
         """
         ...
+
     def set_classical_seed(self, seed: Optional[int]) -> None:
         """
         Sets the seed for the classical random number generator.
@@ -106,7 +110,8 @@ class Interpreter:
             the seed will be generated from entropy.
         """
         ...
-    def dump_machine(self) -> StateDump:
+
+    def dump_machine(self) -> StateDumpData:
         """
         Returns the sparse state vector of the simulator as a StateDump object.
 
@@ -141,9 +146,9 @@ class Output:
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...
-    def state_dump(self) -> Optional[StateDump]: ...
+    def state_dump(self) -> Optional[StateDumpData]: ...
 
-class StateDump:
+class StateDumpData:
     """
     A state dump returned from the Q# interpreter.
     """
@@ -155,11 +160,9 @@ class StateDump:
 
     """
     Get the amplitudes of the state vector as a dictionary from state integer to
-    pair of real and imaginary amplitudes.
+    complex amplitudes.
     """
     def get_dict(self) -> dict: ...
-    def __getitem__(self, index: int) -> Optional[Tuple[float, float]]: ...
-    def __len__(self) -> int: ...
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...

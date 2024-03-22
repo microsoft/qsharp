@@ -547,6 +547,37 @@ mod given_interpreter {
         }
 
         #[test]
+        fn local_var_valid_after_item_definition() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(&mut interpreter, "let a = 1;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "a");
+            is_only_value(&result, &output, &Value::Int(1));
+            let (result, output) = line(
+                &mut interpreter,
+                "function B() : Int { let inner_b = 3; inner_b }",
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "B()");
+            is_only_value(&result, &output, &Value::Int(3));
+            let (result, output) = line(&mut interpreter, "let b = 2;");
+            is_only_value(&result, &output, &Value::unit());
+            let (result, output) = line(&mut interpreter, "b");
+            is_only_value(&result, &output, &Value::Int(2));
+            let (result, output) = line(&mut interpreter, "a");
+            is_only_value(&result, &output, &Value::Int(1));
+            let (result, output) = line(&mut interpreter, "B()");
+            is_only_value(&result, &output, &Value::Int(3));
+        }
+
+        #[test]
         fn normal_qirgen() {
             let mut interpreter = Interpreter::new(
                 true,
@@ -1043,6 +1074,20 @@ mod given_interpreter {
                     "hello!",
                 );
             }
+        }
+
+        #[test]
+        fn base_prof_non_result_return() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::empty(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(&mut interpreter, "123");
+            is_only_value(&result, &output, &Value::Int(123));
         }
     }
 

@@ -108,6 +108,11 @@
             "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification."
           ],
           "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
+        },
+        "Q#.enableFormatting": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Enables the Q# formatter."
         }
       }
     },
@@ -218,6 +223,12 @@
           "command": "qsharp-vscode.workspacePythonCode",
           "when": "view == quantum-workspaces && viewItem == workspace"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "qsharp-vscode.createProject",
+          "when": "explorerResourceIsFolder"
+        }
       ]
     },
     "views": {
@@ -235,6 +246,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "qsharp-vscode.createProject",
+        "title": "Create Q# project",
+        "category": "Q#"
+      },
       {
         "command": "qsharp-vscode.webOpener",
         "title": "Internal web opener",
@@ -418,7 +434,7 @@
     "build:watch": "node build.mjs --watch",
     "start": "npm exec --no -- @vscode/test-web --extensionDevelopmentPath . ../samples",
     "test": "node ./test/runTests.mjs",
-    "pretest": "npm exec --no playwright install && node ./test/buildTests.mjs",
+    "pretest": "npm exec --no playwright install chromium && node ./test/buildTests.mjs",
     "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json"
   },
   "repository": {

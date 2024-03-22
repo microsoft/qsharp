@@ -5,6 +5,7 @@ pub mod code_lens;
 mod compilation;
 pub mod completion;
 pub mod definition;
+pub mod format;
 pub mod hover;
 mod name_locator;
 mod project_system;
@@ -24,7 +25,7 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
-    CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
+    CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp, TextEdit,
     WorkspaceConfigurationUpdate,
 };
 use qsc::{
@@ -215,6 +216,19 @@ impl LanguageService {
             "get_references",
             uri,
             position,
+        )
+    }
+
+    /// LSP: textDocument/format
+    #[must_use]
+    pub fn get_format_changes(&self, uri: &str) -> Vec<TextEdit> {
+        self.document_op(
+            |compilation, uri, (), position_encoding| {
+                format::get_format_changes(compilation, uri, position_encoding)
+            },
+            "get_format_changes",
+            uri,
+            (),
         )
     }
 

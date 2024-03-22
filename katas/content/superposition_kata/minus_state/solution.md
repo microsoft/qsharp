@@ -11,5 +11,5 @@ Thus, our solution should apply the X gate to our qubit, followed by the Hadamar
 
 @[solution]({
     "id": "superposition__minus_state_solution",
-    "codePath": "./solution.qs"
+    "codePath": "./Solution.qs"
 })

@@ -20,7 +20,7 @@ env:
   CARGO_TERM_COLOR: always
   NODE_VERSION: "18.17.1"
   PYTHON_VERSION: "3.11"
-  RUST_TOOLCHAIN_VERSION: "1.75"
+  RUST_TOOLCHAIN_VERSION: "1.76"
   RUST_TOOLCHAIN_COMPONENTS: rustfmt clippy
 
 jobs:
@@ -75,11 +75,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-14]
-        is_pr:
-          - ${{ github.event_name == 'pull_request' }}
-        exclude:
-          - os: macos-14
-            is_pr: true
 
     runs-on: ${{matrix.os}}
 
@@ -114,11 +109,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-14]
-        is_pr:
-          - ${{ github.event_name == 'pull_request' }}
-        exclude:
-          - os: macos-14
-            is_pr: true
 
     runs-on: ${{matrix.os}}
 

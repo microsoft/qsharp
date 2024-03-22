@@ -25,15 +25,15 @@ use std::{
 
 /// A raw token.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct Token {
+pub struct Token {
     /// The token kind.
-    pub(super) kind: TokenKind,
+    pub kind: TokenKind,
     /// The byte offset of the token starting character.
-    pub(super) offset: u32,
+    pub offset: u32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum TokenKind {
+pub enum TokenKind {
     Comment(CommentKind),
     Ident,
     Number(Number),
@@ -62,7 +62,7 @@ impl Display for TokenKind {
 
 /// A single-character operator token.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum Single {
+pub enum Single {
     /// `&`
     Amp,
     /// `'`
@@ -143,14 +143,14 @@ impl Display for Single {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum Number {
+pub enum Number {
     BigInt(Radix),
     Float,
     Int(Radix),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum StringToken {
+pub enum StringToken {
     Normal { terminated: bool },
     Interpolated(InterpolatedStart, Option<InterpolatedEnding>),
 }
@@ -162,22 +162,34 @@ enum StringKind {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Sequence)]
-pub(crate) enum CommentKind {
+pub enum CommentKind {
     Normal,
     Doc,
 }
 
 #[derive(Clone)]
-pub(super) struct Lexer<'a> {
+pub struct Lexer<'a> {
     chars: Peekable<CharIndices<'a>>,
     interpolation: u8,
+    starting_offset: u32,
 }
 
 impl<'a> Lexer<'a> {
-    pub(super) fn new(input: &'a str) -> Self {
+    #[must_use]
+    pub fn new(input: &'a str) -> Self {
         Self {
             chars: input.char_indices().peekable(),
             interpolation: 0,
+            starting_offset: 0,
+        }
+    }
+
+    #[must_use]
+    pub fn new_with_starting_offset(input: &'a str, starting_offset: u32) -> Self {
+        Self {
+            chars: input.char_indices().peekable(),
+            interpolation: 0,
+            starting_offset,
         }
     }
 
@@ -246,11 +258,11 @@ impl<'a> Lexer<'a> {
             return None;
         }
 
-        let radix = if self.next_if_eq('b') {
+        let radix = if self.next_if_eq('b') || self.next_if_eq('B') {
             Radix::Binary
-        } else if self.next_if_eq('o') {
+        } else if self.next_if_eq('o') || self.next_if_eq('O') {
             Radix::Octal
-        } else if self.next_if_eq('x') {
+        } else if self.next_if_eq('x') || self.next_if_eq('X') {
             Radix::Hexadecimal
         } else {
             Radix::Decimal
@@ -295,7 +307,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn exp(&mut self) -> bool {
-        if self.next_if_eq('e') {
+        if self.next_if_eq('e') || self.next_if_eq('E') {
             self.chars.next_if(|i| i.1 == '+' || i.1 == '-');
             self.eat_while(|c| c.is_ascii_digit());
             true
@@ -388,9 +400,10 @@ impl Iterator for Lexer<'_> {
                 .or_else(|| single(c).map(TokenKind::Single))
                 .unwrap_or(TokenKind::Unknown)
         };
+        let offset: u32 = offset.try_into().expect("offset should fit into u32");
         Some(Token {
             kind,
-            offset: offset.try_into().expect("offset should fit into u32"),
+            offset: offset + self.starting_offset,
         })
     }
 }

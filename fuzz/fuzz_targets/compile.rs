@@ -3,6 +3,8 @@
 
 #![no_main]
 
+allocator::assign_global!();
+
 #[cfg(feature = "do_fuzz")]
 use libfuzzer_sys::fuzz_target;
 use qsc::{hir::PackageId, target::Profile, LanguageFeatures, PackageStore, SourceMap};

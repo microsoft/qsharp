@@ -1,19 +1,22 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::rc::Rc;
+
 use crate::estimates::{ErrorBudget, LogicalPatch, Overhead, PhysicalResourceEstimationResult};
 use crate::system::modeling::{Protocol, TFactory};
 
+use super::LayoutReportData;
 use super::{
-    super::Error, FormattedPhysicalResourceCounts, JobParams, LogicalResourceCounts,
-    PhysicalResourceCounts, PhysicalResourceCountsBreakdown, Report,
+    super::Error, FormattedPhysicalResourceCounts, JobParams, PhysicalResourceCounts,
+    PhysicalResourceCountsBreakdown, Report,
 };
 use miette::Diagnostic;
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
 #[derive(Serialize)]
 #[serde(rename_all(serialize = "camelCase"))]
-pub struct Success {
+pub struct Success<L: Serialize> {
     status: &'static str,
     job_params: JobParams,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -26,25 +29,25 @@ pub struct Success {
     tfactory: Option<TFactory>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error_budget: Option<ErrorBudget>,
-    logical_counts: LogicalResourceCounts,
+    logical_counts: Rc<L>,
     report_data: Report,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     frontier_entries: Vec<FrontierEntry>,
 }
 
-impl Success {
-    pub fn new<L: Overhead + Clone>(
-        logical_resources: LogicalResourceCounts,
+impl<L: Overhead + LayoutReportData + Serialize> Success<L> {
+    pub fn new(
         job_params: JobParams,
         result: PhysicalResourceEstimationResult<Protocol, TFactory, L>,
     ) -> Self {
         let counts = create_physical_resource_counts(&result);
 
         let formatted_counts: FormattedPhysicalResourceCounts =
-            FormattedPhysicalResourceCounts::new(&result, &logical_resources, &job_params);
+            FormattedPhysicalResourceCounts::new(&result, &job_params);
 
-        let report_data = Report::new(&logical_resources, &job_params, &result, &formatted_counts);
+        let report_data = Report::new(&job_params, &result, &formatted_counts);
 
+        let logical_counts = result.layout_overhead().clone();
         let (logical_qubit, tfactory, error_budget) = result.take();
 
         Self {
@@ -55,14 +58,13 @@ impl Success {
             logical_qubit: Some(logical_qubit),
             tfactory,
             error_budget: Some(error_budget),
-            logical_counts: logical_resources,
+            logical_counts,
             report_data,
             frontier_entries: Vec::new(),
         }
     }
 
-    pub fn new_from_multiple<L: Overhead + Clone>(
-        logical_resources: LogicalResourceCounts,
+    pub fn new_from_multiple(
         job_params: JobParams,
         mut results: Vec<PhysicalResourceEstimationResult<Protocol, TFactory, L>>,
     ) -> Self {
@@ -70,15 +72,13 @@ impl Success {
 
         let mut frontier_entries: Vec<FrontierEntry> = Vec::new();
 
+        let logical_counts = results[0].layout_overhead().clone();
+
         // we will pick the shortest runtime result as the first result.
         results.sort_by_key(PhysicalResourceEstimationResult::runtime);
         for result in results {
-            let (frontier_entry, report) = create_frontier_entry(
-                &logical_resources,
-                &job_params,
-                result,
-                report_data.is_none(),
-            );
+            let (frontier_entry, report) =
+                create_frontier_entry(&job_params, result, report_data.is_none());
 
             if report_data.is_none() {
                 report_data = Some(report.expect("error should have report"));
@@ -95,7 +95,7 @@ impl Success {
             logical_qubit: None,
             tfactory: None,
             error_budget: None,
-            logical_counts: logical_resources,
+            logical_counts,
             report_data: report_data.expect("error should have report"), // Here we assume that at least a single solution was found.
             frontier_entries,
         }
@@ -112,24 +112,18 @@ pub struct FrontierEntry {
     pub physical_counts_formatted: FormattedPhysicalResourceCounts,
 }
 
-fn create_frontier_entry<L: Overhead + Clone>(
-    logical_resources: &LogicalResourceCounts,
+fn create_frontier_entry(
     job_params: &JobParams,
-    result: PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+    result: PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead + LayoutReportData>,
     create_report: bool,
 ) -> (FrontierEntry, Option<Report>) {
     let physical_counts = create_physical_resource_counts(&result);
 
     let physical_counts_formatted: FormattedPhysicalResourceCounts =
-        FormattedPhysicalResourceCounts::new(&result, logical_resources, job_params);
+        FormattedPhysicalResourceCounts::new(&result, job_params);
 
     let report_data = if create_report {
-        Some(Report::new(
-            logical_resources,
-            job_params,
-            &result,
-            &physical_counts_formatted,
-        ))
+        Some(Report::new(job_params, &result, &physical_counts_formatted))
     } else {
         None
     };
@@ -148,8 +142,8 @@ fn create_frontier_entry<L: Overhead + Clone>(
     )
 }
 
-fn create_physical_resource_counts<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+fn create_physical_resource_counts(
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
 ) -> PhysicalResourceCounts {
     let breakdown = create_physical_resource_counts_breakdown(result);
 
@@ -161,8 +155,8 @@ fn create_physical_resource_counts<L: Overhead + Clone>(
     }
 }
 
-fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, L>,
+fn create_physical_resource_counts_breakdown(
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()
@@ -181,7 +175,7 @@ fn create_physical_resource_counts_breakdown<L: Overhead + Clone>(
         num_tfactory_runs: result.num_factory_runs(),
         physical_qubits_for_tfactories: result.physical_qubits_for_factories(),
         physical_qubits_for_algorithm: result.physical_qubits_for_algorithm(),
-        required_logical_qubit_error_rate: result.required_logical_patch_error_rate(),
+        required_logical_qubit_error_rate: result.required_logical_error_rate(),
         required_logical_tstate_error_rate: result.required_logical_magic_state_error_rate(),
         num_ts_per_rotation,
         clifford_error_rate: result

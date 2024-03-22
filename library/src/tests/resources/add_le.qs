@@ -2,7 +2,6 @@ namespace Test {
     open Microsoft.Quantum.Unstable.Arithmetic;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Measurement;
 
     internal operation TestAddLE3(
         name : String,

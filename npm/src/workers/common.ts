@@ -85,6 +85,17 @@ export interface IServiceEventMessage {
 }
 
 /**
+ * Common event types all workers can send.
+ */
+type CommonEvent =
+  | { type: "telemetry-event"; detail: TelemetryEvent }
+  | {
+      type: "log";
+      detail: { level: number; target: string; data: any[] };
+    };
+type CommonEventMessage = CommonEvent & { messageType: "common-event" };
+
+/**
  * Strongly typed EventTarget interface. Used as a constraint for the
  * event target that "requestWithProgress" methods should take in the service.
  */
@@ -211,18 +222,31 @@ export function createProxyInternal<
   }
 
   function onMsgFromWorker(
-    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
+    msg:
+      | ResponseMessage<TService>
+      | EventMessage<TServiceEventMsg>
+      | CommonEventMessage,
   ) {
     if (log.getLogLevel() >= 4)
       log.debug("Proxy: Received message from worker: %s", JSON.stringify(msg));
 
-    if (msg.messageType === "event") {
-      // For telemetry events, just log and exit. There is nothing else waiting to consume them.
-      if (msg.type === "telemetry-event") {
-        const detail = msg.detail as TelemetryEvent;
-        log.logTelemetry(detail);
-        return;
+    if (msg.messageType === "common-event") {
+      const commonEvent = msg; // assignment is necessary here for TypeScript to narrow the type
+      switch (commonEvent.type) {
+        case "telemetry-event":
+          {
+            const detail = commonEvent.detail;
+            log.logTelemetry(detail);
+          }
+          break;
+        case "log":
+          {
+            const detail = commonEvent.detail;
+            log.logWithLevel(detail.level, detail.target, ...detail.data);
+          }
+          break;
       }
+    } else if (msg.messageType === "event") {
       const event = new Event(msg.type) as Event & TServiceEventMsg;
       event.detail = msg.detail;
 
@@ -250,7 +274,6 @@ export function createProxyInternal<
         curr = undefined;
         doNextRequest();
       }
-      return;
     }
   }
 
@@ -425,19 +448,52 @@ export function initService<
   TServiceEventMsg extends IServiceEventMessage,
 >(
   postMessage: (
-    msg: ResponseMessage<TService> | EventMessage<TServiceEventMsg>,
+    msg:
+      | ResponseMessage<TService>
+      | EventMessage<TServiceEventMsg>
+      | CommonEventMessage,
   ) => void,
   serviceProtocol: ServiceProtocol<TService, TServiceEventMsg>,
   wasm: Wasm,
   qscLogLevel?: number,
 ): (req: RequestMessage<TService>) => Promise<void> {
-  function telemetryHandler(telemetry: TelemetryEvent) {
+  function postTelemetryMessage(telemetry: TelemetryEvent) {
     postMessage({
-      messageType: "event",
+      messageType: "common-event",
       type: "telemetry-event",
       detail: telemetry,
     });
   }
+
+  function postLogMessage(level: number, target: string, ...args: any) {
+    if (log.getLogLevel() < level) {
+      return;
+    }
+
+    let data = args;
+    try {
+      // Only structured cloneable objects can be sent in worker messages.
+      // Test if this is the case.
+      structuredClone(args);
+    } catch (e) {
+      // Uncloneable object.
+      // Use String(args) instead of ${args} to handle all possible values
+      // without throwing. See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String#string_coercion
+      data = ["unsupported log data " + String(args)];
+    }
+    postMessage({
+      messageType: "common-event",
+      type: "log",
+      detail: { level, target, data },
+    });
+  }
+
+  // Override the global logger
+  log.error = (...args) => postLogMessage(1, "worker", ...args);
+  log.warn = (...args) => postLogMessage(2, "worker", ...args);
+  log.info = (...args) => postLogMessage(3, "worker", ...args);
+  log.debug = (...args) => postLogMessage(4, "worker", ...args);
+  log.trace = (...args) => postLogMessage(5, "worker", ...args);
 
   if (qscLogLevel !== undefined) {
     log.setLogLevel(qscLogLevel);
@@ -445,8 +501,8 @@ export function initService<
 
   // Set up logging and telemetry as soon as possible after instantiating
   log.onLevelChanged = (level) => wasm.setLogLevel(level);
-  log.setTelemetryCollector(telemetryHandler);
-  wasm.initLogging(log.logWithLevel, log.getLogLevel());
+  log.setTelemetryCollector(postTelemetryMessage);
+  wasm.initLogging(postLogMessage, log.getLogLevel());
 
   // Create the actual service and return the dispatcher method
   const service = new serviceProtocol.class(wasm);

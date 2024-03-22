@@ -84,9 +84,12 @@ export function startRefreshCycle(
 
     try {
       await treeProvider.refreshWorkspace(workspace);
+      workspace.lastRequestError = undefined;
     } catch (e: any) {
       log.error("Error refreshing in workspace refresh cycle: ", e);
-      // The above could throw due to transient network errors, etc. so just keep trying next time
+      workspace.lastRequestError = e.message || "Unexpected request failure";
+      treeProvider.updateWorkspace(workspace); // Manually update to reflect the failure status
+      // Errors could throw due to transient network errors, ApiKey being disabled temporarily, etc. so just keep trying next time
       return false;
     }
 

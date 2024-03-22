@@ -101,8 +101,10 @@ export type WorkspaceConnection = {
   name: string;
   endpointUri: string;
   tenantId: string;
+  apiKey?: string;
   providers: Provider[];
   jobs: Job[];
+  lastRequestError?: string;
 };
 
 export type Provider = {
@@ -188,7 +190,12 @@ export class WorkspaceTreeItem extends vscode.TreeItem {
 
     switch (type) {
       case "workspace":
-        this.iconPath = new vscode.ThemeIcon("notebook");
+        if (!this.workspace.lastRequestError) {
+          this.iconPath = new vscode.ThemeIcon("notebook");
+        } else {
+          this.iconPath = new vscode.ThemeIcon("alert");
+          this.tooltip = this.workspace.lastRequestError;
+        }
         break;
       case "providerHeader": {
         break;

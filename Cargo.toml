@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "allocator",
+    "allocator/mimalloc-sys",
     "compiler/qsc",
     "compiler/qsc_ast",
     "compiler/qsc_codegen",
@@ -9,6 +11,7 @@ members = [
     "compiler/qsc_fir",
     "compiler/qsc_frontend",
     "compiler/qsc_hir",
+    "compiler/qsc_linter",
     "compiler/qsc_parse",
     "compiler/qsc_passes",
     "compiler/qsc_project",

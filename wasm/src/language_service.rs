@@ -162,9 +162,9 @@ impl LanguageService {
                     additionalTextEdits: i.additional_text_edits.map(|edits| {
                         edits
                             .into_iter()
-                            .map(|(span, text)| TextEdit {
-                                range: span.into(),
-                                newText: text,
+                            .map(|edit| TextEdit {
+                                range: edit.range.into(),
+                                newText: edit.new_text,
                             })
                             .collect()
                     }),
@@ -193,6 +193,20 @@ impl LanguageService {
         locations
             .into_iter()
             .map(|loc| Location::from(loc).into())
+            .collect()
+    }
+
+    pub fn get_format_changes(&self, uri: &str) -> Vec<ITextEdit> {
+        let edits = self.0.get_format_changes(uri);
+        edits
+            .into_iter()
+            .map(|edit| {
+                TextEdit {
+                    range: edit.range.into(),
+                    newText: edit.new_text,
+                }
+                .into()
+            })
             .collect()
     }
 
@@ -274,20 +288,25 @@ impl LanguageService {
         let code_lenses = self.0.get_code_lenses(uri);
         code_lenses
             .into_iter()
-            .map(|lens| {
+            .filter_map(|lens| {
                 let range = lens.range.into();
                 let (command, args) = match lens.command {
                     qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
                     qsls::protocol::CodeLensCommand::Debug => ("debug", None),
                     qsls::protocol::CodeLensCommand::Run => ("run", None),
                     qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
+                    // Circuit code lens will be returned when VS Code is able to display circuits
+                    // https://github.com/microsoft/qsharp/issues/1085
+                    qsls::protocol::CodeLensCommand::Circuit(_) => return None,
                 };
-                CodeLens {
-                    range,
-                    command: command.to_string(),
-                    args,
-                }
-                .into()
+                Some(
+                    CodeLens {
+                        range,
+                        command: command.to_string(),
+                        args,
+                    }
+                    .into(),
+                )
             })
             .collect()
     }

@@ -3,8 +3,7 @@
 
 use crate::fir::{
     Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
-    Package, Pat, PatId, PatKind, QubitInit, QubitInitKind, SpecDecl, SpecImpl, Stmt, StmtId,
-    StmtKind, StringComponent,
+    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -46,10 +45,6 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_pat(&mut self, pat: PatId) {
         walk_pat(self, pat);
-    }
-
-    fn visit_qubit_init(&mut self, init: &'a QubitInit) {
-        walk_qubit_init(self, init);
     }
 
     fn visit_ident(&mut self, _: &'a Ident) {}
@@ -128,7 +123,9 @@ pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, id: StmtId) {
 pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: ExprId) {
     let expr = vis.get_expr(expr);
     match &expr.kind {
-        ExprKind::Array(exprs) => exprs.iter().for_each(|e| vis.visit_expr(*e)),
+        ExprKind::Array(exprs) | ExprKind::ArrayLit(exprs) => {
+            exprs.iter().for_each(|e| vis.visit_expr(*e));
+        }
         ExprKind::ArrayRepeat(item, size) => {
             vis.visit_expr(*item);
             vis.visit_expr(*size);
@@ -200,13 +197,5 @@ pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: PatId) {
         PatKind::Bind(name) => vis.visit_ident(name),
         PatKind::Discard => {}
         PatKind::Tuple(pats) => pats.iter().for_each(|p| vis.visit_pat(*p)),
-    }
-}
-
-pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
-    match &init.kind {
-        QubitInitKind::Array(len) => vis.visit_expr(*len),
-        QubitInitKind::Single => {}
-        QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
 }

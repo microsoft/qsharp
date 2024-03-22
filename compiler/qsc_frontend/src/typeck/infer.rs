@@ -570,7 +570,8 @@ impl Solver {
                 constraints.append(&mut self.unify(&arrow1.output, &arrow2.output, span));
 
                 match (arrow1.functors, arrow2.functors) {
-                    (FunctorSet::Value(value1), FunctorSet::Value(value2)) if value1 == value2 => {}
+                    (FunctorSet::Value(value1), FunctorSet::Value(value2))
+                        if value2.satisfies(&value1) => {}
                     (FunctorSet::Infer(infer1), FunctorSet::Infer(infer2)) if infer1 == infer2 => {}
                     (FunctorSet::Infer(infer), functors) | (functors, FunctorSet::Infer(infer)) => {
                         constraints.append(&mut self.bind_functor(infer, functors, span));

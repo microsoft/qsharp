@@ -39,7 +39,7 @@ try {
   // Debugger tests
   await runSuite(
     join(thisDir, "out", "debugger", "index"),
-    join(thisDir, "..", "..", "samples"),
+    join(thisDir, "suites", "debugger", "test-workspace"),
   );
 } catch (err) {
   console.error("Failed to run tests", err);

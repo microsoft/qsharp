@@ -277,55 +277,13 @@ test("getAllKatas works", async () => {
   assert.ok(katas.length > 0, "katas should not be empty");
 });
 
-test("getting_started kata is valid", async () => {
-  const kata = await getKata("getting_started");
-  await validateKata(kata, true, true, true);
-});
+const katasList = await getAllKatas();
 
-test("qubit kata is valid", async () => {
-  const kata = await getKata("qubit");
-  await validateKata(kata, true, true, true);
-});
-
-test("single_qubit_gates kata is valid", async () => {
-  const kata = await getKata("single_qubit_gates");
-  await validateKata(kata, true, true, true);
-});
-
-test("multi_qubit_systems kata is valid", async () => {
-  const kata = await getKata("multi_qubit_systems");
-  await validateKata(kata, true, true, true);
-});
-
-test("multi_qubit_gates kata is valid", async () => {
-  const kata = await getKata("multi_qubit_gates");
-  await validateKata(kata, true, true, true);
-});
-
-// This test is commented because the superposition kata is still a work in progress.
-// test("superposition_kata kata is valid", async () => {
-//   const kata = await getKata("superposition_kata");
-//   await validateKata(kata, true, true, true);
-// });
-
-test("single_qubit_measurements is valid", async () => {
-  const kata = await getKata("single_qubit_measurements");
-  await validateKata(kata, true, true, true);
-});
-
-test("multi_qubit_measurements is valid", async () => {
-  const kata = await getKata("multi_qubit_measurements");
-  await validateKata(kata, true, true, true);
-});
-
-test("random_numbers kata is valid", async () => {
-  const kata = await getKata("random_numbers");
-  await validateKata(kata, true, true, true);
-});
-
-test("oracles kata is valid", async () => {
-  const kata = await getKata("oracles");
-  await validateKata(kata, true, true, true);
+katasList.forEach((kataDesc) => {
+  test(`${kataDesc.id} kata is valid`, async () => {
+    const kata = await getKata(kataDesc.id);
+    await validateKata(kata, true, true, true);
+  });
 });
 
 test("worker 100 shots", async () => {

@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! Something declared at the top level (within a namespace or module) is an [Item]. This could be a newtype, callable
+//! declaration, import or open statement, or other top-level declaration or statement.
+
 #[cfg(test)]
 mod tests;
 

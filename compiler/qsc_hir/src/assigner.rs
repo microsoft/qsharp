@@ -6,6 +6,10 @@ use crate::{
     mut_visit::{self, MutVisitor},
 };
 
+/// The [Assigner] tracks the current state of IDs being handed out within a pass of the resolver.
+/// It is used when visiting a package to assign IDs to all elements. Identifiers are resolved and
+/// replaced with canonical IDs in this process. The AST gets all IDs resolved after the symbol resolution
+/// run.
 #[derive(Debug)]
 pub struct Assigner {
     next_node: NodeId,

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+allocator::assign_global!();
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use indoc::indoc;
 use qsc::{interpret::Interpreter, PackageType};

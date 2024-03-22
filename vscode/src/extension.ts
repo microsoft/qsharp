@@ -18,7 +18,7 @@ import {
   qsharpLanguageId,
 } from "./common.js";
 import { createCompletionItemProvider } from "./completion";
-import { getTarget } from "./config";
+import { getEnableFormating, getTarget } from "./config";
 import { activateDebugger } from "./debugger/activate";
 import { createDefinitionProvider } from "./definition";
 import { startCheckingQSharp } from "./diagnostics";
@@ -39,6 +39,7 @@ import { initCodegen } from "./qirGeneration.js";
 import { createReferenceProvider } from "./references.js";
 import { createRenameProvider } from "./rename.js";
 import { createSignatureHelpProvider } from "./signature.js";
+import { createFormattingProvider } from "./format.js";
 import { activateTargetProfileStatusBarItem } from "./statusbar.js";
 import {
   EventType,
@@ -47,6 +48,7 @@ import {
   sendTelemetryEvent,
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import { initProjectCreator } from "./createProject.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -87,6 +89,7 @@ export async function activate(
   registerCreateNotebookCommand(context);
   registerWebViewCommands(context);
   initFileSystem(context);
+  initProjectCreator(context);
 
   log.info("Q# extension activated.");
 
@@ -101,6 +104,21 @@ export interface ExtensionApi {
 function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   vscode.workspace.textDocuments.forEach((document) => {
     updateIfQsharpDocument(document);
+  });
+
+  // we manually send an OpenDocument telemetry event if this is a Q# document, because the
+  // below subscriptions won't fire for documents that are already open when the extension is activated
+  vscode.workspace.textDocuments.forEach((document) => {
+    if (isQsharpDocument(document)) {
+      const documentType = isQsharpNotebookCell(document)
+        ? QsharpDocumentType.JupyterCell
+        : QsharpDocumentType.Qsharp;
+      sendTelemetryEvent(
+        EventType.OpenedDocument,
+        { documentType },
+        { linesOfCode: document.lineCount },
+      );
+    }
   });
 
   const subscriptions = [];
@@ -166,8 +184,30 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
     ...registerQSharpNotebookCellUpdateHandlers(languageService),
   );
 
+  // format document
+  const isFormattingEnabled = getEnableFormating();
+  const formatterHandle = {
+    DocumentFormattingHandle: undefined as vscode.Disposable | undefined,
+    DocumentRangeFormattingHandle: undefined as vscode.Disposable | undefined,
+  };
+  log.debug("Enable formatting set to: " + isFormattingEnabled);
+  if (isFormattingEnabled) {
+    formatterHandle.DocumentFormattingHandle =
+      vscode.languages.registerDocumentFormattingEditProvider(
+        qsharpLanguageId,
+        createFormattingProvider(languageService),
+      );
+    formatterHandle.DocumentRangeFormattingHandle =
+      vscode.languages.registerDocumentRangeFormattingEditProvider(
+        qsharpLanguageId,
+        createFormattingProvider(languageService),
+      );
+  }
+
   // synchronize configuration
-  subscriptions.push(registerConfigurationChangeHandlers(languageService));
+  subscriptions.push(
+    registerConfigurationChangeHandlers(languageService, formatterHandle),
+  );
 
   // completions
   subscriptions.push(
@@ -251,6 +291,31 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
   });
 }
 
+async function updateLanguageServiceEnableFormatting(
+  languageService: ILanguageService,
+  formatterHandle: any,
+) {
+  const isFormattingEnabled = getEnableFormating();
+  log.debug("Enable formatting set to: " + isFormattingEnabled);
+  if (isFormattingEnabled) {
+    formatterHandle.DocumentFormattingHandle =
+      vscode.languages.registerDocumentFormattingEditProvider(
+        qsharpLanguageId,
+        createFormattingProvider(languageService),
+      );
+    formatterHandle.DocumentRangeFormattingHandle =
+      vscode.languages.registerDocumentRangeFormattingEditProvider(
+        qsharpLanguageId,
+        createFormattingProvider(languageService),
+      );
+  } else {
+    formatterHandle.DocumentFormattingHandle?.dispose();
+    formatterHandle.DocumentFormattingHandle = undefined;
+    formatterHandle.DocumentRangeFormattingHandle?.dispose();
+    formatterHandle.DocumentRangeFormattingHandle = undefined;
+  }
+}
+
 async function loadLanguageService(baseUri: vscode.Uri) {
   const start = performance.now();
   const wasmUri = vscode.Uri.joinPath(baseUri, "./wasm/qsc_wasm_bg.wasm");
@@ -273,10 +338,13 @@ async function loadLanguageService(baseUri: vscode.Uri) {
 
 function registerConfigurationChangeHandlers(
   languageService: ILanguageService,
+  formatterHandle: any,
 ) {
   return vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("Q#.targetProfile")) {
       updateLanguageServiceProfile(languageService);
+    } else if (event.affectsConfiguration("Q#.enableFormatting")) {
+      updateLanguageServiceEnableFormatting(languageService, formatterHandle);
     }
   });
 }
