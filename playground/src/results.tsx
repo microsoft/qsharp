@@ -96,12 +96,12 @@ export function ResultsTab(props: {
       const newResult = !replaceResult
         ? currentResult
         : !updatedResult
-        ? undefined
-        : {
-            success: updatedResult.success,
-            result: updatedResult.result,
-            events: [...updatedResult.events],
-          };
+          ? undefined
+          : {
+              success: updatedResult.success,
+              result: updatedResult.result,
+              events: [...updatedResult.events],
+            };
 
       // Update the histogram if new results have come in.
       // For now, just completely recreate the bucket map

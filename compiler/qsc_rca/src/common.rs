@@ -59,7 +59,7 @@ pub fn derive_callable_input_params(
                 ty: element.ty.clone(),
                 var: Some(*local_var_id),
             }),
-            InputPatternElementKind::Tuple(_) => None,
+            InputPatternElementKind::Tuple => None,
         };
 
         if let Some(input_param) = maybe_input_param {
@@ -213,7 +213,7 @@ struct InputPatternElement {
 enum InputPatternElementKind {
     Discard,
     Ident(LocalVarId),
-    Tuple(Vec<PatId>),
+    Tuple,
 }
 
 /// Creates a vector of flattened input pattern elements.
@@ -238,7 +238,7 @@ fn derive_callable_input_pattern_elements(
                 let mut tuple_params = vec![InputPatternElement {
                     pat: pat_id,
                     ty: pat.ty.clone(),
-                    kind: InputPatternElementKind::Tuple(tuple_pats.clone()),
+                    kind: InputPatternElementKind::Tuple,
                 }];
                 for tuple_item_pat_id in tuple_pats {
                     let mut tuple_item_params = create_input_elements(*tuple_item_pat_id, pats);
