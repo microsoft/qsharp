@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import {
+  IOperationInfo,
   QscEventTarget,
   VSDiagnostic,
   getCompilerWorker,
@@ -21,6 +22,7 @@ import { isQsharpDocument } from "./common";
 import { loadProject } from "./projectSystem";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
+import { showCircuitCommand } from "./circuit";
 
 const QSharpWebViewType = "qsharp-webview";
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
@@ -302,7 +304,7 @@ export function registerWebViewCommands(context: ExtensionContext) {
       // Start the worker, run the code, and send the results to the webview
       const worker = getCompilerWorker(compilerWorkerScriptPath);
       const compilerTimeout = setTimeout(() => {
-        worker.terminate(); // Confirm: Does the 'terminate' in the finally below error if this happens?
+        worker.terminate();
       }, compilerRunTimeoutMs);
       try {
         const validateShotsInput = (input: string) => {
@@ -368,9 +370,18 @@ export function registerWebViewCommands(context: ExtensionContext) {
       }
     }),
   );
+
+  context.subscriptions.push(
+    commands.registerCommand(
+      "qsharp-vscode.showCircuit",
+      async (operation?: IOperationInfo) => {
+        await showCircuitCommand(context.extensionUri, operation);
+      },
+    ),
+  );
 }
 
-type PanelType = "histogram" | "estimates" | "help";
+type PanelType = "histogram" | "estimates" | "help" | "circuit";
 
 const panelTypeToPanel: Record<
   PanelType,
@@ -378,10 +389,11 @@ const panelTypeToPanel: Record<
 > = {
   histogram: { title: "Q# Histogram", panel: undefined, state: {} },
   estimates: { title: "Q# Estimates", panel: undefined, state: {} },
+  circuit: { title: "Q# Circuit", panel: undefined, state: {} },
   help: { title: "Q# Help", panel: undefined, state: {} },
 };
 
-function sendMessageToPanel(
+export function sendMessageToPanel(
   panelType: PanelType,
   reveal: boolean,
   message: any,
@@ -396,6 +408,7 @@ function sendMessageToPanel(
         preserveFocus: true,
       },
       {
+        enableCommandUris: true,
         enableScripts: true,
         retainContextWhenHidden: true,
         // Note: If retainContextWhenHidden is false, the webview gets reloaded
@@ -510,6 +523,7 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
     if (
       panelType !== "estimates" &&
       panelType !== "histogram" &&
+      panelType !== "circuit" &&
       panelType !== "help"
     ) {
       // If it was loading when closed, that's fine

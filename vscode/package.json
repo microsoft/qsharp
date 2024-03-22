@@ -113,6 +113,11 @@
           "type": "boolean",
           "default": "true",
           "description": "Enables the Q# formatter."
+        },
+        "Q#.showCircuitCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
         }
       }
     },
@@ -172,6 +177,10 @@
         },
         {
           "command": "qsharp-vscode.showHelp",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.showCircuit",
           "when": "resourceLangId == qsharp"
         },
         {
@@ -279,6 +288,11 @@
       {
         "command": "qsharp-vscode.showHelp",
         "title": "Help",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showCircuit",
+        "title": "Show circuit",
         "category": "Q#"
       },
       {

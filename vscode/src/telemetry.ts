@@ -43,6 +43,9 @@ export enum EventType {
   FormatStart = "Qsharp.FormatStart",
   FormatEnd = "Qsharp.FormatEnd",
   CreateProject = "Qsharp.CreateProject",
+  TriggerCircuit = "Qsharp.TriggerCircuit",
+  CircuitStart = "Qsharp.CircuitStart",
+  CircuitEnd = "Qsharp.CircuitEnd",
 }
 
 type Empty = { [K in any]: never };
@@ -220,6 +223,22 @@ type EventTypes = {
   [EventType.CreateProject]: {
     properties: Empty;
     measurements: Empty;
+  };
+  [EventType.TriggerCircuit]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.CircuitStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.CircuitEnd]: {
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: { timeToCompleteMs: number };
   };
 };
 
