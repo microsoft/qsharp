@@ -51,7 +51,7 @@ impl Lowerer {
         self.pats.clear();
         self.stmts.clear();
         self.blocks.clear();
-        self.assigner = Assigner::new();
+        self.assigner.reset();
         self.exec_graph.clear();
     }
 

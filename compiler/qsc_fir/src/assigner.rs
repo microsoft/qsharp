@@ -28,6 +28,17 @@ impl Assigner {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.next_node = NodeId::FIRST;
+        self.next_block = BlockId::default();
+        self.next_expr = ExprId::default();
+        self.next_pat = PatId::default();
+        // ISSUE... Debugger expectes globally unique stmt ids
+        // self.next_stmt = StmtId::default();
+        self.next_local = LocalVarId::default();
+        self.stashed_local = LocalVarId::default();
+    }
+
     pub fn next_node(&mut self) -> NodeId {
         let id = self.next_node;
         self.next_node = id.successor();
