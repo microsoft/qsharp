@@ -18,10 +18,12 @@ pub struct CompilationContext {
 }
 
 impl CompilationContext {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use]
     pub fn get_compute_properties(&self) -> &PackageStoreComputeProperties {
         &self.compute_properties
     }
@@ -65,8 +67,8 @@ impl Default for CompilationContext {
         Self {
             compiler,
             fir_store,
-            lowerer,
             compute_properties,
+            lowerer,
         }
     }
 }
@@ -77,7 +79,7 @@ pub trait PackageStoreSearch {
 
 impl PackageStoreSearch for PackageStore {
     fn find_callable_id_by_name(&self, name: &str) -> Option<StoreItemId> {
-        for (package_id, package) in self.iter() {
+        for (package_id, package) in self {
             if let Some(item_id) = package.find_callable_id_by_name(name) {
                 return Some((package_id, item_id).into());
             }
