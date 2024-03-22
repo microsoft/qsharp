@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService, qsharpLibraryUriScheme } from "qsharp-lang";
+import {
+  ICodeLens,
+  ILanguageService,
+  qsharpLibraryUriScheme,
+} from "qsharp-lang";
 import * as vscode from "vscode";
-import { ICodeLens } from "../../npm/lib/web/qsc_wasm";
 import { toVscodeRange } from "./common";
 import { getShowCircuitCodeLens } from "./config";
 

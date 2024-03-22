@@ -13,4 +13,4 @@ export { SpaceChart } from "./spaceChart.js";
 export { ScatterChart } from "./scatterChart.js";
 export { EstimatesOverview } from "./estimatesOverview.js";
 export { EstimatesPanel } from "./estimatesPanel.js";
-export { Circuit, CircuitPanel } from "./circuit.js";
+export { Circuit, CircuitPanel, type CircuitData } from "./circuit.js";

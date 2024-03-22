@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import {
+  IOperationInfo,
   QscEventTarget,
   VSDiagnostic,
   getCompilerWorker,
@@ -21,7 +22,6 @@ import { isQsharpDocument } from "./common";
 import { loadProject } from "./projectSystem";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import type { IOperationInfo } from "../../npm/lib/web/qsc_wasm";
 import { showCircuitCommand } from "./circuit";
 
 const QSharpWebViewType = "qsharp-webview";

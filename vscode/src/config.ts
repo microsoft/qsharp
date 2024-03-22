@@ -40,13 +40,15 @@ export function getTargetFriendlyName(targetProfile?: string) {
 }
 
 export function getEnableFormating(): boolean {
-  return vscode.workspace
-    .getConfiguration("Q#")
-    .get<boolean>("enableFormatting", true);
+  return vscode.workspace.getConfiguration("Q#").get<boolean>(
+    "enableFormatting",
+    true, // The default value should be set in `package.json` as well.
+  );
 }
 
 export function getShowCircuitCodeLens(): boolean {
-  return vscode.workspace
-    .getConfiguration("Q#")
-    .get<boolean>("showCircuitCodeLens", false);
+  return vscode.workspace.getConfiguration("Q#").get<boolean>(
+    "showCircuitCodeLens",
+    true, // The default value should be set in `package.json` as well.
+  );
 }
