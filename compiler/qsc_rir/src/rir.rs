@@ -37,21 +37,21 @@ pub struct Callable {
 }
 
 pub enum Instruction {
-    Store(Variable, Value),
+    Store(Value, Variable),
     Call(CallableId, Vec<Value>),
     Jump(BlockId),
     Branch(Value, BlockId, BlockId),
-    Add(Value, Value),
-    Sub(Value, Value),
-    Mul(Value, Value),
-    Div(Value, Value),
-    LogicalNot(Value),
-    LogicalAnd(Value, Value),
-    LogicalOr(Value, Value),
-    BitwiseNot(Value),
-    BitwiseAnd(Value, Value),
-    BitwiseOr(Value, Value),
-    BitwiseXor(Value, Value),
+    Add(Value, Value, Variable),
+    Sub(Value, Value, Variable),
+    Mul(Value, Value, Variable),
+    Div(Value, Value, Variable),
+    LogicalNot(Value, Variable),
+    LogicalAnd(Value, Value, Variable),
+    LogicalOr(Value, Value, Variable),
+    BitwiseNot(Value, Variable),
+    BitwiseAnd(Value, Value, Variable),
+    BitwiseOr(Value, Value, Variable),
+    BitwiseXor(Value, Value, Variable),
 }
 
 #[derive(Clone, Copy, Default)]
