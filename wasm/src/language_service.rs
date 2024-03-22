@@ -288,20 +288,25 @@ impl LanguageService {
         let code_lenses = self.0.get_code_lenses(uri);
         code_lenses
             .into_iter()
-            .map(|lens| {
+            .filter_map(|lens| {
                 let range = lens.range.into();
                 let (command, args) = match lens.command {
                     qsls::protocol::CodeLensCommand::Histogram => ("histogram", None),
                     qsls::protocol::CodeLensCommand::Debug => ("debug", None),
                     qsls::protocol::CodeLensCommand::Run => ("run", None),
                     qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
+                    // Circuit code lens will be returned when VS Code is able to display circuits
+                    // https://github.com/microsoft/qsharp/issues/1085
+                    qsls::protocol::CodeLensCommand::Circuit(_) => return None,
                 };
-                CodeLens {
-                    range,
-                    command: command.to_string(),
-                    args,
-                }
-                .into()
+                Some(
+                    CodeLens {
+                        range,
+                        command: command.to_string(),
+                        args,
+                    }
+                    .into(),
+                )
             })
             .collect()
     }

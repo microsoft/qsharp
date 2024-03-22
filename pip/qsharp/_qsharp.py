@@ -1,7 +1,14 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-from ._native import Interpreter, TargetProfile, StateDumpData, QSharpError, Output
+from ._native import (
+    Interpreter,
+    TargetProfile,
+    StateDumpData,
+    QSharpError,
+    Output,
+    Circuit,
+)
 from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -234,6 +241,24 @@ def compile(entry_expr: str) -> QirInputData:
     return QirInputData("main", ll_str)
 
 
+def circuit(
+    entry_expr: Optional[str] = None, *, operation: Optional[str] = None
+) -> Circuit:
+    """
+    Synthesizes a circuit for a Q# program. Either an entry
+    expression or an operation must be provided.
+
+    :param entry_expr: An entry expression.
+
+    :param operation: The operation to synthesize. This can be a name of
+    an operation of a lambda expression. The operation must take only
+    qubits or arrays of qubits as parameters.
+
+    :raises QSharpError: If there is an error synthesizing the circuit.
+    """
+    return get_interpreter().circuit(entry_expr, operation)
+
+
 def estimate(
     entry_expr, params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
 ) -> EstimatorResult:
@@ -326,3 +351,13 @@ def dump_machine() -> StateDump:
     :returns: The state of the simulator.
     """
     return StateDump(get_interpreter().dump_machine())
+
+
+def dump_circuit() -> Circuit:
+    """
+    Dumps the current circuit state of the interpreter.
+
+    This circuit will contain the gates that have been applied
+    in the simulator up to the current point.
+    """
+    return get_interpreter().dump_circuit()

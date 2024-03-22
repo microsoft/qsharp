@@ -1,0 +1,31 @@
+[package]
+name = "qsc_circuit"
+
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+log = { workspace = true }
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
+qsc_codegen = { path = "../qsc_codegen" }
+qsc_eval = { path = "../qsc_eval" }
+qsc_data_structures = { path = "../qsc_data_structures" }
+qsc_frontend = { path = "../qsc_frontend" }
+qsc_fir = { path = "../qsc_fir" }
+qsc_hir = { path = "../qsc_hir" }
+rustc-hash = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+expect-test = { workspace = true }
+indoc = { workspace = true }
+qsc_passes = { path = "../qsc_passes" }
+
+[lib]
+doctest = false

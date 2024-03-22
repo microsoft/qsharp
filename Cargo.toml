@@ -15,6 +15,7 @@ members = [
     "compiler/qsc_parse",
     "compiler/qsc_passes",
     "compiler/qsc_project",
+    "compiler/qsc_rir",
     "fuzz",
     "katas",
     "language_service",

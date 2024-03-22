@@ -15,7 +15,7 @@ use expect_test::{expect, Expect};
 fn check(source_with_markers: &str, expect: &Expect) {
     let (compilation, expected_code_lens_ranges) =
         compile_with_fake_stdlib_and_markers_no_cursor(source_with_markers);
-    let actual_code_lenses = get_code_lenses(&compilation, "<source>", Encoding::Utf8);
+    let mut actual_code_lenses = get_code_lenses(&compilation, "<source>", Encoding::Utf8);
 
     for expected_range in &expected_code_lens_ranges {
         assert!(
@@ -34,17 +34,13 @@ fn check(source_with_markers: &str, expect: &Expect) {
     }
 
     let actual = expected_code_lens_ranges
-        .iter()
+        .into_iter()
         .enumerate()
-        .map(|(i, r)| {
-            (
-                i,
-                actual_code_lenses
-                    .iter()
-                    .filter(|cl| cl.range == *r)
-                    .map(|cl| cl.command)
-                    .collect::<Vec<_>>(),
-            )
+        .map(move |(i, r)| {
+            actual_code_lenses.sort_by_key(|cl| cl.range == r);
+            let partition_point = actual_code_lenses.partition_point(|cl| cl.range != r);
+            let for_this_range = actual_code_lenses.drain(partition_point..);
+            (i, for_this_range.map(|cl| cl.command).collect::<Vec<_>>())
         })
         .collect::<Vec<_>>();
     expect.assert_debug_eq(&actual);
@@ -68,6 +64,9 @@ fn one_entrypoint() {
                         Histogram,
                         Estimate,
                         Debug,
+                        Circuit(
+                            None,
+                        ),
                     ],
                 ),
             ]
@@ -97,6 +96,9 @@ fn two_entrypoints() {
                         Histogram,
                         Estimate,
                         Debug,
+                        Circuit(
+                            None,
+                        ),
                     ],
                 ),
                 (
@@ -106,6 +108,9 @@ fn two_entrypoints() {
                         Histogram,
                         Estimate,
                         Debug,
+                        Circuit(
+                            None,
+                        ),
                     ],
                 ),
             ]
@@ -128,5 +133,61 @@ fn no_entrypoint_code_lens_in_notebook() {
     assert!(
         lenses.is_empty(),
         "entrypoint code lenses should not be present in notebooks"
+    );
+}
+
+#[test]
+fn qubit_operation_circuit() {
+    check(
+        r#"
+        namespace Test {
+            ◉operation Foo(q: Qubit) : Unit {
+            }◉
+        }"#,
+        &expect![[r#"
+            [
+                (
+                    0,
+                    [
+                        Circuit(
+                            Some(
+                                OperationInfo {
+                                    operation: "Test.Foo",
+                                    total_num_qubits: 1,
+                                },
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn qubit_arrays_operation_circuit() {
+    check(
+        r#"
+        namespace Test {
+            ◉operation Foo(q: Qubit, q1: Qubit[], q2: Qubit[][]) : Unit {
+            }◉
+        }"#,
+        &expect![[r#"
+            [
+                (
+                    0,
+                    [
+                        Circuit(
+                            Some(
+                                OperationInfo {
+                                    operation: "Test.Foo",
+                                    total_num_qubits: 7,
+                                },
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
     );
 }

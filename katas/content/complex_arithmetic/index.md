@@ -7,7 +7,7 @@
 
 This kata introduces you to complex arithmetic. This topic isn't particularly expansive, but it's important to understand it to be able to work with quantum computing.
 
-This tutorial covers the following topics:
+**This kata covers the following topics:**
 
 * Imaginary and complex numbers
 * Basic complex arithmetic
