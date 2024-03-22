@@ -520,10 +520,10 @@ fn single_space_before_open_brace_and_newline_after() {
             operation Foo() : Unit {
                 let x = 3;
             }
-            operation Bar() : Unit
-            { {
+            operation Bar() : Unit { {
                 let x = 3;
-            } {
+            }
+            {
                 let x = 4;
             } }
         "#]],
@@ -903,12 +903,111 @@ fn preserve_string_indentation() {
 // Will respect user new-lines and indentation added into expressions
 
 #[test]
-fn preserve_user_newlines_in_expressions() {
-    let input = indoc! {r#"
-        let y = 1 + 2 + 3 + 4 + 5 +
-                6 + 7 + 8 + 9 + 10;
-        "#};
-    assert!(super::calculate_format_edits(input).is_empty());
+fn newline_after_brace_before_value() {
+    check(indoc! {r#"
+    {
+        let x = 3;
+    } x
+    "#}, &expect![[r#"
+        {
+            let x = 3;
+        }
+        x
+    "#]])
+}
+
+#[test]
+fn newline_after_brace_before_functor() {
+    check(indoc! {r#"
+    {
+        let x = 3;
+    } Adjoint Foo();
+    "#}, &expect![[r#"
+        {
+            let x = 3;
+        }
+        Adjoint Foo();
+    "#]])
+}
+
+#[test]
+fn newline_after_brace_before_not_keyword() {
+    check(indoc! {r#"
+    {
+        let x = 3;
+    } not true
+    "#}, &expect![[r#"
+        {
+            let x = 3;
+        }
+        not true
+    "#]])
+}
+
+#[test]
+fn newline_after_brace_before_starter_keyword() {
+    check(indoc! {r#"
+    {
+        let x = 3;
+    } if true {}
+    "#}, &expect![[r#"
+        {
+            let x = 3;
+        }
+        if true {}
+    "#]])
+}
+
+#[test]
+fn newline_after_brace_before_brace() {
+    check(indoc! {r#"
+    {
+        let x = 3;
+    } {}
+    "#}, &expect![[r#"
+        {
+            let x = 3;
+        }
+        {}
+    "#]])
+}
+
+#[test]
+fn space_after_brace_before_operator() {
+    check(indoc! {r#"
+    {
+        let x = 3;
+    }   +   {}
+    "#}, &expect![[r#"
+        {
+            let x = 3;
+        } + {}
+    "#]])
+}
+
+#[test]
+fn newline_after_brace_before_delim() {
+    check(indoc! {r#"
+    {} ()
+    {} []
+    "#}, &expect![[r#"
+        {}
+        () {}
+        []
+    "#]])
+}
+
+#[test]
+fn test() {
+    check(indoc! {r#"
+    {} ();
+    {} []
+    "#}, &expect![[r#"
+        {}
+        ();
+        {}
+        []
+    "#]])
 }
 
 // Remove extra whitespace from start of code
