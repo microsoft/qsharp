@@ -357,13 +357,16 @@ impl<'a> Formatter<'a> {
                 | (_, Keyword(Keyword::Slf)) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
-                (_, _) if are_newlines_in_spaces => {
-                    effect_trim_whitespace(left, whitespace, right, &mut edits);
-                    // Ignore the rest of the cases if the user has a newline in the whitespace.
-                    // This is done because we don't currently have logic for determining when
-                    // lines are too long and require newlines, and we don't have logic
-                    // for determining what the correct indentation should be in these cases,
-                    // so we put this do-nothing case in to leave user code unchanged.
+                (Close(Delim::Brace), _)
+                    if is_newline_after_brace(cooked_right, right_delim_state) =>
+                {
+                    effect_correct_indentation(
+                        left,
+                        whitespace,
+                        right,
+                        &mut edits,
+                        self.indent_level,
+                    );
                 }
                 (String(StringToken::Interpolated(_, InterpolatedEnding::LBrace)), _)
                 | (_, String(StringToken::Interpolated(InterpolatedStart::RBrace, _))) => {
@@ -391,14 +394,10 @@ impl<'a> Formatter<'a> {
                         effect_single_space(left, whitespace, right, &mut edits);
                     }
                 }
-                (_, Keyword(Keyword::Is))
-                | (_, Keyword(Keyword::For))
-                | (_, Keyword(Keyword::While))
-                | (_, Keyword(Keyword::Repeat))
-                | (_, Keyword(Keyword::If))
-                | (_, Keyword(Keyword::Within))
-                | (_, Keyword(Keyword::Return))
-                | (_, Keyword(Keyword::Fail)) => {
+                (_, Keyword(Keyword::Is)) => {
+                    effect_single_space(left, whitespace, right, &mut edits);
+                }
+                (_, Keyword(keyword)) if is_starter_keyword(keyword) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
                 (_, _) if is_value_token_right(cooked_right, right_delim_state) => {
@@ -420,6 +419,9 @@ impl<'a> Formatter<'a> {
                 }
                 (_, _) if is_prefix_without_space(cooked_right) => {
                     effect_no_space(left, whitespace, right, &mut edits);
+                }
+                (_, Keyword(keyword)) if is_prefix_keyword(keyword) => {
+                    effect_single_space(left, whitespace, right, &mut edits);
                 }
                 (_, _) if is_bin_op(cooked_right) => {
                     effect_single_space(left, whitespace, right, &mut edits);
@@ -586,10 +588,6 @@ fn is_bin_op(cooked: &TokenKind) -> bool {
             | TokenKind::WSlashEq
             | TokenKind::Keyword(Keyword::And)
             | TokenKind::Keyword(Keyword::Or)
-            // Technically the rest are not binary ops, but has the same spacing as one
-            | TokenKind::Keyword(Keyword::Not)
-            | TokenKind::Keyword(Keyword::AdjointUpper)
-            | TokenKind::Keyword(Keyword::ControlledUpper)
     )
 }
 
@@ -612,6 +610,11 @@ fn is_prefix(cooked: &TokenKind) -> bool {
 
 fn is_suffix(cooked: &TokenKind) -> bool {
     matches!(cooked, TokenKind::Bang | TokenKind::Comma)
+}
+
+fn is_prefix_keyword(keyword: &Keyword) -> bool {
+    use Keyword::*;
+    matches!(keyword, Not | AdjointUpper | ControlledUpper)
 }
 
 fn is_keyword_value(keyword: &Keyword) -> bool {
@@ -647,6 +650,17 @@ fn is_newline_keyword_or_ampersat(cooked: &TokenKind) -> bool {
                     | Fixup
             )
     )
+}
+
+fn is_starter_keyword(keyword: &Keyword) -> bool {
+    use Keyword::*;
+    matches!(keyword, For | While | Repeat | If | Within | Return | Fail)
+}
+
+fn is_newline_after_brace(cooked: &TokenKind, delim_state: Delimiter) -> bool {
+    is_value_token_right(cooked, delim_state)
+        || matches!(cooked, TokenKind::Keyword(keyword) if is_starter_keyword(keyword))
+        || matches!(cooked, TokenKind::Keyword(keyword) if is_prefix_keyword(keyword))
 }
 
 /// Note that this does not include interpolated string literals
@@ -724,33 +738,6 @@ fn effect_trim_comment(left: &ConcreteToken, edits: &mut Vec<TextEdit>, code: &s
             new_comment_contents,
             left.span.lo,
             left.span.hi,
-        ));
-    }
-}
-
-fn effect_trim_whitespace(
-    left: &ConcreteToken,
-    whitespace: &str,
-    right: &ConcreteToken,
-    edits: &mut Vec<TextEdit>,
-) {
-    let count_newlines = whitespace.chars().filter(|c| *c == '\n').count();
-    let suffix = match whitespace.rsplit_once('\n') {
-        Some((_, suffix)) => suffix,
-        None => "",
-    };
-
-    let mut new_whitespace = if whitespace.contains("\r\n") {
-        "\r\n".repeat(count_newlines)
-    } else {
-        "\n".repeat(count_newlines)
-    };
-    new_whitespace.push_str(suffix);
-    if whitespace != new_whitespace {
-        edits.push(TextEdit::new(
-            new_whitespace.as_str(),
-            left.span.hi,
-            right.span.lo,
         ));
     }
 }
