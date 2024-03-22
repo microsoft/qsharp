@@ -52,6 +52,8 @@ impl Lowerer {
     }
 
     pub fn lower_package(&mut self, package: &hir::Package) -> fir::Package {
+        // Use a new assigner so we get fresh IDs in case this lowerer was used to lower other packages before.
+        self.assigner = Assigner::new();
         let entry = package.entry.as_ref().map(|e| self.lower_expr(e));
         let entry_exec_graph = self.exec_graph.drain(..).collect();
         let items: IndexMap<LocalItemId, fir::Item> = package
