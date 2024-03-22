@@ -423,6 +423,15 @@ impl<'a> Formatter<'a> {
                 (_, Keyword(keyword)) if is_prefix_keyword(keyword) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
+                (_, WSlash) if are_newlines_in_spaces => {
+                    effect_correct_indentation(
+                        left,
+                        whitespace,
+                        right,
+                        &mut edits,
+                        self.indent_level + 1,
+                    );
+                }
                 (_, _) if is_bin_op(cooked_right) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }

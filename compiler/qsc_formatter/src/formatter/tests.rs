@@ -997,16 +997,27 @@ fn newline_after_brace_before_delim() {
     "#]])
 }
 
+// Copy operator can have single space or newline
+
 #[test]
-fn test() {
+fn copy_operator_with_newline_is_indented() {
     check(indoc! {r#"
-    {} ();
-    {} []
+    let x = arr
+              w/ 0 <- 10
+    w/ 1 <- 11
     "#}, &expect![[r#"
-        {}
-        ();
-        {}
-        []
+    let x = arr
+        w/ 0 <- 10
+        w/ 1 <- 11
+    "#]])
+}
+
+#[test]
+fn copy_operator_with_space_has_single_space() {
+    check(indoc! {r#"
+    let x = arr    w/ 0 <- 10    w/ 1 <- 11
+    "#}, &expect![[r#"
+    let x = arr w/ 0 <- 10 w/ 1 <- 11
     "#]])
 }
 
