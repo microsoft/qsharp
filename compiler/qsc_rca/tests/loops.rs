@@ -10,7 +10,7 @@ use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_classical_for_loop() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         let loop = for i in 0..5 { };
@@ -30,7 +30,7 @@ fn check_rca_for_classical_for_loop() {
 
 #[test]
 fn check_rca_for_dynamic_for_loop() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();

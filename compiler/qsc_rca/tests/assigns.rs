@@ -10,7 +10,7 @@ use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_classical_int_assign_to_local() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         mutable i = 0;
@@ -31,7 +31,7 @@ fn check_rca_for_classical_int_assign_to_local() {
 
 #[test]
 fn check_rca_for_dynamic_result_assign_to_local() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -55,7 +55,7 @@ fn check_rca_for_dynamic_result_assign_to_local() {
 
 #[test]
 fn check_rca_for_dynamic_bool_assign_to_local() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -80,7 +80,7 @@ fn check_rca_for_dynamic_bool_assign_to_local() {
 
 #[test]
 fn check_rca_for_dynamic_int_assign_to_local() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -107,7 +107,7 @@ fn check_rca_for_dynamic_int_assign_to_local() {
 
 #[test]
 fn check_rca_for_dynamic_double_assign_to_local() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
