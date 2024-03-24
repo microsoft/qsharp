@@ -6,7 +6,7 @@ use qsc_frontend::{
     keyword::Keyword,
     lex::{
         concrete::{self, ConcreteToken, ConcreteTokenKind},
-        cooked::{ClosedBinOp, StringToken, TokenKind},
+        cooked::{StringToken, TokenKind},
         Delim, InterpolatedEnding, InterpolatedStart,
     },
 };
@@ -44,7 +44,6 @@ pub fn calculate_format_edits(code: &str) -> Vec<TextEdit> {
         delim_newlines_stack: vec![],
         type_param_state: TypeParameterListState::NoState,
         spec_decl_state: SpecDeclState::NoState,
-        binary_plus_minus_state: BinaryPlusMinusState::NoState,
     };
 
     // The sliding window used is over three adjacent tokens
@@ -160,12 +159,6 @@ enum SpecDeclState {
     OnEllipse,
 }
 
-enum BinaryPlusMinusState {
-    NoState,
-    LastTokenIsValue,
-    LeftIsBinaryPlusMinus,
-}
-
 /// Enum for a token's status as a delimiter.
 /// `<` and `>` are delimiters only with type-parameter lists,
 /// which is determined using the TypeParameterListState enum.
@@ -209,7 +202,6 @@ struct Formatter<'a> {
     delim_newlines_stack: Vec<NewlineContext>,
     type_param_state: TypeParameterListState,
     spec_decl_state: SpecDeclState,
-    binary_plus_minus_state: BinaryPlusMinusState,
 }
 
 impl<'a> Formatter<'a> {
@@ -234,30 +226,6 @@ impl<'a> Formatter<'a> {
 
         let (left_delim_state, right_delim_state) =
             self.update_type_param_state(&left.kind, &right.kind);
-
-        // Update binary_plus_minus_state
-        if let Syntax(cooked_left) = &left.kind {
-            if is_value_token_left(cooked_left, left_delim_state) {
-                self.binary_plus_minus_state = BinaryPlusMinusState::LastTokenIsValue;
-            } else if matches!(
-                cooked_left,
-                ClosedBinOp(ClosedBinOp::Plus | ClosedBinOp::Minus)
-            ) && matches!(
-                self.binary_plus_minus_state,
-                BinaryPlusMinusState::LastTokenIsValue
-            ) {
-                self.binary_plus_minus_state = BinaryPlusMinusState::LeftIsBinaryPlusMinus;
-            } else {
-                // Note that Comment tokens will skip this and won't
-                // update the state because they are not Syntax tokens.
-                self.binary_plus_minus_state = BinaryPlusMinusState::NoState;
-            }
-        }
-
-        let is_left_binary_plus_minus = matches!(
-            self.binary_plus_minus_state,
-            BinaryPlusMinusState::LeftIsBinaryPlusMinus
-        );
 
         let newline_context = self.update_indent_level(
             left_delim_state,
@@ -289,12 +257,12 @@ impl<'a> Formatter<'a> {
                 // else do nothing, preserving the user's spaces before the comment
             }
             (Syntax(cooked_left), Syntax(cooked_right)) => match (cooked_left, cooked_right) {
-                // (ClosedBinOp(ClosedBinOp::Minus), _) | (_, ClosedBinOp(ClosedBinOp::Minus)) => {
-                //     // This case is used to ignore the spacing around a `-`.
-                //     // This is done because we currently don't have the architecture
-                //     // to be able to differentiate between the unary `-` and the binary `-`
-                //     // which would have different spacing rules.
-                // }
+                (ClosedBinOp(ClosedBinOp::Minus), _) | (_, ClosedBinOp(ClosedBinOp::Minus)) => {
+                    // This case is used to ignore the spacing around a `-`.
+                    // This is done because we currently don't have the architecture
+                    // to be able to differentiate between the unary `-` and the binary `-`
+                    // which would have different spacing rules.
+                }
                 (Semi, _) if matches!(newline_context, NewlineContext::Spaces) => {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
@@ -429,7 +397,7 @@ impl<'a> Formatter<'a> {
                 }
                 (_, Open(Delim::Brace)) => {
                     // Special-case braces to have a leading single space with values
-                    if is_prefix(cooked_left, is_left_binary_plus_minus) {
+                    if is_prefix(cooked_left) {
                         effect_no_space(left, whitespace, right, &mut edits);
                     } else {
                         effect_single_space(left, whitespace, right, &mut edits);
@@ -437,8 +405,7 @@ impl<'a> Formatter<'a> {
                 }
                 (_, _) if matches!(right_delim_state, Delimiter::Open) => {
                     // Otherwise, all open delims have the same logic
-                    if is_value_token_left(cooked_left, left_delim_state)
-                        || is_prefix(cooked_left, is_left_binary_plus_minus)
+                    if is_value_token_left(cooked_left, left_delim_state) || is_prefix(cooked_left)
                     {
                         // i.e. foo() or foo[3]
                         effect_no_space(left, whitespace, right, &mut edits);
@@ -461,7 +428,7 @@ impl<'a> Formatter<'a> {
                     effect_single_space(left, whitespace, right, &mut edits);
                 }
                 (_, _) if is_value_token_right(cooked_right, right_delim_state) => {
-                    if is_prefix(cooked_left, is_left_binary_plus_minus) {
+                    if is_prefix(cooked_left) {
                         effect_no_space(left, whitespace, right, &mut edits);
                     } else {
                         effect_single_space(left, whitespace, right, &mut edits);
@@ -470,16 +437,8 @@ impl<'a> Formatter<'a> {
                 (_, _) if is_suffix(cooked_right) => {
                     effect_no_space(left, whitespace, right, &mut edits);
                 }
-                (_, _)
-                    if is_prefix_with_space(
-                        cooked_right,
-                        matches!(
-                            self.binary_plus_minus_state,
-                            BinaryPlusMinusState::LastTokenIsValue
-                        ),
-                    ) =>
-                {
-                    if is_prefix(cooked_left, is_left_binary_plus_minus) {
+                (_, _) if is_prefix_with_space(cooked_right) => {
+                    if is_prefix(cooked_left) {
                         effect_no_space(left, whitespace, right, &mut edits);
                     } else {
                         effect_single_space(left, whitespace, right, &mut edits);
@@ -689,14 +648,8 @@ fn is_bin_op(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_prefix_with_space(cooked: &TokenKind, is_binary_plus_minus: bool) -> bool {
-    match &cooked {
-        TokenKind::ClosedBinOp(ClosedBinOp::Plus | ClosedBinOp::Minus) if !is_binary_plus_minus => {
-            true
-        }
-        TokenKind::TildeTildeTilde => true,
-        _ => false,
-    }
+fn is_prefix_with_space(cooked: &TokenKind) -> bool {
+    matches!(cooked, TokenKind::TildeTildeTilde)
 }
 
 fn is_prefix_without_space(cooked: &TokenKind) -> bool {
@@ -706,8 +659,8 @@ fn is_prefix_without_space(cooked: &TokenKind) -> bool {
     )
 }
 
-fn is_prefix(cooked: &TokenKind, is_binary_plus_minus: bool) -> bool {
-    is_prefix_with_space(cooked, is_binary_plus_minus)
+fn is_prefix(cooked: &TokenKind) -> bool {
+    is_prefix_with_space(cooked)
         || is_prefix_without_space(cooked)
         || matches!(cooked, TokenKind::DotDotDot)
 }
