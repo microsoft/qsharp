@@ -187,3 +187,31 @@ where
         message: labeled_span.label().map(ToString::to_string),
     }
 }
+
+/// Returns an array of tuples where:
+/// - the first element of the tuple is the document URI, or <project> if the error doesn't have a span
+/// - the second element of the tuple is a [`VSDiagnostic`] that represents the error
+pub fn interpret_errors_into_vs_diagnostics(
+    errs: &[interpret::Error],
+) -> Vec<(String, VSDiagnostic)> {
+    let default_uri = "<project>";
+    errs.iter()
+        .map(|err| {
+            let labels = match err {
+                interpret::Error::Compile(e) => error_labels(e),
+                interpret::Error::Pass(e) => error_labels(e),
+                interpret::Error::Eval(e) => error_labels(e.error()),
+                interpret::Error::NoEntryPoint
+                | interpret::Error::UnsupportedRuntimeCapabilities
+                | interpret::Error::NoCircuitForOperation => Vec::new(),
+            };
+
+            let doc = labels
+                .first()
+                .map_or_else(|| default_uri.to_string(), |l| l.source_name.to_string());
+
+            let vsdiagnostic = VSDiagnostic::new(labels, &doc, err);
+            (doc, vsdiagnostic)
+        })
+        .collect()
+}
