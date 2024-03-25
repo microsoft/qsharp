@@ -409,7 +409,7 @@ impl CompletionListBuilder {
             .expect("package should exist")
             .ast
             .namespaces.clone();
-        let namespaces = Rc::new(namespaces);
+        let namespaces =namespaces;
         convert_ast_namespaces_into_hir_namespaces(namespaces);
         vec![todo!()].into_iter()
     }
@@ -461,18 +461,18 @@ fn convert_ast_namespaces_into_hir_namespaces(
     namespaces: qsc::NamespaceTreeRoot,
 ) -> qsc::NamespaceTreeRoot {
     let mut hir_namespaces = Vec::new();
-    let mut assigner = 0;
+    let mut assigner: usize = 0;
     for (namespace, qsc::NamespaceTreeNode { children, id }) in
         namespaces.tree().children()
     {
-        let hir_namespace = qsc::NamespaceTreeNode::new(id, children.clone());
-        if namespace.id > assigner {
-            assigner = namespace.id + 1;
+        let hir_namespace = qsc::NamespaceTreeNode::new(*id, children.clone());
+        if id.into() > assigner {
+            assigner = id.into() + 1;
         };
         hir_namespaces.push(hir_namespace);
     }
 
-    qsc::NamespaceTreeRoot::new(hir_namespaces, assigner)
+    qsc::NamespaceTreeRoot::new(assigner, hir_namespaces)
 }
 
 /// Convert a local into a completion item

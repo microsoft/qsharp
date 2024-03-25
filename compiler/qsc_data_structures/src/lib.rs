@@ -8,7 +8,7 @@ pub mod language_features;
 pub mod line_column;
 pub mod span;
 pub mod namespaces {
-    use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
+    use std::{cell::RefCell, collections::HashMap, fmt::Display, ops::Deref, rc::Rc};
 
     #[derive(Debug, Clone)]
 
@@ -21,8 +21,16 @@ pub mod namespaces {
     #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Default)]
     pub struct NamespaceId(usize);
     impl NamespaceId {
+        /// Create a new namespace ID.
         pub fn new(value: usize) -> Self {
             Self(value)
+        }
+    }
+
+    impl Deref for NamespaceId {
+        type Target = usize;
+        fn deref(&self) -> &Self::Target {
+            &self.0
         }
     }
 
@@ -31,11 +39,19 @@ pub mod namespaces {
             write!(f, "Namespace {}", self.0)
         }
     }
+
     impl NamespaceTreeRoot {
+        /// Create a new namespace tree root. The assigner is used to assign new namespace IDs.
+        pub fn new(assigner: usize, tree: NamespaceTreeNode) -> Self {
+            Self { assigner, tree }
+        }
+        /// Get the namespace tree field. This is the root of the namespace tree.
         pub fn tree(&self) -> &NamespaceTreeNode {
             &self.tree
         }
-        pub fn insert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
+        /// Upserts a namespace into the tree. If the namespace already exists, it will not be inserted. 
+        /// Returns the ID of the namespace.
+        pub fn upsert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
             self.assigner += 1;
             let id = self.assigner;
             let node = self.new_namespace_node(Default::default());
@@ -91,6 +107,12 @@ pub mod namespaces {
         pub id: NamespaceId,
     }
     impl NamespaceTreeNode {
+        pub fn new(id: NamespaceId, children: HashMap<Rc<str>, NamespaceTreeNode>) -> Self {
+            Self {
+                children,
+                id,
+            }
+        }
         pub fn children(&self) -> &HashMap<Rc<str>, NamespaceTreeNode> {
             &self.children
         }

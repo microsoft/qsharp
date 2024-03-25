@@ -273,7 +273,7 @@ impl GlobalScope {
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
     /// item contents. This returns a [NamespaceId] which you can use to add more tys and terms to the scope.
     fn upsert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
-        self.namespaces.insert_namespace(name)
+        self.namespaces.upsert_namespace(name)
     }
 }
 
