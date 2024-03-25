@@ -69,24 +69,7 @@ impl CompilationContext {
 
 impl Default for CompilationContext {
     fn default() -> Self {
-        let compiler = Compiler::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::default(),
-        )
-        .expect("should be able to create a new compiler");
-        let mut lowerer = Lowerer::new();
-        let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
-        let analyzer = Analyzer::init(&fir_store);
-        let compute_properties = analyzer.analyze_all();
-        Self {
-            compiler,
-            fir_store,
-            compute_properties,
-            lowerer,
-        }
+        Self::new(RuntimeCapabilityFlags::all())
     }
 }
 
