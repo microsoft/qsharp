@@ -102,19 +102,37 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignI(a : Int) : Int {
-        if (a < 0) { -1 } elif (a > 0) { + 1 } else { 0 }
+        if (a < 0) {
+            -1
+        } elif (a > 0) {
+            + 1
+        } else {
+            0
+        }
     }
 
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignD(a : Double) : Int {
-        if (a < 0.0) { -1 } elif (a > 0.0) { + 1 } else { 0 }
+        if (a < 0.0) {
+            -1
+        } elif (a > 0.0) {
+            + 1
+        } else {
+            0
+        }
     }
 
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
     function SignL(a : BigInt) : Int {
-        if (a < 0L) { -1 } elif (a > 0L) { + 1 } else { 0 }
+        if (a < 0L) { 
+            -1
+        } elif (a > 0L) {
+            + 1
+        } else {
+            0
+        }
     }
 
     /// # Summary
@@ -797,7 +815,29 @@ namespace Microsoft.Quantum.Math {
         Fact(n >= 0, "The factorial is not defined for negative inputs.");
         Fact(n <= 20, "The largest factorial that can be stored as an Int is 20!. Use FactorialL or ApproximateFactorial.");
 
-        [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000, 2432902008176640000][n]
+        [
+            1,
+            1,
+            2,
+            6,
+            24,
+            120,
+            720,
+            5040,
+            40320,
+            362880,
+            3628800,
+            39916800,
+            479001600,
+            6227020800,
+            87178291200,
+            1307674368000,
+            20922789888000,
+            355687428096000,
+            6402373705728000,
+            121645100408832000,
+            2432902008176640000
+        ][n]
     }
 
     /// # Summary

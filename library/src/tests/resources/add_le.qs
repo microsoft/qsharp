@@ -26,9 +26,18 @@ namespace Test {
                 let zActual = MeasureInteger(z);
                 let zExpected = (xValue + yValue) % (1 <<< zLen);
 
-                Fact(xActual == xValue, $"{name}: Incorrect x={xActual}, expected={xValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}.");
-                Fact(yActual == yValue, $"{name}: Incorrect y={yActual}, expected={yValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}.");
-                Fact(zActual == zExpected, $"{name}: Incorrect z={zActual}, expected={zExpected}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}.");
+                Fact(
+                    xActual == xValue,
+                    $"{name}: Incorrect x={xActual}, expected={xValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}."
+                );
+                Fact(
+                    yActual == yValue,
+                    $"{name}: Incorrect y={yActual}, expected={yValue}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}."
+                );
+                Fact(
+                    zActual == zExpected,
+                    $"{name}: Incorrect z={zActual}, expected={zExpected}. |x|={xLen}, |y|={yLen}, |z|={zLen}, x={xValue}, y={yValue}."
+                );
 
                 ResetAll(x);
                 ResetAll(y);

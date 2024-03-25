@@ -142,7 +142,7 @@ namespace Sample {
         let availableQubits = Length(xRegister);
         Fact(
             availableQubits >= requiredBits,
-            $"Integer value {bitStringAsInt} requires {requiredBits} bits to " + $"be represented but the quantum register only has " + $"{availableQubits} qubits"
+            $"Integer value {bitStringAsInt} requires {requiredBits} bits to be represented but the quantum register only has {availableQubits} qubits"
         );
 
         // Apply the quantum operations that encode the bit string.
