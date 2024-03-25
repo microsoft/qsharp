@@ -92,6 +92,20 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicallySizedArray"))]
     UseOfDynamicallySizedArray(#[label] Span),
 
+    #[error("cannot use a dynamic user-defined type")]
+    #[diagnostic(help(
+        "using a dynamic user-defined type, a user-defined type in which one or more of its members depend on a measurement result, is not supported by the target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicUdt"))]
+    UseOfDynamicUdt(#[label] Span),
+
+    #[error("cannot use a dynamic function")]
+    #[diagnostic(help(
+        "using a dynamically resolved function, a function whose resolution depends on a measurement result, is not supported by the target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicArrowFunction"))]
+    UseOfDynamicArrowFunction(#[label] Span),
+
     #[error("cannot call a cyclic function with a dynamic value as argument")]
     #[diagnostic(help(
         "calling a cyclic function with a dynamic value as argument, an argument value that depends on a measurement result, is not supported by the target"
@@ -108,6 +122,11 @@ pub enum Error {
     #[diagnostic(help("calling a cyclic operation is not supported by the target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToCyclicOperation"))]
     CallToCyclicOperation(#[label] Span),
+
+    #[error("cannot call a function or operation whose resolution is dynamic")]
+    #[diagnostic(help("calling a function or operation whose resolution is dynamic, a resolution that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.CallToDynamicCallee"))]
+    CallToDynamicCallee(#[label] Span),
 }
 
 #[must_use]
@@ -384,6 +403,9 @@ fn generate_errors_from_runtime_features(
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray) {
         errors.push(Error::UseOfDynamicallySizedArray(span));
     }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
+        errors.push(Error::UseOfDynamicUdt(span));
+    }
     if runtime_features.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
         errors.push(Error::CallToCyclicFunctionWithDynamicArg(span));
     }
@@ -392,6 +414,9 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
         errors.push(Error::CallToCyclicOperation(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
+        errors.push(Error::CallToDynamicCallee(span));
     }
     errors
 }

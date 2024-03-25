@@ -167,6 +167,27 @@ pub const USE_DYNAMICALLY_SIZED_ARRAY: &str = r#"
         }
     }"#;
 
+pub const USE_DYNAMIC_UDT: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Math;
+        open Microsoft.Quantum.Measurement;
+        operation Foo() : Unit {
+            use register = Qubit[4];
+            let results = MeasureEachZ(register);
+            let c = Complex(0.0, IntAsDouble(ResultArrayAsInt(results)));
+        }
+    }"#;
+
+pub const USE_DYNAMIC_FUNCTION: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Math;
+        operation Foo() : Unit {
+            use q = Qubit();
+            let f = M(q) == Zero ? Cos | Sin;
+        }
+    }"#;
+
 pub const CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT: &str = r#"
     function GaussSum(n : Int) : Int {
         if n == 0 {
