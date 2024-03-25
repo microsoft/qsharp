@@ -9,6 +9,11 @@ fn check(input: &str, expect: &Expect) {
     expect.assert_eq(&actual);
 }
 
+fn check_edits(input: &str, expect: &Expect) {
+    let actual = super::calculate_format_edits(input);
+    expect.assert_debug_eq(&actual);
+}
+
 // Removing trailing whitespace from lines
 
 #[test]
@@ -934,6 +939,33 @@ fn preserve_comments_at_start_of_file() {
         namespace Foo {}"#};
 
     assert!(super::calculate_format_edits(input).is_empty());
+}
+
+#[test]
+fn format_with_crlf() {
+    let content = indoc! {"//qsharp\r\n\r\noperation Foo() : Unit {\r\n\r\n}\r\n"};
+    check_edits(
+        content,
+        &expect![[r#"
+            [
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 36,
+                        hi: 40,
+                    },
+                },
+            ]
+        "#]],
+    );
+    check(
+        content,
+        &expect![[r#"
+            //qsharp
+
+            operation Foo() : Unit {}
+        "#]],
+    );
 }
 
 #[test]

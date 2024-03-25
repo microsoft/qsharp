@@ -233,7 +233,7 @@ impl<'a> Lexer<'a> {
                 CommentKind::Normal
             };
 
-            self.eat_while(|c| c != '\n');
+            self.eat_while(|c| c != '\n' && c != '\r');
             Some(kind)
         } else {
             None
