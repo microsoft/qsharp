@@ -313,14 +313,6 @@ impl<'a> Analyzer<'a> {
 
             // If the call expression type is either a result or a qubit, it uses dynamic allocation runtime features.
             if let Ty::Prim(Prim::Qubit) = expr_type {
-                compute_kind = compute_kind.aggregate_runtime_features(
-                    ComputeKind::new_with_runtime_features(
-                        RuntimeFeatureFlags::DynamicQubitAllocation,
-                        default_value_kind,
-                    ),
-                    default_value_kind,
-                );
-
                 // We consider this qubit dynamic so the value kind of this expression must be dynamic.
                 let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
                     panic!("compute kind is expected to be of the quantum variant");

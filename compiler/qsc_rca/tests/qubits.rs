@@ -57,7 +57,7 @@ fn check_rca_for_dynamic_single_qubit_allcation() {
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue | DynamicQubitAllocation)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
                         value_kind: Element(Static)
                     dynamic_param_applications: <empty>
                 adj: <none>
@@ -106,7 +106,7 @@ fn check_rca_for_dynamic_multi_qubit_allcation() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicRange | UseOfDynamicQubit | UseOfDynamicallySizedArray | ForwardBranchingOnDynamicValue | DynamicQubitAllocation | LoopWithDynamicCondition)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicRange | UseOfDynamicQubit | UseOfDynamicallySizedArray | ForwardBranchingOnDynamicValue | LoopWithDynamicCondition)
                     value_kind: Array(Content: Dynamic, Size: Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
