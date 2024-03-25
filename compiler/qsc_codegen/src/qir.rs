@@ -128,10 +128,10 @@ impl ToQir<String> for rir::Callable {
         let signature = format!("{} @{}({})", output_type, self.name, input_type);
         let Some(entry_id) = self.body else {
             return format!(
-                "declare {signature} {}",
+                "declare {signature}{}",
                 if self.name == "__quantum__qis__mz__body" {
                     // The mz callable is a special case that needs the irreversable attribute.
-                    "#1"
+                    " #1"
                 } else {
                     ""
                 }

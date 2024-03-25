@@ -8,21 +8,21 @@ use qsc_rir::rir;
 #[test]
 fn single_qubit_gate_decl_works() {
     let decl = rir_utils::x_decl();
-    expect!["declare void @__quantum__qis__x__body(%Qubit*) "]
+    expect!["declare void @__quantum__qis__x__body(%Qubit*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn two_qubit_gate_decl_works() {
     let decl = rir_utils::cx_decl();
-    expect!["declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*) "]
+    expect!["declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn single_qubit_rotation_decl_works() {
     let decl = rir_utils::rx_decl();
-    expect!["declare void @__quantum__qis__rx__body(double, %Qubit*) "]
+    expect!["declare void @__quantum__qis__rx__body(double, %Qubit*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
@@ -36,14 +36,14 @@ fn measurement_decl_works() {
 #[test]
 fn read_result_decl_works() {
     let decl = rir_utils::read_result_decl();
-    expect!["declare i1 @__quantum__rt__read_result(%Result*) "]
+    expect!["declare i1 @__quantum__rt__read_result(%Result*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn result_record_decl_works() {
     let decl = rir_utils::result_record_decl();
-    expect!["declare void @__quantum__rt__result_record_output(%Result*, i8*) "]
+    expect!["declare void @__quantum__rt__result_record_output(%Result*, i8*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
@@ -59,6 +59,42 @@ fn single_qubit_call() {
     );
     expect!["  call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))"]
         .assert_eq(&call.to_qir(&program));
+}
+
+#[test]
+fn qubit_rotation_call() {
+    let mut program = rir::Program::default();
+    program
+        .callables
+        .insert(rir::CallableId(0), rir_utils::rx_decl());
+    let call = rir::Instruction::Call(
+        rir::CallableId(0),
+        vec![
+            rir::Value::Literal(rir::Literal::Double(std::f64::consts::PI)),
+            rir::Value::Literal(rir::Literal::Qubit(0)),
+        ],
+    );
+    expect!["  call void @__quantum__qis__rx__body(double 3.141592653589793, %Qubit* inttoptr (i64 0 to %Qubit*))"]
+        .assert_eq(&call.to_qir(&program));
+}
+
+#[test]
+fn qubit_rotation_round_number_call() {
+    let mut program = rir::Program::default();
+    program
+        .callables
+        .insert(rir::CallableId(0), rir_utils::rx_decl());
+    let call = rir::Instruction::Call(
+        rir::CallableId(0),
+        vec![
+            rir::Value::Literal(rir::Literal::Double(3.0)),
+            rir::Value::Literal(rir::Literal::Qubit(0)),
+        ],
+    );
+    expect![
+        "  call void @__quantum__qis__rx__body(double 3.0, %Qubit* inttoptr (i64 0 to %Qubit*))"
+    ]
+    .assert_eq(&call.to_qir(&program));
 }
 
 #[test]
