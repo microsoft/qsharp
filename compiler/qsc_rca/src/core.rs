@@ -298,15 +298,6 @@ impl<'a> Analyzer<'a> {
             self.analyze_expr_call_with_static_callee(callee_expr_id, args_expr_id, expr_type)
         };
 
-        // If the call expression is dynamic, aggregate the corresponding runtime features depending on its type.
-        if let Some(value_kind) = compute_kind.value_kind() {
-            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
-                panic!("expected quantum variant of Compute Kind");
-            };
-            quantum_properties.runtime_features |=
-                derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
-        }
-
         // If this call happens within a dynamic scope, there might be additional runtime features being used.
         let default_value_kind = ValueKind::new_static_from_type(expr_type);
         let application_instance = self.get_current_application_instance();
@@ -329,7 +320,14 @@ impl<'a> Analyzer<'a> {
                     ),
                     default_value_kind,
                 );
+
+                // We consider this qubit dynamic so the value kind of this expression must be dynamic.
+                let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                    panic!("compute kind is expected to be of the quantum variant");
+                };
+                quantum_properties.value_kind = ValueKind::Element(RuntimeKind::Dynamic);
             }
+
             if let Ty::Prim(Prim::Result) = expr_type {
                 compute_kind = compute_kind.aggregate_runtime_features(
                     ComputeKind::new_with_runtime_features(
@@ -339,6 +337,15 @@ impl<'a> Analyzer<'a> {
                     default_value_kind,
                 );
             }
+        }
+
+        // If the call expression is dynamic, aggregate the corresponding runtime features depending on its type.
+        if let Some(value_kind) = compute_kind.value_kind() {
+            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                panic!("expected quantum variant of Compute Kind");
+            };
+            quantum_properties.runtime_features |=
+                derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
         }
 
         // Aggregate the runtime features of the callee and arguments expressions.
