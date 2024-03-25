@@ -5,39 +5,41 @@ use std::borrow::Cow;
 ///
 /// It requires that all factories define the same code parameter type.
 #[derive(Clone)]
-pub enum FactoryDispatch2<F1, F2> {
-    F1(F1),
-    F2(F2),
+pub enum FactoryDispatch2<Factory1, Factory2> {
+    Factory1(Factory1),
+    Factory2(Factory2),
 }
 
-impl<F1: Factory, F2: Factory<Parameter = F1::Parameter>> Factory for FactoryDispatch2<F1, F2> {
-    type Parameter = F1::Parameter;
+impl<Factory1: Factory, Factory2: Factory<Parameter = Factory1::Parameter>> Factory
+    for FactoryDispatch2<Factory1, Factory2>
+{
+    type Parameter = Factory1::Parameter;
 
     fn physical_qubits(&self) -> u64 {
         match self {
-            Self::F1(f) => f.physical_qubits(),
-            Self::F2(f) => f.physical_qubits(),
+            Self::Factory1(f) => f.physical_qubits(),
+            Self::Factory2(f) => f.physical_qubits(),
         }
     }
 
     fn duration(&self) -> u64 {
         match self {
-            Self::F1(f) => f.duration(),
-            Self::F2(f) => f.duration(),
+            Self::Factory1(f) => f.duration(),
+            Self::Factory2(f) => f.duration(),
         }
     }
 
     fn num_output_states(&self) -> u64 {
         match self {
-            Self::F1(f) => f.num_output_states(),
-            Self::F2(f) => f.num_output_states(),
+            Self::Factory1(f) => f.num_output_states(),
+            Self::Factory2(f) => f.num_output_states(),
         }
     }
 
     fn max_code_parameter(&self) -> Option<Cow<Self::Parameter>> {
         match self {
-            Self::F1(f) => f.max_code_parameter(),
-            Self::F2(f) => f.max_code_parameter(),
+            Self::Factory1(f) => f.max_code_parameter(),
+            Self::Factory2(f) => f.max_code_parameter(),
         }
     }
 }
@@ -45,24 +47,24 @@ impl<F1: Factory, F2: Factory<Parameter = F1::Parameter>> Factory for FactoryDis
 /// Implements `FactoryBuilder` to combine two factory builders for dispatching
 ///
 /// It will use `FactoryDispatch2` as factory type for the builder.
-pub struct BuilderDispatch2<B1, B2> {
-    b1: B1,
-    b2: B2,
+pub struct BuilderDispatch2<Builder1, Builder2> {
+    builder1: Builder1,
+    builder2: Builder2,
 }
 
-impl<B1: Default, B2: Default> Default for BuilderDispatch2<B1, B2> {
+impl<Builder1: Default, Builder2: Default> Default for BuilderDispatch2<Builder1, Builder2> {
     fn default() -> Self {
         Self {
-            b1: B1::default(),
-            b2: B2::default(),
+            builder1: Builder1::default(),
+            builder2: Builder2::default(),
         }
     }
 }
 
-impl<E: ErrorCorrection, B1: FactoryBuilder<E>, B2: FactoryBuilder<E>> FactoryBuilder<E>
-    for BuilderDispatch2<B1, B2>
+impl<E: ErrorCorrection, Builder1: FactoryBuilder<E>, Builder2: FactoryBuilder<E>> FactoryBuilder<E>
+    for BuilderDispatch2<Builder1, Builder2>
 {
-    type Factory = FactoryDispatch2<B1::Factory, B2::Factory>;
+    type Factory = FactoryDispatch2<Builder1::Factory, Builder2::Factory>;
 
     fn find_factories(
         &self,
@@ -74,7 +76,7 @@ impl<E: ErrorCorrection, B1: FactoryBuilder<E>, B2: FactoryBuilder<E>> FactoryBu
     ) -> Vec<Cow<Self::Factory>> {
         match magic_state_type {
             0 => self
-                .b1
+                .builder1
                 .find_factories(
                     ftp,
                     qubit,
@@ -83,10 +85,10 @@ impl<E: ErrorCorrection, B1: FactoryBuilder<E>, B2: FactoryBuilder<E>> FactoryBu
                     max_code_parameter,
                 )
                 .into_iter()
-                .map(|f| Cow::Owned(FactoryDispatch2::F1(f.into_owned())))
+                .map(|f| Cow::Owned(FactoryDispatch2::Factory1(f.into_owned())))
                 .collect(),
             1 => self
-                .b2
+                .builder2
                 .find_factories(
                     ftp,
                     qubit,
@@ -95,7 +97,7 @@ impl<E: ErrorCorrection, B1: FactoryBuilder<E>, B2: FactoryBuilder<E>> FactoryBu
                     max_code_parameter,
                 )
                 .into_iter()
-                .map(|f| Cow::Owned(FactoryDispatch2::F2(f.into_owned())))
+                .map(|f| Cow::Owned(FactoryDispatch2::Factory2(f.into_owned())))
                 .collect(),
             _ => unreachable!("factory builder only has two magic state types"),
         }

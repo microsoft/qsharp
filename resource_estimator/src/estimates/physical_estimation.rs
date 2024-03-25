@@ -80,7 +80,7 @@ pub trait ErrorCorrection {
             }
         }
 
-        Err("No code parameter achieves required logical error rate".into())
+        Err(format!("No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"))
     }
 
     /// Computes the code parameter assignment that requires the fewest number
@@ -116,7 +116,7 @@ pub trait ErrorCorrection {
         }
 
         best.map(|(p, _)| p)
-            .ok_or_else(|| "No code parameter achieves required logical error rate".into())
+            .ok_or_else(|| format!("No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"))
     }
 
     /// Computes the code parameter assignment that provides the fastest logical
@@ -148,7 +148,7 @@ pub trait ErrorCorrection {
         }
 
         best.map(|(p, _)| p)
-            .ok_or_else(|| "No code parameter achieves required logical error rate".into())
+            .ok_or_else(|| format!("No code parameter achieves required logical error rate {required_logical_error_rate:.3e}"))
     }
 
     /// Returns an iterator of all possible code parameters
