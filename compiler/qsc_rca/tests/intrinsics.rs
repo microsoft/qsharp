@@ -10,7 +10,7 @@ use test_utils::{check_callable_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_quantum_rt_qubit_allocate() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -32,7 +32,7 @@ fn check_rca_for_quantum_rt_qubit_allocate() {
 
 #[test]
 fn check_rca_for_quantum_rt_qubit_release() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -57,7 +57,7 @@ fn check_rca_for_quantum_rt_qubit_release() {
 
 #[test]
 fn check_rca_for_quantum_qis_m_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -82,7 +82,7 @@ fn check_rca_for_quantum_qis_m_body() {
 
 #[test]
 fn check_rca_for_length() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -112,7 +112,7 @@ fn check_rca_for_length() {
 
 #[test]
 fn check_rca_for_quantum_qis_mresetz_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -137,7 +137,7 @@ fn check_rca_for_quantum_qis_mresetz_body() {
 
 #[test]
 fn check_rca_for_int_as_double() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -160,7 +160,7 @@ fn check_rca_for_int_as_double() {
 
 #[test]
 fn check_rca_for_int_as_big_int() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -183,7 +183,7 @@ fn check_rca_for_int_as_big_int() {
 
 #[test]
 fn check_rca_for_dump_machine() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -203,7 +203,7 @@ fn check_rca_for_dump_machine() {
 
 #[test]
 fn check_rca_for_check_zero() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -228,7 +228,7 @@ fn check_rca_for_check_zero() {
 
 #[test]
 fn check_rca_for_message() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -251,7 +251,7 @@ fn check_rca_for_message() {
 
 #[test]
 fn check_rca_for_arc_cos() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -274,7 +274,7 @@ fn check_rca_for_arc_cos() {
 
 #[test]
 fn check_rca_for_arc_sin() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -297,7 +297,7 @@ fn check_rca_for_arc_sin() {
 
 #[test]
 fn check_rca_for_arc_tan() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -320,7 +320,7 @@ fn check_rca_for_arc_tan() {
 
 #[test]
 fn check_rca_for_arc_tan_2() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -346,7 +346,7 @@ fn check_rca_for_arc_tan_2() {
 
 #[test]
 fn check_rca_for_cos() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -369,7 +369,7 @@ fn check_rca_for_cos() {
 
 #[test]
 fn check_rca_for_cosh() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -392,7 +392,7 @@ fn check_rca_for_cosh() {
 
 #[test]
 fn check_rca_for_sin() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -415,7 +415,7 @@ fn check_rca_for_sin() {
 
 #[test]
 fn check_rca_for_sinh() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -438,7 +438,7 @@ fn check_rca_for_sinh() {
 
 #[test]
 fn check_rca_for_tan() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -461,7 +461,7 @@ fn check_rca_for_tan() {
 
 #[test]
 fn check_rca_for_tanh() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -484,7 +484,7 @@ fn check_rca_for_tanh() {
 
 #[test]
 fn check_rca_for_sqrt() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -507,7 +507,7 @@ fn check_rca_for_sqrt() {
 
 #[test]
 fn check_rca_for_log() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -530,7 +530,7 @@ fn check_rca_for_log() {
 
 #[test]
 fn check_rca_for_truncate() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -553,7 +553,7 @@ fn check_rca_for_truncate() {
 
 #[test]
 fn check_rca_for_quantum_qis_ccx_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -584,7 +584,7 @@ fn check_rca_for_quantum_qis_ccx_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_cx_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -612,7 +612,7 @@ fn check_rca_for_quantum_qis_cx_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_cy_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -640,7 +640,7 @@ fn check_rca_for_quantum_qis_cy_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_cz_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -668,7 +668,7 @@ fn check_rca_for_quantum_qis_cz_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_rx_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -696,7 +696,7 @@ fn check_rca_for_quantum_qis_rx_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_rxx_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -727,7 +727,7 @@ fn check_rca_for_quantum_qis_rxx_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_ry_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -755,7 +755,7 @@ fn check_rca_for_quantum_qis_ry_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_ryy_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -786,7 +786,7 @@ fn check_rca_for_quantum_qis_ryy_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_rz_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -814,7 +814,7 @@ fn check_rca_for_quantum_qis_rz_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_rzz_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -845,7 +845,7 @@ fn check_rca_for_quantum_qis_rzz_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_h_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -870,7 +870,7 @@ fn check_rca_for_quantum_qis_h_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_s_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -895,7 +895,7 @@ fn check_rca_for_quantum_qis_s_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_s_adj() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -920,7 +920,7 @@ fn check_rca_for_quantum_qis_s_adj() {
 
 #[test]
 fn check_rca_for_quantum_qis_t_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -945,7 +945,7 @@ fn check_rca_for_quantum_qis_t_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_t_adj() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -970,7 +970,7 @@ fn check_rca_for_quantum_qis_t_adj() {
 
 #[test]
 fn check_rca_for_quantum_qis_x_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -995,7 +995,7 @@ fn check_rca_for_quantum_qis_x_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_y_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1020,7 +1020,7 @@ fn check_rca_for_quantum_qis_y_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_z_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1045,7 +1045,7 @@ fn check_rca_for_quantum_qis_z_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_swap_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1073,7 +1073,7 @@ fn check_rca_for_quantum_qis_swap_body() {
 
 #[test]
 fn check_rca_for_quantum_qis_reset_body() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1098,7 +1098,7 @@ fn check_rca_for_quantum_qis_reset_body() {
 
 #[test]
 fn check_rca_for_draw_random_int() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1126,7 +1126,7 @@ fn check_rca_for_draw_random_int() {
 
 #[test]
 fn check_rca_for_draw_random_double() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1154,7 +1154,7 @@ fn check_rca_for_draw_random_double() {
 
 #[test]
 fn check_rca_for_begin_estimate_caching() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1180,7 +1180,7 @@ fn check_rca_for_begin_estimate_caching() {
 
 #[test]
 fn check_rca_for_end_estimate_caching() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1200,7 +1200,7 @@ fn check_rca_for_end_estimate_caching() {
 
 #[test]
 fn check_rca_for_account_for_estimates_internal() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1245,7 +1245,7 @@ fn check_rca_for_account_for_estimates_internal() {
 
 #[test]
 fn check_rca_for_begin_repeat_estimates_internal() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1270,7 +1270,7 @@ fn check_rca_for_begin_repeat_estimates_internal() {
 
 #[test]
 fn check_rca_for_end_repeat_estimates_internal() {
-    let compilation_context = CompilationContext::new();
+    let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
