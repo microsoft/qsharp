@@ -16,6 +16,7 @@ use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
 use qsc::NamespaceId;
 use rustc_hash::FxHashSet;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 const PRELUDE: [&str; 3] = [
@@ -74,7 +75,7 @@ pub(crate) fn get_completions(
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
         .opens
-        .extend(PRELUDE.into_iter().map(|ns| (Rc::from(ns), None)));
+        .extend(PRELUDE.into_iter().map(|ns| (ns, None)));
 
     let mut builder = CompletionListBuilder::new();
 
@@ -265,7 +266,7 @@ impl CompletionListBuilder {
     fn push_globals(
         &mut self,
         compilation: &Compilation,
-        opens: &[(Rc<str>, Option<Rc<str>>)],
+        opens: &[(NamespaceId, Option<Rc<str>>)],
         insert_open_range: Option<Range>,
         current_namespace_name: &Option<NamespaceId>,
         indent: &String,
@@ -387,7 +388,8 @@ impl CompletionListBuilder {
     fn get_callables<'a>(
         compilation: &'a Compilation,
         package_id: PackageId,
-        opens: &'a [(Rc<str>, Option<Rc<str>>)],
+        // name and alias
+        opens: &'a [(NamespaceId, Option<Rc<str>>)],
         insert_open_at: Option<Range>,
         current_namespace_name: Option<NamespaceId>,
         indent: &'a String,
@@ -405,9 +407,10 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package should exist")
             .ast
-            .namespaces;
+            .namespaces.clone();
+        let namespaces = Rc::new(namespaces);
         convert_ast_namespaces_into_hir_namespaces(namespaces);
-        package.items.values().filter_map(move |i| {
+        package.items.values().map(|x| (is_user_package.clone(), namespaces.clone(), x)).filter_map( |(is_user_package, namespaces, i)| {
             // We only want items whose parents are namespaces
             if let Some(item_id) = i.parent {
                 if let Some(parent) = package.items.get(item_id) {
@@ -415,14 +418,14 @@ impl CompletionListBuilder {
                         if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
                             return None;
                         }
+                        let ns_id = namespaces
+                            .find_namespace(namespace)
+                            .expect("namespace should exist");
                         // If the item's visibility is internal, the item may be ignored
                         if matches!(i.visibility, Visibility::Internal) {
                             if !is_user_package {
                                 return None; // ignore item if not in the user's package
                             }
-                            let ns_id = namespaces
-                                .find_namespace(namespace)
-                                .expect("namespace should exist");
 
                             // ignore item if the user is not in the item's namespace
                             match &current_namespace_name {
@@ -446,13 +449,13 @@ impl CompletionListBuilder {
                                 let mut additional_edits = vec![];
                                 let mut qualification: Option<Rc<str>> = None;
                                 match &current_namespace_name {
-                                    Some(curr_ns) if *curr_ns == namespace.name => {}
+                                    Some(curr_ns) if *curr_ns == ns_id  => {}
                                     _ => {
                                         // open is an option of option of Rc<str>
                                         // the first option tells if it found an open with the namespace name
                                         // the second, nested option tells if that open has an alias
                                         let open = opens.iter().find_map(|(name, alias)| {
-                                            if *name == namespace.name {
+                                            if *name == ns_id {
                                                 Some(alias)
                                             } else {
                                                 None
@@ -466,13 +469,13 @@ impl CompletionListBuilder {
                                                         start,
                                                         format!(
                                                             "open {};{}",
-                                                            namespace.name.clone(),
+                                                            namespace,
                                                             indent,
                                                         ),
                                                     ));
                                                     None
                                                 }
-                                                None => Some(namespace.name.clone()),
+                                                None => Some(Rc::from(format!("{namespace}"))),
                                             },
                                         }
                                     }
@@ -631,7 +634,7 @@ fn local_completion(
 struct ContextFinder {
     offset: u32,
     context: Context,
-    opens: Vec<(Rc<str>, Option<Rc<str>>)>,
+    opens: Vec<(NamespaceId, Option<Rc<str>>)>,
     start_of_namespace: Option<u32>,
     current_namespace_name: Option<NamespaceId>,
 }
