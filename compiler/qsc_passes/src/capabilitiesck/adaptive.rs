@@ -45,8 +45,8 @@ fn use_of_dynamic_int_yields_error() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 96,
-                        hi: 125,
+                        lo: 104,
+                        hi: 124,
                     },
                 ),
             ]
@@ -62,8 +62,8 @@ fn use_of_dynamic_pauli_yields_error() {
             [
                 UseOfDynamicPauli(
                     Span {
-                        lo: 96,
-                        hi: 135,
+                        lo: 104,
+                        hi: 134,
                     },
                 ),
             ]
@@ -79,14 +79,14 @@ fn use_of_dynamic_range_yields_errors() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 96,
-                        hi: 138,
+                        lo: 108,
+                        hi: 137,
                     },
                 ),
                 UseOfDynamicRange(
                     Span {
-                        lo: 96,
-                        hi: 138,
+                        lo: 108,
+                        hi: 137,
                     },
                 ),
             ]
@@ -102,8 +102,8 @@ fn use_of_dynamic_double_yields_errors() {
             [
                 UseOfDynamicDouble(
                     Span {
-                        lo: 96,
-                        hi: 129,
+                        lo: 104,
+                        hi: 128,
                     },
                 ),
             ]
@@ -119,14 +119,14 @@ fn use_of_dynamically_sized_array_yields_error() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 96,
-                        hi: 137,
+                        lo: 104,
+                        hi: 136,
                     },
                 ),
                 UseOfDynamicallySizedArray(
                     Span {
-                        lo: 96,
-                        hi: 137,
+                        lo: 104,
+                        hi: 136,
                     },
                 ),
             ]
@@ -152,14 +152,14 @@ fn call_cyclic_function_with_dynamic_argument_yields_errors() {
             [
                 UseOfDynamicInt(
                     Span {
-                        lo: 201,
-                        hi: 244,
+                        lo: 211,
+                        hi: 243,
                     },
                 ),
                 CallToCyclicFunctionWithDynamicArg(
                     Span {
-                        lo: 201,
-                        hi: 244,
+                        lo: 211,
+                        hi: 243,
                     },
                 ),
             ]
@@ -181,14 +181,14 @@ fn call_cyclic_operation_with_classical_argument_yields_errors() {
                 ),
                 UseOfDynamicInt(
                     Span {
-                        lo: 177,
-                        hi: 200,
+                        lo: 187,
+                        hi: 199,
                     },
                 ),
                 CallToCyclicOperation(
                     Span {
-                        lo: 177,
-                        hi: 200,
+                        lo: 187,
+                        hi: 199,
                     },
                 ),
             ]
@@ -210,14 +210,14 @@ fn call_cyclic_operation_with_dynamic_argument_yields_errors() {
                 ),
                 UseOfDynamicInt(
                     Span {
-                        lo: 202,
-                        hi: 245,
+                        lo: 212,
+                        hi: 244,
                     },
                 ),
                 CallToCyclicOperation(
                     Span {
-                        lo: 202,
-                        hi: 245,
+                        lo: 212,
+                        hi: 244,
                     },
                 ),
             ]

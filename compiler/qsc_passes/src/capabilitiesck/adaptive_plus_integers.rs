@@ -81,8 +81,8 @@ fn use_of_dynamic_double_yields_error() {
             [
                 UseOfDynamicDouble(
                     Span {
-                        lo: 96,
-                        hi: 129,
+                        lo: 104,
+                        hi: 128,
                     },
                 ),
             ]
@@ -98,8 +98,8 @@ fn use_of_dynamically_sized_array_yields_error() {
             [
                 UseOfDynamicallySizedArray(
                     Span {
-                        lo: 96,
-                        hi: 137,
+                        lo: 104,
+                        hi: 136,
                     },
                 ),
             ]
@@ -125,8 +125,8 @@ fn call_cyclic_function_with_dynamic_argument_yields_error() {
             [
                 CallToCyclicFunctionWithDynamicArg(
                     Span {
-                        lo: 201,
-                        hi: 244,
+                        lo: 211,
+                        hi: 243,
                     },
                 ),
             ]
@@ -148,8 +148,8 @@ fn call_cyclic_operation_with_classical_argument_yields_errors() {
                 ),
                 CallToCyclicOperation(
                     Span {
-                        lo: 177,
-                        hi: 200,
+                        lo: 187,
+                        hi: 199,
                     },
                 ),
             ]
@@ -171,8 +171,8 @@ fn call_cyclic_operation_with_dynamic_argument_yields_errors() {
                 ),
                 CallToCyclicOperation(
                     Span {
-                        lo: 202,
-                        hi: 245,
+                        lo: 212,
+                        hi: 244,
                     },
                 ),
             ]

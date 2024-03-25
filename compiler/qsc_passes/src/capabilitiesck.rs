@@ -17,8 +17,8 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableImpl, Expr, ExprId, Global, Item, ItemKind, LocalItemId, Package,
-        PackageLookup, Pat, PatId, SpecDecl, SpecImpl, Stmt, StmtId,
+        Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, Global, Item, ItemKind, LocalItemId,
+        Package, PackageLookup, Pat, PatId, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
     },
     ty::FunctorSetValue,
     visit::Visitor,
@@ -149,6 +149,24 @@ impl<'a> Visitor<'a> for Checker<'a> {
         };
     }
 
+    fn visit_expr(&mut self, expr_id: ExprId) {
+        let expr = self.get_expr(expr_id);
+        match &expr.kind {
+            ExprKind::Block(block_id) => self.visit_block(*block_id),
+            ExprKind::If(condition_expr_id, body_block_id, otherwise_block_id) => self
+                .check_expr_if(
+                    expr_id,
+                    *condition_expr_id,
+                    *body_block_id,
+                    *otherwise_block_id,
+                ),
+            ExprKind::While(condition_expr_id, body_block_id) => {
+                self.check_expr_while(expr_id, *condition_expr_id, *body_block_id);
+            }
+            _ => self.check_expr(expr_id),
+        };
+    }
+
     fn visit_item(&mut self, item: &'a Item) {
         // We only care about callables.
         if let ItemKind::Callable(callable_decl) = &item.kind {
@@ -164,7 +182,19 @@ impl<'a> Visitor<'a> for Checker<'a> {
     }
 
     fn visit_stmt(&mut self, stmt_id: StmtId) {
-        let compute_kind = self.compute_properties.get_stmt(stmt_id).inherent;
+        let stmt = self.get_stmt(stmt_id);
+        match &stmt.kind {
+            StmtKind::Item(_) => {}
+            StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) | StmtKind::Local(_, _, expr_id) => {
+                self.visit_expr(*expr_id);
+            }
+        }
+    }
+}
+
+impl<'a> Checker<'a> {
+    fn check_expr(&mut self, expr_id: ExprId) {
+        let compute_kind = self.compute_properties.get_expr(expr_id).inherent;
         let ComputeKind::Quantum(quantum_properties) = compute_kind else {
             return;
         };
@@ -173,13 +203,51 @@ impl<'a> Visitor<'a> for Checker<'a> {
             quantum_properties.runtime_features,
             self.target_capabilities,
         );
-        let stmt = self.get_stmt(stmt_id);
-        let mut stmt_errors = generate_errors_from_runtime_features(missing_features, stmt.span);
-        self.errors.append(&mut stmt_errors);
+        let expr = self.get_expr(expr_id);
+        let mut expr_errors = generate_errors_from_runtime_features(missing_features, expr.span);
+        self.errors.append(&mut expr_errors);
     }
-}
 
-impl<'a> Checker<'a> {
+    fn check_expr_if(
+        &mut self,
+        expr_id: ExprId,
+        condition_expr_id: ExprId,
+        body_expr_id: ExprId,
+        otherwise_expr_id: Option<ExprId>,
+    ) {
+        // Check each one of the sub-expressions individually to provide more granularity.
+        let pre_error_count = self.errors.len();
+        self.visit_expr(condition_expr_id);
+        self.visit_expr(body_expr_id);
+        otherwise_expr_id.iter().for_each(|e| self.visit_expr(*e));
+        let post_error_count = self.errors.len();
+
+        // If no errors were added because of the individual expressions, check this expression as a whole.
+        let errors_delta = post_error_count - pre_error_count;
+        if errors_delta == 0 {
+            self.check_expr(expr_id);
+        }
+    }
+
+    fn check_expr_while(
+        &mut self,
+        expr_id: ExprId,
+        condition_expr_id: ExprId,
+        body_block_id: BlockId,
+    ) {
+        // Check each one of the sub-elements individually to provide more granularity.
+        let pre_error_count = self.errors.len();
+        self.visit_expr(condition_expr_id);
+        self.visit_block(body_block_id);
+        let post_error_count = self.errors.len();
+
+        // If no errors were added because of the individual elements, check this expression as a whole.
+        let errors_delta = post_error_count - pre_error_count;
+        if errors_delta == 0 {
+            self.check_expr(expr_id);
+        }
+    }
+
     fn check_spec_decl(
         &mut self,
         functor_set_value: FunctorSetValue,
