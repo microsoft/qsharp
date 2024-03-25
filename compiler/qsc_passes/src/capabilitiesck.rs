@@ -64,6 +64,27 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicDouble"))]
     UseOfDynamicDouble(#[label] Span),
 
+    #[error("cannot use a dynamic qubit")]
+    #[diagnostic(help(
+        "using a dynamic qubit, a qubit whose allocation depends on a measurement result, is not supported by the target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicQubit"))]
+    UseOfDynamicQubit(#[label] Span),
+
+    #[error("cannot use a dynamic big integer value")]
+    #[diagnostic(help(
+        "using a dynamic big integer value, a big integer value that depends on a measurement result, is not supported by the target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicBigInt"))]
+    UseOfDynamicBigInt(#[label] Span),
+
+    #[error("cannot use a dynamic string value")]
+    #[diagnostic(help(
+        "using a dynamic string value, a string value that depends on a measurement result, is not supported by the target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicString"))]
+    UseOfDynamicString(#[label] Span),
+
     #[error("cannot use a dynamically-sized array")]
     #[diagnostic(help(
         "using a dynamically-sized array, an array whose size depends on a measurement result, is not supported by the target"
@@ -350,6 +371,15 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicDouble) {
         errors.push(Error::UseOfDynamicDouble(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicQubit) {
+        errors.push(Error::UseOfDynamicQubit(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicBigInt) {
+        errors.push(Error::UseOfDynamicBigInt(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicString) {
+        errors.push(Error::UseOfDynamicString(span));
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray) {
         errors.push(Error::UseOfDynamicallySizedArray(span));

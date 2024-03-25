@@ -92,9 +92,12 @@ pub const USE_DYNAMIC_BOOLEAN: &str = r#"
 
 pub const USE_DYNAMIC_INT: &str = r#"
     namespace Test {
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
         operation Foo() : Unit {
-            use q = Qubit();
-            let i = M(q) == Zero ? 0 | 1;
+            use register = Qubit[4];
+            let results = MeasureEachZ(register);
+            let i = ResultArrayAsInt(results);
         }
     }"#;
 
@@ -116,9 +119,43 @@ pub const USE_DYNAMIC_RANGE: &str = r#"
 
 pub const USE_DYNAMIC_DOUBLE: &str = r#"
     namespace Test {
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        operation Foo() : Unit {
+            use register = Qubit[4];
+            let results = MeasureEachZ(register);
+            let d = IntAsDouble(ResultArrayAsInt(results));
+        }
+    }"#;
+
+pub const USE_DYNAMIC_QUBIT: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use control = Qubit();
+            if M(control) == Zero {
+                use q = Qubit();
+                H(q);
+            }
+        }
+    }"#;
+
+pub const USE_DYNAMIC_BIG_INT: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        operation Foo() : Unit {
+            use register = Qubit[4];
+            let results = MeasureEachZ(register);
+            let bi = IntAsBigInt(ResultArrayAsInt(results));
+        }
+    }"#;
+
+pub const USE_DYNAMIC_STRING: &str = r#"
+    namespace Test {
         operation Foo() : Unit {
             use q = Qubit();
-            let d = M(q) == Zero ? 0.0 | 1.0;
+            let r = M(q);
+            let s = $"{r == Zero}";
         }
     }"#;
 

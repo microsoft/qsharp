@@ -8,7 +8,8 @@ use super::common::{
     CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, MINIMAL, USE_DYNAMICALLY_SIZED_ARRAY,
-    USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_INT, USE_DYNAMIC_PAULI, USE_DYNAMIC_RANGE,
+    USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_INT,
+    USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING,
 };
 use expect_test::{expect, Expect};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
@@ -44,11 +45,6 @@ fn use_of_dynamic_boolean_yields_error() {
     );
 }
 
-// In the case of if expressions, if either the condition or the blocks yield errors, the errors yielded by the whole if
-// expression are not surfaced to avoid too error churn.
-// Many of the test cases in this file use if expressions and in many of those the condition expression yields errors.
-// For this reason, some errors such "use of expected int" or "use of expected double" are not seen in some test cases.
-
 #[test]
 fn use_of_dynamic_int_yields_errors() {
     check_profile(
@@ -57,8 +53,14 @@ fn use_of_dynamic_int_yields_errors() {
             [
                 UseOfDynamicBool(
                     Span {
-                        lo: 104,
-                        hi: 116,
+                        lo: 246,
+                        hi: 271,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 246,
+                        hi: 271,
                     },
                 ),
             ]
@@ -68,6 +70,9 @@ fn use_of_dynamic_int_yields_errors() {
 
 #[test]
 fn use_of_dynamic_pauli_yields_errors() {
+    // In the case of if expressions, if either the condition or the blocks yield errors, the errors yielded by the
+    // whole if expression are not surfaced to avoid too error churn.
+    // For this reason, the "use of dynamic pauli" error is not yielded in this case.
     check_profile(
         USE_DYNAMIC_PAULI,
         &expect![[r#"
@@ -120,8 +125,83 @@ fn use_of_dynamic_double_yields_errors() {
             [
                 UseOfDynamicBool(
                     Span {
-                        lo: 104,
-                        hi: 116,
+                        lo: 246,
+                        hi: 284,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 246,
+                        hi: 284,
+                    },
+                ),
+                UseOfDynamicDouble(
+                    Span {
+                        lo: 246,
+                        hi: 284,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[ignore = "depends on fix from PR#1304"]
+#[test]
+fn use_of_dynamic_qubit_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_QUBIT,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_big_int_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_BIG_INT,
+        &expect![[r#"
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 247,
+                        hi: 285,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 247,
+                        hi: 285,
+                    },
+                ),
+                UseOfDynamicBigInt(
+                    Span {
+                        lo: 247,
+                        hi: 285,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_string_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_STRING,
+        &expect![[r#"
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 130,
+                        hi: 144,
+                    },
+                ),
+                UseOfDynamicString(
+                    Span {
+                        lo: 130,
+                        hi: 144,
                     },
                 ),
             ]

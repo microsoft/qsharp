@@ -10,7 +10,8 @@ use super::common::{
     CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, MINIMAL, USE_DYNAMICALLY_SIZED_ARRAY,
-    USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_INT, USE_DYNAMIC_PAULI,
+    USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_INT,
+    USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_STRING,
 };
 use expect_test::{expect, Expect};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
@@ -81,8 +82,53 @@ fn use_of_dynamic_double_yields_error() {
             [
                 UseOfDynamicDouble(
                     Span {
-                        lo: 104,
-                        hi: 128,
+                        lo: 246,
+                        hi: 284,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[ignore = "depends on fix from PR#1304"]
+#[test]
+fn use_of_dynamic_qubit_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_QUBIT,
+        &expect![[r#"
+            []
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_big_int_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_BIG_INT,
+        &expect![[r#"
+            [
+                UseOfDynamicBigInt(
+                    Span {
+                        lo: 247,
+                        hi: 285,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_string_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_STRING,
+        &expect![[r#"
+            [
+                UseOfDynamicString(
+                    Span {
+                        lo: 130,
+                        hi: 144,
                     },
                 ),
             ]
