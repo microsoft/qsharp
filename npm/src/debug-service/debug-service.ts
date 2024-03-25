@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
 import type {
   DebugService,
   IBreakpointSpan,
@@ -19,6 +20,7 @@ import {
 } from "../compiler/events.js";
 import { log } from "../log.js";
 import { IServiceProxy, ServiceProtocol } from "../workers/common.js";
+
 type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
@@ -33,7 +35,7 @@ export interface IDebugService {
   getBreakpoints(path: string): Promise<IBreakpointSpan[]>;
   getLocalVariables(): Promise<Array<IVariable>>;
   captureQuantumState(): Promise<Array<IQuantumState>>;
-  getCircuit(): Promise<object>;
+  getCircuit(): Promise<CircuitData>;
   getStackFrames(): Promise<IStackFrame[]>;
   evalContinue(
     bps: number[],
@@ -94,7 +96,7 @@ export class QSharpDebugService implements IDebugService {
     return state.entries;
   }
 
-  async getCircuit(): Promise<object> {
+  async getCircuit(): Promise<CircuitData> {
     return this.debugService.get_circuit();
   }
 
