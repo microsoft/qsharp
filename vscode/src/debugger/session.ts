@@ -324,6 +324,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
 
     if (!result) {
+      // Can be a runtime failure in the program
       await this.endSession(`ending session due to error: ${error}`, 1);
       return;
     } else if (result.id == StepResultId.BreakpointHit) {
@@ -736,12 +737,12 @@ export class QscDebugSession extends LoggingDebugSession {
         new Scope(
           "Quantum State",
           this.variableHandles.create("quantum"),
-          true, // expensive
+          true, // expensive - keeps scope collapsed in the UI by default
         ),
         new Scope(
           "Quantum Circuit",
           this.variableHandles.create("circuit"),
-          true, // expensive
+          true, // expensive - keeps scope collapsed in the UI by default
         ),
       ],
     };
