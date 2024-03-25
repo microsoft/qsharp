@@ -336,7 +336,7 @@ impl Display for FunctorSet {
 }
 
 /// The value of a functor set.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq)]
 pub enum FunctorSetValue {
     /// The empty set.
     #[default]

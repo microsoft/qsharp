@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type VSDiagnostic } from "../../lib/web/qsc_wasm.js";
+import {
+  IOperationInfo,
+  TargetProfile,
+  type VSDiagnostic,
+} from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
   IServiceProxy,
@@ -70,6 +74,11 @@ export interface ICompiler {
     languageFeatures?: string[],
   ): Promise<string>;
   getEstimates(config: ProgramConfig, params: string): Promise<string>;
+  getCircuit(
+    config: ProgramConfig,
+    target: TargetProfile,
+    operation?: IOperationInfo,
+  ): Promise<object>;
 
   checkExerciseSolution(
     userCode: string,
@@ -210,6 +219,19 @@ export class Compiler implements ICompiler {
     );
   }
 
+  async getCircuit(
+    config: ProgramConfig,
+    target: TargetProfile,
+    operation?: IOperationInfo,
+  ): Promise<object> {
+    return this.wasm.get_circuit(
+      config.sources,
+      target,
+      operation,
+      config.languageFeatures || [],
+    );
+  }
+
   async checkExerciseSolution(
     userCode: string,
     exerciseSources: string[],
@@ -264,6 +286,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getHir: "request",
     getQir: "request",
     getEstimates: "request",
+    getCircuit: "request",
     run: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
   },

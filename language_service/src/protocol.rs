@@ -130,10 +130,17 @@ pub struct CodeLens {
     pub command: CodeLensCommand,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum CodeLensCommand {
     Histogram,
     Debug,
     Run,
     Estimate,
+    Circuit(Option<OperationInfo>),
+}
+
+#[derive(Debug)]
+pub struct OperationInfo {
+    pub operation: String,
+    pub total_num_qubits: u32,
 }

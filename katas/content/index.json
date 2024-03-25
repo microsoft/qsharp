@@ -1,6 +1,7 @@
 [
   "getting_started",
   "complex_arithmetic",
+  "linear_algebra",
   "qubit",
   "single_qubit_gates",
   "multi_qubit_systems",

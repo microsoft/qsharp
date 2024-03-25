@@ -6,13 +6,19 @@
 const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
-import { EstimatesPanel, Histogram, type ReData } from "qsharp-lang/ux";
+import {
+  CircuitPanel,
+  EstimatesPanel,
+  Histogram,
+  type ReData,
+} from "qsharp-lang/ux";
 import { HelpPage } from "./help";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
+import { CircuitData } from "qsharp-lang/ux/circuit";
 const md = markdownIt();
 md.use(mk);
 
@@ -38,11 +44,20 @@ type EstimatesState = {
   };
 };
 
+type CircuitState = {
+  viewType: "circuit";
+  title: string;
+  subtitle: string;
+  circuit?: CircuitData;
+  errorHtml?: string;
+};
+
 type State =
   | { viewType: "loading" }
   | { viewType: "help" }
   | HistogramState
-  | EstimatesState;
+  | EstimatesState
+  | CircuitState;
 const loadingState: State = { viewType: "loading" };
 const helpState: State = { viewType: "help" };
 let state: State = loadingState;
@@ -101,6 +116,14 @@ function onMessage(event: any) {
     case "help":
       state = helpState;
       break;
+    case "circuit":
+      {
+        state = {
+          viewType: "circuit",
+          ...message,
+        };
+      }
+      break;
     default:
       console.error("Unknown command: ", message.command);
       return;
@@ -154,6 +177,15 @@ function App({ state }: { state: State }) {
           colors={[]}
           runNames={[]}
         />
+      );
+    case "circuit":
+      return (
+        <CircuitPanel
+          title={state.title}
+          subtitle={state.subtitle}
+          circuit={state.circuit}
+          errorHtml={state.errorHtml}
+        ></CircuitPanel>
       );
     case "help":
       return <HelpPage />;

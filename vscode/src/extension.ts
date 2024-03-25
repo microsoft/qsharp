@@ -48,6 +48,7 @@ import {
   sendTelemetryEvent,
 } from "./telemetry.js";
 import { registerWebViewCommands } from "./webviewPanel.js";
+import { initProjectCreator } from "./createProject.js";
 
 export async function activate(
   context: vscode.ExtensionContext,
@@ -88,6 +89,7 @@ export async function activate(
   registerCreateNotebookCommand(context);
   registerWebViewCommands(context);
   initFileSystem(context);
+  initProjectCreator(context);
 
   log.info("Q# extension activated.");
 
@@ -125,8 +127,8 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
       const documentType = isQsharpNotebookCell(document)
         ? QsharpDocumentType.JupyterCell
         : isQsharpDocument(document)
-        ? QsharpDocumentType.Qsharp
-        : QsharpDocumentType.Other;
+          ? QsharpDocumentType.Qsharp
+          : QsharpDocumentType.Other;
       if (documentType !== QsharpDocumentType.Other) {
         sendTelemetryEvent(
           EventType.OpenedDocument,

@@ -113,6 +113,11 @@
           "type": "boolean",
           "default": "true",
           "description": "Enables the Q# formatter."
+        },
+        "Q#.showCircuitCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
         }
       }
     },
@@ -175,6 +180,10 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.showCircuit",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
         },
@@ -219,6 +228,12 @@
           "command": "qsharp-vscode.workspacePythonCode",
           "when": "view == quantum-workspaces && viewItem == workspace"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "qsharp-vscode.createProject",
+          "when": "explorerResourceIsFolder"
+        }
       ]
     },
     "views": {
@@ -236,6 +251,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "qsharp-vscode.createProject",
+        "title": "Create Q# project",
+        "category": "Q#"
+      },
       {
         "command": "qsharp-vscode.webOpener",
         "title": "Internal web opener",
@@ -268,6 +288,11 @@
       {
         "command": "qsharp-vscode.showHelp",
         "title": "Help",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showCircuit",
+        "title": "Show circuit",
         "category": "Q#"
       },
       {
