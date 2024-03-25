@@ -147,13 +147,25 @@ fn use_of_dynamic_double_yields_errors() {
     );
 }
 
-#[ignore = "depends on fix from PR#1304"]
 #[test]
 fn use_of_dynamic_qubit_yields_errors() {
     check_profile(
         USE_DYNAMIC_QUBIT,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 105,
+                        hi: 123,
+                    },
+                ),
+                UseOfDynamicQubit(
+                    Span {
+                        lo: 142,
+                        hi: 158,
+                    },
+                ),
+            ]
         "#]],
     );
 }

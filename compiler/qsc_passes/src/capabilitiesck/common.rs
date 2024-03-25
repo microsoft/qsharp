@@ -12,6 +12,7 @@ use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{Package, PackageId, PackageStore};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties};
+use std::{fs::File, io::Write};
 
 pub fn check(source: &str, expect: &Expect, capabilities: RuntimeCapabilityFlags) {
     let compilation_context = CompilationContext::new(source);
@@ -59,6 +60,8 @@ impl CompilationContext {
         let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
         let analyzer = Analyzer::init(&fir_store);
         let compute_properties = analyzer.analyze_all();
+        write_fir_store_to_files(&fir_store);
+        write_compute_properties_to_files(&compute_properties);
         Self {
             fir_store,
             compute_properties,
@@ -134,7 +137,6 @@ pub const USE_DYNAMIC_QUBIT: &str = r#"
             use control = Qubit();
             if M(control) == Zero {
                 use q = Qubit();
-                H(q);
             }
         }
     }"#;
@@ -237,3 +239,21 @@ pub const CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT: &str = r#"
         use q = Qubit();
         let sum = GaussSum(M(q) == Zero ? 10 | 20);
     }"#;
+
+pub fn write_fir_store_to_files(store: &PackageStore) {
+    for (id, package) in store {
+        let filename = format!("dbg/fir.package{id}.txt");
+        let mut package_file = File::create(filename).expect("File could be created");
+        let package_string = format!("{package}");
+        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+    }
+}
+
+pub fn write_compute_properties_to_files(store: &PackageStoreComputeProperties) {
+    for (id, package) in store.iter() {
+        let filename = format!("dbg/rca.package{id}.txt");
+        let mut package_file = File::create(filename).expect("File could be created");
+        let package_string = format!("{package}");
+        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
+    }
+}

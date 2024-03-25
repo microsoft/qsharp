@@ -17,8 +17,9 @@ use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, Global, Item, ItemKind, LocalItemId,
-        Package, PackageLookup, Pat, PatId, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
+        Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, Global, Ident, Item, ItemKind,
+        LocalItemId, LocalVarId, Package, PackageLookup, Pat, PatId, PatKind, Res, SpecDecl,
+        SpecImpl, Stmt, StmtId, StmtKind,
     },
     ty::FunctorSetValue,
     visit::Visitor,
@@ -191,6 +192,12 @@ impl<'a> Visitor<'a> for Checker<'a> {
 
     fn visit_expr(&mut self, expr_id: ExprId) {
         let expr = self.get_expr(expr_id);
+
+        // We do not want to generate errors for auto-generated expressions.
+        if self.is_expr_auto_generated(expr) {
+            return;
+        }
+
         match &expr.kind {
             ExprKind::Block(block_id) => self.visit_block(*block_id),
             ExprKind::If(condition_expr_id, body_block_id, otherwise_block_id) => self
@@ -356,8 +363,41 @@ impl<'a> Checker<'a> {
             .expect("current callable is not set")
     }
 
+    fn find_local_var_ident(&self, local_var_id: LocalVarId) -> Option<&Ident> {
+        self.package
+            .pats
+            .iter()
+            .map(|(_, pat)| pat)
+            .find_map(|pat| {
+                if let PatKind::Bind(ident) = &pat.kind {
+                    if ident.id == local_var_id {
+                        Some(ident)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+    }
+
     fn get_current_callable(&self) -> LocalItemId {
         self.current_callable.expect("current callable is not set")
+    }
+
+    fn is_expr_auto_generated(&self, expr: &Expr) -> bool {
+        if expr.span.hi == 0 && expr.span.lo == 0 {
+            return true;
+        }
+
+        if let ExprKind::Var(Res::Local(local_var_id), _) = expr.kind {
+            let maybe_ident = self.find_local_var_ident(local_var_id);
+            if let Some(ident) = maybe_ident {
+                return ident.name.starts_with("@generated_ident");
+            }
+        }
+
+        false
     }
 
     fn run(mut self) -> Vec<Error> {
