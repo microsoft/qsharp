@@ -95,7 +95,7 @@ namespace Test {
         let n = 4;
         use qs = Qubit[n];
         let bitsize = 2 ^ n;
-        for i in 0..bitsize-1 {
+        for i in 0..bitsize - 1 {
             mutable c = Repeated(0.0, bitsize);
             set c w/= i <- 1.0;
             PreparePureStateD(c, qs);

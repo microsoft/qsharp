@@ -22,8 +22,8 @@ namespace Microsoft.Quantum.Core {
     function RangeStart(r : Range) : Int {
         r::Start
     }
-    
-    
+
+
     /// # Summary
     /// Returns the defined end value of the given range,
     /// which is not necessarily the last element in the sequence.
@@ -45,8 +45,8 @@ namespace Microsoft.Quantum.Core {
     function RangeEnd(r : Range) : Int {
         r::End
     }
-    
-    
+
+
     /// # Summary
     /// Returns the integer that specifies how the next value of a range is calculated.
     ///

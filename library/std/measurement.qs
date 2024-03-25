@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.Measurement {
         Fact(nBits < 64, $"`Length(target)` must be less than 64, but was {nBits}.");
 
         mutable number = 0;
-        for i in 0..nBits-1 {
+        for i in 0..nBits - 1 {
             if (MResetZ(target[i]) == One) {
                 set number |||= 1 <<< i;
             }

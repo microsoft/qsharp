@@ -84,6 +84,6 @@ namespace Test {
     operation TestQFT(n : Int) : Unit {
         Fact(n >= 1 and n <= 4, "Only have four tests for QFT.");
         let testOperations = [QFT1, QFT2, QFT3, QFT4];
-        AssertOperationsEqualReferenced(n, testOperations[n-1], q => ApplyQFT(Reversed(q)));
+        AssertOperationsEqualReferenced(n, testOperations[n - 1], q => ApplyQFT(Reversed(q)));
     }
 }

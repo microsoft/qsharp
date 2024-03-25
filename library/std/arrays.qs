@@ -1028,7 +1028,7 @@ namespace Microsoft.Quantum.Arrays {
     /// # Output
     /// An array containing the elements `array[Length(array) - 1]` .. `array[0]`.
     function Reversed<'T>(array : 'T[]) : 'T[] {
-        array[... -1...]
+        array[...-1...]
     }
 
     /// # Summary

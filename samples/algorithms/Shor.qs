@@ -275,17 +275,17 @@ namespace Sample {
         // Use phase estimation with a semiclassical Fourier transform to
         // estimate the frequency.
         use c = Qubit();
-        for idx in bitsPrecision-1..-1..0 {
+        for idx in bitsPrecision - 1..-1..0 {
             H(c);
             Controlled ApplyOrderFindingOracle(
                 [c],
                 (generator, modulus, 1 <<< idx, eigenstateRegister)
             );
-            R1Frac(frequencyEstimate, bitsPrecision-1-idx, c);
+            R1Frac(frequencyEstimate, bitsPrecision - 1 - idx, c);
             H(c);
             if M(c) == One {
                 X(c); // Reset
-                set frequencyEstimate += 1 <<< (bitsPrecision-1-idx);
+                set frequencyEstimate += 1 <<< (bitsPrecision - 1 - idx);
             }
         }
 

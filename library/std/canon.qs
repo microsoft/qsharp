@@ -259,7 +259,7 @@ namespace Microsoft.Quantum.Canon {
     /// \end{align}
     /// $$
     operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
-        for i in 0..Length(qubits)-2 {
+        for i in 0..Length(qubits) - 2 {
             CNOT(qubits[i], qubits[i + 1]);
         }
     }
@@ -310,7 +310,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```
     operation ApplyPauli(pauli : Pauli[], target : Qubit[]) : Unit is Adj + Ctl {
         Fact(Length(pauli) == Length(target), "`pauli` and `target` must be of the same length.");
-        for i in 0..Length(pauli)-1 {
+        for i in 0..Length(pauli) - 1 {
             ApplyP(pauli[i], target[i]);
         }
     }
@@ -345,7 +345,7 @@ namespace Microsoft.Quantum.Canon {
     operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl {
         let nBits = Length(bits);
         Fact(nBits == Length(qubits), "Number of control bits must be equal to number of control qubits.");
-        for i in 0..nBits-1 {
+        for i in 0..nBits - 1 {
             if bits[i] == bitApply {
                 ApplyP(pauli, qubits[i]);
             }
@@ -388,7 +388,7 @@ namespace Microsoft.Quantum.Canon {
         Fact(numberState >= 0, "number must be non-negative");
         Fact(BitSizeI(numberState) <= length, "Bit size of numberState must not exceed qubits length");
 
-        for i in 0..length-1 {
+        for i in 0..length - 1 {
             // If we assume loop unrolling, 2^i will be optimized to a constant.
             if ((numberState &&& (1 <<< i)) != 0) == bitApply {
                 ApplyP(pauli, qubits[i]);
@@ -491,10 +491,10 @@ namespace Microsoft.Quantum.Canon {
     operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl {
         let length = Length(qs);
         Fact(length >= 1, "ApplyQFT: Length(qs) must be at least 1.");
-        for i in length-1..-1..0 {
+        for i in length - 1..-1..0 {
             H(qs[i]);
-            for j in 0..i-1 {
-                Controlled R1Frac([qs[i]], (1, j + 1, qs[i-j-1]));
+            for j in 0..i - 1 {
+                Controlled R1Frac([qs[i]], (1, j + 1, qs[i - j - 1]));
             }
         }
     }

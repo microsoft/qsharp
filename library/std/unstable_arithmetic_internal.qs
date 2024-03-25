@@ -27,10 +27,10 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     ///   https://arxiv.org/abs/0910.2530
     internal operation ApplyOuterTTKAdder(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         Fact(Length(xs) <= Length(ys), "Input register ys must be at lease as long as xs.");
-        for i in 1..Length(xs)-1 {
+        for i in 1..Length(xs) - 1 {
             CNOT(xs[i], ys[i]);
         }
-        for i in Length(xs)-2..-1..1 {
+        for i in Length(xs) - 2..-1..1 {
             CNOT(xs[i], xs[i + 1]);
         }
     }
@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             for idx in 0..Length(xs) - 2 {
                 CCNOT(xs[idx], ys[idx], xs[idx + 1]);
             }
-            for idx in Length(xs)-1..-1..1 {
+            for idx in Length(xs) - 1..-1..1 {
                 Controlled CNOT(controls, (xs[idx], ys[idx]));
                 CCNOT(xs[idx - 1], ys[idx - 1], xs[idx]);
             }
@@ -111,10 +111,10 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             for idx in 0..nQubits - 2 {
                 CCNOT(xs[idx], ys[idx], xs[idx + 1]);
             }
-            (Controlled CCNOT)(controls, (xs[nQubits-1], ys[nQubits-1], ys[nQubits]));
+            (Controlled CCNOT)(controls, (xs[nQubits - 1], ys[nQubits - 1], ys[nQubits]));
             for idx in nQubits - 1..-1..1 {
                 Controlled CNOT(controls, (xs[idx], ys[idx]));
-                CCNOT(xs[idx-1], ys[idx-1], xs[idx]);
+                CCNOT(xs[idx - 1], ys[idx - 1], xs[idx]);
             }
         }
     }
@@ -444,7 +444,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             Fact(Length(cs1) == Length(qs), "Arrays should be of the same length.");
 
             within {
-                for i in 0..Length(cs1)-1 {
+                for i in 0..Length(cs1) - 1 {
                     let op = cNormalized &&& (1L <<< (i + 1)) != 0L ? ApplyAndAssuming0Target | ApplyOrAssuming0Target;
                     op(cs1[i], xNormalized[i + 1], qs[i]);
                 }
@@ -481,16 +481,16 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
 
         within {
             CarryWith1CarryIn(x[0], y[0], carries[0]);
-            for i in 1..n-1 {
-                CarryForInc(carries[i-1], x[i], y[i], carries[i]);
+            for i in 1..n - 1 {
+                CarryForInc(carries[i - 1], x[i], y[i], carries[i]);
             }
         } apply {
             within {
                 if invertControl {
-                    X(carries[n-1]);
+                    X(carries[n - 1]);
                 }
             } apply {
-                Controlled action([carries[n-1]], target);
+                Controlled action([carries[n - 1]], target);
             }
         }
     }
@@ -543,14 +543,14 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             } elif n == 1 {
                 Controlled op(ctls, input);
             } else {
-                use aux = Qubit[n-1];
+                use aux = Qubit[n - 1];
                 within {
                     ApplyAndAssuming0Target(ctls[0], ctls[1], aux[0]);
-                    for i in 1..n-2 {
-                        ApplyAndAssuming0Target(aux[i-1], ctls[i + 1], aux[i]);
+                    for i in 1..n - 2 {
+                        ApplyAndAssuming0Target(aux[i - 1], ctls[i + 1], aux[i]);
                     }
                 } apply {
-                    Controlled op(aux[n-2..n-2], input);
+                    Controlled op(aux[n - 2..n - 2], input);
                 }
             }
         }

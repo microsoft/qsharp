@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.Intrinsic {
             within {
                 H(aux);
             } apply {
-                for i in 0..Length(bases)-1 {
+                for i in 0..Length(bases) - 1 {
                     EntangleForJointMeasure(bases[i], aux, qubits[i]);
                 }
             }
@@ -362,7 +362,7 @@ namespace Microsoft.Quantum.Intrinsic {
         within {
             H(aux);
         } apply {
-            for i in 0..Length(bases)-1 {
+            for i in 0..Length(bases) - 1 {
                 EntangleForJointMeasure(bases[i], aux, qubits[i]);
             }
         }
@@ -401,7 +401,7 @@ namespace Microsoft.Quantum.Intrinsic {
             Rz(theta, qubit);
         } else {
             // PauliI
-            ApplyGlobalPhase( - theta / 2.0);
+            ApplyGlobalPhase(-theta / 2.0);
         }
     }
 

@@ -136,7 +136,7 @@ namespace Sample {
         let u = Length(register) / 2;
         let xs = register[0..u - 1];
         let ys = register[u...];
-        for index in 0..u-1 {
+        for index in 0..u - 1 {
             CZ(xs[index], ys[index]);
         }
     }

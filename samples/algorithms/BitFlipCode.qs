@@ -124,7 +124,7 @@ namespace Sample {
         } elif (parity01, parity12) == (Zero, One) {
             2
         } else {
-                -1
+            -1
         };
 
         // If an error was detected, correct that qubit.

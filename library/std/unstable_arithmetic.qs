@@ -169,7 +169,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             CNOT(xs[0], ys[0]);
         } elif xsLen + 1 == ysLen {
             if xsLen > 1 {
-                CNOT(xs[xsLen-1], ys[ysLen-1]);
+                CNOT(xs[xsLen - 1], ys[ysLen - 1]);
                 within {
                     ApplyOuterTTKAdder(xs, ys);
                 } apply {
@@ -222,20 +222,20 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             within {
                 ApplyAndAssuming0Target(xs[0], ys[0], carries[0]);
             } apply {
-                for i in 1..xsLen-2 {
-                    CarryForInc(carries[i-1], xs[i], ys[i], carries[i]);
+                for i in 1..xsLen - 2 {
+                    CarryForInc(carries[i - 1], xs[i], ys[i], carries[i]);
                 }
                 if xsLen == ysLen {
                     within {
-                        CNOT(carries[xsLen-2], xs[xsLen-1]);
+                        CNOT(carries[xsLen - 2], xs[xsLen - 1]);
                     } apply {
-                        CNOT(xs[xsLen-1], ys[xsLen-1]);
+                        CNOT(xs[xsLen - 1], ys[xsLen - 1]);
                     }
                 } else {
-                    FullAdderForInc(carries[xsLen-2], xs[xsLen-1], ys[xsLen-1], ys[xsLen]);
+                    FullAdderForInc(carries[xsLen - 2], xs[xsLen - 1], ys[xsLen - 1], ys[xsLen]);
                 }
-                for i in xsLen-2..-1..1 {
-                    UncarryForInc(carries[i-1], xs[i], ys[i], carries[i]);
+                for i in xsLen - 2..-1..1 {
+                    UncarryForInc(carries[i - 1], xs[i], ys[i], carries[i]);
                 }
             }
             CNOT(xs[0], ys[0]);
@@ -265,7 +265,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
 
         // Since zs is zero-initialized, its bits at indexes higher than
         // xsLen remain unused as there will be no carry into them.
-        let top = MinI(zsLen-2, xsLen-1);
+        let top = MinI(zsLen - 2, xsLen - 1);
         for k in 0..top {
             FullAdder(zs[k], xs[k], ys[k], zs[k + 1]);
         }

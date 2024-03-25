@@ -76,7 +76,7 @@ namespace QuantumDynamics {
             }
         }
 
-        for i in len1 + len2 + 1..valLength-1 {
+        for i in len1 + len2 + 1..valLength - 1 {
             if (i % 2 == 0) {
                 set values w/= i <- val1;
             } else {
@@ -98,7 +98,7 @@ namespace QuantumDynamics {
     operation ApplyAllX(n : Int, qArr : Qubit[][], theta : Double) : Unit {
         // This applies `Rx` with an angle of `2.0 * theta` to all qubits in `qs`
         // using partial application
-        for row in 0..n-1 {
+        for row in 0..n - 1 {
             ApplyToEach(Rx(2.0 * theta, _), qArr[row]);
         }
     }
@@ -119,8 +119,8 @@ namespace QuantumDynamics {
     operation ApplyDoubleZ(n : Int, m : Int, qArr : Qubit[][], theta : Double, dir : Bool, grp : Bool) : Unit {
         let start = grp ? 1 | 0;    // Choose either odd or even indices based on group number
         let P_op = [PauliZ, PauliZ];
-        let c_end = dir ? m-1 | m-2;
-        let r_end = dir ? m-2 | m-1;
+        let c_end = dir ? m - 1 | m - 2;
+        let r_end = dir ? m - 2 | m - 1;
 
         for row in 0..r_end {
             for col in start..2..c_end {
@@ -160,7 +160,7 @@ namespace QuantumDynamics {
         let angSeq = SetAngleSequence(p, dt, J, g);
 
         for i in 0..seqLen - 1 {
-            let theta = (i == 0 or i == seqLen-1) ? J * p * dt / 2.0 | angSeq[i % 10];
+            let theta = (i == 0 or i == seqLen - 1) ? J * p * dt / 2.0 | angSeq[i % 10];
 
             // for even indexes
             if i % 2 == 0 {

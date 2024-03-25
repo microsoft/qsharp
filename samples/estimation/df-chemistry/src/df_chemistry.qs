@@ -335,7 +335,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
             mutable result = [];
             mutable sins = 1.0;
 
-            for index in 0..Length(eigenVector)-2 {
+            for index in 0..Length(eigenVector) - 2 {
                 // We apply MinD, such that rounding errors do not lead to
                 // an argument for ArcCos which is larger than 1.0. (p. 52, eq. 56)
                 let theta = sins == 0.0 ? 0.0 | 0.5 * ArcCos(MinD(eigenVector[index] / sins, 1.0));
