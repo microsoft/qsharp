@@ -1196,6 +1196,10 @@ impl VecIdent {
         }
         return true;
     }
+    
+    pub fn name(&self) -> String {
+        self.0.iter().map(|i| i.name.to_string()).collect::<Vec<String>>().join(".")
+    }
 }
 /// An identifier.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

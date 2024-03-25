@@ -75,7 +75,7 @@ pub(crate) fn get_completions(
     // The PRELUDE namespaces are always implicitly opened.
     context_finder
         .opens
-        .extend(PRELUDE.into_iter().map(|ns| (ns, None)));
+        .extend(PRELUDE.into_iter().map(|ns| (todo!("this needs to be a ns id") as NamespaceId, None)));
 
     let mut builder = CompletionListBuilder::new();
 
@@ -385,6 +385,7 @@ impl CompletionListBuilder {
         self.current_sort_group += 1;
     }
 
+    /// Get all callables in a package
     fn get_callables<'a>(
         compilation: &'a Compilation,
         package_id: PackageId,
@@ -410,108 +411,10 @@ impl CompletionListBuilder {
             .namespaces.clone();
         let namespaces = Rc::new(namespaces);
         convert_ast_namespaces_into_hir_namespaces(namespaces);
-        package.items.values().map(|x| (is_user_package.clone(), namespaces.clone(), x)).filter_map( |(is_user_package, namespaces, i)| {
-            // We only want items whose parents are namespaces
-            if let Some(item_id) = i.parent {
-                if let Some(parent) = package.items.get(item_id) {
-                    if let ItemKind::Namespace(namespace, _) = &parent.kind {
-                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
-                            return None;
-                        }
-                        let ns_id = namespaces
-                            .find_namespace(namespace)
-                            .expect("namespace should exist");
-                        // If the item's visibility is internal, the item may be ignored
-                        if matches!(i.visibility, Visibility::Internal) {
-                            if !is_user_package {
-                                return None; // ignore item if not in the user's package
-                            }
-
-                            // ignore item if the user is not in the item's namespace
-                            match &current_namespace_name {
-                                Some(curr_ns) => {
-                                    if *curr_ns != ns_id {
-                                        return None;
-                                    }
-                                }
-                                None => {
-                                    return None;
-                                }
-                            }
-                        }
-                        return match &i.kind {
-                            ItemKind::Callable(callable_decl) => {
-                                let name = callable_decl.name.name.as_ref();
-                                let detail =
-                                    Some(display.hir_callable_decl(callable_decl).to_string());
-                                // Everything that starts with a __ goes last in the list
-                                let sort_group = u32::from(name.starts_with("__"));
-                                let mut additional_edits = vec![];
-                                let mut qualification: Option<Rc<str>> = None;
-                                match &current_namespace_name {
-                                    Some(curr_ns) if *curr_ns == ns_id  => {}
-                                    _ => {
-                                        // open is an option of option of Rc<str>
-                                        // the first option tells if it found an open with the namespace name
-                                        // the second, nested option tells if that open has an alias
-                                        let open = opens.iter().find_map(|(name, alias)| {
-                                            if *name == ns_id {
-                                                Some(alias)
-                                            } else {
-                                                None
-                                            }
-                                        });
-                                        qualification = match open {
-                                            Some(alias) => alias.clone(),
-                                            None => match insert_open_at {
-                                                Some(start) => {
-                                                    additional_edits.push(TextEdit {
-                                                        new_text: format!(
-                                                            "open {};{}",
-                                                            namespace,
-                                                            indent,
-                                                        ),
-                                                        range: start,
-                                                    });
-                                                    None
-                                                }
-                                                None => Some(Rc::from(format!("{namespace}"))),
-                                            },
-                                        }
-                                    }
-                                }
-
-                                let additional_text_edits = if additional_edits.is_empty() {
-                                    None
-                                } else {
-                                    Some(additional_edits)
-                                };
-
-                                let label = if let Some(qualification) = qualification {
-                                    format!("{qualification}.{name}")
-                                } else {
-                                    name.to_owned()
-                                };
-                                Some((
-                                    CompletionItem {
-                                        label,
-                                        kind: CompletionItemKind::Function,
-                                        sort_text: None, // This will get filled in during `push_sorted_completions`
-                                        detail,
-                                        additional_text_edits,
-                                    },
-                                    sort_group,
-                                ))
-                            }
-                            _ => None,
-                        };
-                    }
-                }
-            }
-            None
-        })
+        vec![todo!()].into_iter()
     }
 
+    /// Get all callables in the core package
     fn get_core_callables<'a>(
         compilation: &'a Compilation,
         package: &'a Package,
@@ -542,10 +445,10 @@ impl CompletionListBuilder {
     fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
         package.items.values().filter_map(|i| match &i.kind {
             ItemKind::Namespace(namespace, _)
-                if !namespace.name.starts_with("Microsoft.Quantum.Unstable") =>
+                if !namespace.starts_with_sequence(&["Microsoft", "Quantum","Unstable"]) =>
             {
                 Some(CompletionItem::new(
-                    namespace.name.to_string(),
+                    namespace.name(),
                     CompletionItemKind::Module,
                 ))
             }
@@ -555,23 +458,24 @@ impl CompletionListBuilder {
 }
 
 fn convert_ast_namespaces_into_hir_namespaces(
-    namespaces: qsc::resolve::NamespaceTreeRoot,
-) -> qsc::hir::global::NamespaceTreeRoot {
+    namespaces: qsc::NamespaceTreeRoot,
+) -> qsc::NamespaceTreeRoot {
     let mut hir_namespaces = Vec::new();
     let mut assigner = 0;
-    for (namespace, qsc::resolve::NamespaceTreeNode { children, id }) in
+    for (namespace, qsc::NamespaceTreeNode { children, id }) in
         namespaces.tree().children()
     {
-        let hir_namespace = qsc::hir::global::NamespaceTreeNode::new(id, children.clone());
+        let hir_namespace = qsc::NamespaceTreeNode::new(id, children.clone());
         if namespace.id > assigner {
             assigner = namespace.id + 1;
         };
         hir_namespaces.push(hir_namespace);
     }
 
-    qsc::hir::global::NamespaceTreeRoot::new(hir_namespaces, assigner)
+    qsc::NamespaceTreeRoot::new(hir_namespaces, assigner)
 }
 
+/// Convert a local into a completion item
 fn local_completion(
     candidate: &Local,
     compilation: &Compilation,
