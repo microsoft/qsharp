@@ -42,23 +42,33 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContents`,
-      (resource: vscode.Uri) => startDebugging(resource, { noDebug: true }),
+      (resource: vscode.Uri) =>
+        startDebugging(
+          resource,
+          { name: "Run Q# File", stopOnEntry: false },
+          { noDebug: true },
+        ),
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.debugEditorContents`,
-      (resource: vscode.Uri) => startDebugging(resource),
+      (resource: vscode.Uri) =>
+        startDebugging(resource, { name: "Debug Q# File", stopOnEntry: true }),
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.debugEditorContentsWithCircuit`,
       (resource: vscode.Uri) =>
-        startDebugging(resource, {}, { showCircuit: true }),
+        startDebugging(resource, {
+          name: "Debug Q# File",
+          stopOnEntry: true,
+          showCircuit: true,
+        }),
     ),
   );
 
   function startDebugging(
     resource: vscode.Uri,
+    config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
-    additionalConfig?: { [key: string]: any },
   ) {
     let targetResource = resource;
     if (!targetResource && vscode.window.activeTextEditor) {
@@ -76,11 +86,9 @@ function registerCommands(context: vscode.ExtensionContext) {
         undefined,
         {
           type: "qsharp",
-          name: "Debug Q# File",
           request: "launch",
           shots: 1,
-          stopOnEntry: true,
-          ...additionalConfig,
+          ...config,
         },
         options,
       );

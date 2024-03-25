@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
 import {
   IOperationInfo,
   VSDiagnostic,
@@ -104,7 +105,7 @@ export async function showCircuitCommand(
 export function updateCircuitPanel(
   targetProfile: string,
   docPath: string,
-  circuitOrErrorHtml: object | string,
+  circuitOrErrorHtml: CircuitData | string,
   operation?: IOperationInfo | undefined,
 ) {
   let title;
