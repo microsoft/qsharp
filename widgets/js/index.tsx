@@ -10,6 +10,7 @@ import {
   EstimatesOverview,
   EstimatesPanel,
   ReData,
+  Circuit,
 } from "qsharp-lang/ux";
 import markdownIt from "markdown-it";
 
@@ -52,6 +53,9 @@ export function render({ model, el }: RenderArgs) {
       break;
     case "EstimatesPanel":
       renderEstimatesPanel({ model, el });
+      break;
+    case "Circuit":
+      renderCircuit({ model, el });
       break;
     default:
       throw new Error(`Unknown component type ${componentType}`);
@@ -209,4 +213,14 @@ function renderHistogram({ model, el }: RenderArgs) {
   onChange();
   model.on("change:buckets", onChange);
   model.on("change:shot_count", onChange);
+}
+
+function renderCircuit({ model, el }: RenderArgs) {
+  const onChange = () => {
+    const circuitJson = model.get("circuit_json") as string;
+    prender(<Circuit circuit={JSON.parse(circuitJson)}></Circuit>, el);
+  };
+
+  onChange();
+  model.on("change:circuit_json", onChange);
 }

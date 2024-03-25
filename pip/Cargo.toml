@@ -16,9 +16,13 @@ qsc = { path = "../compiler/qsc" }
 resource_estimator = { path = "../resource_estimator" }
 miette = { workspace = true, features = ["fancy"] }
 rustc-hash = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true
+
+[target.'cfg(not(any(target_family = "wasm")))'.dependencies]
+allocator = { path = "../allocator" }
 
 [target.'cfg(not(any(target_os = "windows")))'.dependencies]
 pyo3 = { workspace = true, features = ["abi3-py37", "extension-module", "num-bigint"] }

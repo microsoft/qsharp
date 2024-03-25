@@ -40,6 +40,12 @@ export enum EventType {
   TriggerHistogram = "Qsharp.TriggerHistogram",
   HistogramStart = "Qsharp.HistogramStart",
   HistogramEnd = "Qsharp.HistogramEnd",
+  FormatStart = "Qsharp.FormatStart",
+  FormatEnd = "Qsharp.FormatEnd",
+  CreateProject = "Qsharp.CreateProject",
+  TriggerCircuit = "Qsharp.TriggerCircuit",
+  CircuitStart = "Qsharp.CircuitStart",
+  CircuitEnd = "Qsharp.CircuitEnd",
 }
 
 type Empty = { [K in any]: never };
@@ -206,6 +212,34 @@ type EventTypes = {
     properties: { associationId: string };
     measurements: { timeToCompleteMs: number };
   };
+  [EventType.FormatStart]: {
+    properties: { associationId: string; event: FormatEvent };
+    measurements: Empty;
+  };
+  [EventType.FormatEnd]: {
+    properties: { associationId: string };
+    measurements: { timeToCompleteMs: number; numberOfEdits: number };
+  };
+  [EventType.CreateProject]: {
+    properties: Empty;
+    measurements: Empty;
+  };
+  [EventType.TriggerCircuit]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.CircuitStart]: {
+    properties: { associationId: string };
+    measurements: Empty;
+  };
+  [EventType.CircuitEnd]: {
+    properties: {
+      associationId: string;
+      reason?: string;
+      flowStatus: UserFlowStatus;
+    };
+    measurements: { timeToCompleteMs: number };
+  };
 };
 
 export enum QsharpDocumentType {
@@ -225,6 +259,12 @@ export enum UserFlowStatus {
 export enum DebugEvent {
   StepIn = "StepIn",
   Continue = "Continue",
+}
+
+export enum FormatEvent {
+  OnDocument = "OnDocument",
+  OnRange = "OnRange",
+  OnType = "OnType",
 }
 
 let reporter: TelemetryReporter | undefined;

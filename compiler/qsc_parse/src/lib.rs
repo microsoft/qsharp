@@ -7,8 +7,8 @@
 
 mod expr;
 mod item;
-mod keyword;
-mod lex;
+pub mod keyword;
+pub mod lex;
 mod prim;
 mod scan;
 mod stmt;

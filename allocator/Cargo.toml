@@ -1,0 +1,15 @@
+[package]
+name = "allocator"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[target.'cfg(not(any(target_family = "wasm", all(target_family = "windows", target_arch = "aarch64"))))'.dependencies]
+mimalloc-sys = { path = "./mimalloc-sys" }
+
+[lints]
+workspace = true
+

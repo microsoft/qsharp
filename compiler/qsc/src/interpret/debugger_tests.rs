@@ -135,7 +135,6 @@ mod given_debugger {
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;
-            debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
             expect_bp(&mut debugger, &ids, expected_id);
@@ -159,7 +158,6 @@ mod given_debugger {
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;
-            debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
             expect_bp(&mut debugger, &ids, expected_id);
@@ -179,7 +177,6 @@ mod given_debugger {
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;
-            debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
             expect_bp(&mut debugger, &ids, expected_id);
@@ -206,7 +203,6 @@ mod given_debugger {
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;
-            debugger.set_entry()?;
             let ids = get_breakpoint_ids(&debugger, "test");
             let expected_id = ids[0];
             expect_bp(&mut debugger, &ids, expected_id);

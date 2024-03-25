@@ -30,8 +30,8 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
       return phase.toFixed(4);
     }
 
-    const dump = evt.detail;
-    const basisStates = Object.keys(dump);
+    const stateTable = evt.detail.state;
+    const basisStates = Object.keys(stateTable);
     const basisColumnWidth = Math.max(
       basisStates[0]?.length ?? 0,
       "Basis".length,
@@ -46,7 +46,7 @@ export function createDebugConsoleEventTarget(out: (message: string) => void) {
       "-------------------------------------------\n";
 
     for (const row of basisStates) {
-      const [real, imag] = dump.state[row];
+      const [real, imag] = stateTable[row];
       const basis = row.padStart(basisColumnWidth);
       const amplitude = formatComplex(real, imag).padStart(16);
       const probability = formatProbabilityPercent(real, imag).padStart(11);

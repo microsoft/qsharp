@@ -4,9 +4,9 @@
 #[cfg(test)]
 mod tests;
 
+use crate::remapper::{HardwareId, Remapper};
 use num_bigint::BigUint;
 use num_complex::Complex;
-use qsc_data_structures::index_map::IndexMap;
 use qsc_eval::{
     backend::Backend,
     debug::{map_hir_package_to_fir, Frame},
@@ -42,7 +42,6 @@ pub fn generate_qir(
 
     let package = map_hir_package_to_fir(package);
     let unit = fir_store.get(package);
-    let entry_expr = unit.entry.expect("package should have entry");
 
     let mut sim = BaseProfSim::default();
     let mut stdout = std::io::sink();
@@ -50,7 +49,7 @@ pub fn generate_qir(
     let result = eval(
         package,
         None,
-        entry_expr.into(),
+        unit.entry_exec_graph.clone(),
         &fir_store,
         &mut Env::default(),
         &mut sim,
@@ -62,18 +61,11 @@ pub fn generate_qir(
     }
 }
 
-#[derive(Copy, Clone, Default)]
-struct HardwareId(usize);
-
 pub struct BaseProfSim {
-    next_meas_id: usize,
-    next_qubit_id: usize,
-    next_qubit_hardware_id: HardwareId,
-    qubit_map: IndexMap<usize, HardwareId>,
     instrs: String,
-    measurements: String,
     decls: String,
     decl_names: FxHashSet<String>,
+    remapper: Remapper,
 }
 
 impl Default for BaseProfSim {
@@ -86,14 +78,10 @@ impl BaseProfSim {
     #[must_use]
     pub fn new() -> Self {
         let mut sim = BaseProfSim {
-            next_meas_id: 0,
-            next_qubit_id: 0,
-            next_qubit_hardware_id: HardwareId::default(),
-            qubit_map: IndexMap::new(),
             instrs: String::new(),
-            measurements: String::new(),
             decls: String::new(),
             decl_names: FxHashSet::default(),
+            remapper: Remapper::default(),
         };
         sim.instrs.push_str(include_str!("./qir_base/prefix.ll"));
         sim
@@ -101,36 +89,32 @@ impl BaseProfSim {
 
     #[must_use]
     pub fn finish(mut self, val: &Value) -> String {
-        self.instrs.push_str(&self.measurements);
+        for (mapped_q, id) in self.remapper.measurements() {
+            writeln!(
+                self.instrs,
+                "  call void @__quantum__qis__mz__body({}, {}) #1",
+                Qubit(*mapped_q),
+                Result(*id),
+            )
+            .expect("writing to string should succeed");
+        }
         self.write_output_recording(val)
             .expect("writing to string should succeed");
 
         write!(
             self.instrs,
             include_str!("./qir_base/postfix.ll"),
-            self.decls, self.next_qubit_hardware_id.0, self.next_meas_id
+            self.decls,
+            self.remapper.num_qubits(),
+            self.remapper.num_measurements()
         )
         .expect("writing to string should succeed");
 
         self.instrs
     }
 
-    #[must_use]
-    fn get_meas_id(&mut self) -> usize {
-        let id = self.next_meas_id;
-        self.next_meas_id += 1;
-        id
-    }
-
     fn map(&mut self, qubit: usize) -> HardwareId {
-        if let Some(mapped) = self.qubit_map.get(qubit) {
-            *mapped
-        } else {
-            let mapped = self.next_qubit_hardware_id;
-            self.next_qubit_hardware_id.0 += 1;
-            self.qubit_map.insert(qubit, mapped);
-            mapped
-        }
+        self.remapper.map(qubit)
     }
 
     fn write_output_recording(&mut self, val: &Value) -> std::fmt::Result {
@@ -290,30 +274,20 @@ impl Backend for BaseProfSim {
     }
 
     fn m(&mut self, q: usize) -> Self::ResultType {
-        let mapped_q = self.map(q);
-        let id = self.get_meas_id();
         // Measurements are tracked separately from instructions, so that they can be
         // deferred until the end of the program.
-        writeln!(
-            self.measurements,
-            "  call void @__quantum__qis__mz__body({}, {}) #1",
-            Qubit(mapped_q),
-            Result(id),
-        )
-        .expect("writing to string should succeed");
-        self.reset(q);
-        id
+        self.remapper.mreset(q)
     }
 
     fn mresetz(&mut self, q: usize) -> Self::ResultType {
-        self.m(q)
+        self.remapper.mreset(q)
     }
 
     fn reset(&mut self, q: usize) {
         // Reset is a no-op in Base Profile, but does force qubit remapping so that future
         // operations on the given qubit id are performed on a fresh qubit. Clear the entry in the map
         // so it is known to require remapping on next use.
-        self.qubit_map.remove(q);
+        self.remapper.reset(q);
     }
 
     fn rx(&mut self, theta: f64, q: usize) {
@@ -471,14 +445,11 @@ impl Backend for BaseProfSim {
     }
 
     fn qubit_allocate(&mut self) -> usize {
-        let id = self.next_qubit_id;
-        self.next_qubit_id += 1;
-        let _ = self.map(id);
-        id
+        self.remapper.qubit_allocate()
     }
 
-    fn qubit_release(&mut self, _q: usize) {
-        self.next_qubit_id -= 1;
+    fn qubit_release(&mut self, q: usize) {
+        self.remapper.qubit_release(q);
     }
 
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {

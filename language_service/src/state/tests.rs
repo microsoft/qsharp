@@ -1252,6 +1252,163 @@ async fn doc_switches_project_on_close() {
     );
 }
 
+#[tokio::test]
+async fn loading_lints_config_from_manifest() {
+    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{ "lints": [{ "lint": "divisionByZero", "level": "error" }, { "lint": "needlessParens", "level": "error" }] }"#,
+                ),
+                dir(
+                    "src",
+                    [file(
+                        "this_file.qs",
+                        this_file_qs,
+                    )],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Check the LintConfig.
+    check_lints_config(
+        &updater,
+        &expect![[r#"
+            [
+                LintConfig {
+                    kind: Ast(
+                        DivisionByZero,
+                    ),
+                    level: Error,
+                },
+                LintConfig {
+                    kind: Ast(
+                        NeedlessParens,
+                    ),
+                    level: Error,
+                },
+            ]"#]],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn lints_update_after_manifest_change() {
+    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let fs = FsNode::Dir(
+        [dir(
+            "project",
+            [
+                file(
+                    "qsharp.json",
+                    r#"{ "lints": [{ "lint": "divisionByZero", "level": "error" }, { "lint": "needlessParens", "level": "error" }] }"#,
+                ),
+                dir(
+                    "src",
+                    [file(
+                        "this_file.qs",
+                        this_file_qs,
+                    )],
+                ),
+            ],
+        )]
+        .into_iter()
+        .collect(),
+    );
+
+    let fs = Rc::new(RefCell::new(fs));
+    let received_errors = RefCell::new(Vec::new());
+    let mut updater = new_updater_with_file_system(&received_errors, &fs);
+
+    // Triger a document update.
+    updater
+        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .await;
+
+    // Check generated lints.
+    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    check_lints(
+        lints,
+        &expect![[r#"
+        [
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 58,
+                        hi: 65,
+                    },
+                    level: Error,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
+                },
+            ),
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 50,
+                        hi: 55,
+                    },
+                    level: Error,
+                    message: "attempt to divide by zero",
+                    help: "division by zero is not allowed",
+                },
+            ),
+        ]"#]],
+    );
+
+    // Modify the manifest.
+    fs
+        .borrow_mut()
+        .write_file("project/qsharp.json", r#"{ "lints": [{ "lint": "divisionByZero", "level": "warn" }, { "lint": "needlessParens", "level": "warn" }] }"#)
+        .expect("qsharp.json should exist");
+
+    // Triger a document update
+    updater
+        .update_document("project/src/this_file.qs", 1, this_file_qs)
+        .await;
+
+    // Check lints again
+    let lints: &[ErrorKind] = &received_errors.take()[0].2;
+    check_lints(
+        lints,
+        &expect![[r#"
+        [
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 58,
+                        hi: 65,
+                    },
+                    level: Warn,
+                    message: "unnecessary parentheses",
+                    help: "remove the extra parentheses for clarity",
+                },
+            ),
+            Lint(
+                Lint {
+                    span: Span {
+                        lo: 50,
+                        hi: 55,
+                    },
+                    level: Warn,
+                    message: "attempt to divide by zero",
+                    help: "division by zero is not allowed",
+                },
+            ),
+        ]"#]],
+    );
+}
+
 type ErrorInfo = (String, Option<u32>, Vec<ErrorKind>);
 
 fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpdater<'_> {
@@ -1279,6 +1436,37 @@ fn new_updater(received_errors: &RefCell<Vec<ErrorInfo>>) -> CompilationStateUpd
             ))
         },
         |file| Box::pin(ready(TEST_FS.with(|fs| fs.borrow().get_manifest(file)))),
+    )
+}
+
+fn new_updater_with_file_system<'a>(
+    received_errors: &'a RefCell<Vec<ErrorInfo>>,
+    fs: &Rc<RefCell<FsNode>>,
+) -> CompilationStateUpdater<'a> {
+    let diagnostic_receiver = move |update: DiagnosticUpdate| {
+        let mut v = received_errors.borrow_mut();
+
+        v.push((
+            update.uri.to_string(),
+            update.version,
+            update
+                .errors
+                .iter()
+                .map(|e| e.error().clone())
+                .collect::<Vec<_>>(),
+        ));
+    };
+
+    let fs1 = fs.clone();
+    let fs2 = fs.clone();
+    let fs3 = fs.clone();
+
+    CompilationStateUpdater::new(
+        Rc::new(RefCell::new(CompilationState::default())),
+        diagnostic_receiver,
+        move |file: String| Box::pin(ready(fs1.borrow().read_file(file))),
+        move |dir_name: String| Box::pin(ready(fs2.borrow().list_directory(dir_name))),
+        move |file| Box::pin(ready(fs3.borrow().get_manifest(file))),
     )
 }
 
@@ -1326,6 +1514,22 @@ fn check_state(
 ) {
     assert_open_documents(updater, expected_open_documents);
     assert_compilation_sources(updater, expected_compilation_sources);
+}
+
+/// Checks that the lints config is being loaded from the qsharp.json manifest
+async fn check_lints_config(updater: &CompilationStateUpdater<'_>, expected_config: &Expect) {
+    let manifest = updater
+        .load_manifest(&"project/src/this_file.qs".into())
+        .await
+        .expect("manifest should exist");
+
+    let lints_config = manifest.lints;
+
+    expected_config.assert_eq(&format!("{lints_config:#?}"));
+}
+
+fn check_lints(lints: &[ErrorKind], expected_lints: &Expect) {
+    expected_lints.assert_eq(&format!("{lints:#?}"));
 }
 
 thread_local! { static TEST_FS: RefCell<FsNode> = RefCell::new(test_fs()) }
@@ -1383,6 +1587,12 @@ enum FsNode {
     File(Arc<str>),
 }
 
+/// A file system operation error.
+#[derive(Debug)]
+enum FsError {
+    NotFound,
+}
+
 impl FsNode {
     fn read_file(&self, file: String) -> (Arc<str>, Arc<str>) {
         let mut curr = Some(self);
@@ -1397,6 +1607,24 @@ impl FsNode {
         match curr {
             Some(FsNode::File(contents)) => (file.into(), contents.clone()),
             Some(FsNode::Dir(_)) | None => (file.into(), "".into()),
+        }
+    }
+
+    fn write_file(&mut self, file: &str, contents: &str) -> Result<(), FsError> {
+        let mut curr = Some(self);
+
+        for part in file.split('/') {
+            curr = curr.and_then(|node| match node {
+                FsNode::Dir(dir) => dir.get_mut(part),
+                FsNode::File(_) => None,
+            });
+        }
+
+        if let Some(FsNode::File(curr_contents)) = curr {
+            *curr_contents = contents.into();
+            Ok(())
+        } else {
+            Err(FsError::NotFound)
         }
     }
 
@@ -1431,6 +1659,7 @@ impl FsNode {
         let mut curr = Some(self);
         let mut curr_path = String::new();
         let mut last_manifest_dir = None;
+        let mut last_manifest = None;
 
         for part in file.split('/') {
             curr = curr.and_then(|node| match node {
@@ -1438,8 +1667,9 @@ impl FsNode {
                     if let Some(FsNode::File(manifest)) = dir.get("qsharp.json") {
                         // The semantics of get_manifest is that we only return the manifest
                         // if we've succeeded in parsing it
-                        if manifest.as_ref() == "{}" {
+                        if let Ok(manifest) = serde_json::from_str::<Manifest>(manifest) {
                             last_manifest_dir = Some(curr_path.trim_end_matches('/').to_string());
+                            last_manifest = Some(manifest);
                         }
                     }
                     curr_path = format!("{curr_path}{part}/");
@@ -1452,7 +1682,7 @@ impl FsNode {
         match curr {
             Some(FsNode::Dir(_)) | None => None,
             Some(FsNode::File(_)) => last_manifest_dir.map(|dir| ManifestDescriptor {
-                manifest: Manifest::default(),
+                manifest: last_manifest.unwrap_or_default(),
                 manifest_dir: dir.into(),
             }),
         }
