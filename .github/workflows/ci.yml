@@ -163,7 +163,7 @@ jobs:
           ref: main
       - uses: Swatinem/rust-cache@v2
       - run: |
-          MAIN_MEASUREMENT=1000
+          MAIN_MEASUREMENT=$(cargo run --bin memtest)
           echo "MAIN_MEASUREMENT<<EOF" >> $GITHUB_ENV
           echo "$MAIN_MEASUREMENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
