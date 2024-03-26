@@ -32,7 +32,7 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
-    #[error("cannot use a dynamic boolean value")]
+    #[error("cannot use a dynamic bool value")]
     #[diagnostic(help(
         "using a bool value that depends on a measurement result is not supported by the current target"
     ))]
@@ -41,84 +41,84 @@ pub enum Error {
 
     #[error("cannot use a dynamic integer value")]
     #[diagnostic(help(
-        "using a dynamic integer value, an integer value that depends on a measurement result, is not supported by the target"
+        "using an integer value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicInt"))]
     UseOfDynamicInt(#[label] Span),
 
     #[error("cannot use a dynamic Pauli value")]
     #[diagnostic(help(
-        "using a dynamic Pauli value, a Pauli value that depends on a measurement result, is not supported by the target"
+        "using a Pauli value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicPauli"))]
     UseOfDynamicPauli(#[label] Span),
 
     #[error("cannot use a dynamic Range value")]
     #[diagnostic(help(
-        "using a dynamic Range value, a Range value that depends on a measurement result, is not supported by the target"
+        "using a Range value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicRange"))]
     UseOfDynamicRange(#[label] Span),
 
     #[error("cannot use a dynamic double value")]
     #[diagnostic(help(
-        "using a dynamic double value, a double value that depends on a measurement result, is not supported by the target"
+        "using a double value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicDouble"))]
     UseOfDynamicDouble(#[label] Span),
 
     #[error("cannot use a dynamic qubit")]
     #[diagnostic(help(
-        "using a dynamic qubit, a qubit whose allocation depends on a measurement result, is not supported by the target"
+        "using a qubit whose allocation depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicQubit"))]
     UseOfDynamicQubit(#[label] Span),
 
     #[error("cannot use a dynamic big integer value")]
     #[diagnostic(help(
-        "using a dynamic big integer value, a big integer value that depends on a measurement result, is not supported by the target"
+        "using a big integer value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicBigInt"))]
     UseOfDynamicBigInt(#[label] Span),
 
     #[error("cannot use a dynamic string value")]
     #[diagnostic(help(
-        "using a dynamic string value, a string value that depends on a measurement result, is not supported by the target"
+        "using a string value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicString"))]
     UseOfDynamicString(#[label] Span),
 
     #[error("cannot use a dynamically-sized array")]
     #[diagnostic(help(
-        "using a dynamically-sized array, an array whose size depends on a measurement result, is not supported by the target"
+        "using an array whose size depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicallySizedArray"))]
     UseOfDynamicallySizedArray(#[label] Span),
 
     #[error("cannot use a dynamic user-defined type")]
     #[diagnostic(help(
-        "using a dynamic user-defined type, a user-defined type in which one or more of its members depend on a measurement result, is not supported by the target"
+        "using a user-defined type in which one or more of its members depend on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicUdt"))]
     UseOfDynamicUdt(#[label] Span),
 
     #[error("cannot use a dynamic function")]
     #[diagnostic(help(
-        "using a dynamically resolved function, a function whose resolution depends on a measurement result, is not supported by the target"
+        "using a function whose resolution depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicArrowFunction"))]
     UseOfDynamicArrowFunction(#[label] Span),
 
     #[error("cannot use a dynamic operation")]
     #[diagnostic(help(
-        "using a dynamically resolved operation, an operation whose resolution depends on a measurement result, is not supported by the target"
+        "using an operation whose resolution depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicArrowOperation"))]
     UseOfDynamicArrowOperation(#[label] Span),
 
     #[error("cannot call a cyclic function with a dynamic value as argument")]
     #[diagnostic(help(
-        "calling a cyclic function with a dynamic value as argument, an argument value that depends on a measurement result, is not supported by the target"
+        "calling a cyclic function with an argument value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToCyclicFunctionWithDynamicArg"))]
     CallToCyclicFunctionWithDynamicArg(#[label] Span),
@@ -129,42 +129,42 @@ pub enum Error {
     CyclicOperationSpec(#[label] Span),
 
     #[error("cannot call a cyclic operation")]
-    #[diagnostic(help("calling a cyclic operation is not supported by the target"))]
+    #[diagnostic(help("calling an operation specialization that contains call cycles is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToCyclicOperation"))]
     CallToCyclicOperation(#[label] Span),
 
     #[error("cannot call a function or operation whose resolution is dynamic")]
-    #[diagnostic(help("calling a function or operation whose resolution is dynamic, a resolution that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(help("calling a function or operation whose resolution depends on a measurement result is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToDynamicCallee"))]
     CallToDynamicCallee(#[label] Span),
 
     #[error("cannot call a function or operation that can only be resolved at runtime")]
-    #[diagnostic(help("calling a function or operation that can only be resolved at runtime is not supported by the target"))]
+    #[diagnostic(help("calling a function or operation that can only be resolved at runtime is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToUnresolvedCallee"))]
     CallToUnresolvedCallee(#[label] Span),
 
     #[error("cannot perform a measurement within a dynamic scope")]
-    #[diagnostic(help("performing a measurement within dynamic scope, a scope that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(help("performing a measurement within a scope that depends on a measurement result is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.MeasurementWithinDynamicScope"))]
     MeasurementWithinDynamicScope(#[label] Span),
 
     #[error("cannot access an array using a dynamic index")]
-    #[diagnostic(help("accessing an array using a dynamic index, an index that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(help("accessing an array using an index that depends on a measurement result is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicIndex"))]
     UseOfDynamicIndex(#[label] Span),
 
     #[error("cannot use a return within a dynamic scope")]
-    #[diagnostic(help("using a return within a dynamic scope, a scope that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(help("using a return within a scope that depends on a measurement result is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.ReturnWithinDynamicScope"))]
     ReturnWithinDynamicScope(#[label] Span),
 
     #[error("cannot have a loop with a dynamic condition")]
-    #[diagnostic(help("using a loop with a dynamic condition, a condition that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(help("using a loop with a condition that depends on a measurement result is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.LoopWithDynamicCondition"))]
     LoopWithDynamicCondition(#[label] Span),
 
     #[error("cannot use a closure")]
-    #[diagnostic(help("closures are not supported by the target"))]
+    #[diagnostic(help("closures are not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfClosure"))]
     UseOfClosure(#[label] Span),
 }
