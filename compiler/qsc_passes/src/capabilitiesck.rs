@@ -124,7 +124,7 @@ pub enum Error {
     CallToCyclicFunctionWithDynamicArg(#[label] Span),
 
     #[error("cannot define a cyclic operation specialization")]
-    #[diagnostic(help("cyclic operation specializations, specializations that contain cycles, are not supported by the target"))]
+    #[diagnostic(help("operation specializations that contain call cycles are not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CyclicOperationSpec"))]
     CyclicOperationSpec(#[label] Span),
 
