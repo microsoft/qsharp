@@ -107,6 +107,13 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicArrowFunction"))]
     UseOfDynamicArrowFunction(#[label] Span),
 
+    #[error("cannot use a dynamic operation")]
+    #[diagnostic(help(
+        "using a dynamically resolved operation, an operation whose resolution depends on a measurement result, is not supported by the target"
+    ))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicArrowOperation"))]
+    UseOfDynamicArrowOperation(#[label] Span),
+
     #[error("cannot call a cyclic function with a dynamic value as argument")]
     #[diagnostic(help(
         "calling a cyclic function with a dynamic value as argument, an argument value that depends on a measurement result, is not supported by the target"
@@ -445,6 +452,12 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
         errors.push(Error::UseOfDynamicUdt(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicArrowFunction) {
+        errors.push(Error::UseOfDynamicArrowFunction(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
+        errors.push(Error::UseOfDynamicArrowOperation(span));
     }
     if runtime_features.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
         errors.push(Error::CallToCyclicFunctionWithDynamicArg(span));

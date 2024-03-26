@@ -136,7 +136,7 @@ pub const USE_DYNAMIC_QUBIT: &str = r#"
         operation Foo() : Unit {
             use control = Qubit();
             if M(control) == Zero {
-                use q = Qubit();
+                    use q = Qubit();
             }
         }
     }"#;
@@ -186,7 +186,16 @@ pub const USE_DYNAMIC_FUNCTION: &str = r#"
         open Microsoft.Quantum.Math;
         operation Foo() : Unit {
             use q = Qubit();
-            let f = M(q) == Zero ? Cos | Sin;
+            let fn = M(q) == Zero ? Cos | Sin;
+        }
+    }"#;
+
+pub const USE_DYNAMIC_OPERATION: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Math;
+        operation Foo() : Unit {
+            use q = Qubit();
+            let op = M(q) == Zero ? X | Y;
         }
     }"#;
 

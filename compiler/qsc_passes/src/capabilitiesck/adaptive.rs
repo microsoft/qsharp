@@ -9,8 +9,8 @@ use super::common::{
     CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, MINIMAL, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
-    USE_DYNAMIC_INT, USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING,
-    USE_DYNAMIC_UDT,
+    USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT,
+    USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
 };
 use expect_test::{expect, Expect};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
@@ -228,13 +228,36 @@ fn use_of_dynamic_udt_yields_errors() {
     );
 }
 
-#[ignore = "investigation in progress"]
 #[test]
 fn use_of_dynamic_function_yields_errors() {
     check_profile(
         USE_DYNAMIC_FUNCTION,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicArrowFunction(
+                    Span {
+                        lo: 142,
+                        hi: 166,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_operation_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_OPERATION,
+        &expect![[r#"
+            [
+                UseOfDynamicArrowOperation(
+                    Span {
+                        lo: 142,
+                        hi: 162,
+                    },
+                ),
+            ]
         "#]],
     );
 }
