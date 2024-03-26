@@ -250,7 +250,7 @@ fn check_rca_for_call_to_operation_with_one_classical_return_and_one_dynamic_ret
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | ForwardBranchingOnDynamicValue | ReturnWithinDynamicScope)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | ReturnWithinDynamicScope)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],

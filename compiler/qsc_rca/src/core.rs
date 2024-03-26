@@ -302,22 +302,13 @@ impl<'a> Analyzer<'a> {
         let default_value_kind = ValueKind::new_static_from_type(expr_type);
         let application_instance = self.get_current_application_instance();
         if !application_instance.active_dynamic_scopes.is_empty() {
-            // Any call that happens within a dynamic scope uses the forward branching runtime feature.
-            compute_kind = compute_kind.aggregate_runtime_features(
-                ComputeKind::new_with_runtime_features(
-                    RuntimeFeatureFlags::ForwardBranchingOnDynamicValue,
-                    default_value_kind,
-                ),
-                default_value_kind,
-            );
-
             // If the call expression type is either a result or a qubit, it uses dynamic allocation runtime features.
             if let Ty::Prim(Prim::Qubit) = expr_type {
                 // We consider this qubit dynamic so the value kind of this expression must be dynamic.
-                let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
-                    panic!("compute kind is expected to be of the quantum variant");
-                };
-                quantum_properties.value_kind = ValueKind::Element(RuntimeKind::Dynamic);
+                compute_kind = compute_kind.aggregate(ComputeKind::Quantum(QuantumProperties {
+                    runtime_features: RuntimeFeatureFlags::empty(),
+                    value_kind: ValueKind::Element(RuntimeKind::Dynamic),
+                }));
             }
 
             if let Ty::Prim(Prim::Result) = expr_type {

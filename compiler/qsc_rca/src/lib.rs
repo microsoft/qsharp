@@ -738,8 +738,6 @@ bitflags! {
         const CallToDynamicCallee = 1 << 15;
         /// A callee expression could not be resolved to a specific callable.
         const CallToUnresolvedCallee = 1 << 16;
-        /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 1 << 17;
         /// Result allocation that happens within a dynamic scope.
         const DynamicResultAllocation = 1 << 18;
         /// Use of a dynamic index to access or update an array.
@@ -824,9 +822,6 @@ impl RuntimeFeatureFlags {
         }
         if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
-        }
-        if self.contains(RuntimeFeatureFlags::ForwardBranchingOnDynamicValue) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }
         if self.contains(RuntimeFeatureFlags::DynamicResultAllocation) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;

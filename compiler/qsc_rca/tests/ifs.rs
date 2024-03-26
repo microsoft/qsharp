@@ -61,7 +61,7 @@ fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications: <empty>
                 adj: <none>

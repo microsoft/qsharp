@@ -141,7 +141,7 @@ fn check_rca_for_operation_with_one_classical_return_and_one_dynamic_return() {
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue | ReturnWithinDynamicScope)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ReturnWithinDynamicScope)
                         value_kind: Element(Dynamic)
                     dynamic_param_applications: <empty>
                 adj: <none>
