@@ -16,7 +16,7 @@ export function Circuit(props: { circuit: qviz.Circuit }) {
   const errorDiv =
     props.circuit.qubits.length === 0 ? (
       <div>
-        <p>No circuit to display. The program has not allocated any qubits.</p>
+        <p>No circuit to display. No qubits have been allocated.</p>
         <p>
           <em>
             Tip: you can generate a circuit diagram for any operation that takes
