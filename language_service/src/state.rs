@@ -387,6 +387,10 @@ impl<'a> CompilationStateUpdater<'a> {
                 }),
                 configuration.target_profile,
                 notebook_configuration.language_features.unwrap_or_default(),
+                notebook_configuration
+                    .lints_config
+                    .as_ref()
+                    .unwrap_or(&vec![]),
             );
 
             state.compilations.insert(

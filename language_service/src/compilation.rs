@@ -94,6 +94,7 @@ impl Compilation {
         cells: I,
         target_profile: Profile,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
@@ -127,7 +128,7 @@ impl Compilation {
         let unit = package_store
             .get(package_id)
             .expect("user package should exist");
-        let lints = qsc::linter::run_lints(unit, None);
+        let lints = qsc::linter::run_lints(unit, Some(lints_config));
         let lints: Vec<_> = lints
             .into_iter()
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
@@ -222,7 +223,7 @@ impl Compilation {
                 lints_config,
             ),
             CompilationKind::Notebook => {
-                Self::new_notebook(sources, target_profile, language_features)
+                Self::new_notebook(sources, target_profile, language_features, lints_config)
             }
         };
         self.package_store = new.package_store;
