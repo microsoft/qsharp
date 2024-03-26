@@ -13,7 +13,6 @@ mod adaptive_plus_integers;
 #[cfg(test)]
 pub mod common;
 
-use itertools::Itertools;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_fir::{
@@ -433,8 +432,9 @@ impl<'a> Checker<'a> {
 
     fn generate_errors(&mut self) -> Vec<Error> {
         let mut errors = Vec::new();
-
-        for (span, missing_features) in self.missing_features_map.drain().sorted() {
+        let mut missing_features_map = self.missing_features_map.drain().collect::<Vec<_>>();
+        missing_features_map.sort_unstable();
+        for (span, missing_features) in missing_features_map {
             let mut span_errors = generate_errors_from_runtime_features(missing_features, span);
             errors.append(&mut span_errors);
         }

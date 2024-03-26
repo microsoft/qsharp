@@ -1121,7 +1121,6 @@ version = "0.0.0"
 dependencies = [
  "expect-test",
  "indoc",
- "itertools",
  "miette",
  "qsc",
  "qsc_data_structures",
