@@ -230,7 +230,7 @@ fn check_rca_for_mutable_array_dynamically_appended() {
 
 #[test]
 fn check_rca_for_access_using_classical_index() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -238,15 +238,18 @@ fn check_rca_for_access_using_classical_index() {
         arr[0]"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
-    check_last_statement_compute_properties(package_store_compute_properties, &expect![[r#"
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
         ApplicationsGeneratorSet:
             inherent: Classical
-            dynamic_param_applications: <empty>"#]]);
+            dynamic_param_applications: <empty>"#]],
+    );
 }
 
 #[test]
 fn check_rca_for_access_using_dynamic_index() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
