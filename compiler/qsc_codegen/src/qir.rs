@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #[cfg(test)]
-mod rir_utils;
+mod rir_builder;
 #[cfg(test)]
 mod tests;
 
