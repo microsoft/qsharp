@@ -8,6 +8,8 @@ mod tests;
 
 use qsc_rir::rir;
 
+/// A trait for converting a type into QIR of type `T`.
+/// This can be used to generate QIR strings or other representations.
 trait ToQir<T> {
     fn to_qir(&self, program: &rir::Program) -> T;
 }
@@ -64,7 +66,7 @@ impl ToQir<String> for rir::VariableId {
 impl ToQir<String> for rir::Variable {
     fn to_qir(&self, program: &rir::Program) -> String {
         format!(
-            "{} %var_{}",
+            "{} {}",
             ToQir::<String>::to_qir(&self.ty, program),
             ToQir::<String>::to_qir(&self.variable_id, program)
         )
@@ -160,9 +162,10 @@ impl ToQir<String> for rir::Program {
             .map(|(_, callable)| ToQir::<String>::to_qir(callable, self))
             .collect::<Vec<_>>()
             .join("\n\n");
-        let profile = match self.profile {
-            rir::Profile::Base => "base_profile",
-            rir::Profile::Adaptive => "adaptive_profile",
+        let profile = if self.config.is_base() {
+            "base_profile"
+        } else {
+            "adaptive_profile"
         };
         format!(
             include_str!("./qir/template.ll"),

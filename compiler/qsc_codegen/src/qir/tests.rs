@@ -98,6 +98,28 @@ fn qubit_rotation_round_number_call() {
 }
 
 #[test]
+fn qubit_rotation_variable_angle_call() {
+    let mut program = rir::Program::default();
+    program
+        .callables
+        .insert(rir::CallableId(0), rir_utils::rx_decl());
+    let call = rir::Instruction::Call(
+        rir::CallableId(0),
+        vec![
+            rir::Value::Variable(rir::Variable {
+                variable_id: rir::VariableId(0),
+                ty: rir::Ty::Double,
+            }),
+            rir::Value::Literal(rir::Literal::Qubit(0)),
+        ],
+    );
+    expect![
+        "  call void @__quantum__qis__rx__body(double %var_0, %Qubit* inttoptr (i64 0 to %Qubit*))"
+    ]
+    .assert_eq(&call.to_qir(&program));
+}
+
+#[test]
 fn bell_program() {
     let program = rir_utils::bell_program();
     expect![[r#"

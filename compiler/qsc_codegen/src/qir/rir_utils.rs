@@ -149,5 +149,7 @@ pub fn bell_program() -> rir::Program {
     );
     program.num_qubits = 2;
     program.num_results = 2;
+    program.config.defer_measurements = true;
+    program.config.remap_qubits_on_reuse = true;
     program
 }

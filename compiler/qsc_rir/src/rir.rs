@@ -9,16 +9,9 @@ pub struct Program {
     pub blocks: IndexMap<BlockId, Block>,
     pub callables: IndexMap<CallableId, Callable>,
     pub entry: CallableId,
-    pub profile: Profile,
+    pub config: Config,
     pub num_qubits: u32,
     pub num_results: u32,
-}
-
-#[derive(Default)]
-pub enum Profile {
-    #[default]
-    Base,
-    Adaptive,
 }
 
 impl Program {
@@ -35,6 +28,19 @@ impl Program {
     #[must_use]
     pub fn get_block(&self, id: BlockId) -> &Block {
         self.blocks.get(id).expect("block should be present")
+    }
+}
+
+#[derive(Default)]
+pub struct Config {
+    pub remap_qubits_on_reuse: bool,
+    pub defer_measurements: bool,
+}
+
+impl Config {
+    #[must_use]
+    pub fn is_base(&self) -> bool {
+        self.remap_qubits_on_reuse || self.defer_measurements
     }
 }
 
