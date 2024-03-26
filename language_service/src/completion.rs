@@ -73,7 +73,7 @@ pub(crate) fn get_completions(
         None => String::new(),
     };
 
-    let mut prelude_ns_ids: Vec<_> = PRELUDE.iter().map(|ns| (compilation.find_namespace_id(*ns), None)).collect();
+    let mut prelude_ns_ids: Vec<_> = PRELUDE.into_iter().map(|ns| (ns.into_iter().map(Rc::from).collect(), None)).collect();
 
     // The PRELUDE namespaces are always implicitly opened.
     context_finder.opens.append(&mut prelude_ns_ids);
@@ -267,9 +267,9 @@ impl CompletionListBuilder {
     fn push_globals(
         &mut self,
         compilation: &Compilation,
-        opens: &[(NamespaceId, Option<Rc<str>>)],
+        opens: &[(Vec<Rc<str>>, Option<Rc<str>>)],
         insert_open_range: Option<Range>,
-        current_namespace_name: &Option<NamespaceId>,
+        current_namespace_name: &Option<Rc<str>>,
         indent: &String,
     ) {
         let core = &compilation
@@ -391,9 +391,9 @@ impl CompletionListBuilder {
         compilation: &'a Compilation,
         package_id: PackageId,
         // name and alias
-        opens: &'a [(NamespaceId, Option<Rc<str>>)],
+        opens: &'a [(Vec<Rc<str>>, Option<Rc<str>>)],
         insert_open_at: Option<Range>,
-        current_namespace_name: Option<NamespaceId>,
+        current_namespace_name: Option<Rc<str>>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
@@ -542,9 +542,9 @@ fn local_completion(
 struct ContextFinder {
     offset: u32,
     context: Context,
-    opens: Vec<(NamespaceId, Option<Rc<str>>)>,
+    opens: Vec<(Vec<Rc<str>>, Option<Rc<str>>)>,
     start_of_namespace: Option<u32>,
-    current_namespace_name: Option<NamespaceId>,
+    current_namespace_name: Option<Rc<str>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -559,7 +559,7 @@ enum Context {
 impl Visitor<'_> for ContextFinder {
     fn visit_namespace(&mut self, namespace: &'_ qsc::ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            self.current_namespace_name = Some(todo!("how will completions work here? should we use the immediate namespace or the absolute namespace name?"));
+            self.current_namespace_name = Some(Rc::from(format!("{}", namespace.name)));
             self.context = Context::Namespace;
             self.opens = vec![];
             self.start_of_namespace = None;
@@ -574,8 +574,7 @@ impl Visitor<'_> for ContextFinder {
 
         if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
             self.opens.push((
-                todo!("should namespace open be using namespace ID or rc str?"), //name.into(),
-                alias.as_ref().map(|alias| alias.name.clone()),
+                name.into(), alias.as_ref().map(|alias| alias.name.clone())
             ));
         }
 
