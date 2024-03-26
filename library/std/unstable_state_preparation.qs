@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
         let nQubits = Length(qubits);
         // pad coefficients at tail length to a power of 2.
-        let coefficientsPadded = Padded(-2 ^ nQubits, ComplexPolar(0.0, 0.0), coefficients);
+        let coefficientsPadded = Padded(-2^nQubits, ComplexPolar(0.0, 0.0), coefficients);
         let idxTarget = 0;
         // Determine what controls to apply
         let rngControl = nQubits > 1 ? (1..(nQubits - 1)) | (1..0);
@@ -326,7 +326,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
         body (...) {
             // pad coefficients length at tail to a power of 2.
-            let coefficientsPadded = Padded(-2 ^ Length(control), 0.0, coefficients);
+            let coefficientsPadded = Padded(-2^Length(control), 0.0, coefficients);
 
             if Length(coefficientsPadded) == 1 {
                 // Termination case
@@ -349,7 +349,7 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
 
         controlled (controlRegister, ...) {
             // pad coefficients length to a power of 2.
-            let coefficientsPadded = Padded(2 ^ (Length(control) + 1), 0.0, Padded(-2 ^ Length(control), 0.0, coefficients));
+            let coefficientsPadded = Padded(2^(Length(control) + 1), 0.0, Padded(-2^Length(control), 0.0, coefficients));
             let (coefficients0, coefficients1) = MultiplexZCoefficients(coefficientsPadded);
             ApproximatelyMultiplexZ(tolerance, coefficients0, control, target);
             if AnyOutsideToleranceD(tolerance, coefficients1) {

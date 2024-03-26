@@ -129,7 +129,7 @@ namespace Sample {
     // A more complex constant Boolean function.
     // It applies X to every input basis vector.
     operation ConstantBoolF(args : Qubit[], target : Qubit) : Unit {
-        for i in 0..(2 ^ Length(args)) - 1 {
+        for i in 0..(2^Length(args)) - 1 {
             ApplyControlledOnInt(i, X, args, target);
         }
     }
@@ -137,7 +137,7 @@ namespace Sample {
     // A more complex balanced Boolean function.
     // It applies X to half of the input basis vectors.
     operation BalancedBoolF(args : Qubit[], target : Qubit) : Unit {
-        for i in 0..2..(2 ^ Length(args)) - 1 {
+        for i in 0..2..(2^Length(args)) - 1 {
             ApplyControlledOnInt(i, X, args, target);
         }
     }

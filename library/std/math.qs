@@ -895,8 +895,8 @@ namespace Microsoft.Quantum.Math {
 
         let absN = IntAsDouble(n);
         let a = Sqrt(2.0 * PI() * absN);
-        let b = (absN / E()) ^ absN;
-        let c = E() ^ (1.0 / (12.0 * absN) - (1.0 / (360.0 * (absN ^ 3.0))));
+        let b = (absN / E())^absN;
+        let c = E()^(1.0 / (12.0 * absN) - (1.0 / (360.0 * (absN^3.0))));
 
         a * b * c
     }
@@ -992,7 +992,7 @@ namespace Microsoft.Quantum.Math {
         if n < 171 {
             Floor(0.5 + ApproximateFactorial(n) / (ApproximateFactorial(k) * ApproximateFactorial(n - k)))
         } else {
-            Floor(0.5 + E() ^ (LogFactorialD(n) - LogFactorialD(k) - LogFactorialD(n - k)))
+            Floor(0.5 + E()^(LogFactorialD(n) - LogFactorialD(k) - LogFactorialD(n - k)))
         }
     }
 
@@ -1041,10 +1041,10 @@ namespace Microsoft.Quantum.Math {
 
         mutable sum = 0.0;
         for element in array {
-            set sum += AbsD(element) ^ p;
+            set sum += AbsD(element)^p;
         }
 
-        sum ^ (1.0 / p)
+        sum^(1.0 / p)
     }
 
     /// # Summary
@@ -1334,7 +1334,7 @@ namespace Microsoft.Quantum.Math {
         // magnitude = 𝑒^((c⋅ln(baseNorm) - d⋅baseArg)) = baseNorm^c / 𝑒^(d⋅baseArg)
         // angle = d⋅ln(baseNorm) + c⋅baseArg
 
-        let magnitude = baseNorm ^ c / E() ^ (d * baseArg);
+        let magnitude = baseNorm^c / E()^(d * baseArg);
         let angle = d * Log(baseNorm) + c * baseArg;
 
         ComplexPolar(magnitude, angle)
@@ -1422,7 +1422,7 @@ namespace Microsoft.Quantum.Math {
     /// # Remark
     /// The value can be computed as -2^(p-1), where p is the number of integer bits.
     function SmallestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
-        -(2.0 ^ IntAsDouble(integerBits - 1))
+        -(2.0^IntAsDouble(integerBits - 1))
     }
 
     /// # Summary
@@ -1438,7 +1438,7 @@ namespace Microsoft.Quantum.Math {
     /// The value can be computed as 2^(p-1) - 2^(-q), where p
     /// is the number of integer bits and q is the number of fractional bits.
     function LargestFixedPoint(integerBits : Int, fractionalBits : Int) : Double {
-        2.0 ^ IntAsDouble(integerBits - 1) - 2.0 ^ (-IntAsDouble(fractionalBits))
+        2.0^IntAsDouble(integerBits - 1) - 2.0^(-IntAsDouble(fractionalBits))
     }
 
 }

@@ -23,7 +23,7 @@ namespace Shors {
 
         // When chooseing parameters for `EstimateFrequency`, make sure that
         // generator and modules are not co-prime
-        let _ = EstimateFrequency(11, 2 ^ bitsize - 1, bitsize);
+        let _ = EstimateFrequency(11, 2^bitsize - 1, bitsize);
     }
 
     /// # Summary

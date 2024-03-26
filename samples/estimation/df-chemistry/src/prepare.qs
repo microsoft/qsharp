@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
     operation PrepareUniformSuperposition(numStates : Int, qs : Qubit[]) : Unit is Adj + Ctl {
         Fact(numStates >= 1, "numStates must be positive");
-        Fact(numStates <= 2 ^ Length(qs), $"numStates must be smaller or equal to {2 ^ Length(qs)}");
+        Fact(numStates <= 2^Length(qs), $"numStates must be smaller or equal to {2^Length(qs)}");
 
         let qsAdjusted = qs[...Ceiling(Lg(IntAsDouble(numStates))) - 1];
 
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         Fact(nCoefficients > 1, "Cannot prepare state with less than 2 coefficients.");
         Fact(oneNorm != 0.0, "State must have at least one coefficient > 0");
 
-        let barHeight = 2 ^ bitsPrecision - 1;
+        let barHeight = 2^bitsPrecision - 1;
 
         mutable altIndex = SequenceI(0, nCoefficients - 1);
         mutable keepCoeff = Mapped(

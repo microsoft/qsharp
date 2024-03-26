@@ -366,7 +366,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1.");
         Fact(c >= 0L, "Constant `c` must be non-negative.");
-        Fact(c < 2L ^ ysLen, "Constant `c` must be smaller than 2^Length(ys).");
+        Fact(c < 2L^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
 
         if c != 0L {
             // If c has j trailing zeros, then the j least significant
@@ -399,7 +399,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         let ysLen = Length(ys);
         Fact(ysLen > 0, "Length of `ys` must be at least 1.");
         Fact(c >= 0, "Constant `c` must be non-negative.");
-        Fact(c < 2 ^ ysLen, "Constant `c` must be smaller than 2^Length(ys).");
+        Fact(c < 2^ysLen, "Constant `c` must be smaller than 2^Length(ys).");
 
         if c != 0 {
             // If c has j trailing zeros than the j least significant

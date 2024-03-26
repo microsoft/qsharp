@@ -546,7 +546,7 @@ namespace Microsoft.Quantum.Intrinsic {
     operation RFrac(pauli : Pauli, numerator : Int, power : Int, qubit : Qubit) : Unit is Adj + Ctl {
         // Note that power must be converted to a double and used with 2.0 instead of 2 to allow for
         // negative exponents that result in a fractional denominator.
-        let angle = ((-2.0 * PI()) * IntAsDouble(numerator)) / (2.0 ^ IntAsDouble(power));
+        let angle = ((-2.0 * PI()) * IntAsDouble(numerator)) / (2.0^IntAsDouble(power));
         R(pauli, angle, qubit);
     }
 

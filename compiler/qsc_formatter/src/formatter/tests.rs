@@ -1049,6 +1049,20 @@ fn copy_operator_with_space_has_single_space() {
 }
 
 #[test]
+fn no_space_around_carrot() {
+    check(
+        indoc! {r#"
+    {} ^ {}
+    1 ^ 2
+    "#},
+        &expect![[r#"
+            {}^{}
+            1^2
+        "#]],
+    )
+}
+
+#[test]
 fn no_space_around_ellipse() {
     check(
         indoc! {r#"

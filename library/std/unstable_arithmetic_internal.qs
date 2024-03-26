@@ -315,7 +315,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         let T = Floor(Lg(IntAsDouble(n)));
         use qs = Qubit[n - HammingWeightI(n) - T];
 
-        let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2 ^ t)) - 1, 1..T - 1);
+        let registerPartition = MappedOverRange(t -> Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1, 1..T - 1);
         let pWorkspace = [ps] + Partitioned(registerPartition, qs);
 
         within {
@@ -370,11 +370,11 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
         let n = Length(gs);
 
         for t in 1..T {
-            let length = Floor(IntAsDouble(n) / IntAsDouble(2 ^ t)) - 1;
+            let length = Floor(IntAsDouble(n) / IntAsDouble(2^t)) - 1;
             let ps = pWorkspace[t - 1][0..2...];
 
             for m in 0..length {
-                CCNOT(gs[2 ^ t * m + 2 ^ (t - 1) - 1], ps[m], gs[2 ^ t * m + 2 ^ t - 1]);
+                CCNOT(gs[2^t * m + 2^(t - 1) - 1], ps[m], gs[2^t * m + 2^t - 1]);
             }
         }
     }
@@ -386,11 +386,11 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
 
         let start = Floor(Lg(IntAsDouble(2 * n) / 3.0));
         for t in start..-1..1 {
-            let length = Floor(IntAsDouble(n - 2 ^ (t - 1)) / IntAsDouble(2 ^ t));
+            let length = Floor(IntAsDouble(n - 2^(t - 1)) / IntAsDouble(2^t));
             let ps = pWorkspace[t - 1][1..2...];
 
             for m in 1..length {
-                CCNOT(gs[2 ^ t * m - 1], ps[m - 1], gs[2 ^ t * m + 2 ^ (t - 1) - 1]);
+                CCNOT(gs[2^t * m - 1], ps[m - 1], gs[2^t * m + 2^(t - 1) - 1]);
             }
         }
     }
@@ -422,7 +422,7 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             if not invertControl {
                 action(target);
             }
-        } elif c >= (2L ^ bitWidth) {
+        } elif c >= (2L^bitWidth) {
             if invertControl {
                 action(target);
             }

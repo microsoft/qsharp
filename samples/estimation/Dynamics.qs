@@ -152,7 +152,7 @@ namespace QuantumDynamics {
         use qs = Qubit[N1 * N2];
         let qubitArray = Chunks(N2, qs); // qubits are re-arranged to be in an N1 x N2 array
 
-        let p = 1.0 / (4.0 - 4.0 ^ (1.0 / 3.0));
+        let p = 1.0 / (4.0 - 4.0^(1.0 / 3.0));
         let t = Ceiling(totTime / dt);
 
         let seqLen = 10 * t + 1;

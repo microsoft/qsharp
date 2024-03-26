@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
                 WriteMemoryContents(Head(data), target);
             } else {
                 let (most, tail) = MostAndTail(address[...n - 1]);
-                let parts = Partitioned([2 ^ (n - 1)], data);
+                let parts = Partitioned([2^(n - 1)], data);
 
                 within {
                     X(tail);
@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
                 use helper = Qubit();
 
                 let (most, tail) = MostAndTail(address[...n - 1]);
-                let parts = Partitioned([2 ^ (n - 1)], data);
+                let parts = Partitioned([2^(n - 1)], data);
 
                 within {
                     X(tail);
@@ -184,12 +184,12 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
 
         let res = Mapped(r -> r == One, ForEach(MResetX, target));
 
-        let dataFixup = Chunks(2 ^ l, Padded(-2 ^ numAddressBits, false, Mapped(MustBeFixed(res, _), data)));
+        let dataFixup = Chunks(2^l, Padded(-2^numAddressBits, false, Mapped(MustBeFixed(res, _), data)));
 
         let numAddressBitsFixup = numAddressBits - l;
 
         let selectParts = Partitioned([l], select);
-        let targetFixup = target[...2 ^ l - 1];
+        let targetFixup = target[...2^l - 1];
 
         within {
             EncodeUnary(selectParts[0], targetFixup);
@@ -223,8 +223,8 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         target : Qubit[]
     ) : Unit is Adj {
         Fact(
-            Length(target) == 2 ^ Length(input),
-            $"target register should be of length {2 ^ Length(input)}, but is {Length(target)}"
+            Length(target) == 2^Length(input),
+            $"target register should be of length {2^Length(input)}, but is {Length(target)}"
         );
 
         X(Head(target));
@@ -235,7 +235,7 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
                 CNOT(target[1], target[0]);
             } else {
                 // targets are the first and second 2^i qubits of the target register
-                let split = Partitioned([2 ^ i, 2 ^ i], target);
+                let split = Partitioned([2^i, 2^i], target);
                 for j in IndexRange(split[0]) {
                     ApplyAndAssuming0Target(input[i], split[0][j], split[1][j]);
                     CNOT(split[1][j], split[0][j]);

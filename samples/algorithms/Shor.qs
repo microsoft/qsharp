@@ -176,7 +176,7 @@ namespace Sample {
         // Now we use the ContinuedFractionConvergentI function to recover s/r
         // from dyadic fraction k/2^bitsPrecision.
         let (numerator, period) = ContinuedFractionConvergentI(
-            (frequencyEstimate, 2 ^ bitsPrecision),
+            (frequencyEstimate, 2^bitsPrecision),
             modulus
         );
 

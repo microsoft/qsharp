@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
 
         let RotationAngleBitPrecision = Ceiling(1.152 + Lg(Sqrt((IntAsDouble((problem::NumOrbitals - 1) * 8) * PI() * norm) / parameters::StandardDeviation)) + 0.5 * Lg(1.0 / barEpsilon));
         let StatePreparationBitPrecision = Ceiling(Lg(1.0 / epsilon) + 2.5);
-        let TargetError = 2.0 ^ IntAsDouble(1 - StatePreparationBitPrecision);
+        let TargetError = 2.0^IntAsDouble(1 - StatePreparationBitPrecision);
 
         DoubleFactorizedChemistryConstants(
             RotationAngleBitPrecision,
@@ -328,7 +328,7 @@ namespace Microsoft.Quantum.Applications.Chemistry {
         mutable bitstrings = [];
 
         let tau = 2.0 * PI();
-        let preFactor = 2.0 ^ IntAsDouble(precision);
+        let preFactor = 2.0^IntAsDouble(precision);
 
         for eigenVector in eigenVectors {
             // Computes rotation angles for Majorana operator ($\vec u$ in p. 52, eq. 55)

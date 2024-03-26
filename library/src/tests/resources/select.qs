@@ -10,7 +10,7 @@ namespace Test {
         use temporaryRegister = Qubit[dataBits];
         use dataRegister = Qubit[dataBits];
 
-        let data = DrawMany(_ => DrawMany(_ => (DrawRandomInt(0, 1) == 1), dataBits, 0), 2 ^ addressBits, 0);
+        let data = DrawMany(_ => DrawMany(_ => (DrawRandomInt(0, 1) == 1), dataBits, 0), 2^addressBits, 0);
 
         for (index, expected) in Enumerated(data) {
             ApplyXorInPlace(index, addressRegister);
@@ -32,7 +32,7 @@ namespace Test {
         for _ in 1..rounds {
             let addressBits = DrawRandomInt(2, 6);
             let dataBits = 10;
-            let numData = DrawRandomInt(2 ^ (addressBits - 1) + 1, 2 ^ addressBits - 1);
+            let numData = DrawRandomInt(2^(addressBits - 1) + 1, 2^addressBits - 1);
 
             let data = DrawMany(_ => DrawMany(_ => (DrawRandomInt(0, 1) == 1), dataBits, 0), numData, 0);
 

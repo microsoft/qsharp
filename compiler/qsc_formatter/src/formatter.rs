@@ -6,7 +6,7 @@ use qsc_frontend::{
     keyword::Keyword,
     lex::{
         concrete::{self, ConcreteToken, ConcreteTokenKind},
-        cooked::{StringToken, TokenKind},
+        cooked::{ClosedBinOp, StringToken, TokenKind},
         Delim, InterpolatedEnding, InterpolatedStart,
     },
 };
@@ -655,7 +655,10 @@ fn is_prefix_with_space(cooked: &TokenKind) -> bool {
 fn is_prefix_without_space(cooked: &TokenKind) -> bool {
     matches!(
         cooked,
-        TokenKind::ColonColon | TokenKind::Dot | TokenKind::DotDot
+        TokenKind::ColonColon
+            | TokenKind::Dot
+            | TokenKind::DotDot
+            | TokenKind::ClosedBinOp(ClosedBinOp::Caret)
     )
 }
 
