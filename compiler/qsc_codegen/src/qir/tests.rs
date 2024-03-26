@@ -145,7 +145,7 @@ fn bell_program() {
           call void @__quantum__rt__array_record_output(i64 2, i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
           call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
-        ret void
+          ret void
         }
 
         attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="2" }

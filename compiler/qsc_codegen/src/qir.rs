@@ -113,7 +113,7 @@ impl ToQir<String> for rir::Instruction {
             rir::Instruction::BitwiseAnd(_, _, _) => todo!(),
             rir::Instruction::BitwiseOr(_, _, _) => todo!(),
             rir::Instruction::BitwiseXor(_, _, _) => todo!(),
-            rir::Instruction::Return => "ret void".to_string(),
+            rir::Instruction::Return => "  ret void".to_string(),
         }
     }
 }
