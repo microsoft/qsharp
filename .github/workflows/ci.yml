@@ -195,7 +195,7 @@ jobs:
 
             | Test                        | This Branch | On Main  | Difference |
             |-----------------------------|-------------|----------| ---------- |
-            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes | ${{ difference }} bytes`
+            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes | ${difference} bytes`
                 })
               } catch (err) {
                 core.warning(`Failed writing comment on GitHub issue: ${err}`)
