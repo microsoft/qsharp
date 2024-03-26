@@ -5,12 +5,12 @@ use crate::{
     fir::{Item, ItemId, ItemKind, Package, PackageId, Visibility},
     ty::Scheme,
 };
-use qsc_data_structures::index_map;
+use qsc_data_structures::{index_map, namespaces::{NamespaceId, NamespaceTreeRoot}};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
 pub struct Global {
-    pub namespace: Rc<str>,
+    pub namespace: Vec<Rc<str>>,
     pub name: Rc<str>,
     pub visibility: Visibility,
     pub kind: Kind,
@@ -33,36 +33,43 @@ pub struct Term {
 
 #[derive(Default)]
 pub struct Table {
-    tys: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Ty>>,
-    terms: FxHashMap<Rc<str>, FxHashMap<Rc<str>, Term>>,
+    tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Ty>>,
+    terms: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Term>>,
+    namespaces: NamespaceTreeRoot,
 }
 
 impl Table {
     #[must_use]
-    pub fn resolve_ty(&self, namespace: &str, name: &str) -> Option<&Ty> {
-        self.tys.get(namespace).and_then(|terms| terms.get(name))
+    pub fn resolve_ty(&self, namespace: NamespaceId, name: &str) -> Option<&Ty> {
+        self.tys.get(&namespace).and_then(|terms| terms.get(name))
     }
 
     #[must_use]
-    pub fn resolve_term(&self, namespace: &str, name: &str) -> Option<&Term> {
-        self.terms.get(namespace).and_then(|terms| terms.get(name))
+    pub fn resolve_term(&self, namespace: NamespaceId, name: &str) -> Option<&Term> {
+        self.terms.get(&namespace).and_then(|terms| terms.get(name))
+    }
+
+    pub fn find_namespace(&self, vec: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
+        // find a namespace if it exists and return its id
+        self.namespaces.find_namespace(vec)
     }
 }
+
 
 impl FromIterator<Global> for Table {
     fn from_iter<T: IntoIterator<Item = Global>>(iter: T) -> Self {
         let mut tys: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
         let mut terms: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
+        let mut namespaces = NamespaceTreeRoot::default();
         for global in iter {
+            let namespace = namespaces.upsert_namespace(global.namespace);
             match global.kind {
                 Kind::Ty(ty) => {
-                    tys.entry(global.namespace)
-                        .or_default()
-                        .insert(global.name, ty);
+                    tys.entry(namespace).or_default().insert(global.name, ty);
                 }
                 Kind::Term(term) => {
                     terms
-                        .entry(global.namespace)
+                        .entry(namespace)
                         .or_default()
                         .insert(global.name, term);
                 }
@@ -70,7 +77,12 @@ impl FromIterator<Global> for Table {
             }
         }
 
-        Self { tys, terms }
+        Self {
+            namespaces,
+            tys,
+            terms,
+        }
+    
     }
 }
 
@@ -98,7 +110,7 @@ impl PackageIter<'_> {
 
         match (&item.kind, &parent) {
             (ItemKind::Callable(decl), Some(ItemKind::Namespace(namespace, _))) => Some(Global {
-                namespace: Rc::clone(&namespace.name),
+                namespace: namespace.into(),
                 name: Rc::clone(&decl.name.name),
                 visibility: item.visibility,
                 kind: Kind::Term(Term {
@@ -109,7 +121,7 @@ impl PackageIter<'_> {
             }),
             (ItemKind::Ty(name, def), Some(ItemKind::Namespace(namespace, _))) => {
                 self.next = Some(Global {
-                    namespace: Rc::clone(&namespace.name),
+                    namespace: namespace.into(),
                     name: Rc::clone(&name.name),
                     visibility: item.visibility,
                     kind: Kind::Term(Term {
@@ -119,15 +131,15 @@ impl PackageIter<'_> {
                 });
 
                 Some(Global {
-                    namespace: Rc::clone(&namespace.name),
+                    namespace: namespace.into(),
                     name: Rc::clone(&name.name),
                     visibility: item.visibility,
                     kind: Kind::Ty(Ty { id }),
                 })
             }
             (ItemKind::Namespace(ident, _), None) => Some(Global {
-                namespace: "".into(),
-                name: Rc::clone(&ident.name),
+                namespace: ident.into(),
+                name: "".into(),
                 visibility: Visibility::Public,
                 kind: Kind::Namespace,
             }),

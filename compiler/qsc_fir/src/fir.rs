@@ -698,7 +698,7 @@ pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
     /// A `namespace` declaration.
-    Namespace(Ident, Vec<LocalItemId>),
+    Namespace(VecIdent, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
 }
@@ -1420,6 +1420,59 @@ impl Display for PatKind {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
+pub struct VecIdent(pub Vec<Ident>);
+
+impl From<VecIdent> for Vec<Rc<str>> {
+    fn from(v: VecIdent) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<&VecIdent> for Vec<Rc<str>> {
+    fn from(v: &VecIdent) -> Self {
+        v.0.iter().map(|i| i.name.clone()).collect()
+    }
+}
+
+impl From<Vec<Ident>> for VecIdent {
+    fn from(v: Vec<Ident>) -> Self {
+        VecIdent(v)
+    }
+}
+
+impl From<VecIdent> for Vec<Ident> {
+    fn from(v: VecIdent) -> Self {
+        v.0
+    }
+}
+
+impl Display for VecIdent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let idents = self.0.iter();
+        write!(
+            f,
+            "{}",
+            idents
+                .map(|i| i.name.to_string())
+                .collect::<Vec<String>>()
+                .join(".")
+        )
+    }
+}
+impl VecIdent {
+    pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
+        self.0.iter()
+    }
+
+    pub fn span(&self) -> Span {
+        Span {
+            lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
+            hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
+        }
     }
 }
 

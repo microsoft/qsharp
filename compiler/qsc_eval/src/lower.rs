@@ -752,7 +752,7 @@ impl Lowerer {
             name_span: field.name_span,
         }
     }
-    fn lower_vec_ident(&self, name: &[hir::Ident]) -> fir::Ident {
+    fn lower_vec_ident(&self, name: &[hir::Ident]) -> fir::VecIdent {
         todo!("should this return a vec of hir idents or just one hir ident? or maybe a namespace id?")
     }
 }
