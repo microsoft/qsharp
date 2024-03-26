@@ -1,0 +1,163 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+use super::{rir_builder, ToQir};
+use expect_test::expect;
+use qsc_rir::rir;
+
+#[test]
+fn single_qubit_gate_decl_works() {
+    let decl = rir_builder::x_decl();
+    expect!["declare void @__quantum__qis__x__body(%Qubit*)"]
+        .assert_eq(&decl.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn two_qubit_gate_decl_works() {
+    let decl = rir_builder::cx_decl();
+    expect!["declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)"]
+        .assert_eq(&decl.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn single_qubit_rotation_decl_works() {
+    let decl = rir_builder::rx_decl();
+    expect!["declare void @__quantum__qis__rx__body(double, %Qubit*)"]
+        .assert_eq(&decl.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn measurement_decl_works() {
+    let decl = rir_builder::mz_decl();
+    expect!["declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1"]
+        .assert_eq(&decl.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn read_result_decl_works() {
+    let decl = rir_builder::read_result_decl();
+    expect!["declare i1 @__quantum__rt__read_result(%Result*)"]
+        .assert_eq(&decl.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn result_record_decl_works() {
+    let decl = rir_builder::result_record_decl();
+    expect!["declare void @__quantum__rt__result_record_output(%Result*, i8*)"]
+        .assert_eq(&decl.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn single_qubit_call() {
+    let mut program = rir::Program::default();
+    program
+        .callables
+        .insert(rir::CallableId(0), rir_builder::x_decl());
+    let call = rir::Instruction::Call(
+        rir::CallableId(0),
+        vec![rir::Value::Literal(rir::Literal::Qubit(0))],
+    );
+    expect!["  call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))"]
+        .assert_eq(&call.to_qir(&program));
+}
+
+#[test]
+fn qubit_rotation_call() {
+    let mut program = rir::Program::default();
+    program
+        .callables
+        .insert(rir::CallableId(0), rir_builder::rx_decl());
+    let call = rir::Instruction::Call(
+        rir::CallableId(0),
+        vec![
+            rir::Value::Literal(rir::Literal::Double(std::f64::consts::PI)),
+            rir::Value::Literal(rir::Literal::Qubit(0)),
+        ],
+    );
+    expect!["  call void @__quantum__qis__rx__body(double 3.141592653589793, %Qubit* inttoptr (i64 0 to %Qubit*))"]
+        .assert_eq(&call.to_qir(&program));
+}
+
+#[test]
+fn qubit_rotation_round_number_call() {
+    let mut program = rir::Program::default();
+    program
+        .callables
+        .insert(rir::CallableId(0), rir_builder::rx_decl());
+    let call = rir::Instruction::Call(
+        rir::CallableId(0),
+        vec![
+            rir::Value::Literal(rir::Literal::Double(3.0)),
+            rir::Value::Literal(rir::Literal::Qubit(0)),
+        ],
+    );
+    expect![
+        "  call void @__quantum__qis__rx__body(double 3.0, %Qubit* inttoptr (i64 0 to %Qubit*))"
+    ]
+    .assert_eq(&call.to_qir(&program));
+}
+
+#[test]
+fn qubit_rotation_variable_angle_call() {
+    let mut program = rir::Program::default();
+    program
+        .callables
+        .insert(rir::CallableId(0), rir_builder::rx_decl());
+    let call = rir::Instruction::Call(
+        rir::CallableId(0),
+        vec![
+            rir::Value::Variable(rir::Variable {
+                variable_id: rir::VariableId(0),
+                ty: rir::Ty::Double,
+            }),
+            rir::Value::Literal(rir::Literal::Qubit(0)),
+        ],
+    );
+    expect![
+        "  call void @__quantum__qis__rx__body(double %var_0, %Qubit* inttoptr (i64 0 to %Qubit*))"
+    ]
+    .assert_eq(&call.to_qir(&program));
+}
+
+#[test]
+fn bell_program() {
+    let program = rir_builder::bell_program();
+    expect![[r#"
+        %Result = type opaque
+        %Qubit = type opaque
+
+        declare void @__quantum__qis__h__body(%Qubit*)
+
+        declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+
+        declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+
+        declare void @__quantum__rt__array_record_output(i64, i8*)
+
+        declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+        define void @main() #0 {
+        block_0:
+          call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
+          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+          call void @__quantum__rt__array_record_output(i64 2, i8* null)
+          call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+          call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 1 to %Result*), i8* null)
+          ret void
+        }
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="2" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+    "#]].assert_eq(&program.to_qir(&program));
+}
