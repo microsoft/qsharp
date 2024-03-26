@@ -4,13 +4,13 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use super::common::{
-    check, CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
+    check, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
+    CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, MINIMAL, USE_DYNAMICALLY_SIZED_ARRAY,
-    USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
-    USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT,
-    USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
+    CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, MINIMAL,
+    USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE,
+    USE_DYNAMIC_FUNCTION, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI,
+    USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
 };
 use expect_test::{expect, Expect};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
@@ -161,8 +161,8 @@ fn use_of_dynamic_qubit_yields_errors() {
                 ),
                 UseOfDynamicQubit(
                     Span {
-                        lo: 142,
-                        hi: 158,
+                        lo: 146,
+                        hi: 162,
                     },
                 ),
             ]
@@ -422,6 +422,105 @@ fn call_cyclic_operation_with_dynamic_argument_yields_errors() {
                     Span {
                         lo: 212,
                         hi: 244,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn call_to_dynamic_function_yields_errors() {
+    check_profile(
+        CALL_DYNAMIC_FUNCTION,
+        &expect![[r#"
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 142,
+                        hi: 154,
+                    },
+                ),
+                UseOfDynamicBool(
+                    Span {
+                        lo: 180,
+                        hi: 188,
+                    },
+                ),
+                UseOfDynamicDouble(
+                    Span {
+                        lo: 180,
+                        hi: 188,
+                    },
+                ),
+                UseOfDynamicArrowFunction(
+                    Span {
+                        lo: 180,
+                        hi: 188,
+                    },
+                ),
+                CallToDynamicCallee(
+                    Span {
+                        lo: 180,
+                        hi: 188,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn call_to_dynamic_operation_yields_errors() {
+    check_profile(
+        CALL_DYNAMIC_OPERATION,
+        &expect![[r#"
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 142,
+                        hi: 154,
+                    },
+                ),
+                UseOfDynamicBool(
+                    Span {
+                        lo: 176,
+                        hi: 181,
+                    },
+                ),
+                UseOfDynamicArrowOperation(
+                    Span {
+                        lo: 176,
+                        hi: 181,
+                    },
+                ),
+                CallToDynamicCallee(
+                    Span {
+                        lo: 176,
+                        hi: 181,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn call_to_unresolved_yields_errors() {
+    check_profile(
+        CALL_UNRESOLVED_FUNCTION,
+        &expect![[r#"
+            [
+                UseOfDynamicDouble(
+                    Span {
+                        lo: 172,
+                        hi: 180,
+                    },
+                ),
+                CallToUnresolvedCallee(
+                    Span {
+                        lo: 172,
+                        hi: 180,
                     },
                 ),
             ]

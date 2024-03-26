@@ -135,6 +135,11 @@ pub enum Error {
     #[diagnostic(help("calling a function or operation whose resolution is dynamic, a resolution that depends on a measurement result, is not supported by the target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToDynamicCallee"))]
     CallToDynamicCallee(#[label] Span),
+
+    #[error("cannot call a function or operation that can only be resolved at runtime")]
+    #[diagnostic(help("calling a function or operation that can only be resolved at runtime is not supported by the target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.CallToUnresolvedCallee"))]
+    CallToUnresolvedCallee(#[label] Span),
 }
 
 #[must_use]
@@ -470,6 +475,9 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
         errors.push(Error::CallToDynamicCallee(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
+        errors.push(Error::CallToUnresolvedCallee(span));
     }
     errors
 }

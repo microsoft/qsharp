@@ -829,7 +829,7 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }
         if self.contains(RuntimeFeatureFlags::DynamicResultAllocation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;

@@ -249,6 +249,36 @@ pub const CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT: &str = r#"
         let sum = GaussSum(M(q) == Zero ? 10 | 20);
     }"#;
 
+pub const CALL_DYNAMIC_FUNCTION: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Math;
+        operation Foo() : Unit {
+            use q = Qubit();
+            let fn = M(q) == Zero ? Cos | Sin;
+            fn(PI());
+        }
+    }"#;
+
+pub const CALL_DYNAMIC_OPERATION: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Math;
+        operation Foo() : Unit {
+            use q = Qubit();
+            let op = M(q) == Zero ? X | Y;
+            op(q);
+        }
+    }"#;
+
+pub const CALL_UNRESOLVED_FUNCTION: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Math;
+        operation Foo() : Unit {
+            use q = Qubit();
+            let fn = true ? Cos | Sin;
+            fn(PI());
+        }
+    }"#;
+
 pub fn write_fir_store_to_files(store: &PackageStore) {
     for (id, package) in store {
         let filename = format!("dbg/fir.package{id}.txt");
