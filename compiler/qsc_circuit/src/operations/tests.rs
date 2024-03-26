@@ -59,9 +59,11 @@ fn no_params() {
     ",
     );
     let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation);
-    expect![[r"
-        None
-    "]]
+    expect![[r#"
+        Err(
+            NoQubitParameters,
+        )
+    "#]]
     .assert_debug_eq(&expr);
 }
 
@@ -76,9 +78,11 @@ fn non_qubit_params() {
     ",
     );
     let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation);
-    expect![[r"
-        None
-    "]]
+    expect![[r#"
+        Err(
+            NoQubitParameters,
+        )
+    "#]]
     .assert_debug_eq(&expr);
 }
 
@@ -93,9 +97,11 @@ fn non_qubit_array_param() {
     ",
     );
     let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation);
-    expect![[r"
-        None
-    "]]
+    expect![[r#"
+        Err(
+            NoQubitParameters,
+        )
+    "#]]
     .assert_debug_eq(&expr);
 }
 
