@@ -85,8 +85,6 @@ impl FromIterator<Global> for Table {
             }
         }
 
-        // TODO; copy namespace root etc over here and
-        // create a namespace structure with IDs
         Self {
             namespaces,
             tys,

@@ -142,7 +142,6 @@ impl Lowerer {
     fn lower_item(&mut self, item: &hir::Item) -> fir::Item {
         let kind = match &item.kind {
             hir::ItemKind::Namespace(name, items) => {
-                let name = name.iter().map(Clone::clone).collect::<Vec<_>>();
                 let name = self.lower_vec_ident(&name);
                 let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
                 fir::ItemKind::Namespace(name, items)
@@ -752,8 +751,9 @@ impl Lowerer {
             name_span: field.name_span,
         }
     }
-    fn lower_vec_ident(&self, name: &[hir::Ident]) -> fir::VecIdent {
-        todo!("should this return a vec of hir idents or just one hir ident? or maybe a namespace id?")
+
+    fn lower_vec_ident(&mut self, name: &hir::VecIdent) -> fir::VecIdent {
+        name.iter().cloned().map(|ident| self.lower_ident(&ident)).collect()
     }
 }
 

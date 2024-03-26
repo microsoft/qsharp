@@ -137,7 +137,7 @@ impl With<'_> {
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
-        let name = self.lower_vec_ident(&namespace.name.0);
+        let name = self.lower_vec_ident(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,
             span: namespace.span,
@@ -738,8 +738,8 @@ impl With<'_> {
         })
     }
 
-    fn lower_vec_ident(&self, name: &[ast::Ident]) -> hir::VecIdent {
-        todo!("should this return a vec of hir idents or just one hir ident? or maybe a namespace id?")
+    fn lower_vec_ident(&mut self, name: &ast::VecIdent) -> hir::VecIdent {
+        name.iter().cloned().map(|i| self.lower_ident(&i)).collect()
     }
 }
 

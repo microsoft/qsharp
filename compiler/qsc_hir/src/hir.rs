@@ -1161,6 +1161,12 @@ impl From<VecIdent> for Vec<Ident> {
     }
 }
 
+impl FromIterator<Ident> for VecIdent {
+    fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
+        VecIdent(iter.into_iter().collect())
+    }
+}
+
 impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let idents = self.0.iter();
