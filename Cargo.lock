@@ -1123,9 +1123,13 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "qsc",
  "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_rca",
  "rustc-hash",
  "thiserror",
 ]
