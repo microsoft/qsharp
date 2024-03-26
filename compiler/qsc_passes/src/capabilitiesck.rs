@@ -140,6 +140,11 @@ pub enum Error {
     #[diagnostic(help("calling a function or operation that can only be resolved at runtime is not supported by the target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.CallToUnresolvedCallee"))]
     CallToUnresolvedCallee(#[label] Span),
+
+    #[error("cannot perform a measurement within a dynamic scope")]
+    #[diagnostic(help("performing a measurement within dynamic scope, a scope that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.MeasurementWithinDynamicScope"))]
+    MeasurementWithinDynamicScope(#[label] Span),
 }
 
 #[must_use]
@@ -478,6 +483,9 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
         errors.push(Error::CallToUnresolvedCallee(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
+        errors.push(Error::MeasurementWithinDynamicScope(span));
     }
     errors
 }

@@ -314,7 +314,7 @@ impl<'a> Analyzer<'a> {
             if let Ty::Prim(Prim::Result) = expr_type {
                 compute_kind = compute_kind.aggregate_runtime_features(
                     ComputeKind::new_with_runtime_features(
-                        RuntimeFeatureFlags::DynamicResultAllocation,
+                        RuntimeFeatureFlags::MeasurementWithinDynamicScope,
                         default_value_kind,
                     ),
                     default_value_kind,
