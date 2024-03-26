@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from textwrap import dedent
 from qsharp._native import (
     Interpreter,
     Result,
@@ -8,7 +9,6 @@ from qsharp._native import (
     QSharpError,
     TargetProfile,
 )
-
 import pytest
 
 
@@ -231,3 +231,67 @@ def test_run_with_shots() -> None:
     assert called == 5
 
     assert value == [None, None, None, None, None]
+
+
+def test_dump_circuit() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.interpret(
+        """
+    use q1 = Qubit();
+    use q2 = Qubit();
+    X(q1);
+    """
+    )
+    circuit = e.dump_circuit()
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──
+        q_1    ───────
+        """
+    )
+
+    e.interpret("X(q2);")
+    circuit = e.dump_circuit()
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── X ──
+        q_1    ── X ──
+        """
+    )
+
+
+def test_entry_expr_circuit() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.interpret("operation Foo() : Result { use q = Qubit(); H(q); return M(q) }")
+    circuit = e.circuit("Foo()")
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── H ──── M ──
+                         ╘═══
+        """
+    )
+
+
+def test_operation_circuit() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.interpret("operation Foo(q: Qubit) : Result { H(q); return M(q) }")
+    circuit = e.circuit(operation="Foo")
+    assert str(circuit) == dedent(
+        """\
+        q_0    ── H ──── M ──
+                         ╘═══
+        """
+    )
+
+
+def test_unsupported_operation_circuit() -> None:
+    e = Interpreter(TargetProfile.Unrestricted)
+    e.interpret("operation Foo(n: Int) : Result { return One }")
+    with pytest.raises(QSharpError) as excinfo:
+        circuit = e.circuit(operation="Foo")
+    assert (
+        str(excinfo.value).find(
+            "expression does not evaluate to an operation that takes qubit parameters"
+        )
+        != -1
+    )

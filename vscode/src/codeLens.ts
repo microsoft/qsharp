@@ -1,10 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService } from "qsharp-lang";
+import {
+  ICodeLens,
+  ILanguageService,
+  qsharpLibraryUriScheme,
+} from "qsharp-lang";
 import * as vscode from "vscode";
-import { ICodeLens } from "../../npm/lib/web/qsc_wasm";
 import { toVscodeRange } from "./common";
+import { getShowCircuitCodeLens } from "./config";
 
 export function createCodeLensProvider(languageService: ILanguageService) {
   return new QSharpCodeLensProvider(languageService);
@@ -18,18 +22,27 @@ class QSharpCodeLensProvider implements vscode.CodeLensProvider {
   async provideCodeLenses(
     document: vscode.TextDocument,
   ): Promise<vscode.CodeLens[]> {
+    if (document.uri.scheme === qsharpLibraryUriScheme) {
+      // Don't show any code lenses for library files, none of the actions
+      // would work since compiling library files through the editor is unsupported.
+      return [];
+    }
+
     const codeLenses = await this.languageService.getCodeLenses(
       document.uri.toString(),
     );
 
-    return codeLenses.map((cl) => mapCodeLens(cl));
+    return codeLenses
+      .map((cl) => mapCodeLens(cl))
+      .filter((cl) => cl) as vscode.CodeLens[];
   }
 }
 
-function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
+function mapCodeLens(cl: ICodeLens): vscode.CodeLens | undefined {
   let command;
   let title;
   let tooltip;
+  let args = undefined;
   switch (cl.command) {
     case "histogram":
       title = "Histogram";
@@ -51,14 +64,23 @@ function mapCodeLens(cl: ICodeLens): vscode.CodeLens {
       command = "qsharp-vscode.runEditorContents";
       tooltip = "Run program";
       break;
-    default:
-      throw new Error(`Unknown code lens command: ${cl.command}`);
+    case "circuit":
+      if (!getShowCircuitCodeLens()) {
+        return undefined;
+      }
+      title = "Circuit";
+      command = "qsharp-vscode.showCircuit";
+      tooltip = "Show circuit";
+      if (cl.args) {
+        args = [cl.args];
+      }
+      break;
   }
 
   return new vscode.CodeLens(toVscodeRange(cl.range), {
     title,
     command,
-    arguments: cl.args,
+    arguments: args,
     tooltip,
   });
 }

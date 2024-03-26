@@ -43,7 +43,7 @@ pub struct CompletionItem {
     pub kind: CompletionItemKind,
     pub sort_text: Option<String>,
     pub detail: Option<String>,
-    pub additional_text_edits: Option<Vec<(Range, String)>>,
+    pub additional_text_edits: Option<Vec<TextEdit>>,
 }
 
 impl CompletionItem {
@@ -90,6 +90,12 @@ pub struct Hover {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct TextEdit {
+    pub new_text: String,
+    pub range: Range,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct SignatureHelp {
     pub signatures: Vec<SignatureInformation>,
     pub active_signature: u32,
@@ -124,10 +130,17 @@ pub struct CodeLens {
     pub command: CodeLensCommand,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum CodeLensCommand {
     Histogram,
     Debug,
     Run,
     Estimate,
+    Circuit(Option<OperationInfo>),
+}
+
+#[derive(Debug)]
+pub struct OperationInfo {
+    pub operation: String,
+    pub total_num_qubits: u32,
 }

@@ -82,6 +82,25 @@ class Interpreter:
         """
         ...
 
+    def circuit(
+        self,
+        entry_expr: Optional[str],
+        operation: Optional[str],
+    ) -> Circuit:
+        """
+        Synthesizes a circuit for a Q# program. Either an entry
+        expression or an operation must be provided.
+
+        :param entry_expr: An entry expression.
+
+        :param operation: The operation to synthesize. This can be a name of
+        an operation of a lambda expression. The operation must take only
+        qubits or arrays of qubits as parameters.
+
+        :raises QSharpError: If there is an error synthesizing the circuit.
+        """
+        ...
+
     def estimate(self, entry_expr: str, params: str) -> str:
         """
         Estimates resources for Q# source code.
@@ -116,6 +135,15 @@ class Interpreter:
         Returns the sparse state vector of the simulator as a StateDump object.
 
         :returns: The state of the simulator.
+        """
+        ...
+
+    def dump_circuit(self) -> Circuit:
+        """
+        Dumps the current circuit state of the interpreter.
+
+        This circuit will contain the gates that have been applied
+        in the simulator up to the current point.
         """
         ...
 
@@ -166,6 +194,11 @@ class StateDumpData:
     def __repr__(self) -> str: ...
     def __str__(self) -> str: ...
     def _repr_html_(self) -> str: ...
+
+class Circuit:
+    def json(self) -> str: ...
+    def __repr__(self) -> str: ...
+    def __str__(self) -> str: ...
 
 class QSharpError(BaseException):
     """

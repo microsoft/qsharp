@@ -108,6 +108,16 @@
             "The minimal set of capabilities required to run a quantum program. This option maps to the Base Profile as defined by the QIR specification."
           ],
           "description": "Setting the target profile allows the Q# extension to generate programs that are compatible with a specific target. The target is the hardware or simulator which will be used to run the Q# program. The target profile is a description of a target's capabilities."
+        },
+        "Q#.enableFormatting": {
+          "type": "boolean",
+          "default": "true",
+          "description": "Enables the Q# formatter."
+        },
+        "Q#.showCircuitCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
         }
       }
     },
@@ -122,6 +132,11 @@
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp",
           "group": "navigation@2"
+        },
+        {
+          "command": "qsharp-vscode.debugEditorContentsWithCircuit",
+          "when": "resourceLangId == qsharp",
+          "group": "navigation@2"
         }
       ],
       "commandPalette": [
@@ -131,6 +146,10 @@
         },
         {
           "command": "qsharp-vscode.runEditorContents",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.debugEditorContentsWithCircuit",
           "when": "resourceLangId == qsharp"
         },
         {
@@ -167,6 +186,10 @@
         },
         {
           "command": "qsharp-vscode.showHelp",
+          "when": "resourceLangId == qsharp"
+        },
+        {
+          "command": "qsharp-vscode.showCircuit",
           "when": "resourceLangId == qsharp"
         },
         {
@@ -214,6 +237,12 @@
           "command": "qsharp-vscode.workspacePythonCode",
           "when": "view == quantum-workspaces && viewItem == workspace"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "qsharp-vscode.createProject",
+          "when": "explorerResourceIsFolder"
+        }
       ]
     },
     "views": {
@@ -231,6 +260,11 @@
       }
     ],
     "commands": [
+      {
+        "command": "qsharp-vscode.createProject",
+        "title": "Create Q# project",
+        "category": "Q#"
+      },
       {
         "command": "qsharp-vscode.webOpener",
         "title": "Internal web opener",
@@ -251,6 +285,13 @@
         "icon": "$(play)"
       },
       {
+        "command": "qsharp-vscode.debugEditorContentsWithCircuit",
+        "title": "Debug Q# File with Circuit Diagram",
+        "category": "Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(debug-alt)"
+      },
+      {
         "command": "qsharp-vscode.showHistogram",
         "title": "Run file and show histogram",
         "category": "Q#"
@@ -263,6 +304,11 @@
       {
         "command": "qsharp-vscode.showHelp",
         "title": "Help",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showCircuit",
+        "title": "Show circuit",
         "category": "Q#"
       },
       {
@@ -391,6 +437,11 @@
               "trace": {
                 "type": "boolean",
                 "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": false
+              },
+              "showCircuit": {
+                "type": "boolean",
+                "description": "Display the quantum circuit diagram while running.",
                 "default": false
               }
             }

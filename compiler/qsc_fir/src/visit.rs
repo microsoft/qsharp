@@ -123,7 +123,9 @@ pub fn walk_stmt<'a>(vis: &mut impl Visitor<'a>, id: StmtId) {
 pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: ExprId) {
     let expr = vis.get_expr(expr);
     match &expr.kind {
-        ExprKind::Array(exprs) => exprs.iter().for_each(|e| vis.visit_expr(*e)),
+        ExprKind::Array(exprs) | ExprKind::ArrayLit(exprs) => {
+            exprs.iter().for_each(|e| vis.visit_expr(*e));
+        }
         ExprKind::ArrayRepeat(item, size) => {
             vis.visit_expr(*item);
             vis.visit_expr(*size);

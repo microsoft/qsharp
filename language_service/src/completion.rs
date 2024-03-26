@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::compilation::{Compilation, CompilationKind};
-use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList};
+use crate::protocol::{CompletionItem, CompletionItemKind, CompletionList, TextEdit};
 use crate::qsc_utils::{into_range, span_contains};
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
@@ -446,17 +446,17 @@ impl CompletionListBuilder {
                                             }
                                         });
                                         qualification = match open {
-                                            Some(alias) => alias.as_ref().cloned(),
+                                            Some(alias) => alias.clone(),
                                             None => match insert_open_at {
                                                 Some(start) => {
-                                                    additional_edits.push((
-                                                        start,
-                                                        format!(
+                                                    additional_edits.push(TextEdit {
+                                                        new_text: format!(
                                                             "open {};{}",
                                                             namespace.name.clone(),
                                                             indent,
                                                         ),
-                                                    ));
+                                                        range: start,
+                                                    });
                                                     None
                                                 }
                                                 None => Some(namespace.name.clone()),

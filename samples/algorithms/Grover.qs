@@ -37,7 +37,8 @@ namespace Sample {
     operation GroverSearch(
         nQubits : Int,
         iterations : Int,
-        phaseOracle : Qubit[] => Unit) : Result[] {
+        phaseOracle : Qubit[] => Unit
+    ) : Result[] {
 
         use qubits = Qubit[nQubits];
 

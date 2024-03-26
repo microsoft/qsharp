@@ -27,6 +27,10 @@ pub enum ErrorKind {
     /// These errors are typically related to optimization, transformation, code generation, passes,
     /// and static analysis passes.
     Pass(#[from] qsc_passes::Error),
+
+    /// `Lint` variant represents lints generated during the linting stage. These diagnostics are
+    /// typically emited from the language server and happens after all other compilation passes.
+    Lint(#[from] qsc_linter::Lint),
 }
 
 #[must_use]

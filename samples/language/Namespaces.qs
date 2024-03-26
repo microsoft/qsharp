@@ -10,7 +10,7 @@ namespace MyQuantumApp {
     // The following `open` directive is used to import all types and callables declared in the
     // Microsoft.Quantum.Diagnostics namespace.
     open Microsoft.Quantum.Diagnostics;
-	
+
     @EntryPoint()
     operation Main() : Result[] {
         // `DumpMachine` is in the Microsoft.Quantum.Diagnostics namespace

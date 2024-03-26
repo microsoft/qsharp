@@ -30,7 +30,9 @@ namespace Sample {
         let secretBitString = SecretBitStringAsBoolArray();
         let parityOperation = EncodeBitStringAsParityOperation(secretBitString);
         let decodedBitString = BernsteinVazirani(
-            parityOperation, Length(secretBitString));
+            parityOperation,
+            Length(secretBitString)
+        );
 
         return decodedBitString;
     }
@@ -60,8 +62,7 @@ namespace Sample {
     /// - [ *Ethan Bernstein and Umesh Vazirani*,
     ///     SIAM J. Comput., 26(5), 1411–1473, 1997 ]
     ///   (https://doi.org/10.1137/S0097539796300921)
-    operation BernsteinVazirani(Uf : ((Qubit[], Qubit) => Unit), n : Int)
-    : Result[] {
+    operation BernsteinVazirani(Uf : ((Qubit[], Qubit) => Unit), n : Int) : Result[] {
         // We allocate n + 1 clean qubits. Note that the function parameter Uf is defined
         // on inputs of the form (x, y), where x has n bits and y has 1 bit.
         use queryRegister = Qubit[n];
@@ -117,15 +118,15 @@ namespace Sample {
     operation ApplyParityOperation(
         bitStringAsBoolArray : Bool[],
         xRegister : Qubit[],
-        yQubit : Qubit)
-    : Unit {
+        yQubit : Qubit
+    ) : Unit {
         // `xRegister` muts have enough qubits to represent the integer.
         let requiredBits = Length(bitStringAsBoolArray);
         let availableQubits = Length(xRegister);
         Fact(
             availableQubits >= requiredBits,
-            $"The bitstring has {requiredBits} bits but the quantum register " +
-            $"only has {availableQubits} qubits");
+            $"The bitstring has {requiredBits} bits but the quantum register " + $"only has {availableQubits} qubits"
+        );
 
         // Apply the quantum operations that encode the bit string.
         for (index, bit) in Enumerated(bitStringAsBoolArray) {
@@ -139,8 +140,7 @@ namespace Sample {
     /// This is a higher-order operation which returns an operation (Qubit[], Qubit) => () of the form
     /// U_f |𝑥〉|𝑦〉 = |𝑥〉|𝑦 ⊕ 𝑓(𝑥)〉.
     /// We define 𝑓 by providing the bit string 𝑟⃗ as an integer.
-    operation EncodeBitStringAsParityOperation(bitStringAsBoolArray : Bool[])
-    : (Qubit[], Qubit) => Unit {
+    operation EncodeBitStringAsParityOperation(bitStringAsBoolArray : Bool[]) : (Qubit[], Qubit) => Unit {
         return ApplyParityOperation(bitStringAsBoolArray, _, _);
     }
 

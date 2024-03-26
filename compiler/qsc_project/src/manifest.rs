@@ -9,6 +9,7 @@ use std::{
     fs::{self, DirEntry, FileType},
 };
 
+pub use qsc_linter::LintConfig;
 use serde::Deserialize;
 use std::{path::PathBuf, sync::Arc};
 
@@ -22,6 +23,8 @@ pub struct Manifest {
     pub license: Option<String>,
     #[serde(default)]
     pub language_features: Vec<String>,
+    #[serde(default)]
+    pub lints: Vec<LintConfig>,
 }
 
 /// Describes the contents and location of a Q# manifest file.
@@ -102,15 +105,7 @@ impl Manifest {
 #[cfg(feature = "fs")]
 fn only_valid_files(item: std::result::Result<DirEntry, std::io::Error>) -> Option<DirEntry> {
     match item {
-        Ok(item)
-            if (item
-                .file_type()
-                .as_ref()
-                .map(FileType::is_file)
-                .unwrap_or_default()) =>
-        {
-            Some(item)
-        }
+        Ok(item) if (item.file_type().as_ref().is_ok_and(FileType::is_file)) => Some(item),
         _ => None,
     }
 }

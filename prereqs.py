@@ -19,7 +19,7 @@ node_ver = (
     17,
 )
 wasmpack_ver = (0, 12, 1)  # Latest tested wasm-pack version
-cmake_ver = (3, 10)  # Ensure CMake version 3.10 or later is installed
+cmake_ver = (3, 21)  # Ensure CMake version 3.21 or later is installed
 rust_fmt_ver = (1, 7, 0)  # Current version when Rust 1.76 shipped
 clippy_ver = (0, 1, 76)
 
@@ -200,7 +200,7 @@ def check_prereqs(install=False):
             cmake_major == cmake_ver[0] and cmake_minor < cmake_ver[1]
         ):
             print(
-                f"CMake v{cmake_ver[0]}.{cmake_ver[1]} or later is required. Please update."
+                f"CMake v{cmake_ver[0]}.{cmake_ver[1]} or later is required. Please update to the latest release (rather than RC) from https://cmake.org/download/"
             )
             exit(1)
     else:

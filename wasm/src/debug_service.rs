@@ -42,10 +42,7 @@ impl DebugService {
         match Debugger::new(source_map, target.into(), Encoding::Utf16, features) {
             Ok(debugger) => {
                 self.debugger = Some(debugger);
-                match self.debugger_mut().set_entry() {
-                    Ok(()) => String::new(),
-                    Err(e) => render_errors(e),
-                }
+                String::new()
             }
             Err(e) => render_errors(e),
         }
@@ -63,6 +60,11 @@ impl DebugService {
             .collect::<Vec<_>>();
 
         QuantumStateList { entries }.into()
+    }
+
+    pub fn get_circuit(&self) -> Result<JsValue, String> {
+        let circuit = self.debugger().circuit();
+        serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
     }
 
     pub fn get_stack_frames(&self) -> IStackFrameList {

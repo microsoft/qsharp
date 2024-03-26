@@ -2,17 +2,7 @@
 // Licensed under the MIT License.
 
 import { log } from "qsharp-lang";
-import {
-  EventType,
-  UserFlowStatus,
-  getUserAgent,
-  sendTelemetryEvent,
-} from "../telemetry";
-import { getRandomGuid } from "../utils";
-
-const publicMgmtEndpoint = "https://management.azure.com";
-
-export const useProxy = true;
+import { EventType, getUserAgent, sendTelemetryEvent } from "../telemetry";
 
 export async function azureRequest(
   uri: string,
@@ -22,10 +12,16 @@ export async function azureRequest(
   body?: string,
 ) {
   const headers: [string, string][] = [
-    ["Authorization", `Bearer ${token}`],
     ["Content-Type", "application/json"],
     ["x-ms-useragent", getUserAgent()],
   ];
+
+  // For API simpilcity and storage back-compat, any api key is passed via the 'token' field.
+  if (token.startsWith("apiKey=")) {
+    headers.push(["x-ms-quantum-api-key", token.substring(7)]);
+  } else {
+    headers.push(["Authorization", `Bearer ${token}`]);
+  }
 
   try {
     log.debug(`Fetching ${uri} with method ${method}`);
@@ -83,7 +79,14 @@ export async function storageRequest(
     ["x-ms-date", new Date().toUTCString()],
     ["x-ms-useragent", getUserAgent()],
   ];
-  if (token) headers.push(["Authorization", `Bearer ${token}`]);
+  if (token) {
+    // For API simpilcity and storage back-compat, any api key is passed via the 'token' field.
+    if (token.startsWith("apiKey=")) {
+      headers.push(["x-ms-quantum-api-key", token.substring(7)]);
+    } else {
+      headers.push(["Authorization", `Bearer ${token}`]);
+    }
+  }
 
   if (extraHeaders?.length) headers.push(...extraHeaders);
   if (proxy) {
@@ -175,23 +178,31 @@ function getErrorMessage(e: any): string {
 }
 
 export class AzureUris {
-  readonly apiVersion = "2020-01-01";
+  static readonly apiVersion = "2020-01-01";
+  static readonly mgmtEndpoint = "https://management.azure.com";
 
-  constructor(public mgmtEndpoint = publicMgmtEndpoint) {}
-
-  tenants() {
+  static tenants() {
     // https://learn.microsoft.com/en-us/rest/api/resources/tenants/list
     return `${this.mgmtEndpoint}/tenants?api-version=${this.apiVersion}`;
   }
 
-  subscriptions() {
+  static subscriptions() {
     // https://learn.microsoft.com/en-us/rest/api/resources/subscriptions/list
     return `${this.mgmtEndpoint}/subscriptions?api-version=${this.apiVersion}`;
   }
 
-  workspaces(subscriptionId: string) {
+  static workspaces(subscriptionId: string) {
     // https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/resource-manager/Microsoft.Quantum/preview/2022-01-10-preview/quantum.json#L221
     return `${this.mgmtEndpoint}/subscriptions/${subscriptionId}/providers/Microsoft.Quantum/workspaces?api-version=2022-01-10-preview`;
+  }
+
+  static listKeys(
+    subscriptionId: string,
+    resourceGroupName: string,
+    workspaceName: string,
+  ) {
+    // https://github.com/Azure/azure-rest-api-specs/blob/main/specification/quantum/resource-manager/Microsoft.Quantum/preview/2023-11-13-preview/quantum.json#L419
+    return `${this.mgmtEndpoint}/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.Quantum/workspaces/${workspaceName}/listKeys?api-version=2023-11-13-preview`;
   }
 }
 
@@ -252,98 +263,6 @@ export class StorageUris {
     sas: string,
   ) {
     return `https://${storageAccount}.blob.core.windows.net/${container}/${blob}?${sas}`;
-  }
-}
-
-export async function checkCorsConfig(token: string, quantumUris: QuantumUris) {
-  const associationId = getRandomGuid();
-  const start = performance.now();
-  sendTelemetryEvent(EventType.CheckCorsStart, { associationId }, {});
-
-  log.debug("Checking CORS configuration for the workspace");
-
-  // Get a sasUri for a container to check (it's name doesn't matter, CORS is service wide on a storage account)
-  const body: any = JSON.stringify({ containerName: "test" });
-  const sasResponse: ResponseTypes.SasUri = await azureRequest(
-    quantumUris.sasUri(),
-    token,
-    associationId,
-    "POST",
-    body,
-  );
-  const sasUri = decodeURI(sasResponse.sasUri);
-
-  /*
-  The below doesn't appear to work as it looks like CORS is pre-flighting the manual OPTIONS request!
-  See https://stackoverflow.com/questions/77108984/manually-pre-flighting-a-cors-request-is-failing-due-to-cors-issues
-  for any better solution. Until then, we'll just try a GET request with the headers we need and see if it works.
-  It will throw an exception if it fails due to CORS errors, else should just return a 200, or likely a 404.
-
-  // Check if GET and PUT requests to the storage account are allowed
-  log.debug("Checking GET requests are allowed");
-  const getResponse = await fetch(sasUri, {
-    method: "OPTIONS",
-    headers: [
-      ["Access-Control-Request-Method", "GET"],
-      ["Access-Control-Request-Headers", "x-ms-date,x-ms-version"],
-    ],
-  });
-  if (!getResponse.ok) throw Error("CORS preflight request failed");
-  log.debug("Checking PUT requests are allowed");
-  const putResponse = await fetch(sasUri, {
-    method: "OPTIONS",
-    headers: [
-      ["Access-Control-Request-Method", "PUT"],
-      [
-        "Access-Control-Request-Headers",
-        "x-ms-date,x-ms-version,x-ms-blob-type",
-      ],
-    ],
-  });
-  if (!putResponse.ok) throw Error("CORS preflight request failed");
-  */
-  log.debug("Checking GET requests are allowed");
-  // This will throw if it fails the CORS check, but not if it's a 404 or 200
-  await fetch(sasUri, {
-    method: "GET",
-    headers: [
-      ["x-ms-date", new Date().toUTCString()],
-      ["x-ms-version", "2023-01-03"],
-      ["x-ms-blob-type", "BlockBlob"],
-    ],
-  });
-  log.debug("Pre-flighted GET request didn't throw, so CORS seems good");
-  sendTelemetryEvent(
-    EventType.CheckCorsEnd,
-    { associationId, flowStatus: UserFlowStatus.Succeeded },
-    { timeToCompleteMs: performance.now() - start },
-  );
-}
-
-export async function compileToBitcode(
-  compilerService: string,
-  providerId: string,
-  qir: string,
-) {
-  try {
-    log.info("Using compiler service at " + compilerService);
-    const bitcodeRequest = await fetch(compilerService, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/octet-stream",
-        "x-hardware-target": providerId,
-      },
-      body: qir,
-    });
-
-    if (!bitcodeRequest.ok) {
-      log.error("Failed to compile to QIR bitcode", bitcodeRequest);
-      throw Error("Failed to compile to QIR bitcode");
-    }
-    return new Uint8Array(await bitcodeRequest.arrayBuffer());
-  } catch (e) {
-    log.error("Failed to compile to QIR bitcode", e);
-    throw Error("Failed to compile to QIR bitcode");
   }
 }
 

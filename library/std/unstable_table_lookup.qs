@@ -52,7 +52,8 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         body (...) {
             let (N, n) = DimensionsForSelect(data, address);
 
-            if N == 1 { // base case
+            if N == 1 {
+                // base case
                 WriteMemoryContents(Head(data), target);
             } else {
                 let (most, tail) = MostAndTail(address[...n - 1]);
@@ -106,7 +107,8 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         let (N, n) = DimensionsForSelect(data, address);
 
         if BeginEstimateCaching("Microsoft.Quantum.Unstable.TableLookup.SinglyControlledSelect", N) {
-            if N == 1 { // base case
+            if N == 1 {
+                // base case
                 Controlled WriteMemoryContents([ctl], (Head(data), target));
             } else {
                 use helper = Qubit();
@@ -143,7 +145,8 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         let n = Ceiling(Lg(IntAsDouble(N)));
         Fact(
             Length(address) >= n,
-            $"address register is too small, requires at least {n} qubits");
+            $"address register is too small, requires at least {n} qubits"
+        );
 
         return (N, n);
     }
@@ -154,7 +157,8 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     ) : Unit is Adj + Ctl {
         Fact(
             Length(value) == Length(target),
-            "number of data bits must equal number of target qubits");
+            "number of data bits must equal number of target qubits"
+        );
 
         ApplyPauliFromBitString(PauliX, true, value, target);
     }
@@ -175,12 +179,12 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         let l = MinI(Floor(Lg(IntAsDouble(numBits))), numAddressBits - 1);
         Fact(
             l < numAddressBits,
-            $"l = {l} must be smaller than {numAddressBits}");
+            $"l = {l} must be smaller than {numAddressBits}"
+        );
 
         let res = Mapped(r -> r == One, ForEach(MResetX, target));
 
-        let dataFixup = Chunks(2^l, Padded(-2^numAddressBits, false,
-                               Mapped(MustBeFixed(res, _), data)));
+        let dataFixup = Chunks(2^l, Padded(-2^numAddressBits, false, Mapped(MustBeFixed(res, _), data)));
 
         let numAddressBitsFixup = numAddressBits - l;
 
@@ -242,8 +246,8 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     }
 
     internal newtype AndChain = (
-        NGarbageQubits: Int,
-        Apply: Qubit[] => Unit is Adj
+        NGarbageQubits : Int,
+        Apply : Qubit[] => Unit is Adj
     );
 
     internal function MakeAndChain(ctls : Qubit[], target : Qubit) : AndChain {
