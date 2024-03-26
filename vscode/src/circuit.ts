@@ -185,6 +185,18 @@ function errorsToHtml(
 function documentHtml(maybeUri: string, range?: IRange) {
   let location;
   try {
+    // If the error location is a document URI, create a link to that document.
+    // We use the `vscode.open` command (https://code.visualstudio.com/api/references/commands#commands)
+    // to open the document in the editor.
+    // The line and column information is displayed, but are not part of the link.
+    //
+    // At the time of writing this is the only way we know to create a direct
+    // link to a Q# document from a Web View.
+    //
+    // If we wanted to handle line/column information from the link, an alternate
+    // implementation might be having our own command that navigates to the correct
+    // location. Then this would be a link to that command instead. Yet another
+    // alternative is to have the webview pass a message back to the extension.
     const uri = Uri.parse(maybeUri, true);
     const openCommandUri = Uri.parse(
       `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
