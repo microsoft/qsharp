@@ -264,17 +264,17 @@ pub struct GlobalScope {
 }
 
 impl GlobalScope {
-    fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
+    fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         self.namespaces.find_namespace(ns)
     }
 
     fn get(&self, kind: NameKind, namespace: &[Rc<str>], name: &str) -> Option<&Res> {
-        todo!("resolve Vec<Rc<str>> to namespace id")
-        // let namespaces = match kind {
-        //     NameKind::Ty => &self.tys,
-        //     NameKind::Term => &self.terms,
-        // };
-        // namespaces.get(namespace).and_then(|items| items.get(name))
+        let ns = self.find_namespace(namespace).expect("namespace should exist");
+        let items = match kind {
+            NameKind::Ty => &self.tys,
+            NameKind::Term => &self.terms,
+        };
+        items.get(&ns).and_then(|items| items.get(name))
     }
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
