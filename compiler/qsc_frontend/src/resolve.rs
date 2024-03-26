@@ -11,7 +11,11 @@ use qsc_ast::{
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
-use qsc_data_structures::{index_map::IndexMap, namespaces::{NamespaceId, NamespaceTreeRoot}, span::Span};
+use qsc_data_structures::{
+    index_map::IndexMap,
+    namespaces::{NamespaceId, NamespaceTreeRoot},
+    span::Span,
+};
 use qsc_hir::{
     assigner::Assigner,
     global,
@@ -20,7 +24,12 @@ use qsc_hir::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    cell::RefCell, collections::{hash_map::Entry, HashMap}, fmt::Display, rc::Rc, str::FromStr, vec
+    cell::RefCell,
+    collections::{hash_map::Entry, HashMap},
+    fmt::Display,
+    rc::Rc,
+    str::FromStr,
+    vec,
 };
 use thiserror::Error;
 
@@ -240,7 +249,6 @@ pub enum LocalKind {
     Var(NodeId),
 }
 
-
 #[derive(Debug, Clone, Default)]
 pub struct GlobalScope {
     tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
@@ -254,7 +262,6 @@ pub struct GlobalScope {
     namespaces: NamespaceTreeRoot,
     intrinsics: FxHashSet<Rc<str>>,
 }
-
 
 impl GlobalScope {
     fn find_namespace(&self, ns: &VecIdent) -> Option<NamespaceId> {
@@ -362,7 +369,12 @@ impl Resolver {
     }
 
     pub(super) fn into_result(self) -> (Names, Locals, Vec<Error>, NamespaceTreeRoot) {
-        (self.names, self.locals, self.errors, self.globals.namespaces)
+        (
+            self.names,
+            self.locals,
+            self.errors,
+            self.globals.namespaces,
+        )
     }
 
     pub(super) fn extend_dropped_names(&mut self, dropped_names: Vec<TrackedName>) {
@@ -497,11 +509,7 @@ impl Resolver {
 
     fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<Box<ast::Ident>>) {
         let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
-        if self
-            .globals
-            .namespaces
-            .find_namespace(name).is_some()
-        {
+        if self.globals.namespaces.find_namespace(name).is_some() {
             self.current_scope_mut()
                 .opens
                 .entry(alias)
@@ -578,7 +586,7 @@ impl Resolver {
 
         self.locals.get_scope_mut(scope_id)
     }
-    
+
     pub(crate) fn namespaces(&self) -> NamespaceTreeRoot {
         self.globals.namespaces.clone()
     }
@@ -798,7 +806,11 @@ impl GlobalTable {
         }
 
         let mut scope = GlobalScope::default();
-        let ns = scope.upsert_namespace(vec![Rc::from("Microsoft"), Rc::from("Quantum"), Rc::from("Core")]);
+        let ns = scope.upsert_namespace(vec![
+            Rc::from("Microsoft"),
+            Rc::from("Quantum"),
+            Rc::from("Core"),
+        ]);
 
         let mut tys = FxHashMap::default();
         tys.insert(ns, core);

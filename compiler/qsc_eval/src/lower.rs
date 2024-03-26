@@ -754,7 +754,7 @@ impl Lowerer {
     }
     fn lower_vec_ident(&self, name: &[hir::Ident]) -> fir::Ident {
         todo!("should this return a vec of hir idents or just one hir ident? or maybe a namespace id?")
-     }
+    }
 }
 
 fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::GenericParam> {

@@ -51,12 +51,22 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
+                                namespace: namespace
+                                    .name
+                                    .clone()
+                                    .iter()
+                                    .map(|x| Rc::from(x.to_string()))
+                                    .collect(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
+                            namespace: namespace
+                                .name
+                                .clone()
+                                .iter()
+                                .map(|x| Rc::from(x.to_string()))
+                                .collect(),
                         }),
                         _ => {}
                     }
@@ -66,12 +76,22 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
+                                namespace: namespace
+                                    .name
+                                    .clone()
+                                    .iter()
+                                    .map(|x| Rc::from(x.to_string()))
+                                    .collect(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: namespace.name.clone().iter().map(|x| Rc::from(x.to_string())).collect(),
+                            namespace: namespace
+                                .name
+                                .clone()
+                                .iter()
+                                .map(|x| Rc::from(x.to_string()))
+                                .collect(),
                         }),
                         _ => {}
                     }
@@ -108,7 +128,7 @@ impl MutVisitor for Conditional {
                     }
                     ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                         name: ident.name.clone(),
-                        namespace: Vec::default()
+                        namespace: Vec::default(),
                     }),
                     _ => {}
                 }

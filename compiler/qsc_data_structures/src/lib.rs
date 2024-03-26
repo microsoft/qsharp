@@ -67,7 +67,7 @@ pub mod namespaces {
         pub fn tree(&self) -> &NamespaceTreeNode {
             &self.tree
         }
-        /// Upserts a namespace into the tree. If the namespace already exists, it will not be inserted. 
+        /// Upserts a namespace into the tree. If the namespace already exists, it will not be inserted.
         /// Returns the ID of the namespace.
         pub fn upsert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
             self.assigner += 1;
@@ -126,10 +126,7 @@ pub mod namespaces {
     }
     impl NamespaceTreeNode {
         pub fn new(id: NamespaceId, children: HashMap<Rc<str>, NamespaceTreeNode>) -> Self {
-            Self {
-                children,
-                id,
-            }
+            Self { children, id }
         }
         pub fn children(&self) -> &HashMap<Rc<str>, NamespaceTreeNode> {
             &self.children

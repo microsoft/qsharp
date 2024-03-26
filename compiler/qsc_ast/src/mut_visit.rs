@@ -82,7 +82,6 @@ pub trait MutVisitor: Sized {
     fn visit_span(&mut self, _: &mut Span) {}
 }
 
-
 pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
     package.nodes.iter_mut().for_each(|n| match n {
         TopLevelNode::Namespace(ns) => vis.visit_namespace(ns),

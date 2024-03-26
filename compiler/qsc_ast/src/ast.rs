@@ -1281,14 +1281,7 @@ pub struct Path {
 impl Display for Path {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if let Some(ns) = &self.namespace {
-            write!(
-                f,
-                "Path {} {} ({}) ({})",
-                self.id,
-                self.span,
-                ns,
-                self.name
-            )?;
+            write!(f, "Path {} {} ({}) ({})", self.id, self.span, ns, self.name)?;
         } else {
             write!(f, "Path {} {} ({})", self.id, self.span, self.name)?;
         }
@@ -1322,13 +1315,11 @@ impl From<VecIdent> for Vec<Rc<str>> {
     }
 }
 
-
 impl From<&VecIdent> for Vec<Rc<str>> {
     fn from(v: &VecIdent) -> Self {
         v.0.iter().map(|i| i.name.clone()).collect()
     }
 }
-
 
 impl From<Vec<Ident>> for VecIdent {
     fn from(v: Vec<Ident>) -> Self {
@@ -1345,14 +1336,21 @@ impl From<VecIdent> for Vec<Ident> {
 impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let idents = self.0.iter();
-        write!(f, "{}", idents.map(|i| i.name.to_string()).collect::<Vec<String>>().join("."))
+        write!(
+            f,
+            "{}",
+            idents
+                .map(|i| i.name.to_string())
+                .collect::<Vec<String>>()
+                .join(".")
+        )
     }
 }
 impl VecIdent {
     pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
         self.0.iter()
     }
-    
+
     pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),

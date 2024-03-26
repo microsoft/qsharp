@@ -4,7 +4,7 @@
 //! The high-level intermediate representation for Q#. HIR is lowered from the AST.
 
 #![warn(missing_docs)]
-use crate::{ ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt}};
+use crate::ty::{Arrow, FunctorSet, FunctorSetValue, GenericArg, GenericParam, Scheme, Ty, Udt};
 use indenter::{indented, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::{index_map::IndexMap, span::Span};
@@ -1143,13 +1143,11 @@ impl From<VecIdent> for Vec<Rc<str>> {
     }
 }
 
-
 impl From<&VecIdent> for Vec<Rc<str>> {
     fn from(v: &VecIdent) -> Self {
         v.0.iter().map(|i| i.name.clone()).collect()
     }
 }
-
 
 impl From<Vec<Ident>> for VecIdent {
     fn from(v: Vec<Ident>) -> Self {
@@ -1166,21 +1164,28 @@ impl From<VecIdent> for Vec<Ident> {
 impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let idents = self.0.iter();
-        write!(f, "{}", idents.map(|i| i.name.to_string()).collect::<Vec<String>>().join("."))
+        write!(
+            f,
+            "{}",
+            idents
+                .map(|i| i.name.to_string())
+                .collect::<Vec<String>>()
+                .join(".")
+        )
     }
 }
 impl VecIdent {
     pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
         self.0.iter()
     }
-    
+
     pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
             hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
         }
     }
-    
+
     pub fn starts_with(&self, arg: &str) -> bool {
         self.0.first().map(|i| &*i.name == arg).unwrap_or_default()
     }
@@ -1196,9 +1201,13 @@ impl VecIdent {
         }
         return true;
     }
-    
+
     pub fn name(&self) -> String {
-        self.0.iter().map(|i| i.name.to_string()).collect::<Vec<String>>().join(".")
+        self.0
+            .iter()
+            .map(|i| i.name.to_string())
+            .collect::<Vec<String>>()
+            .join(".")
     }
 }
 /// An identifier.

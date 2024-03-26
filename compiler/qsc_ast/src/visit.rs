@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, VecIdent, Visibility
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
+    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
+    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
+    VecIdent, Visibility,
 };
 
 pub trait Visitor<'a>: Sized {

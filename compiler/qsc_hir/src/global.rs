@@ -2,10 +2,16 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{Ident, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, VecIdent, Visibility},
+    hir::{
+        Ident, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, VecIdent,
+        Visibility,
+    },
     ty::Scheme,
 };
-use qsc_data_structures::{index_map, namespaces::{NamespaceId, NamespaceTreeRoot}};
+use qsc_data_structures::{
+    index_map,
+    namespaces::{NamespaceId, NamespaceTreeRoot},
+};
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -33,13 +39,12 @@ pub struct Term {
     pub intrinsic: bool,
 }
 
-
 /// A lookup table used for looking up global core items for insertion in `qsc_passes`.
 #[derive(Default)]
 pub struct Table {
     tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Ty>>,
     terms: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Term>>,
-    namespaces: NamespaceTreeRoot
+    namespaces: NamespaceTreeRoot,
 }
 
 impl Table {
@@ -52,7 +57,7 @@ impl Table {
     pub fn resolve_term(&self, namespace: NamespaceId, name: &str) -> Option<&Term> {
         self.terms.get(&namespace).and_then(|terms| terms.get(name))
     }
-    
+
     pub fn find_namespace(&self, vec: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         // find a namespace if it exists and return its id
         self.namespaces.find_namespace(vec)
@@ -68,9 +73,7 @@ impl FromIterator<Global> for Table {
             let namespace = namespaces.upsert_namespace(global.namespace);
             match global.kind {
                 Kind::Ty(ty) => {
-                    tys.entry(namespace)
-                        .or_default()
-                        .insert(global.name, ty);
+                    tys.entry(namespace).or_default().insert(global.name, ty);
                 }
                 Kind::Term(term) => {
                     terms
@@ -82,9 +85,13 @@ impl FromIterator<Global> for Table {
             }
         }
 
-        // TODO; copy namespace root etc over here and 
+        // TODO; copy namespace root etc over here and
         // create a namespace structure with IDs
-        Self { namespaces, tys, terms }
+        Self {
+            namespaces,
+            tys,
+            terms,
+        }
     }
 }
 
@@ -145,7 +152,7 @@ impl PackageIter<'_> {
                 })
             }
             (ItemKind::Namespace(ident, _), None) => Some(Global {
-                namespace:  ident.into(),
+                namespace: ident.into(),
                 name: "".into(),
                 visibility: Visibility::Public,
                 status,

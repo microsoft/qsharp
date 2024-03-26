@@ -100,7 +100,8 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
                         span: part.span,
                         name: part.name.clone(),
                     })
-                    .collect::<Vec<_>>().into(),
+                    .collect::<Vec<_>>()
+                    .into(),
             )
         }
         _ => None,

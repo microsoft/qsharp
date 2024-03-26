@@ -737,9 +737,9 @@ impl With<'_> {
             new_id
         })
     }
-    
+
     fn lower_vec_ident(&self, name: &[ast::Ident]) -> hir::VecIdent {
-       todo!("should this return a vec of hir idents or just one hir ident? or maybe a namespace id?")
+        todo!("should this return a vec of hir idents or just one hir ident? or maybe a namespace id?")
     }
 }
 

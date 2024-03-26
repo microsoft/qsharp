@@ -4,7 +4,7 @@
 use qsc_data_structures::{namespaces::NamespaceId, span::Span};
 use qsc_hir::{
     assigner::Assigner,
-    global::{ Table},
+    global::Table,
     hir::{
         Expr, ExprKind, Field, Ident, Mutability, NodeId, Pat, PatKind, PrimField, Res, Stmt,
         StmtKind,

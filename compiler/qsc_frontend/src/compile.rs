@@ -23,7 +23,10 @@ use qsc_ast::{
     visit::Visitor as _,
 };
 use qsc_data_structures::{
-    index_map::{self, IndexMap}, language_features::LanguageFeatures, namespaces::NamespaceTreeRoot, span::Span
+    index_map::{self, IndexMap},
+    language_features::LanguageFeatures,
+    namespaces::NamespaceTreeRoot,
+    span::Span,
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,

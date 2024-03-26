@@ -74,9 +74,11 @@ pub(crate) fn get_completions(
     };
 
     // The PRELUDE namespaces are always implicitly opened.
-    context_finder
-        .opens
-        .extend(PRELUDE.into_iter().map(|ns| (todo!("this needs to be a ns id") as NamespaceId, None)));
+    context_finder.opens.extend(
+        PRELUDE
+            .into_iter()
+            .map(|ns| (todo!("this needs to be a ns id") as NamespaceId, None)),
+    );
 
     let mut builder = CompletionListBuilder::new();
 
@@ -409,8 +411,9 @@ impl CompletionListBuilder {
             .get(package_id)
             .expect("package should exist")
             .ast
-            .namespaces.clone();
-        let namespaces =namespaces;
+            .namespaces
+            .clone();
+        let namespaces = namespaces;
         convert_ast_namespaces_into_hir_namespaces(namespaces);
         vec![todo!()].into_iter()
     }
@@ -446,7 +449,7 @@ impl CompletionListBuilder {
     fn get_namespaces(package: &'_ Package) -> impl Iterator<Item = CompletionItem> + '_ {
         package.items.values().filter_map(|i| match &i.kind {
             ItemKind::Namespace(namespace, _)
-                if !namespace.starts_with_sequence(&["Microsoft", "Quantum","Unstable"]) =>
+                if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
             {
                 Some(CompletionItem::new(
                     namespace.name(),
@@ -466,9 +469,7 @@ fn convert_ast_namespaces_into_hir_namespaces(
     let tree = namespaces.tree();
     let root_id = tree.id();
 
-    for (namespace, qsc::NamespaceTreeNode { children, id }) in
-        tree.children()
-    {
+    for (namespace, qsc::NamespaceTreeNode { children, id }) in tree.children() {
         let children = qsc::NamespaceTreeNode::new(*id, children.clone());
         let id = Into::<usize>::into(id);
         if id > assigner {

@@ -11,7 +11,7 @@ pub mod target;
 pub use qsc_formatter::formatter;
 
 pub use qsc_frontend::compile::{
-    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName
+    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
 };
 
 pub mod resolve {
@@ -34,7 +34,7 @@ pub mod project {
     pub use qsc_project::{DirEntry, EntryType, FileSystem, Manifest, ManifestDescriptor};
 }
 
-pub use qsc_data_structures::{language_features::LanguageFeatures, span::Span, namespaces::*};
+pub use qsc_data_structures::{language_features::LanguageFeatures, namespaces::*, span::Span};
 
 pub use qsc_passes::{PackageType, PassContext};
 
