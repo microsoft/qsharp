@@ -89,7 +89,7 @@ pub(crate) struct LocatorContext<'package> {
     pub(crate) current_callable: Option<&'package ast::CallableDecl>,
     pub(crate) lambda_params: Vec<&'package ast::Pat>,
     pub(crate) current_item_doc: Rc<str>,
-    pub(crate) current_namespace: Rc<str>,
+    pub(crate) current_namespace: Vec<Rc<str>>,
     pub(crate) in_params: bool,
     pub(crate) in_lambda_params: bool,
     pub(crate) current_udt_id: Option<&'package hir::ItemId>,
@@ -113,7 +113,7 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
             offset,
             compilation,
             context: LocatorContext {
-                current_namespace: Rc::from(""),
+                current_namespace: Vec::new(),
                 current_callable: None,
                 in_params: false,
                 lambda_params: vec![],
@@ -128,8 +128,7 @@ impl<'inner, 'package, T> Locator<'inner, 'package, T> {
 impl<'inner, 'package, T: Handler<'package>> Visitor<'package> for Locator<'inner, 'package, T> {
     fn visit_namespace(&mut self, namespace: &'package ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            todo!("should below line use absolute or relative ns?");
-            //self.context.current_namespace = namespace.name.name.clone();
+            self.context.current_namespace = namespace.name.clone().into();
             walk_namespace(self, namespace);
         }
     }
