@@ -1166,6 +1166,7 @@ name = "qsc_rir"
 version = "0.0.0"
 dependencies = [
  "qsc_data_structures",
+ "rustc-hash",
 ]
 
 [[package]]

@@ -36,7 +36,7 @@ fn measurement_decl_works() {
 #[test]
 fn read_result_decl_works() {
     let decl = rir_builder::read_result_decl();
-    expect!["declare i1 @__quantum__rt__read_result(%Result*)"]
+    expect!["declare i1 @__quantum__qis__read_result__body(%Result*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
@@ -56,6 +56,7 @@ fn single_qubit_call() {
     let call = rir::Instruction::Call(
         rir::CallableId(0),
         vec![rir::Value::Literal(rir::Literal::Qubit(0))],
+        None,
     );
     expect!["  call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))"]
         .assert_eq(&call.to_qir(&program));
@@ -73,6 +74,7 @@ fn qubit_rotation_call() {
             rir::Value::Literal(rir::Literal::Double(std::f64::consts::PI)),
             rir::Value::Literal(rir::Literal::Qubit(0)),
         ],
+        None,
     );
     expect!["  call void @__quantum__qis__rx__body(double 3.141592653589793, %Qubit* inttoptr (i64 0 to %Qubit*))"]
         .assert_eq(&call.to_qir(&program));
@@ -90,6 +92,7 @@ fn qubit_rotation_round_number_call() {
             rir::Value::Literal(rir::Literal::Double(3.0)),
             rir::Value::Literal(rir::Literal::Qubit(0)),
         ],
+        None,
     );
     expect![
         "  call void @__quantum__qis__rx__body(double 3.0, %Qubit* inttoptr (i64 0 to %Qubit*))"
@@ -112,6 +115,7 @@ fn qubit_rotation_variable_angle_call() {
             }),
             rir::Value::Literal(rir::Literal::Qubit(0)),
         ],
+        None,
     );
     expect![
         "  call void @__quantum__qis__rx__body(double %var_0, %Qubit* inttoptr (i64 0 to %Qubit*))"
@@ -149,6 +153,67 @@ fn bell_program() {
         }
 
         attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="2" "required_num_results"="2" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+    "#]].assert_eq(&program.to_qir(&program));
+}
+
+#[test]
+fn teleport_program() {
+    let program = rir_builder::teleport_program();
+    expect![[r#"
+        %Result = type opaque
+        %Qubit = type opaque
+
+        declare void @__quantum__qis__h__body(%Qubit*)
+
+        declare void @__quantum__qis__z__body(%Qubit*)
+
+        declare void @__quantum__qis__x__body(%Qubit*)
+
+        declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+
+        declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*)
+
+        declare i1 @__quantum__qis__read_result__body(%Result*)
+
+        declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+        define void @main() #0 {
+        block_0:
+          call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 2 to %Qubit*))
+          call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
+          call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 2 to %Qubit*))
+          call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+          %var_0 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+          br i1 %var_0, label %block_1, label %block_2
+        block_1:
+          call void @__quantum__qis__z__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+          br label %block_2
+        block_2:
+          call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 2 to %Qubit*), %Result* inttoptr (i64 1 to %Result*))
+          %var_1 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 1 to %Result*))
+          br i1 %var_1, label %block_3, label %block_4
+        block_3:
+          call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 1 to %Qubit*))
+          br label %block_4
+        block_4:
+          call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 1 to %Qubit*), %Result* inttoptr (i64 2 to %Result*))
+          call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 2 to %Result*), i8* null)
+          ret void
+        }
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="3" "required_num_results"="3" }
         attributes #1 = { "irreversible" }
 
         ; module flags
