@@ -69,7 +69,7 @@ pub mod namespaces {
         }
         /// Upserts a namespace into the tree. If the namespace already exists, it will not be inserted.
         /// Returns the ID of the namespace.
-        pub fn upsert_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
+        pub fn insert_or_find_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
             self.assigner += 1;
             let id = self.assigner;
             let node = self.new_namespace_node(Default::default());
