@@ -18,7 +18,7 @@ namespace MyQuantumApp {
         // multiplication (*), division (/), modulo (%), and exponentiation (^).
         let foo = foo + 1;
         let foo = foo % 2;
-        let foo = foo ^ 2;
+        let foo = foo^2;
         return foo;
     }
 }

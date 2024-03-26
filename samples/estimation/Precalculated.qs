@@ -17,9 +17,10 @@ namespace PrecalculatedEstimates {
         use qubits = Qubit[12581];
 
         AccountForEstimates(
-            [TCount(12), RotationCount(12), RotationDepth(12),
-            CczCount(3731607428), MeasurementCount(1078154040)],
-            PSSPCLayout(), qubits);
+            [TCount(12), RotationCount(12), RotationDepth(12), CczCount(3731607428), MeasurementCount(1078154040)],
+            PSSPCLayout(),
+            qubits
+        );
     }
 
 }

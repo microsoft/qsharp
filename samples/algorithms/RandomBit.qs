@@ -16,7 +16,7 @@ namespace Sample {
         // Set the qubit in superposition by applying a Hadamard transformation.
         H(qubit);
 
-        // Measure the qubit. There is a 50% probability of measuring either 
+        // Measure the qubit. There is a 50% probability of measuring either
         // `Zero` or `One`.
         let result = M(qubit);
 

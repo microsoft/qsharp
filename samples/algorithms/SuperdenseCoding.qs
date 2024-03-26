@@ -37,7 +37,8 @@ namespace Sample {
     operation CreateEntangledPair(q1 : Qubit, q2 : Qubit) : Unit {
         Fact(
             CheckAllZero([q1, q2]),
-            "Qubits are expected to be in the |00〉 state");
+            "Qubits are expected to be in the |00〉 state"
+        );
 
         H(q1);
         CNOT(q1, q2);
