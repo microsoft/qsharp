@@ -632,18 +632,45 @@ impl<'a> Analyzer<'a> {
         compute_kind =
             compute_kind.aggregate_runtime_features(index_expr_compute_kind, default_value_kind);
 
-        // The value kind of the access by index expression depends on whether the content of the array expression is
-        // dynamic.
-        if let ComputeKind::Quantum(array_quantum_properties) = &array_expr_compute_kind {
-            let ValueKind::Array(content_runtime_value, _) = array_quantum_properties.value_kind
+        // If the index expression is dynamic, the value kind of the expression is also dynamic and an additional
+        // runtime feature is used.
+        if let ComputeKind::Quantum(index_quantum_properties) = &index_expr_compute_kind {
+            let ValueKind::Element(index_runtime_value) = index_quantum_properties.value_kind
             else {
-                panic!("the value kind of an array expression must be the array variant");
+                panic!("the value kind of an index expression must be of the element variant");
             };
 
-            if matches!(content_runtime_value, RuntimeKind::Dynamic) {
+            if matches!(index_runtime_value, RuntimeKind::Dynamic) {
+                let dynamic_runtime_features = RuntimeFeatureFlags::UseOfDynamicIndex;
+                let dynamic_value_kind = ValueKind::new_dynamic_from_type(expr_type);
+                compute_kind = compute_kind.aggregate(ComputeKind::Quantum(QuantumProperties {
+                    runtime_features: dynamic_runtime_features,
+                    value_kind: dynamic_value_kind,
+                }));
+            }
+        }
+
+        // The value kind of the access by index expression also depends on whether the content of the array expression
+        // is dynamic.
+        if let ComputeKind::Quantum(array_quantum_properties) = &array_expr_compute_kind {
+            let ValueKind::Array(content_runtime_kind, _) = array_quantum_properties.value_kind
+            else {
+                panic!("the value kind of an array expression must be of the array variant");
+            };
+
+            if matches!(content_runtime_kind, RuntimeKind::Dynamic) {
                 let dynamic_value_kind = ValueKind::new_dynamic_from_type(expr_type);
                 compute_kind.aggregate_value_kind(dynamic_value_kind);
             }
+        }
+
+        // If the index expression is dynamic, aggregate the corresponding runtime features depending on its type.
+        if let Some(value_kind) = compute_kind.value_kind() {
+            let ComputeKind::Quantum(quantum_properties) = &mut compute_kind else {
+                panic!("expected quantum variant of Compute Kind");
+            };
+            quantum_properties.runtime_features |=
+                derive_runtime_features_for_value_kind_associated_to_type(value_kind, expr_type);
         }
 
         compute_kind

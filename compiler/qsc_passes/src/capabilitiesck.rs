@@ -145,6 +145,11 @@ pub enum Error {
     #[diagnostic(help("performing a measurement within dynamic scope, a scope that depends on a measurement result, is not supported by the target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.MeasurementWithinDynamicScope"))]
     MeasurementWithinDynamicScope(#[label] Span),
+
+    #[error("cannot access an array using a dynamic index")]
+    #[diagnostic(help("accessing an array using a dynamic index, an index that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicIndex"))]
+    UseOfDynamicIndex(#[label] Span),
 }
 
 #[must_use]
@@ -486,6 +491,9 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
         errors.push(Error::MeasurementWithinDynamicScope(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
+        errors.push(Error::UseOfDynamicIndex(span));
     }
     errors
 }

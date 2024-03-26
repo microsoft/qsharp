@@ -279,6 +279,29 @@ pub const CALL_UNRESOLVED_FUNCTION: &str = r#"
         }
     }"#;
 
+pub const MEASUREMENT_WITHIN_DYNAMIC_SCOPE: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            if M(q) == One {
+                let r = M(q);
+            }
+        }
+    }"#;
+
+pub const USE_DYNAMIC_INDEX: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        operation Foo() : Unit {
+            use register = Qubit[2];
+            let results = MeasureEachZ(register);
+            let i = ResultArrayAsInt(results);
+            let a = [1, 2, 3, 4];
+            a[i];
+        }
+    }"#;
+
 pub fn write_fir_store_to_files(store: &PackageStore) {
     for (id, package) in store {
         let filename = format!("dbg/fir.package{id}.txt");

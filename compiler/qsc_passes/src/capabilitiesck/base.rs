@@ -7,10 +7,11 @@ use super::common::{
     check, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
     CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION, MINIMAL,
-    USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE,
-    USE_DYNAMIC_FUNCTION, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI,
-    USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
+    CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
+    MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL, USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT,
+    USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION, USE_DYNAMIC_INDEX,
+    USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT,
+    USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
 };
 use expect_test::{expect, Expect};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
@@ -524,6 +525,39 @@ fn call_to_unresolved_yields_errors() {
                     },
                 ),
             ]
+        "#]],
+    );
+}
+
+#[test]
+fn measurement_within_dynamic_scope_yields_errors() {
+    check_profile(
+        MEASUREMENT_WITHIN_DYNAMIC_SCOPE,
+        &expect![[r#"
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 99,
+                        hi: 110,
+                    },
+                ),
+                MeasurementWithinDynamicScope(
+                    Span {
+                        lo: 137,
+                        hi: 141,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_dynamic_index_yields_errors() {
+    check_profile(
+        USE_DYNAMIC_INDEX,
+        &expect![[r#"
+            []
         "#]],
     );
 }
