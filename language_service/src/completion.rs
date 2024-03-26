@@ -11,19 +11,19 @@ use qsc::ast::ast;
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
 
-use qsc::hir::{ItemKind, Package, PackageId, Visibility};
+use qsc::hir::{ItemKind, Package, PackageId};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
-use qsc::{NamespaceId, NamespaceTreeNode, NamespaceTreeRoot};
+use qsc::{NamespaceId, NamespaceTreeNode};
 use rustc_hash::FxHashSet;
-use std::cell::RefCell;
+use core::prelude;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-const PRELUDE: [&str; 3] = [
-    "Microsoft.Quantum.Canon",
-    "Microsoft.Quantum.Core",
-    "Microsoft.Quantum.Intrinsic",
+const PRELUDE: [[&str; 3]; 3] = [
+    ["Microsoft", "Quantum","Canon"],
+    ["Microsoft", "Quantum","Core"],
+    ["Microsoft", "Quantum","Intrinsic"]
 ];
 
 pub(crate) fn get_completions(
@@ -73,12 +73,10 @@ pub(crate) fn get_completions(
         None => String::new(),
     };
 
+    let mut prelude_ns_ids: Vec<_> = PRELUDE.iter().map(|ns| (compilation.find_namespace_id(*ns), None)).collect();
+
     // The PRELUDE namespaces are always implicitly opened.
-    context_finder.opens.extend(
-        PRELUDE
-            .into_iter()
-            .map(|ns| (todo!("this needs to be a ns id") as NamespaceId, None)),
-    );
+    context_finder.opens.append(&mut prelude_ns_ids);
 
     let mut builder = CompletionListBuilder::new();
 
