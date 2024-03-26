@@ -960,11 +960,7 @@ fn format_with_crlf() {
     );
     check(
         content,
-        &expect![[r#"
-            //qsharp
-
-            operation Foo() : Unit {}
-        "#]],
+        &expect![["//qsharp\r\n\r\noperation Foo() : Unit {}\r\n"]],
     );
 }
 
