@@ -4,7 +4,7 @@
 import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
-import { getTarget, setTarget } from "./config";
+import { getTarget, getTargetFriendlyName, setTarget } from "./config";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
@@ -65,7 +65,7 @@ export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
     // be a valid string.
     const targetProfile = getTarget();
 
-    statusBarItem.text = getTargetProfileUiText(targetProfile);
+    statusBarItem.text = getTargetFriendlyName(targetProfile);
     statusBarItem.tooltip = new vscode.MarkdownString(`## Q# target profile
   The target profile determines the set of operations that are available to Q#
   programs, in order to generate valid QIR for the target platform. For more
@@ -81,12 +81,14 @@ function registerTargetProfileCommand() {
     "qsharp-vscode.setTargetProfile",
     async () => {
       const target = await vscode.window.showQuickPick(
-        targetProfiles.map((profile) => profile.uiText),
+        targetProfiles.map((profile) => ({
+          label: profile.uiText,
+        })),
         { placeHolder: "Select the QIR target profile" },
       );
 
       if (target) {
-        setTarget(getTargetProfileSetting(target));
+        setTarget(getTargetProfileSetting(target.label));
       }
     },
   );
@@ -96,18 +98,6 @@ const targetProfiles = [
   { configName: "base", uiText: "Q#: QIR base" },
   { configName: "unrestricted", uiText: "Q#: unrestricted" },
 ];
-
-function getTargetProfileUiText(targetProfile?: string) {
-  switch (targetProfile) {
-    case "base":
-      return "Q#: QIR base";
-    case "unrestricted":
-      return "Q#: unrestricted";
-    default:
-      log.error("invalid target profile found");
-      return "Q#: invalid";
-  }
-}
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {

@@ -10,7 +10,7 @@ use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_udt_constructor_with_classical_values() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -30,7 +30,7 @@ fn check_rca_for_udt_constructor_with_classical_values() {
 
 #[test]
 fn check_rca_for_udt_constructor_with_a_dynamic_value() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -54,7 +54,7 @@ fn check_rca_for_udt_constructor_with_a_dynamic_value() {
 
 #[test]
 fn check_rca_for_udt_field_update_with_classical_value() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -76,7 +76,7 @@ fn check_rca_for_udt_field_update_with_classical_value() {
 
 #[test]
 fn check_rca_for_udt_field_update_with_dynamic_value() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
