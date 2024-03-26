@@ -11,7 +11,7 @@ use qsc::ast::ast;
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
 
-use qsc::hir::{ItemKind, Package, PackageId};
+use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
 use qsc::{NamespaceId, NamespaceTreeNode};
@@ -269,7 +269,7 @@ impl CompletionListBuilder {
         compilation: &Compilation,
         opens: &[(Vec<Rc<str>>, Option<Rc<str>>)],
         insert_open_range: Option<Range>,
-        current_namespace_name: &Option<Rc<str>>,
+        current_namespace_name: &Option<Vec<Rc<str>>>,
         indent: &String,
     ) {
         let core = &compilation
@@ -392,8 +392,10 @@ impl CompletionListBuilder {
         package_id: PackageId,
         // name and alias
         opens: &'a [(Vec<Rc<str>>, Option<Rc<str>>)],
+        // The range at which to insert an open statement if one is needed
         insert_open_at: Option<Range>,
-        current_namespace_name: Option<Rc<str>>,
+        // The name of the current namespace, if any -- 
+        current_namespace_name: Option<Vec<Rc<str>>>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
         let package = &compilation
@@ -411,9 +413,103 @@ impl CompletionListBuilder {
             .ast
             .namespaces
             .clone();
-        let namespaces = namespaces;
-        convert_ast_namespaces_into_hir_namespaces(namespaces);
-        vec![todo!()].into_iter()
+        let namespaces = convert_ast_namespaces_into_hir_namespaces(namespaces);
+        package.items.values().filter_map(move |i| {
+            // We only want items whose parents are namespaces
+            if let Some(item_id) = i.parent {
+                if let Some(parent) = package.items.get(item_id) {
+                    if let ItemKind::Namespace(namespace, _) = &parent.kind {
+                        if namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) {
+                            return None;
+                        }
+                        // If the item's visibility is internal, the item may be ignored
+                        if matches!(i.visibility, Visibility::Internal) {
+                            if !is_user_package {
+                                return None; // ignore item if not in the user's package
+                            }
+                            // ignore item if the user is not in the item's namespace
+                            match &current_namespace_name {
+                                Some(curr_ns) => {
+                                    if *curr_ns != Into::<Vec<Rc<_>>>::into(namespace) {
+                                        return None;
+                                    }
+                                }
+                                None => {
+                                    return None;
+                                }
+                            }
+                        }
+                        return match &i.kind {
+                            ItemKind::Callable(callable_decl) => {
+                                let name = callable_decl.name.name.as_ref();
+                                let detail =
+                                    Some(display.hir_callable_decl(callable_decl).to_string());
+                                // Everything that starts with a __ goes last in the list
+                                let sort_group = u32::from(name.starts_with("__"));
+                                let mut additional_edits = vec![];
+                                let mut qualification: Option<Vec<Rc<str>>> = None;
+                                match &current_namespace_name {
+                                    Some(curr_ns) if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
+                                    _ => {
+                                        // open is an option of option of Rc<str>
+                                        // the first option tells if it found an open with the namespace name
+                                        // the second, nested option tells if that open has an alias
+                                        let open = opens.iter().find_map(|(name, alias)| {
+                                            if *name == Into::<Vec<_>>::into(namespace) {
+                                                Some(alias)
+                                            } else {
+                                                None
+                                            }
+                                        });
+                                        qualification = match open {
+                                            Some(alias) => alias.clone().map(|x| vec![x]),
+                                            None => match insert_open_at {
+                                                Some(start) => {
+                                                    additional_edits.push(TextEdit {
+                                                        new_text: format!(
+                                                            "open {};{}",
+                                                            namespace,
+                                                            indent,
+                                                        ),
+                                                        range: start,
+                                                    });
+                                                    None
+                                                }
+                                                None => Some(namespace.into()),
+                                            },
+                                        }
+                                    }
+                                }
+
+                                let additional_text_edits = if additional_edits.is_empty() {
+                                    None
+                                } else {
+                                    Some(additional_edits)
+                                };
+
+                                let label = if let Some(qualification) = qualification {
+                                    format!("{}.{name}", qualification.join("."))
+                                } else {
+                                    name.to_owned()
+                                };
+                                Some((
+                                    CompletionItem {
+                                        label,
+                                        kind: CompletionItemKind::Function,
+                                        sort_text: None, // This will get filled in during `push_sorted_completions`
+                                        detail,
+                                        additional_text_edits,
+                                    },
+                                    sort_group,
+                                ))
+                            }
+                            _ => None,
+                        };
+                    }
+                }
+            }
+            None
+        })
     }
 
     /// Get all callables in the core package
@@ -544,7 +640,7 @@ struct ContextFinder {
     context: Context,
     opens: Vec<(Vec<Rc<str>>, Option<Rc<str>>)>,
     start_of_namespace: Option<u32>,
-    current_namespace_name: Option<Rc<str>>,
+    current_namespace_name: Option<Vec<Rc<str>>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -559,7 +655,7 @@ enum Context {
 impl Visitor<'_> for ContextFinder {
     fn visit_namespace(&mut self, namespace: &'_ qsc::ast::Namespace) {
         if span_contains(namespace.span, self.offset) {
-            self.current_namespace_name = Some(Rc::from(format!("{}", namespace.name)));
+            self.current_namespace_name = Some(namespace.name.clone().into());
             self.context = Context::Namespace;
             self.opens = vec![];
             self.start_of_namespace = None;
