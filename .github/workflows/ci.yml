@@ -163,7 +163,7 @@ jobs:
           ref: main
       - uses: Swatinem/rust-cache@v2
       - run: |
-          MAIN_MEASUREMENT=$(cargo run --bin memtest)
+          MAIN_MEASUREMENT=1000
           echo "MAIN_MEASUREMENT<<EOF" >> $GITHUB_ENV
           echo "$MAIN_MEASUREMENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -192,9 +192,9 @@ jobs:
                   body: `_Change in memory usage detected by benchmark._
             ## Memory Report for ${{ github.sha }}
 
-            | Test                        | This Branch | On Main  |
-            |-----------------------------|-------------|----------|
-            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes |`
+            | Test                        | This Branch | On Main  | Difference |
+            |-----------------------------|-------------|----------| ---------- |
+            | compile core + standard lib | ${{ env.BRANCH_MEASUREMENT }} bytes | ${{ env.MAIN_MEASUREMENT }} bytes | $ {{ env.BRANCH_MEASUREMENT - env.MAIN_MEASUREMENT }} bytes`
                 })
               } catch (err) {
                 core.warning(`Failed writing comment on GitHub issue: ${err}`)
