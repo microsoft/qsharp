@@ -309,3 +309,21 @@ pub const RETURN_WITHIN_DYNAMIC_SCOPE: &str = r#"
             return 0;
         }
     }"#;
+
+pub const LOOP_WITH_DYNAMIC_CONDITION: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let end = M(q) == Zero ? 5 | 10;
+            for _ in 0..end {}
+        }
+    }"#;
+
+pub const USE_CLOSURE_FUNCTION: &str = r#"
+    namespace Test {
+        open Microsoft.Quantum.Math;
+        operation Foo() : Unit {
+            let theta = PI();
+            let lambdaFn = theta -> Sin(theta);
+        }
+    }"#;

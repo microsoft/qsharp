@@ -8,10 +8,11 @@ use super::common::{
     CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
-    MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL, RETURN_WITHIN_DYNAMIC_SCOPE,
-    USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE,
-    USE_DYNAMIC_FUNCTION, USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION,
-    USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
+    LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
+    RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
+    USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
+    USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI,
+    USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
 };
 use expect_test::{expect, Expect};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
@@ -486,6 +487,70 @@ fn return_within_dynamic_scope_yields_no_errors() {
         RETURN_WITHIN_DYNAMIC_SCOPE,
         &expect![[r#"
             []
+        "#]],
+    );
+}
+
+#[test]
+fn loop_with_dynamic_condition_yields_errors() {
+    check_profile(
+        LOOP_WITH_DYNAMIC_CONDITION,
+        &expect![[r#"
+            [
+                UseOfDynamicInt(
+                    Span {
+                        lo: 106,
+                        hi: 127,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 141,
+                        hi: 159,
+                    },
+                ),
+                UseOfDynamicRange(
+                    Span {
+                        lo: 141,
+                        hi: 159,
+                    },
+                ),
+                LoopWithDynamicCondition(
+                    Span {
+                        lo: 141,
+                        hi: 159,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 150,
+                        hi: 156,
+                    },
+                ),
+                UseOfDynamicRange(
+                    Span {
+                        lo: 150,
+                        hi: 156,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_closure_yields_errors() {
+    check_profile(
+        USE_CLOSURE_FUNCTION,
+        &expect![[r#"
+            [
+                UseOfClosure(
+                    Span {
+                        lo: 149,
+                        hi: 168,
+                    },
+                ),
+            ]
         "#]],
     );
 }

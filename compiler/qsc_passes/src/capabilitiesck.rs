@@ -13,6 +13,7 @@ mod adaptive_plus_integers;
 #[cfg(test)]
 pub mod common;
 
+use itertools::Itertools;
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_fir::{
@@ -26,6 +27,7 @@ use qsc_fir::{
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use qsc_rca::{ComputeKind, ItemComputeProperties, PackageComputeProperties, RuntimeFeatureFlags};
+use rustc_hash::FxHashMap;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -178,10 +180,10 @@ pub fn check_supported_capabilities(
         compute_properties,
         target_capabilities: capabilities,
         current_callable: None,
-        errors: Vec::new(),
+        missing_features_map: FxHashMap::<Span, RuntimeFeatureFlags>::default(),
     };
 
-    checker.run()
+    checker.check_all()
 }
 
 struct Checker<'a> {
@@ -189,7 +191,7 @@ struct Checker<'a> {
     compute_properties: &'a PackageComputeProperties,
     target_capabilities: RuntimeCapabilityFlags,
     current_callable: Option<LocalItemId>,
-    errors: Vec<Error>,
+    missing_features_map: FxHashMap<Span, RuntimeFeatureFlags>,
 }
 
 impl<'a> Visitor<'a> for Checker<'a> {
@@ -232,7 +234,6 @@ impl<'a> Visitor<'a> for Checker<'a> {
 
         // We do not want to generate errors for auto-generated expressions.
         if self.is_expr_auto_generated(expr) {
-            println!("{expr_id}");
             return;
         }
 
@@ -278,6 +279,11 @@ impl<'a> Visitor<'a> for Checker<'a> {
 }
 
 impl<'a> Checker<'a> {
+    pub fn check_all(mut self) -> Vec<Error> {
+        self.visit_package(self.package);
+        self.generate_errors()
+    }
+
     fn check_expr(&mut self, expr_id: ExprId) {
         let compute_kind = self.compute_properties.get_expr(expr_id).inherent;
         let ComputeKind::Quantum(quantum_properties) = compute_kind else {
@@ -289,8 +295,12 @@ impl<'a> Checker<'a> {
             self.target_capabilities,
         );
         let expr = self.get_expr(expr_id);
-        let mut expr_errors = generate_errors_from_runtime_features(missing_features, expr.span);
-        self.errors.append(&mut expr_errors);
+        if !missing_features.is_empty() {
+            self.missing_features_map
+                .entry(expr.span)
+                .and_modify(|f| *f |= missing_features)
+                .or_insert(missing_features);
+        }
     }
 
     fn check_expr_if(
@@ -301,14 +311,15 @@ impl<'a> Checker<'a> {
         otherwise_expr_id: Option<ExprId>,
     ) {
         // Check each one of the sub-expressions individually to provide more granularity.
-        let pre_error_count = self.errors.len();
+        let pre_spans_with_missing_features_count = self.missing_features_map.len();
         self.visit_expr(condition_expr_id);
         self.visit_expr(body_expr_id);
         otherwise_expr_id.iter().for_each(|e| self.visit_expr(*e));
-        let post_error_count = self.errors.len();
+        let post_spans_with_missing_features_count = self.missing_features_map.len();
 
         // If no errors were added because of the individual expressions, check this expression as a whole.
-        let errors_delta = post_error_count - pre_error_count;
+        let errors_delta =
+            post_spans_with_missing_features_count - pre_spans_with_missing_features_count;
         if errors_delta == 0 {
             self.check_expr(expr_id);
         }
@@ -321,13 +332,14 @@ impl<'a> Checker<'a> {
         body_block_id: BlockId,
     ) {
         // Check each one of the sub-elements individually to provide more granularity.
-        let pre_error_count = self.errors.len();
+        let pre_spans_with_missing_features_count = self.missing_features_map.len();
         self.visit_expr(condition_expr_id);
         self.visit_block(body_block_id);
-        let post_error_count = self.errors.len();
+        let post_spans_with_missing_features_count = self.missing_features_map.len();
 
         // If no errors were added because of the individual elements, check this expression as a whole.
-        let errors_delta = post_error_count - pre_error_count;
+        let errors_delta =
+            post_spans_with_missing_features_count - pre_spans_with_missing_features_count;
         if errors_delta == 0 {
             self.check_expr(expr_id);
         }
@@ -380,11 +392,11 @@ impl<'a> Checker<'a> {
                 let Global::Callable(callable_decl) = current_callable else {
                     panic!("");
                 };
-                let mut spec_level_errors = generate_errors_from_runtime_features(
-                    missing_spec_level_runtime_features,
-                    callable_decl.name.span,
-                );
-                self.errors.append(&mut spec_level_errors);
+
+                self.missing_features_map
+                    .entry(callable_decl.name.span)
+                    .and_modify(|f| *f |= missing_spec_level_runtime_features)
+                    .or_insert(missing_spec_level_runtime_features);
                 return;
             }
         }
@@ -419,6 +431,16 @@ impl<'a> Checker<'a> {
             })
     }
 
+    fn generate_errors(&mut self) -> Vec<Error> {
+        let mut errors = Vec::new();
+
+        for (span, missing_features) in self.missing_features_map.drain().sorted() {
+            let mut span_errors = generate_errors_from_runtime_features(missing_features, span);
+            errors.append(&mut span_errors);
+        }
+        errors
+    }
+
     fn get_current_callable(&self) -> LocalItemId {
         self.current_callable.expect("current callable is not set")
     }
@@ -436,11 +458,6 @@ impl<'a> Checker<'a> {
         }
 
         false
-    }
-
-    fn run(mut self) -> Vec<Error> {
-        self.visit_package(self.package);
-        self.errors
     }
 
     fn set_current_callable(&mut self, id: LocalItemId) {
