@@ -8,7 +8,8 @@ use super::common::{
     CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
     CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
-    MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL, USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT,
+    LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
+    RETURN_WITHIN_DYNAMIC_SCOPE, USE_DYNAMICALLY_SIZED_ARRAY, USE_DYNAMIC_BIG_INT,
     USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION, USE_DYNAMIC_INDEX,
     USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI, USE_DYNAMIC_QUBIT,
     USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
@@ -557,7 +558,61 @@ fn use_of_dynamic_index_yields_errors() {
     check_profile(
         USE_DYNAMIC_INDEX,
         &expect![[r#"
-            []
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 246,
+                        hi: 271,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 246,
+                        hi: 271,
+                    },
+                ),
+                UseOfDynamicBool(
+                    Span {
+                        lo: 319,
+                        hi: 323,
+                    },
+                ),
+                UseOfDynamicInt(
+                    Span {
+                        lo: 319,
+                        hi: 323,
+                    },
+                ),
+                UseOfDynamicIndex(
+                    Span {
+                        lo: 319,
+                        hi: 323,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn return_within_dynamic_scope_yields_errors() {
+    check_profile(
+        RETURN_WITHIN_DYNAMIC_SCOPE,
+        &expect![[r#"
+            [
+                UseOfDynamicBool(
+                    Span {
+                        lo: 98,
+                        hi: 109,
+                    },
+                ),
+                ReturnWithinDynamicScope(
+                    Span {
+                        lo: 128,
+                        hi: 136,
+                    },
+                ),
+            ]
         "#]],
     );
 }

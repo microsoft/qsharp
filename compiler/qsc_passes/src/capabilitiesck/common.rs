@@ -302,6 +302,26 @@ pub const USE_DYNAMIC_INDEX: &str = r#"
         }
     }"#;
 
+pub const RETURN_WITHIN_DYNAMIC_SCOPE: &str = r#"
+    namespace Test {
+        operation Foo() : Int {
+            use q = Qubit();
+            if M(q) == One {
+                return 1;
+            }
+            return 0;
+        }
+    }"#;
+
+pub const LOOP_WITH_DYNAMIC_CONDITION: &str = r#"
+    namespace Test {
+        operation Foo() : Unit {
+            use q = Qubit();
+            let end = M(q) == Zero ? 5 | 10;
+            for _ in 0..end { }
+        }
+    }"#;
+
 pub fn write_fir_store_to_files(store: &PackageStore) {
     for (id, package) in store {
         let filename = format!("dbg/fir.package{id}.txt");

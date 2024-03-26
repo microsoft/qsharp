@@ -26,6 +26,7 @@ use qsc_fir::{
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use qsc_rca::{ComputeKind, ItemComputeProperties, PackageComputeProperties, RuntimeFeatureFlags};
+use rustc_hash::FxHashMap;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
@@ -150,6 +151,21 @@ pub enum Error {
     #[diagnostic(help("accessing an array using a dynamic index, an index that depends on a measurement result, is not supported by the target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicIndex"))]
     UseOfDynamicIndex(#[label] Span),
+
+    #[error("cannot use a return within a dynamic scope")]
+    #[diagnostic(help("using a return within a dynamic scope, a scope that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.ReturnWithinDynamicScope"))]
+    ReturnWithinDynamicScope(#[label] Span),
+
+    #[error("cannot have a loop with a dynamic condition")]
+    #[diagnostic(help("using a loop with a dynamic condition, a condition that depends on a measurement result, is not supported by the target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.LoopWithDynamicCondition"))]
+    LoopWithDynamicCondition(#[label] Span),
+
+    #[error("cannot use a closure")]
+    #[diagnostic(help("closures are not supported by the target"))]
+    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfClosure"))]
+    UseOfClosure(#[label] Span),
 }
 
 #[must_use]
@@ -217,6 +233,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
 
         // We do not want to generate errors for auto-generated expressions.
         if self.is_expr_auto_generated(expr) {
+            println!("{expr_id}");
             return;
         }
 
@@ -415,7 +432,7 @@ impl<'a> Checker<'a> {
         if let ExprKind::Var(Res::Local(local_var_id), _) = expr.kind {
             let maybe_ident = self.find_local_var_ident(local_var_id);
             if let Some(ident) = maybe_ident {
-                return ident.name.starts_with("@generated_ident");
+                return ident.name.starts_with('@');
             }
         }
 
@@ -494,6 +511,15 @@ fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
         errors.push(Error::UseOfDynamicIndex(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::ReturnWithinDynamicScope) {
+        errors.push(Error::ReturnWithinDynamicScope(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
+        errors.push(Error::LoopWithDynamicCondition(span));
+    }
+    if runtime_features.contains(RuntimeFeatureFlags::UseOfClosure) {
+        errors.push(Error::UseOfClosure(span));
     }
     errors
 }
