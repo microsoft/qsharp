@@ -73,11 +73,11 @@ impl Compilation {
         );
 
         let lints = qsc::linter::run_lints(&unit, Some(lints_config));
-        let mut lints = lints
+        let lints: Vec<_> = lints
             .into_iter()
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
             .collect();
-        errors.append(&mut lints);
+        errors.extend(lints);
 
         let package_id = package_store.insert(unit);
 
@@ -122,6 +122,17 @@ impl Compilation {
         }
 
         let (package_store, package_id) = compiler.into_package_store();
+
+        // Compute new lints and append them to the errors Vec.
+        let unit = package_store
+            .get(package_id)
+            .expect("user package should exist");
+        let lints = qsc::linter::run_lints(unit, None);
+        let lints: Vec<_> = lints
+            .into_iter()
+            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
+            .collect();
+        errors.extend(lints);
 
         Self {
             package_store,
