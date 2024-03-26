@@ -26,7 +26,6 @@ use qsc_fir::{
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use qsc_rca::{ComputeKind, ItemComputeProperties, PackageComputeProperties, RuntimeFeatureFlags};
-use rustc_hash::FxHashMap;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
