@@ -27,6 +27,24 @@ pub mod namespaces {
         }
     }
 
+    impl From<usize> for NamespaceId {
+        fn from(value: usize) -> Self {
+            Self::new(value)
+        }
+    }
+
+    impl From<NamespaceId> for usize {
+        fn from(value: NamespaceId) -> Self {
+            value.0
+        }
+    }
+
+    impl From<&NamespaceId> for usize {
+        fn from(value: &NamespaceId) -> Self {
+            value.0
+        }
+    }
+
     impl Deref for NamespaceId {
         type Target = usize;
         fn deref(&self) -> &Self::Target {
@@ -55,8 +73,8 @@ pub mod namespaces {
             self.assigner += 1;
             let id = self.assigner;
             let node = self.new_namespace_node(Default::default());
-            let mut components_iter = name.into();
-            let mut components_iter = components_iter.iter();
+            let components_iter = name.into();
+            let components_iter = components_iter.iter();
             // construct the initial rover for the breadth-first insertion
             // (this is like a BFS but we create a new node if one doesn't exist)
             let self_cell = RefCell::new(self);
@@ -74,7 +92,7 @@ pub mod namespaces {
             }
             rover_node.id
         }
-        fn new_namespace_node(
+        pub fn new_namespace_node(
             &mut self,
             children: HashMap<Rc<str>, NamespaceTreeNode>,
         ) -> NamespaceTreeNode {
@@ -119,7 +137,9 @@ pub mod namespaces {
         fn get(&self, component: &Rc<str>) -> Option<&NamespaceTreeNode> {
             self.children.get(component)
         }
-
+        pub fn id(&self) -> NamespaceId {
+            self.id
+        }
         fn contains(&self, ns: impl Into<Vec<Rc<str>>>) -> bool {
             self.find_namespace(ns).is_some()
         }

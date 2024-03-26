@@ -14,9 +14,10 @@ use qsc::display::{CodeDisplay, Lookup};
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
-use qsc::NamespaceId;
+use qsc::{NamespaceId, NamespaceTreeNode, NamespaceTreeRoot};
 use rustc_hash::FxHashSet;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 const PRELUDE: [&str; 3] = [
@@ -460,19 +461,23 @@ impl CompletionListBuilder {
 fn convert_ast_namespaces_into_hir_namespaces(
     namespaces: qsc::NamespaceTreeRoot,
 ) -> qsc::NamespaceTreeRoot {
-    let mut hir_namespaces = Vec::new();
+    let mut hir_namespaces: HashMap<_, _> = Default::default();
     let mut assigner: usize = 0;
+    let tree = namespaces.tree();
+    let root_id = tree.id();
+
     for (namespace, qsc::NamespaceTreeNode { children, id }) in
-        namespaces.tree().children()
+        tree.children()
     {
-        let hir_namespace = qsc::NamespaceTreeNode::new(*id, children.clone());
-        if id.into() > assigner {
-            assigner = id.into() + 1;
+        let children = qsc::NamespaceTreeNode::new(*id, children.clone());
+        let id = Into::<usize>::into(id);
+        if id > assigner {
+            assigner = id + 1;
         };
-        hir_namespaces.push(hir_namespace);
+        hir_namespaces.insert(namespace.clone(), children);
     }
 
-    qsc::NamespaceTreeRoot::new(assigner, hir_namespaces)
+    qsc::NamespaceTreeRoot::new(assigner, NamespaceTreeNode::new(root_id, hir_namespaces))
 }
 
 /// Convert a local into a completion item
