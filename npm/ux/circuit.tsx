@@ -68,7 +68,7 @@ export function CircuitPanel(props: {
   errorHtml?: string;
 }) {
   return (
-    <div>
+    <div class="qs-circuit-panel">
       <div>
         <h1>{props.title}</h1>
       </div>
@@ -86,6 +86,11 @@ export function CircuitPanel(props: {
         ) : null}
       </div>
       <p>{props.subtitle /* target profile */}</p>
+      <p>
+        <a href="https://github.com/microsoft/qsharp/wiki/Circuit-Diagrams-from-Q%23-Code">
+          Learn more
+        </a>
+      </p>
     </div>
   );
 }

@@ -1,6 +1,11 @@
 /* Copyright (c) Microsoft Corporation.
    Licensed under the MIT License. */
 
+/* Circuit panel */
+.qs-circuit-panel p {
+  padding: 10px 0px;
+}
+
 /* Error div in circuit panel */
 .qs-circuit-error {
   padding: 10px 0px;
