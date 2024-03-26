@@ -965,6 +965,43 @@ fn format_with_crlf() {
 }
 
 #[test]
+fn format_does_not_edit_magic_comment() {
+    let content = indoc! {"\r\n\r\n    //qsharp    \r\n\r\noperation Foo() : Unit {\r\n\r\n}\r\n"};
+    check_edits(
+        content,
+        &expect![[r#"
+            [
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 0,
+                        hi: 8,
+                    },
+                },
+                TextEdit {
+                    new_text: "//qsharp",
+                    span: Span {
+                        lo: 8,
+                        hi: 20,
+                    },
+                },
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 48,
+                        hi: 52,
+                    },
+                },
+            ]
+        "#]],
+    );
+    check(
+        content,
+        &expect![["//qsharp\r\n\r\noperation Foo() : Unit {}\r\n"]],
+    );
+}
+
+#[test]
 fn sample_has_no_formatting_changes() {
     let input = indoc! {r#"
         /// # Sample
