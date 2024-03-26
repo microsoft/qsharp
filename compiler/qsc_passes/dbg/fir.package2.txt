@@ -1,6 +1,0 @@
-Package:
-    Items:
-    Blocks:
-    Stmts:
-    Exprs:
-    Pats:
