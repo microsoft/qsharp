@@ -4,6 +4,7 @@
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
 import {
   IOperationInfo,
+  IRange,
   VSDiagnostic,
   getCompilerWorker,
   log,
@@ -75,7 +76,7 @@ export async function showCircuitCommand(
     log.error("Circuit error. ", e.toString());
     clearTimeout(compilerTimeout);
 
-    const errors: [string, VSDiagnostic][] =
+    const errors: [string, VSDiagnostic, string][] =
       typeof e === "string" ? JSON.parse(e) : undefined;
     let errorHtml = "There was an error generating the circuit.";
     if (errors) {
@@ -112,10 +113,10 @@ export function updateCircuitPanel(
   let subtitle;
   if (operation) {
     title = `${operation.operation} with ${operation.totalNumQubits} input qubits`;
-    subtitle = `${getTargetFriendlyName(targetProfile)} `;
+    subtitle = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
   } else {
     title = basename(docPath) || "Circuit";
-    subtitle = `${getTargetFriendlyName(targetProfile)}`;
+    subtitle = `Target profile: ${getTargetFriendlyName(targetProfile)}`;
   }
 
   const message = {
@@ -133,52 +134,74 @@ export function updateCircuitPanel(
 /**
  * Formats an array of compiler/runtime errors into HTML to be presented to the user.
  *
- * @param {[string, VSDiagnostic][]} errors
- *  The string is the document URI or "<project>" if the error isn't associated with a specific document.
+ * @param errors
+ *  The first string is the document URI or "<project>" if the error isn't associated with a specific document.
  *  The VSDiagnostic is the error information.
+ *  The last string is the stack trace.
  *
- * @returns {string} - The HTML formatted errors, to be set as the inner contents of a container element.
+ * @returns The HTML formatted errors, to be set as the inner contents of a container element.
  */
-function errorsToHtml(errors: [string, VSDiagnostic][]): string {
+function errorsToHtml(
+  errors: [string, VSDiagnostic, string | undefined][],
+): string {
   let errorHtml = "";
   for (const error of errors) {
-    let location;
-    const document = error[0];
-    try {
-      // If the error location is a document URI, create a link to that document.
-      // We use the `vscode.open` command (https://code.visualstudio.com/api/references/commands#commands)
-      // to open the document in the editor.
-      // The line and column information is displayed, but are not part of the link.
-      //
-      // At the time of writing this is the only way we know to create a direct
-      // link to a Q# document from a Web View.
-      //
-      // If we wanted to handle line/column information from the link, an alternate
-      // implementation might be having our own command that navigates to the correct
-      // location. Then this would be a link to that command instead.
-      const uri = Uri.parse(document, true);
-      const openCommandUri = Uri.parse(
-        `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
-        true,
-      );
-      const fsPath = escapeHtml(uri.fsPath);
-      const lineColumn = escapeHtml(
-        `:${error[1].range.start.line}:${error[1].range.start.character}`,
-      );
-      location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
-    } catch (e) {
-      // Likely could not parse document URI - it must be a project level error,
-      // use the document name directly
-      location = escapeHtml(error[0]);
+    const [document, diag, rawStack] = error;
+
+    const location = documentHtml(document, diag.range);
+
+    const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
+      "\n",
+      "<br/><br/>",
+    );
+
+    errorHtml += `<p>${location}: ${message}<br/></p>`;
+
+    if (rawStack) {
+      const stack = rawStack
+        .split("\n")
+        .map((l) => {
+          // Link-ify the document names in the stack trace
+          const match = l.match(/^(\s*)at (.*) in (.*)/);
+          if (match) {
+            const [, leadingWs, callable, doc] = match;
+            return `${leadingWs}at ${escapeHtml(callable)} in ${documentHtml(doc)}`;
+          } else {
+            return l;
+          }
+        })
+
+        .join("\n");
+      errorHtml += `<br/><pre>${stack}</pre>`;
     }
-
-    const message = escapeHtml(
-      `(${error[1].code}) ${error[1].message}`,
-    ).replace("\n", "<br/>");
-
-    errorHtml += `${location}: ${message}<br/>`;
   }
   return errorHtml;
+}
+
+/**
+ * If the input is a URI, turns it into a document open link.
+ * Otherwise returns the HTML-escaped input
+ */
+function documentHtml(maybeUri: string, range?: IRange) {
+  let location;
+  try {
+    const uri = Uri.parse(maybeUri, true);
+    const openCommandUri = Uri.parse(
+      `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
+      true,
+    );
+    const fsPath = escapeHtml(uri.fsPath);
+    const lineColumn = range
+      ? escapeHtml(`:${range.start.line}:${range.start.character}`)
+      : "";
+    location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
+  } catch (e) {
+    // Likely could not parse document URI - it must be a project level error
+    // or an error from stdlib, use the document name directly
+    location = escapeHtml(maybeUri);
+  }
+
+  return location;
 }
 
 function escapeHtml(unsafe: string): string {
