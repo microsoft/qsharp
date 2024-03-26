@@ -23,4 +23,6 @@ export interface ILaunchRequestArguments
   trace?: boolean;
   /** run without debugging */
   noDebug?: boolean;
+  /** Display the quantum circuit diagram while running */
+  showCircuit?: boolean;
 }

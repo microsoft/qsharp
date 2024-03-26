@@ -12,7 +12,7 @@ use test_utils::{
 
 #[test]
 fn check_rca_for_if_stmt_with_classic_condition_and_classic_if_true_block() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -41,7 +41,7 @@ fn check_rca_for_if_stmt_with_classic_condition_and_classic_if_true_block() {
 
 #[test]
 fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -73,7 +73,7 @@ fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
 
 #[test]
 fn check_rca_for_if_else_expr_with_classic_condition_and_classic_branch_blocks() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         let i = if true {
@@ -97,7 +97,7 @@ fn check_rca_for_if_else_expr_with_classic_condition_and_classic_branch_blocks()
 
 #[test]
 fn check_rca_for_if_else_expr_with_dynamic_condition_and_classic_branch_blocks() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();

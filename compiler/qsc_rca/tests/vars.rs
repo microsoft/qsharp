@@ -10,7 +10,7 @@ use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_callable_var() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"H"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -26,7 +26,7 @@ fn check_rca_for_callable_var() {
 
 #[test]
 fn check_rca_for_udt_var() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             open Microsoft.Quantum.Math;
@@ -46,7 +46,7 @@ fn check_rca_for_udt_var() {
 
 #[test]
 fn check_rca_for_static_int_var() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             let a = 42;
@@ -66,7 +66,7 @@ fn check_rca_for_static_int_var() {
 
 #[test]
 fn check_rca_for_static_qubit_var() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             use q = Qubit();
@@ -88,7 +88,7 @@ fn check_rca_for_static_qubit_var() {
 
 #[test]
 fn check_rca_for_dynamic_result_var() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             use q = Qubit();

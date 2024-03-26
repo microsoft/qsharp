@@ -5,6 +5,7 @@ namespace Microsoft.Quantum.Intrinsic {
     open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Core;
     open Microsoft.Quantum.Math;
+    open QIR.Intrinsic;
 
     internal operation CH(control : Qubit, target : Qubit) : Unit is Adj {
         within {
@@ -146,12 +147,12 @@ namespace Microsoft.Quantum.Intrinsic {
     @Config(Unrestricted)
     internal operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         body ... {
-            CCNOT(control1, control2, target);
+            __quantum__qis__ccx__body(control1, control2, target);
         }
         adjoint ... {
-            H(target);
+            __quantum__qis__h__body(target);
             if MResetZ(target) == One {
-                Controlled Z([control1], control2);
+                __quantum__qis__cz__body(control1, control2);
             }
         }
     }
