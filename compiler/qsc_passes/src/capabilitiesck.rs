@@ -34,7 +34,7 @@ use thiserror::Error;
 pub enum Error {
     #[error("cannot use a dynamic boolean value")]
     #[diagnostic(help(
-        "using a dynamic boolean value, a boolean value that depends on a measurement result, is not supported by the target"
+        "using a bool value that depends on a measurement result is not supported by the current target"
     ))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfDynamicBool"))]
     UseOfDynamicBool(#[label] Span),
