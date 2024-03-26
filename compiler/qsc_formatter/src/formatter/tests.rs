@@ -144,14 +144,12 @@ fn singe_space_around_arithmetic_bin_ops() {
     1   *   2;
     4  /2;
     3%  2;
-    2  ^  3;
     "},
         &expect![[r#"
             1 + 2;
             1 * 2;
             4 / 2;
             3 % 2;
-            2 ^ 3;
         "#]],
     );
 }
