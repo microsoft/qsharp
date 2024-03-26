@@ -62,6 +62,11 @@ impl DebugService {
         QuantumStateList { entries }.into()
     }
 
+    pub fn get_circuit(&self) -> Result<JsValue, String> {
+        let circuit = self.debugger().circuit();
+        serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())
+    }
+
     pub fn get_stack_frames(&self) -> IStackFrameList {
         let frames = self.debugger().get_stack_frames();
 

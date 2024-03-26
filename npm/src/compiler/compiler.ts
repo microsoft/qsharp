@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
 import {
   IOperationInfo,
   TargetProfile,
@@ -78,7 +79,7 @@ export interface ICompiler {
     config: ProgramConfig,
     target: TargetProfile,
     operation?: IOperationInfo,
-  ): Promise<object>;
+  ): Promise<CircuitData>;
 
   checkExerciseSolution(
     userCode: string,
@@ -223,7 +224,7 @@ export class Compiler implements ICompiler {
     config: ProgramConfig,
     target: TargetProfile,
     operation?: IOperationInfo,
-  ): Promise<object> {
+  ): Promise<CircuitData> {
     return this.wasm.get_circuit(
       config.sources,
       target,
