@@ -13,6 +13,8 @@ const MAX_QUBITS = 1000;
 
 /* This component is shared by the Python widget and the VS Code panel */
 export function Circuit(props: { circuit: qviz.Circuit }) {
+  const circuitDiv = useRef<HTMLDivElement>(null);
+
   const errorDiv =
     props.circuit.qubits.length === 0 ? (
       <div>
@@ -42,13 +44,12 @@ export function Circuit(props: { circuit: qviz.Circuit }) {
       </div>
     ) : undefined;
 
-  if (errorDiv) {
-    return <div class=".qs-circuit-error">{errorDiv}</div>;
-  }
-
-  const circuitDiv = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
+    if (errorDiv !== undefined) {
+      circuitDiv.current!.innerHTML = "";
+      return;
+    }
+
     qviz.draw(props.circuit, circuitDiv.current!);
 
     // quantum-viz hardcodes the styles in the SVG.
@@ -57,7 +58,12 @@ export function Circuit(props: { circuit: qviz.Circuit }) {
     styleElements?.forEach((tag) => tag.remove());
   }, [props.circuit]);
 
-  return <div class="qs-circuit" ref={circuitDiv}></div>;
+  return (
+    <div>
+      <div class="qs-circuit-error">{errorDiv}</div>
+      <div class="qs-circuit" ref={circuitDiv}></div>
+    </div>
+  );
 }
 
 /* This component is exclusive to the VS Code panel */
