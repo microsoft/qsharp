@@ -166,8 +166,8 @@ impl ToQir<String> for rir::Callable {
             return format!(
                 "declare {output_type} @{}({input_type}){}",
                 self.name,
-                if self.name == "__quantum__qis__mz__body" {
-                    // The mz callable is a special case that needs the irreversable attribute.
+                if self.is_measurement {
+                    // Measurement callables are a special case that needs the irreversable attribute.
                     " #1"
                 } else {
                     ""

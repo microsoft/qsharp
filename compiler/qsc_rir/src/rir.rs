@@ -85,6 +85,8 @@ pub struct Callable {
     /// The callable body.
     /// N.B. `None` bodys represent an intrinsic.
     pub body: Option<BlockId>,
+    /// Whether or not the callabe is a measurement.
+    pub is_measurement: bool,
 }
 
 pub enum Instruction {

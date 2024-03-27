@@ -9,6 +9,7 @@ pub fn x_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -18,6 +19,7 @@ pub fn z_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -27,6 +29,7 @@ pub fn h_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -36,6 +39,7 @@ pub fn cx_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit, rir::Ty::Qubit],
         output_type: None,
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -45,6 +49,7 @@ pub fn rx_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Double, rir::Ty::Qubit],
         output_type: None,
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -54,6 +59,7 @@ pub fn mz_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
         output_type: None,
         body: None,
+        is_measurement: true,
     }
 }
 
@@ -63,6 +69,7 @@ pub fn mresetz_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
         output_type: None,
         body: None,
+        is_measurement: true,
     }
 }
 
@@ -72,6 +79,7 @@ pub fn read_result_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Result],
         output_type: Some(rir::Ty::Boolean),
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -81,6 +89,7 @@ pub fn result_record_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Result, rir::Ty::Pointer],
         output_type: None,
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -90,6 +99,7 @@ pub fn array_record_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Integer, rir::Ty::Pointer],
         output_type: None,
         body: None,
+        is_measurement: false,
     }
 }
 
@@ -111,6 +121,7 @@ pub fn bell_program() -> rir::Program {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
+            is_measurement: false,
         },
     );
     program.blocks.insert(
@@ -200,6 +211,7 @@ pub fn teleport_program() -> rir::Program {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
+            is_measurement: false,
         },
     );
     program.blocks.insert(
