@@ -400,6 +400,7 @@ pub struct State {
     idx_stack: Vec<u32>,
     val_register: Option<Value>,
     val_stack: Vec<Vec<Value>>,
+    source_package: PackageId,
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
@@ -423,6 +424,7 @@ impl State {
             idx_stack: Vec::new(),
             val_register: None,
             val_stack: vec![Vec::new()],
+            source_package: package,
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
@@ -541,7 +543,10 @@ impl State {
                     self.idx += 1;
                     self.current_span = globals.get_stmt((self.package, *stmt).into()).span;
 
-                    if let Some(bp) = breakpoints.iter().find(|&bp| *bp == *stmt) {
+                    if let Some(bp) = breakpoints
+                        .iter()
+                        .find(|&bp| *bp == *stmt && self.package == self.source_package)
+                    {
                         StepResult::BreakpointHit(*bp)
                     } else {
                         if self.current_span == Span::default() {
