@@ -5,7 +5,10 @@ use crate::{
     fir::{Item, ItemId, ItemKind, Package, PackageId, Visibility},
     ty::Scheme,
 };
-use qsc_data_structures::{index_map, namespaces::{NamespaceId, NamespaceTreeRoot}};
+use qsc_data_structures::{
+    index_map,
+    namespaces::{NamespaceId, NamespaceTreeRoot},
+};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
@@ -55,7 +58,6 @@ impl Table {
     }
 }
 
-
 impl FromIterator<Global> for Table {
     fn from_iter<T: IntoIterator<Item = Global>>(iter: T) -> Self {
         let mut tys: FxHashMap<_, FxHashMap<_, _>> = FxHashMap::default();
@@ -82,7 +84,6 @@ impl FromIterator<Global> for Table {
             tys,
             terms,
         }
-    
     }
 }
 

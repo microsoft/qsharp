@@ -3,7 +3,8 @@
 
 use crate::fir::{
     Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
-    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent, VecIdent,
+    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent,
+    VecIdent,
 };
 
 pub trait MutVisitor<'a>: Sized {
@@ -66,7 +67,7 @@ pub fn walk_item<'a>(vis: &mut impl MutVisitor<'a>, item: &'a mut Item) {
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Namespace(name, _) => vis.visit_vec_ident(name),
-         ItemKind::Ty(name, _) => vis.visit_ident(name),
+        ItemKind::Ty(name, _) => vis.visit_ident(name),
     };
 }
 

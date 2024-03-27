@@ -8,7 +8,9 @@ pub mod language_features;
 pub mod line_column;
 pub mod span;
 pub mod namespaces {
-    use std::{cell::RefCell, collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
+    use std::{
+        cell::RefCell, collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc,
+    };
 
     #[derive(Debug, Clone)]
 
@@ -96,7 +98,7 @@ pub mod namespaces {
         pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
             return self.tree.find_id(*id, vec![]);
         }
-        
+
         pub fn root_id(&self) -> NamespaceId {
             self.tree.id
         }
@@ -115,9 +117,12 @@ pub mod namespaces {
             let mut root = NamespaceTreeRoot::default();
             for i in 0..10 {
                 for j in 'a'..'d' {
-                    root.insert_or_find_namespace(vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))].into_iter());
+                    root.insert_or_find_namespace(
+                        vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))]
+                            .into_iter(),
+                    );
                 }
-            }            
+            }
             expect![[r#"
                 NamespaceTreeRoot {
                     assigner: 40,
@@ -382,14 +387,19 @@ pub mod namespaces {
             "#]]
             .assert_debug_eq(&root);
         }
-        
+
         #[test]
         fn test_find_id() {
             let mut root = NamespaceTreeRoot::default();
             let mut id_buf = vec![];
             for i in 0..10 {
                 for j in 'a'..'d' {
-                    id_buf.push(root.insert_or_find_namespace(vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))].into_iter()));
+                    id_buf.push(
+                        root.insert_or_find_namespace(
+                            vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))]
+                                .into_iter(),
+                        ),
+                    );
                 }
             }
             let mut result_buf = vec![];
@@ -759,7 +769,8 @@ pub mod namespaces {
                         },
                     ),
                 ]
-            "#]   ].assert_debug_eq(&result_buf)     
+            "#]]
+            .assert_debug_eq(&result_buf)
         }
         // test that after inserting lots of namespaces, all ids are unique and sequential
         #[test]
@@ -768,7 +779,10 @@ pub mod namespaces {
             let mut ids: Vec<usize> = vec![];
             for i in 0..10 {
                 for j in 'a'..'d' {
-                    let id = root.insert_or_find_namespace(vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))].into_iter());
+                    let id = root.insert_or_find_namespace(
+                        vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))]
+                            .into_iter(),
+                    );
                     ids.push(id.into());
                 }
             }
@@ -866,9 +880,12 @@ pub mod namespaces {
         /// Returns the ID of the namespace.
         pub fn insert_or_find_namespace<I>(
             &mut self,
-            mut iter:  Peekable<I>,
+            mut iter: Peekable<I>,
             assigner: &mut usize,
-        ) -> Option<NamespaceId> where I: Iterator<Item = Rc<str>> {
+        ) -> Option<NamespaceId>
+        where
+            I: Iterator<Item = Rc<str>>,
+        {
             let next_item = match iter.next() {
                 Some(item) => item,
                 None => return None,
@@ -894,8 +911,12 @@ pub mod namespaces {
                 }
             }
         }
-        
-        fn find_id(&self, id: NamespaceId, names_buf: Vec<Rc<str>>) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
+
+        fn find_id(
+            &self,
+            id: NamespaceId,
+            names_buf: Vec<Rc<str>>,
+        ) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
             if self.id == id {
                 return (names_buf, Rc::new(self));
             } else {

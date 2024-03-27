@@ -3,7 +3,16 @@
 
 use log::trace;
 use qsc::{
-    ast, compile::{self, Error}, display::Lookup, error::WithSource, hir::{self, PackageId}, incremental::Compiler, line_column::{Encoding, Position}, resolve, target::Profile, CompileUnit, LanguageFeatures, NamespaceId, PackageStore, PackageType, SourceMap, Span
+    ast,
+    compile::{self, Error},
+    display::Lookup,
+    error::WithSource,
+    hir::{self, PackageId},
+    incremental::Compiler,
+    line_column::{Encoding, Position},
+    resolve,
+    target::Profile,
+    CompileUnit, LanguageFeatures, NamespaceId, PackageStore, PackageType, SourceMap, Span,
 };
 use qsc_linter::LintConfig;
 use std::{rc::Rc, sync::Arc};
@@ -209,18 +218,15 @@ impl Compilation {
         self.user_package_id = new.user_package_id;
         self.errors = new.errors;
     }
-    
-    pub(crate) fn find_namespace_id(&self, ns: [&str; 3]) -> NamespaceId {
- self
-                .package_store
-                .get(self.user_package_id)
-                .expect("user package should exist")
-                .ast
-                .namespaces
-                .find_namespace(ns.into_iter().map(|s| Rc::from(s)).collect::<Vec<_>>())
-                .expect("namespace should exist")
-        
 
+    pub(crate) fn find_namespace_id(&self, ns: [&str; 3]) -> NamespaceId {
+        self.package_store
+            .get(self.user_package_id)
+            .expect("user package should exist")
+            .ast
+            .namespaces
+            .find_namespace(ns.into_iter().map(|s| Rc::from(s)).collect::<Vec<_>>())
+            .expect("namespace should exist")
     }
 }
 

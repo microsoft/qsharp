@@ -642,7 +642,11 @@ impl With<'_> {
 
 impl AstVisitor<'_> for With<'_> {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let ns = self.resolver.globals.find_namespace(Into::<Vec<_>>::into(namespace.name.clone())).expect("namespace should exist");
+        let ns = self
+            .resolver
+            .globals
+            .find_namespace(Into::<Vec<_>>::into(namespace.name.clone()))
+            .expect("namespace should exist");
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
             for item in &*namespace.items {
@@ -1257,7 +1261,7 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
 }
 
 /// The return type represents the resolution of all implicit opens.
-/// The namespace is returned along with the res, so that the namespace can be used to 
+/// The namespace is returned along with the res, so that the namespace can be used to
 /// report the ambiguity to the user.
 fn resolve_implicit_opens<'a, 'b>(
     kind: NameKind,

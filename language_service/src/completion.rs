@@ -11,19 +11,19 @@ use qsc::ast::ast;
 use qsc::ast::visit::{self, Visitor};
 use qsc::display::{CodeDisplay, Lookup};
 
+use core::prelude;
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
 use qsc::resolve::{Local, LocalKind};
 use qsc::{NamespaceId, NamespaceTreeNode};
 use rustc_hash::FxHashSet;
-use core::prelude;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 const PRELUDE: [[&str; 3]; 3] = [
-    ["Microsoft", "Quantum","Canon"],
-    ["Microsoft", "Quantum","Core"],
-    ["Microsoft", "Quantum","Intrinsic"]
+    ["Microsoft", "Quantum", "Canon"],
+    ["Microsoft", "Quantum", "Core"],
+    ["Microsoft", "Quantum", "Intrinsic"],
 ];
 
 pub(crate) fn get_completions(
@@ -73,7 +73,10 @@ pub(crate) fn get_completions(
         None => String::new(),
     };
 
-    let mut prelude_ns_ids: Vec<_> = PRELUDE.into_iter().map(|ns| (ns.into_iter().map(Rc::from).collect(), None)).collect();
+    let mut prelude_ns_ids: Vec<_> = PRELUDE
+        .into_iter()
+        .map(|ns| (ns.into_iter().map(Rc::from).collect(), None))
+        .collect();
 
     // The PRELUDE namespaces are always implicitly opened.
     context_finder.opens.append(&mut prelude_ns_ids);
@@ -394,7 +397,7 @@ impl CompletionListBuilder {
         opens: &'a [(Vec<Rc<str>>, Option<Rc<str>>)],
         // The range at which to insert an open statement if one is needed
         insert_open_at: Option<Range>,
-        // The name of the current namespace, if any -- 
+        // The name of the current namespace, if any --
         current_namespace_name: Option<Vec<Rc<str>>>,
         indent: &'a String,
     ) -> impl Iterator<Item = (CompletionItem, u32)> + 'a {
@@ -449,7 +452,8 @@ impl CompletionListBuilder {
                                 let mut additional_edits = vec![];
                                 let mut qualification: Option<Vec<Rc<str>>> = None;
                                 match &current_namespace_name {
-                                    Some(curr_ns) if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
+                                    Some(curr_ns)
+                                        if *curr_ns == Into::<Vec<_>>::into(namespace) => {}
                                     _ => {
                                         // open is an option of option of Rc<str>
                                         // the first option tells if it found an open with the namespace name
@@ -468,8 +472,7 @@ impl CompletionListBuilder {
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
                                                             "open {};{}",
-                                                            namespace,
-                                                            indent,
+                                                            namespace, indent,
                                                         ),
                                                         range: start,
                                                     });
@@ -669,9 +672,8 @@ impl Visitor<'_> for ContextFinder {
         }
 
         if let qsc::ast::ItemKind::Open(name, alias) = &*item.kind {
-            self.opens.push((
-                name.into(), alias.as_ref().map(|alias| alias.name.clone())
-            ));
+            self.opens
+                .push((name.into(), alias.as_ref().map(|alias| alias.name.clone())));
         }
 
         if span_contains(item.span, self.offset) {
