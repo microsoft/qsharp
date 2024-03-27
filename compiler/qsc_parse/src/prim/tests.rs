@@ -100,7 +100,7 @@ fn path_triple() {
     check(
         path,
         "Foo.Bar.Baz",
-        &expect![[r#"Path _id_ [0-11] (Ident _id_ [0-7] "Foo.Bar") (Ident _id_ [8-11] "Baz")"#]],
+        &expect![[r#"Path _id_ [0-11] ([Ident _id_ [0-3] "Foo", Ident _id_ [4-7] "Bar"]) (Ident _id_ [8-11] "Baz")"#]],
     );
 }
 

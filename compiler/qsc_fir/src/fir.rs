@@ -1455,18 +1455,21 @@ impl FromIterator<Ident> for VecIdent {
         VecIdent(iter.into_iter().collect())
     }
 }
-
 impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let idents = self.0.iter();
-        write!(
-            f,
-            "{}",
-            idents
-                .map(|i| i.name.to_string())
-                .collect::<Vec<String>>()
-                .join(".")
-        )
+        let mut buf = Vec::with_capacity(self.0.len());
+
+        for ident in self.0.iter() {
+            buf.push(format!("{}", ident)); 
+        }
+        if buf.len() > 1 {
+            // use square brackets only if there are more than one ident
+        write!(f, "[{}]", buf.join(", "))
+        } else {
+            write!(f, "{}", buf[0])
+        
+        }
     }
 }
 impl VecIdent {
