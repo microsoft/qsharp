@@ -17,7 +17,7 @@ trait ToQir<T> {
 impl ToQir<String> for rir::Literal {
     fn to_qir(&self, _program: &rir::Program) -> String {
         match self {
-            rir::Literal::Bool(b) => format!("i1 {b}"),
+            rir::Literal::Boolean(b) => format!("i1 {b}"),
             rir::Literal::Double(d) => {
                 if (d.floor() - d.ceil()).abs() < f64::EPSILON {
                     // The value is a whole number, which requires at least one decimal point
