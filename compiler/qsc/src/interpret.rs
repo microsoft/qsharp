@@ -138,10 +138,9 @@ impl Interpreter {
         let package_id = compiler.package_id();
 
         for (id, unit) in compiler.package_store() {
-            let mut lowerer = qsc_eval::lower::Lowerer::new();
             fir_store.insert(
                 map_hir_package_to_fir(id),
-                lowerer.lower_package(&unit.package),
+                qsc_eval::lower::Lowerer::new().lower_package(&unit.package),
             );
         }
 
