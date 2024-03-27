@@ -140,7 +140,7 @@ fn bell_program() {
 
         declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-        define void @main() #0 {
+        define void @ENTRYPOINT__main() #0 {
         block_0:
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__cx__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Qubit* inttoptr (i64 1 to %Qubit*))
@@ -187,7 +187,7 @@ fn teleport_program() {
 
         declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
-        define void @main() #0 {
+        define void @ENTRYPOINT__main() #0 {
         block_0:
           call void @__quantum__qis__x__body(%Qubit* inttoptr (i64 0 to %Qubit*))
           call void @__quantum__qis__h__body(%Qubit* inttoptr (i64 2 to %Qubit*))

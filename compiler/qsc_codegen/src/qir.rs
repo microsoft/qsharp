@@ -162,10 +162,10 @@ impl ToQir<String> for rir::Callable {
             .collect::<Vec<_>>()
             .join(", ");
         let output_type = ToQir::<String>::to_qir(&self.output_type, program);
-        let signature = format!("{} @{}({})", output_type, self.name, input_type);
         let Some(entry_id) = self.body else {
             return format!(
-                "declare {signature}{}",
+                "declare {output_type} @{}({input_type}){}",
+                self.name,
                 if self.name == "__quantum__qis__mz__body" {
                     // The mz callable is a special case that needs the irreversable attribute.
                     " #1"
@@ -184,7 +184,11 @@ impl ToQir<String> for rir::Callable {
                 ToQir::<String>::to_qir(block, program)
             ));
         }
-        format!("define {signature} #0 {{\n{body}}}",)
+        assert!(
+            input_type.is_empty(),
+            "entry point should not have an input"
+        );
+        format!("define {output_type} @ENTRYPOINT__main() #0 {{\n{body}}}",)
     }
 }
 
