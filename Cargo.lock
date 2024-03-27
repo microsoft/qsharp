@@ -961,6 +961,7 @@ dependencies = [
  "expect-test",
  "indoc",
  "log",
+ "miette",
  "num-bigint",
  "num-complex",
  "qsc_codegen",
@@ -973,6 +974,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

@@ -115,8 +115,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize, #[label("Qubit{0}")] PackageSpan),
 
-    #[error("Result comparison is unsupported for this backend")]
+    #[error("cannot compare measurement results")]
     #[diagnostic(code("Qsc.Eval.ResultComparisonUnsupported"))]
+    #[diagnostic(help("comparing measurement results is not supported when performing circuit synthesis or base profile QIR generation"))]
     ResultComparisonUnsupported(#[label("cannot compare to result")] PackageSpan),
 
     #[error("name is not bound")]

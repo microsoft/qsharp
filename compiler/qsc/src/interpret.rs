@@ -39,6 +39,7 @@ use qsc_circuit::{
 };
 use qsc_codegen::qir_base::BaseProfSim;
 use qsc_data_structures::{
+    functors::FunctorApp,
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
@@ -83,18 +84,19 @@ pub enum Error {
     #[error("runtime error")]
     #[diagnostic(transparent)]
     Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
+    #[error("circuit error")]
+    #[diagnostic(transparent)]
+    Circuit(#[from] qsc_circuit::Error),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
     UnsupportedRuntimeCapabilities,
-    #[error("expression does not evaluate to an operation that takes qubit parameters")]
-    #[diagnostic(code("Qsc.Interpret.NoCircuitForOperation"))]
-    #[diagnostic(help(
-        "provide the name of a callable or a lambda expression that only takes qubits as parameters"
-    ))]
-    NoCircuitForOperation,
+    #[error("expression does not evaluate to an operation")]
+    #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]
+    #[diagnostic(help("provide the name of a callable or a lambda expression"))]
+    NotAnOperation,
 }
 
 /// A Q# interpreter.
@@ -338,52 +340,22 @@ impl Interpreter {
 
         let entry_expr = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
-                // To determine whether the passed in expression is a valid callable name
-                // or lambda, we evaluate it and inspect the runtime value.
-                let maybe_operation = match self.eval_fragments(&mut out, &operation_expr)? {
-                    Value::Closure(b) => Some((b.id, b.functor)),
-                    Value::Global(item_id, functor_app) => Some((item_id, functor_app)),
-                    _ => None,
-                };
-
-                let maybe_invoke_expr = if let Some((item_id, functor_app)) = maybe_operation {
-                    // Controlled operations are not supported at the moment.
-                    if functor_app.controlled > 0 {
-                        return Err(vec![Error::NoCircuitForOperation]);
-                    }
-
-                    // Find the item in the HIR
-                    let package = map_fir_package_to_hir(item_id.package);
-                    let local_item_id = crate::hir::LocalItemId::from(usize::from(item_id.item));
-                    let package_store = self.compiler.package_store();
-
-                    let item = package_store
-                        .get(package)
-                        .and_then(|unit| unit.package.items.get(local_item_id));
-
-                    // Generate the entry expression to invoke the operation.
-                    // Will return `None` if item is not a valid callable that takes qubits.
-                    item.and_then(|item| entry_expr_for_qubit_operation(item, &operation_expr))
-                } else {
-                    return Err(vec![Error::NoCircuitForOperation]);
-                };
-
-                if maybe_invoke_expr.is_none() {
-                    return Err(vec![Error::NoCircuitForOperation]);
-                }
-                maybe_invoke_expr
+                let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
+                let expr = entry_expr_for_qubit_operation(item, functor_app, &operation_expr)
+                    .map_err(|e| vec![e.into()])?;
+                Some(expr)
             }
             CircuitEntryPoint::EntryExpr(expr) => Some(expr),
             CircuitEntryPoint::EntryPoint => None,
         };
 
-        let val = if let Some(entry_expr) = entry_expr {
+        if let Some(entry_expr) = entry_expr {
             self.run_with_sim(&mut sim, &mut out, &entry_expr)?
         } else {
             self.eval_entry_with_sim(&mut sim, &mut out)
         }?;
 
-        Ok(sim.finish(&val))
+        Ok(sim.finish())
     }
 
     /// Runs the given entry expression on the given simulator with a new instance of the environment
@@ -458,6 +430,36 @@ impl Interpreter {
         let label = format!("line_{}", self.lines);
         self.lines += 1;
         label
+    }
+
+    /// Evaluate the name of an operation, or any expression that evaluates to a callable,
+    /// and return the Item ID and function application for the callable.
+    /// Examples: "Microsoft.Quantum.Diagnostics.DumpMachine", "(qs: Qubit[]) => H(qs[0])",
+    /// "Controlled SWAP"
+    fn eval_to_operation(
+        &mut self,
+        operation_expr: &str,
+    ) -> std::result::Result<(&qsc_hir::hir::Item, FunctorApp), Vec<Error>> {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+        let (store_item_id, functor_app) = match self.eval_fragments(&mut out, operation_expr)? {
+            Value::Closure(b) => (b.id, b.functor),
+            Value::Global(item_id, functor_app) => (item_id, functor_app),
+            _ => return Err(vec![Error::NotAnOperation]),
+        };
+        let package = map_fir_package_to_hir(store_item_id.package);
+        let local_item_id = crate::hir::LocalItemId::from(usize::from(store_item_id.item));
+        let unit = self
+            .compiler
+            .package_store()
+            .get(package)
+            .expect("package should exist in the package store");
+        let item = unit
+            .package
+            .items
+            .get(local_item_id)
+            .expect("item should exist in the package");
+        Ok((item, functor_app))
     }
 }
 

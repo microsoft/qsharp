@@ -4,10 +4,28 @@
 #[cfg(test)]
 mod tests;
 
+use miette::Diagnostic;
 use qsc_hir::{
     hir::{Item, ItemKind},
     ty::{Prim, Ty},
 };
+use thiserror::Error;
+
+#[derive(Clone, Debug, Diagnostic, Error)]
+pub enum Error {
+    #[error("expression does not evaluate to an operation that takes qubit parameters")]
+    #[diagnostic(code("Qsc.Circuit.NoCircuitForOperation"))]
+    #[diagnostic(help(
+        "provide the name of a callable or a lambda expression that only takes qubits as parameters"
+    ))]
+    NoQubitParameters,
+    #[error("cannot generate circuit for controlled invocation")]
+    #[diagnostic(code("Qsc.Circuit.ControlledUnsupported"))]
+    #[diagnostic(help(
+        "controlled invocations are not currently supported. consider wrapping the invocation in a lambda expression"
+    ))]
+    ControlledUnsupported,
+}
 
 /// If the item is a callable, returns the information that would
 /// be needed to generate a circuit for it.
@@ -46,16 +64,24 @@ pub fn qubit_param_info(item: &Item) -> Option<(Vec<u32>, u32)> {
 ///
 /// If the item is not a callable, returns `None`.
 /// If the callable takes any non-qubit parameters, returns `None`.
-#[must_use]
-pub fn entry_expr_for_qubit_operation(item: &Item, operation_expr: &str) -> Option<String> {
+pub fn entry_expr_for_qubit_operation(
+    item: &Item,
+    functor_app: qsc_data_structures::functors::FunctorApp,
+    operation_expr: &str,
+) -> Result<String, Error> {
+    if functor_app.controlled > 0 {
+        return Err(Error::ControlledUnsupported);
+    }
+
     if let Some((qubit_param_dimensions, total_num_qubits)) = qubit_param_info(item) {
-        return Some(operation_circuit_entry_expr(
+        return Ok(operation_circuit_entry_expr(
             operation_expr,
             &qubit_param_dimensions,
             total_num_qubits,
         ));
     }
-    None
+
+    Err(Error::NoQubitParameters)
 }
 
 /// Generates the entry expression to call the operation described by `params`.
