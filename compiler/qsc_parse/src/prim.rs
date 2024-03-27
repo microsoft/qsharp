@@ -89,9 +89,7 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
 
     let name = parts.pop().expect("path should have at least one part");
     let namespace = match (parts.first(), parts.last()) {
-        (Some(first), Some(last)) => {
-            let lo = first.span.lo;
-            let hi = last.span.hi;
+        (Some(_), Some(_)) => {
             Some(
                 parts
                     .iter()
@@ -246,18 +244,6 @@ pub(super) fn shorten(from_start: usize, from_end: usize, s: &str) -> &str {
 
 fn advanced(s: &ParserContext, from: u32) -> bool {
     s.peek().span.lo > from
-}
-
-fn join(mut strings: impl Iterator<Item = impl AsRef<str>>, sep: &str) -> String {
-    let mut string = String::new();
-    if let Some(s) = strings.next() {
-        string.push_str(s.as_ref());
-    }
-    for s in strings {
-        string.push_str(sep);
-        string.push_str(s.as_ref());
-    }
-    string
 }
 
 fn map_rule_name(name: &'static str, error: Error) -> Error {

@@ -1,10 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::{
-    cell::RefCell, collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc,
-};
-
+use std::{cell::RefCell, collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
 #[derive(Debug, Clone)]
 
@@ -98,7 +95,6 @@ impl NamespaceTreeRoot {
     }
 }
 
-
 impl Default for NamespaceTreeRoot {
     fn default() -> Self {
         Self {
@@ -157,29 +153,29 @@ impl NamespaceTreeNode {
     where
         I: Iterator<Item = Rc<str>>,
     {
-        let next_item = match iter.next() {
-            Some(item) => item,
-            None => return None,
-        };
-        println!("Inserting namespace {}", next_item);
-
+        
+        let next_item = iter.next()?;
+        dbg!(&"insert_or_find_namespace", &next_item);
         let next_node = self.children.get_mut(&next_item);
-        if let Some(mut next_node) = next_node {
-            return next_node.insert_or_find_namespace(iter, assigner);
-        } else {
-            println!("creating new node");
-            *assigner += 1;
-            let mut new_node =
-                NamespaceTreeNode::new(NamespaceId::new(*assigner), HashMap::new());
-            if iter.peek().is_none() {
-                let new_node_id = new_node.id;
-                self.children.insert(next_item, new_node);
-                return Some(new_node_id);
-            } else {
-                let id = new_node.insert_or_find_namespace(iter, assigner);
-                self.children.insert(next_item, new_node);
-                return id;
+        match (next_node, iter.peek()) {
+            (Some(next_node), Some(_)) => {
+                return next_node.insert_or_find_namespace(iter, assigner);
             }
+            (Some(next_node), None) => {
+                return Some(next_node.id);
+            }
+            _ => {}
+        }
+        *assigner += 1;
+        let mut new_node = NamespaceTreeNode::new(NamespaceId::new(*assigner), HashMap::new());
+        if iter.peek().is_none() {
+            let new_node_id = new_node.id;
+            self.children.insert(next_item, new_node);
+            Some(new_node_id)
+        } else {
+            let id = new_node.insert_or_find_namespace(iter, assigner);
+            self.children.insert(next_item, new_node);
+            id
         }
     }
 

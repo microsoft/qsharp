@@ -122,17 +122,6 @@ fn open_alias() {
                 Open ([Ident _id_ [5-8] "Foo", Ident _id_ [9-12] "Bar", Ident _id_ [13-16] "Baz"]) (Ident _id_ [20-23] "Baz")"#]],
     );
 }
-// TODO replicate below behavior?
-// #[test]
-// fn open_alias_dot() {
-//     check(
-//         parse,
-//         "open Foo.Bar.Baz as Bar.Baz;",
-//         &expect![[r#"
-//             Item _id_ [0-28]:
-//                 Open (Ident _id_ [5-16] "Foo.Bar.Baz") (Ident _id_ [20-27] "Bar.Baz")"#]],
-//     );  
-// }
 
 #[test]
 fn ty_decl() {

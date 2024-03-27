@@ -35,12 +35,11 @@ use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
 
-const PRELUDE: &[&str] = &[
-    "Microsoft.Quantum.Canon",
-    "Microsoft.Quantum.Core",
-    "Microsoft.Quantum.Intrinsic",
-    "Microsoft.Quantum.Measurement",
-];
+    const PRELUDE: [&[&str; 3]; 3] = [
+        &["Microsoft", "Quantum", "Canon"],
+        &["Microsoft", "Quantum", "Core"],
+        &["Microsoft", "Quantum", "Intrinsic"],
+    ];
 
 // All AST Path nodes get mapped
 // All AST Ident nodes get mapped, except those under AST Path nodes
@@ -1083,6 +1082,12 @@ fn resolve<'a>(
     } else {
         None
     };
+    // insert prelude into scope
+    for item in PRELUDE {
+        let ns = item.iter().map(|x| Rc::from(*x)).collect::<Vec<_>>();
+    globals.namespaces.insert_or_find_namespace(ns);
+    }
+
     // let namespace = namespace.as_ref().map_or("", |i| &i.name);
     for scope in scopes {
         if namespace.is_none() {
@@ -1110,11 +1115,11 @@ fn resolve<'a>(
 
     if candidates.is_empty() && namespace.is_none() {
         // Prelude shadows unopened globals.
-        let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name_str);
+        let candidates = resolve_implicit_opens(kind, globals, PRELUDE.into_iter().map(|x| x.into_iter().map(|x| Rc::from(*x)).collect::<Vec<_>>()).collect::<Vec<_>>(), name_str);
         if candidates.len() > 1 {
             // If there are multiple candidates, sort them by namespace and return an error.
             let mut candidates: Vec<_> = candidates.into_iter().collect();
-            candidates.sort_by_key(|x| x.1);
+            candidates.sort_by_key(|x| Into::<usize>::into(x.1));
             let mut candidates = candidates
                 .into_iter()
                 .map(|candidate| candidate.1.to_string());
@@ -1263,17 +1268,17 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
 /// The return type represents the resolution of all implicit opens.
 /// The namespace is returned along with the res, so that the namespace can be used to
 /// report the ambiguity to the user.
-fn resolve_implicit_opens<'a, 'b>(
+fn resolve_implicit_opens<'b>(
     kind: NameKind,
     globals: &'b GlobalScope,
-    namespaces: impl IntoIterator<Item = &'a &'a str>,
+    namespaces: impl IntoIterator<Item = Vec<Rc<str>>>,
     name: &'b str,
-) -> FxHashMap<Res, &'a str> {
+) -> FxHashMap<Res, NamespaceId> {
     let mut candidates = FxHashMap::default();
     for namespace in namespaces {
-        let namespace_id = globals.find_namespace(&[Rc::from(*namespace)]);
-        if let Some(&res) = globals.get(kind, todo!("this should become namespace id"), name) {
-            candidates.insert(res, *namespace);
+        let namespace_id = globals.find_namespace(namespace).expect("prelude should exist");
+        if let Some(&res) = globals.get(kind, namespace_id, name) {
+            candidates.insert(res, namespace_id);
         }
     }
     candidates
