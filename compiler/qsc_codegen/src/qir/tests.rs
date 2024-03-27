@@ -181,7 +181,7 @@ fn teleport_program() {
 
         declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
 
-        declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*)
+        declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
 
         declare i1 @__quantum__qis__read_result__body(%Result*)
 
