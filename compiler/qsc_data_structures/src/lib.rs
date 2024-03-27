@@ -94,24 +94,7 @@ pub mod namespaces {
         }
 
         pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
-            // traverse the nodes to find the node with the correct id
-            let mut buf = Rc::new(&self.tree);
-            let mut components = Vec::new();
-            while buf.id != *id {
-                let mut found = false;
-                for (component, node) in buf.children.iter() {
-                    if node.id == *id {
-                        components.push(Rc::clone(component));
-                        buf = Rc::new(node);
-                        found = true;
-                        break;
-                    }
-                }
-                if !found {
-                    panic!("Namespace ID {id} not found in tree")
-                }
-            }
-            return (components, buf);
+            return self.tree.find_id(*id, vec![]);
         }
         
         pub fn root_id(&self) -> NamespaceId {
@@ -409,9 +392,374 @@ pub mod namespaces {
                     id_buf.push(root.insert_or_find_namespace(vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))].into_iter()));
                 }
             }
+            let mut result_buf = vec![];
             for id in id_buf {
-                root.find_id(&id);
-            }        
+                result_buf.push(root.find_id(&id));
+            }
+            expect![[r#"
+                [
+                    (
+                        [
+                            "ns0",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                2,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns0",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                3,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns0",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                4,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns1",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                6,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns1",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                7,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns1",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                8,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns2",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                10,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns2",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                11,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns2",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                12,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns3",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                14,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns3",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                15,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns3",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                16,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns4",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                18,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns4",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                19,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns4",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                20,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns5",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                22,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns5",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                23,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns5",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                24,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns6",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                26,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns6",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                27,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns6",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                28,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns7",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                30,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns7",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                31,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns7",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                32,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns8",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                34,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns8",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                35,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns8",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                36,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns9",
+                            "nsa",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                38,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns9",
+                            "nsb",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                39,
+                            ),
+                        },
+                    ),
+                    (
+                        [
+                            "ns9",
+                            "nsc",
+                        ],
+                        NamespaceTreeNode {
+                            children: {},
+                            id: NamespaceId(
+                                40,
+                            ),
+                        },
+                    ),
+                ]
+            "#]   ].assert_debug_eq(&result_buf)     
         }
         // test that after inserting lots of namespaces, all ids are unique and sequential
         #[test]
@@ -544,6 +892,22 @@ pub mod namespaces {
                     self.children.insert(next_item, new_node);
                     return id;
                 }
+            }
+        }
+        
+        fn find_id(&self, id: NamespaceId, names_buf: Vec<Rc<str>>) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
+            if self.id == id {
+                return (names_buf, Rc::new(self));
+            } else {
+                for (name, node) in self.children.iter() {
+                    let mut new_buf = names_buf.clone();
+                    new_buf.push(name.clone());
+                    let (names, node) = node.find_id(id, new_buf);
+                    if names.len() > 0 {
+                        return (names, node);
+                    }
+                }
+                return (vec![], Rc::new(self));
             }
         }
     }
