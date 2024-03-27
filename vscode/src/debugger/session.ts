@@ -72,6 +72,7 @@ export class QscDebugSession extends LoggingDebugSession {
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
   private targetProfile = getTarget();
+  private revealedCircuit = false;
 
   public constructor(
     private debugService: IDebugServiceWorker,
@@ -315,12 +316,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
 
     if (this.config.showCircuit) {
-      const circuit = await this.debugService.getCircuit();
-      updateCircuitPanel(
-        this.targetProfile,
-        vscode.Uri.parse(this.sources[0][0]).path,
-        circuit,
-      );
+      await this.showCircuit();
     }
 
     if (!result) {
@@ -816,19 +812,21 @@ export class QscDebugSession extends LoggingDebugSession {
           // This will get invoked when the "Quantum Circuit" scope is expanded
           // in the Variables view, but instead of showing any values in the variables
           // view, we can pop open the circuit diagram panel.
-          const circuit = await this.debugService.getCircuit();
-          updateCircuitPanel(
-            this.targetProfile,
-            vscode.Uri.parse(this.sources[0][0]).path,
-            circuit,
-          );
+          this.showCircuit();
+
           // Keep updating the circuit for the rest of this session, even if
           // the Variables scope gets collapsed by the user. If we don't do this,
           // the diagram won't get updated with each step even though the circuit
           // panel is still being shown, which is misleading.
           this.config.showCircuit = true;
           response.body = {
-            variables: [],
+            variables: [
+              {
+                name: "Circuit",
+                value: "See Q# Circuit panel",
+                variablesReference: 0,
+              },
+            ],
           };
         }
         break;
@@ -927,5 +925,19 @@ export class QscDebugSession extends LoggingDebugSession {
     } catch (e) {
       log.trace(`Could not resolve path ${pathOrUri}`);
     }
+  }
+
+  private async showCircuit() {
+    const circuit = await this.debugService.getCircuit();
+    updateCircuitPanel(
+      this.targetProfile,
+      vscode.Uri.parse(this.sources[0][0]).path,
+      circuit,
+      !this.revealedCircuit,
+    );
+
+    // Only reveal the panel once per session, to keep it from
+    // moving around while stepping
+    this.revealedCircuit = true;
   }
 }

@@ -65,6 +65,7 @@ export async function showCircuitCommand(
       targetProfile,
       editor.document.uri.path,
       circuit,
+      true, // reveal
       operation,
     );
 
@@ -95,6 +96,7 @@ export async function showCircuitCommand(
       targetProfile,
       editor.document.uri.path,
       errorHtml,
+      false, // reveal
       operation,
     );
   } finally {
@@ -107,6 +109,7 @@ export function updateCircuitPanel(
   targetProfile: string,
   docPath: string,
   circuitOrErrorHtml: CircuitData | string,
+  reveal: boolean,
   operation?: IOperationInfo | undefined,
 ) {
   let title;
@@ -128,7 +131,7 @@ export function updateCircuitPanel(
     errorHtml:
       typeof circuitOrErrorHtml === "string" ? circuitOrErrorHtml : undefined,
   };
-  sendMessageToPanel("circuit", false, message);
+  sendMessageToPanel("circuit", reveal, message);
 }
 
 /**
