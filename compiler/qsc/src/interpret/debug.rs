@@ -83,7 +83,7 @@ fn get_item_file_name(store: &PackageStore, id: StoreItemId) -> Option<String> {
 #[must_use]
 fn get_ns_name(item: &Item) -> Option<String> {
     if let ItemKind::Namespace(ns, _) = &item.kind {
-        Some(ns.name.to_string())
+        Some(format!("{ns}"))
     } else {
         None
     }

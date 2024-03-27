@@ -3,6 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use std::rc::Rc;
+
 use crate::compile::RuntimeCapabilityFlags;
 
 use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
@@ -339,9 +341,13 @@ fn insert_core_call() {
 
     impl MutVisitor for Inserter<'_> {
         fn visit_block(&mut self, block: &mut Block) {
+            let ns = self
+                .core
+                .find_namespace(vec![Rc::from("QIR"), Rc::from("Runtime")])
+                .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
-                .resolve_term("QIR.Runtime", "__quantum__rt__qubit_allocate")
+                .resolve_term(ns, "__quantum__rt__qubit_allocate")
                 .expect("qubit allocation should be in core");
             let allocate_ty = allocate
                 .scheme
@@ -1182,7 +1188,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
                             // we have the v2 preview syntax feature enabled
                             X(q);
                         };
-                        
+
                     }
                 }
             "}
@@ -1254,4 +1260,74 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
+#[test]
+fn hierarchical_namespace_basic() {
+    let lib_sources = SourceMap::new(
+        [(
+            "lib".into(),
+            indoc! {"
+                namespace Foo.Bar {
+                    operation Baz() : Unit {}
+                }
+                namespace Main {
+                    open Foo;
+                    operation Main() : Unit {
+                        Bar.Baz();
+                    }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let mut store = PackageStore::new(super::core());
+    let lib = compile(
+        &store,
+        &[],
+        lib_sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
+    let lib = store.insert(lib);
+
+    let sources = SourceMap::new(
+        [(
+            "test".into(),
+            indoc! {"
+                namespace Test {
+                    operation Bar() : Unit { body intrinsic; }
+                }
+            "}
+            .into(),
+        )],
+        None,
+    );
+
+    let unit = compile(
+        &store,
+        &[lib],
+        sources,
+        RuntimeCapabilityFlags::all(),
+        LanguageFeatures::default(),
+    );
+    expect![[r#"
+        [
+            Error(
+                Resolve(
+                    DuplicateIntrinsic(
+                        "Bar",
+                        Span {
+                            lo: 31,
+                            hi: 34,
+                        },
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
 }

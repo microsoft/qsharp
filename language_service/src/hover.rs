@@ -59,7 +59,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     ) {
         let contents = display_callable(
             &context.current_item_doc,
-            &context.current_namespace,
+            &context.current_namespace.join("."),
             self.display.ast_callable_decl(decl),
         );
         self.hover = Some(Hover {
@@ -82,7 +82,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             .map_or_else(
                 || Rc::from(""),
                 |parent| match &parent.kind {
-                    qsc::hir::ItemKind::Namespace(namespace, _) => namespace.name.clone(),
+                    qsc::hir::ItemKind::Namespace(namespace, _) => Rc::from(namespace.name()),
                     _ => Rc::from(""),
                 },
             );

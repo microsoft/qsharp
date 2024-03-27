@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{namespaces::NamespaceId, span::Span};
 use qsc_hir::{
     assigner::Assigner,
     global::Table,
@@ -81,7 +81,7 @@ impl IdentTemplate {
 
 pub(crate) fn create_gen_core_ref(
     core: &Table,
-    namespace: &str,
+    namespace: NamespaceId,
     name: &str,
     generics: Vec<GenericArg>,
     span: Span,
