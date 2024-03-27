@@ -268,27 +268,24 @@ impl GlobalScope {
         self.namespaces.find_namespace(ns)
     }
 
-    fn get(&self, kind: NameKind, namespace: &[Rc<str>], name: &str) -> Option<&Res> {
-        let ns = self
-            .find_namespace(namespace)
-            .expect("namespace should exist");
+    fn get(&self, kind: NameKind, namespace: NamespaceId, name: &str) -> Option<&Res> {
         let items = match kind {
             NameKind::Ty => &self.tys,
             NameKind::Term => &self.terms,
         };
-        items.get(&ns).and_then(|items| items.get(name))
+        items.get(&namespace).and_then(|items| items.get(name))
     }
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
     /// item contents. This returns a [NamespaceId] which you can use to add more tys and terms to the scope.
     fn insert_or_find_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
-        self.namespaces.insert_or_find_namespace(name)
+        self.namespaces.insert_or_find_namespace(name.into())
     }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum ScopeKind {
-    Namespace(Vec<Rc<str>>),
+    Namespace(NamespaceId),
     Callable,
     Block,
 }
@@ -301,7 +298,7 @@ enum NameKind {
 
 #[derive(Debug, Clone)]
 struct Open {
-    namespace: Vec<Rc<str>>,
+    namespace: NamespaceId,
     span: Span,
 }
 
@@ -519,7 +516,7 @@ impl Resolver {
                 .entry(id)
                 .or_default()
                 .push(Open {
-                    namespace: name.into(),
+                    namespace: id,
                     span: name.span(),
                 });
         } else {
@@ -645,7 +642,8 @@ impl With<'_> {
 
 impl AstVisitor<'_> for With<'_> {
     fn visit_namespace(&mut self, namespace: &ast::Namespace) {
-        let kind = ScopeKind::Namespace(namespace.name.clone().into());
+        let ns = self.resolver.globals.find_namespace(Into::<Vec<_>>::into(namespace.name.clone())).expect("namespace should exist");
+        let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
@@ -843,7 +841,7 @@ impl GlobalTable {
                     let namespace_id = self
                         .scope
                         .namespaces
-                        .insert_or_find_namespace(namespace.name.clone());
+                        .insert_or_find_namespace(Into::<Vec<_>>::into(namespace.name.clone()));
 
                     bind_global_items(
                         &mut self.names,
@@ -899,7 +897,7 @@ impl GlobalTable {
                     }
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
-                    //    todo!("Verify: does this need to have its items specifically inserted?");
+                    //    TODO ("Verify: does this need to have its items specifically inserted?");
                     self.scope.insert_or_find_namespace(global.namespace);
                 }
                 (_, hir::Visibility::Internal) => {}
@@ -1110,6 +1108,7 @@ fn resolve<'a>(
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE, name_str);
         if candidates.len() > 1 {
+            // If there are multiple candidates, sort them by namespace and return an error.
             let mut candidates: Vec<_> = candidates.into_iter().collect();
             candidates.sort_by_key(|x| x.1);
             let mut candidates = candidates
@@ -1128,6 +1127,7 @@ fn resolve<'a>(
                 candidate_b,
             });
         }
+        // if there is a candidate, return it
         if let Some((res, _)) = single(candidates) {
             return Ok(res);
         }
@@ -1136,9 +1136,7 @@ fn resolve<'a>(
     if candidates.is_empty() {
         if let Some(&res) = globals.get(
             kind,
-            &namespace_name
-                .map(|x: VecIdent| Into::<Vec<_>>::into(x))
-                .unwrap_or_default(),
+            namespace.unwrap_or_else(|| globals.namespaces.root_id()),
             name_str,
         ) {
             // An unopened global is the last resort.
@@ -1164,10 +1162,12 @@ fn resolve<'a>(
     if candidates.len() > 1 {
         let mut opens: Vec<_> = candidates.into_values().collect();
         opens.sort_unstable_by_key(|open| open.span);
+        let (first_open_ns, _) = globals.namespaces.find_id(&opens[0].namespace);
+        let (second_open_ns, _) = globals.namespaces.find_id(&opens[1].namespace);
         Err(Error::Ambiguous {
             name: name_str.to_string(),
-            first_open: opens[0].namespace.join("."),
-            second_open: opens[1].namespace.join("."),
+            first_open: first_open_ns.join("."),
+            second_open: second_open_ns.join("."),
             name_span: name.span,
             first_open_span: opens[0].span,
             second_open_span: opens[1].span,
@@ -1213,7 +1213,7 @@ fn resolve_scope_locals(
     }
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {
-        if let Some(&res) = globals.get(kind, namespace, name) {
+        if let Some(&res) = globals.get(kind, *namespace, name) {
             return Some(res);
         }
     }
@@ -1256,9 +1256,9 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
     names
 }
 
-/// The return type represents the resolution of implicit opens, but also
-/// retains the namespace that the resolution comes from.
-/// This retained namespace string is used for error reporting.
+/// The return type represents the resolution of all implicit opens.
+/// The namespace is returned along with the res, so that the namespace can be used to 
+/// report the ambiguity to the user.
 fn resolve_implicit_opens<'a, 'b>(
     kind: NameKind,
     globals: &'b GlobalScope,
@@ -1267,6 +1267,7 @@ fn resolve_implicit_opens<'a, 'b>(
 ) -> FxHashMap<Res, &'a str> {
     let mut candidates = FxHashMap::default();
     for namespace in namespaces {
+        let namespace_id = globals.find_namespace(&[Rc::from(*namespace)]);
         if let Some(&res) = globals.get(kind, todo!("this should become namespace id"), name) {
             candidates.insert(res, *namespace);
         }
@@ -1282,7 +1283,7 @@ fn resolve_explicit_opens<'a>(
 ) -> FxHashMap<Res, &'a Open> {
     let mut candidates = FxHashMap::default();
     for open in opens {
-        if let Some(&res) = globals.get(kind, &open.namespace, name) {
+        if let Some(&res) = globals.get(kind, open.namespace, name) {
             candidates.insert(res, open);
         }
     }
