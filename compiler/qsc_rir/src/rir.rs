@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use indenter::Indented;
 use qsc_data_structures::index_map::IndexMap;
+use std::fmt::{Debug, Formatter};
 
 /// The root of the RIR.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Program {
     pub blocks: IndexMap<BlockId, Block>,
     pub callables: IndexMap<CallableId, Callable>,
@@ -31,7 +33,7 @@ impl Program {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Config {
     pub remap_qubits_on_reuse: bool,
     pub defer_measurements: bool,
@@ -45,7 +47,7 @@ impl Config {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct BlockId(pub u32);
 
 impl From<BlockId> for usize {
@@ -55,11 +57,11 @@ impl From<BlockId> for usize {
 }
 
 /// A block is a collection of instructions.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct CallableId(pub u32);
 
 impl From<CallableId> for usize {
@@ -74,6 +76,7 @@ impl From<usize> for CallableId {
     }
 }
 
+#[derive(Debug)]
 /// A callable.
 pub struct Callable {
     /// The name of the callable.
@@ -87,6 +90,7 @@ pub struct Callable {
     pub body: Option<BlockId>,
 }
 
+#[derive(Debug)]
 pub enum Instruction {
     Store(Value, Variable),
     Call(CallableId, Vec<Value>),
@@ -106,14 +110,16 @@ pub enum Instruction {
     Return,
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct VariableId(pub u32);
 
+#[derive(Debug)]
 pub struct Variable {
     pub variable_id: VariableId,
     pub ty: Ty,
 }
 
+#[derive(Debug)]
 pub enum Ty {
     Qubit,
     Result,
@@ -123,12 +129,13 @@ pub enum Ty {
     Pointer,
 }
 
+#[derive(Debug)]
 pub enum Value {
     Literal(Literal),
     Variable(Variable),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Literal {
     Qubit(u32),
     Result(u32),
@@ -136,4 +143,16 @@ pub enum Literal {
     Integer(i64),
     Double(f64),
     Pointer,
+}
+
+fn set_indentation<'a, 'b>(
+    indent: Indented<'a, Formatter<'b>>,
+    level: usize,
+) -> Indented<'a, Formatter<'b>> {
+    match level {
+        0 => indent.with_str(""),
+        1 => indent.with_str("    "),
+        2 => indent.with_str("        "),
+        _ => unimplemented!("intentation level not supported"),
+    }
 }

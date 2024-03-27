@@ -1119,6 +1119,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_partial_eval"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "miette",
+ "qsc_eval",
+ "qsc_fir",
+ "qsc_rca",
+ "qsc_rir",
+]
+
+[[package]]
 name = "qsc_passes"
 version = "0.0.0"
 dependencies = [
@@ -1171,6 +1183,7 @@ dependencies = [
 name = "qsc_rir"
 version = "0.0.0"
 dependencies = [
+ "indenter",
  "qsc_data_structures",
 ]
 
