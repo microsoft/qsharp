@@ -87,7 +87,7 @@ impl Config {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct BlockId(pub u32);
 
 impl From<BlockId> for usize {
@@ -254,7 +254,12 @@ impl Display for Instruction {
             Ok(())
         }
 
-        fn write_call(f: &mut Formatter, callable_id: CallableId, args: &[Value]) -> fmt::Result {
+        fn write_call(
+            f: &mut Formatter,
+            callable_id: CallableId,
+            args: &[Value],
+            variable: &Option<Variable>,
+        ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
             write!(indent, "Call:")?;
             indent = set_indentation(indent, 1);
@@ -267,6 +272,12 @@ impl Display for Instruction {
                 for (index, arg) in args.iter().enumerate() {
                     write!(indent, "\n[{index}]: {arg}")?;
                 }
+            }
+            write!(indent, "\nvariable: ")?;
+            if let Some(variable) = variable {
+                write!(indent, "{variable}")?;
+            } else {
+                write!(indent, "<NONE>")?;
             }
             Ok(())
         }
@@ -288,7 +299,7 @@ impl Display for Instruction {
         match &self {
             Self::Store(value, variable) => write_unary_instruction(f, "Store", value, variable)?,
             Self::Jump(block_id) => write!(f, "Jump({})", block_id.0)?,
-            Self::Call(callable_id, args) => write_call(f, *callable_id, args)?,
+            Self::Call(callable_id, args, variable) => write_call(f, *callable_id, args, variable)?,
             Self::Branch(condition, if_true, if_false) => {
                 write_branch(f, condition, *if_true, *if_false)?;
             }

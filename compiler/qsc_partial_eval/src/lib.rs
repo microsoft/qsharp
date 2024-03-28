@@ -81,6 +81,7 @@ impl<'a> PartialEvaluator<'a> {
             input_type: Vec::new(),
             output_type: None,
             body: Some(entry_block_id),
+            is_measurement: false,
         };
         self.program.callables.insert(entry_point_id, entry_point);
         self.program.entry = entry_point_id;
