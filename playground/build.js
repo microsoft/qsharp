@@ -16,6 +16,17 @@ const libsDir = join(thisDir, "..", "node_modules");
 const isRelease = process.argv.includes("--release");
 const outdir = join(thisDir, "public/libs");
 
+function getTimeStr() {
+  const now = new Date();
+
+  const hh = now.getHours().toString().padStart(2, "0");
+  const mm = now.getMinutes().toString().padStart(2, "0");
+  const ss = now.getSeconds().toString().padStart(2, "0");
+  const mil = now.getMilliseconds().toString().padStart(3, "0");
+
+  return `${hh}:${mm}:${ss}.${mil}`;
+}
+
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
   entryPoints: [
@@ -64,7 +75,7 @@ export function copyWasmToPlayground() {
   let qsharpWasm = join(thisDir, "..", "npm/lib/web/qsc_wasm_bg.wasm");
   let qsharpDest = join(thisDir, `public/libs/qsharp`);
 
-  console.log("Copying the qsharp wasm file over from: " + qsharpWasm);
+  console.log("Copying the wasm file to playground from: " + qsharpWasm);
   mkdirSync(qsharpDest, { recursive: true });
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
@@ -86,8 +97,12 @@ export async function buildPlayground(serve) {
     const buildPlugin = {
       name: "Build Events",
       setup(build) {
-        build.onStart(() => console.log("esbuild build started"));
-        build.onEnd(() => console.log("esbuild build complete"));
+        build.onStart(() =>
+          console.log("Playground build started @ " + getTimeStr()),
+        );
+        build.onEnd(() =>
+          console.log("Playground build complete @ " + getTimeStr()),
+        );
       },
     };
 

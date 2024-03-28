@@ -32,12 +32,23 @@ const buildOptions = {
   define: { "import.meta.url": "undefined" },
 };
 
+function getTimeStr() {
+  const now = new Date();
+
+  const hh = now.getHours().toString().padStart(2, "0");
+  const mm = now.getMinutes().toString().padStart(2, "0");
+  const ss = now.getSeconds().toString().padStart(2, "0");
+  const mil = now.getMilliseconds().toString().padStart(3, "0");
+
+  return `${hh}:${mm}:${ss}.${mil}`;
+}
+
 export function copyWasmToVsCode() {
   // Copy the wasm module into the extension directory
   let qsharpWasm = join(thisDir, "..", "npm", "lib", "web", "qsc_wasm_bg.wasm");
   let qsharpDest = join(thisDir, `wasm`);
 
-  console.log("Copying the qsharp wasm file over from: " + qsharpWasm);
+  console.log("Copying the wasm file to VS Code from: " + qsharpWasm);
   mkdirSync(qsharpDest, { recursive: true });
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
@@ -87,8 +98,12 @@ export async function watchVsCode() {
   const buildPlugin = {
     name: "Build Events",
     setup(build) {
-      build.onStart(() => console.log("esbuild build started"));
-      build.onEnd(() => console.log("esbuild build complete"));
+      build.onStart(() =>
+        console.log("VS Code build started @ " + getTimeStr()),
+      );
+      build.onEnd(() =>
+        console.log("VS Code build complete @ " + getTimeStr()),
+      );
     },
   };
   let ctx = await context({

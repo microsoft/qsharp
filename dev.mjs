@@ -8,12 +8,9 @@ WARNING: This is largely heuristics to optimize common developer workflows.
 Always use ./build.py to ensure that all projects are built correctly before check-in.
 Also run ./build.py to do any initial repo setup (npm install, copying 3rd party libs, etc.)
 
-Usage:
-
-- Save any code changes to Rust or TypeScript
-- Rebuilds for updates should be auto-detected and take just a couple of seconds
-- Simply refresh the browser to see playground changes
-- Choose 'Developer: Reload Window' from the command palette for any running VS Code dev instances
+Once running, any changes to the source code for Rust directories listed, or for
+the npm, vscode, or playground projects, should automatically recompile. Just
+reload the playground page or reload the VS Code window to see the changes.
 
 Notes:
 
@@ -22,17 +19,14 @@ Notes:
 - It does NOT watch for docs, katas, or samples changes (currently).
 - It does NOT build the Node.js wasm package (or run any of the node unit tests).
 - It builds debug binaries (whereas ./build.py builds for release).
+- Future updates could include watching for katas changes, and supporting '--release'
 
-Future updates:
-
-- Add a '--release' switch to build optimized binaries
-- Watch for Katas changes and regenerate (maybe also docs & samples)
 */
 
 // @ts-check
 
 import { subscribe } from "@parcel/watcher";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,41 +43,47 @@ const vslsDir = join(thisDir, "language_service");
 const wasmDir = join(thisDir, "wasm");
 const npmDir = join(thisDir, "npm");
 
-const bldType = "debug";
-
-async function onRustChange() {
-  console.log("Compiling the .wasm module via wasm-pack");
+function onRustChange() {
+  console.log("Compiling the .wasm module with wasm-pack");
 
   // This takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
-  // cd wasm && wasm-pack build --dev --no-pack --target web --out-dir "../target/wasm32/debug/web"
-  const buildDir = join(thisDir, "target", "wasm32", bldType, "web");
-  // TODO: Run wasm-pack (and stop if failed)
+  // Build only web and not node targets to half time.
+  const buildDir = join(thisDir, "target", "wasm32", "debug", "web");
   const result = spawnSync(
     "wasm-pack",
     ["build", "--dev", "--no-pack", "--target", "web", "--out-dir", buildDir],
     { cwd: wasmDir },
   );
-  console.log(result.stdout.toString(), result.stderr.toString());
+  console.log("wasm-pack done! ", result.stderr.toString());
 
   console.log("Copying the wasm-pack ouput files to the npm package");
   const npmLibDir = join(npmDir, "lib", "web");
-  console.log("Copying the qsharp wasm files to npm from: " + buildDir);
+
   ["qsc_wasm_bg.wasm", "qsc_wasm.d.ts", "qsc_wasm.js"].forEach((file) =>
     copyFileSync(join(buildDir, file), join(npmLibDir, file)),
   );
 
-  // This copies from the npm dir to VS Code and playground
-  // Changing the wasm module in these doesn't require any rebuild, just a refresh.
+  // The below copies the .wasm file from the npm dir to VS Code and playground projects
+  // They already watch the .d.ts file from the npm package, so will rebuild if it changes.
   copyWasmToVsCode();
   copyWasmToPlayground();
 }
 
-subscribe(coreDir, onRustChange);
-subscribe(libsDir, onRustChange);
-subscribe(vslsDir, onRustChange);
-subscribe(wasmDir, onRustChange);
+// Do an initial build
+onRustChange();
 
-// TODO: Kick off: cd npm; npm run tsc:watch
+// Then watch the Rust directories for code changes
+[coreDir, libsDir, vslsDir, wasmDir].forEach((dir) =>
+  subscribe(dir, onRustChange),
+);
+
+// Build/watch the npm project
+const npmWatcher = spawn("npm", ["run", "tsc:watch"], { cwd: npmDir });
+npmWatcher.stdout.on("data", (data) => console.log(`${data}`));
+npmWatcher.stderr.on("data", (data) => console.error(`npm error: ${data}`));
+npmWatcher.on("close", (code) =>
+  console.log(`npm watcher exited with: `, code),
+);
 
 // Kick off VS Code watch mode (this will detect changes in the npm package it depends on)
 watchVsCode();
