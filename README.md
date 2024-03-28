@@ -29,7 +29,7 @@ To build this repository there are dependencies that need to be installed. These
 - Rust (<https://www.rust-lang.org/tools/install>)
 - Node.js (<https://nodejs.org/>)
 - wasm-pack (<https://rustwasm.github.io/wasm-pack/installer/>)
-- A C compiler
+- A [C compiler](https://docs.rs/cc/latest/cc/#compile-time-requirements)
 
 The build script will check these dependencies and their versions and fail if not met. (Or run
 `python ./prereqs.py` directly to check if the minimum required versions are installed).
