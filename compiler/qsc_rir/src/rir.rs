@@ -45,7 +45,7 @@ impl Config {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct BlockId(pub u32);
 
 impl From<BlockId> for usize {
@@ -65,7 +65,7 @@ impl From<usize> for BlockId {
 pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
-#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct CallableId(pub u32);
 
 impl From<CallableId> for usize {
