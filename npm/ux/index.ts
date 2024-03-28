@@ -6,11 +6,16 @@
 import "./qsharp-ux.css";
 import "./qsharp-circuit.css";
 
-export { CreateSingleEstimateResult, type ReData } from "./data.js";
+export {
+  CreateSingleEstimateResult,
+  type ReData,
+  type CircuitData,
+  type CircuitProps,
+} from "./data.js";
 export { Histogram } from "./histogram.js";
 export { ReTable } from "./reTable.js";
 export { SpaceChart } from "./spaceChart.js";
 export { ScatterChart } from "./scatterChart.js";
 export { EstimatesOverview } from "./estimatesOverview.js";
 export { EstimatesPanel } from "./estimatesPanel.js";
-export { Circuit, CircuitPanel, type CircuitData } from "./circuit.js";
+export { Circuit, CircuitPanel } from "./circuit.js";

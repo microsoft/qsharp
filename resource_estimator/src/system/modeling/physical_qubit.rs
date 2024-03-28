@@ -63,6 +63,37 @@ pub enum PhysicalQubit {
 }
 
 impl PhysicalQubit {
+    #[must_use]
+    pub fn qubit_gate_ns_e3() -> Self {
+        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_ns_e3())
+    }
+
+    #[must_use]
+    pub fn qubit_gate_ns_e4() -> Self {
+        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_ns_e4())
+    }
+
+    #[must_use]
+    pub fn qubit_gate_us_e3() -> Self {
+        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_us_e3())
+    }
+
+    #[must_use]
+    pub fn qubit_gate_us_e4() -> Self {
+        Self::GateBased(GateBasedPhysicalQubit::qubit_gate_us_e4())
+    }
+
+    #[must_use]
+    pub fn qubit_maj_ns_e4() -> Self {
+        Self::Majorana(MajoranaQubit::qubit_maj_ns_e4())
+    }
+
+    #[must_use]
+    pub fn qubit_maj_ns_e6() -> Self {
+        Self::Majorana(MajoranaQubit::qubit_maj_ns_e6())
+    }
+
+    #[must_use]
     pub fn instruction_set(&self) -> super::PhysicalInstructionSet {
         match self {
             Self::GateBased(_) => super::PhysicalInstructionSet::GateBased,
@@ -70,6 +101,7 @@ impl PhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn t_gate_error_rate(&self) -> f64 {
         match self {
             Self::GateBased(gate_based) => gate_based.t_gate_error_rate,
@@ -77,6 +109,7 @@ impl PhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn one_qubit_measurement_time(&self) -> u64 {
         match self {
             Self::GateBased(gate_based) => gate_based
@@ -88,6 +121,7 @@ impl PhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn clifford_error_rate(&self) -> f64 {
         match self {
             Self::GateBased(gate_based) => gate_based
@@ -101,6 +135,7 @@ impl PhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn readout_error_rate(&self) -> f64 {
         match self {
             Self::GateBased(gate_based) => gate_based.one_qubit_measurement_error_rate,
@@ -228,6 +263,7 @@ impl GateBasedPhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn qubit_gate_ns_e3() -> Self {
         Self {
             name: "qubit_gate_ns_e3".into(),
@@ -243,6 +279,7 @@ impl GateBasedPhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn qubit_gate_ns_e4() -> Self {
         Self {
             name: "qubit_gate_ns_e4".into(),
@@ -258,6 +295,7 @@ impl GateBasedPhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn qubit_gate_us_e3() -> Self {
         Self {
             name: "qubit_gate_us_e3".into(),
@@ -273,6 +311,7 @@ impl GateBasedPhysicalQubit {
         }
     }
 
+    #[must_use]
     pub fn qubit_gate_us_e4() -> Self {
         Self {
             name: "qubit_gate_us_e4".into(),
@@ -368,6 +407,7 @@ impl MajoranaQubit {
         }
     }
 
+    #[must_use]
     pub fn qubit_maj_ns_e4() -> Self {
         Self {
             name: "qubit_maj_ns_e4".into(),
@@ -387,6 +427,7 @@ impl MajoranaQubit {
         }
     }
 
+    #[must_use]
     pub fn qubit_maj_ns_e6() -> Self {
         Self {
             name: "qubit_maj_ns_e6".into(),

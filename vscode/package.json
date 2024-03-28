@@ -132,11 +132,6 @@
           "command": "qsharp-vscode.debugEditorContents",
           "when": "resourceLangId == qsharp",
           "group": "navigation@2"
-        },
-        {
-          "command": "qsharp-vscode.debugEditorContentsWithCircuit",
-          "when": "resourceLangId == qsharp",
-          "group": "navigation@2"
         }
       ],
       "commandPalette": [
@@ -149,7 +144,7 @@
           "when": "resourceLangId == qsharp"
         },
         {
-          "command": "qsharp-vscode.debugEditorContentsWithCircuit",
+          "command": "qsharp-vscode.runEditorContentsWithCircuit",
           "when": "resourceLangId == qsharp"
         },
         {
@@ -285,11 +280,9 @@
         "icon": "$(play)"
       },
       {
-        "command": "qsharp-vscode.debugEditorContentsWithCircuit",
-        "title": "Debug Q# File with Circuit Diagram",
-        "category": "Debug",
-        "enablement": "!inDebugMode",
-        "icon": "$(debug-alt)"
+        "command": "qsharp-vscode.runEditorContentsWithCircuit",
+        "title": "Run file and show circuit diagram",
+        "category": "Q#"
       },
       {
         "command": "qsharp-vscode.showHistogram",

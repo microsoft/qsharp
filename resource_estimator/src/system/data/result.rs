@@ -3,7 +3,9 @@
 
 use std::rc::Rc;
 
-use crate::estimates::{ErrorBudget, LogicalPatch, Overhead, PhysicalResourceEstimationResult};
+use crate::estimates::{
+    ErrorBudget, FactoryPart, LogicalPatch, Overhead, PhysicalResourceEstimationResult,
+};
 use crate::system::modeling::{Protocol, TFactory};
 
 use super::LayoutReportData;
@@ -48,7 +50,8 @@ impl<L: Overhead + LayoutReportData + Serialize> Success<L> {
         let report_data = Report::new(&job_params, &result, &formatted_counts);
 
         let logical_counts = result.layout_overhead().clone();
-        let (logical_qubit, tfactory, error_budget) = result.take();
+        let (logical_qubit, mut parts, error_budget) = result.take();
+        let tfactory = parts.swap_remove(0).map(FactoryPart::into_factory);
 
         Self {
             status: "success",
@@ -128,7 +131,8 @@ fn create_frontier_entry(
         None
     };
 
-    let (logical_qubit, tfactory, error_budget) = result.take();
+    let (logical_qubit, mut parts, error_budget) = result.take();
+    let tfactory = parts.swap_remove(0).map(FactoryPart::into_factory);
 
     (
         FrontierEntry {
@@ -143,7 +147,7 @@ fn create_frontier_entry(
 }
 
 fn create_physical_resource_counts(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead + LayoutReportData>,
 ) -> PhysicalResourceCounts {
     let breakdown = create_physical_resource_counts_breakdown(result);
 
@@ -156,27 +160,30 @@ fn create_physical_resource_counts(
 }
 
 fn create_physical_resource_counts_breakdown(
-    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead>,
+    result: &PhysicalResourceEstimationResult<Protocol, TFactory, impl Overhead + LayoutReportData>,
 ) -> PhysicalResourceCountsBreakdown {
     let num_ts_per_rotation = result
         .layout_overhead()
-        .num_magic_states_per_rotation(result.error_budget().rotations());
+        .num_ts_per_rotation(result.error_budget().rotations());
+
+    let part = result.factory_parts()[0].as_ref();
+
     PhysicalResourceCountsBreakdown {
         algorithmic_logical_qubits: result.layout_overhead().logical_qubits(),
         algorithmic_logical_depth: result
             .layout_overhead()
-            .logical_depth(num_ts_per_rotation.unwrap_or_default()),
+            .logical_depth(result.error_budget()),
         logical_depth: result.num_cycles(),
         clock_frequency: result.logical_patch().logical_cycles_per_second(),
         num_tstates: result
             .layout_overhead()
-            .num_magic_states(num_ts_per_rotation.unwrap_or_default()),
-        num_tfactories: result.num_factories(),
-        num_tfactory_runs: result.num_factory_runs(),
+            .num_magic_states(result.error_budget(), 0),
+        num_tfactories: part.map_or(0, FactoryPart::copies),
+        num_tfactory_runs: part.map_or(0, FactoryPart::runs),
         physical_qubits_for_tfactories: result.physical_qubits_for_factories(),
         physical_qubits_for_algorithm: result.physical_qubits_for_algorithm(),
         required_logical_qubit_error_rate: result.required_logical_error_rate(),
-        required_logical_tstate_error_rate: result.required_logical_magic_state_error_rate(),
+        required_logical_tstate_error_rate: part.map(FactoryPart::required_output_error_rate),
         num_ts_per_rotation,
         clifford_error_rate: result
             .logical_patch()

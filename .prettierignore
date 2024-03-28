@@ -8,6 +8,7 @@ __pycache__/
 .vscode/
 .vscode-test-web/
 .venv/
+/allocator/
 /compiler/
 /jupyterlab/lib/
 /jupyterlab/qsharp-jupyterlab/labextension/

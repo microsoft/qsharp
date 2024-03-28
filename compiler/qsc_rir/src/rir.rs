@@ -87,7 +87,7 @@ impl Config {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct BlockId(pub u32);
 
 impl From<BlockId> for usize {
@@ -164,6 +164,8 @@ pub struct Callable {
     /// The callable body.
     /// N.B. `None` bodys represent an intrinsic.
     pub body: Option<BlockId>,
+    /// Whether or not the callabe is a measurement.
+    pub is_measurement: bool,
 }
 
 impl Display for Callable {
@@ -201,7 +203,7 @@ impl Display for Callable {
 #[derive(Debug)]
 pub enum Instruction {
     Store(Value, Variable),
-    Call(CallableId, Vec<Value>),
+    Call(CallableId, Vec<Value>, Option<Variable>),
     Jump(BlockId),
     Branch(Value, BlockId, BlockId),
     Add(Value, Value, Variable),

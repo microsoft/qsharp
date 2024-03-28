@@ -145,28 +145,25 @@ impl Interpreter {
         capabilities: RuntimeCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let mut lowerer = qsc_eval::lower::Lowerer::new();
-        let mut fir_store = fir::PackageStore::new();
-
         let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
             .map_err(into_errors)?;
 
+        let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
-                lowerer.lower_package(&unit.package),
+                qsc_eval::lower::Lowerer::new().lower_package(&unit.package),
             );
         }
 
         let source_package_id = compiler.source_package_id();
         let package_id = compiler.package_id();
-
         Ok(Self {
             compiler,
             lines: 0,
             capabilities,
             fir_store,
-            lowerer,
+            lowerer: qsc_eval::lower::Lowerer::new(),
             env: Env::default(),
             sim: BackendChain::new(
                 SparseSim::new(),

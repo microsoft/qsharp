@@ -6,7 +6,7 @@ mod rir_builder;
 #[cfg(test)]
 mod tests;
 
-use qsc_rir::rir;
+use qsc_rir::{rir, utils::get_all_block_successors};
 
 /// A trait for converting a type into QIR of type `T`.
 /// This can be used to generate QIR strings or other representations.
@@ -86,22 +86,41 @@ impl ToQir<String> for rir::Instruction {
     fn to_qir(&self, program: &rir::Program) -> String {
         match self {
             rir::Instruction::Store(_, _) => unimplemented!("store should be removed by pass"),
-            rir::Instruction::Call(call_id, args) => {
+            rir::Instruction::Call(call_id, args, output) => {
                 let args = args
                     .iter()
                     .map(|arg| ToQir::<String>::to_qir(arg, program))
                     .collect::<Vec<_>>()
                     .join(", ");
                 let callable = program.get_callable(*call_id);
+                if let Some(output) = output {
+                    format!(
+                        "  {} = call {} @{}({})",
+                        ToQir::<String>::to_qir(&output.variable_id, program),
+                        ToQir::<String>::to_qir(&callable.output_type, program),
+                        callable.name,
+                        args
+                    )
+                } else {
+                    format!(
+                        "  call {} @{}({})",
+                        ToQir::<String>::to_qir(&callable.output_type, program),
+                        callable.name,
+                        args
+                    )
+                }
+            }
+            rir::Instruction::Jump(block_id) => {
+                format!("  br label %{}", ToQir::<String>::to_qir(block_id, program))
+            }
+            rir::Instruction::Branch(cond, true_id, false_id) => {
                 format!(
-                    "  call {} @{}({})",
-                    ToQir::<String>::to_qir(&callable.output_type, program),
-                    callable.name,
-                    args
+                    "  br {}, label %{}, label %{}",
+                    ToQir::<String>::to_qir(cond, program),
+                    ToQir::<String>::to_qir(true_id, program),
+                    ToQir::<String>::to_qir(false_id, program)
                 )
             }
-            rir::Instruction::Jump(_) => todo!(),
-            rir::Instruction::Branch(_, _, _) => todo!(),
             rir::Instruction::Add(_, _, _) => todo!(),
             rir::Instruction::Sub(_, _, _) => todo!(),
             rir::Instruction::Mul(_, _, _) => todo!(),
@@ -118,6 +137,22 @@ impl ToQir<String> for rir::Instruction {
     }
 }
 
+impl ToQir<String> for rir::BlockId {
+    fn to_qir(&self, _program: &rir::Program) -> String {
+        format!("block_{}", self.0)
+    }
+}
+
+impl ToQir<String> for rir::Block {
+    fn to_qir(&self, program: &rir::Program) -> String {
+        self.0
+            .iter()
+            .map(|instr| ToQir::<String>::to_qir(instr, program))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+}
+
 impl ToQir<String> for rir::Callable {
     fn to_qir(&self, program: &rir::Program) -> String {
         let input_type = self
@@ -127,30 +162,33 @@ impl ToQir<String> for rir::Callable {
             .collect::<Vec<_>>()
             .join(", ");
         let output_type = ToQir::<String>::to_qir(&self.output_type, program);
-        let signature = format!("{} @{}({})", output_type, self.name, input_type);
         let Some(entry_id) = self.body else {
             return format!(
-                "declare {signature}{}",
-                if self.name == "__quantum__qis__mz__body" {
-                    // The mz callable is a special case that needs the irreversable attribute.
+                "declare {output_type} @{}({input_type}){}",
+                self.name,
+                if self.is_measurement {
+                    // Measurement callables are a special case that needs the irreversable attribute.
                     " #1"
                 } else {
                     ""
                 }
             );
         };
-        // For now, assume a single block.
-        let block = program.get_block(entry_id);
-        let body = block
-            .0
-            .iter()
-            .map(|instr| ToQir::<String>::to_qir(instr, program))
-            .collect::<Vec<_>>()
-            .join("\n");
-        format!(
-            "define {signature} #0 {{\nblock_{}:\n{body}\n}}",
-            entry_id.0
-        )
+        let mut body = String::new();
+        let all_blocks = get_all_block_successors(entry_id, program);
+        for block_id in all_blocks {
+            let block = program.get_block(block_id);
+            body.push_str(&format!(
+                "{}:\n{}\n",
+                ToQir::<String>::to_qir(&block_id, program),
+                ToQir::<String>::to_qir(block, program)
+            ));
+        }
+        assert!(
+            input_type.is_empty(),
+            "entry point should not have an input"
+        );
+        format!("define {output_type} @ENTRYPOINT__main() #0 {{\n{body}}}",)
     }
 }
 
