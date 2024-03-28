@@ -1082,11 +1082,6 @@ fn resolve<'a>(
     } else {
         None
     };
-    // insert prelude into scope
-    for item in PRELUDE {
-        let ns = item.iter().map(|x| Rc::from(*x)).collect::<Vec<_>>();
-    globals.namespaces.insert_or_find_namespace(ns);
-    }
 
     // let namespace = namespace.as_ref().map_or("", |i| &i.name);
     for scope in scopes {

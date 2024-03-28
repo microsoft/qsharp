@@ -3,19 +3,18 @@ mod tests;
 
 use std::{cell::RefCell, collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
-#[derive(Debug, Clone)]
-
-pub struct NamespaceTreeRoot {
-    assigner: usize,
-    tree: NamespaceTreeNode,
-}
+const PRELUDE: [[&str; 3]; 3] = [
+    ["Microsoft", "Quantum", "Canon"],
+    ["Microsoft", "Quantum", "Core"],
+    ["Microsoft", "Quantum", "Intrinsic"],
+];
 
 /// An ID that corresponds to a namespace in the global scope.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Default)]
 pub struct NamespaceId(usize);
 impl NamespaceId {
     /// Create a new namespace ID.
-    pub fn new(value: usize) -> Self {
+    #[must_use] pub fn new(value: usize) -> Self {
         Self(value)
     }
 }
@@ -51,12 +50,21 @@ impl Display for NamespaceId {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct NamespaceTreeRoot {
+    assigner: usize,
+    tree: NamespaceTreeNode,
+}
+
 impl NamespaceTreeRoot {
     /// Create a new namespace tree root. The assigner is used to assign new namespace IDs.
-    pub fn new(assigner: usize, tree: NamespaceTreeNode) -> Self {
+    #[must_use]
+    pub fn new_from_parts(assigner: usize, tree: NamespaceTreeNode) -> Self {
         Self { assigner, tree }
     }
+
     /// Get the namespace tree field. This is the root of the namespace tree.
+    #[must_use]
     pub fn tree(&self) -> &NamespaceTreeNode {
         &self.tree
     }
@@ -86,10 +94,12 @@ impl NamespaceTreeRoot {
         self.tree.find_namespace(ns)
     }
 
+    #[must_use]
     pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
         return self.tree.find_id(*id, vec![]);
     }
 
+    #[must_use]
     pub fn root_id(&self) -> NamespaceId {
         self.tree.id
     }
@@ -97,13 +107,19 @@ impl NamespaceTreeRoot {
 
 impl Default for NamespaceTreeRoot {
     fn default() -> Self {
-        Self {
+        let mut tree = Self {
             assigner: 0,
             tree: NamespaceTreeNode {
                 children: HashMap::new(),
                 id: NamespaceId::new(0),
             },
+        };
+        // insert the prelude namespaces using the `NamespaceTreeRoot` API
+        for ns in &PRELUDE {
+            let iter = ns.iter().map(|s| Rc::from(*s)).peekable();
+            tree.insert_or_find_namespace(iter);
         }
+        tree
     }
 }
 
@@ -113,34 +129,43 @@ pub struct NamespaceTreeNode {
     pub id: NamespaceId,
 }
 impl NamespaceTreeNode {
+    #[must_use]
     pub fn new(id: NamespaceId, children: HashMap<Rc<str>, NamespaceTreeNode>) -> Self {
         Self { children, id }
     }
+
+    #[must_use]
     pub fn children(&self) -> &HashMap<Rc<str>, NamespaceTreeNode> {
         &self.children
     }
+
     fn get(&self, component: &Rc<str>) -> Option<&NamespaceTreeNode> {
         self.children.get(component)
     }
+
+    #[must_use]
     pub fn id(&self) -> NamespaceId {
         self.id
     }
-    fn contains(&self, ns: impl Into<Vec<Rc<str>>>) -> bool {
+
+    #[must_use]
+    pub fn contains(&self, ns: impl Into<Vec<Rc<str>>>) -> bool {
         self.find_namespace(ns).is_some()
     }
+
     fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         // look up a namespace in the tree and return the id
         // do a breadth-first search through NamespaceTree for the namespace
         // if it's not found, return None
         let mut buf = Rc::new(self);
-        for component in ns.into().iter() {
+        for component in &ns.into() {
             if let Some(next_ns) = buf.get(component) {
                 buf = Rc::new(next_ns);
             } else {
                 return None;
             }
         }
-        return Some(buf.id);
+        Some(buf.id)
     }
 
     /// If the namespace already exists, it will not be inserted.
@@ -153,9 +178,7 @@ impl NamespaceTreeNode {
     where
         I: Iterator<Item = Rc<str>>,
     {
-        
         let next_item = iter.next()?;
-        dbg!(&"insert_or_find_namespace", &next_item);
         let next_node = self.children.get_mut(&next_item);
         match (next_node, iter.peek()) {
             (Some(next_node), Some(_)) => {

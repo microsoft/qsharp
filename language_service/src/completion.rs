@@ -575,7 +575,7 @@ fn convert_ast_namespaces_into_hir_namespaces(
         hir_namespaces.insert(namespace.clone(), children);
     }
 
-    qsc::NamespaceTreeRoot::new(assigner, NamespaceTreeNode::new(root_id, hir_namespaces))
+    qsc::NamespaceTreeRoot::new_from_parts(assigner, NamespaceTreeNode::new(root_id, hir_namespaces))
 }
 
 /// Convert a local into a completion item
