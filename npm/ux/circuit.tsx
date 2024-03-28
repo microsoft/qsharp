@@ -3,7 +3,7 @@
 
 import * as qviz from "@microsoft/quantum-viz.js/lib";
 import { useEffect, useRef } from "preact/hooks";
-import { CircuitProps } from "./data";
+import { CircuitProps } from "./data.js";
 
 // For perf reasons we set a limit on how many gates/qubits
 // we attempt to render. This is still a lot higher than a human would
