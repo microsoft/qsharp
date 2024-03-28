@@ -40,7 +40,7 @@ export function createWorker<
   const invokeService = initService<TService, TServiceEventMsg>(
     postMessage,
     protocol,
-    wasm,
+    wasm as any, // Need to cast due to difference in web and node wasm types
     workerData && typeof workerData.qscLogLevel === "number"
       ? workerData.qscLogLevel
       : undefined,

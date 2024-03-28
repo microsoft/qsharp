@@ -5,7 +5,6 @@
 // the "./browser.js" file is the entry point module.
 
 import { createRequire } from "node:module";
-import { ProjectLoader } from "../lib/node/qsc_wasm.cjs";
 import {
   Compiler,
   ICompiler,
@@ -27,32 +26,38 @@ import {
 } from "./language-service/language-service.js";
 import { log } from "./log.js";
 import { createProxy } from "./workers/node.js";
+import type { ProjectLoader } from "../lib/web/qsc_wasm.js";
 
 export { qsharpLibraryUriScheme };
 
 // Only load the Wasm module when first needed, as it may only be used in a Worker,
 // and not in the main thread.
-type Wasm = typeof import("../lib/node/qsc_wasm.cjs");
+
+// Use the types from the web version for... reasons.
+type Wasm = typeof import("../lib/web/qsc_wasm.js");
 let wasm: Wasm | null = null;
-const require = createRequire(import.meta.url);
 
-export async function getLibrarySourceContent(
-  path: string,
-): Promise<string | undefined> {
-  if (!wasm) {
-    wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-    return wasm.get_library_source_content(path);
-  }
-}
-
-export function getCompiler(): ICompiler {
+function ensureWasm() {
   if (!wasm) {
     wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
     // Set up logging and telemetry as soon as possible after instantiating
     wasm.initLogging(log.logWithLevel, log.getLogLevel());
     log.onLevelChanged = (level) => wasm?.setLogLevel(level);
   }
-  return new Compiler(wasm);
+}
+
+const require = createRequire(import.meta.url);
+
+export async function getLibrarySourceContent(
+  path: string,
+): Promise<string | undefined> {
+  ensureWasm();
+  return wasm!.get_library_source_content(path);
+}
+
+export function getCompiler(): ICompiler {
+  ensureWasm();
+  return new Compiler(wasm!);
 }
 
 export function getProjectLoader(
@@ -62,13 +67,8 @@ export function getProjectLoader(
     manifestDirectory: string;
   } | null>,
 ): ProjectLoader {
-  if (!wasm) {
-    wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-    // Set up logging and telemetry as soon as possible after instantiating
-    wasm.initLogging(log.logWithLevel, log.getLogLevel());
-    log.onLevelChanged = (level) => wasm?.setLogLevel(level);
-  }
-  return new wasm.ProjectLoader(readFile, loadDirectory, getManifest);
+  ensureWasm();
+  return new wasm!.ProjectLoader(readFile, loadDirectory, getManifest);
 }
 
 export function getCompilerWorker(): ICompilerWorker {
@@ -76,8 +76,8 @@ export function getCompilerWorker(): ICompilerWorker {
 }
 
 export function getDebugService(): IDebugService {
-  if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-  return new QSharpDebugService(wasm);
+  ensureWasm();
+  return new QSharpDebugService(wasm!);
 }
 
 export function getDebugServiceWorker(): IDebugServiceWorker {
@@ -91,8 +91,8 @@ export function getLanguageService(
     manifestDirectory: string;
   } | null>,
 ): ILanguageService {
-  if (!wasm) wasm = require("../lib/node/qsc_wasm.cjs") as Wasm;
-  return new QSharpLanguageService(wasm, readFile, listDir, getManifest);
+  ensureWasm();
+  return new QSharpLanguageService(wasm!, readFile, listDir, getManifest);
 }
 
 export function getLanguageServiceWorker(): ILanguageServiceWorker {
