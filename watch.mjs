@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 /*
-Watch mode for a fast developer inner loop. Usage: "node dev.mjs"
+Watch mode for a fast developer inner loop. Usage: "node watch.mjs"
 
 WARNING: This is largely heuristics to optimize common developer workflows.
 Always use ./build.py to ensure that all projects are built correctly before check-in.
