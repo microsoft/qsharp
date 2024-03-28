@@ -146,10 +146,9 @@ impl Backend for CustomSim {
 }
 
 fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
-    let mut fir_lowerer = crate::lower::Lowerer::new();
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = fir_lowerer.lower_package(&core.package);
+    let core_fir = crate::lower::Lowerer::new().lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
@@ -161,7 +160,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         RuntimeCapabilityFlags::all()
     )
     .is_empty());
-    let std_fir = fir_lowerer.lower_package(&std.package);
+    let std_fir = crate::lower::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
@@ -180,7 +179,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         RuntimeCapabilityFlags::all()
     )
     .is_empty());
-    let unit_fir = fir_lowerer.lower_package(&unit.package);
+    let unit_fir = crate::lower::Lowerer::new().lower_package(&unit.package);
     let entry = unit_fir.entry_exec_graph.clone();
 
     let id = store.insert(unit);

@@ -418,7 +418,7 @@ export class QscDebugSession extends LoggingDebugSession {
     const bps: number[] = [];
     for (const file_bps of this.breakpoints.values()) {
       for (const bp of file_bps) {
-        if (bp && bp.id) {
+        if (bp?.id != null) {
           bps.push(bp.id);
         }
       }
