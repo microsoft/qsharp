@@ -20,12 +20,6 @@ export function Circuit(props: { circuit: qviz.Circuit }) {
     props.circuit.qubits.length === 0 ? (
       <div>
         <p>No circuit to display. No qubits have been allocated.</p>
-        <p>
-          <em>
-            Tip: you can generate a circuit diagram for any operation that takes
-            qubits or arrays of qubits as input.
-          </em>
-        </p>
       </div>
     ) : props.circuit.operations.length > MAX_OPERATIONS ? (
       <div>
@@ -88,7 +82,7 @@ export function CircuitPanel(props: CircuitProps) {
       </div>
       {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : null}
       <div class="qs-circuit-error">{error}</div>
-      <p>{props.targetProfile /* target profile */}</p>
+      <p>{props.targetProfile}</p>
       {props.simulating ? (
         <p>
           This circuit diagram was generated while running the program in the
@@ -101,6 +95,19 @@ export function CircuitPanel(props: CircuitProps) {
           result in a different circuit being generated.
         </p>
       ) : null}
+      {
+        // show tip when the circuit is empty and we didn't run under the simulator (i.e. debugging)
+        !props.simulating &&
+        !props.errorHtml &&
+        props.circuit?.qubits.length === 0 ? (
+          <p>
+            <em>
+              Tip: you can generate a circuit diagram for any operation that
+              takes qubits or arrays of qubits as input.
+            </em>
+          </p>
+        ) : null
+      }
       <p>
         <a href="https://github.com/microsoft/qsharp/wiki/Circuit-Diagrams-from-Q%23-Code">
           Learn more

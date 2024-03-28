@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
+import { escapeHtml } from "markdown-it/lib/common/utils";
 import {
   IOperationInfo,
   IRange,
@@ -82,24 +83,7 @@ export async function showCircuitCommand(
       typeof e === "string" ? JSON.parse(e) : undefined;
     let errorHtml = "There was an error generating the circuit.";
     if (errors) {
-      if (
-        errors.findIndex(
-          ([, diag]) => diag.code === "Qsc.Eval.ResultComparisonUnsupported",
-        ) !== -1
-      ) {
-        const commandUri = Uri.parse(
-          `command:qsharp-vscode.runEditorContentsWithCircuit?${encodeURIComponent(JSON.stringify([docUri]))}`,
-          true,
-        );
-        errorHtml =
-          `<p>Synthesizing circuits is unsupported for programs that ` +
-          `contain behavior that is conditional on a qubit measurement result, ` +
-          `since the resulting circuit may depend on the outcome of the measurement.</p>` +
-          `<p>If you would like to generate a circuit for this program, you can ` +
-          `<a href="${commandUri}">run the program using the simulator and show the resulting circuit.</a> </p>`;
-      } else {
-        errorHtml = errorsToHtml(errors);
-      }
+      errorHtml = errorsToHtml(errors, docUri);
     }
 
     if (!timeout) {
@@ -122,42 +106,6 @@ export async function showCircuitCommand(
   }
 }
 
-export function updateCircuitPanel(
-  targetProfile: string,
-  docPath: string,
-  reveal: boolean,
-  params: {
-    circuit?: CircuitData;
-    errorHtml?: string;
-    simulating?: boolean;
-    operation?: IOperationInfo | undefined;
-  },
-) {
-  let title;
-  let target;
-  if (params?.operation) {
-    title = `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`;
-    target = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
-  } else {
-    title = basename(docPath) || "Circuit";
-    target = `Target profile: ${getTargetFriendlyName(targetProfile)}`;
-  }
-
-  const props = {
-    title,
-    targetProfile: target,
-    simulating: params?.simulating || false,
-    circuit: params?.circuit,
-    errorHtml: params?.errorHtml,
-  };
-
-  const message = {
-    command: "circuit",
-    props,
-  };
-  sendMessageToPanel("circuit", reveal, message);
-}
-
 /**
  * Formats an array of compiler/runtime errors into HTML to be presented to the user.
  *
@@ -169,20 +117,37 @@ export function updateCircuitPanel(
  * @returns The HTML formatted errors, to be set as the inner contents of a container element.
  */
 function errorsToHtml(
-  errors: [string, VSDiagnostic, string | undefined][],
-): string {
+  errors: [string, VSDiagnostic, string][],
+  programUri: Uri,
+) {
   let errorHtml = "";
   for (const error of errors) {
     const [document, diag, rawStack] = error;
 
-    const location = documentHtml(document, diag.range);
+    if (diag.code === "Qsc.Eval.ResultComparisonUnsupported") {
+      const commandUri = Uri.parse(
+        `command:qsharp-vscode.runEditorContentsWithCircuit?${encodeURIComponent(JSON.stringify([programUri]))}`,
+        true,
+      );
+      const messageHtml =
+        `<p>Synthesizing circuits is unsupported for programs that ` +
+        `contain behavior that is conditional on a qubit measurement result, ` +
+        `since the resulting circuit may depend on the outcome of the measurement.</p>` +
+        `<p>If you would like to generate a circuit for this program, you can ` +
+        `<a href="${commandUri}">run the program in the simulator and show the resulting circuit</a>, ` +
+        `or edit your code to avoid the result comparison indicated by the call stack below.</p>`;
 
-    const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
-      "\n",
-      "<br/><br/>",
-    );
+      errorHtml += messageHtml;
+    } else {
+      const location = documentHtml(document, diag.range);
 
-    errorHtml += `<p>${location}: ${message}<br/></p>`;
+      const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
+        "\n",
+        "<br/><br/>",
+      );
+
+      errorHtml += `<p>${location}: ${message}<br/></p>`;
+    }
 
     if (rawStack) {
       const stack = rawStack
@@ -203,6 +168,39 @@ function errorsToHtml(
     }
   }
   return errorHtml;
+}
+
+export function updateCircuitPanel(
+  targetProfile: string,
+  docPath: string,
+  reveal: boolean,
+  params: {
+    circuit?: CircuitData;
+    errorHtml?: string;
+    simulating?: boolean;
+    operation?: IOperationInfo | undefined;
+  },
+) {
+  const title = params?.operation
+    ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
+    : basename(docPath) || "Circuit";
+
+  // Trim the Q#: prefix from the target profile name - that's meant for the ui text in the status bar
+  const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("Q#: ", "")} `;
+
+  const props = {
+    title,
+    targetProfile: target,
+    simulating: params?.simulating || false,
+    circuit: params?.circuit,
+    errorHtml: params?.errorHtml,
+  };
+
+  const message = {
+    command: "circuit",
+    props,
+  };
+  sendMessageToPanel("circuit", reveal, message);
 }
 
 /**
@@ -241,13 +239,4 @@ function documentHtml(maybeUri: string, range?: IRange) {
   }
 
   return location;
-}
-
-export function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
 }

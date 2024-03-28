@@ -317,12 +317,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
 
     if (this.config.showCircuit) {
-      const e = error as any;
-      await this.showCircuit(
-        e && typeof e === "object" && typeof e.stack === "string"
-          ? e.stack
-          : undefined,
-      );
+      await this.showCircuit(error);
     }
 
     if (!result) {
@@ -403,12 +398,7 @@ export class QscDebugSession extends LoggingDebugSession {
         }
       } catch (error) {
         if (this.config.showCircuit) {
-          const e = error as any;
-          await this.showCircuit(
-            e && typeof e === "object" && typeof e.stack === "string"
-              ? e.stack
-              : undefined,
-          );
+          await this.showCircuit(error);
         }
         await this.endSession(`ending session due to error: ${error}`, 1);
         return;
@@ -944,15 +934,25 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 
-  private async showCircuit(error?: string) {
+  private async showCircuit(error?: any) {
+    // Error returned from the debugger has a message and a stack (which also includes the message).
+    // We would ideally retrieve the original runtime error, and format it to be consistent
+    // with the other runtime errors that can be shown in the circuit panel, but that will require
+    // a bit of refactoring.
+    const stack =
+      error && typeof error === "object" && typeof error.stack === "string"
+        ? escapeHtml(error.stack)
+        : undefined;
+
     const circuit = await this.debugService.getCircuit();
+
     updateCircuitPanel(
       this.targetProfile,
       vscode.Uri.parse(this.sources[0][0]).path,
       !this.revealedCircuit,
       {
         circuit,
-        errorHtml: error ? `<pre>${escapeHtml(error)}</pre>` : undefined,
+        errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
         simulating: true,
       },
     );

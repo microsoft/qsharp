@@ -282,9 +282,7 @@
       {
         "command": "qsharp-vscode.runEditorContentsWithCircuit",
         "title": "Run file and show circuit diagram",
-        "category": "Debug",
-        "enablement": "!inDebugMode",
-        "icon": "$(play)"
+        "category": "Q#"
       },
       {
         "command": "qsharp-vscode.showHistogram",
