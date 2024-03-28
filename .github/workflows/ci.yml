@@ -103,6 +103,23 @@ jobs:
       - name: Build and Test
         run: python ./build.py --no-check
 
+  format_qsc:
+    name: Format Q# Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "true"
+      - name: Setup rust toolchain
+        uses: ./.github/actions/toolchains/rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
+      - name: Check Formatting for Libraries
+        run: cargo run -release --bin qsc_formatter -- ./library/ -r
+      - name: Check Formatting for Samples
+        run: cargo run -release --bin qsc_formatter -- ./samples/ -r
+
   integration-tests:
     name: Integration tests
     timeout-minutes: 15
