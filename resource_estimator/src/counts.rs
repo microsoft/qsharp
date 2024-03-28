@@ -577,14 +577,17 @@ pub struct LayerInfo {
 }
 
 impl LayerInfo {
+    #[must_use]
     pub fn new_with_t() -> Self {
         Self { t: 1, r: 0, ccz: 0 }
     }
 
+    #[must_use]
     pub fn new_with_r() -> Self {
         Self { t: 0, r: 1, ccz: 0 }
     }
 
+    #[must_use]
     pub fn new_with_ccz() -> Self {
         Self { t: 0, r: 0, ccz: 1 }
     }

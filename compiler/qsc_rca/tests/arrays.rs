@@ -227,3 +227,44 @@ fn check_rca_for_mutable_array_dynamically_appended() {
                 dynamic_param_applications: <empty>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_access_using_classical_index() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let arr = [0.0, 1.0];
+        arr[0]"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+        ApplicationsGeneratorSet:
+            inherent: Classical
+            dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_access_using_dynamic_index() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let arr = [0.0, 1.0];
+        let idx = M(q) == Zero ? 0 | 1;
+        arr[idx]"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+        ApplicationsGeneratorSet:
+            inherent: Quantum: QuantumProperties:
+                runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicDouble | UseOfDynamicIndex)
+                value_kind: Element(Dynamic)
+            dynamic_param_applications: <empty>"#]],
+    );
+}

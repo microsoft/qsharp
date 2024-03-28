@@ -115,8 +115,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.Eval.ReleasedQubitNotZero"))]
     ReleasedQubitNotZero(usize, #[label("Qubit{0}")] PackageSpan),
 
-    #[error("Result comparison is unsupported for this backend")]
+    #[error("cannot compare measurement results")]
     #[diagnostic(code("Qsc.Eval.ResultComparisonUnsupported"))]
+    #[diagnostic(help("comparing measurement results is not supported when performing circuit synthesis or base profile QIR generation"))]
     ResultComparisonUnsupported(#[label("cannot compare to result")] PackageSpan),
 
     #[error("name is not bound")]
@@ -405,6 +406,7 @@ pub struct State {
     idx_stack: Vec<u32>,
     val_register: Option<Value>,
     val_stack: Vec<Vec<Value>>,
+    source_package: PackageId,
     package: PackageId,
     call_stack: CallStack,
     current_span: Span,
@@ -428,6 +430,7 @@ impl State {
             idx_stack: Vec::new(),
             val_register: None,
             val_stack: vec![Vec::new()],
+            source_package: package,
             package,
             call_stack: CallStack::default(),
             current_span: Span::default(),
@@ -546,7 +549,10 @@ impl State {
                     self.idx += 1;
                     self.current_span = globals.get_stmt((self.package, *stmt).into()).span;
 
-                    if let Some(bp) = breakpoints.iter().find(|&bp| *bp == *stmt) {
+                    if let Some(bp) = breakpoints
+                        .iter()
+                        .find(|&bp| *bp == *stmt && self.package == self.source_package)
+                    {
                         StepResult::BreakpointHit(*bp)
                     } else {
                         if self.current_span == Span::default() {

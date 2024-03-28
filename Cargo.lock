@@ -961,6 +961,7 @@ dependencies = [
  "expect-test",
  "indoc",
  "log",
+ "miette",
  "num-bigint",
  "num-complex",
  "qsc_codegen",
@@ -973,6 +974,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -989,6 +991,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
+ "qsc_rir",
  "rustc-hash",
 ]
 
@@ -1122,9 +1125,13 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "qsc",
  "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_rca",
  "rustc-hash",
  "thiserror",
 ]
@@ -1165,6 +1172,7 @@ name = "qsc_rir"
 version = "0.0.0"
 dependencies = [
  "qsc_data_structures",
+ "rustc-hash",
 ]
 
 [[package]]

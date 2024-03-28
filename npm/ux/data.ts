@@ -63,3 +63,13 @@ export function CreateSingleEstimateResult(
     };
   }
 }
+
+export type CircuitProps = {
+  title: string;
+  circuit?: CircuitData;
+  errorHtml?: string;
+  targetProfile: string;
+  simulating: boolean;
+};
+
+export type CircuitData = import("@microsoft/quantum-viz.js/lib").Circuit;
