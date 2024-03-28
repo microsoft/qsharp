@@ -138,7 +138,7 @@ fn main() -> Result<(), String> {
     if !file_walker.root.exists() {
         return Err("Given path can not found.".to_string());
     }
-    if !file_walker.root.is_dir() && is_path_qs(&file_walker.root) {
+    if !file_walker.root.is_dir() || is_path_qs(&file_walker.root) {
         return Err("Given path is not a folder or Q# file.".to_string());
     }
 
