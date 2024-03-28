@@ -155,7 +155,6 @@ export function updateCircuitPanel(
     command: "circuit",
     props,
   };
-
   sendMessageToPanel("circuit", reveal, message);
 }
 
