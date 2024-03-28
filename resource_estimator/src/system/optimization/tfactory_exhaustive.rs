@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::borrow::Cow;
 use std::rc::Rc;
 
 use crate::system::modeling::{
@@ -207,13 +208,13 @@ impl ToString for Point4D<TFactory> {
     }
 }
 
-pub(crate) fn find_nondominated_tfactories(
+pub(crate) fn find_nondominated_tfactories<'a>(
     ftp: &Protocol,
     qubit: &Rc<PhysicalQubit>,
     distillation_unit_templates: &[TFactoryDistillationUnitTemplate],
     output_t_error_rate: f64,
     max_code_distance: u64,
-) -> Vec<TFactory> {
+) -> Vec<Cow<'a, TFactory>> {
     let points = find_nondominated_population::<Point2D<TFactory>>(
         ftp,
         qubit,
@@ -225,7 +226,7 @@ pub(crate) fn find_nondominated_tfactories(
     points
         .items()
         .iter()
-        .map(|point| point.item.clone())
+        .map(|point| Cow::Owned(point.item.clone()))
         .collect()
 }
 
@@ -366,9 +367,10 @@ impl FactoryBuilder<Protocol> for TFactoryBuilder {
         &self,
         ftp: &Protocol,
         qubit: &Rc<PhysicalQubit>,
+        _magic_state_type: usize,
         output_t_error_rate: f64,
         max_code_distance: &u64,
-    ) -> Vec<Self::Factory> {
+    ) -> Vec<Cow<Self::Factory>> {
         find_nondominated_tfactories(
             ftp,
             qubit,

@@ -37,6 +37,13 @@ pub enum Error {
     #[error("No solution found for the provided maximum number of physical qubits.")]
     #[diagnostic(code("Qsc.Estimates.MaxPhysicalQubitsTooSmall"))]
     MaxPhysicalQubitsTooSmall,
+    /// Constraint-based search only supports one magic state type.
+    ///
+    /// ✅ This error cannot be triggered by the system, since only one magic
+    /// state type is supported.
+    #[error("Constraint-based search only supports one magic state type.")]
+    #[diagnostic(code("Qsc.Estimates.MultipleMagicStatesNotSupported"))]
+    MultipleMagicStatesNotSupported,
     /// The number of physical qubits required for a code cannot be computed.
     ///
     /// ✅ This does not contain user data and can be logged
