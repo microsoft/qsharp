@@ -13,32 +13,84 @@ use crate::val::Value;
 pub trait Backend {
     type ResultType;
 
-    fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize);
-    fn cx(&mut self, ctl: usize, q: usize);
-    fn cy(&mut self, ctl: usize, q: usize);
-    fn cz(&mut self, ctl: usize, q: usize);
-    fn h(&mut self, q: usize);
-    fn m(&mut self, q: usize) -> Self::ResultType;
-    fn mresetz(&mut self, q: usize) -> Self::ResultType;
-    fn reset(&mut self, q: usize);
-    fn rx(&mut self, theta: f64, q: usize);
-    fn rxx(&mut self, theta: f64, q0: usize, q1: usize);
-    fn ry(&mut self, theta: f64, q: usize);
-    fn ryy(&mut self, theta: f64, q0: usize, q1: usize);
-    fn rz(&mut self, theta: f64, q: usize);
-    fn rzz(&mut self, theta: f64, q0: usize, q1: usize);
-    fn sadj(&mut self, q: usize);
-    fn s(&mut self, q: usize);
-    fn swap(&mut self, q0: usize, q1: usize);
-    fn tadj(&mut self, q: usize);
-    fn t(&mut self, q: usize);
-    fn x(&mut self, q: usize);
-    fn y(&mut self, q: usize);
-    fn z(&mut self, q: usize);
-    fn qubit_allocate(&mut self) -> usize;
-    fn qubit_release(&mut self, q: usize);
-    fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize);
-    fn qubit_is_zero(&mut self, q: usize) -> bool;
+    fn ccx(&mut self, _ctl0: usize, _ctl1: usize, _q: usize) {
+        panic!("ccx is not supported");
+    }
+    fn cx(&mut self, _ctl: usize, _q: usize) {
+        panic!("cx is not supported");
+    }
+    fn cy(&mut self, _ctl: usize, _q: usize) {
+        panic!("cy is not supported");
+    }
+    fn cz(&mut self, _ctl: usize, _q: usize) {
+        panic!("cz is not supported");
+    }
+    fn h(&mut self, _q: usize) {
+        panic!("h is not supported");
+    }
+    fn m(&mut self, _q: usize) -> Self::ResultType {
+        panic!("m is not supported");
+    }
+    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
+        panic!("mresetz is not supported");
+    }
+    fn reset(&mut self, _q: usize) {
+        panic!("reset is not supported");
+    }
+    fn rx(&mut self, _theta: f64, _q: usize) {
+        panic!("rx is not supported");
+    }
+    fn rxx(&mut self, _theta: f64, _q0: usize, _q1: usize) {
+        panic!("rxx is not supported");
+    }
+    fn ry(&mut self, _theta: f64, _q: usize) {
+        panic!("ry is not supported");
+    }
+    fn ryy(&mut self, _theta: f64, _q0: usize, _q1: usize) {
+        panic!("ryy is not supported");
+    }
+    fn rz(&mut self, _theta: f64, _q: usize) {
+        panic!("rz is not supported");
+    }
+    fn rzz(&mut self, _theta: f64, _q0: usize, _q1: usize) {
+        panic!("rzz is not supported");
+    }
+    fn sadj(&mut self, _q: usize) {
+        panic!("sadj is not supported");
+    }
+    fn s(&mut self, _q: usize) {
+        panic!("s is not supported");
+    }
+    fn swap(&mut self, _q0: usize, _q1: usize) {
+        panic!("swap is not supported");
+    }
+    fn tadj(&mut self, _q: usize) {
+        panic!("tadj is not supported");
+    }
+    fn t(&mut self, _q: usize) {
+        panic!("t is not supported");
+    }
+    fn x(&mut self, _q: usize) {
+        panic!("x is not supported");
+    }
+    fn y(&mut self, _q: usize) {
+        panic!("y is not supported");
+    }
+    fn z(&mut self, _q: usize) {
+        panic!("z is not supported");
+    }
+    fn qubit_allocate(&mut self) -> usize {
+        panic!("qubit allocate is not supported");
+    }
+    fn qubit_release(&mut self, _q: usize) {
+        panic!("qubit release is not supported");
+    }
+    fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+        panic!("capture quantum state is not supported");
+    }
+    fn qubit_is_zero(&mut self, _q: usize) -> bool {
+        panic!("qubit is zero is not supported");
+    }
 
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
         None
