@@ -116,7 +116,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           components: ${{ env.RUST_TOOLCHAIN_COMPONENTS }}
       - name: Check Formatting for Libraries
-        run: cargo run -release --bin qsc_formatter -- ./library/ -r
+        run: cargo run --release --bin qsc_formatter -- ./library/ -r
       - name: Check Formatting for Samples
         run: cargo run --release --bin qsc_formatter -- ./samples/ -r
 
