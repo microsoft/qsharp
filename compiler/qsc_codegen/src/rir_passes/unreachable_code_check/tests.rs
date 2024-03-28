@@ -19,7 +19,7 @@ fn test_check_unreachable_instrs_panics_on_missing_terminator() {
             },
         )]),
     );
-    check_unreachable_instrs(&mut program);
+    check_unreachable_instrs(&program);
 }
 
 #[test]
@@ -28,7 +28,7 @@ fn test_check_unreachable_instrs_succeeds_on_terminator() {
     program
         .blocks
         .insert(rir::BlockId(0), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_instrs(&mut program);
+    check_unreachable_instrs(&program);
 }
 
 #[test]
@@ -47,7 +47,7 @@ fn test_check_unreachable_instrs_succeeds_on_terminator_after_other_instrs() {
             rir::Instruction::Return,
         ]),
     );
-    check_unreachable_instrs(&mut program);
+    check_unreachable_instrs(&program);
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn test_check_unreachable_instrs_panics_on_unreachable_instrs_after_terminator()
             ),
         ]),
     );
-    check_unreachable_instrs(&mut program);
+    check_unreachable_instrs(&program);
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks() {
     program
         .blocks
         .insert(rir::BlockId(0), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_blocks(&mut program);
+    check_unreachable_blocks(&program);
 }
 
 #[test]
@@ -109,7 +109,7 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block() {
     program
         .blocks
         .insert(rir::BlockId(1), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_blocks(&mut program);
+    check_unreachable_blocks(&program);
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_branch()
     program
         .blocks
         .insert(rir::BlockId(2), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_blocks(&mut program);
+    check_unreachable_blocks(&program);
 }
 
 #[test]
@@ -165,7 +165,7 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_jump() {
     program
         .blocks
         .insert(rir::BlockId(1), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_blocks(&mut program);
+    check_unreachable_blocks(&program);
 }
 
 #[test]
@@ -196,7 +196,7 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block_with_branch() {
     program
         .blocks
         .insert(rir::BlockId(2), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_blocks(&mut program);
+    check_unreachable_blocks(&program);
 }
 
 #[test]
@@ -216,7 +216,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables() {
     program
         .blocks
         .insert(rir::BlockId(0), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_callable(&mut program);
+    check_unreachable_callable(&program);
 }
 
 #[test]
@@ -250,7 +250,7 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable() {
     program
         .blocks
         .insert(rir::BlockId(1), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_callable(&mut program);
+    check_unreachable_callable(&program);
 }
 
 #[test]
@@ -288,7 +288,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_cal
     program
         .blocks
         .insert(rir::BlockId(1), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_callable(&mut program);
+    check_unreachable_callable(&program);
 }
 
 #[test]
@@ -341,7 +341,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_nes
             None,
         )]),
     );
-    check_unreachable_callable(&mut program);
+    check_unreachable_callable(&program);
 }
 
 #[test]
@@ -390,7 +390,7 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable_with_nested_ca
     program
         .blocks
         .insert(rir::BlockId(1), rir::Block(vec![rir::Instruction::Return]));
-    check_unreachable_callable(&mut program);
+    check_unreachable_callable(&program);
 }
 
 #[test]
@@ -430,5 +430,5 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_cal
             None,
         )]),
     );
-    check_unreachable_callable(&mut program);
+    check_unreachable_callable(&program);
 }
