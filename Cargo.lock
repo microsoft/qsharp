@@ -1052,6 +1052,7 @@ dependencies = [
 name = "qsc_formatter"
 version = "0.0.0"
 dependencies = [
+ "clap",
  "expect-test",
  "indoc",
  "qsc_data_structures",
