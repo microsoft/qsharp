@@ -13,7 +13,7 @@ use super::{
     },
     find_nondominated_population, find_nondominated_tfactories,
 };
-use std::{rc::Rc, time::Instant};
+use std::{borrow::Cow, rc::Rc, time::Instant};
 
 #[test]
 fn test_one_t_error_rate() {
@@ -154,7 +154,7 @@ fn required_logical_tstate_error_too_high() {
     assert_eq!(tfactory.unit_names(), vec!["trivial 1-to-1"]);
 }
 
-fn find_tfactories(ftp: &Protocol, qubit_name: &str) -> Vec<TFactory> {
+fn find_tfactories<'a>(ftp: &Protocol, qubit_name: &str) -> Vec<Cow<'a, TFactory>> {
     let qubit: Rc<PhysicalQubit> = serde_json::from_str(&format!(r#"{{"name": "{qubit_name}"}}"#))
         .expect("json should be valid");
 
