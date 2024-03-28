@@ -102,6 +102,13 @@ impl From<usize> for BlockId {
     }
 }
 
+impl BlockId {
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
 /// A block is a collection of instructions.
 #[derive(Debug, Default)]
 pub struct Block(pub Vec<Instruction>);
@@ -135,6 +142,13 @@ impl From<CallableId> for usize {
 impl From<usize> for CallableId {
     fn from(id: usize) -> Self {
         Self(id.try_into().expect("callable id should fit into u32"))
+    }
+}
+
+impl CallableId {
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
     }
 }
 
