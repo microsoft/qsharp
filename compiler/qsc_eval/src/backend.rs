@@ -14,82 +14,82 @@ pub trait Backend {
     type ResultType;
 
     fn ccx(&mut self, _ctl0: usize, _ctl1: usize, _q: usize) {
-        panic!("ccx is not supported");
+        unimplemented!();
     }
     fn cx(&mut self, _ctl: usize, _q: usize) {
-        panic!("cx is not supported");
+        unimplemented!();
     }
     fn cy(&mut self, _ctl: usize, _q: usize) {
-        panic!("cy is not supported");
+        unimplemented!();
     }
     fn cz(&mut self, _ctl: usize, _q: usize) {
-        panic!("cz is not supported");
+        unimplemented!();
     }
     fn h(&mut self, _q: usize) {
-        panic!("h is not supported");
+        unimplemented!();
     }
     fn m(&mut self, _q: usize) -> Self::ResultType {
-        panic!("m is not supported");
+        unimplemented!();
     }
     fn mresetz(&mut self, _q: usize) -> Self::ResultType {
-        panic!("mresetz is not supported");
+        unimplemented!();
     }
     fn reset(&mut self, _q: usize) {
-        panic!("reset is not supported");
+        unimplemented!();
     }
     fn rx(&mut self, _theta: f64, _q: usize) {
-        panic!("rx is not supported");
+        unimplemented!();
     }
     fn rxx(&mut self, _theta: f64, _q0: usize, _q1: usize) {
-        panic!("rxx is not supported");
+        unimplemented!();
     }
     fn ry(&mut self, _theta: f64, _q: usize) {
-        panic!("ry is not supported");
+        unimplemented!();
     }
     fn ryy(&mut self, _theta: f64, _q0: usize, _q1: usize) {
-        panic!("ryy is not supported");
+        unimplemented!();
     }
     fn rz(&mut self, _theta: f64, _q: usize) {
-        panic!("rz is not supported");
+        unimplemented!();
     }
     fn rzz(&mut self, _theta: f64, _q0: usize, _q1: usize) {
-        panic!("rzz is not supported");
+        unimplemented!();
     }
     fn sadj(&mut self, _q: usize) {
-        panic!("sadj is not supported");
+        unimplemented!();
     }
     fn s(&mut self, _q: usize) {
-        panic!("s is not supported");
+        unimplemented!();
     }
     fn swap(&mut self, _q0: usize, _q1: usize) {
-        panic!("swap is not supported");
+        unimplemented!();
     }
     fn tadj(&mut self, _q: usize) {
-        panic!("tadj is not supported");
+        unimplemented!();
     }
     fn t(&mut self, _q: usize) {
-        panic!("t is not supported");
+        unimplemented!();
     }
     fn x(&mut self, _q: usize) {
-        panic!("x is not supported");
+        unimplemented!();
     }
     fn y(&mut self, _q: usize) {
-        panic!("y is not supported");
+        unimplemented!();
     }
     fn z(&mut self, _q: usize) {
-        panic!("z is not supported");
+        unimplemented!();
     }
     fn qubit_allocate(&mut self) -> usize {
-        panic!("qubit allocate is not supported");
+        unimplemented!();
     }
     fn qubit_release(&mut self, _q: usize) {
-        panic!("qubit release is not supported");
+        unimplemented!();
     }
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
-        panic!("capture quantum state is not supported");
+        unimplemented!();
     }
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
-        panic!("qubit is zero is not supported");
+        unimplemented!();
     }
 
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
