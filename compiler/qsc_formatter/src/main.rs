@@ -26,7 +26,7 @@ struct Cli {
     write: bool,
 }
 
-fn main() {
+fn main() -> Result<(), i32> {
     let cli = Cli::parse();
     let mut file_count = 0;
     let mut changed_files: Vec<String> = vec![];
@@ -64,14 +64,17 @@ fn main() {
         for f in changed_files.iter() {
             println!("\t{f}");
         }
+        Ok(())
     } else if !changed_files.is_empty() {
         println!("{} files are in need of formatting:", changed_files.len());
         for f in changed_files.iter() {
             println!("\t{f}");
         }
         println!("Run the formatter to correct formatting for the above files.");
+        Err(1)
     } else {
         println!("All files are correctly formatted.");
+        Ok(())
     }
 }
 
