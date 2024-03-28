@@ -80,7 +80,9 @@ impl FromPyObject<'_> for PyManifestDescriptor {
         ))?;
 
         let manifest = serde_json::from_str::<Manifest>(&manifest).map_err(|_| {
-            PyErr::new::<PyException, _>("Error parsing: qsharp.json should be a valid JSON file")
+            PyErr::new::<PyException, _>(format!(
+                "Error parsing {manifest_dir}. Manifest should be a valid JSON file."
+            ))
         })?;
 
         Ok(Self(ManifestDescriptor {
