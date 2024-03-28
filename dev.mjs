@@ -60,10 +60,10 @@ async function onRustChange() {
   // TODO: Run wasm-pack (and stop if failed)
   const result = spawnSync(
     "wasm-pack",
-    ["--dev", "--no-pack", "--target", "web", "--out-dir", buildDir],
+    ["build", "--dev", "--no-pack", "--target", "web", "--out-dir", buildDir],
     { cwd: wasmDir },
   );
-  console.log("wasm-pack result: ", result.status);
+  console.log(result.stdout.toString(), result.stderr.toString());
 
   console.log("Copying the wasm-pack ouput files to the npm package");
   const npmLibDir = join(npmDir, "lib", "web");
