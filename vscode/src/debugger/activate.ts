@@ -42,60 +42,58 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.runEditorContents`,
-      (resource: vscode.Uri) => {
-        let targetResource = resource;
-        if (!targetResource && vscode.window.activeTextEditor) {
-          targetResource = vscode.window.activeTextEditor.document.uri;
-        }
-
-        if (targetResource) {
-          // We'll omit config.program and let the configuration
-          // resolver fill it in with the currently open editor's URI.
-          // This will also let us correctly handle untitled files
-          // where the save prompt pops up before the debugger is launched,
-          // potentially causing the active editor URI to change if
-          // the file is saved with a different name.
-          vscode.debug.startDebugging(
-            undefined,
-            {
-              type: "qsharp",
-              name: "Run Q# File",
-              request: "launch",
-              shots: 1,
-              stopOnEntry: false,
-            },
-            { noDebug: true },
-          );
-        }
-      },
+      (resource: vscode.Uri) =>
+        startDebugging(
+          resource,
+          { name: "Run Q# File", stopOnEntry: false },
+          { noDebug: true },
+        ),
     ),
     vscode.commands.registerCommand(
       `${qsharpExtensionId}.debugEditorContents`,
-      (resource: vscode.Uri) => {
-        let targetResource = resource;
-        if (!targetResource && vscode.window.activeTextEditor) {
-          targetResource = vscode.window.activeTextEditor.document.uri;
-        }
-
-        if (targetResource) {
-          // We'll omit config.program and let the configuration
-          // resolver fill it in with the currently open editor's URI.
-          // This will also let us correctly handle untitled files
-          // where the save prompt pops up before the debugger is launched,
-          // potentially causing the active editor URI to change if
-          // the file is saved with a different name.
-          vscode.debug.startDebugging(undefined, {
-            type: "qsharp",
-            name: "Debug Q# File",
-            request: "launch",
-            shots: 1,
-            stopOnEntry: true,
-            noDebug: false,
-          });
-        }
-      },
+      (resource: vscode.Uri) =>
+        startDebugging(resource, { name: "Debug Q# File", stopOnEntry: true }),
+    ),
+    vscode.commands.registerCommand(
+      `${qsharpExtensionId}.debugEditorContentsWithCircuit`,
+      (resource: vscode.Uri) =>
+        startDebugging(resource, {
+          name: "Debug Q# File",
+          stopOnEntry: true,
+          showCircuit: true,
+        }),
     ),
   );
+
+  function startDebugging(
+    resource: vscode.Uri,
+    config: { name: string; [key: string]: any },
+    options?: vscode.DebugSessionOptions,
+  ) {
+    let targetResource = resource;
+    if (!targetResource && vscode.window.activeTextEditor) {
+      targetResource = vscode.window.activeTextEditor.document.uri;
+    }
+
+    if (targetResource) {
+      // We'll omit config.program and let the configuration
+      // resolver fill it in with the currently open editor's URI.
+      // This will also let us correctly handle untitled files
+      // where the save prompt pops up before the debugger is launched,
+      // potentially causing the active editor URI to change if
+      // the file is saved with a different name.
+      vscode.debug.startDebugging(
+        undefined,
+        {
+          type: "qsharp",
+          request: "launch",
+          shots: 1,
+          ...config,
+        },
+        options,
+      );
+    }
+  }
 }
 
 class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {

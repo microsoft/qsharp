@@ -158,6 +158,17 @@ export function getLanguageServiceWorker(
   return createProxy(worker, wasmModule, languageServiceProtocol);
 }
 
+export { StepResultId, type IStructStepResult } from "../lib/web/qsc_wasm.js";
+export type {
+  IBreakpointSpan,
+  ICodeLens,
+  ILocation,
+  IOperationInfo,
+  IPosition,
+  IRange,
+  IStackFrame,
+  VSDiagnostic,
+} from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
 export { type CompilerState } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
@@ -176,20 +187,16 @@ export {
   type LessonItem,
   type Question,
 } from "./katas.js";
+export { type LanguageServiceEvent } from "./language-service/language-service.js";
 export { default as samples } from "./samples.generated.js";
 export { log, type LogLevel, type TargetProfile };
-export type { ICompilerWorker, ICompiler };
-export type { ILanguageServiceWorker, ILanguageService };
-export type { IDebugServiceWorker, IDebugService };
 export type {
-  IBreakpointSpan,
-  IStackFrame,
-  IPosition,
-  IRange,
-  ILocation,
-  VSDiagnostic,
-} from "../lib/web/qsc_wasm.js";
-export { type IStructStepResult, StepResultId } from "../lib/web/qsc_wasm.js";
-export { type LanguageServiceEvent } from "./language-service/language-service.js";
+  ICompiler,
+  ICompilerWorker,
+  IDebugService,
+  IDebugServiceWorker,
+  ILanguageService,
+  ILanguageServiceWorker,
+};
 
 export * as utils from "./utils.js";

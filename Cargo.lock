@@ -927,6 +927,7 @@ dependencies = [
  "num-bigint",
  "num-complex",
  "qsc_ast",
+ "qsc_circuit",
  "qsc_codegen",
  "qsc_data_structures",
  "qsc_doc_gen",
@@ -954,6 +955,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_circuit"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "indoc",
+ "log",
+ "miette",
+ "num-bigint",
+ "num-complex",
+ "qsc_codegen",
+ "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
+ "qsc_frontend",
+ "qsc_hir",
+ "qsc_passes",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "qsc_codegen"
 version = "0.0.0"
 dependencies = [
@@ -967,6 +991,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_passes",
+ "qsc_rir",
  "rustc-hash",
 ]
 
@@ -1100,9 +1125,13 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "qsc",
  "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_rca",
  "rustc-hash",
  "thiserror",
 ]
@@ -1135,6 +1164,14 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_passes",
+ "rustc-hash",
+]
+
+[[package]]
+name = "qsc_rir"
+version = "0.0.0"
+dependencies = [
+ "qsc_data_structures",
  "rustc-hash",
 ]
 
@@ -1179,6 +1216,7 @@ dependencies = [
  "qsc",
  "resource_estimator",
  "rustc-hash",
+ "serde_json",
 ]
 
 [[package]]

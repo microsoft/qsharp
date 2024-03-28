@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{check_last_statement_compute_properties, CompilationContext};
+pub mod test_utils;
+
 use expect_test::expect;
+use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_classical_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#""Foo""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -24,7 +26,7 @@ fn check_rca_for_classical_string() {
 
 #[test]
 fn check_rca_for_dynamic_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -46,7 +48,7 @@ fn check_rca_for_dynamic_string() {
 
 #[test]
 fn check_rca_for_classical_interpolated_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"$"Foo {Zero}""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -62,7 +64,7 @@ fn check_rca_for_classical_interpolated_string() {
 
 #[test]
 fn check_rca_for_dynamic_interpolated_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -84,7 +86,7 @@ fn check_rca_for_dynamic_interpolated_string() {
 
 #[test]
 fn check_rca_for_classical_nested_interpolated_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"$"Foo {$"{true}"}""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -100,7 +102,7 @@ fn check_rca_for_classical_nested_interpolated_string() {
 
 #[test]
 fn check_rca_for_dynamic_nested_interpolated_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -122,7 +124,7 @@ fn check_rca_for_dynamic_nested_interpolated_string() {
 
 #[test]
 fn check_rca_for_classical_concatenated_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#""Foo" + "Bar""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -138,7 +140,7 @@ fn check_rca_for_classical_concatenated_string() {
 
 #[test]
 fn check_rca_for_dynamic_concatenated_string() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -161,7 +163,7 @@ fn check_rca_for_dynamic_concatenated_string() {
 
 #[test]
 fn check_rca_for_classical_string_comparison() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#""Foo" == "Bar""#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -177,7 +179,7 @@ fn check_rca_for_classical_string_comparison() {
 
 #[test]
 fn check_rca_for_dynamic_string_comparison() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();

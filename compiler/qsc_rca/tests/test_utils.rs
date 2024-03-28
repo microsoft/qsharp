@@ -18,10 +18,28 @@ pub struct CompilationContext {
 }
 
 impl CompilationContext {
-    pub fn new() -> Self {
-        Self::default()
+    #[must_use]
+    pub fn new(runtime_capabilities: RuntimeCapabilityFlags) -> Self {
+        let compiler = Compiler::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            runtime_capabilities,
+            LanguageFeatures::default(),
+        )
+        .expect("should be able to create a new compiler");
+        let fir_store = lower_hir_package_store(compiler.package_store());
+        let analyzer = Analyzer::init(&fir_store);
+        let compute_properties = analyzer.analyze_all();
+        Self {
+            compiler,
+            fir_store,
+            compute_properties,
+            lowerer: Lowerer::new(),
+        }
     }
 
+    #[must_use]
     pub fn get_compute_properties(&self) -> &PackageStoreComputeProperties {
         &self.compute_properties
     }
@@ -50,23 +68,7 @@ impl CompilationContext {
 
 impl Default for CompilationContext {
     fn default() -> Self {
-        let compiler = Compiler::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::default(),
-        )
-        .expect("should be able to create a new compiler");
-        let fir_store = lower_hir_package_store(compiler.package_store());
-        let analyzer = Analyzer::init(&fir_store);
-        let compute_properties = analyzer.analyze_all();
-        Self {
-            compiler,
-            fir_store,
-            lowerer: Lowerer::new(),
-            compute_properties,
-        }
+        Self::new(RuntimeCapabilityFlags::all())
     }
 }
 
@@ -76,7 +78,7 @@ pub trait PackageStoreSearch {
 
 impl PackageStoreSearch for PackageStore {
     fn find_callable_id_by_name(&self, name: &str) -> Option<StoreItemId> {
-        for (package_id, package) in self.iter() {
+        for (package_id, package) in self {
             if let Some(item_id) = package.find_callable_id_by_name(name) {
                 return Some((package_id, item_id).into());
             }

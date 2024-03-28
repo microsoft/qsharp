@@ -9,6 +9,11 @@ fn check(input: &str, expect: &Expect) {
     expect.assert_eq(&actual);
 }
 
+fn check_edits(input: &str, expect: &Expect) {
+    let actual = super::calculate_format_edits(input);
+    expect.assert_debug_eq(&actual);
+}
+
 // Removing trailing whitespace from lines
 
 #[test]
@@ -65,7 +70,8 @@ fn namespace_items_begin_on_their_own_lines() {
 #[test]
 fn functor_specs_begin_on_their_own_lines() {
     check(
-        "operation Foo() : Unit { body ... {} adjoint ... {} controlled (c, ...) {} controlled adjoint (c, ...) {} }",
+        "operation Foo() : Unit { body ... {} adjoint ... {} controlled (c, ...) {} controlled adjoint (c, ...) {}
+        }",
         &expect![[r#"
             operation Foo() : Unit {
                 body ... {}
@@ -143,14 +149,12 @@ fn singe_space_around_arithmetic_bin_ops() {
     1   *   2;
     4  /2;
     3%  2;
-    2  ^  3;
     "},
         &expect![[r#"
             1 + 2;
             1 * 2;
             4 / 2;
             3 % 2;
-            2 ^ 3;
         "#]],
     );
 }
@@ -519,14 +523,12 @@ fn single_space_before_open_brace_and_newline_after() {
             operation Foo() : Unit {
                 let x = 3;
             }
-            operation Bar() : Unit
-            {
-                {
-                    let x = 3;
-                } {
-                    let x = 4;
-                }
+            operation Bar() : Unit { {
+                let x = 3;
             }
+            {
+                let x = 4;
+            } }
         "#]],
     );
 }
@@ -605,8 +607,8 @@ fn single_space_before_literals() {
 #[test]
 fn single_space_before_types() {
     check(
-        "let x :   (Int,   Double,    String[],  (BigInt,  Unit),   ('T,)) =>   'T = foo;",
-        &expect![[r#"let x : (Int, Double, String[], (BigInt, Unit), ('T,)) => 'T = foo;"#]],
+        "let x :   (Int,   Double,    String[],  (BigInt,  Unit),   ('T, )) =>   'T = foo;",
+        &expect![[r#"let x : (Int, Double, String[], (BigInt, Unit), ('T, )) => 'T = foo;"#]],
     );
 }
 
@@ -644,7 +646,7 @@ fn formatter_does_not_crash_on_non_terminating_string() {
     super::calculate_format_edits("let x = \"Hello World");
 }
 
-// Correct indentation, which increases by four spaces when a brace-delimited block is opened and decreases when block is closed
+// Correct indentation, which increases by four spaces when a delimited block is opened and decreases when block is closed
 
 #[test]
 fn formatting_corrects_indentation() {
@@ -687,6 +689,213 @@ fn formatting_corrects_indentation() {
 }
 
 #[test]
+fn nested_delimiter_indentation() {
+    check(
+        indoc! {r#"
+        let x = [
+            (1)
+        ];
+            let y = 3;
+    "#},
+        &expect![[r#"
+            let x = [
+                (1)
+            ];
+            let y = 3;
+        "#]],
+    );
+}
+
+#[test]
+fn delimiter_comments() {
+    check(
+        indoc! {r#"
+        let x = [ // this is a comment
+            (1)
+        ];
+            let y = 3;
+    "#},
+        &expect![[r#"
+            let x = [
+                // this is a comment
+                (1)
+            ];
+            let y = 3;
+    "#]],
+    );
+}
+
+#[test]
+fn brace_no_newlines() {
+    check(
+        indoc! {r#"
+        { Foo();
+            Bar(); Baz()
+        }
+    "#},
+        &expect![[r#"
+            { Foo(); Bar(); Baz() }
+        "#]],
+    );
+}
+
+#[test]
+fn brace_newlines() {
+    check(
+        indoc! {r#"
+        {
+            Foo(); Bar(); Baz() }
+    "#},
+        &expect![[r#"
+            {
+                Foo();
+                Bar();
+                Baz()
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn parens_no_newlines() {
+    check(
+        indoc! {r#"
+        ( Foo(),
+            Bar(), Baz()
+        )
+    "#},
+        &expect![[r#"
+            (Foo(), Bar(), Baz())
+        "#]],
+    );
+}
+
+#[test]
+fn parens_newlines() {
+    check(
+        indoc! {r#"
+        (
+            Foo(), Bar(), Baz() )
+    "#},
+        &expect![[r#"
+            (
+                Foo(),
+                Bar(),
+                Baz()
+            )
+        "#]],
+    );
+}
+
+#[test]
+fn bracket_no_newlines() {
+    check(
+        indoc! {r#"
+        [ Foo(),
+            Bar(), Baz()
+        ]
+    "#},
+        &expect![[r#"
+            [Foo(), Bar(), Baz()]
+        "#]],
+    );
+}
+
+#[test]
+fn bracket_newlines() {
+    check(
+        indoc! {r#"
+        [
+            Foo(), Bar(), Baz() ]
+    "#},
+        &expect![[r#"
+            [
+                Foo(),
+                Bar(),
+                Baz()
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn semi_no_context_uses_newlines() {
+    check(
+        indoc! {r#"
+        Foo(); Bar(); Baz()
+    "#},
+        &expect![[r#"
+            Foo();
+            Bar();
+            Baz()
+        "#]],
+    );
+}
+
+#[test]
+fn comma_no_context_uses_space() {
+    check(
+        indoc! {r#"
+        Foo(),
+        Bar(),
+        Baz()
+    "#},
+        &expect![[r#"
+            Foo(), Bar(), Baz()
+        "#]],
+    );
+}
+
+#[test]
+fn type_param_lists_have_no_spaces_around_delims() {
+    check(
+        indoc! {r#"
+        {
+            operation Foo < 'A,
+            'B,   'C > (a : 'A, b : 'B, c : 'C) : Unit {}
+        }
+    "#},
+        &expect![[r#"
+            {
+                operation Foo<'A, 'B, 'C>(a : 'A, b : 'B, c : 'C) : Unit {}
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn greater_than_and_less_than_bin_ops_have_spaces() {
+    check(indoc! {r#"x<y>z;"#}, &expect!["x < y > z;"])
+}
+
+#[test]
+fn delimiter_newlines_indentation() {
+    check(
+        r#"
+        let x = [ a,  b,  c ];
+        let y = [   a,
+            b,  c ];
+        let z = [
+
+
+            a,  b, c
+        ];
+"#,
+        &expect![[r#"
+            let x = [a, b, c];
+            let y = [a, b, c];
+            let z = [
+
+
+                a,
+                b,
+                c
+            ];
+        "#]],
+    );
+}
+
+#[test]
 fn preserve_string_indentation() {
     let input = r#""Hello
     World""#;
@@ -697,17 +906,189 @@ fn preserve_string_indentation() {
 // Will respect user new-lines and indentation added into expressions
 
 #[test]
-fn preserve_user_newlines_in_expressions() {
-    let input = indoc! {r#"
-        let x = [
-            thing1,
-            thing2,
-            thing3,
-        ];
-        let y = 1 + 2 + 3 + 4 + 5 +
-                6 + 7 + 8 + 9 + 10;
-        "#};
-    assert!(super::calculate_format_edits(input).is_empty());
+fn newline_after_brace_before_value() {
+    check(
+        indoc! {r#"
+    {
+        let x = 3;
+    } x
+    "#},
+        &expect![[r#"
+        {
+            let x = 3;
+        }
+        x
+    "#]],
+    )
+}
+
+#[test]
+fn newline_after_brace_before_functor() {
+    check(
+        indoc! {r#"
+    {
+        let x = 3;
+    } Adjoint Foo();
+    "#},
+        &expect![[r#"
+        {
+            let x = 3;
+        }
+        Adjoint Foo();
+    "#]],
+    )
+}
+
+#[test]
+fn newline_after_brace_before_not_keyword() {
+    check(
+        indoc! {r#"
+    {
+        let x = 3;
+    } not true
+    "#},
+        &expect![[r#"
+        {
+            let x = 3;
+        }
+        not true
+    "#]],
+    )
+}
+
+#[test]
+fn newline_after_brace_before_starter_keyword() {
+    check(
+        indoc! {r#"
+    {
+        let x = 3;
+    } if true {}
+    "#},
+        &expect![[r#"
+        {
+            let x = 3;
+        }
+        if true {}
+    "#]],
+    )
+}
+
+#[test]
+fn newline_after_brace_before_brace() {
+    check(
+        indoc! {r#"
+    {
+        let x = 3;
+    } {}
+    "#},
+        &expect![[r#"
+        {
+            let x = 3;
+        }
+        {}
+    "#]],
+    )
+}
+
+#[test]
+fn space_after_brace_before_operator() {
+    check(
+        indoc! {r#"
+    {
+        let x = 3;
+    }   +   {}
+    "#},
+        &expect![[r#"
+        {
+            let x = 3;
+        } + {}
+    "#]],
+    )
+}
+
+#[test]
+fn newline_after_brace_before_delim() {
+    check(
+        indoc! {r#"
+    {} ()
+    {} []
+    "#},
+        &expect![[r#"
+        {}
+        () {}
+        []
+    "#]],
+    )
+}
+
+// Copy operator can have single space or newline
+
+#[test]
+fn copy_operator_with_newline_is_indented() {
+    check(
+        indoc! {r#"
+    let x = arr
+              w/ 0 <- 10
+    w/ 1 <- 11
+    "#},
+        &expect![[r#"
+    let x = arr
+        w/ 0 <- 10
+        w/ 1 <- 11
+    "#]],
+    )
+}
+
+#[test]
+fn copy_operator_with_space_has_single_space() {
+    check(
+        indoc! {r#"
+    let x = arr    w/ 0 <- 10    w/ 1 <- 11
+    "#},
+        &expect![[r#"
+    let x = arr w/ 0 <- 10 w/ 1 <- 11
+    "#]],
+    )
+}
+
+#[test]
+fn no_space_around_carrot() {
+    check(
+        indoc! {r#"
+    {} ^ {}
+    1 ^ 2
+    "#},
+        &expect![[r#"
+            {}^{}
+            1^2
+        "#]],
+    )
+}
+
+#[test]
+fn no_space_around_ellipse() {
+    check(
+        indoc! {r#"
+    {} ... {}
+    "#},
+        &expect![[r#"
+            {}...{}
+        "#]],
+    )
+}
+
+#[test]
+fn single_space_after_spec_decl_ellipse() {
+    check(
+        indoc! {r#"
+    body ...auto
+    adjoint ...{}
+    "#},
+        &expect![[r#"
+        body ... auto
+        adjoint ... {}
+        "#]],
+    )
 }
 
 // Remove extra whitespace from start of code
@@ -733,6 +1114,66 @@ fn preserve_comments_at_start_of_file() {
         namespace Foo {}"#};
 
     assert!(super::calculate_format_edits(input).is_empty());
+}
+
+#[test]
+fn format_with_crlf() {
+    let content = indoc! {"//qsharp\r\n\r\noperation Foo() : Unit {\r\n\r\n}\r\n"};
+    check_edits(
+        content,
+        &expect![[r#"
+            [
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 36,
+                        hi: 40,
+                    },
+                },
+            ]
+        "#]],
+    );
+    check(
+        content,
+        &expect![["//qsharp\r\n\r\noperation Foo() : Unit {}\r\n"]],
+    );
+}
+
+#[test]
+fn format_does_not_edit_magic_comment() {
+    let content = indoc! {"\r\n\r\n    //qsharp    \r\n\r\noperation Foo() : Unit {\r\n\r\n}\r\n"};
+    check_edits(
+        content,
+        &expect![[r#"
+            [
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 0,
+                        hi: 8,
+                    },
+                },
+                TextEdit {
+                    new_text: "//qsharp",
+                    span: Span {
+                        lo: 8,
+                        hi: 20,
+                    },
+                },
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 48,
+                        hi: 52,
+                    },
+                },
+            ]
+        "#]],
+    );
+    check(
+        content,
+        &expect![["//qsharp\r\n\r\noperation Foo() : Unit {}\r\n"]],
+    );
 }
 
 #[test]

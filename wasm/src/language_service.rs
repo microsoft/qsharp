@@ -295,6 +295,13 @@ impl LanguageService {
                     qsls::protocol::CodeLensCommand::Debug => ("debug", None),
                     qsls::protocol::CodeLensCommand::Run => ("run", None),
                     qsls::protocol::CodeLensCommand::Estimate => ("estimate", None),
+                    qsls::protocol::CodeLensCommand::Circuit(args) => (
+                        "circuit",
+                        args.map(|args| OperationInfo {
+                            operation: args.operation,
+                            total_num_qubits: args.total_num_qubits,
+                        }),
+                    ),
                 };
                 CodeLens {
                     range,
@@ -422,14 +429,31 @@ serializable_type! {
         range: Range,
         command: String,
         #[serde(skip_serializing_if = "Option::is_none")]
-        args: Option<(String, String, String)>,
+        args: Option<OperationInfo>,
     },
-    r#"export interface ICodeLens {
+    r#"export type ICodeLens = {
         range: IRange;
         command: "histogram" | "estimate" | "debug" | "run";
-        args?: [string, string, string];
+    } | {
+        range: IRange;
+        command: "circuit";
+        args?: IOperationInfo
     }"#,
     ICodeLens
+}
+
+serializable_type! {
+    OperationInfo,
+    {
+        pub operation: String,
+        #[serde(rename = "totalNumQubits")]
+        pub total_num_qubits: u32,
+    },
+    r#"export interface IOperationInfo {
+        operation: string;
+        totalNumQubits: number;
+    }"#,
+    IOperationInfo
 }
 
 serializable_type! {

@@ -3,7 +3,7 @@
 ///
 /// # Description
 /// Return statements are a form of control flow statement that abort the current callable and
-/// return control flow to the callee's scope with a given value. 
+/// return control flow to the callee's scope with a given value.
 namespace MyQuantumApp {
     @EntryPoint()
     operation Main() : Unit {

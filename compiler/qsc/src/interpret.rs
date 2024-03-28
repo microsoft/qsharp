@@ -9,6 +9,9 @@ mod tests;
 #[cfg(test)]
 mod debugger_tests;
 
+#[cfg(test)]
+mod circuit_tests;
+
 use std::rc::Rc;
 
 pub use qsc_eval::{
@@ -30,14 +33,19 @@ use debug::format_call_stack;
 use miette::Diagnostic;
 use num_bigint::BigUint;
 use num_complex::Complex;
+use qsc_circuit::{
+    operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
+    Config as CircuitConfig,
+};
 use qsc_codegen::qir_base::BaseProfSim;
 use qsc_data_structures::{
+    functors::FunctorApp,
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
 };
 use qsc_eval::{
-    backend::{Backend, SparseSim},
+    backend::{Backend, Chain as BackendChain, SparseSim},
     debug::{map_fir_package_to_hir, map_hir_package_to_fir},
     output::Receiver,
     val, Env, State, VariableInfo,
@@ -76,12 +84,19 @@ pub enum Error {
     #[error("runtime error")]
     #[diagnostic(transparent)]
     Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
+    #[error("circuit error")]
+    #[diagnostic(transparent)]
+    Circuit(#[from] qsc_circuit::Error),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
     UnsupportedRuntimeCapabilities,
+    #[error("expression does not evaluate to an operation")]
+    #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]
+    #[diagnostic(help("provide the name of a callable or a lambda expression"))]
+    NotAnOperation,
 }
 
 /// A Q# interpreter.
@@ -106,7 +121,7 @@ pub struct Interpreter {
     /// This ID is valid both for the FIR store and the `PackageStore`.
     source_package: PackageId,
     /// The default simulator backend.
-    sim: SparseSim,
+    sim: BackendChain<SparseSim, CircuitBuilder>,
     /// The quantum seed, if any. This is cached here so that it can be used in calls to
     /// `run_internal` which use a passed instance of the simulator instead of the one above.
     quantum_seed: Option<u64>,
@@ -151,7 +166,19 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_eval::lower::Lowerer::new(),
             env: Env::default(),
-            sim: SparseSim::new(),
+            sim: BackendChain::new(
+                SparseSim::new(),
+                CircuitBuilder::new(CircuitConfig {
+                    // When using in conjunction with the simulator,
+                    // the circuit builder should *not* perform base profile
+                    // decompositions, in order to match the simulator's behavior.
+                    //
+                    // Note that conditional compilation (e.g. @Config(Base) attributes)
+                    // will still respect the selected profile. This also
+                    // matches the behavior of the simulator.
+                    base_profile: false,
+                }),
+            ),
             quantum_seed: None,
             classical_seed: None,
             package: map_hir_package_to_fir(package_id),
@@ -271,6 +298,11 @@ impl Interpreter {
         self.sim.capture_quantum_state()
     }
 
+    /// Get the current circuit representation of the program.
+    pub fn get_circuit(&self) -> Circuit {
+        self.sim.chained.snapshot()
+    }
+
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> std::result::Result<String, Vec<Error>> {
@@ -285,6 +317,43 @@ impl Interpreter {
         let val = self.run_with_sim(&mut sim, &mut out, expr)??;
 
         Ok(sim.finish(&val))
+    }
+
+    /// Generates a circuit representation for the program.
+    ///
+    /// `entry` can be the current entrypoint, an entry expression, or any operation
+    /// that takes qubits.
+    ///
+    /// An operation can be specified by its name or a lambda expression that only takes qubits.
+    /// e.g. `Sample.Main` , `qs => H(qs[0])`
+    pub fn circuit(
+        &mut self,
+        entry: CircuitEntryPoint,
+    ) -> std::result::Result<Circuit, Vec<Error>> {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+        let mut sim = CircuitBuilder::new(CircuitConfig {
+            base_profile: self.capabilities.is_empty(),
+        });
+
+        let entry_expr = match entry {
+            CircuitEntryPoint::Operation(operation_expr) => {
+                let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
+                let expr = entry_expr_for_qubit_operation(item, functor_app, &operation_expr)
+                    .map_err(|e| vec![e.into()])?;
+                Some(expr)
+            }
+            CircuitEntryPoint::EntryExpr(expr) => Some(expr),
+            CircuitEntryPoint::EntryPoint => None,
+        };
+
+        if let Some(entry_expr) = entry_expr {
+            self.run_with_sim(&mut sim, &mut out, &entry_expr)?
+        } else {
+            self.eval_entry_with_sim(&mut sim, &mut out)
+        }?;
+
+        Ok(sim.finish())
     }
 
     /// Runs the given entry expression on the given simulator with a new instance of the environment
@@ -360,6 +429,48 @@ impl Interpreter {
         self.lines += 1;
         label
     }
+
+    /// Evaluate the name of an operation, or any expression that evaluates to a callable,
+    /// and return the Item ID and function application for the callable.
+    /// Examples: "Microsoft.Quantum.Diagnostics.DumpMachine", "(qs: Qubit[]) => H(qs[0])",
+    /// "Controlled SWAP"
+    fn eval_to_operation(
+        &mut self,
+        operation_expr: &str,
+    ) -> std::result::Result<(&qsc_hir::hir::Item, FunctorApp), Vec<Error>> {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+        let (store_item_id, functor_app) = match self.eval_fragments(&mut out, operation_expr)? {
+            Value::Closure(b) => (b.id, b.functor),
+            Value::Global(item_id, functor_app) => (item_id, functor_app),
+            _ => return Err(vec![Error::NotAnOperation]),
+        };
+        let package = map_fir_package_to_hir(store_item_id.package);
+        let local_item_id = crate::hir::LocalItemId::from(usize::from(store_item_id.item));
+        let unit = self
+            .compiler
+            .package_store()
+            .get(package)
+            .expect("package should exist in the package store");
+        let item = unit
+            .package
+            .items
+            .get(local_item_id)
+            .expect("item should exist in the package");
+        Ok((item, functor_app))
+    }
+}
+
+/// Describes the entry point for circuit generation.
+pub enum CircuitEntryPoint {
+    /// An operation. This must be a callable name or a lambda
+    /// expression that only takes qubits as arguments.
+    /// The callable name must be visible in the current package.
+    Operation(String),
+    /// An explicitly provided entry expression.
+    EntryExpr(String),
+    /// The entry point for the current package.
+    EntryPoint,
 }
 
 /// A debugger that enables step-by-step evaluation of code
@@ -462,6 +573,10 @@ impl Debugger {
         self.interpreter.sim.capture_quantum_state()
     }
 
+    pub fn circuit(&self) -> Circuit {
+        self.interpreter.get_circuit()
+    }
+
     #[must_use]
     pub fn get_breakpoints(&self, path: &str) -> Vec<BreakpointSpan> {
         let unit = self.source_package();
@@ -478,14 +593,7 @@ impl Debugger {
                 self.position_encoding,
             );
             collector.visit_package(package);
-            let mut spans: Vec<_> = collector
-                .statements
-                .iter()
-                .map(|bps| BreakpointSpan {
-                    id: bps.id,
-                    range: bps.range,
-                })
-                .collect();
+            let mut spans: Vec<_> = collector.statements.into_iter().collect();
 
             // Sort by start position (line first, column next)
             spans.sort_by_key(|s| (s.range.start.line, s.range.start.column));

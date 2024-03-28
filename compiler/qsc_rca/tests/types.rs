@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{check_last_statement_compute_properties, CompilationContext};
+pub mod test_utils;
+
 use expect_test::expect;
+use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_classical_result() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"Zero"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -24,7 +26,7 @@ fn check_rca_for_classical_result() {
 
 #[test]
 fn check_rca_for_dynamic_result() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -46,7 +48,7 @@ fn check_rca_for_dynamic_result() {
 
 #[test]
 fn check_rca_for_classical_bool() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"true"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -62,7 +64,7 @@ fn check_rca_for_classical_bool() {
 
 #[test]
 fn check_rca_for_dynamic_bool() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -85,7 +87,7 @@ fn check_rca_for_dynamic_bool() {
 
 #[test]
 fn check_rca_for_classical_int() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"42"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -101,7 +103,7 @@ fn check_rca_for_classical_int() {
 
 #[test]
 fn check_rca_for_dynamic_int() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -126,7 +128,7 @@ fn check_rca_for_dynamic_int() {
 
 #[test]
 fn check_rca_for_classical_pauli() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"PauliX"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -142,7 +144,7 @@ fn check_rca_for_classical_pauli() {
 
 #[test]
 fn check_rca_for_dynamic_pauli() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -164,7 +166,7 @@ fn check_rca_for_dynamic_pauli() {
 
 #[test]
 fn check_rca_for_classical_range() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"1..2..10"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -180,7 +182,7 @@ fn check_rca_for_classical_range() {
 
 #[test]
 fn check_rca_for_dynamic_range() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -203,7 +205,7 @@ fn check_rca_for_dynamic_range() {
 
 #[test]
 fn check_rca_for_classical_double() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"42.0"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -219,7 +221,7 @@ fn check_rca_for_classical_double() {
 
 #[test]
 fn check_rca_for_dynamic_double() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -245,7 +247,7 @@ fn check_rca_for_dynamic_double() {
 
 #[test]
 fn check_rca_for_classical_big_int() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"42L"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -261,7 +263,7 @@ fn check_rca_for_classical_big_int() {
 
 #[test]
 fn check_rca_for_dynamic_big_int() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();

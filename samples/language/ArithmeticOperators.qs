@@ -67,21 +67,21 @@ namespace MyQuantumApp {
         // checked at runtime.
 
         // The integer value `81`.
-        let integer = 3 ^ 4;
+        let integer = 3^4;
 
         // The integer value `-81`.
-        let integer = -3 ^ 4;
+        let integer = -3^4;
 
         // The double value `256.0`.
-        let double = 16.0 ^ 2.0;
+        let double = 16.0^2.0;
 
         // The double value `-256.0`.
-        let double = -16.0 ^ 2.0;
+        let double = -16.0^2.0;
 
         // The double value `4.0`.
-        let double = 16.0 ^ 0.5;
+        let double = 16.0^0.5;
 
         // The double value `0.25`.
-        let double = 16.0 ^ -0.5;
+        let double = 16.0^ -0.5;
     }
 }

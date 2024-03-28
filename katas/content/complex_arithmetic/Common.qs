@@ -10,7 +10,7 @@ namespace Kata.Verification {
         return Complex(real, imag);
     }
 
-    operation ComplexAsString(x : Complex) : String {
+    function ComplexAsString(x : Complex) : String {
         if x::Imag < 0.0 {
             $"{x::Real} - {AbsD(x::Imag)}i"
         } else {
@@ -18,7 +18,7 @@ namespace Kata.Verification {
         }
     }
 
-    operation ComplexPolarAsString(x : ComplexPolar) : String {
+    function ComplexPolarAsString(x : ComplexPolar) : String {
         $"{x::Magnitude} * exp({x::Argument}i)"
     }
 

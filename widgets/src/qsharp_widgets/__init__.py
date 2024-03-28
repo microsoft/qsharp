@@ -167,3 +167,15 @@ class Histogram(anywidget.AnyWidget):
 
         # Update the UI one last time to make sure we show the final results
         self._update_ui()
+
+
+class Circuit(anywidget.AnyWidget):
+    _esm = pathlib.Path(__file__).parent / "static" / "index.js"
+    _css = pathlib.Path(__file__).parent / "static" / "index.css"
+
+    comp = traitlets.Unicode("Circuit").tag(sync=True)
+    circuit_json = traitlets.Unicode().tag(sync=True)
+
+    def __init__(self, circuit):
+        super().__init__()
+        self.circuit_json = circuit.json()

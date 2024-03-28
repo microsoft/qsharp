@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{check_last_statement_compute_properties, CompilationContext};
+pub mod test_utils;
+
 use expect_test::expect;
+use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_array_with_classical_elements() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"[1.0, 2.0, 3.0, 4.0, 5.0]"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -24,7 +26,7 @@ fn check_rca_for_array_with_classical_elements() {
 
 #[test]
 fn check_rca_for_array_with_dynamic_results() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use (a, b, c) = (Qubit(), Qubit(), Qubit());
@@ -47,7 +49,7 @@ fn check_rca_for_array_with_dynamic_results() {
 
 #[test]
 fn check_rca_for_array_with_dynamic_bools() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -70,7 +72,7 @@ fn check_rca_for_array_with_dynamic_bools() {
 
 #[test]
 fn check_rca_for_array_repeat_with_classical_value_and_classical_size() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(r#"[1L, size = 11]"#);
     let package_store_compute_properties = compilation_context.get_compute_properties();
     check_last_statement_compute_properties(
@@ -86,7 +88,7 @@ fn check_rca_for_array_repeat_with_classical_value_and_classical_size() {
 
 #[test]
 fn check_rca_for_array_repeat_with_dynamic_result_value_and_classical_size() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -108,7 +110,7 @@ fn check_rca_for_array_repeat_with_dynamic_result_value_and_classical_size() {
 
 #[test]
 fn check_rca_for_array_repeat_with_dynamic_bool_value_and_classical_size() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -131,7 +133,7 @@ fn check_rca_for_array_repeat_with_dynamic_bool_value_and_classical_size() {
 
 #[test]
 fn check_rca_for_array_repeat_with_classical_value_and_dynamic_size() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -154,7 +156,7 @@ fn check_rca_for_array_repeat_with_classical_value_and_dynamic_size() {
 
 #[test]
 fn check_rca_for_array_repeat_with_dynamic_double_value_and_dynamic_size() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -180,7 +182,7 @@ fn check_rca_for_array_repeat_with_dynamic_double_value_and_dynamic_size() {
 
 #[test]
 fn check_rca_for_mutable_array_statically_appended() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         mutable arr = [];
@@ -204,7 +206,7 @@ fn check_rca_for_mutable_array_statically_appended() {
 
 #[test]
 fn check_rca_for_mutable_array_dynamically_appended() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         mutable arr = [0, 1];
@@ -223,5 +225,46 @@ fn check_rca_for_mutable_array_dynamically_appended() {
                     runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
                     value_kind: Array(Content: Dynamic, Size: Dynamic)
                 dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_access_using_classical_index() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let arr = [0.0, 1.0];
+        arr[0]"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+        ApplicationsGeneratorSet:
+            inherent: Classical
+            dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_access_using_dynamic_index() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let arr = [0.0, 1.0];
+        let idx = M(q) == Zero ? 0 | 1;
+        arr[idx]"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+        ApplicationsGeneratorSet:
+            inherent: Quantum: QuantumProperties:
+                runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicDouble | UseOfDynamicIndex)
+                value_kind: Element(Dynamic)
+            dynamic_param_applications: <empty>"#]],
     );
 }

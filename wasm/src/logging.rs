@@ -29,7 +29,7 @@ static MY_LOGGER: MyLogger = MyLogger;
 // We're in Wasm, so only one thread anyway, but needs to be thread_local to avoid errors without Sync trait on RefCell
 thread_local! {
     // Will hold a reference to the JS logging function that was passed in
-    static LOG_JS_FN: RefCell<Option<Function>> = RefCell::new(None);
+    static LOG_JS_FN: RefCell<Option<Function>> = const { RefCell::new(None) };
 }
 
 struct MyLogger;

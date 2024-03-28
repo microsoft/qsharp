@@ -371,7 +371,7 @@ impl<'a> UdtDef<'a> {
     pub fn new(def: &'a ty::UdtDef) -> Self {
         match &def.kind {
             ty::UdtDefKind::Field(field) => UdtDef {
-                name: field.name.as_ref().cloned(),
+                name: field.name.clone(),
                 kind: UdtDefKind::SingleTy(&field.ty),
             },
             ty::UdtDefKind::Tuple(defs) => UdtDef {
