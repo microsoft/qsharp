@@ -41,6 +41,7 @@ import {
 import { getRandomGuid } from "../utils";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
+import { escapeHtml } from "markdown-it/lib/common/utils";
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -316,7 +317,12 @@ export class QscDebugSession extends LoggingDebugSession {
     }
 
     if (this.config.showCircuit) {
-      await this.showCircuit();
+      const e = error as any;
+      await this.showCircuit(
+        e && typeof e === "object" && typeof e.stack === "string"
+          ? e.stack
+          : undefined,
+      );
     }
 
     if (!result) {
@@ -388,12 +394,23 @@ export class QscDebugSession extends LoggingDebugSession {
           bps,
           this.eventTarget,
         );
+        if (this.config.showCircuit) {
+          this.showCircuit();
+        }
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);
           return;
         }
-      } catch (e) {
-        await this.endSession(`ending session due to error: ${e}`, 1);
+      } catch (error) {
+        if (this.config.showCircuit) {
+          const e = error as any;
+          await this.showCircuit(
+            e && typeof e === "object" && typeof e.stack === "string"
+              ? e.stack
+              : undefined,
+          );
+        }
+        await this.endSession(`ending session due to error: ${error}`, 1);
         return;
       }
 
@@ -927,13 +944,17 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 
-  private async showCircuit() {
+  private async showCircuit(error?: string) {
     const circuit = await this.debugService.getCircuit();
     updateCircuitPanel(
       this.targetProfile,
       vscode.Uri.parse(this.sources[0][0]).path,
-      circuit,
       !this.revealedCircuit,
+      {
+        circuit,
+        errorHtml: error ? `<pre>${escapeHtml(error)}</pre>` : undefined,
+        simulating: true,
+      },
     );
 
     // Only reveal the panel once per session, to keep it from

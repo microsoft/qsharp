@@ -3,6 +3,7 @@
 
 import * as qviz from "@microsoft/quantum-viz.js/lib";
 import { useEffect, useRef } from "preact/hooks";
+import { CircuitProps } from "./data";
 
 // For perf reasons we set a limit on how many gates/qubits
 // we attempt to render. This is still a lot higher than a human would
@@ -67,31 +68,39 @@ export function Circuit(props: { circuit: qviz.Circuit }) {
 }
 
 /* This component is exclusive to the VS Code panel */
-export function CircuitPanel(props: {
-  title: string;
-  subtitle: string;
-  circuit?: qviz.Circuit;
-  errorHtml?: string;
-}) {
+export function CircuitPanel(props: CircuitProps) {
+  const error = props.errorHtml ? (
+    <div>
+      <p>
+        {props.circuit
+          ? "The program encountered a failure. See the error(s) below."
+          : "A circuit could not be generated for this program. See the error(s) below."}
+        <br />
+      </p>
+      <div dangerouslySetInnerHTML={{ __html: props.errorHtml }}></div>
+    </div>
+  ) : null;
+
   return (
     <div class="qs-circuit-panel">
       <div>
         <h1>{props.title}</h1>
       </div>
       {props.circuit ? <Circuit circuit={props.circuit}></Circuit> : null}
-      <div class="qs-circuit-error">
-        {props.errorHtml ? (
-          <div>
-            <p>
-              A circuit could not be generated for this program. See the
-              error(s) below.
-              <br />
-            </p>
-            <div dangerouslySetInnerHTML={{ __html: props.errorHtml }}></div>
-          </div>
-        ) : null}
-      </div>
-      <p>{props.subtitle /* target profile */}</p>
+      <div class="qs-circuit-error">{error}</div>
+      <p>{props.targetProfile /* target profile */}</p>
+      {props.simulating ? (
+        <p>
+          This circuit diagram was generated while running the program in the
+          simulator.
+          <br />
+          <br />
+          If your program contains behavior that is conditional on a qubit
+          measurement result, note that this circuit only shows the outcome that
+          was encountered during this simulation. Running the program again may
+          result in a different circuit being generated.
+        </p>
+      ) : null}
       <p>
         <a href="https://github.com/microsoft/qsharp/wiki/Circuit-Diagrams-from-Q%23-Code">
           Learn more
@@ -100,5 +109,3 @@ export function CircuitPanel(props: {
     </div>
   );
 }
-
-export type CircuitData = qviz.Circuit;

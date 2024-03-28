@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
+import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
 import {
   IOperationInfo,
   IRange,
@@ -52,7 +52,9 @@ export async function showCircuitCommand(
     log.info("terminating circuit worker due to timeout");
     worker.terminate();
   }, compilerRunTimeoutMs);
-  const sources = await loadProject(editor.document.uri);
+
+  const docUri = editor.document.uri;
+  const sources = await loadProject(docUri);
   const targetProfile = getTarget();
 
   try {
@@ -63,10 +65,9 @@ export async function showCircuitCommand(
 
     updateCircuitPanel(
       targetProfile,
-      editor.document.uri.path,
-      circuit,
+      docUri.path,
       true, // reveal
-      operation,
+      { circuit, operation },
     );
 
     sendTelemetryEvent(EventType.CircuitEnd, {
@@ -81,7 +82,24 @@ export async function showCircuitCommand(
       typeof e === "string" ? JSON.parse(e) : undefined;
     let errorHtml = "There was an error generating the circuit.";
     if (errors) {
-      errorHtml = errorsToHtml(errors);
+      if (
+        errors.findIndex(
+          ([, diag]) => diag.code === "Qsc.Eval.ResultComparisonUnsupported",
+        ) !== -1
+      ) {
+        const commandUri = Uri.parse(
+          `command:qsharp-vscode.runEditorContentsWithCircuit?${encodeURIComponent(JSON.stringify([docUri]))}`,
+          true,
+        );
+        errorHtml =
+          `<p>Synthesizing circuits is unsupported for programs that ` +
+          `contain behavior that is conditional on a qubit measurement result, ` +
+          `since the resulting circuit may depend on the outcome of the measurement.</p>` +
+          `<p>If you would like to generate a circuit for this program, you can ` +
+          `<a href="${commandUri}">run the program using the simulator and show the resulting circuit.</a> </p>`;
+      } else {
+        errorHtml = errorsToHtml(errors);
+      }
     }
 
     if (!timeout) {
@@ -94,10 +112,9 @@ export async function showCircuitCommand(
 
     updateCircuitPanel(
       targetProfile,
-      editor.document.uri.path,
-      errorHtml,
+      docUri.path,
       false, // reveal
-      operation,
+      { errorHtml, operation },
     );
   } finally {
     log.info("terminating circuit worker");
@@ -108,29 +125,37 @@ export async function showCircuitCommand(
 export function updateCircuitPanel(
   targetProfile: string,
   docPath: string,
-  circuitOrErrorHtml: CircuitData | string,
   reveal: boolean,
-  operation?: IOperationInfo | undefined,
+  params: {
+    circuit?: CircuitData;
+    errorHtml?: string;
+    simulating?: boolean;
+    operation?: IOperationInfo | undefined;
+  },
 ) {
   let title;
-  let subtitle;
-  if (operation) {
-    title = `${operation.operation} with ${operation.totalNumQubits} input qubits`;
-    subtitle = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
+  let target;
+  if (params?.operation) {
+    title = `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`;
+    target = `Target profile: ${getTargetFriendlyName(targetProfile)} `;
   } else {
     title = basename(docPath) || "Circuit";
-    subtitle = `Target profile: ${getTargetFriendlyName(targetProfile)}`;
+    target = `Target profile: ${getTargetFriendlyName(targetProfile)}`;
   }
+
+  const props = {
+    title,
+    targetProfile: target,
+    simulating: params?.simulating || false,
+    circuit: params?.circuit,
+    errorHtml: params?.errorHtml,
+  };
 
   const message = {
     command: "circuit",
-    title,
-    subtitle,
-    circuit:
-      typeof circuitOrErrorHtml === "object" ? circuitOrErrorHtml : undefined,
-    errorHtml:
-      typeof circuitOrErrorHtml === "string" ? circuitOrErrorHtml : undefined,
+    props,
   };
+
   sendMessageToPanel("circuit", reveal, message);
 }
 
@@ -219,7 +244,7 @@ function documentHtml(maybeUri: string, range?: IRange) {
   return location;
 }
 
-function escapeHtml(unsafe: string): string {
+export function escapeHtml(unsafe: string): string {
   return unsafe
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
