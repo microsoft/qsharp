@@ -11,7 +11,9 @@ import {
   getCompilerWorker,
   loadWasmModule,
   getAllKatas,
+  getAllDocs,
   Kata,
+  Docs,
   VSDiagnostic,
   log,
   LogLevel,
@@ -25,6 +27,7 @@ import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
+import { DocsDisplay } from "./docs.js";
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
@@ -59,7 +62,7 @@ function createCompiler(onStateChange: (val: CompilerState) => void) {
   return compiler;
 }
 
-function App(props: { katas: Kata[]; linkedCode?: string }) {
+function App(props: { katas: Kata[]; docs: Docs[]; linkedCode?: string }) {
   const [compilerState, setCompilerState] = useState<CompilerState>("idle");
   const [compiler, setCompiler] = useState(() =>
     createCompiler(setCompilerState),
@@ -91,6 +94,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   const kataTitles = props.katas.map((elem) => elem.title);
   const sampleTitles = samples.map((sample) => sample.title);
+  const docTitles = props.docs.map((doc) => doc.namespace);
 
   const sampleCode =
     samples.find((sample) => sample.title === currentNavItem)?.code ||
@@ -102,6 +106,10 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const activeKata = kataTitles.includes(currentNavItem)
     ? props.katas.find((kata) => kata.title === currentNavItem)
     : undefined;
+
+const currentDocContent = docTitles.includes(currentNavItem)
+    ? props.docs.find((doc) => doc.namespace == currentNavItem)?.content
+    : "";
 
   function onNavItemSelected(name: string) {
     // If there was a ?code link on the URL before, clear it out
@@ -122,6 +130,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         navSelected={onNavItemSelected}
         katas={kataTitles}
         samples={sampleTitles}
+        docs={docTitles}
       ></Nav>
       {sampleCode ? (
         <>
@@ -148,7 +157,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             setActiveTab={setActiveTab}
           ></OutputTabs>
         </>
-      ) : (
+      ) : activeKata ? (
         <Katas
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
@@ -157,6 +166,11 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           onRestartCompiler={onRestartCompiler}
           languageService={languageService}
         ></Katas>
+      ) : (
+        <DocsDisplay
+          docName={currentNavItem}
+          docContent={currentDocContent!}
+        ></DocsDisplay>
       )}
       <div id="popup"></div>
     </>
@@ -180,6 +194,8 @@ async function loaded() {
 
   const katas = await getAllKatas();
 
+  const docs = await getAllDocs();
+
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.
   let linkedCode: string | undefined;
@@ -193,7 +209,7 @@ async function loaded() {
     }
   }
 
-  render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
+  render(<App katas={katas} docs={docs} linkedCode={linkedCode}></App>, document.body);
 }
 
 function registerMonacoLanguageServiceProviders(

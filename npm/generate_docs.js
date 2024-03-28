@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { generate_docs } from "./lib/node/qsc_wasm.cjs";
+import { marked } from "marked";
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const docsDirPath = join(scriptDirPath, "docs");
@@ -33,6 +34,9 @@ var mm = String(today.getMonth() + 1).padStart(2, "0"); //January is 0!
 var yyyy = today.getFullYear();
 var today_str = mm + "/" + dd + "/" + yyyy + " 12:00:00 AM";
 
+// Create the objects that will be written to a file.
+const docSources = [];
+
 docs.forEach((doc) => {
   // If the filename contains a /, then we need to create the directory
   const parts = doc.filename.split("/");
@@ -52,6 +56,7 @@ docs.forEach((doc) => {
         mkdirSync(dirName);
       }
       fullPath = join(dirName, parts[1]);
+      processContent(parts[0], marked(doc.contents));
       break;
     }
     default:
@@ -64,4 +69,31 @@ docs.forEach((doc) => {
   writeFileSync(fullPath, contents);
 });
 
+const thisDir = dirname(fileURLToPath(import.meta.url));
+const docsGeneratedDir = join(thisDir, "src");
+const contentPath = join(docsGeneratedDir, "docs.generated.ts");
+writeFileSync(
+  contentPath,
+  `export default ${JSON.stringify(docSources, undefined, 2)}`,
+  "utf-8",
+);
+
 console.log("Done");
+
+function processContent(namespace, content) {
+  for (var i = 0; i<docSources.length; i++) {
+    if (docSources[i].namespace == namespace) {
+      docSources[i] = {
+        namespace: namespace,
+        content: docSources[i].content +
+          "\n<br>\n<br>\n" +
+          content,
+        }
+        return;
+    }
+  }
+  docSources.push({
+    namespace: namespace,
+    content: content,
+  })
+};

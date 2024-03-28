@@ -6,6 +6,7 @@ export function Nav(props: {
   navSelected: (name: string) => void;
   katas: string[];
   samples: string[];
+  docs: string[];
 }) {
   function onSelected(name: string) {
     props.navSelected(name);
@@ -29,6 +30,19 @@ export function Nav(props: {
 
       <div class="nav-1">Tutorials</div>
       {props.katas.map((name) => (
+        <div
+          class={
+            "nav-2 nav-selectable" +
+            (props.selected === name ? " nav-current" : "")
+          }
+          onClick={() => onSelected(name)}
+        >
+          {name}
+        </div>
+      ))}
+      <div class="nav-1">Documentation</div>
+
+      {props.docs.map((name) => (
         <div
           class={
             "nav-2 nav-selectable" +
