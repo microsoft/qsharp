@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use super::{rir_builder, ToQir};
+use super::ToQir;
+use crate::test_utils::rir_builder;
 use expect_test::expect;
 use qsc_rir::rir;
 

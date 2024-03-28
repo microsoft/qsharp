@@ -2,15 +2,13 @@
 // Licensed under the MIT License.
 
 #[cfg(test)]
-mod rir_builder;
-#[cfg(test)]
 mod tests;
 
 use qsc_rir::{rir, utils::get_all_block_successors};
 
 /// A trait for converting a type into QIR of type `T`.
 /// This can be used to generate QIR strings or other representations.
-trait ToQir<T> {
+pub trait ToQir<T> {
     fn to_qir(&self, program: &rir::Program) -> T;
 }
 
@@ -166,7 +164,7 @@ impl ToQir<String> for rir::Callable {
             return format!(
                 "declare {output_type} @{}({input_type}){}",
                 self.name,
-                if self.is_measurement {
+                if self.call_type == rir::CallableType::Measurement {
                     // Measurement callables are a special case that needs the irreversable attribute.
                     " #1"
                 } else {
