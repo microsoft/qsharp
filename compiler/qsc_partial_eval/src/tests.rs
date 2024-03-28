@@ -9,9 +9,9 @@ use indoc::indoc;
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
-use qsc_fir::fir::{Package, PackageId, PackageStore};
+use qsc_fir::fir::{PackageId, PackageStore};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
-use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties};
+use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 
 #[ignore = "WIP"]
 #[test]
@@ -57,19 +57,15 @@ impl CompilationContext {
             package_id,
         }
     }
-
-    fn get_package_compute_properties_tuple(&self) -> (&Package, &PackageComputeProperties) {
-        (
-            self.fir_store.get(self.package_id),
-            self.compute_properties.get(self.package_id),
-        )
-    }
 }
 
 fn check_rir(source: &str, expect: &Expect) {
     let compilation_context = CompilationContext::new(source);
-    let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
-    let Ok(rir) = partially_evaluate(package, compute_properties) else {
+    let Ok(rir) = partially_evaluate(
+        compilation_context.package_id,
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+    ) else {
         panic!("partial evaluation failed");
     };
     expect.assert_eq(&rir.to_string());

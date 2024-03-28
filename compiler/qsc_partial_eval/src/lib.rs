@@ -5,10 +5,13 @@
 mod tests;
 
 use qsc_fir::{
-    fir::{Block, BlockId, Expr, ExprId, Package, PackageLookup, Pat, PatId, Stmt, StmtId},
+    fir::{
+        Block, BlockId, Expr, ExprId, PackageId, PackageStore, PackageStoreLookup, Pat, PatId,
+        Stmt, StmtId, StoreBlockId, StoreExprId, StorePatId, StoreStmtId,
+    },
     visit::Visitor,
 };
-use qsc_rca::PackageComputeProperties;
+use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::rir::{self, Program};
 use std::result::Result;
 
@@ -33,25 +36,38 @@ impl Assigner {
 }
 
 struct PartialEvaluator<'a> {
-    package: &'a Package,
-    _compute_properties: &'a PackageComputeProperties,
+    package_store: &'a PackageStore,
+    _compute_properties: &'a PackageStoreComputeProperties,
     program: Program,
     assigner: Assigner,
+    current_package: Option<PackageId>,
 }
 
 impl<'a> PartialEvaluator<'a> {
-    fn new(package: &'a Package, compute_properties: &'a PackageComputeProperties) -> Self {
+    fn new(
+        package_store: &'a PackageStore,
+        compute_properties: &'a PackageStoreComputeProperties,
+    ) -> Self {
         Self {
-            package,
+            package_store,
             _compute_properties: compute_properties,
             program: Program::new(),
             assigner: Assigner::default(),
+            current_package: None,
         }
     }
 
+    fn clear_current_package(&mut self) -> PackageId {
+        self.current_package
+            .take()
+            .expect("there is no package to clear")
+    }
+
     #[allow(clippy::unnecessary_wraps)]
-    fn eval(mut self) -> Result<Program, Error> {
-        let Some(entry_expr_id) = self.package.entry else {
+    fn eval(mut self, package_id: PackageId) -> Result<Program, Error> {
+        self.set_current_package(package_id);
+        let entry_package = self.package_store.get(package_id);
+        let Some(entry_expr_id) = entry_package.entry else {
             panic!("package does not have an entry expression");
         };
 
@@ -71,25 +87,39 @@ impl<'a> PartialEvaluator<'a> {
 
         // Visit the entry point expression.
         self.visit_expr(entry_expr_id);
+        self.clear_current_package();
         Ok(self.program)
+    }
+
+    fn get_current_package(&self) -> PackageId {
+        self.current_package.expect("current package is not set")
+    }
+
+    fn set_current_package(&mut self, package_id: PackageId) {
+        assert!(self.current_package.is_none());
+        self.current_package = Some(package_id);
     }
 }
 
 impl<'a> Visitor<'a> for PartialEvaluator<'a> {
     fn get_block(&self, id: BlockId) -> &'a Block {
-        self.package.get_block(id)
+        let block_id = StoreBlockId::from((self.get_current_package(), id));
+        self.package_store.get_block(block_id)
     }
 
     fn get_expr(&self, id: ExprId) -> &'a Expr {
-        self.package.get_expr(id)
+        let expr_id = StoreExprId::from((self.get_current_package(), id));
+        self.package_store.get_expr(expr_id)
     }
 
     fn get_pat(&self, id: PatId) -> &'a Pat {
-        self.package.get_pat(id)
+        let pat_id = StorePatId::from((self.get_current_package(), id));
+        self.package_store.get_pat(pat_id)
     }
 
     fn get_stmt(&self, id: StmtId) -> &'a Stmt {
-        self.package.get_stmt(id)
+        let stmt_id = StoreStmtId::from((self.get_current_package(), id));
+        self.package_store.get_stmt(stmt_id)
     }
 }
 
@@ -98,9 +128,10 @@ pub enum Error {
 }
 
 pub fn partially_evaluate(
-    package: &Package,
-    compute_properties: &PackageComputeProperties,
+    package_id: PackageId,
+    package_store: &PackageStore,
+    compute_properties: &PackageStoreComputeProperties,
 ) -> Result<Program, Error> {
-    let partial_evaluator = PartialEvaluator::new(package, compute_properties);
-    partial_evaluator.eval()
+    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties);
+    partial_evaluator.eval(package_id)
 }
