@@ -19,9 +19,9 @@ export function Nav(props: {
         <div
           class={
             "nav-2 nav-selectable" +
-            (props.selected === name ? " nav-current" : "")
+            (props.selected === "sample-" + name ? " nav-current" : "")
           }
-          onClick={() => onSelected(name)}
+          onClick={() => onSelected("sample-" + name)}
         >
           {name}
         </div>

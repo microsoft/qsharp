@@ -1,4 +1,4 @@
-# Superposition Kata
+# Superposition
 
 @[section]({
     "id": "superposition__overview",
