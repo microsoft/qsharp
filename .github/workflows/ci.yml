@@ -118,7 +118,7 @@ jobs:
       - name: Check Formatting for Libraries
         run: cargo run -release --bin qsc_formatter -- ./library/ -r
       - name: Check Formatting for Samples
-        run: cargo run -release --bin qsc_formatter -- ./samples/ -r
+        run: cargo run --release --bin qsc_formatter -- ./samples/ -r
 
   integration-tests:
     name: Integration tests
