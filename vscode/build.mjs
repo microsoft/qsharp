@@ -4,13 +4,12 @@
 //@ts-check
 
 import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build, context } from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const libsDir = join(thisDir, "..", "node_modules");
-const isWatch = process.argv.includes("--watch");
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
@@ -33,7 +32,7 @@ const buildOptions = {
   define: { "import.meta.url": "undefined" },
 };
 
-function copyWasm() {
+export function copyWasmToVsCode() {
   // Copy the wasm module into the extension directory
   let qsharpWasm = join(thisDir, "..", "npm", "lib", "web", "qsc_wasm_bg.wasm");
   let qsharpDest = join(thisDir, `wasm`);
@@ -80,7 +79,7 @@ function buildBundle() {
   );
 }
 
-async function buildWatch() {
+export async function watchVsCode() {
   console.log("Building vscode extension in watch mode");
 
   // Plugin to log start/end of build events (mostly to help VS Code problem matcher)
@@ -101,10 +100,15 @@ async function buildWatch() {
   ctx.watch();
 }
 
-if (isWatch) {
-  buildWatch();
-} else {
-  copyWasm();
-  copyKatex();
-  buildBundle();
+const thisFilePath = resolve(fileURLToPath(import.meta.url));
+if (thisFilePath === resolve(process.argv[1])) {
+  // This script being run directly (not imported)
+  const isWatch = process.argv.includes("--watch");
+  if (isWatch) {
+    watchVsCode();
+  } else {
+    copyWasmToVsCode();
+    copyKatex();
+    buildBundle();
+  }
 }
