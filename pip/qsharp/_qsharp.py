@@ -78,24 +78,11 @@ def init(
 
         try:
             (_, file_contents) = read_file(qsharp_json)
+            manifest_descriptor["manifest"] = file_contents
         except Exception as e:
             raise QSharpError(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
             ) from e
-
-        try:
-            manifest_descriptor["manifest"] = json.loads(file_contents)
-        except Exception as e:
-            raise QSharpError(
-                f"Error parsing {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
-            ) from e
-
-    # if no features were passed in as an argument, use the features from the manifest.
-    # this way we prefer the features from the argument over those from the manifest.
-    if language_features == [] and manifest_descriptor != None:
-        language_features = (
-            manifest_descriptor["manifest"].get("languageFeatures") or []
-        )
 
     _interpreter = Interpreter(
         target_profile,

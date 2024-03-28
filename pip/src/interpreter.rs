@@ -74,22 +74,17 @@ impl FromPyObject<'_> for PyManifestDescriptor {
         let manifest_dir = get_dict_opt_string(dict, "manifest_dir")?.ok_or(
             PyException::new_err("missing key `manifest_dir` in manifest descriptor"),
         )?;
-        let manifest = dict
-            .get_item("manifest")?
-            .ok_or(PyException::new_err(
-                "missing key `manifest` in manifest descriptor",
-            ))?
-            .downcast::<PyDict>()?;
 
-        let language_features = get_dict_opt_list_string(manifest, "features")?;
+        let manifest = get_dict_opt_string(dict, "manifest")?.ok_or(PyException::new_err(
+            "missing key `manifest` in manifest descriptor",
+        ))?;
+
+        let manifest = serde_json::from_str::<Manifest>(&manifest).map_err(|_| {
+            PyErr::new::<PyException, _>("Error parsing: qsharp.json should be a valid JSON file")
+        })?;
 
         Ok(Self(ManifestDescriptor {
-            manifest: Manifest {
-                author: get_dict_opt_string(manifest, "author")?,
-                license: get_dict_opt_string(manifest, "license")?,
-                language_features,
-                lints: vec![],
-            },
+            manifest,
             manifest_dir: manifest_dir.into(),
         }))
     }
@@ -113,7 +108,15 @@ impl Interpreter {
             TargetProfile::Unrestricted => Profile::Unrestricted,
             TargetProfile::Base => Profile::Base,
         };
-        let language_features = language_features.unwrap_or_default();
+        // If no features were passed in as an argument, use the features from the manifest.
+        // this way we prefer the features from the argument over those from the manifest.
+        let language_features: Vec<String> = match (language_features, &manifest_descriptor) {
+            (Some(language_features), _) if !language_features.is_empty() => language_features,
+            (_, Some(manifest_descriptor)) => {
+                manifest_descriptor.0.manifest.language_features.clone()
+            }
+            _ => vec![],
+        };
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
             let project = file_system(
@@ -598,22 +601,4 @@ fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
         Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
         None => None,
     })
-}
-fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
-    let value = dict.get_item(key)?;
-    let list: &PyList = match value {
-        Some(item) => item.downcast::<PyList>()?,
-        None => return Ok(vec![]),
-    };
-    match list
-        .iter()
-        .map(|item| {
-            item.downcast::<PyString>()
-                .map(|s| s.to_string_lossy().into())
-        })
-        .collect::<std::result::Result<Vec<String>, _>>()
-    {
-        Ok(list) => Ok(list),
-        Err(e) => Err(e.into()),
-    }
 }
