@@ -21,13 +21,14 @@ impl Display for Program {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Program:",)?;
         indent = set_indentation(indent, 1);
-        write!(indent, "\nCallables:")?;
+        write!(indent, "\nentry: {}", self.entry.0)?;
+        write!(indent, "\ncallables:")?;
         indent = set_indentation(indent, 2);
         for (callable_id, callable) in self.callables.iter() {
             write!(indent, "\nCallable {}: {}", callable_id.0, callable)?;
         }
         indent = set_indentation(indent, 1);
-        write!(indent, "\nBlocks:")?;
+        write!(indent, "\nblocks:")?;
         indent = set_indentation(indent, 2);
         for (block_id, block) in self.blocks.iter() {
             write!(indent, "\nBlock {}: {}", block_id.0, block)?;

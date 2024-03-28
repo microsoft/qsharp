@@ -10,6 +10,7 @@ license.workspace = true
 
 [dependencies]
 miette = { workspace = true }
+qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_eval = { path = "../qsc_eval" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_rca = { path = "../qsc_rca" }
@@ -17,6 +18,9 @@ qsc_rir = { path = "../qsc_rir" }
 
 [dev-dependencies]
 expect-test = { workspace = true }
+indoc = { workspace = true }
+qsc = { path = "../qsc" }
+qsc_frontend = { path = "../qsc_frontend" }
 
 [lints]
 workspace = true

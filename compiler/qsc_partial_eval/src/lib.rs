@@ -1,12 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use qsc_fir::{
     fir::{Block, BlockId, Expr, ExprId, Package, PackageLookup, Pat, PatId, Stmt, StmtId},
     visit::Visitor,
 };
 use qsc_rca::PackageComputeProperties;
 use qsc_rir::rir::Program;
+use std::result::Result;
 
 struct PartialEvaluator<'a> {
     package: &'a Package,
@@ -23,13 +27,14 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn eval(mut self) -> Program {
+    #[allow(clippy::unnecessary_wraps)]
+    fn eval(mut self) -> Result<Program, Error> {
         let Some(entry_expr_id) = self.package.entry else {
             panic!("package does not have an entry expression");
         };
 
         self.visit_expr(entry_expr_id);
-        self.program
+        Ok(self.program)
     }
 }
 
@@ -51,11 +56,14 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
     }
 }
 
-#[must_use]
+pub enum Error {
+    EvaluationFailed,
+}
+
 pub fn partially_evaluate(
     package: &Package,
     compute_properties: &PackageComputeProperties,
-) -> Program {
+) -> Result<Program, Error> {
     let partial_evaluator = PartialEvaluator::new(package, compute_properties);
     partial_evaluator.eval()
 }
