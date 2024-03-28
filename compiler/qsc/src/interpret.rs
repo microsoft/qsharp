@@ -145,13 +145,10 @@ impl Interpreter {
         capabilities: RuntimeCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let mut fir_store = fir::PackageStore::new();
-
         let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
             .map_err(into_errors)?;
-        let source_package_id = compiler.source_package_id();
-        let package_id = compiler.package_id();
 
+        let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
@@ -159,6 +156,8 @@ impl Interpreter {
             );
         }
 
+        let source_package_id = compiler.source_package_id();
+        let package_id = compiler.package_id();
         Ok(Self {
             compiler,
             lines: 0,
