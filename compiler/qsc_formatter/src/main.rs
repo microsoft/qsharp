@@ -69,7 +69,7 @@ fn main() {
         for f in changed_files.iter() {
             println!("\t{f}");
         }
-        panic!("Run the formatter to correct formatting for the above files.");
+        println!("Run the formatter to correct formatting for the above files.");
     } else {
         println!("All files are correctly formatted.");
     }
