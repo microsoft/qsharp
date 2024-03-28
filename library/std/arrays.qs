@@ -528,7 +528,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Output
     /// The first element of the array.
-    function Head<'A>(array : 'A[]) : 'A {
+    function Head<'A>            (array : 'A[]) : 'A {
         Fact(Length(array) > 0, "Array must have at least 1 element");
         array[0]
     }
