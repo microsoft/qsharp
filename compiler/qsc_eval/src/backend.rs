@@ -14,82 +14,82 @@ pub trait Backend {
     type ResultType;
 
     fn ccx(&mut self, _ctl0: usize, _ctl1: usize, _q: usize) {
-        unimplemented!();
+        unimplemented!("ccx gate");
     }
     fn cx(&mut self, _ctl: usize, _q: usize) {
-        unimplemented!();
+        unimplemented!("cx gate");
     }
     fn cy(&mut self, _ctl: usize, _q: usize) {
-        unimplemented!();
+        unimplemented!("cy gate");
     }
     fn cz(&mut self, _ctl: usize, _q: usize) {
-        unimplemented!();
+        unimplemented!("cz gate");
     }
     fn h(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("h gate");
     }
     fn m(&mut self, _q: usize) -> Self::ResultType {
-        unimplemented!();
+        unimplemented!("m operation");
     }
     fn mresetz(&mut self, _q: usize) -> Self::ResultType {
-        unimplemented!();
+        unimplemented!("mresetz operation");
     }
     fn reset(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("reset gate");
     }
     fn rx(&mut self, _theta: f64, _q: usize) {
-        unimplemented!();
+        unimplemented!("rx gate");
     }
     fn rxx(&mut self, _theta: f64, _q0: usize, _q1: usize) {
-        unimplemented!();
+        unimplemented!("rxx gate");
     }
     fn ry(&mut self, _theta: f64, _q: usize) {
-        unimplemented!();
+        unimplemented!("ry gate");
     }
     fn ryy(&mut self, _theta: f64, _q0: usize, _q1: usize) {
-        unimplemented!();
+        unimplemented!("ryy gate");
     }
     fn rz(&mut self, _theta: f64, _q: usize) {
-        unimplemented!();
+        unimplemented!("rz gate");
     }
     fn rzz(&mut self, _theta: f64, _q0: usize, _q1: usize) {
-        unimplemented!();
+        unimplemented!("rzz gate");
     }
     fn sadj(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("sadj gate");
     }
     fn s(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("s gate");
     }
     fn swap(&mut self, _q0: usize, _q1: usize) {
-        unimplemented!();
+        unimplemented!("swap gate");
     }
     fn tadj(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("tadj gate");
     }
     fn t(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("t gate");
     }
     fn x(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("x gate");
     }
     fn y(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("y gate");
     }
     fn z(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("z gate");
     }
     fn qubit_allocate(&mut self) -> usize {
-        unimplemented!();
+        unimplemented!("qubit_allocate operation");
     }
     fn qubit_release(&mut self, _q: usize) {
-        unimplemented!();
+        unimplemented!("qubit_release operation");
     }
     fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
-        unimplemented!();
+        unimplemented!("capture_quantum_state operation");
     }
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
-        unimplemented!();
+        unimplemented!("qubit_is_zero operation");
     }
 
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
