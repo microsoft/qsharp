@@ -129,10 +129,7 @@ fn format_file(path: &Path, write: bool, changed_files: &mut Vec<String>) {
             std::fs::write(path, formatted).expect("could not write to file");
             changed_files.push(path.display().to_string());
         }
-    } else {
-        let fmt_errors = calculate_format_edits(&file_as_string);
-        if !fmt_errors.is_empty() {
-            changed_files.push(path.display().to_string());
-        }
+    } else if !calculate_format_edits(&file_as_string).is_empty() {
+        changed_files.push(path.display().to_string());
     }
 }
