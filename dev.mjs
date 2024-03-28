@@ -43,6 +43,9 @@ const vslsDir = join(thisDir, "language_service");
 const wasmDir = join(thisDir, "wasm");
 const npmDir = join(thisDir, "npm");
 
+const isWin = process.platform === "win32";
+const npmCmd = isWin ? "npm.cmd" : "npm";
+
 function onRustChange() {
   console.log("Compiling the .wasm module with wasm-pack");
 
@@ -78,7 +81,7 @@ onRustChange();
 );
 
 // Build/watch the npm project
-const npmWatcher = spawn("npm", ["run", "tsc:watch"], { cwd: npmDir });
+const npmWatcher = spawn(npmCmd, ["run", "tsc:watch"], { cwd: npmDir });
 npmWatcher.stdout.on("data", (data) => console.log(`${data}`));
 npmWatcher.stderr.on("data", (data) => console.error(`npm error: ${data}`));
 npmWatcher.on("close", (code) =>
