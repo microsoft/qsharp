@@ -66,14 +66,17 @@ fn main() -> Result<(), i32> {
         }
         Ok(())
     } else if !changed_files.is_empty() {
-        println!("{} files are in need of formatting:", changed_files.len());
+        println!(
+            "\x1B[1;91m{} files are in need of formatting:",
+            changed_files.len()
+        );
         for f in changed_files.iter() {
             println!("\t{f}");
         }
-        println!("Run the formatter to correct formatting for the above files.");
+        println!("Run the formatter to correct formatting for the above files.\x1B[0m");
         Err(1)
     } else {
-        println!("All files are correctly formatted.");
+        println!("\x1B[1;92mAll files are correctly formatted.\x1B[0m");
         Ok(())
     }
 }
