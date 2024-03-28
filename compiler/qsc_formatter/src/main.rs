@@ -31,32 +31,18 @@ fn main() -> Result<(), i32> {
     let mut file_count = 0;
     let mut changed_files: Vec<String> = vec![];
 
-    assert!(cli.path.exists(), "location not found");
-    if cli.path.is_dir() {
-        for item in cli
-            .path
-            .read_dir()
-            .expect("unable to read from directory")
-            .flatten()
-        {
-            let subpath = item.path();
-            if subpath.is_dir() && cli.recursive {
-                recurse_into_dir(&subpath, &mut file_count, cli.write, &mut changed_files);
-            } else if is_path_qs(&subpath) {
-                println!("Formatting {}", subpath.display());
-                format_file(&subpath, cli.write, &mut changed_files);
-                file_count += 1;
-            }
-        }
-    } else if is_path_qs(&cli.path) {
-        println!("Formatting {}", cli.path.display());
-        format_file(&cli.path, cli.write, &mut changed_files);
-        file_count += 1;
-    } else if cli.path.is_file() {
-        panic!("give file is not a Q# file");
-    } else {
-        panic!("path points to unknown object");
+    assert!(cli.path.exists(), "Given path can not found.");
+    if !cli.path.is_dir() && is_path_qs(&cli.path) {
+        panic!("Given path is not a folder or Q# file.");
     }
+
+    format_file_or_dir(
+        &cli.path,
+        cli.write,
+        cli.recursive,
+        &mut file_count,
+        &mut changed_files,
+    );
 
     println!("Ran against {file_count} files.");
     if cli.write {
@@ -92,13 +78,13 @@ fn is_path_qs(path: &Path) -> bool {
     false
 }
 
-fn recurse_into_dir(
+fn format_file_or_dir(
     path: &Path,
+    is_write: bool,
+    is_recursive: bool,
     file_count: &mut i32,
-    write: bool,
     changed_files: &mut Vec<String>,
 ) {
-    assert!(path.exists(), "location not found");
     if path.is_dir() {
         for item in path
             .read_dir()
@@ -106,28 +92,25 @@ fn recurse_into_dir(
             .flatten()
         {
             let subpath = item.path();
-            if subpath.is_dir() {
-                recurse_into_dir(&subpath, file_count, write, changed_files);
+            if subpath.is_dir() && is_recursive {
+                format_file_or_dir(&subpath, is_write, is_recursive, file_count, changed_files);
             } else if is_path_qs(&subpath) {
                 println!("Formatting {}", subpath.display());
-                format_file(&subpath, write, changed_files);
+                format_file(&subpath, is_write, changed_files);
                 *file_count += 1;
             }
         }
     } else if is_path_qs(path) {
         println!("Formatting {}", path.display());
-        format_file(path, write, changed_files);
+        format_file(path, is_write, changed_files);
         *file_count += 1;
     }
 }
 
 fn format_file(path: &Path, write: bool, changed_files: &mut Vec<String>) {
-    // read file from `path` into buffer
     let file_as_string = std::fs::read_to_string(path).expect("file not found");
     if write {
-        // format the buffer
         let formatted = format_str(&file_as_string);
-        // write the formatted buffer back to `path`
         if file_as_string != formatted {
             std::fs::write(path, formatted).expect("could not write to file");
             changed_files.push(path.display().to_string());
