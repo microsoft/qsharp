@@ -13,32 +13,84 @@ use crate::val::Value;
 pub trait Backend {
     type ResultType;
 
-    fn ccx(&mut self, ctl0: usize, ctl1: usize, q: usize);
-    fn cx(&mut self, ctl: usize, q: usize);
-    fn cy(&mut self, ctl: usize, q: usize);
-    fn cz(&mut self, ctl: usize, q: usize);
-    fn h(&mut self, q: usize);
-    fn m(&mut self, q: usize) -> Self::ResultType;
-    fn mresetz(&mut self, q: usize) -> Self::ResultType;
-    fn reset(&mut self, q: usize);
-    fn rx(&mut self, theta: f64, q: usize);
-    fn rxx(&mut self, theta: f64, q0: usize, q1: usize);
-    fn ry(&mut self, theta: f64, q: usize);
-    fn ryy(&mut self, theta: f64, q0: usize, q1: usize);
-    fn rz(&mut self, theta: f64, q: usize);
-    fn rzz(&mut self, theta: f64, q0: usize, q1: usize);
-    fn sadj(&mut self, q: usize);
-    fn s(&mut self, q: usize);
-    fn swap(&mut self, q0: usize, q1: usize);
-    fn tadj(&mut self, q: usize);
-    fn t(&mut self, q: usize);
-    fn x(&mut self, q: usize);
-    fn y(&mut self, q: usize);
-    fn z(&mut self, q: usize);
-    fn qubit_allocate(&mut self) -> usize;
-    fn qubit_release(&mut self, q: usize);
-    fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize);
-    fn qubit_is_zero(&mut self, q: usize) -> bool;
+    fn ccx(&mut self, _ctl0: usize, _ctl1: usize, _q: usize) {
+        unimplemented!("ccx gate");
+    }
+    fn cx(&mut self, _ctl: usize, _q: usize) {
+        unimplemented!("cx gate");
+    }
+    fn cy(&mut self, _ctl: usize, _q: usize) {
+        unimplemented!("cy gate");
+    }
+    fn cz(&mut self, _ctl: usize, _q: usize) {
+        unimplemented!("cz gate");
+    }
+    fn h(&mut self, _q: usize) {
+        unimplemented!("h gate");
+    }
+    fn m(&mut self, _q: usize) -> Self::ResultType {
+        unimplemented!("m operation");
+    }
+    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
+        unimplemented!("mresetz operation");
+    }
+    fn reset(&mut self, _q: usize) {
+        unimplemented!("reset gate");
+    }
+    fn rx(&mut self, _theta: f64, _q: usize) {
+        unimplemented!("rx gate");
+    }
+    fn rxx(&mut self, _theta: f64, _q0: usize, _q1: usize) {
+        unimplemented!("rxx gate");
+    }
+    fn ry(&mut self, _theta: f64, _q: usize) {
+        unimplemented!("ry gate");
+    }
+    fn ryy(&mut self, _theta: f64, _q0: usize, _q1: usize) {
+        unimplemented!("ryy gate");
+    }
+    fn rz(&mut self, _theta: f64, _q: usize) {
+        unimplemented!("rz gate");
+    }
+    fn rzz(&mut self, _theta: f64, _q0: usize, _q1: usize) {
+        unimplemented!("rzz gate");
+    }
+    fn sadj(&mut self, _q: usize) {
+        unimplemented!("sadj gate");
+    }
+    fn s(&mut self, _q: usize) {
+        unimplemented!("s gate");
+    }
+    fn swap(&mut self, _q0: usize, _q1: usize) {
+        unimplemented!("swap gate");
+    }
+    fn tadj(&mut self, _q: usize) {
+        unimplemented!("tadj gate");
+    }
+    fn t(&mut self, _q: usize) {
+        unimplemented!("t gate");
+    }
+    fn x(&mut self, _q: usize) {
+        unimplemented!("x gate");
+    }
+    fn y(&mut self, _q: usize) {
+        unimplemented!("y gate");
+    }
+    fn z(&mut self, _q: usize) {
+        unimplemented!("z gate");
+    }
+    fn qubit_allocate(&mut self) -> usize {
+        unimplemented!("qubit_allocate operation");
+    }
+    fn qubit_release(&mut self, _q: usize) {
+        unimplemented!("qubit_release operation");
+    }
+    fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+        unimplemented!("capture_quantum_state operation");
+    }
+    fn qubit_is_zero(&mut self, _q: usize) -> bool {
+        unimplemented!("qubit_is_zero operation");
+    }
 
     fn custom_intrinsic(&mut self, _name: &str, _arg: Value) -> Option<Result<Value, String>> {
         None
