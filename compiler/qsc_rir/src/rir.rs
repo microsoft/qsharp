@@ -187,9 +187,10 @@ impl Display for Callable {
 }
 
 /// The type of callable.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CallableType {
     Measurement,
+    Reset,
     Readout,
     OutputRecording,
     Regular,
@@ -202,11 +203,13 @@ impl Display for CallableType {
             Self::Readout => write!(f, "Readout")?,
             Self::OutputRecording => write!(f, "OutputRecording")?,
             Self::Regular => write!(f, "Regular")?,
+            Self::Reset => write!(f, "Reset")?,
         };
         Ok(())
     }
 }
 
+#[derive(Clone)]
 pub enum Instruction {
     Store(Value, Variable),
     Call(CallableId, Vec<Value>, Option<Variable>),
@@ -330,6 +333,7 @@ impl Display for Instruction {
 #[derive(Clone, Copy, Default)]
 pub struct VariableId(pub u32);
 
+#[derive(Clone, Copy)]
 pub struct Variable {
     pub variable_id: VariableId,
     pub ty: Ty,
@@ -343,6 +347,7 @@ impl Display for Variable {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Ty {
     Qubit,
     Result,
@@ -366,6 +371,7 @@ impl Display for Ty {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Value {
     Literal(Literal),
     Variable(Variable),
