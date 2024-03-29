@@ -9,7 +9,7 @@ import type {
   IStackFrame,
   IStructStepResult,
   IVariable,
-} from "../../lib/node/qsc_wasm.cjs";
+} from "../../lib/web/qsc_wasm.js";
 import { TargetProfile } from "../browser.js";
 import { eventStringToMsg } from "../compiler/common.js";
 import {
@@ -21,7 +21,7 @@ import {
 import { log } from "../log.js";
 import { IServiceProxy, ServiceProtocol } from "../workers/common.js";
 
-type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
+type QscWasm = typeof import("../../lib/web/qsc_wasm.js");
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the debugger in the same thread the result will be synchronous (a resolved promise).
