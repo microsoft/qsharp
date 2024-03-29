@@ -7,3 +7,4 @@ pub mod operations;
 
 pub use builder::Builder;
 pub use circuit::{Circuit, Config, Operation};
+pub use operations::Error;

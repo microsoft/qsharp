@@ -427,6 +427,43 @@ function registerMonacoLanguageServiceProviders(
       }
     },
   });
+
+  async function getFormatChanges(
+    model: monaco.editor.ITextModel,
+    range?: monaco.Range,
+  ) {
+    const lsEdits = await languageService.getFormatChanges(
+      model.uri.toString(),
+    );
+    if (!lsEdits) {
+      return [];
+    }
+    let edits = lsEdits.map((edit) => {
+      return {
+        range: lsRangeToMonacoRange(edit.range),
+        text: edit.newText,
+      } as monaco.languages.TextEdit;
+    });
+    if (range) {
+      edits = edits.filter((e) => monaco.Range.areIntersecting(range, e.range));
+    }
+    return edits;
+  }
+
+  monaco.languages.registerDocumentFormattingEditProvider("qsharp", {
+    provideDocumentFormattingEdits: async (model: monaco.editor.ITextModel) => {
+      return getFormatChanges(model);
+    },
+  });
+
+  monaco.languages.registerDocumentRangeFormattingEditProvider("qsharp", {
+    provideDocumentRangeFormattingEdits: async (
+      model: monaco.editor.ITextModel,
+      range: monaco.Range,
+    ) => {
+      return getFormatChanges(model, range);
+    },
+  });
 }
 
 // Monaco provides the 'require' global for loading modules.

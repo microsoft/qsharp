@@ -6,32 +6,32 @@
 import * as vscode from "vscode";
 
 import {
+  Breakpoint,
   ExitedEvent,
+  Handles,
   InitializedEvent,
   Logger,
   LoggingDebugSession,
-  TerminatedEvent,
-  logger,
-  Breakpoint,
-  StoppedEvent,
-  Thread,
-  StackFrame,
-  Source,
   OutputEvent,
-  Handles,
   Scope,
+  Source,
+  StackFrame,
+  StoppedEvent,
+  TerminatedEvent,
+  Thread,
+  logger,
 } from "@vscode/debugadapter";
-import { basename, isQsharpDocument, toVscodeRange } from "../common";
 import { DebugProtocol } from "@vscode/debugprotocol";
 import {
   IDebugServiceWorker,
-  log,
-  StepResultId,
   IStructStepResult,
   QscEventTarget,
+  StepResultId,
+  log,
 } from "qsharp-lang";
-import { createDebugConsoleEventTarget } from "./output";
-import { ILaunchRequestArguments } from "./types";
+import { updateCircuitPanel } from "../circuit";
+import { basename, isQsharpDocument, toVscodeRange } from "../common";
+import { getTarget } from "../config";
 import {
   DebugEvent,
   EventType,
@@ -39,7 +39,9 @@ import {
   sendTelemetryEvent,
 } from "../telemetry";
 import { getRandomGuid } from "../utils";
-import { getTarget } from "../config";
+import { createDebugConsoleEventTarget } from "./output";
+import { ILaunchRequestArguments } from "./types";
+import { escapeHtml } from "markdown-it/lib/common/utils";
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -66,10 +68,12 @@ export class QscDebugSession extends LoggingDebugSession {
 
   private breakpointLocations: Map<string, IBreakpointLocationData[]>;
   private breakpoints: Map<string, DebugProtocol.Breakpoint[]>;
-  private variableHandles = new Handles<"locals" | "quantum">();
+  private variableHandles = new Handles<"locals" | "quantum" | "circuit">();
   private failureMessage: string;
   private eventTarget: QscEventTarget;
   private supportsVariableType = false;
+  private targetProfile = getTarget();
+  private revealedCircuit = false;
 
   public constructor(
     private debugService: IDebugServiceWorker,
@@ -106,10 +110,9 @@ export class QscDebugSession extends LoggingDebugSession {
   public async init(associationId: string): Promise<void> {
     const start = performance.now();
     sendTelemetryEvent(EventType.InitializeRuntimeStart, { associationId }, {});
-    const targetProfile = getTarget();
     const failureMessage = await this.debugService.loadSource(
       this.sources,
-      targetProfile,
+      this.targetProfile,
       this.config.entry,
       this.languageFeatures,
     );
@@ -305,27 +308,36 @@ export class QscDebugSession extends LoggingDebugSession {
   }
 
   private async eval_step(step: () => Promise<IStructStepResult>) {
-    await step().then(
-      async (result) => {
-        if (result.id == StepResultId.BreakpointHit) {
-          const evt = new StoppedEvent(
-            "breakpoint",
-            QscDebugSession.threadID,
-          ) as DebugProtocol.StoppedEvent;
-          evt.body.hitBreakpointIds = [result.value];
-          log.trace(`raising breakpoint event`);
-          this.sendEvent(evt);
-        } else if (result.id == StepResultId.Return) {
-          await this.endSession(`ending session`, 0);
-        } else {
-          log.trace(`step result: ${result.id} ${result.value}`);
-          this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));
-        }
-      },
-      (error) => {
-        this.endSession(`ending session due to error: ${error}`, 1);
-      },
-    );
+    let result: IStructStepResult | undefined;
+    let error;
+    try {
+      result = await step();
+    } catch (e) {
+      error = e;
+    }
+
+    if (this.config.showCircuit) {
+      await this.showCircuit(error);
+    }
+
+    if (!result) {
+      // Can be a runtime failure in the program
+      await this.endSession(`ending session due to error: ${error}`, 1);
+      return;
+    } else if (result.id == StepResultId.BreakpointHit) {
+      const evt = new StoppedEvent(
+        "breakpoint",
+        QscDebugSession.threadID,
+      ) as DebugProtocol.StoppedEvent;
+      evt.body.hitBreakpointIds = [result.value];
+      log.trace(`raising breakpoint event`);
+      this.sendEvent(evt);
+    } else if (result.id == StepResultId.Return) {
+      await this.endSession(`ending session`, 0);
+    } else {
+      log.trace(`step result: ${result.id} ${result.value}`);
+      this.sendEvent(new StoppedEvent("step", QscDebugSession.threadID));
+    }
   }
 
   private async continue(): Promise<void> {
@@ -377,12 +389,18 @@ export class QscDebugSession extends LoggingDebugSession {
           bps,
           this.eventTarget,
         );
+        if (this.config.showCircuit) {
+          this.showCircuit();
+        }
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);
           return;
         }
-      } catch (e) {
-        await this.endSession(`ending session due to error: ${e}`, 1);
+      } catch (error) {
+        if (this.config.showCircuit) {
+          await this.showCircuit(error);
+        }
+        await this.endSession(`ending session due to error: ${error}`, 1);
         return;
       }
 
@@ -407,7 +425,7 @@ export class QscDebugSession extends LoggingDebugSession {
     const bps: number[] = [];
     for (const file_bps of this.breakpoints.values()) {
       for (const bp of file_bps) {
-        if (bp && bp.id) {
+        if (bp?.id != null) {
           bps.push(bp.id);
         }
       }
@@ -718,12 +736,17 @@ export class QscDebugSession extends LoggingDebugSession {
     log.trace(`scopesRequest: %O`, args);
     response.body = {
       scopes: [
+        new Scope("Locals", this.variableHandles.create("locals"), false),
         new Scope(
           "Quantum State",
           this.variableHandles.create("quantum"),
-          true,
+          true, // expensive - keeps scope collapsed in the UI by default
         ),
-        new Scope("Locals", this.variableHandles.create("locals"), false),
+        new Scope(
+          "Quantum Circuit",
+          this.variableHandles.create("circuit"),
+          true, // expensive - keeps scope collapsed in the UI by default
+        ),
       ],
     };
     log.trace(`scopesResponse: %O`, response);
@@ -742,48 +765,78 @@ export class QscDebugSession extends LoggingDebugSession {
     };
 
     const handle = this.variableHandles.get(args.variablesReference);
-    if (handle === "locals") {
-      const locals = await this.debugService.getLocalVariables();
-      const variables = locals.map((local) => {
-        const variable: DebugProtocol.Variable = {
-          name: local.name,
-          value: local.value,
-          variablesReference: 0,
-        };
-        if (this.supportsVariableType) {
-          variable.type = local.var_type;
+    switch (handle) {
+      case "locals":
+        {
+          const locals = await this.debugService.getLocalVariables();
+          const variables = locals.map((local) => {
+            const variable: DebugProtocol.Variable = {
+              name: local.name,
+              value: local.value,
+              variablesReference: 0,
+            };
+            if (this.supportsVariableType) {
+              variable.type = local.var_type;
+            }
+            return variable;
+          });
+          response.body = {
+            variables: variables,
+          };
         }
-        return variable;
-      });
-      response.body = {
-        variables: variables,
-      };
-    } else if (handle === "quantum") {
-      const associationId = getRandomGuid();
-      const start = performance.now();
-      sendTelemetryEvent(
-        EventType.RenderQuantumStateStart,
-        { associationId },
-        {},
-      );
-      const state = await this.debugService.captureQuantumState();
-      const variables: DebugProtocol.Variable[] = state.map((entry) => {
-        const variable: DebugProtocol.Variable = {
-          name: entry.name,
-          value: entry.value,
-          variablesReference: 0,
-          type: "Complex",
-        };
-        return variable;
-      });
-      sendTelemetryEvent(
-        EventType.RenderQuantumStateEnd,
-        { associationId },
-        { timeToCompleteMs: performance.now() - start },
-      );
-      response.body = {
-        variables: variables,
-      };
+        break;
+      case "quantum":
+        {
+          const associationId = getRandomGuid();
+          const start = performance.now();
+          sendTelemetryEvent(
+            EventType.RenderQuantumStateStart,
+            { associationId },
+            {},
+          );
+          const state = await this.debugService.captureQuantumState();
+          const variables: DebugProtocol.Variable[] = state.map((entry) => {
+            const variable: DebugProtocol.Variable = {
+              name: entry.name,
+              value: entry.value,
+              variablesReference: 0,
+              type: "Complex",
+            };
+            return variable;
+          });
+          sendTelemetryEvent(
+            EventType.RenderQuantumStateEnd,
+            { associationId },
+            { timeToCompleteMs: performance.now() - start },
+          );
+          response.body = {
+            variables: variables,
+          };
+        }
+        break;
+      case "circuit":
+        {
+          // This will get invoked when the "Quantum Circuit" scope is expanded
+          // in the Variables view, but instead of showing any values in the variables
+          // view, we can pop open the circuit diagram panel.
+          this.showCircuit();
+
+          // Keep updating the circuit for the rest of this session, even if
+          // the Variables scope gets collapsed by the user. If we don't do this,
+          // the diagram won't get updated with each step even though the circuit
+          // panel is still being shown, which is misleading.
+          this.config.showCircuit = true;
+          response.body = {
+            variables: [
+              {
+                name: "Circuit",
+                value: "See Q# Circuit panel",
+                variablesReference: 0,
+              },
+            ],
+          };
+        }
+        break;
     }
 
     log.trace(`variablesResponse: %O`, response);
@@ -879,5 +932,33 @@ export class QscDebugSession extends LoggingDebugSession {
     } catch (e) {
       log.trace(`Could not resolve path ${pathOrUri}`);
     }
+  }
+
+  private async showCircuit(error?: any) {
+    // Error returned from the debugger has a message and a stack (which also includes the message).
+    // We would ideally retrieve the original runtime error, and format it to be consistent
+    // with the other runtime errors that can be shown in the circuit panel, but that will require
+    // a bit of refactoring.
+    const stack =
+      error && typeof error === "object" && typeof error.stack === "string"
+        ? escapeHtml(error.stack)
+        : undefined;
+
+    const circuit = await this.debugService.getCircuit();
+
+    updateCircuitPanel(
+      this.targetProfile,
+      vscode.Uri.parse(this.sources[0][0]).path,
+      !this.revealedCircuit,
+      {
+        circuit,
+        errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
+        simulating: true,
+      },
+    );
+
+    // Only reveal the panel once per session, to keep it from
+    // moving around while stepping
+    this.revealedCircuit = true;
   }
 }

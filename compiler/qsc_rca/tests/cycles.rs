@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{check_callable_compute_properties, CompilationContext};
+pub mod test_utils;
+
 use expect_test::expect;
+use test_utils::{check_callable_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_one_function_cycle() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -38,7 +40,7 @@ fn check_rca_for_one_function_cycle() {
 
 #[test]
 fn check_rca_for_two_functions_cycle() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -90,7 +92,7 @@ fn check_rca_for_two_functions_cycle() {
 
 #[test]
 fn check_rca_for_three_functions_cycle() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -161,7 +163,7 @@ fn check_rca_for_three_functions_cycle() {
 
 #[test]
 fn check_rca_for_indirect_function_cycle() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -191,7 +193,7 @@ fn check_rca_for_indirect_function_cycle() {
 
 #[test]
 fn check_rca_for_indirect_chain_function_cycle() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -223,7 +225,7 @@ fn check_rca_for_indirect_chain_function_cycle() {
 
 #[test]
 fn check_rca_for_indirect_tuple_function_cycle() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -253,7 +255,7 @@ fn check_rca_for_indirect_tuple_function_cycle() {
 
 #[test]
 fn check_rca_for_function_cycle_within_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -283,7 +285,7 @@ fn check_rca_for_function_cycle_within_binding() {
 
 #[test]
 fn check_rca_for_function_cycle_within_assignment() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -314,7 +316,7 @@ fn check_rca_for_function_cycle_within_assignment() {
 
 #[test]
 fn check_rca_for_function_cycle_within_return() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -343,7 +345,7 @@ fn check_rca_for_function_cycle_within_return() {
 
 #[test]
 fn check_rca_for_function_cycle_within_tuple() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i : Int) : Int {
@@ -373,7 +375,7 @@ fn check_rca_for_function_cycle_within_tuple() {
 
 #[test]
 fn check_rca_for_function_cycle_within_call_input() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Arrays;
@@ -438,7 +440,7 @@ fn check_rca_for_function_cycle_within_call_input() {
 
 #[test]
 fn check_rca_for_function_cycle_within_if_block() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i: Int) : Int {
@@ -471,7 +473,7 @@ fn check_rca_for_function_cycle_within_if_block() {
 
 #[test]
 fn check_rca_for_function_cycle_within_if_condition() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i: Int) : Int {
@@ -504,7 +506,7 @@ fn check_rca_for_function_cycle_within_if_condition() {
 
 #[test]
 fn check_rca_for_function_cycle_within_for_block() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i: Int) : Int {
@@ -536,7 +538,7 @@ fn check_rca_for_function_cycle_within_for_block() {
 
 #[test]
 fn check_rca_for_function_cycle_within_while_block() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i: Int) : Int {
@@ -568,7 +570,7 @@ fn check_rca_for_function_cycle_within_while_block() {
 
 #[test]
 fn check_rca_for_function_cycle_within_while_condition() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(i: Int) : Int {
@@ -599,7 +601,7 @@ fn check_rca_for_function_cycle_within_while_condition() {
 
 #[test]
 fn check_rca_for_multi_param_recursive_bool_function() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(r : Result, i : Int, d: Double) : Bool {
@@ -634,7 +636,7 @@ fn check_rca_for_multi_param_recursive_bool_function() {
 
 #[test]
 fn check_rca_for_multi_param_recursive_unit_function() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function Foo(p : Pauli, s: String[], t: (Range, BigInt)) : Unit {
@@ -676,7 +678,7 @@ fn check_rca_for_multi_param_recursive_unit_function() {
 
 #[test]
 fn check_rca_for_result_recursive_operation() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation Foo(q : Qubit) : Result {
@@ -707,7 +709,7 @@ fn check_rca_for_result_recursive_operation() {
 
 #[test]
 fn check_rca_for_multi_param_result_recursive_operation() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation Foo(q : Qubit, b : Bool, i : Int, d : Double) : Result {
@@ -747,7 +749,7 @@ fn check_rca_for_multi_param_result_recursive_operation() {
 
 #[test]
 fn check_rca_for_operation_body_recursion() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation Foo(q : Qubit) : Unit {
@@ -778,7 +780,7 @@ fn check_rca_for_operation_body_recursion() {
 
 #[test]
 fn check_rca_for_operation_body_adj_recursion() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation Foo(q : Qubit) : Unit is Adj {
@@ -821,7 +823,7 @@ fn check_rca_for_operation_body_adj_recursion() {
 
 #[test]
 fn check_rca_for_operation_body_ctl_recursion() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation Foo(q : Qubit) : Unit is Ctl {
@@ -864,7 +866,7 @@ fn check_rca_for_operation_body_ctl_recursion() {
 
 #[test]
 fn check_rca_for_operation_multi_controlled_functor_recursion() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation Foo(q : Qubit) : Unit is Ctl {

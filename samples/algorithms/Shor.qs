@@ -64,30 +64,26 @@ namespace Sample {
 
                 // Set the flag and factors values if the continued
                 // fractions classical algorithm succeeds.
-                set (foundFactors, factors) =
-                    MaybeFactorsFromPeriod(number, generator, period);
+                set (foundFactors, factors) = MaybeFactorsFromPeriod(number, generator, period);
             }
             // In this case, we guessed a divisor by accident.
             else {
                 // Find divisor.
                 let gcd = GreatestCommonDivisorI(number, generator);
-                Message($"We have guessed a divisor {gcd} by accident. " +
-                    "No quantum computation was done.");
+                Message($"We have guessed a divisor {gcd} by accident. " + "No quantum computation was done.");
 
                 // Set the flag `foundFactors` to true, indicating that we
                 // succeeded in finding factors.
                 set foundFactors = true;
                 set factors = (gcd, number / gcd);
             }
-            set attempt = attempt+1;
+            set attempt = attempt + 1;
             if (attempt > 100) {
                 fail "Failed to find factors: too many attempts!";
             }
-        }
-        until foundFactors
+        } until foundFactors
         fixup {
-            Message("The estimated period did not yield a valid factor. " +
-                "Trying again.");
+            Message("The estimated period did not yield a valid factor. " + "Trying again.");
         }
 
         // Return the factorization
@@ -116,8 +112,8 @@ namespace Sample {
     function MaybeFactorsFromPeriod(
         modulus : Int,
         generator : Int,
-        period : Int)
-    : (Bool, (Int, Int)) {
+        period : Int
+    ) : (Bool, (Int, Int)) {
 
         // Period finding reduces to factoring only if period is even
         if period % 2 == 0 {
@@ -175,13 +171,14 @@ namespace Sample {
         modulus : Int,
         frequencyEstimate : Int,
         bitsPrecision : Int,
-        currentDivisor : Int)
-    : Int {
+        currentDivisor : Int
+    ) : Int {
         // Now we use the ContinuedFractionConvergentI function to recover s/r
         // from dyadic fraction k/2^bitsPrecision.
         let (numerator, period) = ContinuedFractionConvergentI(
-            (frequencyEstimate, 2 ^ bitsPrecision),
-            modulus);
+            (frequencyEstimate, 2^bitsPrecision),
+            modulus
+        );
 
         // ContinuedFractionConvergentI does not guarantee the signs of the
         // numerator and denominator. Here we make sure that both are positive
@@ -189,9 +186,7 @@ namespace Sample {
         let (numeratorAbs, periodAbs) = (AbsI(numerator), AbsI(period));
 
         // Compute and return the newly found divisor.
-        let period =
-            (periodAbs * currentDivisor) /
-            GreatestCommonDivisorI(currentDivisor, periodAbs);
+        let period = (periodAbs * currentDivisor) / GreatestCommonDivisorI(currentDivisor, periodAbs);
         Message($"Found period={period}");
         return period;
     }
@@ -215,7 +210,8 @@ namespace Sample {
         // valid.
         Fact(
             GreatestCommonDivisorI(generator, modulus) == 1,
-            "`generator` and `modulus` must be co-prime");
+            "`generator` and `modulus` must be co-prime"
+        );
 
         // Number of bits in the modulus with respect to which we are estimating
         // the period.
@@ -234,9 +230,12 @@ namespace Sample {
         let frequencyEstimate = EstimateFrequency(generator, modulus, bitsize);
         if frequencyEstimate != 0 {
             return PeriodFromFrequency(
-                modulus, frequencyEstimate, bitsPrecision, 1);
-        }
-        else {
+                modulus,
+                frequencyEstimate,
+                bitsPrecision,
+                1
+            );
+        } else {
             Message("The estimated frequency was 0, trying again.");
             return 1;
         }
@@ -258,10 +257,9 @@ namespace Sample {
     ///
     /// # Output
     /// The numerator k of dyadic fraction k/2^bitsPrecision approximating s/r.
-    operation EstimateFrequency(generator : Int,modulus : Int, bitsize : Int)
-    : Int {
+    operation EstimateFrequency(generator : Int, modulus : Int, bitsize : Int) : Int {
         mutable frequencyEstimate = 0;
-        let bitsPrecision =  2 * bitsize + 1;
+        let bitsPrecision = 2 * bitsize + 1;
         Message($"Estimating frequency with bitsPrecision={bitsPrecision}.");
 
         // Allocate qubits for the superposition of eigenstates of the oracle
@@ -277,16 +275,17 @@ namespace Sample {
         // Use phase estimation with a semiclassical Fourier transform to
         // estimate the frequency.
         use c = Qubit();
-        for idx in bitsPrecision-1..-1..0 {
+        for idx in bitsPrecision - 1..-1..0 {
             H(c);
             Controlled ApplyOrderFindingOracle(
                 [c],
-                (generator, modulus, 1 <<< idx, eigenstateRegister));
-            R1Frac(frequencyEstimate, bitsPrecision-1-idx, c);
+                (generator, modulus, 1 <<< idx, eigenstateRegister)
+            );
+            R1Frac(frequencyEstimate, bitsPrecision - 1 - idx, c);
             H(c);
             if M(c) == One {
                 X(c); // Reset
-                set frequencyEstimate += 1 <<< (bitsPrecision-1-idx);
+                set frequencyEstimate += 1 <<< (bitsPrecision - 1 - idx);
             }
         }
 
@@ -316,10 +315,11 @@ namespace Sample {
     /// given power of the generator. The multiplication is performed modulo
     /// `modulus`.
     internal operation ApplyOrderFindingOracle(
-        generator : Int, modulus : Int, power : Int, target : Qubit[]
-    )
-    : Unit
-    is Adj + Ctl {
+        generator : Int,
+        modulus : Int,
+        power : Int,
+        target : Qubit[]
+    ) : Unit is Adj + Ctl {
         // The oracle we use for order finding implements |x⟩ ↦ |x⋅a mod N⟩. We
         // also use `ExpModI` to compute a by which x must be multiplied. Also
         // note that we interpret target as unsigned integer in little-endian
@@ -327,7 +327,8 @@ namespace Sample {
         ModularMultiplyByConstant(
             modulus,
             ExpModI(generator, power, modulus),
-            target);
+            target
+        );
     }
 
     /// # Summary
@@ -345,14 +346,14 @@ namespace Sample {
     /// Constant by which to multiply |𝑦⟩
     /// ## y
     /// Quantum register of target
-    internal operation ModularMultiplyByConstant(modulus : Int, c : Int, y : Qubit[])
-    : Unit is Adj + Ctl {
+    internal operation ModularMultiplyByConstant(modulus : Int, c : Int, y : Qubit[]) : Unit is Adj + Ctl {
         use qs = Qubit[Length(y)];
         for idx in IndexRange(y) {
             let shiftedC = (c <<< idx) % modulus;
             Controlled ModularAddConstant(
                 [y[idx]],
-                (modulus, shiftedC, qs));
+                (modulus, shiftedC, qs)
+            );
         }
         for idx in IndexRange(y) {
             SWAP(y[idx], qs[idx]);
@@ -362,7 +363,8 @@ namespace Sample {
             let shiftedC = (invC <<< idx) % modulus;
             Controlled ModularAddConstant(
                 [y[idx]],
-                (modulus, modulus - shiftedC, qs));
+                (modulus, modulus - shiftedC, qs)
+            );
         }
     }
 
@@ -381,8 +383,7 @@ namespace Sample {
     /// Constant to add to |𝑦⟩
     /// ## y
     /// Quantum register of target
-    internal operation ModularAddConstant(modulus : Int, c : Int, y : Qubit[])
-    : Unit is Adj + Ctl {
+    internal operation ModularAddConstant(modulus : Int, c : Int, y : Qubit[]) : Unit is Adj + Ctl {
         body (...) {
             Controlled ModularAddConstant([], (modulus, c, y));
         }

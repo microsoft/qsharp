@@ -7,6 +7,8 @@ const vscodeApi = acquireVsCodeApi();
 
 import { render } from "preact";
 import {
+  CircuitPanel,
+  CircuitProps,
   EstimatesPanel,
   Histogram,
   BlochSphere,
@@ -43,12 +45,18 @@ type EstimatesState = {
   };
 };
 
+type CircuitState = {
+  viewType: "circuit";
+  props: CircuitProps;
+};
+
 type State =
   | { viewType: "loading" }
   | { viewType: "help" }
   | { viewType: "bloch" }
   | HistogramState
-  | EstimatesState;
+  | EstimatesState
+  | CircuitState;
 const loadingState: State = { viewType: "loading" };
 const helpState: State = { viewType: "help" };
 const blochState: State = { viewType: "bloch" };
@@ -110,6 +118,13 @@ function onMessage(event: any) {
       break;
     case "bloch":
       state = blochState;
+    case "circuit":
+      {
+        state = {
+          viewType: "circuit",
+          ...message,
+        };
+      }
       break;
     default:
       console.error("Unknown command: ", message.command);
@@ -165,6 +180,8 @@ function App({ state }: { state: State }) {
           runNames={[]}
         />
       );
+    case "circuit":
+      return <CircuitPanel {...state.props}></CircuitPanel>;
     case "help":
       return <HelpPage />;
     case "bloch":

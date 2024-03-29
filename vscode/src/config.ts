@@ -27,8 +27,28 @@ export async function setTarget(target: TargetProfile) {
   );
 }
 
+export function getTargetFriendlyName(targetProfile?: string) {
+  switch (targetProfile) {
+    case "base":
+      return "Q#: QIR base";
+    case "unrestricted":
+      return "Q#: unrestricted";
+    default:
+      log.error("invalid target profile found");
+      return "Q#: invalid";
+  }
+}
+
 export function getEnableFormating(): boolean {
-  return vscode.workspace
-    .getConfiguration("Q#")
-    .get<boolean>("enableFormatting", true);
+  return vscode.workspace.getConfiguration("Q#").get<boolean>(
+    "enableFormatting",
+    true, // The default value should be set in `package.json` as well.
+  );
+}
+
+export function getShowCircuitCodeLens(): boolean {
+  return vscode.workspace.getConfiguration("Q#").get<boolean>(
+    "showCircuitCodeLens",
+    true, // The default value should be set in `package.json` as well.
+  );
 }

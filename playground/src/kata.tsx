@@ -7,7 +7,7 @@ import {
   ExplainedSolution,
   ICompilerWorker,
   ILanguageServiceWorker,
-  Kata,
+  type Kata,
   Lesson,
   QscEventTarget,
   Question,

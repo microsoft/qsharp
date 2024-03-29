@@ -18,10 +18,28 @@ pub struct CompilationContext {
 }
 
 impl CompilationContext {
-    pub fn new() -> Self {
-        Self::default()
+    #[must_use]
+    pub fn new(runtime_capabilities: RuntimeCapabilityFlags) -> Self {
+        let compiler = Compiler::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            runtime_capabilities,
+            LanguageFeatures::default(),
+        )
+        .expect("should be able to create a new compiler");
+        let fir_store = lower_hir_package_store(compiler.package_store());
+        let analyzer = Analyzer::init(&fir_store);
+        let compute_properties = analyzer.analyze_all();
+        Self {
+            compiler,
+            fir_store,
+            compute_properties,
+            lowerer: Lowerer::new(),
+        }
     }
 
+    #[must_use]
     pub fn get_compute_properties(&self) -> &PackageStoreComputeProperties {
         &self.compute_properties
     }
@@ -50,24 +68,7 @@ impl CompilationContext {
 
 impl Default for CompilationContext {
     fn default() -> Self {
-        let compiler = Compiler::new(
-            true,
-            SourceMap::default(),
-            PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
-            LanguageFeatures::default(),
-        )
-        .expect("should be able to create a new compiler");
-        let mut lowerer = Lowerer::new();
-        let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
-        let analyzer = Analyzer::init(&fir_store);
-        let compute_properties = analyzer.analyze_all();
-        Self {
-            compiler,
-            fir_store,
-            lowerer,
-            compute_properties,
-        }
+        Self::new(RuntimeCapabilityFlags::all())
     }
 }
 
@@ -77,7 +78,7 @@ pub trait PackageStoreSearch {
 
 impl PackageStoreSearch for PackageStore {
     fn find_callable_id_by_name(&self, name: &str) -> Option<StoreItemId> {
-        for (package_id, package) in self.iter() {
+        for (package_id, package) in self {
             if let Some(item_id) = package.find_callable_id_by_name(name) {
                 return Some((package_id, item_id).into());
             }
@@ -142,12 +143,10 @@ pub fn check_last_statement_compute_properties(
     expect.assert_eq(&stmt_compute_properties.to_string());
 }
 
-fn lower_hir_package_store(
-    lowerer: &mut Lowerer,
-    hir_package_store: &HirPackageStore,
-) -> PackageStore {
+fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore {
     let mut fir_store = PackageStore::new();
     for (id, unit) in hir_package_store {
+        let mut lowerer = Lowerer::new();
         fir_store.insert(
             map_hir_package_to_fir(id),
             lowerer.lower_package(&unit.package),

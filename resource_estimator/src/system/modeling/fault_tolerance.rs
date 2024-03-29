@@ -280,7 +280,8 @@ impl Protocol {
     /// logical_cycle_time: "(4 * twoQubitGateTime + 2 * oneQubitMeasurementTime) * codeDistance"
     /// physical_qubits_per_logical_qubit: "2 * codeDistance * codeDistance"
     /// ```
-    pub(crate) fn surface_code_gate_based() -> Self {
+    #[must_use]
+    pub fn surface_code_gate_based() -> Self {
         // [arXiv:1208.0928, Eq. (13)]
         // [arXiv:1009.3686, Figs. 6-7]
         let error_correction_threshold = 0.01;
@@ -322,7 +323,8 @@ impl Protocol {
     /// logical_cycle_time: "20 * oneQubitMeasurementTime * codeDistance"
     /// physical_qubits_per_logical_qubit: "2 * codeDistance * codeDistance"
     /// ```
-    pub(crate) fn surface_code_measurement_based() -> Self {
+    #[must_use]
+    pub fn surface_code_measurement_based() -> Self {
         // [arXiv:2007.00307, Eq. (1)]
         let error_correction_threshold = 0.0015;
         let crossing_prefactor = 0.08;
@@ -360,7 +362,8 @@ impl Protocol {
     /// # [arXiv:2202.11829, Table 2]
     /// physical_qubits_per_logical_qubit: "4 * codeDistance * codeDistance + 8 * (codeDistance - 1)"
     /// ```
-    pub(crate) fn floquet_code() -> Self {
+    #[must_use]
+    pub fn floquet_code() -> Self {
         let error_correction_threshold = 0.01;
         let crossing_prefactor = 0.07;
         let logical_cycle_time_expr = format!("3 * {ONE_QUBIT_MEASUREMENT_TIME} * codeDistance");
@@ -450,6 +453,7 @@ impl Protocol {
     }
 
     #[cfg(test)]
+    #[must_use]
     pub fn max_code_distance(&self) -> u64 {
         self.max_code_distance
     }

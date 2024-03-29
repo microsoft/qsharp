@@ -47,10 +47,9 @@ namespace Shors {
         generator : Int,
         modulus : Int,
         bitsize : Int
-    )
-    : Int {
+    ) : Int {
         mutable frequencyEstimate = 0;
-        let bitsPrecision =  2 * bitsize + 1;
+        let bitsPrecision = 2 * bitsize + 1;
 
         // Allocate qubits for the superposition of eigenstates of
         // the oracle that is used in period finding.
@@ -112,10 +111,11 @@ namespace Shors {
     /// given power of the generator. The multiplication is performed modulo
     /// `modulus`.
     internal operation ApplyOrderFindingOracle(
-        generator : Int, modulus : Int, power : Int, target : Qubit[]
-    )
-    : Unit
-    is Adj + Ctl {
+        generator : Int,
+        modulus : Int,
+        power : Int,
+        target : Qubit[]
+    ) : Unit is Adj + Ctl {
         // The oracle we use for order finding implements |x⟩ ↦ |x⋅a mod N⟩. We
         // also use `ExpModI` to compute a by which x must be multiplied. Also
         // note that we interpret target as unsigned integer in little-endian
@@ -123,7 +123,8 @@ namespace Shors {
         ModularMultiplyByConstant(
             modulus,
             ExpModI(generator, power, modulus),
-            target);
+            target
+        );
     }
 
     /// # Summary
@@ -141,14 +142,14 @@ namespace Shors {
     /// Constant by which to multiply |𝑦⟩
     /// ## y
     /// Quantum register of target
-    internal operation ModularMultiplyByConstant(modulus : Int, c : Int, y : Qubit[])
-    : Unit is Adj + Ctl {
+    internal operation ModularMultiplyByConstant(modulus : Int, c : Int, y : Qubit[]) : Unit is Adj + Ctl {
         use qs = Qubit[Length(y)];
         for idx in IndexRange(y) {
             let shiftedC = (c <<< idx) % modulus;
             Controlled ModularAddConstant(
                 [y[idx]],
-                (modulus, shiftedC, qs));
+                (modulus, shiftedC, qs)
+            );
         }
         for idx in IndexRange(y) {
             SWAP(y[idx], qs[idx]);
@@ -158,7 +159,8 @@ namespace Shors {
             let shiftedC = (invC <<< idx) % modulus;
             Controlled ModularAddConstant(
                 [y[idx]],
-                (modulus, modulus - shiftedC, qs));
+                (modulus, modulus - shiftedC, qs)
+            );
         }
     }
 
@@ -177,8 +179,7 @@ namespace Shors {
     /// Constant to add to |𝑦⟩
     /// ## y
     /// Quantum register of target
-    internal operation ModularAddConstant(modulus : Int, c : Int, y : Qubit[])
-    : Unit is Adj + Ctl {
+    internal operation ModularAddConstant(modulus : Int, c : Int, y : Qubit[]) : Unit is Adj + Ctl {
         body (...) {
             Controlled ModularAddConstant([], (modulus, c, y));
         }

@@ -1,14 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{check_last_statement_compute_properties, CompilationContext};
+pub mod test_utils;
+
 use expect_test::expect;
+use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_static_single_qubit_measurement() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             use q = Qubit();
@@ -30,7 +32,7 @@ fn check_rca_for_static_single_qubit_measurement() {
 
 #[test]
 fn check_rca_for_dynamic_single_measurement() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             use (condition, target) = (Qubit(), Qubit());
@@ -47,7 +49,7 @@ fn check_rca_for_dynamic_single_measurement() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(ForwardBranchingOnDynamicValue | DynamicResultAllocation)
+                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
@@ -56,7 +58,7 @@ fn check_rca_for_dynamic_single_measurement() {
 
 #[test]
 fn check_rca_for_static_single_measurement_and_reset() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             open Microsoft.Quantum.Measurement;
@@ -79,7 +81,7 @@ fn check_rca_for_static_single_measurement_and_reset() {
 
 #[test]
 fn check_rca_for_dynamic_single_measurement_and_reset() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             open Microsoft.Quantum.Measurement;
@@ -97,7 +99,7 @@ fn check_rca_for_dynamic_single_measurement_and_reset() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(ForwardBranchingOnDynamicValue | DynamicResultAllocation)
+                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
@@ -106,7 +108,7 @@ fn check_rca_for_dynamic_single_measurement_and_reset() {
 
 #[test]
 fn check_rca_for_static_multi_qubit_measurement() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
             open Microsoft.Quantum.Measurement;

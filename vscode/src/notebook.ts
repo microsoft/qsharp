@@ -101,7 +101,7 @@ export function registerQSharpNotebookHandlers() {
 const openQSharpNotebooks = new Set<string>();
 
 /**
- * Returns the end position of the `%%qsharp` cell magic, or `undefined`
+ * Returns the range of the `%%qsharp` cell magic, or `undefined`
  * if it does not exist.
  */
 function findQSharpCellMagic(document: vscode.TextDocument) {
@@ -115,9 +115,12 @@ function findQSharpCellMagic(document: vscode.TextDocument) {
       qsharpCellMagic,
       line.firstNonWhitespaceCharacterIndex,
     )
-      ? new vscode.Position(
-          i,
-          line.firstNonWhitespaceCharacterIndex + qsharpCellMagic.length,
+      ? new vscode.Range(
+          new vscode.Position(i, line.firstNonWhitespaceCharacterIndex),
+          new vscode.Position(
+            i,
+            line.firstNonWhitespaceCharacterIndex + qsharpCellMagic.length,
+          ),
         )
       : undefined;
   }
@@ -194,15 +197,19 @@ export function registerQSharpNotebookCellUpdateHandlers(
   }
 
   function getQSharpText(document: vscode.TextDocument) {
-    const magicPosition = findQSharpCellMagic(document);
-    if (magicPosition) {
-      const magicOffset = document.offsetAt(magicPosition);
+    const magicRange = findQSharpCellMagic(document);
+    if (magicRange) {
+      const magicStartOffset = document.offsetAt(magicRange.start);
+      const magicEndOffset = document.offsetAt(magicRange.end);
       // Erase the %%qsharp magic line if it's there.
-      // Replace it with whitespace so that document offsets remain the same.
+      // Replace it with a comment so that document offsets remain the same.
       // This will save us from having to map offsets later when
       // communicating with the language service.
+      const text = document.getText();
       return (
-        "".padStart(magicOffset) + document.getText().substring(magicOffset)
+        text.substring(0, magicStartOffset) +
+        "//qsharp" +
+        text.substring(magicEndOffset)
       );
     } else {
       // No %%qsharp magic. This can happen if the user manually sets the

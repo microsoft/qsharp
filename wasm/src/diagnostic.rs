@@ -50,14 +50,7 @@ impl VSDiagnostic {
 
     /// Creates a [`VSDiagnostic`] from an interpreter error. See `VSDiagnostic::new()` for details.
     pub(crate) fn from_interpret_error(source_name: &str, err: &interpret::Error) -> Self {
-        let labels = match err {
-            interpret::Error::Compile(e) => error_labels(e),
-            interpret::Error::Pass(e) => error_labels(e),
-            interpret::Error::Eval(e) => error_labels(e.error()),
-            interpret::Error::NoEntryPoint
-            | interpret::Error::UnsupportedRuntimeCapabilities
-            | interpret::Error::NoCircuitForOperation => Vec::new(),
-        };
+        let labels = interpret_error_labels(err);
 
         Self::new(labels, source_name, err)
     }
@@ -185,5 +178,46 @@ where
         source_name: source.name.clone(),
         range,
         message: labeled_span.label().map(ToString::to_string),
+    }
+}
+
+/// Returns an array of tuples where:
+/// - the first element of the tuple is the document URI, or <project> if the error doesn't have a span
+/// - the second element of the tuple is a [`VSDiagnostic`] that represents the error
+/// - the third element is the stack trace
+pub fn interpret_errors_into_vs_diagnostics(
+    errs: &[interpret::Error],
+) -> Vec<(String, VSDiagnostic, Option<String>)> {
+    let default_uri = "<project>";
+    errs.iter()
+        .map(|err| {
+            let labels = interpret_error_labels(err);
+
+            let doc = labels
+                .first()
+                .map_or_else(|| default_uri.to_string(), |l| l.source_name.to_string());
+
+            let vsdiagnostic = VSDiagnostic::new(labels, &doc, err);
+
+            let stack_trace = if let interpret::Error::Eval(_) = err {
+                err.stack_trace().clone()
+            } else {
+                None
+            };
+
+            (doc, vsdiagnostic, stack_trace)
+        })
+        .collect()
+}
+
+fn interpret_error_labels(err: &interpret::Error) -> Vec<Label> {
+    match err {
+        interpret::Error::Eval(e) => error_labels(e.error()),
+        interpret::Error::Compile(e) => error_labels(e),
+        interpret::Error::Pass(e) => error_labels(e),
+        interpret::Error::NoEntryPoint
+        | interpret::Error::UnsupportedRuntimeCapabilities
+        | interpret::Error::Circuit(_)
+        | interpret::Error::NotAnOperation => Vec::new(),
     }
 }

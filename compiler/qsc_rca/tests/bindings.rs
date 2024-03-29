@@ -3,14 +3,16 @@
 
 //! These tests use bindings to check that RCA for the use of different static and dynamic types is correct.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{check_last_statement_compute_properties, CompilationContext};
+pub mod test_utils;
+
 use expect_test::expect;
+use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_immutable_classical_result_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         let r = Zero;
@@ -30,7 +32,7 @@ fn check_rca_for_immutable_classical_result_binding() {
 
 #[test]
 fn check_rca_for_immutable_dynamic_result_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();
@@ -53,7 +55,7 @@ fn check_rca_for_immutable_dynamic_result_binding() {
 
 #[test]
 fn check_rca_for_mutable_classical_bool_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         mutable b = true;
@@ -73,7 +75,7 @@ fn check_rca_for_mutable_classical_bool_binding() {
 
 #[test]
 fn check_rca_for_mutable_dynamic_bool_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -97,7 +99,7 @@ fn check_rca_for_mutable_dynamic_bool_binding() {
 
 #[test]
 fn check_rca_for_immutable_classical_int_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         mutable i = 42;
@@ -117,7 +119,7 @@ fn check_rca_for_immutable_classical_int_binding() {
 
 #[test]
 fn check_rca_for_immutable_dynamic_int_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;
@@ -143,7 +145,7 @@ fn check_rca_for_immutable_dynamic_int_binding() {
 
 #[test]
 fn check_rca_for_mutable_classical_double_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         mutable d = 42.0;
@@ -163,7 +165,7 @@ fn check_rca_for_mutable_classical_double_binding() {
 
 #[test]
 fn check_rca_for_mutable_dynamic_double_binding() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Convert;

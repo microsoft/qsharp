@@ -1,16 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-pub mod common;
+#![allow(clippy::needless_raw_string_hashes)]
 
-use common::{
+pub mod test_utils;
+
+use expect_test::expect;
+use test_utils::{
     check_callable_compute_properties, check_last_statement_compute_properties, CompilationContext,
 };
-use expect_test::expect;
 
 #[test]
 fn check_rca_for_if_stmt_with_classic_condition_and_classic_if_true_block() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -39,7 +41,7 @@ fn check_rca_for_if_stmt_with_classic_condition_and_classic_if_true_block() {
 
 #[test]
 fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -59,7 +61,7 @@ fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications: <empty>
                 adj: <none>
@@ -71,7 +73,7 @@ fn check_rca_for_if_stmt_with_dynamic_condition_and_classic_if_true_block() {
 
 #[test]
 fn check_rca_for_if_else_expr_with_classic_condition_and_classic_branch_blocks() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         let i = if true {
@@ -95,7 +97,7 @@ fn check_rca_for_if_else_expr_with_classic_condition_and_classic_branch_blocks()
 
 #[test]
 fn check_rca_for_if_else_expr_with_dynamic_condition_and_classic_branch_blocks() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         use q = Qubit();

@@ -20,7 +20,7 @@ use qsc::{
     interpret::{
         self,
         output::{Error, Receiver},
-        Value,
+        CircuitEntryPoint, Value,
     },
     project::{FileSystem, Manifest, ManifestDescriptor},
     target::Profile,
@@ -37,6 +37,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Pauli>()?;
     m.add_class::<Output>()?;
     m.add_class::<StateDumpData>()?;
+    m.add_class::<Circuit>()?;
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
 
@@ -184,6 +185,14 @@ impl Interpreter {
         StateDumpData(DisplayableState(state, qubit_count))
     }
 
+    /// Dumps the current circuit state of the interpreter.
+    ///
+    /// This circuit will contain the gates that have been applied
+    /// in the simulator up to the current point.
+    fn dump_circuit(&mut self, py: Python) -> PyObject {
+        Circuit(self.interpreter.get_circuit()).into_py(py)
+    }
+
     fn run(
         &mut self,
         py: Python,
@@ -203,6 +212,38 @@ impl Interpreter {
     fn qir(&mut self, _py: Python, entry_expr: &str) -> PyResult<String> {
         match self.interpreter.qirgen(entry_expr) {
             Ok(qir) => Ok(qir),
+            Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
+        }
+    }
+
+    /// Synthesizes a circuit for a Q# program. Either an entry
+    /// expression or an operation must be provided.
+    ///
+    /// :param entry_expr: An entry expression.
+    ///
+    /// :param operation: The operation to synthesize. This can be a name of
+    /// an operation of a lambda expression. The operation must take only
+    /// qubits or arrays of qubits as parameters.
+    ///
+    /// :raises QSharpError: If there is an error synthesizing the circuit.
+    fn circuit(
+        &mut self,
+        py: Python,
+        entry_expr: Option<String>,
+        operation: Option<String>,
+    ) -> PyResult<PyObject> {
+        let entrypoint = match (entry_expr, operation) {
+            (Some(entry_expr), None) => CircuitEntryPoint::EntryExpr(entry_expr),
+            (None, Some(operation)) => CircuitEntryPoint::Operation(operation),
+            _ => {
+                return Err(PyException::new_err(
+                    "either entry_expr or operation must be specified",
+                ))
+            }
+        };
+
+        match self.interpreter.circuit(entrypoint) {
+            Ok(circuit) => Ok(Circuit(circuit).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
     }
@@ -494,6 +535,24 @@ impl Receiver for OptionalCallbackReceiver<'_> {
                 .map_err(|_| Error)?;
         }
         Ok(())
+    }
+}
+
+#[pyclass(unsendable)]
+struct Circuit(pub qsc::circuit::Circuit);
+
+#[pymethods]
+impl Circuit {
+    fn __repr__(&self) -> String {
+        self.0.to_string()
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    fn json(&self, _py: Python) -> PyResult<String> {
+        serde_json::to_string(&self.0).map_err(|e| PyException::new_err(e.to_string()))
     }
 }
 

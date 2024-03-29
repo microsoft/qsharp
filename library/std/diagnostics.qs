@@ -121,10 +121,11 @@ namespace Microsoft.Quantum.Diagnostics {
     /// # Output
     /// True if operations are equal, false otherwise.
     @Config(Unrestricted)
-    operation CheckOperationsAreEqual (
+    operation CheckOperationsAreEqual(
         nQubits : Int,
         actual : (Qubit[] => Unit),
-        expected : (Qubit[] => Unit is Adj)) : Bool {
+        expected : (Qubit[] => Unit is Adj)
+    ) : Bool {
 
         // Prepare a reference register entangled with the target register.
         use reference = Qubit[nQubits];
@@ -132,7 +133,7 @@ namespace Microsoft.Quantum.Diagnostics {
 
         // Apply operations.
         within {
-            for i in 0 .. nQubits - 1  {
+            for i in 0..nQubits - 1 {
                 H(reference[i]);
                 CNOT(reference[i], target[i]);
             }
