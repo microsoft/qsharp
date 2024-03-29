@@ -5,12 +5,23 @@
 
 /* TODO:
 
-- Show the state vector / linear combination
+- Show the state vector / 'pretty' linear combination
+- Show the equations from state vector to bloch angles
 - Show as a history running below the gates using LaTeX
-- Add the trailing dots with a slider for history and fade out speed
+- Calculate the T / H gates for an arbitrary point
 - Animiate the axes (including for H) when rotating
   - Maybe add a new geo/mesh for axis with rotation arrow that rotates with the qubit
 - Show the matrix to be applied when hovering over a gate
+- Add the trailing dots with a slider for history and fade out speed
+
+[1] To show the state vector
+- Add the complex vector / matrix library
+- Map the gate options to matrices
+- Start in (1, 0) state
+- When a gate is applied, apply to the state vector, save to a list
+- Render the matrix multiplication
+[2] Add function to convert C^2 to bloch angles
+[3] Show (and verify) the state vector to bloch angles
 
 To convert basis coeffeicients a & b into a point on the Bloch sphere:
  - Calculate the angle theta = 2 * acos(magnitute(a))
