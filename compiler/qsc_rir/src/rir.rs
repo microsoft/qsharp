@@ -87,7 +87,7 @@ impl Config {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct BlockId(pub u32);
 
 impl From<BlockId> for usize {
@@ -123,7 +123,7 @@ impl Display for Block {
 pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct CallableId(pub u32);
 
 impl From<CallableId> for usize {
@@ -149,8 +149,8 @@ pub struct Callable {
     /// The callable body.
     /// N.B. `None` bodys represent an intrinsic.
     pub body: Option<BlockId>,
-    /// Whether or not the callabe is a measurement.
-    pub is_measurement: bool,
+    /// What type of callable this is.
+    pub call_type: CallableType,
 }
 
 impl Display for Callable {
@@ -159,6 +159,7 @@ impl Display for Callable {
         write!(indent, "Callable:",)?;
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
+        write!(indent, "\ncall_type: {}", self.call_type)?;
         write!(indent, "\ninput_type: ")?;
         if self.input_type.is_empty() {
             write!(indent, " <VOID>")?;
@@ -181,6 +182,27 @@ impl Display for Callable {
         } else {
             write!(indent, " <NONE>")?;
         }
+        Ok(())
+    }
+}
+
+/// The type of callable.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum CallableType {
+    Measurement,
+    Readout,
+    OutputRecording,
+    Regular,
+}
+
+impl Display for CallableType {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match &self {
+            Self::Measurement => write!(f, "Measurement")?,
+            Self::Readout => write!(f, "Readout")?,
+            Self::OutputRecording => write!(f, "OutputRecording")?,
+            Self::Regular => write!(f, "Regular")?,
+        };
         Ok(())
     }
 }
