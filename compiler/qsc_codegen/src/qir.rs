@@ -101,7 +101,7 @@ impl ToQir<String> for rir::Instruction {
         match self {
             rir::Instruction::Store(_, _) => unimplemented!("store should be removed by pass"),
             rir::Instruction::Call(call_id, args, output) => {
-                call_to_qir(args, call_id, output, program)
+                call_to_qir(args, *call_id, output, program)
             }
             rir::Instruction::Jump(block_id) => {
                 format!("  br label %{}", ToQir::<String>::to_qir(block_id, program))
@@ -212,8 +212,8 @@ fn bitwise_not_to_qir(
 }
 
 fn call_to_qir(
-    args: &Vec<rir::Value>,
-    call_id: &rir::CallableId,
+    args: &[rir::Value],
+    call_id: rir::CallableId,
     output: &Option<rir::Variable>,
     program: &rir::Program,
 ) -> String {
@@ -222,7 +222,7 @@ fn call_to_qir(
         .map(|arg| ToQir::<String>::to_qir(arg, program))
         .collect::<Vec<_>>()
         .join(", ");
-    let callable = program.get_callable(*call_id);
+    let callable = program.get_callable(call_id);
     if let Some(output) = output {
         format!(
             "  {} = call {} @{}({args})",
@@ -292,7 +292,7 @@ fn simple_bitwise_to_qir(
 }
 
 fn phi_to_qir(
-    args: &Vec<(rir::Value, rir::BlockId)>,
+    args: &[(rir::Value, rir::BlockId)],
     variable: &rir::Variable,
     program: &rir::Program,
 ) -> String {
