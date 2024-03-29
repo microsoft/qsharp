@@ -15,24 +15,17 @@ use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::rir::{self, Program};
 use std::result::Result;
 
-#[derive(Debug, Default)]
-struct Assigner {
-    next_callable: rir::CallableId,
-    next_block: rir::BlockId,
+pub enum Error {
+    EvaluationFailed,
 }
 
-impl Assigner {
-    pub fn next_block(&mut self) -> rir::BlockId {
-        let id = self.next_block;
-        self.next_block = id.successor();
-        id
-    }
-
-    pub fn next_callable(&mut self) -> rir::CallableId {
-        let id = self.next_callable;
-        self.next_callable = id.successor();
-        id
-    }
+pub fn partially_evaluate(
+    package_id: PackageId,
+    package_store: &PackageStore,
+    compute_properties: &PackageStoreComputeProperties,
+) -> Result<Program, Error> {
+    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties);
+    partial_evaluator.eval(package_id)
 }
 
 struct PartialEvaluator<'a> {
@@ -124,15 +117,26 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
     }
 }
 
-pub enum Error {
-    EvaluationFailed,
+struct EvaluationContext {
+    block_id: rir::BlockId,
 }
 
-pub fn partially_evaluate(
-    package_id: PackageId,
-    package_store: &PackageStore,
-    compute_properties: &PackageStoreComputeProperties,
-) -> Result<Program, Error> {
-    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties);
-    partial_evaluator.eval(package_id)
+#[derive(Default)]
+struct Assigner {
+    next_callable: rir::CallableId,
+    next_block: rir::BlockId,
+}
+
+impl Assigner {
+    pub fn next_block(&mut self) -> rir::BlockId {
+        let id = self.next_block;
+        self.next_block = id.successor();
+        id
+    }
+
+    pub fn next_callable(&mut self) -> rir::CallableId {
+        let id = self.next_callable;
+        self.next_callable = id.successor();
+        id
+    }
 }
