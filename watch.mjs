@@ -80,16 +80,33 @@ onRustChange();
   subscribe(dir, onRustChange),
 );
 
-// Build/watch the npm project
-const npmWatcher = spawn(npmCmd, ["run", "tsc:watch"], { cwd: npmDir });
-npmWatcher.stdout.on("data", (data) => console.log(`${data}`));
-npmWatcher.stderr.on("data", (data) => console.error(`npm error: ${data}`));
-npmWatcher.on("close", (code) =>
-  console.log(`npm watcher exited with: `, code),
-);
+/**
+ *
+ * @param {string} dir
+ * @param {string} name
+ */
+function runWatcher(dir, name, watchTask = "tsc:watch") {
+  console.log(`Spawning tsc:watch for ${name} in ${dir}`);
+  const npmWatcher = spawn(npmCmd, ["run", watchTask], { cwd: dir });
+  npmWatcher.stdout.on("data", (data) =>
+    console.log(`tsc:watch ${name}: ${data}`),
+  );
+  npmWatcher.stderr.on("data", (data) =>
+    console.error(`tsc:watch ${name} error: ${data}`),
+  );
+  npmWatcher.on("close", (code) =>
+    console.log(`tsc:watch for ${name} exited with: `, code),
+  );
+}
 
-// Kick off VS Code watch mode (this will detect changes in the npm package it depends on)
+// Build the npm project in watch mode
+runWatcher(npmDir, "npm");
+
+// VSCode and playground are built by esbuild, but run the type checker in watch mode
+runWatcher(join(thisDir, "vscode"), "vscode");
+runWatcher(join(thisDir, "vscode"), "vscode webview", "tsc:watch:view");
+runWatcher(join(thisDir, "playground"), "playground");
+
+// Kick off watch mode builds (this will detect changes in the npm package it depends on) also
 watchVsCode();
-
-// Start the playground server (will also detect changes in the npm packages it needs)
 buildPlayground(true);
