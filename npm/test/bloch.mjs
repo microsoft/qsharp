@@ -2,16 +2,16 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 
 import {
-  Hadamard,
-  PauliZ,
+  Ident,
   PauliX,
   PauliY,
-  Ident,
+  PauliZ,
+  Hadamard,
   SGate,
   TGate,
-  m2x2,
-  vec2,
   Cplx,
+  vec2,
+  m2x2,
   Ket0,
   Ket1,
   KetPlus,
@@ -103,5 +103,34 @@ describe("Math tests", () => {
   it("Checks matrix inequality", () => {
     const mx = m2x2("1,0,0,i");
     assert(!mx.compare(Ident));
+  });
+
+  it("Checks the string representation of a complex number", () => {
+    let a = new Cplx(1, 1);
+    assert(a.toString() === "1+i");
+
+    a = new Cplx(1, -1);
+    assert(a.toString() === "1-i");
+
+    a = new Cplx(1, 0);
+    assert(a.toString() === "1");
+
+    a = new Cplx(0, 1);
+    assert(a.toString() === "i");
+
+    a = new Cplx(0, -1);
+    assert(a.toString() === "-i");
+
+    a = new Cplx(0, 0);
+    assert(a.toString() === "0");
+
+    a = new Cplx(1, 1e-10);
+    assert(a.toString() === "1");
+
+    a = new Cplx(-1e-9, 1);
+    assert(a.toString() === "i");
+
+    a = new Cplx(1, 1).mul(Math.SQRT1_2);
+    assert(a.toString() === "0.7071+0.7071i");
   });
 });

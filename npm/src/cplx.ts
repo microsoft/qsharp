@@ -4,12 +4,21 @@
 // Basic classes for complex numbers and 2x2 matrices/vectors
 
 const epsilon = 0.000001; // Tolerance when comparing numbers
+function compare(a: number, b: number): boolean {
+  return Math.abs(a - b) < epsilon;
+}
 
 export class Cplx {
   constructor(
     public re: number,
     public im: number,
   ) {}
+
+  static zero = new Cplx(0, 0);
+  static one = new Cplx(1, 0);
+  static i = new Cplx(0, 1);
+  static negOne = new Cplx(-1, 0);
+  static negI = new Cplx(0, -1);
 
   add(c: Cplx): Cplx {
     return new Cplx(this.re + c.re, this.im + c.im);
@@ -52,9 +61,7 @@ export class Cplx {
   }
 
   compare(c: Cplx): boolean {
-    return (
-      Math.abs(this.re - c.re) < epsilon && Math.abs(this.im - c.im) < epsilon
-    );
+    return compare(this.re, c.re) && compare(this.im, c.im);
   }
 
   static parse(input: string): Cplx | null {
@@ -101,6 +108,24 @@ export class Cplx {
     const reVal = parseFloat(reMatch?.[0] ?? "0");
     const imVal = parseFloat(imMatch?.[0] ?? "0");
     return new Cplx(reVal, imVal);
+  }
+
+  toString() {
+    const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 });
+    const reTo4 = fmt.format(this.re);
+    const imTo4 = compare(this.im, 1)
+      ? ""
+      : compare(this.im, -1)
+        ? "-"
+        : fmt.format(this.im);
+
+    if (compare(this.im, 0)) {
+      return reTo4;
+    } else if (compare(this.re, 0)) {
+      return `${imTo4}${"i"}`;
+    } else {
+      return `${reTo4}${this.im > 0 ? "+" : ""}${imTo4}i`;
+    }
   }
 }
 
