@@ -101,7 +101,7 @@ pub enum CallableType {
     Measurement,
     Readout,
     OutputRecording,
-    Other,
+    Regular,
 }
 
 pub enum Instruction {

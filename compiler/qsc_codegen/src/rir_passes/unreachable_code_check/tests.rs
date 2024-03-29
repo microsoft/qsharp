@@ -80,7 +80,7 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks() {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program
@@ -100,7 +100,7 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block() {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program
@@ -122,7 +122,7 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_branch()
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -152,7 +152,7 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_jump() {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -179,7 +179,7 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block_with_branch() {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -210,7 +210,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables() {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program
@@ -231,7 +231,7 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable() {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.callables.insert(
@@ -241,7 +241,7 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable() {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(1)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program
@@ -264,7 +264,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_cal
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.callables.insert(
@@ -274,7 +274,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_cal
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(1)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -302,7 +302,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_nes
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.callables.insert(
@@ -312,7 +312,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_nes
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(1)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.callables.insert(
@@ -322,7 +322,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_nes
             input_type: vec![],
             output_type: None,
             body: None,
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -356,7 +356,7 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable_with_nested_ca
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.callables.insert(
@@ -366,7 +366,7 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable_with_nested_ca
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(1)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.callables.insert(
@@ -376,7 +376,7 @@ fn test_check_unreachable_callable_panics_on_unreachable_callable_with_nested_ca
             input_type: vec![],
             output_type: None,
             body: None,
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -405,7 +405,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_cal
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.callables.insert(
@@ -415,7 +415,7 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_cal
             input_type: vec![],
             output_type: None,
             body: None,
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(

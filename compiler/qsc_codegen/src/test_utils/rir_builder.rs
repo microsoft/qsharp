@@ -10,7 +10,7 @@ pub fn x_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
-        call_type: rir::CallableType::Other,
+        call_type: rir::CallableType::Regular,
     }
 }
 
@@ -21,7 +21,7 @@ pub fn z_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
-        call_type: rir::CallableType::Other,
+        call_type: rir::CallableType::Regular,
     }
 }
 
@@ -32,7 +32,7 @@ pub fn h_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
-        call_type: rir::CallableType::Other,
+        call_type: rir::CallableType::Regular,
     }
 }
 
@@ -43,7 +43,7 @@ pub fn cx_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Qubit, rir::Ty::Qubit],
         output_type: None,
         body: None,
-        call_type: rir::CallableType::Other,
+        call_type: rir::CallableType::Regular,
     }
 }
 
@@ -54,7 +54,7 @@ pub fn rx_decl() -> rir::Callable {
         input_type: vec![rir::Ty::Double, rir::Ty::Qubit],
         output_type: None,
         body: None,
-        call_type: rir::CallableType::Other,
+        call_type: rir::CallableType::Regular,
     }
 }
 
@@ -132,7 +132,7 @@ pub fn bell_program() -> rir::Program {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -223,7 +223,7 @@ pub fn teleport_program() -> rir::Program {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            call_type: rir::CallableType::Other,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
