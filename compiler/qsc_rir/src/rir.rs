@@ -45,7 +45,7 @@ impl Config {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct BlockId(pub u32);
 
 impl From<BlockId> for usize {
@@ -54,12 +54,18 @@ impl From<BlockId> for usize {
     }
 }
 
+impl From<usize> for BlockId {
+    fn from(id: usize) -> BlockId {
+        BlockId(id.try_into().expect("block id should fit into u32"))
+    }
+}
+
 /// A block is a collection of instructions.
 #[derive(Default)]
 pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct CallableId(pub u32);
 
 impl From<CallableId> for usize {
@@ -85,8 +91,17 @@ pub struct Callable {
     /// The callable body.
     /// N.B. `None` bodys represent an intrinsic.
     pub body: Option<BlockId>,
-    /// Whether or not the callabe is a measurement.
-    pub is_measurement: bool,
+    /// What type of callable this is.
+    pub call_type: CallableType,
+}
+
+/// The type of callable.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum CallableType {
+    Measurement,
+    Readout,
+    OutputRecording,
+    Regular,
 }
 
 pub enum Instruction {
