@@ -14,14 +14,14 @@ import type {
   IWorkspaceEdit,
   LanguageService,
   VSDiagnostic,
-} from "../../lib/node/qsc_wasm.cjs";
+} from "../../lib/web/qsc_wasm.js";
 import { log } from "../log.js";
 import {
   IServiceEventTarget,
   IServiceProxy,
   ServiceProtocol,
 } from "../workers/common.js";
-type QscWasm = typeof import("../../lib/node/qsc_wasm.cjs");
+type QscWasm = typeof import("../../lib/web/qsc_wasm.js");
 
 // Only one event type for now
 export type LanguageServiceEvent = {

@@ -3,106 +3,117 @@
 
 use qsc_rir::rir;
 
+#[must_use]
 pub fn x_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__x__body".to_string(),
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::Regular,
     }
 }
 
+#[must_use]
 pub fn z_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__z__body".to_string(),
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::Regular,
     }
 }
 
+#[must_use]
 pub fn h_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__h__body".to_string(),
         input_type: vec![rir::Ty::Qubit],
         output_type: None,
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::Regular,
     }
 }
 
+#[must_use]
 pub fn cx_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__cx__body".to_string(),
         input_type: vec![rir::Ty::Qubit, rir::Ty::Qubit],
         output_type: None,
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::Regular,
     }
 }
 
+#[must_use]
 pub fn rx_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__rx__body".to_string(),
         input_type: vec![rir::Ty::Double, rir::Ty::Qubit],
         output_type: None,
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::Regular,
     }
 }
 
+#[must_use]
 pub fn mz_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__mz__body".to_string(),
         input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
         output_type: None,
         body: None,
-        is_measurement: true,
+        call_type: rir::CallableType::Measurement,
     }
 }
 
+#[must_use]
 pub fn mresetz_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__mresetz__body".to_string(),
         input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
         output_type: None,
         body: None,
-        is_measurement: true,
+        call_type: rir::CallableType::Measurement,
     }
 }
 
+#[must_use]
 pub fn read_result_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__qis__read_result__body".to_string(),
         input_type: vec![rir::Ty::Result],
         output_type: Some(rir::Ty::Boolean),
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::Readout,
     }
 }
 
+#[must_use]
 pub fn result_record_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__rt__result_record_output".to_string(),
         input_type: vec![rir::Ty::Result, rir::Ty::Pointer],
         output_type: None,
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::OutputRecording,
     }
 }
 
+#[must_use]
 pub fn array_record_decl() -> rir::Callable {
     rir::Callable {
         name: "__quantum__rt__array_record_output".to_string(),
         input_type: vec![rir::Ty::Integer, rir::Ty::Pointer],
         output_type: None,
         body: None,
-        is_measurement: false,
+        call_type: rir::CallableType::OutputRecording,
     }
 }
 
+#[must_use]
 pub fn bell_program() -> rir::Program {
     let mut program = rir::Program::default();
     program.callables.insert(rir::CallableId(0), h_decl());
@@ -121,7 +132,7 @@ pub fn bell_program() -> rir::Program {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            is_measurement: false,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
@@ -191,6 +202,7 @@ pub fn bell_program() -> rir::Program {
 }
 
 #[allow(clippy::too_many_lines)]
+#[must_use]
 pub fn teleport_program() -> rir::Program {
     let mut program = rir::Program::default();
     program.callables.insert(rir::CallableId(0), h_decl());
@@ -211,7 +223,7 @@ pub fn teleport_program() -> rir::Program {
             input_type: vec![],
             output_type: None,
             body: Some(rir::BlockId(0)),
-            is_measurement: false,
+            call_type: rir::CallableType::Regular,
         },
     );
     program.blocks.insert(
