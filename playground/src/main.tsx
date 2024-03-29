@@ -77,8 +77,8 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     props.linkedCode
       ? "linked"
       : window.location.hash === "#bloch"
-      ? "bloch"
-      : "Minimal",
+        ? "bloch"
+        : "Minimal",
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined,

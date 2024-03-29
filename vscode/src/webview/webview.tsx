@@ -118,6 +118,7 @@ function onMessage(event: any) {
       break;
     case "bloch":
       state = blochState;
+      break;
     case "circuit":
       {
         state = {
@@ -185,7 +186,7 @@ function App({ state }: { state: State }) {
     case "help":
       return <HelpPage />;
     case "bloch":
-      return <BlochSphere />;
+      return <BlochSphere renderLaTeX={() => undefined} />;
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;

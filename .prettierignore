@@ -20,6 +20,7 @@ __pycache__/
 /npm/src/*.generated.ts
 /pip/src/**/*.html
 /playground/public/libs/
+/playground/public/fonts/
 /samples/
 /target/
 /vscode/out/
