@@ -194,6 +194,14 @@ pub enum CallableType {
     OutputRecording,
     Regular,
 }
+pub enum IntPredicate {
+    Eq,
+    Ne,
+    Slt,
+    Sle,
+    Sgt,
+    Sge,
+}
 
 impl Display for CallableType {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -215,7 +223,11 @@ pub enum Instruction {
     Add(Value, Value, Variable),
     Sub(Value, Value, Variable),
     Mul(Value, Value, Variable),
-    Div(Value, Value, Variable),
+    Sdiv(Value, Value, Variable),
+    Srem(Value, Value, Variable),
+    Shl(Value, Value, Variable),
+    Ashr(Value, Value, Variable),
+    Icmp(IntPredicate, Value, Value, Variable),
     LogicalNot(Value, Variable),
     LogicalAnd(Value, Value, Variable),
     LogicalOr(Value, Value, Variable),
@@ -223,6 +235,7 @@ pub enum Instruction {
     BitwiseAnd(Value, Value, Variable),
     BitwiseOr(Value, Value, Variable),
     BitwiseXor(Value, Value, Variable),
+    Phi(Vec<(Value, BlockId)>, Variable),
     Return,
 }
 

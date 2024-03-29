@@ -122,7 +122,7 @@ impl ToQir<String> for rir::Instruction {
             rir::Instruction::Add(_, _, _) => todo!(),
             rir::Instruction::Sub(_, _, _) => todo!(),
             rir::Instruction::Mul(_, _, _) => todo!(),
-            rir::Instruction::Div(_, _, _) => todo!(),
+            rir::Instruction::Sdiv(_, _, _) => todo!(),
             rir::Instruction::LogicalNot(_, _) => todo!(),
             rir::Instruction::LogicalAnd(_, _, _) => todo!(),
             rir::Instruction::LogicalOr(_, _, _) => todo!(),
@@ -131,6 +131,11 @@ impl ToQir<String> for rir::Instruction {
             rir::Instruction::BitwiseOr(_, _, _) => todo!(),
             rir::Instruction::BitwiseXor(_, _, _) => todo!(),
             rir::Instruction::Return => "  ret void".to_string(),
+            rir::Instruction::Srem(_, _, _) => todo!(),
+            rir::Instruction::Shl(_, _, _) => todo!(),
+            rir::Instruction::Ashr(_, _, _) => todo!(),
+            rir::Instruction::Icmp(_, _, _, _) => todo!(),
+            rir::Instruction::Phi(_, _) => todo!(),
         }
     }
 }
