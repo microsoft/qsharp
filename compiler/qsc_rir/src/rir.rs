@@ -362,7 +362,7 @@ impl Display for Ty {
             Self::Boolean => write!(f, "Boolean")?,
             Self::Integer => write!(f, "Integer")?,
             Self::Double => write!(f, "Double")?,
-            Self::Pointer => write!(f, "Double")?,
+            Self::Pointer => write!(f, "Pointer")?,
         };
         Ok(())
     }
