@@ -5,6 +5,8 @@
 
 /* TODO:
 
+- Move more logic out of the component for unit tests
+- Add queuing to avoid mid-rotation clicks cutting off the animation
 - Show the state vector / 'pretty' linear combination
 - Show the equations from state vector to bloch angles
 - Show as a history running below the gates using LaTeX
@@ -55,12 +57,6 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
-
-function complexToPolar({ re, im }: { re: number; im: number }) {
-  const magnitude = Math.sqrt(re * re + im * im);
-  const phase = Math.atan2(im, re);
-  return { magnitude, phase };
-}
 
 const colors = {
   sphereColor: 0x404080,

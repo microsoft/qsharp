@@ -1,12 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { Quaternion, Vector3 } from "three";
+
 // Basic classes for complex numbers and 2x2 matrices/vectors
 
 const epsilon = 0.000001; // Tolerance when comparing numbers
-function compare(a: number, b: number): boolean {
+export function compare(a: number, b: number): boolean {
   return Math.abs(a - b) < epsilon;
 }
+
+const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 });
+const numToStr = (n: number) => fmt.format(n);
 
 export class Cplx {
   constructor(
@@ -64,6 +69,12 @@ export class Cplx {
     return compare(this.re, c.re) && compare(this.im, c.im);
   }
 
+  toPolar() {
+    const magnitude = Math.sqrt(this.re * this.re + this.im * this.im);
+    const phase = Math.atan2(this.im, this.re);
+    return { magnitude, phase };
+  }
+
   static parse(input: string): Cplx | null {
     // Valid formats: "0", "1", "i", "-i", "-1.2+3i", "-2i", etc.
 
@@ -111,13 +122,12 @@ export class Cplx {
   }
 
   toString() {
-    const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 });
-    const reTo4 = fmt.format(this.re);
+    const reTo4 = numToStr(this.re);
     const imTo4 = compare(this.im, 1)
       ? ""
       : compare(this.im, -1)
         ? "-"
-        : fmt.format(this.im);
+        : numToStr(this.im);
 
     if (compare(this.im, 0)) {
       return reTo4;
@@ -333,3 +343,82 @@ export const KetPlus = vec2([1, 1]).mul(Math.SQRT1_2);
 export const KetMinus = vec2([1, -1]).mul(Math.SQRT1_2);
 export const KetPlusI = vec2("1,i").mul(Math.SQRT1_2);
 export const KetMinusI = vec2("1,-i").mul(Math.SQRT1_2);
+
+// Holds a set of rotations for a qubit, and the points in that rotation
+export type AppliedGate = {
+  name: string;
+  startTime: number;
+  path: Quaternion[];
+  endPos: Quaternion;
+};
+
+export class Rotations {
+  gates: AppliedGate[] = [];
+  currPosition = new Quaternion();
+
+  constructor(
+    public pointsPerGate = 50,
+    public timePerGateMs = 500,
+  ) {}
+
+  applyGate(name: string, axis: Vector3, angle: number) {
+    // Get the target position by applying the rotation to the current position
+    const endPos = new Quaternion()
+      .setFromAxisAngle(axis, angle)
+      .multiply(this.currPosition);
+
+    // Generate a set of points between the current and target position
+    const path: Quaternion[] = [];
+    for (let i = 0; i < this.pointsPerGate; i++) {
+      const t = i / this.pointsPerGate;
+      path.push(this.currPosition.clone().slerp(endPos, t));
+    }
+    this.gates.push({ name, startTime: Date.now(), path, endPos });
+
+    // Update the current position to the final target
+    this.currPosition = endPos;
+  }
+
+  rotateX(angle?: number) {
+    const name = angle === undefined ? "X" : `X(${numToStr(angle)})`;
+    if (angle === undefined) angle = Math.PI;
+    // The Bloch sphere X axis is the Z axis in WebGL
+    this.applyGate(name, new Vector3(0, 0, 1), angle);
+  }
+  rotateY(angle?: number) {
+    const name = angle === undefined ? "Y" : `Y(${numToStr(angle)})`;
+    if (angle === undefined) angle = Math.PI;
+    // The Bloch sphere Y axis is the X axis in WebGL
+    this.applyGate(name, new Vector3(1, 0, 0), angle);
+  }
+
+  rotateZ(angle?: number) {
+    const name =
+      angle === undefined
+        ? "Z"
+        : compare(angle, Math.PI / 2)
+          ? "S"
+          : compare(angle, Math.PI / 4)
+            ? "T"
+            : `Z(${numToStr(angle)})`;
+    if (angle === undefined) angle = Math.PI;
+    // The Bloch sphere Z axis is the Y axis in WebGL
+    this.applyGate(name, new Vector3(0, 1, 0), angle);
+  }
+
+  rotateH(angle?: number) {
+    const name = angle === undefined ? "H" : `H(${numToStr(angle)})`;
+    if (angle === undefined) angle = Math.PI;
+    // Bloch sphere X & Z axes are the Y and Z axes in WebGL
+    const hAxis = new Vector3(0, 1, 1).normalize();
+    this.applyGate(name, hAxis, angle);
+  }
+
+  getRotationAtPercent(gateIndex: number, percent: number): Quaternion {
+    if (gateIndex >= this.gates.length) throw Error("Invalid gate index");
+    if (percent < 0 || percent > 1) throw Error("Invalid percent");
+
+    const gate = this.gates[gateIndex];
+    return gate.path[0].clone().slerp(gate.endPos, percent);
+  }
+}

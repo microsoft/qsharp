@@ -18,7 +18,10 @@ import {
   KetMinus,
   KetPlusI,
   KetMinusI,
+  Rotations,
+  compare,
 } from "../dist/cplx.js";
+import { Vector3 } from "three";
 
 describe("Gate combos", () => {
   it("HZH† = X", () => {
@@ -132,5 +135,47 @@ describe("Math tests", () => {
 
     a = new Cplx(1, 1).mul(Math.SQRT1_2);
     assert(a.toString() === "0.7071+0.7071i");
+  });
+});
+
+describe("Rotation tests", () => {
+  it("Rotates by X", () => {
+    const qubit = new Rotations(50);
+    assert(qubit.gates.length === 0);
+    qubit.rotateX();
+    assert(qubit.gates.length === 1);
+    assert(qubit.gates[0].path.length === 50);
+    const pos = qubit.currPosition;
+    assert(compare(pos.w, 0));
+    assert(compare(pos.x, 0));
+    assert(compare(pos.y, 0));
+    assert(compare(pos.z, 1));
+  });
+
+  it("Rotates by H", () => {
+    const qubit = new Rotations();
+    qubit.rotateH();
+    const pos = qubit.currPosition;
+    assert(compare(pos.w, 0));
+    assert(compare(pos.x, 0));
+    assert(compare(pos.y, Math.SQRT1_2));
+    assert(compare(pos.z, Math.SQRT1_2));
+  });
+
+  it("Rotates by H then T twice", () => {
+    const qubit = new Rotations();
+    qubit.rotateH();
+    qubit.rotateZ(Math.PI / 4);
+    qubit.rotateZ(Math.PI / 4);
+    assert(qubit.gates[0].name === "H");
+    assert(qubit.gates[1].name === "T");
+    assert(qubit.gates[2].name === "T");
+
+    const zeroPos = new Vector3(0, 1, 0);
+    zeroPos.applyQuaternion(qubit.currPosition);
+
+    assert(compare(zeroPos.x, 1));
+    assert(compare(zeroPos.y, 0));
+    assert(compare(zeroPos.z, 0));
   });
 });
