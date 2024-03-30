@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use qsc_eval::backend::Backend;
 use qsc_fir::{
     fir::{
         Block, BlockId, Expr, ExprId, PackageId, PackageStore, PackageStoreLookup, Pat, PatId,
@@ -117,8 +118,44 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
     }
 }
 
-struct EvaluationContext {
-    block_id: rir::BlockId,
+#[derive(Default)]
+struct PartialEvaluationBackend {
+    qubit_id: usize,
+    result_id: usize,
+}
+
+impl Backend for PartialEvaluationBackend {
+    type ResultType = usize;
+
+    fn m(&mut self, _q: usize) -> Self::ResultType {
+        self.next_measurement()
+    }
+
+    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
+        self.next_measurement()
+    }
+
+    fn qubit_allocate(&mut self) -> usize {
+        self.next_qubit()
+    }
+
+    fn qubit_release(&mut self, _q: usize) {
+        // Do nothing.
+    }
+}
+
+impl PartialEvaluationBackend {
+    fn next_measurement(&mut self) -> usize {
+        let result_id = self.result_id;
+        self.result_id += 1;
+        result_id
+    }
+
+    fn next_qubit(&mut self) -> usize {
+        let qubit_id = self.qubit_id;
+        self.qubit_id += 1;
+        qubit_id
+    }
 }
 
 #[derive(Default)]
