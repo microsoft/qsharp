@@ -4,7 +4,10 @@
 use core::panic;
 use std::iter::once;
 
-use qsc_rir::{rir, utils};
+use crate::{
+    rir::{Instruction, Program},
+    utils,
+};
 use rustc_hash::FxHashSet;
 
 #[cfg(test)]
@@ -15,7 +18,7 @@ mod tests;
 /// Then, it checks that all blocks are reachable from at least one callable in the program.
 /// Finally, it checks that no instruction follows a terminator instruction in a block,
 /// and that each block ends with a terminator instruction.
-pub fn check_unreachable_code(program: &rir::Program) {
+pub fn check_unreachable_code(program: &Program) {
     check_unreachable_callable(program);
     check_unreachable_blocks(program);
     check_unreachable_instrs(program);
@@ -24,14 +27,12 @@ pub fn check_unreachable_code(program: &rir::Program) {
 /// Checks for unreachable instructions in each block of a program.
 /// Specifically, this function checks that no instruction follows a terminator instruction in a block,
 /// and that each block ends with a terminator instruction.
-pub fn check_unreachable_instrs(program: &rir::Program) {
+pub fn check_unreachable_instrs(program: &Program) {
     for (block_id, block) in program.blocks.iter() {
         match block.0.iter().position(|i| {
             matches!(
                 i,
-                rir::Instruction::Return
-                    | rir::Instruction::Jump(..)
-                    | rir::Instruction::Branch(..)
+                Instruction::Return | Instruction::Jump(..) | Instruction::Branch(..)
             )
         }) {
             Some(idx) => {
@@ -47,7 +48,7 @@ pub fn check_unreachable_instrs(program: &rir::Program) {
 
 /// Checks for unreachable blocks in a program.
 /// Specifically, this function checks that all blocks are reachable from at least one callable in the program.
-pub fn check_unreachable_blocks(program: &rir::Program) {
+pub fn check_unreachable_blocks(program: &Program) {
     let mut start_blocks = FxHashSet::default();
     for (_, callable) in program.callables.iter() {
         if let Some(block_id) = callable.body {
@@ -74,7 +75,7 @@ pub fn check_unreachable_blocks(program: &rir::Program) {
 /// Checks for unreachable callables in a program.
 /// Specifically, this function checks that all callables are reachable from the entry point of the program.
 /// Note that calls from unreachable blocks are not included as only succesor blocks are considered.
-pub fn check_unreachable_callable(program: &rir::Program) {
+pub fn check_unreachable_callable(program: &Program) {
     let mut live_callables = FxHashSet::default();
     let mut callables_to_check = Vec::new();
     callables_to_check.push(program.entry);
@@ -92,7 +93,7 @@ pub fn check_unreachable_callable(program: &rir::Program) {
         {
             let block = program.get_block(*block_id);
             for instr in &block.0 {
-                if let rir::Instruction::Call(callable_id, ..) = instr {
+                if let Instruction::Call(callable_id, ..) = instr {
                     callables_to_check.push(*callable_id);
                 }
             }

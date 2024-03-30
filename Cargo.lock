@@ -1161,6 +1161,7 @@ dependencies = [
 name = "qsc_rir"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
  "indenter",
  "qsc_data_structures",
  "rustc-hash",
