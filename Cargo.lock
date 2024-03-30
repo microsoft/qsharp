@@ -1122,6 +1122,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_rca",
  "qsc_rir",
+ "rustc-hash",
 ]
 
 [[package]]

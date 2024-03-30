@@ -15,15 +15,12 @@ use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 
 #[ignore = "WIP"]
 #[test]
-fn use_one_qubit() {
+fn empty_entry_point() {
     check_rir(
         indoc! {r#"
         namespace Test {
             @EntryPoint()
-            operation Main() : Result[] {
-                use q = Qubit();
-                []
-            }
+            operation Main() : Unit {}
         }
         "#},
         &expect![[r#""#]],
