@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_rir::rir::{CallableType, Instruction, Program};
+use crate::rir::{CallableType, Instruction, Program};
 use rustc_hash::FxHashSet;
 
 /// Defers measurements in each block of a program to the end of that block.

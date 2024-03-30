@@ -2,48 +2,48 @@
 // Licensed under the MIT License.
 
 use super::ToQir;
-use crate::test_utils::rir_builder;
 use expect_test::expect;
+use qsc_rir::builder;
 use qsc_rir::rir;
 
 #[test]
 fn single_qubit_gate_decl_works() {
-    let decl = rir_builder::x_decl();
+    let decl = builder::x_decl();
     expect!["declare void @__quantum__qis__x__body(%Qubit*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn two_qubit_gate_decl_works() {
-    let decl = rir_builder::cx_decl();
+    let decl = builder::cx_decl();
     expect!["declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn single_qubit_rotation_decl_works() {
-    let decl = rir_builder::rx_decl();
+    let decl = builder::rx_decl();
     expect!["declare void @__quantum__qis__rx__body(double, %Qubit*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn measurement_decl_works() {
-    let decl = rir_builder::mz_decl();
+    let decl = builder::mz_decl();
     expect!["declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn read_result_decl_works() {
-    let decl = rir_builder::read_result_decl();
+    let decl = builder::read_result_decl();
     expect!["declare i1 @__quantum__qis__read_result__body(%Result*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
 
 #[test]
 fn result_record_decl_works() {
-    let decl = rir_builder::result_record_decl();
+    let decl = builder::result_record_decl();
     expect!["declare void @__quantum__rt__result_record_output(%Result*, i8*)"]
         .assert_eq(&decl.to_qir(&rir::Program::default()));
 }
@@ -53,7 +53,7 @@ fn single_qubit_call() {
     let mut program = rir::Program::default();
     program
         .callables
-        .insert(rir::CallableId(0), rir_builder::x_decl());
+        .insert(rir::CallableId(0), builder::x_decl());
     let call = rir::Instruction::Call(
         rir::CallableId(0),
         vec![rir::Value::Literal(rir::Literal::Qubit(0))],
@@ -68,7 +68,7 @@ fn qubit_rotation_call() {
     let mut program = rir::Program::default();
     program
         .callables
-        .insert(rir::CallableId(0), rir_builder::rx_decl());
+        .insert(rir::CallableId(0), builder::rx_decl());
     let call = rir::Instruction::Call(
         rir::CallableId(0),
         vec![
@@ -86,7 +86,7 @@ fn qubit_rotation_round_number_call() {
     let mut program = rir::Program::default();
     program
         .callables
-        .insert(rir::CallableId(0), rir_builder::rx_decl());
+        .insert(rir::CallableId(0), builder::rx_decl());
     let call = rir::Instruction::Call(
         rir::CallableId(0),
         vec![
@@ -106,7 +106,7 @@ fn qubit_rotation_variable_angle_call() {
     let mut program = rir::Program::default();
     program
         .callables
-        .insert(rir::CallableId(0), rir_builder::rx_decl());
+        .insert(rir::CallableId(0), builder::rx_decl());
     let call = rir::Instruction::Call(
         rir::CallableId(0),
         vec![
@@ -126,7 +126,7 @@ fn qubit_rotation_variable_angle_call() {
 
 #[test]
 fn bell_program() {
-    let program = rir_builder::bell_program();
+    let program = builder::bell_program();
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
@@ -169,7 +169,7 @@ fn bell_program() {
 
 #[test]
 fn teleport_program() {
-    let program = rir_builder::teleport_program();
+    let program = builder::teleport_program();
     expect![[r#"
         %Result = type opaque
         %Qubit = type opaque
