@@ -202,7 +202,7 @@ impl Display for Callable {
 }
 
 /// The type of callable.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CallableType {
     Measurement,
     Readout,
@@ -427,7 +427,7 @@ impl Display for Value {
 pub enum Literal {
     Qubit(u32),
     Result(u32),
-    Boolean(bool),
+    Bool(bool),
     Integer(i64),
     Double(f64),
     Pointer,

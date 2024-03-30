@@ -12,7 +12,7 @@ use qsc_fir::{
     visit::Visitor,
 };
 use qsc_rca::PackageStoreComputeProperties;
-use qsc_rir::rir::{self, Program};
+use qsc_rir::rir::{self, CallableType, Program};
 use std::result::Result;
 
 pub enum Error {
@@ -74,7 +74,7 @@ impl<'a> PartialEvaluator<'a> {
             input_type: Vec::new(),
             output_type: None,
             body: Some(entry_block_id),
-            is_measurement: false,
+            call_type: CallableType::Regular,
         };
         self.program.callables.insert(entry_point_id, entry_point);
         self.program.entry = entry_point_id;

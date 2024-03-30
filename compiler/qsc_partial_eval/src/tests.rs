@@ -68,7 +68,7 @@ fn check_rir(source: &str, expect: &Expect) {
     ) else {
         panic!("partial evaluation failed");
     };
-    //expect.assert_eq(&rir.to_string());
+    expect.assert_eq(&rir.to_string());
 }
 
 fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore {
