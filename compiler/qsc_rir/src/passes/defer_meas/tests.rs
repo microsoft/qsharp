@@ -21,53 +21,14 @@ fn measurements_deferred_on_return_block() {
     // Before
     expect![[r#"
         Block:
-            Call:
-                callable_id: 0
-                args:
-                    [0]: Literal: Qubit(0)
-                    [1]: Literal: Result(0)
-                    variable: <NONE>
-            Call:
-                callable_id: 2
-                args:
-                    [0]: Literal: Qubit(1)
-                    variable: <NONE>
-            Call:
-                callable_id: 1
-                args:
-                    [0]: Literal: Qubit(1)
-                    [1]: Literal: Result(1)
-                    variable: <NONE>
-            Call:
-                callable_id: 1
-                args:
-                    [0]: Literal: Qubit(0)
-                    [1]: Literal: Result(2)
-                    variable: <NONE>
-            Call:
-                callable_id: 3
-                args:
-                    [0]: Literal: Integer(3)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
-            Call:
-                callable_id: 4
-                args:
-                    [0]: Literal: Result(0)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
-            Call:
-                callable_id: 4
-                args:
-                    [0]: Literal: Result(1)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
-            Call:
-                callable_id: 4
-                args:
-                    [0]: Literal: Result(2)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
+            Call id(0), args( Qubit(0), Result(0), )
+            Call id(2), args( Qubit(1), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Call id(1), args( Qubit(0), Result(2), )
+            Call id(3), args( Integer(3), Pointer, )
+            Call id(4), args( Result(0), Pointer, )
+            Call id(4), args( Result(1), Pointer, )
+            Call id(4), args( Result(2), Pointer, )
             Return"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
 
@@ -75,53 +36,14 @@ fn measurements_deferred_on_return_block() {
     defer_measurements(&mut program);
     expect![[r#"
         Block:
-            Call:
-                callable_id: 2
-                args:
-                    [0]: Literal: Qubit(1)
-                    variable: <NONE>
-            Call:
-                callable_id: 0
-                args:
-                    [0]: Literal: Qubit(0)
-                    [1]: Literal: Result(0)
-                    variable: <NONE>
-            Call:
-                callable_id: 1
-                args:
-                    [0]: Literal: Qubit(1)
-                    [1]: Literal: Result(1)
-                    variable: <NONE>
-            Call:
-                callable_id: 1
-                args:
-                    [0]: Literal: Qubit(0)
-                    [1]: Literal: Result(2)
-                    variable: <NONE>
-            Call:
-                callable_id: 3
-                args:
-                    [0]: Literal: Integer(3)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
-            Call:
-                callable_id: 4
-                args:
-                    [0]: Literal: Result(0)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
-            Call:
-                callable_id: 4
-                args:
-                    [0]: Literal: Result(1)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
-            Call:
-                callable_id: 4
-                args:
-                    [0]: Literal: Result(2)
-                    [1]: Literal: Pointer
-                    variable: <NONE>
+            Call id(2), args( Qubit(1), )
+            Call id(0), args( Qubit(0), Result(0), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Call id(1), args( Qubit(0), Result(2), )
+            Call id(3), args( Integer(3), Pointer, )
+            Call id(4), args( Result(0), Pointer, )
+            Call id(4), args( Result(1), Pointer, )
+            Call id(4), args( Result(2), Pointer, )
             Return"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
 }
@@ -134,72 +56,22 @@ fn branching_block_measurements_deferred_properly() {
     // Before
     expect![[r#"
         Block:
-            Call:
-                callable_id: 0
-                args:
-                    [0]: Literal: Qubit(1)
-                    [1]: Literal: Result(0)
-                    variable: <NONE>
-            Call:
-                callable_id: 1
-                args:
-                    [0]: Literal: Qubit(0)
-                    variable: <NONE>
-            Call:
-                callable_id: 0
-                args:
-                    [0]: Literal: Qubit(0)
-                    [1]: Literal: Result(1)
-                    variable: <NONE>
-            Call:
-                callable_id: 3
-                args:
-                    [0]: Literal: Result(0)
-                    variable: Variable:
-                        variable_id: 0
-                        ty: Boolean
-            Branch:
-                condition: Variable: Variable:
-                    variable_id: 0
-                    ty: Boolean
-                if_true: 1
-                if_false: 2"#]]
+            Call id(0), args( Qubit(1), Result(0), )
+            Call id(1), args( Qubit(0), )
+            Call id(0), args( Qubit(0), Result(1), )
+            Variable(0, Boolean) = Call id(3), args( Result(0), )
+            Branch Variable(0, Boolean), 1, 2"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
 
     // After
     defer_measurements(&mut program);
     expect![[r#"
         Block:
-            Call:
-                callable_id: 1
-                args:
-                    [0]: Literal: Qubit(0)
-                    variable: <NONE>
-            Call:
-                callable_id: 0
-                args:
-                    [0]: Literal: Qubit(1)
-                    [1]: Literal: Result(0)
-                    variable: <NONE>
-            Call:
-                callable_id: 0
-                args:
-                    [0]: Literal: Qubit(0)
-                    [1]: Literal: Result(1)
-                    variable: <NONE>
-            Call:
-                callable_id: 3
-                args:
-                    [0]: Literal: Result(0)
-                    variable: Variable:
-                        variable_id: 0
-                        ty: Boolean
-            Branch:
-                condition: Variable: Variable:
-                    variable_id: 0
-                    ty: Boolean
-                if_true: 1
-                if_false: 2"#]]
+            Call id(1), args( Qubit(0), )
+            Call id(0), args( Qubit(1), Result(0), )
+            Call id(0), args( Qubit(0), Result(1), )
+            Variable(0, Boolean) = Call id(3), args( Result(0), )
+            Branch Variable(0, Boolean), 1, 2"#]]
     .assert_eq(&program.get_block(BlockId(0)).to_string());
 }
 

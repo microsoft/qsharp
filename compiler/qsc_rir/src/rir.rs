@@ -237,11 +237,7 @@ impl Display for Instruction {
             variable: &Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "{instruction}:")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\nlhs: {lhs}")?;
-            write!(indent, "\nrhs: {rhs}")?;
-            write!(indent, "\nvariable: {variable}")?;
+            write!(indent, "{variable} = {instruction} {lhs}, {rhs}")?;
             Ok(())
         }
 
@@ -252,11 +248,7 @@ impl Display for Instruction {
             if_false: BlockId,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Branch:")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\ncondition: {condition}")?;
-            write!(indent, "\nif_true: {}", if_true.0)?;
-            write!(indent, "\nif_false: {}", if_false.0)?;
+            write!(indent, "Branch {condition}, {}, {}", if_true.0, if_false.0)?;
             Ok(())
         }
 
@@ -267,24 +259,14 @@ impl Display for Instruction {
             variable: &Option<Variable>,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Call:")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\ncallable_id: {}", callable_id.0)?;
-            write!(indent, "\nargs:")?;
-            if args.is_empty() {
-                write!(indent, " <empty>")?;
-            } else {
-                indent = set_indentation(indent, 2);
-                for (index, arg) in args.iter().enumerate() {
-                    write!(indent, "\n[{index}]: {arg}")?;
-                }
-            }
-            write!(indent, "\nvariable: ")?;
             if let Some(variable) = variable {
-                write!(indent, "{variable}")?;
-            } else {
-                write!(indent, "<NONE>")?;
+                write!(indent, "{variable} = ")?;
             }
+            write!(indent, "Call id({}), args( ", callable_id.0)?;
+            for arg in args {
+                write!(indent, "{arg}, ")?;
+            }
+            write!(indent, ")")?;
             Ok(())
         }
 
@@ -295,10 +277,7 @@ impl Display for Instruction {
             variable: &Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "{instruction}:")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\nvalue: {value}")?;
-            write!(indent, "\nvariable: {variable}")?;
+            write!(indent, "{variable} = {instruction} {value}")?;
             Ok(())
         }
 
@@ -359,10 +338,7 @@ pub struct Variable {
 impl Display for Variable {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Variable:",)?;
-        indent = set_indentation(indent, 1);
-        write!(indent, "\nvariable_id: {}", self.variable_id.0)?;
-        write!(indent, "\nty: {}", self.ty)?;
+        write!(indent, "Variable({}, {})", self.variable_id.0, self.ty)?;
         Ok(())
     }
 }
@@ -398,8 +374,8 @@ pub enum Value {
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self {
-            Self::Literal(literal) => write!(f, "Literal: {literal}"),
-            Self::Variable(variable) => write!(f, "Variable: {variable}"),
+            Self::Literal(literal) => write!(f, "{literal}"),
+            Self::Variable(variable) => write!(f, "{variable}"),
         }
     }
 }
