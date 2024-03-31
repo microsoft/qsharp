@@ -36,7 +36,8 @@ fn qubit_reindexed_after_reset_removes_reset() {
             Call id(1), args( Qubit(0), )
             Call id(0), args( Qubit(0), )
             Call id(1), args( Qubit(0), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
 
     // After
     reindex_qubits(&mut program);
@@ -44,7 +45,8 @@ fn qubit_reindexed_after_reset_removes_reset() {
         Block:
             Call id(0), args( Qubit(0), )
             Call id(0), args( Qubit(1), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
     assert_eq!(program.num_qubits, 2);
 
     // Reset callable should be removed.
@@ -91,7 +93,8 @@ fn qubit_reindexed_after_mz() {
             Call id(1), args( Qubit(0), Result(0), )
             Call id(0), args( Qubit(0), )
             Call id(1), args( Qubit(0), Result(1), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
 
     // After
     reindex_qubits(&mut program);
@@ -101,7 +104,8 @@ fn qubit_reindexed_after_mz() {
             Call id(1), args( Qubit(0), Result(0), )
             Call id(0), args( Qubit(1), )
             Call id(1), args( Qubit(1), Result(1), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
     assert_eq!(program.num_qubits, 2);
 }
 
@@ -143,7 +147,8 @@ fn qubit_reindexed_after_mresetz_and_changed_to_mz() {
             Call id(1), args( Qubit(0), Result(0), )
             Call id(0), args( Qubit(0), )
             Call id(1), args( Qubit(0), Result(1), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
 
     // After
     reindex_qubits(&mut program);
@@ -153,7 +158,8 @@ fn qubit_reindexed_after_mresetz_and_changed_to_mz() {
             Call id(2), args( Qubit(0), Result(0), )
             Call id(0), args( Qubit(1), )
             Call id(2), args( Qubit(1), Result(1), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
     assert_eq!(program.num_qubits, 2);
 }
 
@@ -194,7 +200,8 @@ fn multiple_qubit_reindex() {
             Call id(0), args( Qubit(0), )
             Call id(1), args( Qubit(0), Result(0), )
             Call id(2), args( Qubit(1), Qubit(0), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
 
     // After
     reindex_qubits(&mut program);
@@ -203,7 +210,8 @@ fn multiple_qubit_reindex() {
             Call id(0), args( Qubit(0), )
             Call id(3), args( Qubit(0), Result(0), )
             Call id(2), args( Qubit(1), Qubit(2), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
     assert_eq!(program.num_qubits, 3);
 }
 
@@ -267,7 +275,8 @@ fn qubit_reindexed_multiple_times() {
             Call id(1), args( Qubit(0), Result(2), )
             Call id(0), args( Qubit(0), )
             Call id(1), args( Qubit(0), Result(3), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
 
     // After
     reindex_qubits(&mut program);
@@ -281,6 +290,7 @@ fn qubit_reindexed_multiple_times() {
             Call id(1), args( Qubit(2), Result(2), )
             Call id(0), args( Qubit(3), )
             Call id(1), args( Qubit(3), Result(3), )
-            Return"#]].assert_eq(&program.get_block(BlockId(0)).to_string());
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
     assert_eq!(program.num_qubits, 4);
 }
