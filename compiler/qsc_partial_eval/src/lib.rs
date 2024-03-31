@@ -17,7 +17,7 @@ use qsc_fir::{
     visit::Visitor,
 };
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
-use qsc_rir::rir::{self, CallableType, Program};
+use qsc_rir::rir::{self, CallableType, Instruction, Program};
 use rustc_hash::FxHashMap;
 use std::result::Result;
 
@@ -41,7 +41,7 @@ struct PartialEvaluator<'a> {
     backend: QubitsAndResultsAllocator,
     context: EvaluationContext,
     program: Program,
-    errors: Vec<Error>,
+    error: Option<Error>,
 }
 
 impl<'a> PartialEvaluator<'a> {
@@ -78,7 +78,7 @@ impl<'a> PartialEvaluator<'a> {
             backend,
             context,
             program,
-            errors: Vec::new(),
+            error: None,
         }
     }
 
@@ -92,6 +92,15 @@ impl<'a> PartialEvaluator<'a> {
 
         // Visit the entry point expression.
         self.visit_expr(entry_expr_id);
+
+        // Insert the return expression.
+        let current_block = self
+            .program
+            .blocks
+            .get_mut(self.context.current_block)
+            .expect("block does not exist");
+        current_block.0.push(Instruction::Return);
+
         Ok(self.program)
     }
 
@@ -127,7 +136,7 @@ impl<'a> PartialEvaluator<'a> {
                     .expression_value_map
                     .insert_expr_value(store_expr_id, value);
             }
-            Err((error, _)) => self.errors.push(Error::EvaluationFailed(error)),
+            Err((error, _)) => self.error = Some(Error::EvaluationFailed(error)),
         };
     }
 
@@ -162,7 +171,7 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
     }
 
     fn visit_expr(&mut self, expr_id: ExprId) {
-        if !self.errors.is_empty() {
+        if self.error.is_some() {
             return;
         }
 
@@ -243,7 +252,7 @@ impl QubitsAndResultsAllocator {
 
 struct EvaluationContext {
     expression_value_map: ExpressionValueMap,
-    _current_block: rir::BlockId,
+    current_block: rir::BlockId,
     callables_stack: Vec<CallableScope>,
     env: Env,
 }
@@ -261,7 +270,7 @@ impl EvaluationContext {
         };
         Self {
             expression_value_map: ExpressionValueMap::new(package_store),
-            _current_block: initial_block,
+            current_block: initial_block,
             callables_stack: vec![entry_callable_scope],
             env: Env::default(),
         }

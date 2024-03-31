@@ -23,7 +23,24 @@ fn empty_entry_point() {
             operation Main() : Unit {}
         }
         "#},
-        &expect![[r#""#]],
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                blocks:
+                    Block 0: Block:
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
     );
 }
 
