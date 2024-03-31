@@ -163,12 +163,13 @@ describe("Rotation tests", () => {
   });
 
   it("Rotates by H then T twice", () => {
-    const qubit = new Rotations();
+    const qubit = new Rotations(50);
     qubit.rotateH();
     qubit.rotateZ(Math.PI / 4);
     qubit.rotateZ(Math.PI / 4);
     assert(qubit.gates[0].name === "H");
     assert(qubit.gates[1].name === "T");
+    assert(qubit.gates[1].path.length === 12);
     assert(qubit.gates[2].name === "T");
 
     const zeroPos = new Vector3(0, 1, 0);
@@ -177,5 +178,64 @@ describe("Rotation tests", () => {
     assert(compare(zeroPos.x, 1));
     assert(compare(zeroPos.y, 0));
     assert(compare(zeroPos.z, 0));
+  });
+
+  it("Gets the path length of Pi", () => {
+    const qubit = new Rotations();
+    qubit.rotateH(); // Put the point on the equator
+
+    // Calculate the path length of rotating half way around the Bloch Z axis
+    const pathLen = qubit.getPathLength(new Vector3(0, 1, 0), Math.PI);
+    assert(compare(pathLen, Math.PI));
+  });
+
+  it("Gets the path length of 0", () => {
+    const qubit = new Rotations();
+
+    // Calculate the path length of rotating half way around the Bloch Z axis
+    const pathLen = qubit.getPathLength(new Vector3(0, 1, 0), Math.PI);
+    assert(compare(pathLen, 0));
+  });
+
+  it("Gets the path length of a T gate", () => {
+    const qubit = new Rotations();
+    qubit.rotateH(); // Put the point on the equator
+    qubit.rotateZ(Math.PI / 4); // Rotate by T
+
+    // Calculate the path length of rotating by T again
+    const pathLen = qubit.getPathLength(new Vector3(0, 1, 0), Math.PI / 4);
+    assert(compare(pathLen, Math.PI / 4));
+  });
+
+  it("Gets the path length of a Y rotation after a T gate", () => {
+    const qubit = new Rotations();
+    qubit.rotateH(); // Put the point on the equator
+    qubit.rotateZ(Math.PI / 4); // Rotate by T
+
+    // Calculate the path length of rotating around the Bloch X axis
+    const pathLen = qubit.getPathLength(new Vector3(0, 0, 2), Math.PI);
+
+    // Radius is 1 / sqrt 2, and circumference is Pi
+    const expected = Math.PI * Math.SQRT1_2;
+    assert(compare(pathLen, expected));
+  });
+
+  it("Rotates by -T", () => {
+    const qubit = new Rotations(64);
+    qubit.rotateH();
+    const minusTDistance = qubit.getPathLength(
+      new Vector3(0, 1, 0),
+      -Math.PI / 4,
+    );
+    assert(compare(minusTDistance, Math.PI / 4));
+
+    qubit.rotateZ(-Math.PI / 4);
+    assert(qubit.gates[1].path.length === 16);
+
+    const bitPos = new Vector3(0, 1, 0);
+    bitPos.applyQuaternion(qubit.currPosition);
+    assert(compare(bitPos.x, -Math.SQRT1_2));
+    assert(compare(bitPos.y, 0));
+    assert(compare(bitPos.z, Math.SQRT1_2));
   });
 });

@@ -357,9 +357,25 @@ export class Rotations {
   currPosition = new Quaternion();
 
   constructor(
-    public pointsPerGate = 50,
+    public pointsPerRotation = 32, // Assuming a common gate rotation of pi radians
     public timePerGateMs = 500,
   ) {}
+
+  getPathLength(axis: Vector3, rotationAngle: number): number {
+    /*
+       To calculate the distance a point travels around a unit sphere as a rotation is applied.
+       - Calculate the angle (theta) between the axis of rotation and the point
+       - Get the radius for the circle around the (unit) sphere at theta
+       - Calculate the distance travelled as the rotation angle * radius
+    */
+
+    const pointStart = new Vector3(0, 1, 0);
+    const pointCurrent = pointStart.applyQuaternion(this.currPosition);
+    const pointToAxisAngle = pointCurrent.angleTo(axis);
+    const arcRadius = Math.sin(pointToAxisAngle);
+    const pathTravelled = arcRadius * rotationAngle;
+    return Math.abs(pathTravelled);
+  }
 
   applyGate(name: string, axis: Vector3, angle: number) {
     // Get the target position by applying the rotation to the current position
@@ -367,10 +383,15 @@ export class Rotations {
       .setFromAxisAngle(axis, angle)
       .multiply(this.currPosition);
 
+    const pathDistance = this.getPathLength(axis, angle);
+    const pointCount = Math.floor(
+      (pathDistance * this.pointsPerRotation) / Math.PI,
+    );
+
     // Generate a set of points between the current and target position
     const path: Quaternion[] = [];
-    for (let i = 0; i < this.pointsPerGate; i++) {
-      const t = i / this.pointsPerGate;
+    for (let i = 0; i < pointCount; i++) {
+      const t = i / pointCount;
       path.push(this.currPosition.clone().slerp(endPos, t));
     }
     this.gates.push({ name, startTime: Date.now(), path, endPos });
@@ -419,6 +440,7 @@ export class Rotations {
     if (percent < 0 || percent > 1) throw Error("Invalid percent");
 
     const gate = this.gates[gateIndex];
+    if (!gate.path.length) return gate.endPos.clone();
     return gate.path[0].clone().slerp(gate.endPos, percent);
   }
 }

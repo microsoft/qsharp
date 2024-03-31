@@ -172,6 +172,8 @@ class BlochRenderer {
   controls: OrbitControls;
   qubit: Group;
   trail: Group;
+  animationCallbackId = 0;
+  gateQueue: any[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     // For VS Code, WebView body attribute 'data-vscode-theme-kind' will contain 'light' if light theme is active.
@@ -293,6 +295,35 @@ class BlochRenderer {
     // Initial render
     //requestAnimationFrame(() => this.render());
     createText(scene, () => this.render());
+  }
+
+  /*
+  TODO: Replace most of the following math logic with the Rotations class
+  - On gate application, it should add it to a queue and start processing (if not already running)
+  - Queue processing should take the next gate, apply it via Rotations, a get a reference to that added gate
+  - In animationFrame callbacks, using easing to rotate the qubits and add points until done.
+  - Once done, remove the gate from the queue and start the next one (or exit)
+  - Track requestAnimationFrame return value to indicate if animation is running already
+  */
+
+  queueGate(gate: any) {
+    this.gateQueue.push(gate);
+    if (this.animationCallbackId) return; // Queue is already running
+
+    const processQueue = () => {
+      if (this.gateQueue.length === 0) {
+        this.animationCallbackId = 0;
+        return;
+      }
+
+      // Update frame for gate at front of queue
+
+      // If that gate is done, remove it
+      this.gateQueue.shift();
+
+      this.animationCallbackId = requestAnimationFrame(processQueue);
+    };
+    processQueue();
   }
 
   rotate(axis: Vector3, angle: number) {
