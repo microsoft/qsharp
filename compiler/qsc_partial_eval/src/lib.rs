@@ -11,8 +11,9 @@ use qsc_eval::{
 };
 use qsc_fir::{
     fir::{
-        Block, BlockId, Expr, ExprId, LocalItemId, PackageId, PackageStore, PackageStoreLookup,
-        Pat, PatId, Stmt, StmtId, StoreBlockId, StoreExprId, StorePatId, StoreStmtId,
+        Block, BlockId, Expr, ExprId, ExprKind, LocalItemId, PackageId, PackageStore,
+        PackageStoreLookup, Pat, PatId, Stmt, StmtId, StoreBlockId, StoreExprId, StorePatId,
+        StoreStmtId,
     },
     visit::Visitor,
 };
@@ -69,7 +70,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // Initialize the backend and the evaluation context.
         let backend = QubitsAndResultsAllocator::default();
-        let context = EvaluationContext::new(entry_package_id, package_store, entry_block_id);
+        let context = EvaluationContext::new(entry_package_id, entry_block_id);
 
         Self {
             package_store,
@@ -104,7 +105,7 @@ impl<'a> PartialEvaluator<'a> {
         Ok(self.program)
     }
 
-    fn eval_expr_classical(&mut self, expr_id: ExprId) {
+    fn eval_classical_expr(&mut self, expr_id: ExprId) {
         let current_package_id = self.get_current_package();
         let current_package = self.package_store.get(current_package_id);
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
@@ -133,15 +134,57 @@ impl<'a> PartialEvaluator<'a> {
                     panic!("evaluating a classical expression should always return a value");
                 };
                 self.context
-                    .expression_value_map
-                    .insert_expr_value(store_expr_id, value);
+                    .get_current_callable_scope_mut()
+                    .insert_expr_value(expr_id, value);
             }
             Err((error, _)) => self.error = Some(Error::EvaluationFailed(error)),
         };
     }
 
-    fn generate_expr_instructions(&mut self, _expr_id: ExprId) {
+    fn generate_expr_call(&mut self, _callee_expr_id: ExprId, _args_expr_id: ExprId) {
         unimplemented!();
+    }
+
+    fn generate_instructions(&mut self, expr_id: ExprId) {
+        let current_package_id = self.get_current_package();
+        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
+        let expr = self.package_store.get_expr(store_expr_id);
+        match &expr.kind {
+            ExprKind::Array(_) => todo!(),
+            ExprKind::ArrayLit(_) => todo!(),
+            ExprKind::ArrayRepeat(_, _) => todo!(),
+            ExprKind::Assign(_, _) => todo!(),
+            ExprKind::AssignField(_, _, _) => todo!(),
+            ExprKind::AssignIndex(_, _, _) => todo!(),
+            ExprKind::AssignOp(_, _, _) => todo!(),
+            ExprKind::BinOp(_, _, _) => todo!(),
+            ExprKind::Block(_) => todo!(),
+            ExprKind::Call(callee_expr_id, args_expr_id) => {
+                self.generate_expr_call(*callee_expr_id, *args_expr_id);
+            }
+            ExprKind::Closure(_, _) => {
+                panic!("instruction generation for closure expressions is unsupported")
+            }
+            ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
+            ExprKind::Field(_, _) => todo!(),
+            ExprKind::Hole => panic!("instruction generation for hole expressions is invalid"),
+            ExprKind::If(_, _, _) => todo!(),
+            ExprKind::Index(_, _) => todo!(),
+            ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
+            ExprKind::Range(_, _, _) => {
+                panic!("instruction generation for range expressions is invalid")
+            }
+            ExprKind::Return(_) => todo!(),
+            ExprKind::String(_) => {
+                panic!("instruction generation for string expressions is invalid")
+            }
+            ExprKind::Tuple(_) => todo!(),
+            ExprKind::UnOp(_, _) => todo!(),
+            ExprKind::UpdateField(_, _, _) => todo!(),
+            ExprKind::UpdateIndex(_, _, _) => todo!(),
+            ExprKind::Var(_, _) => todo!(),
+            ExprKind::While(_, _) => todo!(),
+        };
     }
 
     fn get_current_package(&self) -> PackageId {
@@ -183,9 +226,9 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         let compute_kind = expr_generator_set
             .generate_application_compute_kind(&callable_scope.args_runtime_properties);
         if matches!(compute_kind, ComputeKind::Classical) {
-            self.eval_expr_classical(expr_id);
+            self.eval_classical_expr(expr_id);
         } else {
-            self.generate_expr_instructions(expr_id);
+            self.generate_instructions(expr_id);
         }
     }
 }
@@ -251,25 +294,20 @@ impl QubitsAndResultsAllocator {
 }
 
 struct EvaluationContext {
-    expression_value_map: ExpressionValueMap,
     current_block: rir::BlockId,
     callables_stack: Vec<CallableScope>,
     env: Env,
 }
 
 impl EvaluationContext {
-    fn new(
-        entry_package_id: PackageId,
-        package_store: &PackageStore,
-        initial_block: rir::BlockId,
-    ) -> Self {
+    fn new(entry_package_id: PackageId, initial_block: rir::BlockId) -> Self {
         let entry_callable_scope = CallableScope {
             package_id: entry_package_id,
             _callable: None,
             args_runtime_properties: Vec::new(),
+            expression_value_map: FxHashMap::default(),
         };
         Self {
-            expression_value_map: ExpressionValueMap::new(package_store),
             current_block: initial_block,
             callables_stack: vec![entry_callable_scope],
             env: Env::default(),
@@ -281,30 +319,23 @@ impl EvaluationContext {
             .last()
             .expect("the evaluation context does not have a current callable scope")
     }
+
+    fn get_current_callable_scope_mut(&mut self) -> &mut CallableScope {
+        self.callables_stack
+            .last_mut()
+            .expect("the evaluation context does not have a current callable scope")
+    }
 }
 
 struct CallableScope {
     package_id: PackageId,
     _callable: Option<(LocalItemId, FunctorApp)>,
     args_runtime_properties: Vec<ValueKind>,
+    expression_value_map: FxHashMap<ExprId, Value>,
 }
 
-struct ExpressionValueMap(FxHashMap<PackageId, FxHashMap<ExprId, Value>>);
-
-impl ExpressionValueMap {
-    fn new(package_store: &PackageStore) -> Self {
-        let mut expression_value_map = FxHashMap::<PackageId, FxHashMap<ExprId, Value>>::default();
-        for (package_id, _) in package_store {
-            expression_value_map.insert(package_id, FxHashMap::<ExprId, Value>::default());
-        }
-        Self(expression_value_map)
-    }
-
-    fn insert_expr_value(&mut self, store_expr_id: StoreExprId, value: Value) {
-        let package_expr_value_map = self
-            .0
-            .get_mut(&store_expr_id.package)
-            .expect("package expression value map does not exist");
-        package_expr_value_map.insert(store_expr_id.expr, value);
+impl CallableScope {
+    fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
+        self.expression_value_map.insert(expr_id, value);
     }
 }
