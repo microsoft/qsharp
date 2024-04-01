@@ -45,7 +45,7 @@ fn empty_entry_point() {
 
 #[ignore = "WIP"]
 #[test]
-fn allocate_one_qubit_point() {
+fn allocate_one_qubit() {
     check_rir(
         indoc! {r#"
         namespace Test {
