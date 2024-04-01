@@ -14,7 +14,8 @@ const PRELUDE: [[&str; 3]; 3] = [
 pub struct NamespaceId(usize);
 impl NamespaceId {
     /// Create a new namespace ID.
-    #[must_use] pub fn new(value: usize) -> Self {
+    #[must_use]
+    pub fn new(value: usize) -> Self {
         Self(value)
     }
 }
@@ -162,6 +163,7 @@ impl NamespaceTreeNode {
             if let Some(next_ns) = buf.get(component) {
                 buf = Rc::new(next_ns);
             } else {
+                println!("Did not find component {component}. Options were {:?}.", buf.children.keys());
                 return None;
             }
         }
