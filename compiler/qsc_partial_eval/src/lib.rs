@@ -11,16 +11,16 @@ use qsc_eval::{
 };
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Global, LocalItemId,
-        PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecImpl, Stmt, StmtId, StmtKind,
-        StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
+        Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Global,
+        LocalItemId, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl,
+        Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
     },
     visit::Visitor,
 };
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
 use qsc_rir::rir::{self, CallableType, Instruction, Program};
 use rustc_hash::FxHashMap;
-use std::result::Result;
+use std::{rc::Rc, result::Result};
 
 pub fn partially_evaluate(
     package_id: PackageId,
@@ -40,7 +40,7 @@ struct PartialEvaluator<'a> {
     compute_properties: &'a PackageStoreComputeProperties,
     _assigner: Assigner,
     backend: QubitsAndResultsAllocator,
-    context: EvaluationContext,
+    eval_context: EvaluationContext,
     program: Program,
     error: Option<Error>,
 }
@@ -68,16 +68,14 @@ impl<'a> PartialEvaluator<'a> {
         program.callables.insert(entry_point_id, entry_point);
         program.entry = entry_point_id;
 
-        // Initialize the backend and the evaluation context.
-        let backend = QubitsAndResultsAllocator::default();
+        // Initialize the evaluation context and create a new partial evaluator.
         let context = EvaluationContext::new(entry_package_id, entry_block_id);
-
         Self {
             package_store,
             compute_properties,
+            eval_context: context,
             _assigner: assigner,
-            backend,
-            context,
+            backend: QubitsAndResultsAllocator::default(),
             program,
             error: None,
         }
@@ -85,7 +83,7 @@ impl<'a> PartialEvaluator<'a> {
 
     #[allow(clippy::unnecessary_wraps)]
     fn eval(mut self) -> Result<Program, Error> {
-        let current_package = self.get_current_package();
+        let current_package = self.get_current_package_id();
         let entry_package = self.package_store.get(current_package);
         let Some(entry_expr_id) = entry_package.entry else {
             panic!("package does not have an entry expression");
@@ -98,7 +96,7 @@ impl<'a> PartialEvaluator<'a> {
         let current_block = self
             .program
             .blocks
-            .get_mut(self.context.current_block)
+            .get_mut(self.eval_context.current_block)
             .expect("block does not exist");
         current_block.0.push(Instruction::Return);
 
@@ -109,11 +107,11 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         callee_expr_id: ExprId,
     ) -> (StoreItemId, FunctorApp, CallableDecl) {
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_callee_expr_id = StoreExprId::from((current_package_id, callee_expr_id));
 
         // Verify that the callee expression is classical.
-        let callable_scope = self.context.get_current_callable_scope();
+        let callable_scope = self.eval_context.get_current_scope();
         let callee_expr_generator_set = self.compute_properties.get_expr(store_callee_expr_id);
         let callee_expr_compute_kind = callee_expr_generator_set
             .generate_application_compute_kind(&callable_scope.args_runtime_properties);
@@ -121,7 +119,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // Evaluate the callee expression to get the global to call.
         self.eval_classical_expr(callee_expr_id);
-        let callable_scope = self.context.get_current_callable_scope();
+        let callable_scope = self.eval_context.get_current_scope();
         let callee_value = callable_scope
             .expression_value_map
             .get(&callee_expr_id)
@@ -143,24 +141,18 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn eval_classical_expr(&mut self, expr_id: ExprId) {
-        let current_package_id = self.get_current_package();
-        let current_package = self.package_store.get(current_package_id);
+        let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
-        let callable_scope = self.context.get_current_callable_scope_mut();
-
-        // What happens if we are executing an expression in a package that does not have an entry-point (nor an
-        // entry execution graph) such as the core or standard libraries?
-        let exec_graph = exec_graph_section(
-            &current_package.entry_exec_graph,
-            expr.exec_graph_range.clone(),
-        );
+        let scope_exec_graph = self.get_current_scope_exec_graph().clone();
+        let scope = self.eval_context.get_current_scope_mut();
+        let exec_graph = exec_graph_section(&scope_exec_graph, expr.exec_graph_range.clone());
         let mut out = Vec::new();
         let mut receiver = GenericReceiver::new(&mut out);
         let mut state = State::new(current_package_id, exec_graph, None);
         let eval_result = state.eval(
             self.package_store,
-            &mut callable_scope.env,
+            &mut scope.env,
             &mut self.backend,
             &mut receiver,
             &[],
@@ -171,8 +163,8 @@ impl<'a> PartialEvaluator<'a> {
                 let StepResult::Return(value) = step_result else {
                     panic!("evaluating a classical expression should always return a value");
                 };
-                self.context
-                    .get_current_callable_scope_mut()
+                self.eval_context
+                    .get_current_scope_mut()
                     .insert_expr_value(expr_id, value);
             }
             Err((error, _)) => self.error = Some(Error::EvaluationFailed(error)),
@@ -208,39 +200,22 @@ impl<'a> PartialEvaluator<'a> {
         spec_impl: &SpecImpl,
         _args_expr_id: ExprId,
     ) {
-        let spec_decl = if !functor_app.adjoint && functor_app.controlled == 0 {
-            &spec_impl.body
-        } else if functor_app.adjoint && functor_app.controlled == 0 {
-            spec_impl
-                .adj
-                .as_ref()
-                .expect("adjoint specialization does not exist")
-        } else if !functor_app.adjoint && functor_app.controlled > 0 {
-            spec_impl
-                .ctl
-                .as_ref()
-                .expect("controlled specialization does not exist")
-        } else {
-            spec_impl
-                .ctl_adj
-                .as_ref()
-                .expect("controlled adjoint specialization does not exits")
-        };
+        let spec_decl = get_spec_decl(spec_impl, functor_app);
 
-        // We are currently not setting the argument values in a way that supports any call, but we'll add that support
-        // later.
-        let callable_scope = CallableScope {
+        // We are currently not setting the argument values in a way that supports arbitrary calls, but we'll add that
+        // support later.
+        let callable_scope = Scope {
             package_id: global_callable.package,
             callable: Some((global_callable.item, functor_app)),
             args_runtime_properties: Vec::new(),
             env: Env::default(),
             expression_value_map: FxHashMap::default(),
         };
-        self.context.callables_stack.push(callable_scope);
+        self.eval_context.scopes.push(callable_scope);
         self.visit_block(spec_decl.block);
         let popped_scope = self
-            .context
-            .callables_stack
+            .eval_context
+            .scopes
             .pop()
             .expect("there are no callable scopes to pop");
         assert!(popped_scope.package_id == global_callable.package);
@@ -252,7 +227,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn generate_instructions(&mut self, expr_id: ExprId) {
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
         match &expr.kind {
@@ -293,22 +268,54 @@ impl<'a> PartialEvaluator<'a> {
         };
     }
 
-    fn get_current_package(&self) -> PackageId {
-        self.context.get_current_callable_scope().package_id
+    fn get_current_package_id(&self) -> PackageId {
+        self.eval_context.get_current_scope().package_id
+    }
+
+    fn get_current_scope_exec_graph(&self) -> &Rc<[ExecGraphNode]> {
+        if let Some(spec_decl) = self.get_current_scope_spec_decl() {
+            &spec_decl.exec_graph
+        } else {
+            let package_id = self.get_current_package_id();
+            let package = self.package_store.get(package_id);
+            &package.entry_exec_graph
+        }
+    }
+
+    fn get_current_scope_spec_decl(&self) -> Option<&SpecDecl> {
+        let current_scope = self.eval_context.get_current_scope();
+        let Some((local_item_id, functor_app)) = current_scope.callable else {
+            return None;
+        };
+        let store_item_id = StoreItemId::from((current_scope.package_id, local_item_id));
+        let global = self
+            .package_store
+            .get_global(store_item_id)
+            .expect("global does not exist");
+        let Global::Callable(callable_decl) = global else {
+            panic!("global is not a callable");
+        };
+
+        let CallableImpl::Spec(spec_impl) = &callable_decl.implementation else {
+            panic!("callable does not implement specializations");
+        };
+
+        let spec_decl = get_spec_decl(spec_impl, functor_app);
+        Some(spec_decl)
     }
 
     fn is_classical_stmt(&self, stmt_id: StmtId) -> bool {
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
         let stmt_generator_set = self.compute_properties.get_stmt(store_stmt_id);
-        let callable_scope = self.context.get_current_callable_scope();
+        let callable_scope = self.eval_context.get_current_scope();
         let compute_kind = stmt_generator_set
             .generate_application_compute_kind(&callable_scope.args_runtime_properties);
         matches!(compute_kind, ComputeKind::Classical)
     }
 
     fn is_qubit_allocation_stmt(&mut self, stmt_id: StmtId) -> bool {
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
         let stmt = self.package_store.get_stmt(store_stmt_id);
         if let StmtKind::Local(_, _, expr_id) = &stmt.kind {
@@ -319,7 +326,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn is_qubit_release_stmt(&mut self, stmt_id: StmtId) -> bool {
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
         let stmt = self.package_store.get_stmt(store_stmt_id);
         if let StmtKind::Local(_, _, expr_id) = &stmt.kind {
@@ -330,7 +337,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn is_qubit_allocation_expr(&mut self, expr_id: ExprId) -> bool {
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
         if let ExprKind::Call(callee_expr_id, _) = &expr.kind {
@@ -346,7 +353,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn is_qubit_release_expr(&mut self, expr_id: ExprId) -> bool {
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
         if let ExprKind::Call(callee_expr_id, _) = &expr.kind {
@@ -364,22 +371,22 @@ impl<'a> PartialEvaluator<'a> {
 
 impl<'a> Visitor<'a> for PartialEvaluator<'a> {
     fn get_block(&self, id: BlockId) -> &'a Block {
-        let block_id = StoreBlockId::from((self.get_current_package(), id));
+        let block_id = StoreBlockId::from((self.get_current_package_id(), id));
         self.package_store.get_block(block_id)
     }
 
     fn get_expr(&self, id: ExprId) -> &'a Expr {
-        let expr_id = StoreExprId::from((self.get_current_package(), id));
+        let expr_id = StoreExprId::from((self.get_current_package_id(), id));
         self.package_store.get_expr(expr_id)
     }
 
     fn get_pat(&self, id: PatId) -> &'a Pat {
-        let pat_id = StorePatId::from((self.get_current_package(), id));
+        let pat_id = StorePatId::from((self.get_current_package_id(), id));
         self.package_store.get_pat(pat_id)
     }
 
     fn get_stmt(&self, id: StmtId) -> &'a Stmt {
-        let stmt_id = StoreStmtId::from((self.get_current_package(), id));
+        let stmt_id = StoreStmtId::from((self.get_current_package_id(), id));
         self.package_store.get_stmt(stmt_id)
     }
 
@@ -389,10 +396,10 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         }
 
         // If the expression can be classically evaluated, do it. Otherwise, generate instructions for it.
-        let current_package_id = self.get_current_package();
+        let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
-        let callable_scope = self.context.get_current_callable_scope();
+        let callable_scope = self.eval_context.get_current_scope();
         let compute_kind = expr_generator_set
             .generate_application_compute_kind(&callable_scope.args_runtime_properties);
         if matches!(compute_kind, ComputeKind::Classical) {
@@ -474,12 +481,12 @@ impl QubitsAndResultsAllocator {
 
 struct EvaluationContext {
     current_block: rir::BlockId,
-    callables_stack: Vec<CallableScope>,
+    scopes: Vec<Scope>,
 }
 
 impl EvaluationContext {
     fn new(entry_package_id: PackageId, initial_block: rir::BlockId) -> Self {
-        let entry_callable_scope = CallableScope {
+        let entry_callable_scope = Scope {
             package_id: entry_package_id,
             callable: None,
             args_runtime_properties: Vec::new(),
@@ -488,24 +495,24 @@ impl EvaluationContext {
         };
         Self {
             current_block: initial_block,
-            callables_stack: vec![entry_callable_scope],
+            scopes: vec![entry_callable_scope],
         }
     }
 
-    fn get_current_callable_scope(&self) -> &CallableScope {
-        self.callables_stack
+    fn get_current_scope(&self) -> &Scope {
+        self.scopes
             .last()
-            .expect("the evaluation context does not have a current callable scope")
+            .expect("the evaluation context does not have a current scope")
     }
 
-    fn get_current_callable_scope_mut(&mut self) -> &mut CallableScope {
-        self.callables_stack
+    fn get_current_scope_mut(&mut self) -> &mut Scope {
+        self.scopes
             .last_mut()
-            .expect("the evaluation context does not have a current callable scope")
+            .expect("the evaluation context does not have a current scope")
     }
 }
 
-struct CallableScope {
+struct Scope {
     package_id: PackageId,
     callable: Option<(LocalItemId, FunctorApp)>,
     args_runtime_properties: Vec<ValueKind>,
@@ -513,8 +520,29 @@ struct CallableScope {
     expression_value_map: FxHashMap<ExprId, Value>,
 }
 
-impl CallableScope {
+impl Scope {
     fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
         self.expression_value_map.insert(expr_id, value);
+    }
+}
+
+fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
+    if !functor_app.adjoint && functor_app.controlled == 0 {
+        &spec_impl.body
+    } else if functor_app.adjoint && functor_app.controlled == 0 {
+        spec_impl
+            .adj
+            .as_ref()
+            .expect("adjoint specialization does not exist")
+    } else if !functor_app.adjoint && functor_app.controlled > 0 {
+        spec_impl
+            .ctl
+            .as_ref()
+            .expect("controlled specialization does not exist")
+    } else {
+        spec_impl
+            .ctl_adj
+            .as_ref()
+            .expect("controlled adjoint specialization does not exits")
     }
 }
