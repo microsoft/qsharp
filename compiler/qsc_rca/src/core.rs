@@ -999,6 +999,11 @@ impl<'a> Analyzer<'a> {
             // Visit the statement to determine its compute kind.
             self.visit_stmt(stmt_id);
         }
+
+        // Analyze the entry expression.
+        if let Some(entry_expr_id) = package.entry {
+            self.visit_expr(entry_expr_id);
+        }
         let top_level_context = self.pop_top_level_context();
         assert!(top_level_context.package_id == package_id);
 
