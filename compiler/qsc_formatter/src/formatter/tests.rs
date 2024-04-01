@@ -9,6 +9,11 @@ fn check(input: &str, expect: &Expect) {
     expect.assert_eq(&actual);
 }
 
+fn check_edits(input: &str, expect: &Expect) {
+    let actual = super::calculate_format_edits(input);
+    expect.assert_debug_eq(&actual);
+}
+
 // Removing trailing whitespace from lines
 
 #[test]
@@ -1109,6 +1114,66 @@ fn preserve_comments_at_start_of_file() {
         namespace Foo {}"#};
 
     assert!(super::calculate_format_edits(input).is_empty());
+}
+
+#[test]
+fn format_with_crlf() {
+    let content = indoc! {"//qsharp\r\n\r\noperation Foo() : Unit {\r\n\r\n}\r\n"};
+    check_edits(
+        content,
+        &expect![[r#"
+            [
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 36,
+                        hi: 40,
+                    },
+                },
+            ]
+        "#]],
+    );
+    check(
+        content,
+        &expect![["//qsharp\r\n\r\noperation Foo() : Unit {}\r\n"]],
+    );
+}
+
+#[test]
+fn format_does_not_edit_magic_comment() {
+    let content = indoc! {"\r\n\r\n    //qsharp    \r\n\r\noperation Foo() : Unit {\r\n\r\n}\r\n"};
+    check_edits(
+        content,
+        &expect![[r#"
+            [
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 0,
+                        hi: 8,
+                    },
+                },
+                TextEdit {
+                    new_text: "//qsharp",
+                    span: Span {
+                        lo: 8,
+                        hi: 20,
+                    },
+                },
+                TextEdit {
+                    new_text: "",
+                    span: Span {
+                        lo: 48,
+                        hi: 52,
+                    },
+                },
+            ]
+        "#]],
+    );
+    check(
+        content,
+        &expect![["//qsharp\r\n\r\noperation Foo() : Unit {}\r\n"]],
+    );
 }
 
 #[test]

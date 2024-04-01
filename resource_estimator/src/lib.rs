@@ -13,7 +13,7 @@
     clippy::cast_lossless
 )]
 
-mod counts;
+pub mod counts;
 /// Provides traits to define a fault-tolerant quantum computing architecture
 /// and functions to perform resource estimation on such architectures.
 pub mod estimates;

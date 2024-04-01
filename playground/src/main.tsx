@@ -76,7 +76,7 @@ function App(props: { katas: Kata[]; docs: Docs[]; linkedCode?: string }) {
   });
 
   const [currentNavItem, setCurrentNavItem] = useState(
-    props.linkedCode ? "linked" : "Minimal",
+    props.linkedCode ? "linked" : "sample-Minimal",
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined,
@@ -97,8 +97,8 @@ function App(props: { katas: Kata[]; docs: Docs[]; linkedCode?: string }) {
   const docTitles = props.docs.map((doc) => doc.namespace);
 
   const sampleCode =
-    samples.find((sample) => sample.title === currentNavItem)?.code ||
-    props.linkedCode;
+    samples.find((sample) => "sample-" + sample.title === currentNavItem)
+      ?.code || props.linkedCode;
 
   const defaultShots =
     samples.find((sample) => sample.title === currentNavItem)?.shots || 100;

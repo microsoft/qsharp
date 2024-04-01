@@ -4,6 +4,7 @@
 mod baseprofck;
 mod borrowck;
 mod callable_limits;
+mod capabilitiesck;
 mod common;
 mod conjugate_invert;
 mod entry_point;
@@ -15,9 +16,11 @@ mod replace_qubit_allocation;
 mod spec_gen;
 
 use callable_limits::CallableLimits;
+use capabilitiesck::check_supported_capabilities;
 use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
+use qsc_fir::fir;
 use qsc_frontend::compile::{CompileUnit, RuntimeCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
@@ -27,6 +30,7 @@ use qsc_hir::{
     validate::Validator,
     visit::Visitor,
 };
+use qsc_rca::PackageComputeProperties;
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
 
@@ -37,6 +41,7 @@ pub enum Error {
     BaseProfCk(baseprofck::Error),
     BorrowCk(borrowck::Error),
     CallableLimits(callable_limits::Error),
+    CapabilitiesCk(capabilitiesck::Error),
     ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
@@ -152,5 +157,18 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
         .into_iter()
         .map(Error::BorrowCk)
         .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
+        .collect()
+}
+
+pub fn run_fir_passes(
+    package: &fir::Package,
+    compute_properties: &PackageComputeProperties,
+    capabilities: RuntimeCapabilityFlags,
+) -> Vec<Error> {
+    let capabilities_errors =
+        check_supported_capabilities(package, compute_properties, capabilities);
+    capabilities_errors
+        .into_iter()
+        .map(Error::CapabilitiesCk)
         .collect()
 }
