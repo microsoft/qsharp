@@ -8,9 +8,10 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{PackageId, PackageStore};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_lowerer::map_hir_package_to_fir;
+use qsc_lowerer::Lowerer;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 
 #[test]
@@ -29,9 +30,9 @@ fn empty_entry_point() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                 blocks:
                     Block 0: Block:
                         Return
@@ -62,9 +63,9 @@ fn allocate_one_qubit() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                 blocks:
                     Block 0: Block:
                         Return
@@ -96,16 +97,16 @@ fn call_to_single_qubit_operation() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__h__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )
@@ -144,30 +145,30 @@ fn call_to_many_single_qubit_operations() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__h__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 2: Callable:
                         name: __quantum__qis__x__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 3: Callable:
                         name: __quantum__qis__y__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )
@@ -203,17 +204,17 @@ fn call_to_rotation_operation_using_literal() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__rx__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Double(1), Qubit(0), )
@@ -248,17 +249,17 @@ fn calls_to_rotation_operation_using_inline_expressions() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__ry__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Double(0), Qubit(0), )
@@ -298,17 +299,17 @@ fn calls_to_rotation_operation_using_variables() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__rz__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Double(2), Qubit(0), )

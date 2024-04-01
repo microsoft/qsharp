@@ -272,6 +272,21 @@ def test_entry_expr_circuit() -> None:
     )
 
 
+def test_adaptive_errors_are_raised_when_interpreting() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret("operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }")
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
+def test_adaptive_errors_are_raised_when_running() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    with pytest.raises(Exception) as excinfo:
+        e.run("{use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; }}")
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
+
 def test_operation_circuit() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
     e.interpret("operation Foo(q: Qubit) : Result { H(q); return M(q) }")

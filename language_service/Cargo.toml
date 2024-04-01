@@ -16,15 +16,15 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dependencies]
+async-trait = { workspace = true }
 futures = { workspace = true }
 futures-util = { workspace = true }
 log = { workspace = true }
 miette = { workspace = true }
 qsc = { path = "../compiler/qsc" }
-rustc-hash = { workspace = true }
 qsc_linter = { path = "../compiler/qsc_linter" }
 qsc_project = { path = "../compiler/qsc_project", features = ["async"] }
-async-trait = { workspace = true }
+rustc-hash = { workspace = true }
 
 [lints]
 workspace = true

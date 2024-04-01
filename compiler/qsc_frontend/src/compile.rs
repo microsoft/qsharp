@@ -52,6 +52,7 @@ bitflags! {
 pub enum ConfigAttr {
     Unrestricted,
     Base,
+    Adaptive,
 }
 
 impl ConfigAttr {
@@ -60,6 +61,7 @@ impl ConfigAttr {
         match self {
             Self::Unrestricted => "Unrestricted",
             Self::Base => "Base",
+            Self::Adaptive => "Adaptive",
         }
     }
 
@@ -76,6 +78,7 @@ impl FromStr for ConfigAttr {
         match s {
             "Unrestricted" => Ok(ConfigAttr::Unrestricted),
             "Base" => Ok(ConfigAttr::Base),
+            "Adaptive" => Ok(ConfigAttr::Adaptive),
             _ => Err(()),
         }
     }
@@ -86,6 +89,7 @@ impl From<ConfigAttr> for RuntimeCapabilityFlags {
         match value {
             ConfigAttr::Unrestricted => Self::all(),
             ConfigAttr::Base => Self::empty(),
+            ConfigAttr::Adaptive => Self::ForwardBranching,
         }
     }
 }

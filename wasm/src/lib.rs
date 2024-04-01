@@ -18,9 +18,10 @@ use qsc::{
         CircuitEntryPoint,
     },
     target::Profile,
-    LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
+    LanguageFeatures, PackageStore, PackageType, PassContext, SourceContents, SourceMap,
+    SourceName, SparseSim,
 };
-use qsc_codegen::qir_base::generate_qir;
+use qsc_codegen::{qir::to_qir, qir_base::generate_qir};
 use resource_estimator::{self as re, estimate_entry};
 use serde::Serialize;
 use serde_json::json;
@@ -78,7 +79,16 @@ pub fn get_qir(
 ) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = get_source_map(sources, &None);
-    _get_qir(sources, language_features)
+    if language_features.contains(LanguageFeatures::QirGenPreview) {
+        let profile = if language_features.contains(LanguageFeatures::AdaptiveProfileQirGen) {
+            Profile::Adaptive
+        } else {
+            Profile::Base
+        };
+        _get_qir_preview(sources, language_features, profile)
+    } else {
+        _get_qir(sources, language_features)
+    }
 }
 
 // allows testing without wasm bindings.
@@ -107,6 +117,45 @@ fn _get_qir(sources: SourceMap, language_features: LanguageFeatures) -> Result<S
     let package = store.insert(unit);
 
     generate_qir(&store, package).map_err(|e| e.0.to_string())
+}
+
+fn _get_qir_preview(
+    sources: SourceMap,
+    language_features: LanguageFeatures,
+    profile: Profile,
+) -> Result<String, String> {
+    let core = compile::core();
+    let mut package_store = PackageStore::new(core);
+    let std = compile::std(&package_store, profile.into());
+    let std = package_store.insert(std);
+
+    let (unit, errors) = qsc::compile::compile(
+        &package_store,
+        &[std],
+        sources,
+        PackageType::Exe,
+        profile.into(),
+        language_features,
+    );
+
+    // Ensure it compiles before trying to add it to the store.
+    if !errors.is_empty() {
+        // This should never happen, as the program should be checked for errors before trying to
+        // generate code for it. But just in case, simply report the failure.
+        return Err("Failed to generate QIR".to_string());
+    }
+
+    let package_id = package_store.insert(unit);
+
+    let errors = PassContext::run_fir_passes_on_hir(&package_store, package_id, profile.into());
+    // Ensure it compiles before trying to add it to the store.
+    if !errors.is_empty() {
+        // This should never happen, as the program should be checked for errors before trying to
+        // generate code for it. But just in case, simply report the failure.
+        return Err("Failed to generate QIR".to_string());
+    }
+
+    to_qir(&package_store, package_id, profile.into()).map_err(|e| e.to_string())
 }
 
 #[wasm_bindgen]
@@ -420,5 +469,5 @@ pub fn generate_docs() -> JsValue {
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "unrestricted";
+export type TargetProfile = "adaptive" | "base" | "unrestricted";
 "#;

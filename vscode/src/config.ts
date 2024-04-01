@@ -9,6 +9,7 @@ export function getTarget(): TargetProfile {
     .getConfiguration("Q#")
     .get<TargetProfile>("targetProfile", "unrestricted");
   switch (target) {
+    case "adaptive":
     case "base":
     case "unrestricted":
       return target;
@@ -31,6 +32,8 @@ export function getTargetFriendlyName(targetProfile?: string) {
   switch (targetProfile) {
     case "base":
       return "Q#: QIR base";
+    case "adaptive":
+      return "Q#: QIR adaptive";
     case "unrestricted":
       return "Q#: unrestricted";
     default:
@@ -50,5 +53,19 @@ export function getShowCircuitCodeLens(): boolean {
   return vscode.workspace.getConfiguration("Q#").get<boolean>(
     "showCircuitCodeLens",
     true, // The default value should be set in `package.json` as well.
+  );
+}
+
+export function getUseQirGenPreview(): boolean {
+  return vscode.workspace.getConfiguration("Q#").get<boolean>(
+    "useQirGenPreview",
+    false, // The default value should be set in `package.json` as well.
+  );
+}
+
+export function getEnableAdaptiveProfile(): boolean {
+  return vscode.workspace.getConfiguration("Q#").get<boolean>(
+    "enableAdaptiveProfile",
+    false, // The default value should be set in `package.json` as well.
   );
 }

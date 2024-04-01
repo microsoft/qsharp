@@ -458,7 +458,7 @@ pub trait PackageStoreLookup {
 }
 
 /// A FIR package store.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct PackageStore(IndexMap<PackageId, Package>);
 
 impl PackageStoreLookup for PackageStore {

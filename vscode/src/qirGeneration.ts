@@ -6,7 +6,7 @@ import { getCompilerWorker, log } from "qsharp-lang";
 import { isQsharpDocument } from "./common";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { getTarget, setTarget } from "./config";
+import { getTarget, getUseQirGenPreview, setTarget } from "./config";
 import { loadProject } from "./projectSystem";
 
 const generateQirTimeoutMs = 30000;
@@ -32,7 +32,10 @@ export async function getQirForActiveWindow(): Promise<string> {
 
   // Check that the current target is base profile, and current doc has no errors.
   const targetProfile = getTarget();
-  if (targetProfile !== "base") {
+  const allowed =
+    targetProfile === "base" ||
+    (targetProfile === "adaptive" && getUseQirGenPreview());
+  if (!allowed) {
     const result = await vscode.window.showWarningMessage(
       "Submitting to Azure is only supported when targeting the QIR base profile.",
       { modal: true },
@@ -77,7 +80,15 @@ export async function getQirForActiveWindow(): Promise<string> {
     const associationId = getRandomGuid();
     const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
-    result = await worker.getQir(sources, languageFeatures);
+    if (getUseQirGenPreview()) {
+      languageFeatures.push("qir-gen-preview");
+    }
+    if (getTarget() === "adaptive") {
+      // if the target is adaptive, we already know adaptive is enabled
+      languageFeatures.push("adaptive-qir-gen");
+    }
+    result = await worker.getQir({ sources, languageFeatures });
+
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },

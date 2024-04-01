@@ -12,6 +12,17 @@ use qsc_hir::hir::{self, SpecBody, SpecGen};
 use std::iter::once;
 use std::{clone::Clone, rc::Rc};
 
+#[must_use]
+pub fn map_hir_package_to_fir(package: hir::PackageId) -> fir::PackageId {
+    fir::PackageId::from(<hir::PackageId as Into<usize>>::into(package))
+}
+
+#[must_use]
+pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
+    hir::PackageId::from(<fir::PackageId as Into<usize>>::into(package))
+}
+
+#[derive(Clone)]
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
     locals: IndexMap<hir::NodeId, fir::LocalVarId>,

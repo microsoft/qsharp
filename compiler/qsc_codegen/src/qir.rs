@@ -7,10 +7,46 @@ mod instruction_tests;
 #[cfg(test)]
 mod tests;
 
+use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_hir::hir;
+use qsc_lowerer::map_hir_package_to_fir;
+use qsc_partial_eval::partially_evaluate;
 use qsc_rir::{
     rir::{self, ConditionCode},
     utils::get_all_block_successors,
 };
+
+fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::fir::PackageStore {
+    let mut fir_store = qsc_fir::fir::PackageStore::new();
+    for (id, unit) in package_store {
+        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+        fir_store.insert(map_hir_package_to_fir(id), package);
+    }
+    fir_store
+}
+
+/// converts the given sources to QIR using the given language features.
+pub fn to_qir(
+    package_store: &qsc_frontend::compile::PackageStore,
+    package_id: hir::PackageId,
+    capabilities: RuntimeCapabilityFlags,
+) -> Result<String, qsc_partial_eval::Error> {
+    let fir_store = lower_store(package_store);
+
+    let fir_package_id = map_hir_package_to_fir(package_id);
+    let program = get_rir_from_compilation(&fir_store, fir_package_id, capabilities)?;
+    Ok(ToQir::<String>::to_qir(&program, &program))
+}
+
+fn get_rir_from_compilation(
+    fir_store: &qsc_fir::fir::PackageStore,
+    fir_package_id: qsc_fir::fir::PackageId,
+    _capabilities: RuntimeCapabilityFlags,
+) -> Result<rir::Program, qsc_partial_eval::Error> {
+    let analyzer = qsc_rca::Analyzer::init(fir_store);
+    let compute_properties = analyzer.analyze_all();
+    partially_evaluate(fir_package_id, fir_store, &compute_properties)
+}
 
 /// A trait for converting a type into QIR of type `T`.
 /// This can be used to generate QIR strings or other representations.

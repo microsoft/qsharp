@@ -9,6 +9,7 @@ from ._native import (
     Output,
     Circuit,
 )
+from warnings import warn
 from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -23,10 +24,14 @@ class Config:
     """
 
     def __init__(self, target_profile: TargetProfile, language_features: List[str]):
-        if target_profile == TargetProfile.Unrestricted:
-            self._config = {"targetProfile": "unrestricted"}
+        if target_profile == TargetProfile.Adaptive:
+            self._config = {"targetProfile": "adaptive"}
+            warn("The adaptive target profile is a preview feature.")
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
+        elif target_profile == TargetProfile.Unrestricted:
+            self._config = {"targetProfile": "unrestricted"}
+
         self._config["languageFeatures"] = language_features
 
     def __repr__(self) -> str:

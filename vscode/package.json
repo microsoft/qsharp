@@ -101,6 +101,7 @@
           "default": "unrestricted",
           "enum": [
             "unrestricted",
+            "adaptive",
             "base"
           ],
           "enumDescriptions": [
@@ -118,6 +119,16 @@
           "type": "boolean",
           "default": true,
           "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
+        },
+        "Q#.useQirGenPreview": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enables the preview QIR code generation functionality."
+        },
+        "Q#.enableAdaptiveProfile": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enables Adaptive as a target profile."
         }
       }
     },

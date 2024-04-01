@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use miette::Diagnostic;
 use qsc_data_structures::functors::FunctorApp;
 use qsc_eval::{
     self, backend::Backend, exec_graph_section, output::GenericReceiver, val::Value, Env, State,
@@ -22,6 +23,7 @@ use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputePropertie
 use qsc_rir::rir::{self, Callable, CallableId, CallableType, Instruction, Literal, Program};
 use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
+use thiserror::Error;
 
 pub fn partially_evaluate(
     package_id: PackageId,
@@ -32,7 +34,10 @@ pub fn partially_evaluate(
     partial_evaluator.eval()
 }
 
+#[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
+    #[error("partial evaluation error: {0}")]
+    #[diagnostic(code("Qsc.Partial.Eval"))]
     EvaluationFailed(qsc_eval::Error),
 }
 
