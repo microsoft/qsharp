@@ -45,7 +45,15 @@ function getTimeStr() {
 
 export function copyWasmToVsCode() {
   // Copy the wasm module into the extension directory
-  let qsharpWasm = join(thisDir, "..", "npm", "lib", "web", "qsc_wasm_bg.wasm");
+  let qsharpWasm = join(
+    thisDir,
+    "..",
+    "npm",
+    "qsharp",
+    "lib",
+    "web",
+    "qsc_wasm_bg.wasm",
+  );
   let qsharpDest = join(thisDir, `wasm`);
 
   console.log("Copying the wasm file to VS Code from: " + qsharpWasm);
