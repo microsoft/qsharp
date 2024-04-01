@@ -100,15 +100,9 @@ pub fn reindex_qubits(program: &mut Program) {
     program.blocks.insert(block_id, Block(new_block));
 
     // All reset function calls should be removed, so remove them from the callables.
-    let mut callables_to_remove = Vec::new();
-    for (callable_id, callable) in program.callables.iter() {
-        if callable.call_type == CallableType::Reset || Some(callable_id) == mresetz_id {
-            callables_to_remove.push(callable_id);
-        }
-    }
-    for callable_id in callables_to_remove {
-        program.callables.remove(callable_id);
-    }
+    program
+        .callables
+        .retain(|id, callable| callable.call_type != CallableType::Reset && Some(id) != mresetz_id);
 
     // If mz was added but not used, remove it.
     if !used_mz {
