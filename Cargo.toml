@@ -23,6 +23,7 @@ members = [
     "library",
     "pip",
     "resource_estimator",
+    "samples/estimation/extension/anbrc",
     "wasm",
 ]
 resolver = "2"
