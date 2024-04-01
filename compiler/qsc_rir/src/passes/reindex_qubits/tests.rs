@@ -14,17 +14,19 @@ use super::reindex_qubits;
 
 #[test]
 fn qubit_reindexed_after_reset_removes_reset() {
+    const X: CallableId = CallableId(0);
+    const RESET: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
-    program.callables.insert(CallableId(0), x_decl());
-    program.callables.insert(CallableId(1), reset_decl());
+    program.callables.insert(X, x_decl());
+    program.callables.insert(RESET, reset_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
-            Instruction::Call(CallableId(1), vec![Value::Literal(Literal::Qubit(0))], None),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
-            Instruction::Call(CallableId(1), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(RESET, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(RESET, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Return,
         ]),
     );
@@ -57,25 +59,27 @@ fn qubit_reindexed_after_reset_removes_reset() {
 
 #[test]
 fn qubit_reindexed_after_mz() {
+    const X: CallableId = CallableId(0);
+    const MZ: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
-    program.callables.insert(CallableId(0), x_decl());
-    program.callables.insert(CallableId(1), mz_decl());
+    program.callables.insert(X, x_decl());
+    program.callables.insert(MZ, mz_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(1)),
@@ -111,6 +115,8 @@ fn qubit_reindexed_after_mz() {
 
 #[test]
 fn qubit_reindexed_after_mresetz_and_changed_to_mz() {
+    const X: CallableId = CallableId(0);
+    const MRESETZ: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
     program.callables.insert(CallableId(0), x_decl());
@@ -118,18 +124,18 @@ fn qubit_reindexed_after_mresetz_and_changed_to_mz() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MRESETZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MRESETZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(1)),
@@ -165,17 +171,20 @@ fn qubit_reindexed_after_mresetz_and_changed_to_mz() {
 
 #[test]
 fn multiple_qubit_reindex() {
+    const H: CallableId = CallableId(0);
+    const MRESETZ: CallableId = CallableId(1);
+    const CX: CallableId = CallableId(2);
     let mut program = Program::new();
     program.num_qubits = 2;
-    program.callables.insert(CallableId(0), h_decl());
-    program.callables.insert(CallableId(1), mresetz_decl());
-    program.callables.insert(CallableId(2), cx_decl());
+    program.callables.insert(H, h_decl());
+    program.callables.insert(MRESETZ, mresetz_decl());
+    program.callables.insert(CX, cx_decl());
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(H, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MRESETZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(0)),
@@ -183,7 +192,7 @@ fn multiple_qubit_reindex() {
                 None,
             ),
             Instruction::Call(
-                CallableId(2),
+                CX,
                 vec![
                     Value::Literal(Literal::Qubit(1)),
                     Value::Literal(Literal::Qubit(0)),
@@ -217,6 +226,8 @@ fn multiple_qubit_reindex() {
 
 #[test]
 fn qubit_reindexed_multiple_times() {
+    const X: CallableId = CallableId(0);
+    const MZ: CallableId = CallableId(1);
     let mut program = Program::new();
     program.num_qubits = 1;
     program.callables.insert(CallableId(0), x_decl());
@@ -224,36 +235,36 @@ fn qubit_reindexed_multiple_times() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(1)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(2)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
-                CallableId(1),
+                MZ,
                 vec![
                     Value::Literal(Literal::Qubit(0)),
                     Value::Literal(Literal::Result(3)),
