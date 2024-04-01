@@ -1000,11 +1000,14 @@ fn bind_global_item(
                 .or_default()
                 .entry(Rc::clone(&decl.name.name))
             {
-                Entry::Occupied(_) => errors.push(Error::Duplicate(
-                    decl.name.name.to_string(),
-                    namespace.to_string(),
-                    decl.name.span,
-                )),
+                Entry::Occupied(_) => {
+                    let namespace_name = scope.namespaces.find_id(&namespace).0.join(".");
+                    errors.push(Error::Duplicate(
+                        decl.name.name.to_string(),
+                        namespace_name.to_string(),
+                        decl.name.span,
+                    ))
+                },
                 Entry::Vacant(entry) => {
                     entry.insert(res);
                 }
@@ -1040,11 +1043,14 @@ fn bind_global_item(
                     .or_default()
                     .entry(Rc::clone(&name.name)),
             ) {
-                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(vec![Error::Duplicate(
-                    name.name.to_string(),
-                    namespace.to_string(),
-                    name.span,
-                )]),
+                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
+                    let namespace_name = scope.namespaces.find_id(&namespace).0.join(".");
+                    Err(vec![Error::Duplicate(
+                        name.name.to_string(),
+                        namespace_name,
+                        name.span,
+                    )])
+                },
                 (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
                     term_entry.insert(res);
                     ty_entry.insert(res);

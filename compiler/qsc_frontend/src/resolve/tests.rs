@@ -2654,3 +2654,26 @@ fn newtype_with_tuple_destructuring() {
         "#]],
     );
 }
+
+#[test]
+fn items_resolve_according_to_hierarchy() {
+    check(
+        indoc! {"
+namespace Foo {
+  @EntryPoint()
+  function Main(): Int {
+    Foo()
+  }
+
+  function Foo() : Int {
+    Bar.Baz.Bar()
+  }
+}
+
+namespace Foo.Bar.Baz {
+  function Bar() : Int { 6 }
+}
+"},
+        &expect![[r#"  "#]],
+    );
+}
