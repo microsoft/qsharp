@@ -194,6 +194,8 @@ pub enum CallableType {
     OutputRecording,
     Regular,
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum IntPredicate {
     Eq,
     Ne,
@@ -201,6 +203,20 @@ pub enum IntPredicate {
     Sle,
     Sgt,
     Sge,
+}
+
+impl Display for IntPredicate {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match &self {
+            Self::Eq => write!(f, "Eq")?,
+            Self::Ne => write!(f, "Ne")?,
+            Self::Slt => write!(f, "Slt")?,
+            Self::Sle => write!(f, "Sle")?,
+            Self::Sgt => write!(f, "Sgt")?,
+            Self::Sge => write!(f, "Sge")?,
+        };
+        Ok(())
+    }
 }
 
 impl Display for CallableType {
@@ -294,6 +310,43 @@ impl Display for Instruction {
             Ok(())
         }
 
+        fn write_icmp_instruction(
+            f: &mut Formatter,
+            op: IntPredicate,
+            lhs: &Value,
+            rhs: &Value,
+            variable: &Variable,
+        ) -> fmt::Result {
+            let mut indent = set_indentation(indented(f), 0);
+            write!(indent, "Icmp ({op}):")?;
+            indent = set_indentation(indent, 1);
+            write!(indent, "\nlhs: {lhs}")?;
+            write!(indent, "\nrhs: {rhs}")?;
+            write!(indent, "\nvariable: {variable}")?;
+            Ok(())
+        }
+
+        fn write_phi_instruction(
+            f: &mut Formatter,
+            args: &[(Value, BlockId)],
+            variable: &Variable,
+        ) -> fmt::Result {
+            let mut indent = set_indentation(indented(f), 0);
+            write!(indent, "Phi:")?;
+            indent = set_indentation(indent, 1);
+            write!(indent, "\nargs:")?;
+            if args.is_empty() {
+                write!(indent, " <empty>")?;
+            } else {
+                indent = set_indentation(indent, 2);
+                for (index, (arg, block_id)) in args.iter().enumerate() {
+                    write!(indent, "\n[{index}]: {arg} from block {}", block_id.0)?;
+                }
+            }
+            write!(indent, "\nvariable: {variable}")?;
+            Ok(())
+        }
+
         match &self {
             Self::Store(value, variable) => write_unary_instruction(f, "Store", value, variable)?,
             Self::Jump(block_id) => write!(f, "Jump({})", block_id.0)?,
@@ -310,8 +363,8 @@ impl Display for Instruction {
             Self::Mul(lhs, rhs, variable) => {
                 write_binary_instruction(f, "Mul", lhs, rhs, variable)?;
             }
-            Self::Div(lhs, rhs, variable) => {
-                write_binary_instruction(f, "Div", lhs, rhs, variable)?;
+            Self::Sdiv(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Sdiv", lhs, rhs, variable)?;
             }
             Self::LogicalNot(value, variable) => {
                 write_unary_instruction(f, "LogicalNot", value, variable)?;
@@ -333,6 +386,21 @@ impl Display for Instruction {
             }
             Self::BitwiseXor(lhs, rhs, variable) => {
                 write_binary_instruction(f, "BitwiseXor", lhs, rhs, variable)?;
+            }
+            Self::Srem(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Srem", lhs, rhs, variable)?;
+            }
+            Self::Shl(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Shl", lhs, rhs, variable)?;
+            }
+            Self::Ashr(lhs, rhs, variable) => {
+                write_binary_instruction(f, "Ashr", lhs, rhs, variable)?;
+            }
+            Self::Icmp(op, lhs, rhs, variable) => {
+                write_icmp_instruction(f, *op, lhs, rhs, variable)?;
+            }
+            Self::Phi(args, variable) => {
+                write_phi_instruction(f, args, variable)?;
             }
             Self::Return => write!(f, "Return")?,
         };
