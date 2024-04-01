@@ -103,6 +103,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__even_odd",
+    "title": "Even and Odd Numbers",
+    "path": "./even_odd/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__uneven_superpositions",
     "title": "Uneven superpositions"
