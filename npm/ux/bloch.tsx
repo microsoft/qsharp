@@ -58,6 +58,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
+import { AppliedGate, Rotations } from "../src/cplx.js";
+
 const colors = {
   sphereColor: 0x404080,
   sphereBrightness: 2,
@@ -173,9 +175,12 @@ class BlochRenderer {
   qubit: Group;
   trail: Group;
   animationCallbackId = 0;
-  gateQueue: any[] = [];
+  gateQueue: AppliedGate[] = [];
+  rotataions: Rotations;
 
   constructor(canvas: HTMLCanvasElement) {
+    this.rotataions = new Rotations();
+
     // For VS Code, WebView body attribute 'data-vscode-theme-kind' will contain 'light' if light theme is active.
     // Note: The value is usually 'vscode-light' or 'vscode-dark', but high-contrast dark is just 'vscode-high-contrast',
     // whereas the light high contract theme is 'vscode-high-contrast-light'.
@@ -306,23 +311,72 @@ class BlochRenderer {
   - Track requestAnimationFrame return value to indicate if animation is running already
   */
 
-  queueGate(gate: any) {
+  queueGate(gate: AppliedGate) {
     this.gateQueue.push(gate);
     if (this.animationCallbackId) return; // Queue is already running
 
+    // Close over these values for the running queue
+    let currentGate: AppliedGate | undefined;
+
+    // First element is the percent of rotation at which to draw it
+    let pointsToDraw: [number, Quaternion][] = [];
+
     const processQueue = () => {
-      if (this.gateQueue.length === 0) {
-        this.animationCallbackId = 0;
-        return;
+      if (!currentGate) {
+        currentGate = this.gateQueue.shift();
+        if (!currentGate) {
+          // Queue was empty. Done
+          this.animationCallbackId = 0;
+          return;
+        } else {
+          currentGate.startTime = performance.now();
+          pointsToDraw = currentGate.path.map((point, idx, arr) => [
+            idx / arr.length,
+            point,
+          ]);
+        }
       }
 
-      // Update frame for gate at front of queue
+      // Calculate the percent of rotation time elapsed from start to now
+      const now = performance.now();
+      const x =
+        Math.max(now - currentGate.startTime, 1) /
+        this.rotataions.timePerGateMs;
 
-      // If that gate is done, remove it
-      this.gateQueue.shift();
+      // Ease the rotation
+      const t = x < 1 ? easeInOutSine(x) : 1;
+
+      // Add any points in the queue that should be drawn now
+      while (pointsToDraw[0]?.[0] < t) {
+        // TODO: Factor out into helper function
+        const [_, point] = pointsToDraw.shift()!;
+        const trackGeo = new SphereGeometry(0.05, 16, 16);
+        const trackBall = new Mesh(
+          trackGeo,
+          new MeshBasicMaterial({ color: 0x808080 }),
+        );
+        trackBall.position.set(0, 5, 0);
+
+        // Conver to world space
+        trackBall.position.applyQuaternion(point);
+
+        // Save along with the interpolation point
+        this.trail.add(trackBall);
+      }
+
+      // Rotate the qubit to the correct position
+      const currentRotation = this.rotataions.getRotationAtPercent(
+        currentGate,
+        t,
+      );
+      this.qubit.quaternion.copy(currentRotation);
+
+      // If that gate is done, unset it
+      if (t >= 1) currentGate = undefined;
 
       this.animationCallbackId = requestAnimationFrame(processQueue);
     };
+
     processQueue();
   }
 

@@ -377,7 +377,7 @@ export class Rotations {
     return Math.abs(pathTravelled);
   }
 
-  applyGate(name: string, axis: Vector3, angle: number) {
+  applyGate(name: string, axis: Vector3, angle: number): AppliedGate {
     // Get the target position by applying the rotation to the current position
     const endPos = new Quaternion()
       .setFromAxisAngle(axis, angle)
@@ -394,26 +394,28 @@ export class Rotations {
       const t = i / pointCount;
       path.push(this.currPosition.clone().slerp(endPos, t));
     }
-    this.gates.push({ name, startTime: Date.now(), path, endPos });
+    const gate = { name, startTime: Date.now(), path, endPos };
+    this.gates.push(gate);
 
     // Update the current position to the final target
     this.currPosition = endPos;
+    return gate;
   }
 
-  rotateX(angle?: number) {
+  rotateX(angle?: number): AppliedGate {
     const name = angle === undefined ? "X" : `X(${numToStr(angle)})`;
     if (angle === undefined) angle = Math.PI;
     // The Bloch sphere X axis is the Z axis in WebGL
-    this.applyGate(name, new Vector3(0, 0, 1), angle);
+    return this.applyGate(name, new Vector3(0, 0, 1), angle);
   }
-  rotateY(angle?: number) {
+  rotateY(angle?: number): AppliedGate {
     const name = angle === undefined ? "Y" : `Y(${numToStr(angle)})`;
     if (angle === undefined) angle = Math.PI;
     // The Bloch sphere Y axis is the X axis in WebGL
-    this.applyGate(name, new Vector3(1, 0, 0), angle);
+    return this.applyGate(name, new Vector3(1, 0, 0), angle);
   }
 
-  rotateZ(angle?: number) {
+  rotateZ(angle?: number): AppliedGate {
     const name =
       angle === undefined
         ? "Z"
@@ -424,22 +426,19 @@ export class Rotations {
             : `Z(${numToStr(angle)})`;
     if (angle === undefined) angle = Math.PI;
     // The Bloch sphere Z axis is the Y axis in WebGL
-    this.applyGate(name, new Vector3(0, 1, 0), angle);
+    return this.applyGate(name, new Vector3(0, 1, 0), angle);
   }
 
-  rotateH(angle?: number) {
+  rotateH(angle?: number): AppliedGate {
     const name = angle === undefined ? "H" : `H(${numToStr(angle)})`;
     if (angle === undefined) angle = Math.PI;
     // Bloch sphere X & Z axes are the Y and Z axes in WebGL
     const hAxis = new Vector3(0, 1, 1).normalize();
-    this.applyGate(name, hAxis, angle);
+    return this.applyGate(name, hAxis, angle);
   }
 
-  getRotationAtPercent(gateIndex: number, percent: number): Quaternion {
-    if (gateIndex >= this.gates.length) throw Error("Invalid gate index");
+  getRotationAtPercent(gate: AppliedGate, percent: number): Quaternion {
     if (percent < 0 || percent > 1) throw Error("Invalid percent");
-
-    const gate = this.gates[gateIndex];
     if (!gate.path.length) return gate.endPos.clone();
     return gate.path[0].clone().slerp(gate.endPos, percent);
   }
