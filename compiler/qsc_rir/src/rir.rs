@@ -187,9 +187,10 @@ impl Display for Callable {
 }
 
 /// The type of callable.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CallableType {
     Measurement,
+    Reset,
     Readout,
     OutputRecording,
     Regular,
@@ -226,11 +227,13 @@ impl Display for CallableType {
             Self::Readout => write!(f, "Readout")?,
             Self::OutputRecording => write!(f, "OutputRecording")?,
             Self::Regular => write!(f, "Regular")?,
+            Self::Reset => write!(f, "Reset")?,
         };
         Ok(())
     }
 }
 
+#[derive(Clone)]
 pub enum Instruction {
     Store(Value, Variable),
     Call(CallableId, Vec<Value>, Option<Variable>),
@@ -318,11 +321,7 @@ impl Display for Instruction {
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Icmp ({op}):")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\nlhs: {lhs}")?;
-            write!(indent, "\nrhs: {rhs}")?;
-            write!(indent, "\nvariable: {variable}")?;
+            write!(indent, "{variable} = Icmp {op}, {lhs}, {rhs}")?;
             Ok(())
         }
 
@@ -332,18 +331,11 @@ impl Display for Instruction {
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Phi:")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\nargs:")?;
-            if args.is_empty() {
-                write!(indent, " <empty>")?;
-            } else {
-                indent = set_indentation(indent, 2);
-                for (index, (arg, block_id)) in args.iter().enumerate() {
-                    write!(indent, "\n[{index}]: {arg} from block {}", block_id.0)?;
-                }
+            write!(indent, "{variable} = Phi ( ")?;
+            for (val, block_id) in args {
+                write!(indent, "[{val}, {}], ", block_id.0)?;
             }
-            write!(indent, "\nvariable: {variable}")?;
+            write!(indent, ")")?;
             Ok(())
         }
 
@@ -427,7 +419,7 @@ impl Display for Variable {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Ty {
     Qubit,
     Result,
