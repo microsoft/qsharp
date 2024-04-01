@@ -193,6 +193,212 @@ fn bitwise_xor_integer_variables() {
 }
 
 #[test]
+fn icmp_eq_integer_literals() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Eq,
+        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp eq i64 2, 5"].assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn icmp_eq_integer_variables() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Eq,
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(1),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(2),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp eq i64 %var_1, %var_2"]
+        .assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn icmp_ne_integer_literals() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Ne,
+        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp ne i64 2, 5"].assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn icmp_ne_integer_variables() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Ne,
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(1),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(2),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp ne i64 %var_1, %var_2"]
+        .assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+#[test]
+fn icmp_slt_integer_literals() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Slt,
+        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp slt i64 2, 5"].assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn icmp_slt_integer_variables() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Slt,
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(1),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(2),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp slt i64 %var_1, %var_2"]
+        .assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+#[test]
+fn icmp_sle_integer_literals() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Sle,
+        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp sle i64 2, 5"].assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn icmp_sle_integer_variables() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Sle,
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(1),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(2),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp sle i64 %var_1, %var_2"]
+        .assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+#[test]
+fn icmp_sgt_integer_literals() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Sgt,
+        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp sgt i64 2, 5"].assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn icmp_sgt_integer_variables() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Sgt,
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(1),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(2),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp sgt i64 %var_1, %var_2"]
+        .assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+#[test]
+fn icmp_sge_integer_literals() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Sge,
+        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp sge i64 2, 5"].assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
+fn icmp_sge_integer_variables() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Sge,
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(1),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Value::Variable(rir::Variable {
+            variable_id: rir::VariableId(2),
+            ty: rir::Ty::Integer,
+        }),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Boolean,
+        },
+    );
+    expect!["  %var_0 = icmp sge i64 %var_1, %var_2"]
+        .assert_eq(&inst.to_qir(&rir::Program::default()));
+}
+
+#[test]
 fn mul_integer_literals() {
     let inst = rir::Instruction::Mul(
         rir::Value::Literal(rir::Literal::Integer(2)),

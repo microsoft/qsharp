@@ -156,7 +156,7 @@ fn add_bool_should_panic() {
 
 #[test]
 #[should_panic(expected = "mismatched types (i64 [... i1]) for phi")]
-fn phi_with_mismatched_args() {
+fn phi_with_mismatched_args_should_panic() {
     let args = [
         (
             rir::Value::Variable(rir::Variable {
@@ -181,4 +181,19 @@ fn phi_with_mismatched_args() {
         },
     );
     let _ = &inst.to_qir(&rir::Program::default());
+}
+
+#[test]
+#[should_panic(expected = "unsupported output type i64 for icmp")]
+fn icmp_with_non_boolean_result_var_should_panic() {
+    let inst = rir::Instruction::Icmp(
+        rir::IntPredicate::Eq,
+        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Variable {
+            variable_id: rir::VariableId(0),
+            ty: rir::Ty::Integer,
+        },
+    );
+    let _ = inst.to_qir(&rir::Program::default());
 }

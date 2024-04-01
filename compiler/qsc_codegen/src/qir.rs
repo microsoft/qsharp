@@ -271,11 +271,17 @@ fn icmp_to_qir(
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
-    assert_eq!(get_value_ty(lhs), get_value_ty(rhs));
-    let ty = get_value_ty(lhs);
-    assert_eq!(ty, "i1");
+    let lhs_ty = get_value_ty(lhs);
+    let rhs_ty = get_value_ty(rhs);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        lhs_ty, rhs_ty,
+        "mismatched input types ({lhs_ty}, {rhs_ty}) for icmp {op}"
+    );
+
+    assert_eq!(var_ty, "i1", "unsupported output type {var_ty} for icmp");
     format!(
-        "  {} = icmp {} {ty} {}, {}",
+        "  {} = icmp {} {lhs_ty} {}, {}",
         ToQir::<String>::to_qir(&variable.variable_id, program),
         ToQir::<String>::to_qir(&op, program),
         get_value_as_str(lhs, program),
