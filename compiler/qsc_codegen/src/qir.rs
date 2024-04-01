@@ -2,6 +2,9 @@
 // Licensed under the MIT License.
 
 #[cfg(test)]
+mod instruction_tests;
+
+#[cfg(test)]
 mod tests;
 
 use qsc_rir::{
@@ -99,12 +102,23 @@ impl ToQir<String> for rir::IntPredicate {
 impl ToQir<String> for rir::Instruction {
     fn to_qir(&self, program: &rir::Program) -> String {
         match self {
-            rir::Instruction::Store(_, _) => unimplemented!("store should be removed by pass"),
-            rir::Instruction::Call(call_id, args, output) => {
-                call_to_qir(args, *call_id, output, program)
+            rir::Instruction::Add(lhs, rhs, variable) => {
+                binop_to_qir("add", lhs, rhs, *variable, program)
             }
-            rir::Instruction::Jump(block_id) => {
-                format!("  br label %{}", ToQir::<String>::to_qir(block_id, program))
+            rir::Instruction::Ashr(lhs, rhs, variable) => {
+                binop_to_qir("ashr", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::BitwiseAnd(lhs, rhs, variable) => {
+                simple_bitwise_to_qir("and", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::BitwiseNot(value, variable) => {
+                bitwise_not_to_qir(value, *variable, program)
+            }
+            rir::Instruction::BitwiseOr(lhs, rhs, variable) => {
+                simple_bitwise_to_qir("or", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::BitwiseXor(lhs, rhs, variable) => {
+                simple_bitwise_to_qir("xor", lhs, rhs, *variable, program)
             }
             rir::Instruction::Branch(cond, true_id, false_id) => {
                 format!(
@@ -114,68 +128,63 @@ impl ToQir<String> for rir::Instruction {
                     ToQir::<String>::to_qir(false_id, program)
                 )
             }
-            rir::Instruction::Add(lhs, rhs, variable) => {
-                binop_to_qir("add", lhs, rhs, variable, program)
-            }
-            rir::Instruction::Sub(lhs, rhs, variable) => {
-                binop_to_qir("sub", lhs, rhs, variable, program)
-            }
-            rir::Instruction::Mul(lhs, rhs, variable) => {
-                binop_to_qir("mul", lhs, rhs, variable, program)
-            }
-            rir::Instruction::Sdiv(lhs, rhs, variable) => {
-                binop_to_qir("sdiv", lhs, rhs, variable, program)
-            }
-            rir::Instruction::LogicalNot(value, variable) => {
-                logical_not_to_qir(value, variable, program)
+            rir::Instruction::Call(call_id, args, output) => {
+                call_to_qir(args, *call_id, *output, program)
             }
             rir::Instruction::LogicalAnd(lhs, rhs, variable) => {
-                logical_binop_to_qir("and", lhs, rhs, variable, program)
+                logical_binop_to_qir("and", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::LogicalNot(value, variable) => {
+                logical_not_to_qir(value, *variable, program)
             }
             rir::Instruction::LogicalOr(lhs, rhs, variable) => {
-                logical_binop_to_qir("or", lhs, rhs, variable, program)
+                logical_binop_to_qir("or", lhs, rhs, *variable, program)
             }
-            rir::Instruction::BitwiseNot(value, variable) => {
-                bitwise_not_to_qir(value, variable, program)
-            }
-            rir::Instruction::BitwiseAnd(lhs, rhs, variable) => {
-                simple_bitwise_to_qir("and", lhs, rhs, variable, program)
-            }
-            rir::Instruction::BitwiseOr(lhs, rhs, variable) => {
-                simple_bitwise_to_qir("or", lhs, rhs, variable, program)
-            }
-            rir::Instruction::BitwiseXor(lhs, rhs, variable) => {
-                simple_bitwise_to_qir("xor", lhs, rhs, variable, program)
-            }
-            rir::Instruction::Return => "  ret void".to_string(),
-            rir::Instruction::Srem(lhs, rhs, variable) => {
-                binop_to_qir("srem", lhs, rhs, variable, program)
-            }
-            rir::Instruction::Shl(lhs, rhs, variable) => {
-                binop_to_qir("shl", lhs, rhs, variable, program)
-            }
-            rir::Instruction::Ashr(lhs, rhs, variable) => {
-                binop_to_qir("ashr", lhs, rhs, variable, program)
+            rir::Instruction::Mul(lhs, rhs, variable) => {
+                binop_to_qir("mul", lhs, rhs, *variable, program)
             }
             rir::Instruction::Icmp(op, lhs, rhs, variable) => {
-                icmp_to_qir(op, lhs, rhs, variable, program)
+                icmp_to_qir(*op, lhs, rhs, *variable, program)
             }
-            rir::Instruction::Phi(args, variable) => phi_to_qir(args, variable, program),
+            rir::Instruction::Jump(block_id) => {
+                format!("  br label %{}", ToQir::<String>::to_qir(block_id, program))
+            }
+            rir::Instruction::Phi(args, variable) => phi_to_qir(args, *variable, program),
+            rir::Instruction::Return => "  ret void".to_string(),
+            rir::Instruction::Sdiv(lhs, rhs, variable) => {
+                binop_to_qir("sdiv", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::Shl(lhs, rhs, variable) => {
+                binop_to_qir("shl", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::Srem(lhs, rhs, variable) => {
+                binop_to_qir("srem", lhs, rhs, *variable, program)
+            }
+            rir::Instruction::Store(_, _) => unimplemented!("store should be removed by pass"),
+            rir::Instruction::Sub(lhs, rhs, variable) => {
+                binop_to_qir("sub", lhs, rhs, *variable, program)
+            }
         }
     }
 }
 
 fn logical_not_to_qir(
     value: &rir::Value,
-    variable: &rir::Variable,
+    variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
-    let ty = get_value_ty(value);
-    debug_assert_eq!(ty, "i1");
+    let value_ty = get_value_ty(value);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        value_ty, var_ty,
+        "mismatched input/output types ({value_ty}, {var_ty}) for not"
+    );
+    assert_eq!(var_ty, "i1", "unsupported type {var_ty} for not");
+
     format!(
-        "  {} = xor {ty} {}, true",
+        "  {} = xor i1 {}, true",
         ToQir::<String>::to_qir(&variable.variable_id, program),
-        ToQir::<String>::to_qir(value, program)
+        get_value_as_str(value, program)
     )
 }
 
@@ -183,38 +192,54 @@ fn logical_binop_to_qir(
     op: &str,
     lhs: &rir::Value,
     rhs: &rir::Value,
-    variable: &rir::Variable,
+    variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
-    debug_assert_eq!(get_value_ty(lhs), get_value_ty(rhs));
-    let ty = get_value_ty(lhs);
-    debug_assert_eq!(ty, "i1");
+    let lhs_ty = get_value_ty(lhs);
+    let rhs_ty = get_value_ty(rhs);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        lhs_ty, rhs_ty,
+        "mismatched input types ({lhs_ty}, {rhs_ty}) for {op}"
+    );
+    assert_eq!(
+        lhs_ty, var_ty,
+        "mismatched input/output types ({lhs_ty}, {var_ty}) for {op}"
+    );
+    assert_eq!(var_ty, "i1", "unsupported type {var_ty} for {op}");
+
     format!(
-        "  {} = {op} {ty} {}, {}",
+        "  {} = {op} {var_ty} {}, {}",
         ToQir::<String>::to_qir(&variable.variable_id, program),
-        ToQir::<String>::to_qir(lhs, program),
-        ToQir::<String>::to_qir(rhs, program)
+        get_value_as_str(lhs, program),
+        get_value_as_str(rhs, program)
     )
 }
 
 fn bitwise_not_to_qir(
     value: &rir::Value,
-    variable: &rir::Variable,
+    variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
-    let ty = get_value_ty(value);
-    debug_assert_eq!(ty, "i64");
+    let value_ty = get_value_ty(value);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        value_ty, var_ty,
+        "mismatched input/output types ({value_ty}, {var_ty}) for not"
+    );
+    assert_eq!(var_ty, "i64", "unsupported type {var_ty} for not");
+
     format!(
-        "  {} = xor {ty} {}, -1",
+        "  {} = xor {var_ty} {}, -1",
         ToQir::<String>::to_qir(&variable.variable_id, program),
-        ToQir::<String>::to_qir(value, program)
+        get_value_as_str(value, program)
     )
 }
 
 fn call_to_qir(
     args: &[rir::Value],
     call_id: rir::CallableId,
-    output: &Option<rir::Variable>,
+    output: Option<rir::Variable>,
     program: &rir::Program,
 ) -> String {
     let args = args
@@ -240,20 +265,21 @@ fn call_to_qir(
 }
 
 fn icmp_to_qir(
-    op: &IntPredicate,
+    op: IntPredicate,
     lhs: &rir::Value,
     rhs: &rir::Value,
-    variable: &rir::Variable,
+    variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
-    debug_assert_eq!(get_value_ty(lhs), get_value_ty(rhs));
+    assert_eq!(get_value_ty(lhs), get_value_ty(rhs));
     let ty = get_value_ty(lhs);
+    assert_eq!(ty, "i1");
     format!(
         "  {} = icmp {} {ty} {}, {}",
         ToQir::<String>::to_qir(&variable.variable_id, program),
-        ToQir::<String>::to_qir(op, program),
-        ToQir::<String>::to_qir(lhs, program),
-        ToQir::<String>::to_qir(rhs, program)
+        ToQir::<String>::to_qir(&op, program),
+        get_value_as_str(lhs, program),
+        get_value_as_str(rhs, program)
     )
 }
 
@@ -261,16 +287,27 @@ fn binop_to_qir(
     op: &str,
     lhs: &rir::Value,
     rhs: &rir::Value,
-    variable: &rir::Variable,
+    variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
-    debug_assert_eq!(get_value_ty(lhs), get_value_ty(rhs));
-    let ty = get_variable_ty(variable);
+    let lhs_ty = get_value_ty(lhs);
+    let rhs_ty = get_value_ty(rhs);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        lhs_ty, rhs_ty,
+        "mismatched input types ({lhs_ty}, {rhs_ty}) for {op}"
+    );
+    assert_eq!(
+        lhs_ty, var_ty,
+        "mismatched input/output types ({lhs_ty}, {var_ty}) for {op}"
+    );
+    assert_eq!(var_ty, "i64", "unsupported type {var_ty} for {op}");
+
     format!(
-        "  {} = {op} {ty} {}, {}",
+        "  {} = {op} {var_ty} {}, {}",
         ToQir::<String>::to_qir(&variable.variable_id, program),
-        ToQir::<String>::to_qir(lhs, program),
-        ToQir::<String>::to_qir(rhs, program)
+        get_value_as_str(lhs, program),
+        get_value_as_str(rhs, program)
     )
 }
 
@@ -278,40 +315,83 @@ fn simple_bitwise_to_qir(
     op: &str,
     lhs: &rir::Value,
     rhs: &rir::Value,
-    variable: &rir::Variable,
+    variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
-    debug_assert_eq!(get_value_ty(lhs), get_value_ty(rhs));
-    let ty = get_variable_ty(variable);
+    let lhs_ty = get_value_ty(lhs);
+    let rhs_ty = get_value_ty(rhs);
+    let var_ty = get_variable_ty(variable);
+    assert_eq!(
+        lhs_ty, rhs_ty,
+        "mismatched input types ({lhs_ty}, {rhs_ty}) for {op}"
+    );
+    assert_eq!(
+        lhs_ty, var_ty,
+        "mismatched input/output types ({lhs_ty}, {var_ty}) for {op}"
+    );
+    assert_eq!(var_ty, "i64", "unsupported type {var_ty} for {op}");
+
     format!(
-        "  {} = {op} {ty} {}, {}",
+        "  {} = {op} {var_ty} {}, {}",
         ToQir::<String>::to_qir(&variable.variable_id, program),
-        ToQir::<String>::to_qir(lhs, program),
-        ToQir::<String>::to_qir(rhs, program)
+        get_value_as_str(lhs, program),
+        get_value_as_str(rhs, program)
     )
 }
 
 fn phi_to_qir(
     args: &[(rir::Value, rir::BlockId)],
-    variable: &rir::Variable,
+    variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
+    assert!(
+        !args.is_empty(),
+        "phi instruction should have at least one argument"
+    );
+    let var_ty = get_variable_ty(variable);
     let args = args
         .iter()
         .map(|(arg, block_id)| {
+            let arg_ty = get_value_ty(arg);
+            assert_eq!(
+                arg_ty, var_ty,
+                "mismatched types ({var_ty} [... {arg_ty}]) for phi"
+            );
             format!(
                 "[{}, %{}]",
-                ToQir::<String>::to_qir(arg, program),
+                get_value_as_str(arg, program),
                 ToQir::<String>::to_qir(block_id, program)
             )
         })
         .collect::<Vec<_>>()
         .join(", ");
-    let ty = get_variable_ty(variable);
+
     format!(
-        "  {} = phi {ty} {args}",
+        "  {} = phi {var_ty} {args}",
         ToQir::<String>::to_qir(&variable.variable_id, program)
     )
+}
+
+fn get_value_as_str(value: &rir::Value, program: &rir::Program) -> String {
+    match value {
+        rir::Value::Literal(lit) => match lit {
+            rir::Literal::Bool(b) => format!("{b}"),
+            rir::Literal::Double(d) => {
+                if (d.floor() - d.ceil()).abs() < f64::EPSILON {
+                    // The value is a whole number, which requires at least one decimal point
+                    // to differentiate it from an integer value.
+                    format!("{d:.1}")
+                } else {
+                    format!("{d}")
+                }
+            }
+            rir::Literal::Integer(i) => format!("{i}"),
+            rir::Literal::Pointer => "null".to_string(),
+            rir::Literal::Qubit(q) => format!("{q}"),
+            rir::Literal::Result(r) => format!("{r}"),
+        },
+        rir::Value::Variable(var) => ToQir::<String>::to_qir(&var.variable_id, program),
+    }
 }
 
 fn get_value_ty(lhs: &rir::Value) -> &str {
@@ -324,11 +404,11 @@ fn get_value_ty(lhs: &rir::Value) -> &str {
             rir::Literal::Result(_) => "%Result*",
             rir::Literal::Pointer => "i8*",
         },
-        rir::Value::Variable(var) => get_variable_ty(var),
+        rir::Value::Variable(var) => get_variable_ty(*var),
     }
 }
 
-fn get_variable_ty(variable: &rir::Variable) -> &str {
+fn get_variable_ty(variable: rir::Variable) -> &'static str {
     match variable.ty {
         rir::Ty::Integer => "i64",
         rir::Ty::Boolean => "i1",
