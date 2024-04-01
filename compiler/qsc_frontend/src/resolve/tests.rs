@@ -2656,7 +2656,7 @@ fn newtype_with_tuple_destructuring() {
 }
 
 #[test]
-fn items_resolve_according_to_hierarchy() {
+fn items_resolve_according_to_implicit_hierarchy() {
     check(
         indoc! {"
 namespace Foo {
@@ -2674,6 +2674,59 @@ namespace Foo.Bar.Baz {
   function Bar() : Int { 6 }
 }
 "},
-        &expect![[r#"  "#]],
+        &expect![[r#"
+            namespace Foo {
+              @EntryPoint()
+              function item1(): Int {
+                item2()
+              }
+
+              function item2() : Int {
+                item4()
+              }
+            }
+
+            namespace Foo.Bar.Baz {
+              function item4() : Int { 6 }
+            }
+        "#]],
     );
+}
+#[test]
+fn basic_hierarchical_namespace() {
+    check(
+        indoc! {"
+    namespace Foo.Bar.Baz {
+        operation Quux() : Unit {}
+    }
+    namespace A {
+        open Foo;
+        operation Main() : Unit {
+            Bar.Baz.Quux();
+        }
+    }
+    namespace B {
+        open Foo.Bar;
+        operation Main() : Unit {
+            Baz.Quux();
+        }
+    }"},
+        &expect![[r#"
+            namespace Foo.Bar.Baz {
+                operation item1() : Unit {}
+            }
+            namespace A {
+                open Foo;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+            namespace B {
+                open Foo.Bar;
+                operation item5() : Unit {
+                    item1();
+                }
+            }"#]],
+    );
+
 }

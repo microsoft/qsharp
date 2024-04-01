@@ -648,6 +648,7 @@ impl AstVisitor<'_> for With<'_> {
             .expect("namespace should exist");
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
+            visitor.resolver.bind_open(&namespace.name, &None);
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
                     visitor.resolver.bind_open(name, alias);
