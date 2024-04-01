@@ -2666,12 +2666,12 @@ namespace Foo {
   }
 
   function Foo() : Int {
-    Bar.Baz.Bar()
+    Bar.Baz.Quux()
   }
 }
 
 namespace Foo.Bar.Baz {
-  function Bar() : Int { 6 }
+  function Quux() : Int { 6 }
 }
 "},
         &expect![[r#"
