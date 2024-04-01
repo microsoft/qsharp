@@ -11,9 +11,9 @@ use qsc_eval::{
 };
 use qsc_fir::{
     fir::{
-        Block, BlockId, Expr, ExprId, ExprKind, LocalItemId, PackageId, PackageStore,
-        PackageStoreLookup, Pat, PatId, Stmt, StmtId, StoreBlockId, StoreExprId, StorePatId,
-        StoreStmtId,
+        Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Global, LocalItemId,
+        PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecImpl, Stmt, StmtId,
+        StoreBlockId, StoreExprId, StorePatId, StoreStmtId,
     },
     visit::Visitor,
 };
@@ -141,7 +141,63 @@ impl<'a> PartialEvaluator<'a> {
         };
     }
 
-    fn generate_expr_call(&mut self, _callee_expr_id: ExprId, _args_expr_id: ExprId) {
+    fn generate_expr_call(&mut self, callee_expr_id: ExprId, args_expr_id: ExprId) {
+        let current_package_id = self.get_current_package();
+        let store_callee_expr_id = StoreExprId::from((current_package_id, callee_expr_id));
+
+        // Verify that the callee expression is classical.
+        let callable_scope = self.context.get_current_callable_scope();
+        let callee_expr_generator_set = self.compute_properties.get_expr(store_callee_expr_id);
+        let callee_expr_compute_kind = callee_expr_generator_set
+            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
+        assert!(matches!(callee_expr_compute_kind, ComputeKind::Classical));
+
+        // Evaluate the callee expression to get the global to call.
+        self.eval_classical_expr(callee_expr_id);
+        let callable_scope = self.context.get_current_callable_scope();
+        let callee_value = callable_scope
+            .expression_value_map
+            .get(&callee_expr_id)
+            .expect("callee expression value not present");
+        let Value::Global(store_item_id, functor_app) = callee_value else {
+            panic!("callee expression value must be a global");
+        };
+
+        // Get the callable.
+        let global = self
+            .package_store
+            .get_global(*store_item_id)
+            .expect("global not present");
+        let Global::Callable(callable_decl) = global else {
+            // Instruction generation for UDTs is not supported.
+            panic!("global is not a callable");
+        };
+
+        // We generate instructions differently depending on whether
+        match &callable_decl.implementation {
+            CallableImpl::Intrinsic => {
+                self.generate_expr_call_intrinsic(callable_decl, args_expr_id);
+            }
+            CallableImpl::Spec(spec_impl) => {
+                self.generate_expr_call_spec(spec_impl, *functor_app, args_expr_id);
+            }
+        };
+    }
+
+    fn generate_expr_call_intrinsic(
+        &mut self,
+        _callable_decl: &CallableDecl,
+        _args_expr_id: ExprId,
+    ) {
+        unimplemented!();
+    }
+
+    fn generate_expr_call_spec(
+        &mut self,
+        _spec_impl: &SpecImpl,
+        _functor_app: FunctorApp,
+        _args_expr_id: ExprId,
+    ) {
         unimplemented!();
     }
 
