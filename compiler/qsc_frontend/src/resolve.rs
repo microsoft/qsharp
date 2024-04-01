@@ -1077,38 +1077,59 @@ fn resolve<'a>(
     let mut candidates = FxHashMap::default();
     let mut vars = true;
     let name_str = &(*name.name);
-    let namespace = if let Some(namespace) = namespace_name {
-        globals.find_namespace(namespace)
-    } else {
-        None
-    };
+    if name_str == "Baz" {
+        dbg!();
+    }
+    let mut candidate_namespaces = vec![globals.namespaces.root_id()];
+    // here, we also need to check all opens to see if the namespace is in any of them
+    for open in scopes.iter().flat_map(|scope| scope.opens.values().flatten()) {
+        // insert each open into the list of places to check for this item
+        candidate_namespaces.push(open.namespace);
+    }
+    // search through each candidate namespace to find the items
+    for candidate_namespace in candidate_namespaces {
+        let candidate_namespace = globals.namespaces.find_id(&candidate_namespace).1;
+        let namespace = if let Some(namespace) = namespace_name {
+            let res = candidate_namespace.find_namespace(namespace);
+            let res_2 = res.is_some();
+            let stringname = format!("{namespace}");
+            res
+        } else {
+            None
+        };
 
-    // let namespace = namespace.as_ref().map_or("", |i| &i.name);
-    for scope in scopes {
-        if namespace.is_none() {
-            if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {
-                // Local declarations shadow everything.
-                return Ok(res);
-            }
-        }
-
-        if let Some(namespace) = namespace {
-            if let (Some(namespaces)) = scope.opens.get(&namespace) {
-                candidates = resolve_explicit_opens(kind, globals, namespaces, name_str);
-                if !candidates.is_empty() {
-                    // Explicit opens shadow prelude and unopened globals.
-                    break;
+        // let namespace = namespace.as_ref().map_or("", |i| &i.name);
+        for scope in &scopes {
+            if namespace.is_none() {
+                if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {
+                    // Local declarations shadow everything.
+                    return Ok(res);
                 }
             }
+
+            if let Some(namespace) = namespace {
+                if let Some(namespaces) = scope.opens.get(&namespace) {
+                    candidates = resolve_explicit_opens(kind, globals, namespaces, name_str);
+                    if !candidates.is_empty() {
+                        // Explicit opens shadow prelude and unopened globals.
+                        break;
+                    }
+                }
+                if let Some(res) = globals.get(kind, namespace, name_str) {
+                    return Ok(res.clone());
+                    // candidates.insert(candidate., candidate_namespace);
+                }
+            }
+
+            if scope.kind == ScopeKind::Callable {
+                // Since local callables are not closures, hide local variables in parent scopes.
+                vars = false;
+            }
         }
 
-        if scope.kind == ScopeKind::Callable {
-            // Since local callables are not closures, hide local variables in parent scopes.
-            vars = false;
-        }
     }
 
-    if candidates.is_empty() && namespace.is_none() {
+    if candidates.is_empty() && namespace_name.is_none() {
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE.into_iter().map(|x| x.into_iter().map(|x| Rc::from(*x)).collect::<Vec<_>>()).collect::<Vec<_>>(), name_str);
         if candidates.len() > 1 {
@@ -1137,16 +1158,17 @@ fn resolve<'a>(
         }
     }
 
-    if candidates.is_empty() {
-        if let Some(&res) = globals.get(
-            kind,
-            namespace.unwrap_or_else(|| globals.namespaces.root_id()),
-            name_str,
-        ) {
-            // An unopened global is the last resort.
-            return Ok(res);
-        }
-    }
+    // TODO
+    // if candidates.is_empty() {
+    //     if let Some(&res) = globals.get(
+    //         kind,
+    //         namespace.unwrap_or_else(|| globals.namespaces.root_id()),
+    //         name_str,
+    //     ) {
+    //         // An unopened global is the last resort.
+    //         return Ok(res);
+    //     }
+    // }
 
     if candidates.len() > 1 {
         // If there are multiple candidates, remove unimplemented items. This allows resolution to

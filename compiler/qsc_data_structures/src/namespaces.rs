@@ -153,7 +153,7 @@ impl NamespaceTreeNode {
         self.find_namespace(ns).is_some()
     }
 
-    fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
+    pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         // look up a namespace in the tree and return the id
         // do a breadth-first search through NamespaceTree for the namespace
         // if it's not found, return None

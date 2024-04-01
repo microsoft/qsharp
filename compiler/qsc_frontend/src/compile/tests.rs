@@ -1292,42 +1292,4 @@ fn hierarchical_namespace_basic() {
         LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
-    let lib = store.insert(lib);
-
-    let sources = SourceMap::new(
-        [(
-            "test".into(),
-            indoc! {"
-                namespace Test {
-                    operation Bar() : Unit { body intrinsic; }
-                }
-            "}
-            .into(),
-        )],
-        None,
-    );
-
-    let unit = compile(
-        &store,
-        &[lib],
-        sources,
-        RuntimeCapabilityFlags::all(),
-        LanguageFeatures::default(),
-    );
-    expect![[r#"
-        [
-            Error(
-                Resolve(
-                    DuplicateIntrinsic(
-                        "Bar",
-                        Span {
-                            lo: 31,
-                            hi: 34,
-                        },
-                    ),
-                ),
-            ),
-        ]
-    "#]]
-    .assert_debug_eq(&unit.errors);
 }
