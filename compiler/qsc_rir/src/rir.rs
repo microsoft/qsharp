@@ -321,11 +321,7 @@ impl Display for Instruction {
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Icmp ({op}):")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\nlhs: {lhs}")?;
-            write!(indent, "\nrhs: {rhs}")?;
-            write!(indent, "\nvariable: {variable}")?;
+            write!(indent, "{variable} = Icmp {op}, {lhs}, {rhs}")?;
             Ok(())
         }
 
@@ -335,18 +331,11 @@ impl Display for Instruction {
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "Phi:")?;
-            indent = set_indentation(indent, 1);
-            write!(indent, "\nargs:")?;
-            if args.is_empty() {
-                write!(indent, " <empty>")?;
-            } else {
-                indent = set_indentation(indent, 2);
-                for (index, (arg, block_id)) in args.iter().enumerate() {
-                    write!(indent, "\n[{index}]: {arg} from block {}", block_id.0)?;
-                }
+            write!(indent, "{variable} = Phi ( ")?;
+            for (val, block_id) in args {
+                write!(indent, "[{val}, {}], ", block_id.0)?;
             }
-            write!(indent, "\nvariable: {variable}")?;
+            write!(indent, ")")?;
             Ok(())
         }
 
