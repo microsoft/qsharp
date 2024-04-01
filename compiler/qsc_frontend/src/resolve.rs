@@ -13,7 +13,7 @@ use qsc_ast::{
 };
 use qsc_data_structures::{
     index_map::IndexMap,
-    namespaces::{NamespaceId, NamespaceTreeNode, NamespaceTreeRoot},
+    namespaces::{NamespaceId, NamespaceTreeRoot},
     span::Span,
 };
 use qsc_hir::{
@@ -127,8 +127,8 @@ pub struct Scope {
     /// the entire callable / namespace declaration. For blocks, this includes the braces.
     span: Span,
     kind: ScopeKind,
-    /// Open statements. The key is the namespace name or alias. The vector of opens is 
-    opens: FxHashMap<NamespaceId, Span>,
+    /// Open statements. The key is the namespace name or alias.
+    opens: FxHashMap<NamespaceId, Vec<Open>>,
     /// Local newtype declarations.
     tys: FxHashMap<Rc<str>, ItemId>,
     /// Local callable and newtype declarations.
@@ -150,7 +150,7 @@ impl Scope {
         Self {
             span,
             kind,
-            opens: Default::default(),
+            opens: FxHashMap::default(),
             tys: FxHashMap::default(),
             terms: FxHashMap::default(),
             vars: FxHashMap::default(),
@@ -280,14 +280,6 @@ impl GlobalScope {
     fn insert_or_find_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.namespaces.insert_or_find_namespace(name.into())
     }
-    
-    fn find_id(&self, base_namespace: NamespaceId) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
-        self.namespaces.find_id(&base_namespace)
-    }
-    
-    fn root_id(&self) -> NamespaceId {
-         self.namespaces.root_id()
-    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -297,7 +289,7 @@ enum ScopeKind {
     Block,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 enum NameKind {
     Ty,
     Term,
@@ -521,8 +513,11 @@ impl Resolver {
             self.current_scope_mut()
                 .opens
                 .entry(id)
-                .or_insert_with( || name.span())
-                ;
+                .or_default()
+                .push(Open {
+                    namespace: id,
+                    span: name.span(),
+                });
         } else {
             self.errors
                 .push(Error::NotFound(name.to_string(), name.span()));
@@ -651,14 +646,8 @@ impl AstVisitor<'_> for With<'_> {
             .globals
             .find_namespace(Into::<Vec<_>>::into(namespace.name.clone()))
             .expect("namespace should exist");
-
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
-            // bind an open for the parent namespace
-            println!("Adding open for {}", namespace.name);
-            visitor.resolver.bind_open(&namespace.name, &None);
-            println!("Scope chain is {:?}", visitor.resolver.curr_scope_chain);
-        println!("Scopes are {:?}", visitor.resolver.locals.scopes);
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
                     visitor.resolver.bind_open(name, alias);
@@ -821,8 +810,6 @@ impl GlobalTable {
             core.insert(name, res);
         }
 
-        // Because of the `Default` implementation on `NamespaceTreeRoot`, the prelude is automatically
-        // included in the scope.
         let mut scope = GlobalScope::default();
         let ns = scope.insert_or_find_namespace(vec![
             Rc::from("Microsoft"),
@@ -1086,45 +1073,34 @@ fn resolve<'a>(
     name: &Ident,
     namespace_name: &Option<VecIdent>,
 ) -> Result<Res, Error> {
-    println!("____________________________");
-
-    println!("Resolving {name} ({kind:?}) in {namespace_name:?}");
     let scopes = scopes.collect::<Vec<_>>();
-
     let mut candidates = FxHashMap::default();
     let mut vars = true;
-    println!("Name string is {}", name.name);
     let name_str = &(*name.name);
-    let mut namespace = globals.root_id();
-    let mut opened_namespaces = Vec::new();
-    for scope in &scopes {
-        if let ScopeKind::Namespace(l_namespace) = scope.kind {
-            println!("Adding open for {namespace:?}");
-            namespace = l_namespace;
-        }
-        opened_namespaces.extend(&mut scope.opens.keys());
-    }
+    let namespace = if let Some(namespace) = namespace_name {
+        globals.find_namespace(namespace)
+    } else {
+        None
+    };
 
-    println!("There are {} scopes to search", scopes.len());
-        // let namespace = namespace.as_ref().map_or("", |i| &i.name);
-    for scope in scopes {   
-        dbg!(&scope.opens);
-    
-        println!("Opens with namespace names are {:?}", scope.opens.keys().map(|x| globals.find_id(*x)).collect::<Vec<_>>());
-        // for every child namespace of the opened namespace, insert that namespace 
-
+    // let namespace = namespace.as_ref().map_or("", |i| &i.name);
+    for scope in scopes {
+        if namespace.is_none() {
             if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {
                 // Local declarations shadow everything.
                 return Ok(res);
             }
+        }
 
-
-            candidates = resolve_explicit_opens(kind, globals, scope.opens.keys(), name_str);
-            if !candidates.is_empty() {
-                // Explicit opens shadow prelude and unopened globals.
-                break;
+        if let Some(namespace) = namespace {
+            if let (Some(namespaces)) = scope.opens.get(&namespace) {
+                candidates = resolve_explicit_opens(kind, globals, namespaces, name_str);
+                if !candidates.is_empty() {
+                    // Explicit opens shadow prelude and unopened globals.
+                    break;
+                }
             }
-            
+        }
 
         if scope.kind == ScopeKind::Callable {
             // Since local callables are not closures, hide local variables in parent scopes.
@@ -1132,8 +1108,7 @@ fn resolve<'a>(
         }
     }
 
-    if candidates.is_empty()  {
-        println!("Candidates was empty");
+    if candidates.is_empty() && namespace.is_none() {
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(kind, globals, PRELUDE.into_iter().map(|x| x.into_iter().map(|x| Rc::from(*x)).collect::<Vec<_>>()).collect::<Vec<_>>(), name_str);
         if candidates.len() > 1 {
@@ -1165,7 +1140,7 @@ fn resolve<'a>(
     if candidates.is_empty() {
         if let Some(&res) = globals.get(
             kind,
-            namespace,
+            namespace.unwrap_or_else(|| globals.namespaces.root_id()),
             name_str,
         ) {
             // An unopened global is the last resort.
@@ -1243,7 +1218,6 @@ fn resolve_scope_locals(
 
     if let ScopeKind::Namespace(namespace) = &scope.kind {
         if let Some(&res) = globals.get(kind, *namespace, name) {
-            println!("NAMESPACE WAS FOUND with res {res:?}");
             return Some(res);
         }
     }
@@ -1308,15 +1282,12 @@ fn resolve_implicit_opens<'b>(
 fn resolve_explicit_opens<'a>(
     kind: NameKind,
     globals: &GlobalScope,
-    opens: impl IntoIterator<Item =  NamespaceId>,
+    opens: impl IntoIterator<Item = &'a Open>,
     name: &str,
-) -> FxHashMap<Res, &'a NamespaceId> {
-    println!("EXPLICIT OPENS Name is {name}");
+) -> FxHashMap<Res, &'a Open> {
     let mut candidates = FxHashMap::default();
     for open in opens {
-        println!("EXPLICIT OPENS Resolving explicit open {open:?}");
         if let Some(&res) = globals.get(kind, open.namespace, name) {
-            println!("EXPLICIT OPENS Found res {res:?} for name {name}");
             candidates.insert(res, open);
         }
     }

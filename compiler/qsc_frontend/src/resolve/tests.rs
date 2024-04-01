@@ -2654,28 +2654,3 @@ fn newtype_with_tuple_destructuring() {
         "#]],
     );
 }
-
-#[test]
-fn symbols_visible_according_to_hierarchy() {
-    check(
-        indoc! {"
-        namespace NamespaceA {
-          @EntryPoint()
-          function Main(): Int {
-            Func()
-          }
-        
-          function Func() : Int {
-            // should be visible, since we are in the 
-            // Foo namespace
-            InnerOne.InnerTwo.Bar()
-          }
-        }
-        
-        namespace NamespaceA.InnerOne.InnerTwo { 
-          function Bar() : Int { 6 }
-        }        
-        "},
-        &expect![[r#""#]],
-    );
-}
