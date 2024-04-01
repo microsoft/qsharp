@@ -3,7 +3,7 @@
 
 import { CancellationToken } from "../cancellation.js";
 import { TelemetryEvent, log } from "../log.js";
-type Wasm = typeof import("../../lib/node/qsc_wasm.cjs");
+type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 
 /**
  * Describes a service that can be run in a worker.

@@ -4,6 +4,7 @@
 use core::ffi::c_void;
 pub static MI_ALIGNMENT_MAX: usize = 1024 * 1024; // 1 MiB
 
+// Define core functions from mimalloc needed for the allocator
 extern "C" {
     /// Allocate size bytes aligned by alignment.
     /// size: the number of bytes to allocate
