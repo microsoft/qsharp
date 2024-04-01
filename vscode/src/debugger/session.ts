@@ -41,6 +41,7 @@ import {
 import { getRandomGuid } from "../utils";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
+import { escapeHtml } from "markdown-it/lib/common/utils";
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -316,7 +317,7 @@ export class QscDebugSession extends LoggingDebugSession {
     }
 
     if (this.config.showCircuit) {
-      await this.showCircuit();
+      await this.showCircuit(error);
     }
 
     if (!result) {
@@ -388,12 +389,18 @@ export class QscDebugSession extends LoggingDebugSession {
           bps,
           this.eventTarget,
         );
+        if (this.config.showCircuit) {
+          this.showCircuit();
+        }
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);
           return;
         }
-      } catch (e) {
-        await this.endSession(`ending session due to error: ${e}`, 1);
+      } catch (error) {
+        if (this.config.showCircuit) {
+          await this.showCircuit(error);
+        }
+        await this.endSession(`ending session due to error: ${error}`, 1);
         return;
       }
 
@@ -927,13 +934,27 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 
-  private async showCircuit() {
+  private async showCircuit(error?: any) {
+    // Error returned from the debugger has a message and a stack (which also includes the message).
+    // We would ideally retrieve the original runtime error, and format it to be consistent
+    // with the other runtime errors that can be shown in the circuit panel, but that will require
+    // a bit of refactoring.
+    const stack =
+      error && typeof error === "object" && typeof error.stack === "string"
+        ? escapeHtml(error.stack)
+        : undefined;
+
     const circuit = await this.debugService.getCircuit();
+
     updateCircuitPanel(
       this.targetProfile,
       vscode.Uri.parse(this.sources[0][0]).path,
-      circuit,
       !this.revealedCircuit,
+      {
+        circuit,
+        errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
+        simulating: true,
+      },
     );
 
     // Only reveal the panel once per session, to keep it from
