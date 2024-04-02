@@ -144,6 +144,10 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.runEditorContentsWithCircuit",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.targetSubmit",
           "when": "qsharp-vscode.treeItemSupportsQir"
         },
@@ -274,6 +278,11 @@
         "category": "Debug",
         "enablement": "!inDebugMode",
         "icon": "$(play)"
+      },
+      {
+        "command": "qsharp-vscode.runEditorContentsWithCircuit",
+        "title": "Run file and show circuit diagram",
+        "category": "Q#"
       },
       {
         "command": "qsharp-vscode.showHistogram",
@@ -422,6 +431,11 @@
                 "type": "boolean",
                 "description": "Enable logging of the Debug Adapter Protocol.",
                 "default": false
+              },
+              "showCircuit": {
+                "type": "boolean",
+                "description": "Display the quantum circuit diagram while running.",
+                "default": false
               }
             }
           }
@@ -440,7 +454,11 @@
     "start": "npm exec --no -- @vscode/test-web --extensionDevelopmentPath . ../samples",
     "test": "node ./test/runTests.mjs",
     "pretest": "npm exec --no playwright install chromium && node ./test/buildTests.mjs",
-    "tsc:check": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json"
+    "tsc:check:main": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json",
+    "tsc:check:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json",
+    "tsc:check": "npm run tsc:check:main && npm run tsc:check:view",
+    "tsc:watch": "node ../node_modules/typescript/bin/tsc -p ./tsconfig.json --watch --preserveWatchOutput",
+    "tsc:watch:view": "node ../node_modules/typescript/bin/tsc -p ./src/webview/tsconfig.json --watch --preserveWatchOutput"
   },
   "repository": {
     "type": "git",

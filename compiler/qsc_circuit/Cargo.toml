@@ -10,6 +10,7 @@ license.workspace = true
 
 [dependencies]
 log = { workspace = true }
+miette = { workspace = true }
 num-bigint = { workspace = true }
 num-complex = { workspace = true }
 qsc_codegen = { path = "../qsc_codegen" }
@@ -21,6 +22,7 @@ qsc_hir = { path = "../qsc_hir" }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }

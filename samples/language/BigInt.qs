@@ -20,7 +20,7 @@ namespace MyQuantumApp {
         let foo = foo + 1L;
         let foo = foo % 2L;
         // `BigInt`s being raised to an exponent take an `Int` as the exponent.
-        let foo = foo ^ 2;
+        let foo = foo^2;
         return foo;
     }
 }

@@ -4,13 +4,12 @@
 //@ts-check
 
 import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build, context } from "esbuild";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
 const libsDir = join(thisDir, "..", "node_modules");
-const isWatch = process.argv.includes("--watch");
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
@@ -33,12 +32,31 @@ const buildOptions = {
   define: { "import.meta.url": "undefined" },
 };
 
-function copyWasm() {
+function getTimeStr() {
+  const now = new Date();
+
+  const hh = now.getHours().toString().padStart(2, "0");
+  const mm = now.getMinutes().toString().padStart(2, "0");
+  const ss = now.getSeconds().toString().padStart(2, "0");
+  const mil = now.getMilliseconds().toString().padStart(3, "0");
+
+  return `${hh}:${mm}:${ss}.${mil}`;
+}
+
+export function copyWasmToVsCode() {
   // Copy the wasm module into the extension directory
-  let qsharpWasm = join(thisDir, "..", "npm", "lib", "web", "qsc_wasm_bg.wasm");
+  let qsharpWasm = join(
+    thisDir,
+    "..",
+    "npm",
+    "qsharp",
+    "lib",
+    "web",
+    "qsc_wasm_bg.wasm",
+  );
   let qsharpDest = join(thisDir, `wasm`);
 
-  console.log("Copying the qsharp wasm file over from: " + qsharpWasm);
+  console.log("Copying the wasm file to VS Code from: " + qsharpWasm);
   mkdirSync(qsharpDest, { recursive: true });
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
@@ -80,7 +98,7 @@ function buildBundle() {
   );
 }
 
-async function buildWatch() {
+export async function watchVsCode() {
   console.log("Building vscode extension in watch mode");
 
   // Plugin to log start/end of build events (mostly to help VS Code problem matcher)
@@ -88,8 +106,12 @@ async function buildWatch() {
   const buildPlugin = {
     name: "Build Events",
     setup(build) {
-      build.onStart(() => console.log("esbuild build started"));
-      build.onEnd(() => console.log("esbuild build complete"));
+      build.onStart(() =>
+        console.log("VS Code build started @ " + getTimeStr()),
+      );
+      build.onEnd(() =>
+        console.log("VS Code build complete @ " + getTimeStr()),
+      );
     },
   };
   let ctx = await context({
@@ -101,10 +123,15 @@ async function buildWatch() {
   ctx.watch();
 }
 
-if (isWatch) {
-  buildWatch();
-} else {
-  copyWasm();
-  copyKatex();
-  buildBundle();
+const thisFilePath = resolve(fileURLToPath(import.meta.url));
+if (thisFilePath === resolve(process.argv[1])) {
+  // This script being run directly (not imported)
+  const isWatch = process.argv.includes("--watch");
+  if (isWatch) {
+    watchVsCode();
+  } else {
+    copyWasmToVsCode();
+    copyKatex();
+    buildBundle();
+  }
 }

@@ -10,7 +10,7 @@ use test_utils::{check_last_statement_compute_properties, CompilationContext};
 
 #[test]
 fn check_rca_for_call_to_cyclic_function_with_classical_argument() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function GaussSum(n : Int) : Int {
@@ -36,7 +36,7 @@ fn check_rca_for_call_to_cyclic_function_with_classical_argument() {
 
 #[test]
 fn check_rca_for_call_to_cyclic_function_with_dynamic_argument() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         function GaussSum(n : Int) : Int {
@@ -65,7 +65,7 @@ fn check_rca_for_call_to_cyclic_function_with_dynamic_argument() {
 
 #[test]
 fn check_rca_for_call_to_cyclic_operation_with_classical_argument() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation GaussSum(n : Int) : Int {
@@ -93,7 +93,7 @@ fn check_rca_for_call_to_cyclic_operation_with_classical_argument() {
 
 #[test]
 fn check_rca_for_call_to_cyclic_operation_with_dynamic_argument() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation GaussSum(n : Int) : Int {
@@ -122,7 +122,7 @@ fn check_rca_for_call_to_cyclic_operation_with_dynamic_argument() {
 
 #[test]
 fn check_rca_for_call_to_static_closure_function() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -148,7 +148,7 @@ fn check_rca_for_call_to_static_closure_function() {
 
 #[test]
 fn check_rca_for_call_to_dynamic_closure_function() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -176,7 +176,7 @@ fn check_rca_for_call_to_dynamic_closure_function() {
 
 #[test]
 fn check_rca_for_call_to_static_closure_operation() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -203,7 +203,7 @@ fn check_rca_for_call_to_static_closure_operation() {
 
 #[test]
 fn check_rca_for_call_to_dynamic_closure_operation() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         open Microsoft.Quantum.Math;
@@ -231,7 +231,7 @@ fn check_rca_for_call_to_dynamic_closure_operation() {
 
 #[test]
 fn check_rca_for_call_to_operation_with_one_classical_return_and_one_dynamic_return() {
-    let mut compilation_context = CompilationContext::new();
+    let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
         operation Foo() : Int {
@@ -250,7 +250,7 @@ fn check_rca_for_call_to_operation_with_one_classical_return_and_one_dynamic_ret
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | ForwardBranchingOnDynamicValue | ReturnWithinDynamicScope)
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | ReturnWithinDynamicScope)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],

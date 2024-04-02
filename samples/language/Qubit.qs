@@ -2,13 +2,13 @@
 /// Qubit
 ///
 /// # Description
-/// Q# uses the `Qubit` primitive type to represent quantum state. A qubit represents 
+/// Q# uses the `Qubit` primitive type to represent quantum state. A qubit represents
 /// the smallest addressable physical unit in a quantum computer. Qubits are long-lived,
 /// and accumulates transformations to quantum states. A Q# program has no ability to
 /// introspect into the state of a qubit, and thus is entirely agnostic about what a
 /// quantum state is or on how it is realized. Rather, a program can call operations
 /// such as Measure to learn information about the quantum state of the computation.
-namespace MyQuantumApp {  
+namespace MyQuantumApp {
     open Microsoft.Quantum.Diagnostics;
     /// In the below code, all varibles have type annotations to showcase their type.
     @EntryPoint()

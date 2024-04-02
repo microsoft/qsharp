@@ -73,7 +73,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   });
 
   const [currentNavItem, setCurrentNavItem] = useState(
-    props.linkedCode ? "linked" : "Minimal",
+    props.linkedCode ? "linked" : "sample-Minimal",
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined,
@@ -93,8 +93,8 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const sampleTitles = samples.map((sample) => sample.title);
 
   const sampleCode =
-    samples.find((sample) => sample.title === currentNavItem)?.code ||
-    props.linkedCode;
+    samples.find((sample) => "sample-" + sample.title === currentNavItem)
+      ?.code || props.linkedCode;
 
   const defaultShots =
     samples.find((sample) => sample.title === currentNavItem)?.shots || 100;
@@ -413,6 +413,43 @@ function registerMonacoLanguageServiceProviders(
           rejectReason: "Rename is unavailable at this location.",
         } as monaco.languages.RenameLocation & monaco.languages.Rejection;
       }
+    },
+  });
+
+  async function getFormatChanges(
+    model: monaco.editor.ITextModel,
+    range?: monaco.Range,
+  ) {
+    const lsEdits = await languageService.getFormatChanges(
+      model.uri.toString(),
+    );
+    if (!lsEdits) {
+      return [];
+    }
+    let edits = lsEdits.map((edit) => {
+      return {
+        range: lsRangeToMonacoRange(edit.range),
+        text: edit.newText,
+      } as monaco.languages.TextEdit;
+    });
+    if (range) {
+      edits = edits.filter((e) => monaco.Range.areIntersecting(range, e.range));
+    }
+    return edits;
+  }
+
+  monaco.languages.registerDocumentFormattingEditProvider("qsharp", {
+    provideDocumentFormattingEdits: async (model: monaco.editor.ITextModel) => {
+      return getFormatChanges(model);
+    },
+  });
+
+  monaco.languages.registerDocumentRangeFormattingEditProvider("qsharp", {
+    provideDocumentRangeFormattingEdits: async (
+      model: monaco.editor.ITextModel,
+      range: monaco.Range,
+    ) => {
+      return getFormatChanges(model, range);
     },
   });
 }
