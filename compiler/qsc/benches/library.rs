@@ -8,9 +8,11 @@ use qsc::compile;
 use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags};
 
 pub fn library(c: &mut Criterion) {
-    let store = PackageStore::new(compile::core());
-    c.bench_function("Standard library", |b| {
-        b.iter(|| compile::std(&store, RuntimeCapabilityFlags::all()));
+    c.bench_function("Core + Standard library compilation", |b| {
+        b.iter(|| {
+            let store = PackageStore::new(compile::core());
+            compile::std(&store, RuntimeCapabilityFlags::all())
+        });
     });
 }
 

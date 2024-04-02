@@ -84,6 +84,17 @@ pub fn mresetz_decl() -> Callable {
 }
 
 #[must_use]
+pub fn reset_decl() -> Callable {
+    Callable {
+        name: "__quantum__qis__reset__body".to_string(),
+        input_type: vec![Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Reset,
+    }
+}
+
+#[must_use]
 pub fn read_result_decl() -> Callable {
     Callable {
         name: "__quantum__qis__read_result__body".to_string(),
