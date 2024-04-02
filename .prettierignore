@@ -14,10 +14,10 @@ __pycache__/
 /jupyterlab/qsharp-jupyterlab/labextension/
 /katas/**/*.md
 /library/
-/npm/dist/
-/npm/docs/
-/npm/lib/
-/npm/src/*.generated.ts
+/npm/qsharp/dist/
+/npm/qsharp/docs/
+/npm/qsharp/lib/
+/npm/qsharp/src/*.generated.ts
 /pip/src/**/*.html
 /playground/public/libs/
 /playground/public/fonts/
