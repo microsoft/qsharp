@@ -10,11 +10,13 @@ use qsc_eval::{
     StepAction, StepResult,
 };
 use qsc_fir::{
+    extensions::PackageExt,
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Global,
         LocalItemId, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl,
         Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
     },
+    ty::{Prim, Ty},
     visit::Visitor,
 };
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
@@ -84,6 +86,8 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn create_program_callable(&self, callable_decl: &CallableDecl) -> Callable {
+        let package = self.package_store.get(self.get_current_package_id());
+        let _input_params = package.derive_callable_input_params(callable_decl);
         let _name = callable_decl.name.name.to_string();
         unimplemented!();
     }
@@ -523,6 +527,10 @@ impl Backend for QubitsAndResultsAllocator {
     fn qubit_release(&mut self, _q: usize) {
         // Do nothing.
     }
+
+    fn qubit_is_zero(&mut self, _q: usize) -> bool {
+        true
+    }
 }
 
 impl QubitsAndResultsAllocator {
@@ -604,5 +612,26 @@ fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
             .ctl_adj
             .as_ref()
             .expect("controlled adjoint specialization does not exits")
+    }
+}
+
+fn map_fir_type_to_rir_type(ty: Ty) -> rir::Ty {
+    let Ty::Prim(prim) = ty else {
+        panic!("only some primitive types are supported");
+    };
+
+    match prim {
+        Prim::BigInt
+        | Prim::Pauli
+        | Prim::Range
+        | Prim::RangeFrom
+        | Prim::RangeFull
+        | Prim::RangeTo
+        | Prim::String => panic!("{prim:?} is not a supported primitive type"),
+        Prim::Bool => rir::Ty::Boolean,
+        Prim::Double => rir::Ty::Double,
+        Prim::Int => rir::Ty::Integer,
+        Prim::Qubit => rir::Ty::Qubit,
+        Prim::Result => rir::Ty::Result,
     }
 }
