@@ -35,7 +35,7 @@ A quick sanity check for $N = 4$ qubits re-confirms the pattern.
  
 Again, the three leftmost qubits go through all possible basis states in both columns, and the rightmost qubit stays in the same state in each column. 
 
-The solution is to put all qubits except the rightmost one into an equal superposition (similar to what we did in Task 9) and to set the rightmost qubit to $|0\rangle$ or $|1\rangle$ depending on the `isEven` flag, using the X operator to convert $|0\rangle$ to $|1\rangle$ if `isEven = false`.
+The solution is to put all qubits except the rightmost one into an equal superposition (similar to what we did in the 'Superposition of all basis vectors' task) and to set the rightmost qubit to $|0\rangle$ or $|1\rangle$ depending on the `isEven` flag, using the X operator to convert $|0\rangle$ to $|1\rangle$ if `isEven = false`.
  
 
 @[solution]({

@@ -9,9 +9,18 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        CheckOperationsEquivalenceOnZeroStateWithFeedback(
-            Kata.AllBasisVectorsSuperposition,
-            AllBasisVectorsSuperposition_Reference,
-            2)
+        for i in 1 .. 5 {
+            Message($"Testing {i} qubit(s)...");
+            if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
+                Kata.AllBasisVectorsSuperposition,
+                AllBasisVectorsSuperposition_Reference,
+                i) {
+                return false;
+            }
+        }
+
+        return true;
+
+
     }
 }

@@ -1,6 +1,6 @@
 ### Solution
 
-As we've seen in task 1.3, to prepare a superposition of all basis vectors on 2 qubits we need to apply a Hadamard gate to each of the qubits.
+As we've seen in the 'Superposition of all basis vectors on two qubits' task, to prepare a superposition of all basis vectors on 2 qubits we need to apply a Hadamard gate to each of the qubits.
 
 It seems that the solution for the general case might be to apply a Hadamard gate to every qubit as well. Let's check the first few examples:
 
