@@ -7,9 +7,8 @@ The 2-qubit GHZ state is the Bell state $\frac{1}{\sqrt{2}} \big (|00\rangle + |
 The next one is the 3-qubit GHZ state:
 $$|GHZ\rangle = \frac{1}{\sqrt{2}} \big (|000\rangle + |111\rangle\big)$$
 
-Let's use the 2-qubit circuit as a building block to construct the circuit for 3 qubits. First, let's add a third qubit to the above circuit.
-
-Comparing the state prepared by this circuit with the desired end state, we see that they differ only in the third (rightmost) qubit:
+Let's use the 2-qubit state as a building block to construct the state for 3 qubits. First, let's add a third qubit to the above state (on the right from the first two qubits).
+Comparing this state with the desired end state, we see that they differ only in the third (rightmost) qubit:
 
 $$|\Phi^+\rangle |0\rangle = \frac{1}{\sqrt{2}} \big (|000\rangle + |11\color{red}0\rangle\big)$$
 $$|GHZ\rangle = \frac{1}{\sqrt{2}} \big (|000\rangle + |11\color{red}1\rangle\big)$$
