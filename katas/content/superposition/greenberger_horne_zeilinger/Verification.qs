@@ -12,9 +12,16 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        CheckOperationsEquivalenceOnZeroStateWithFeedback(
-            Kata.GHZ_State,
-            GHZ_State_Reference,
-            2)
+        for q in 1 .. 5 {
+            Message($"Testing {q} qubit(s)...");
+            if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
+                Kata.GHZ_State,
+                GHZ_State_Reference,
+                q) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

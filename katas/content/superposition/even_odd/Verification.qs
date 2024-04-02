@@ -15,13 +15,15 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for boolVal in [false, true] {
-            Message($"Testing isEven = {boolVal}...");
-            if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-                Kata.EvenOddNumbersSuperposition(_, boolVal),
-                EvenOddNumbersSuperposition_Reference(_, boolVal),
-                2) {
-                return false;
+        for q in 1 .. 5 {
+            for boolVal in [false, true] {
+                Message($"Testing {q} qubit(s) where isEven = {boolVal}...");
+                if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
+                    Kata.EvenOddNumbersSuperposition(_, boolVal),
+                    EvenOddNumbersSuperposition_Reference(_, boolVal),
+                    q) {
+                    return false;
+                }
             }
         }
 
