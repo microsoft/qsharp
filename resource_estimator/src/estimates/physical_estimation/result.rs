@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use super::Factory;
 
 /// Results for a factory part in the overall quantum algorithm
