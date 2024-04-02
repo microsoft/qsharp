@@ -509,7 +509,6 @@ fn resolve_all(
 
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
-    // TODO(alex) no this is where they are coming from
     resolver.with(assigner).visit_package(package);
     let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
