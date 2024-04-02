@@ -1,5 +1,3 @@
-### Solution
-
 Let’s look at some examples of basis states to illustrate the binary numbering system. 
 
 The 4 basis states on $N = 2$ qubits can be split in two columns, where the left column represents the basis states that form the required superposition state for `isEven = true` and the right column - the basis states that form the required superposition state for `isEven = false`.
