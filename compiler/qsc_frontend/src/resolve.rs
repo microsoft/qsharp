@@ -1076,41 +1076,26 @@ fn resolve<'a>(
     let mut candidates: FxHashMap<Res, &Open> = FxHashMap::default();
     let mut vars = true;
     let provided_symbol_str = &(*provided_symbol_name.name);
-    if let Some(provided_namespace_name) = provided_namespace_name {
-        if provided_namespace_name.0.get(0).map(|x| x.name.to_string()) == Some(String::from("A")) {
-            dbg!()
-        }
-    };
-    if provided_symbol_str == "Bar" {
-        dbg!();
-    }
     // the order of the namespaces in this vec is the order in which they will be searched,
     // and that's how the shadowing rules are determined.
     let candidate_namespaces = calculate_candidate_namespaces(globals, &scopes);
 
-    // search through each candidate namespace to find the items
-    for candidate_namespace_id in candidate_namespaces {
-        let (candidate_namespace_str, candidate_namespace) =
-            globals.namespaces.find_id(&candidate_namespace_id);
-        let namespace = if let Some(namespace) = provided_namespace_name {
-            if let Some(namespace) = candidate_namespace.find_namespace(namespace) {
+// search through each candidate namespace to find the items
+        for candidate_namespace_id in candidate_namespaces {
+            let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
+
+            if let Some(namespace) = provided_namespace_name.as_ref().and_then(|ns| candidate_namespace.find_namespace(ns)) {
                 if let Some(res) = globals.get(kind, namespace, provided_symbol_str) {
                     return Ok(res.clone());
                 }
-                Some(namespace)
-            } else {
-                None
             }
-        } else {
-            None
-        };
 
         if let Some(res) = globals.get(kind, candidate_namespace_id, provided_symbol_str) {
             return Ok(res.clone());
         }
 
         for scope in &scopes {
-            if namespace.is_none() {
+            if provided_namespace_name.is_none() {
                 if let Some(res) =
                     resolve_scope_locals(kind, globals, scope, vars, provided_symbol_str)
                 {
