@@ -171,6 +171,26 @@ impl<'a> PartialEvaluator<'a> {
         };
     }
 
+    fn eval_classical_stmt(&mut self, stmt_id: StmtId) {
+        let current_package_id = self.get_current_package_id();
+        let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
+        let stmt = self.package_store.get_stmt(store_stmt_id);
+        let scope_exec_graph = self.get_current_scope_exec_graph().clone();
+        let scope = self.eval_context.get_current_scope_mut();
+        let exec_graph = exec_graph_section(&scope_exec_graph, stmt.exec_graph_range.clone());
+        let mut out = Vec::new();
+        let mut receiver = GenericReceiver::new(&mut out);
+        let mut state = State::new(current_package_id, exec_graph, None);
+        _ = state.eval(
+            self.package_store,
+            &mut scope.env,
+            &mut self.backend,
+            &mut receiver,
+            &[],
+            StepAction::Continue,
+        );
+    }
+
     fn generate_expr_call(&mut self, callee_expr_id: ExprId, args_expr_id: ExprId) {
         let (store_item_id, functor_app, callable_decl) = self.eval_callee_expr(callee_expr_id);
 
@@ -414,7 +434,7 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
             || self.is_qubit_allocation_stmt(stmt_id)
             || self.is_qubit_release_stmt(stmt_id)
         {
-            // Evaluate the statement.
+            self.eval_classical_stmt(stmt_id);
         }
     }
 }

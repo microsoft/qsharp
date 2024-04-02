@@ -43,7 +43,6 @@ fn empty_entry_point() {
     );
 }
 
-#[ignore = "WIP"]
 #[test]
 fn allocate_one_qubit() {
     check_rir(
@@ -52,6 +51,41 @@ fn allocate_one_qubit() {
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
+            }
+        }
+        "#},
+        // Only the return instruction is generated because no operations are performed on the allocated qubit.
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                blocks:
+                    Block 0: Block:
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
+    );
+}
+
+#[test]
+fn perform_intrinsic_operations() {
+    check_rir(
+        indoc! {r#"
+        namespace Test {
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                __quantum__qis__h__body(q);
             }
         }
         "#},
