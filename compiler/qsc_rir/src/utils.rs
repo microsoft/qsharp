@@ -8,17 +8,20 @@ use rustc_hash::FxHashSet;
 #[must_use]
 pub fn get_block_successors(block: &Block) -> Vec<BlockId> {
     let mut successors = Vec::new();
-    for instr in &block.0 {
-        match instr {
-            Instruction::Jump(target) => {
-                successors.push(*target);
-            }
-            Instruction::Branch(_, target1, target2) => {
-                successors.push(*target1);
-                successors.push(*target2);
-            }
-            _ => {}
+    // Assume that the block is well-formed and that terminators only appear as the last instruction.
+    match block
+        .0
+        .last()
+        .expect("block should have at least one instruction")
+    {
+        Instruction::Jump(target) => {
+            successors.push(*target);
         }
+        Instruction::Branch(_, target1, target2) => {
+            successors.push(*target1);
+            successors.push(*target2);
+        }
+        _ => {}
     }
     successors
 }
