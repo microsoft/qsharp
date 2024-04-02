@@ -335,6 +335,33 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 })
 
 @[exercise]({
+    "id": "single_qubit_gates__basis_change",
+    "title": "Basis Change",
+    "path": "./basis_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs", "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "single_qubit_gates__sign_flip",
+    "title": "Sign Flip",
+    "path": "./sign_flip/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "single_qubit_gates__amplitude_change",
+    "title": "Amplitude_Change",
+    "path": "./amplitude_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
     "id": "single_qubit_gates__y_gate",
     "title": "The Y Gate",
     "path": "./y_gate/",
@@ -367,7 +394,7 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 })
 
 The identity gate is mostly here for completeness, at least for now. It will come in handy when dealing with multi-qubit systems and multi-qubit gates. It is represented by the identity matrix, and does not affect the state of the qubit.
-  
+
 <table>
 <tr>
 <th>Gate</th>
