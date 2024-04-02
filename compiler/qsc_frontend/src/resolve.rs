@@ -11,6 +11,7 @@ use qsc_ast::{
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
+use qsc_data_structures::namespaces::NamespaceTreeNode;
 use qsc_data_structures::{
     index_map::IndexMap,
     namespaces::{NamespaceId, NamespaceTreeRoot},
@@ -25,7 +26,6 @@ use qsc_hir::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
-use qsc_data_structures::namespaces::NamespaceTreeNode;
 
 use crate::compile::preprocess::TrackedName;
 
@@ -668,7 +668,6 @@ impl AstVisitor<'_> for With<'_> {
             }
             ast_visit::walk_namespace(visitor, namespace);
         });
-
     }
 
     fn visit_attr(&mut self, attr: &ast::Attr) {
@@ -1079,25 +1078,34 @@ fn resolve<'a>(
     provided_namespace_name: &Option<VecIdent>,
 ) -> Result<Res, Error> {
     let scopes = scopes.collect::<Vec<_>>();
-    let mut candidates: FxHashMap<Res, &Open> = FxHashMap::default();
+    let mut candidates: FxHashMap<Res, Open> = FxHashMap::default();
     let mut vars = true;
     let provided_symbol_str = &(*provided_symbol_name.name);
     // the order of the namespaces in this vec is the order in which they will be searched,
     // and that's how the shadowing rules are determined.
     let candidate_namespaces = calculate_candidate_namespaces(globals, &scopes);
 
-// search through each candidate namespace to find the items
-        for candidate_namespace_id in candidate_namespaces {
-            let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
+    // search through each candidate namespace to find the items
+    for candidate_namespace_id in candidate_namespaces {
+        let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
 
-            if let Some(namespace) = provided_namespace_name.as_ref().and_then(|ns| candidate_namespace.find_namespace(ns)) {
-                if let Some(res) = globals.get(kind, namespace, provided_symbol_str) {
-                    return Ok(res.clone());
-                }
+        if let Some(namespace) = provided_namespace_name
+            .as_ref()
+            .and_then(|ns| candidate_namespace.find_namespace(ns))
+        {
+            if let Some(res) = globals.get(kind, namespace, provided_symbol_str) {
+                candidates.insert(res.clone(), Open {
+                    namespace,
+                    span: provided_symbol_name.span,
+                });
             }
+        }
 
         if let Some(res) = globals.get(kind, candidate_namespace_id, provided_symbol_str) {
-            return Ok(res.clone());
+            candidates.insert(res.clone(), Open {
+                namespace: candidate_namespace_id,
+                span: provided_symbol_name.span,
+            });
         }
 
         for scope in &scopes {
