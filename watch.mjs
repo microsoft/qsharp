@@ -59,7 +59,7 @@ function onRustChange() {
   );
   console.log("wasm-pack done! ", result.stderr.toString());
 
-  console.log("Copying the wasm-pack ouput files to the npm package");
+  console.log("Copying the wasm-pack output files to the npm package");
   const npmLibDir = join(npmDir, "lib", "web");
 
   ["qsc_wasm_bg.wasm", "qsc_wasm.d.ts", "qsc_wasm.js"].forEach((file) =>
@@ -77,7 +77,7 @@ onRustChange();
 
 // Then watch the Rust directories for code changes
 [coreDir, libsDir, vslsDir, wasmDir].forEach((dir) =>
-  subscribe(dir, onRustChange),
+  subscribe(dir, debounce(onRustChange)),
 );
 
 /**
@@ -97,6 +97,25 @@ function runWatcher(dir, name, watchTask = "tsc:watch") {
   npmWatcher.on("close", (code) =>
     console.log(`tsc:watch for ${name} exited with: `, code),
   );
+}
+
+/**
+ * Returns a new, "debounced" function that defers the execution of `fn`
+ * to the end of the event loop, such that if this function
+ * is called multiple times in a row, `fn` will only be called once.
+ * @param { () => void } fn
+ */
+function debounce(fn) {
+  let dirty = true;
+  return () => {
+    dirty = true;
+    setTimeout(() => {
+      if (dirty) {
+        dirty = false;
+        fn();
+      }
+    });
+  };
 }
 
 // Build the npm project in watch mode
