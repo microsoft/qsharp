@@ -2728,5 +2728,4 @@ fn basic_hierarchical_namespace() {
                 }
             }"#]],
     );
-
 }

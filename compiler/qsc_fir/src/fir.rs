@@ -1461,14 +1461,13 @@ impl Display for VecIdent {
         let mut buf = Vec::with_capacity(self.0.len());
 
         for ident in self.0.iter() {
-            buf.push(format!("{}", ident)); 
+            buf.push(format!("{}", ident));
         }
         if buf.len() > 1 {
             // use square brackets only if there are more than one ident
-        write!(f, "[{}]", buf.join(", "))
+            write!(f, "[{}]", buf.join(", "))
         } else {
             write!(f, "{}", buf[0])
-        
         }
     }
 }

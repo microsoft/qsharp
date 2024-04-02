@@ -8,7 +8,6 @@ const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Core"],
     ["Microsoft", "Quantum", "Intrinsic"],
     ["Microsoft", "Quantum", "Measurement"],
-
 ];
 
 /// An ID that corresponds to a namespace in the global scope.
@@ -16,7 +15,8 @@ const PRELUDE: [[&str; 3]; 4] = [
 pub struct NamespaceId(usize);
 impl NamespaceId {
     /// Create a new namespace ID.
-    #[must_use] pub fn new(value: usize) -> Self {
+    #[must_use]
+    pub fn new(value: usize) -> Self {
         Self(value)
     }
 }

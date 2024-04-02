@@ -89,19 +89,17 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
 
     let name = parts.pop().expect("path should have at least one part");
     let namespace = match (parts.first(), parts.last()) {
-        (Some(_), Some(_)) => {
-            Some(
-                parts
-                    .iter()
-                    .map(|part| Ident {
-                        id: NodeId::default(),
-                        span: part.span,
-                        name: part.name.clone(),
-                    })
-                    .collect::<Vec<_>>()
-                    .into(),
-            )
-        }
+        (Some(_), Some(_)) => Some(
+            parts
+                .iter()
+                .map(|part| Ident {
+                    id: NodeId::default(),
+                    span: part.span,
+                    name: part.name.clone(),
+                })
+                .collect::<Vec<_>>()
+                .into(),
+        ),
         _ => None,
     };
 

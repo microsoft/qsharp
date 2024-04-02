@@ -9,8 +9,7 @@ fn test_tree_construction() {
     for i in 0..10 {
         for j in 'a'..'d' {
             root.insert_or_find_namespace(
-                vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))]
-                    .into_iter(),
+                vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))].into_iter(),
             );
         }
     }
@@ -285,12 +284,9 @@ fn test_find_id() {
     let mut id_buf = vec![];
     for i in 0..10 {
         for j in 'a'..'d' {
-            id_buf.push(
-                root.insert_or_find_namespace(
-                    vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))]
-                        .into_iter(),
-                ),
-            );
+            id_buf.push(root.insert_or_find_namespace(
+                vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))].into_iter(),
+            ));
         }
     }
     let mut result_buf = vec![];
@@ -671,8 +667,7 @@ fn test_insert_or_find_namespace() {
     for i in 0..10 {
         for j in 'a'..'d' {
             let id = root.insert_or_find_namespace(
-                vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))]
-                    .into_iter(),
+                vec![Rc::from(format!("ns{}", i)), Rc::from(format!("ns{}", j))].into_iter(),
             );
             ids.push(id.into());
         }

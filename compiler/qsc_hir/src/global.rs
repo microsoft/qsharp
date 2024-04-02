@@ -38,7 +38,6 @@ impl std::fmt::Debug for Kind {
             Kind::Term(term) => write!(f, "Term({})", term.id),
         }
     }
-
 }
 
 pub struct Ty {

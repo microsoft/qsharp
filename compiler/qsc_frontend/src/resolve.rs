@@ -23,12 +23,7 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{
-    collections::{hash_map::Entry},
-    rc::Rc,
-    str::FromStr,
-    vec,
-};
+use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -899,7 +894,7 @@ impl GlobalTable {
                     }
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
-                   self.scope.insert_or_find_namespace(global.namespace);
+                    self.scope.insert_or_find_namespace(global.namespace);
                 }
                 (_, hir::Visibility::Internal) => {}
             }
@@ -1075,13 +1070,13 @@ fn resolve<'a>(
     kind: NameKind,
     globals: &GlobalScope,
     scopes: impl Iterator<Item = &'a Scope>,
-    name: &Ident,
-    namespace_name: &Option<VecIdent>,
+    provided_symbol_name: &Ident,
+    provided_namespace_name: &Option<VecIdent>,
 ) -> Result<Res, Error> {
     let scopes = scopes.collect::<Vec<_>>();
-    let mut candidates: FxHashMap<Res, Open> = FxHashMap::default();
+    let mut candidates: FxHashMap<Res, &Open> = FxHashMap::default();
     let mut vars = true;
-    let name_str = &(*name.name);
+    let name_str = &(*provided_symbol_name.name);
     // the order of the namespaces in this vec is the order in which they will be searched,
     // and that's how the shadowing rules are determined.
     let mut candidate_namespaces = vec![];
@@ -1104,7 +1099,7 @@ fn resolve<'a>(
                         .map(|x| -> Rc<str> { Rc::from(*x) })
                         .collect::<Vec<_>>(),
                 )
-                .expect("prelude namespaces should exist")
+                .expect("prelude namespaces should exist"),
         );
     }
     // the top-level (root) namespace is the last priority to check.
@@ -1113,7 +1108,7 @@ fn resolve<'a>(
     // search through each candidate namespace to find the items
     for candidate_namespace_id in candidate_namespaces {
         let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
-        let namespace = if let Some(namespace) = namespace_name {
+        let namespace = if let Some(namespace) = provided_namespace_name {
             candidate_namespace.find_namespace(namespace)
         } else {
             None
@@ -1130,12 +1125,11 @@ fn resolve<'a>(
                     return Ok(res);
                 }
             }
-
-            // candidates = resolve_explicit_opens(kind, globals, candidate_namespace, name_str);
-            // if !candidates.is_empty() {
-            //     // Explicit opens shadow prelude and unopened globals.
-            //     break;
-            // }
+            if let Some(namespace) = namespace {
+                if let Some(res) = globals.get(kind, namespace, name_str) {
+                    return Ok(res.clone());
+                }
+            }
 
             if scope.kind == ScopeKind::Callable {
                 // Since local callables are not closures, hide local variables in parent scopes.
@@ -1150,7 +1144,7 @@ fn resolve<'a>(
         // }
     }
 
-    if candidates.is_empty() && namespace_name.is_none() {
+    if candidates.is_empty() && provided_namespace_name.is_none() {
         // Prelude shadows unopened globals.
         let candidates = resolve_implicit_opens(
             kind,
@@ -1175,8 +1169,8 @@ fn resolve<'a>(
                 .next()
                 .expect("infallible as per length check above");
             return Err(Error::AmbiguousPrelude {
-                span: name.span,
-                name: name.name.to_string(),
+                span: provided_symbol_name.span,
+                name: provided_symbol_name.name.to_string(),
                 candidate_a,
                 candidate_b,
             });
@@ -1223,13 +1217,13 @@ fn resolve<'a>(
             name: name_str.to_string(),
             first_open: first_open_ns.join("."),
             second_open: second_open_ns.join("."),
-            name_span: name.span,
+            name_span: provided_symbol_name.span,
             first_open_span: opens[0].span,
             second_open_span: opens[1].span,
         })
     } else {
         single(candidates.into_keys())
-            .ok_or_else(|| Error::NotFound(name_str.to_string(), name.span))
+            .ok_or_else(|| Error::NotFound(name_str.to_string(), provided_symbol_name.span))
     }
 }
 
