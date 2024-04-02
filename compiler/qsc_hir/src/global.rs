@@ -15,6 +15,7 @@ use qsc_data_structures::{
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+#[derive(Debug)]
 pub struct Global {
     pub namespace: Vec<Rc<str>>,
     pub name: Rc<str>,
@@ -27,6 +28,17 @@ pub enum Kind {
     Namespace,
     Ty(Ty),
     Term(Term),
+}
+
+impl std::fmt::Debug for Kind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Kind::Namespace => write!(f, "Namespace"),
+            Kind::Ty(ty) => write!(f, "Ty({})", ty.id),
+            Kind::Term(term) => write!(f, "Term({})", term.id),
+        }
+    }
+
 }
 
 pub struct Ty {

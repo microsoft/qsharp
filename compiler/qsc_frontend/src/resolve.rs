@@ -35,11 +35,11 @@ use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
 
-    const PRELUDE: [&[&str; 3]; 3] = [
-        &["Microsoft", "Quantum", "Canon"],
-        &["Microsoft", "Quantum", "Core"],
-        &["Microsoft", "Quantum", "Intrinsic"],
-    ];
+const PRELUDE: [&[&str; 3]; 3] = [
+    &["Microsoft", "Quantum", "Canon"],
+    &["Microsoft", "Quantum", "Core"],
+    &["Microsoft", "Quantum", "Intrinsic"],
+];
 
 // All AST Path nodes get mapped
 // All AST Ident nodes get mapped, except those under AST Path nodes
@@ -428,6 +428,12 @@ impl Resolver {
         let name = &path.name;
         let namespace = &path.namespace;
 
+        if name.name.to_string() == "Fact" {
+            dbg!();
+        }
+        let x = format!("{name}");
+        let namespace_string = format!("{namespace:?}");
+
         match resolve(
             kind,
             &self.globals,
@@ -507,7 +513,19 @@ impl Resolver {
 
     fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<Box<ast::Ident>>) {
         // TODO figure out how aliases are going to work
-        let id = self.globals.find_namespace(name).expect("ns should exist");
+        let id = match self.globals.find_namespace(dbg!(name)) {
+            Some(id) => id,
+            None => {
+                self.errors.push(Error::NotFound(
+                    name.iter()
+                        .map(|x| x.name.to_string())
+                        .collect::<Vec<_>>()
+                        .join("."),
+                    name.span(),
+                ));
+                return;
+            }
+        };
         // let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
         if self.globals.namespaces.find_namespace(name).is_some() {
             self.current_scope_mut()
@@ -654,7 +672,7 @@ impl AstVisitor<'_> for With<'_> {
                     visitor.resolver.bind_open(name, alias);
                 }
             }
-
+            // errors show up in visitor in the below function
             ast_visit::walk_namespace(visitor, namespace);
         });
     }
@@ -880,6 +898,15 @@ impl GlobalTable {
             let namespace = self
                 .scope
                 .insert_or_find_namespace(global.namespace.clone());
+            if id == PackageId::CORE
+                || Into::<usize>::into(id) == (Into::<usize>::into(PackageId::CORE) + 1usize)
+            {
+                println!(
+                    "compiling {id}, adding item {} to namespace id {namespace}",
+                    global.name
+                );
+                dbg!(&global);
+            }
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
                     self.scope
@@ -902,7 +929,18 @@ impl GlobalTable {
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
                     //    TODO ("Verify: does this need to have its items specifically inserted?");
-                    self.scope.insert_or_find_namespace(global.namespace);
+                    let namespace_id = self.scope.insert_or_find_namespace(global.namespace);
+                    // for item in
+                    // self.scope
+                    //     .tys
+                    //     .entry(namespace_id)
+                    //     .or_default()
+                    //     .insert(global.name.clone(), Res::Item(global.id.clone(), global.status));
+                    // self.scope
+                    //     .terms
+                    //     .entry(namespace_id)
+                    //     .or_default()
+                    //     .insert(global.name.clone(), Res::Item(global.id.clone(), global.status.clone()));
                 }
                 (_, hir::Visibility::Internal) => {}
             }
@@ -1008,7 +1046,7 @@ fn bind_global_item(
                         namespace_name.to_string(),
                         decl.name.span,
                     ))
-                },
+                }
                 Entry::Vacant(entry) => {
                     entry.insert(res);
                 }
@@ -1051,7 +1089,7 @@ fn bind_global_item(
                         namespace_name,
                         name.span,
                     )])
-                },
+                }
                 (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
                     term_entry.insert(res);
                     ty_entry.insert(res);
@@ -1073,6 +1111,7 @@ fn decl_is_intrinsic(decl: &ast::CallableDecl) -> bool {
     }
 }
 
+/// TODO(alex): rename namespaces to show what are candidates and what are being passed in. Document the hell out of this.
 fn resolve<'a>(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1081,21 +1120,54 @@ fn resolve<'a>(
     namespace_name: &Option<VecIdent>,
 ) -> Result<Res, Error> {
     let scopes = scopes.collect::<Vec<_>>();
-    let mut candidates = FxHashMap::default();
+    let mut candidates: FxHashMap<Res, Open> = FxHashMap::default();
     let mut vars = true;
     let name_str = &(*name.name);
-    if name_str == "Baz" {
+    if name_str == "Fact" {
         dbg!();
     }
-    let mut candidate_namespaces = vec![globals.namespaces.root_id()];
+    let namespace_name_str = format!("{namespace_name:?}");
+    // the order of the namespaces in this vec is the order in which they will be searched,
+    // and that's how the shadowing rules are determined.
+    let mut candidate_namespaces = vec![];
     // here, we also need to check all opens to see if the namespace is in any of them
-    for open in scopes.iter().flat_map(|scope| scope.opens.values().flatten()) {
+    for open in scopes
+        .iter()
+        .flat_map(|scope| scope.opens.values().flatten())
+    {
         // insert each open into the list of places to check for this item
         candidate_namespaces.push(open.namespace);
     }
+    // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
+    for prelude_namespace in PRELUDE {
+        candidate_namespaces.push(
+            globals
+                .namespaces
+                .find_namespace(
+                    prelude_namespace
+                        .into_iter()
+                        .map(|x| -> Rc<str> { Rc::from(*x) })
+                        .collect::<Vec<_>>(),
+                )
+                .expect("prelude namespaces should exist")
+        );
+    }
+    // the top-level (root) namespace is the last priority to check.
+    candidate_namespaces.push(globals.namespaces.root_id());
+    // FOR DEBUGGING
+    let mut str_buf = String::from("Going to search through the following namespaces: ");
+    for candidate_namespace in &candidate_namespaces {
+        let candidate_namespace = globals.namespaces.find_id(&candidate_namespace).0;
+        str_buf.push_str(&format!("{}", candidate_namespace.join(".")));
+    }
+    let str_buf = str_buf;
+    // END FOR DEBUGGING
     // search through each candidate namespace to find the items
-    for candidate_namespace in candidate_namespaces {
-        let candidate_namespace = globals.namespaces.find_id(&candidate_namespace).1;
+    for candidate_namespace_id in candidate_namespaces {
+        let debug_str_currently_searching = format!(
+            "Currently searching through namespace: {}", globals.namespaces.find_id(&candidate_namespace_id).0.join(".")
+        );
+        let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
         let namespace = if let Some(namespace) = namespace_name {
             let res = candidate_namespace.find_namespace(namespace);
             let res_2 = res.is_some();
@@ -1104,8 +1176,14 @@ fn resolve<'a>(
         } else {
             None
         };
+        if name_str == "Fact" {
+            dbg!();
+        }
 
-        // let namespace = namespace.as_ref().map_or("", |i| &i.name);
+        if let Some(res) = globals.get(kind, candidate_namespace_id, name_str) {
+            return Ok(res.clone());
+        }
+
         for scope in &scopes {
             if namespace.is_none() {
                 if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, name_str) {
@@ -1114,19 +1192,11 @@ fn resolve<'a>(
                 }
             }
 
-            if let Some(namespace) = namespace {
-                if let Some(namespaces) = scope.opens.get(&namespace) {
-                    candidates = resolve_explicit_opens(kind, globals, namespaces, name_str);
-                    if !candidates.is_empty() {
-                        // Explicit opens shadow prelude and unopened globals.
-                        break;
-                    }
-                }
-                if let Some(res) = globals.get(kind, namespace, name_str) {
-                    return Ok(res.clone());
-                    // candidates.insert(candidate., candidate_namespace);
-                }
-            }
+            // candidates = resolve_explicit_opens(kind, globals, candidate_namespace, name_str);
+            // if !candidates.is_empty() {
+            //     // Explicit opens shadow prelude and unopened globals.
+            //     break;
+            // }
 
             if scope.kind == ScopeKind::Callable {
                 // Since local callables are not closures, hide local variables in parent scopes.
@@ -1134,11 +1204,24 @@ fn resolve<'a>(
             }
         }
 
+        // // check this candidate namespace's top level items
+        // if let Some(res) = globals.get(kind, candidate_namespace_id, name_str) {
+        //    candidates.insert(res.clone(), open.unwrap_or_else(||
+        //        Open { namespace: candidate_namespace_id, span: Default::default() },));
+        // }
     }
 
     if candidates.is_empty() && namespace_name.is_none() {
         // Prelude shadows unopened globals.
-        let candidates = resolve_implicit_opens(kind, globals, PRELUDE.into_iter().map(|x| x.into_iter().map(|x| Rc::from(*x)).collect::<Vec<_>>()).collect::<Vec<_>>(), name_str);
+        let candidates = resolve_implicit_opens(
+            kind,
+            globals,
+            PRELUDE
+                .into_iter()
+                .map(|x| x.into_iter().map(|x| Rc::from(*x)).collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
+            name_str,
+        );
         if candidates.len() > 1 {
             // If there are multiple candidates, sort them by namespace and return an error.
             let mut candidates: Vec<_> = candidates.into_iter().collect();
@@ -1227,6 +1310,8 @@ fn resolve_scope_locals(
     name: &str,
 ) -> Option<Res> {
     if vars {
+        // TODO(alex) these should have all the declarations
+        let debug_str = format!("{:?}", scope.terms);
         match kind {
             NameKind::Term => {
                 if let Some(&(_, id)) = scope.vars.get(name) {
@@ -1300,7 +1385,10 @@ fn resolve_implicit_opens<'b>(
 ) -> FxHashMap<Res, NamespaceId> {
     let mut candidates = FxHashMap::default();
     for namespace in namespaces {
-        let namespace_id = globals.find_namespace(namespace).expect("prelude should exist");
+        let namespace_id = globals
+            .find_namespace(namespace)
+            .expect("prelude should exist");
+        let debug_str = format!("{:?}", globals.terms.get(&namespace_id));
         if let Some(&res) = globals.get(kind, namespace_id, name) {
             candidates.insert(res, namespace_id);
         }

@@ -85,11 +85,14 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 }
 
 pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) {
+    // possibly this visit is incorrect?
     vis.visit_vec_ident(&namespace.name);
+    // TODO(alex) HERE is where the errors are coming from --
     namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
 
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
+    // TODO figure out where in here the errors are coming from
     item.attrs.iter().for_each(|a| vis.visit_attr(a));
     item.visibility.iter().for_each(|v| vis.visit_visibility(v));
     match &*item.kind {
