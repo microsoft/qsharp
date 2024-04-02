@@ -193,6 +193,20 @@ if args.check:
             text=True,
             cwd=root_dir,
         )
+
+    step_start("Runing Q# format check")
+    subprocess.run(
+        ["cargo", "run", "--bin", "qsc_formatter", "--", "./samples/", "-r"],
+        check=True,
+        text=True,
+        cwd=root_dir,
+    )
+    subprocess.run(
+        ["cargo", "run", "--bin", "qsc_formatter", "--", "./library/", "-r"],
+        check=True,
+        text=True,
+        cwd=root_dir,
+    )
     step_end()
 
 if build_cli:
@@ -432,7 +446,11 @@ if build_pip and build_widgets and args.integration_tests:
         for dp, _, filenames in os.walk(samples_src)
         for f in filenames
         if f.endswith(".ipynb")
-        and not (f.startswith("sample.") or f.startswith("azure_submission.") or f.startswith("circuits."))
+        and not (
+            f.startswith("sample.")
+            or f.startswith("azure_submission.")
+            or f.startswith("circuits.")
+        )
     ]
     python_bin = use_python_env(samples_src)
 

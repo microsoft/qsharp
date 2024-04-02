@@ -168,7 +168,7 @@ fn main() -> Result<(), String> {
         for f in file_walker.changed_files.iter() {
             println!("\t{f}");
         }
-        println!("Run the formatter to correct formatting for the above files.{Reset}");
+        println!("Run the formatter with the `--write` option to correct formatting for the above files.{Reset}");
         Err("Files are not formatted.".to_string())
     } else if !file_walker.skipped_files.is_empty() {
         println!(

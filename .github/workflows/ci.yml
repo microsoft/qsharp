@@ -103,7 +103,7 @@ jobs:
       - name: Build and Test
         run: python ./build.py --no-check
 
-  format_qsc:
+  format-qsc:
     name: Format Q# Files
     runs-on: ubuntu-latest
     steps:
@@ -224,7 +224,7 @@ jobs:
 
   status-check:
     name: Status Check
-    needs: [format, clippy, web-check, build, format_qsc, integration-tests, runBenchmark, runMemoryProfile]
+    needs: [format, clippy, web-check, build, format-qsc, integration-tests, runBenchmark, runMemoryProfile]
     runs-on: ubuntu-latest
     if: failure()
     steps:
