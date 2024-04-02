@@ -78,7 +78,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
       ? "linked"
       : window.location.hash === "#bloch"
         ? "bloch"
-        : "Minimal",
+        : "sample-Minimal",
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined,
@@ -98,8 +98,8 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const sampleTitles = samples.map((sample) => sample.title);
 
   const sampleCode =
-    samples.find((sample) => sample.title === currentNavItem)?.code ||
-    props.linkedCode;
+    samples.find((sample) => "sample-" + sample.title === currentNavItem)
+      ?.code || props.linkedCode;
 
   const defaultShots =
     samples.find((sample) => sample.title === currentNavItem)?.shots || 100;
