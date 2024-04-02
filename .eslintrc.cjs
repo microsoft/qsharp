@@ -7,9 +7,9 @@ module.exports = {
   ignorePatterns: [
     "/target/",
     "/playground/public/",
-    "/npm/dist/",
-    "/npm/lib/",
-    "/npm/src/*.generated.ts",
+    "/npm/qsharp/dist/",
+    "/npm/qsharp/lib/",
+    "/npm/qsharp/src/*.generated.ts",
     "/jupyterlab/lib",
     "/jupyterlab/qsharp-jupyterlab/labextension",
     "/vscode/out/",
