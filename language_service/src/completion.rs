@@ -20,10 +20,11 @@ use rustc_hash::FxHashSet;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-const PRELUDE: [[&str; 3]; 3] = [
+const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
     ["Microsoft", "Quantum", "Core"],
     ["Microsoft", "Quantum", "Intrinsic"],
+    ["Microsoft", "Quantum", "Measurement"],
 ];
 
 pub(crate) fn get_completions(

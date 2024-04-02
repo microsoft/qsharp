@@ -3,10 +3,12 @@ mod tests;
 
 use std::{cell::RefCell, collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
-const PRELUDE: [[&str; 3]; 3] = [
+const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
     ["Microsoft", "Quantum", "Core"],
     ["Microsoft", "Quantum", "Intrinsic"],
+    ["Microsoft", "Quantum", "Measurement"],
+
 ];
 
 /// An ID that corresponds to a namespace in the global scope.

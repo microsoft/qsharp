@@ -24,9 +24,7 @@ use qsc_hir::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    cell::RefCell,
-    collections::{hash_map::Entry, HashMap},
-    fmt::Display,
+    collections::{hash_map::Entry},
     rc::Rc,
     str::FromStr,
     vec,
@@ -35,10 +33,12 @@ use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
 
-const PRELUDE: [&[&str; 3]; 3] = [
+// TODO dedup this?
+const PRELUDE: [&[&str; 3]; 4] = [
     &["Microsoft", "Quantum", "Canon"],
     &["Microsoft", "Quantum", "Core"],
     &["Microsoft", "Quantum", "Intrinsic"],
+    &["Microsoft", "Quantum", "Measurement"],
 ];
 
 // All AST Path nodes get mapped
@@ -382,7 +382,7 @@ impl Resolver {
     pub(super) fn bind_fragments(&mut self, ast: &ast::Package, assigner: &mut Assigner) {
         for node in &mut ast.nodes.iter() {
             match node {
-                ast::TopLevelNode::Namespace(namespace) => {
+                TopLevelNode::Namespace(namespace) => {
                     bind_global_items(
                         &mut self.names,
                         &mut self.globals,
@@ -391,7 +391,7 @@ impl Resolver {
                         &mut self.errors,
                     );
                 }
-                ast::TopLevelNode::Stmt(stmt) => {
+                TopLevelNode::Stmt(stmt) => {
                     if let ast::StmtKind::Item(item) = stmt.kind.as_ref() {
                         self.bind_local_item(assigner, item);
                     }
@@ -427,12 +427,6 @@ impl Resolver {
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) {
         let name = &path.name;
         let namespace = &path.namespace;
-
-        if name.name.to_string() == "Fact" {
-            dbg!();
-        }
-        let x = format!("{name}");
-        let namespace_string = format!("{namespace:?}");
 
         match resolve(
             kind,
@@ -511,9 +505,9 @@ impl Resolver {
         }
     }
 
-    fn bind_open(&mut self, name: &ast::VecIdent, alias: &Option<Box<ast::Ident>>) {
+    fn bind_open(&mut self, name: &VecIdent, alias: &Option<Box<Ident>>) {
         // TODO figure out how aliases are going to work
-        let id = match self.globals.find_namespace(dbg!(name)) {
+        let id = match self.globals.find_namespace(name) {
             Some(id) => id,
             None => {
                 self.errors.push(Error::NotFound(
@@ -684,7 +678,7 @@ impl AstVisitor<'_> for With<'_> {
         }
     }
 
-    fn visit_callable_decl(&mut self, decl: &ast::CallableDecl) {
+    fn visit_callable_decl(&mut self, decl: &CallableDecl) {
         fn collect_param_names(pat: &ast::Pat, names: &mut FxHashSet<Rc<str>>) {
             match &*pat.kind {
                 ast::PatKind::Bind(name, _) => {
@@ -711,7 +705,7 @@ impl AstVisitor<'_> for With<'_> {
     }
 
     fn visit_spec_decl(&mut self, decl: &ast::SpecDecl) {
-        if let ast::SpecBody::Impl(input, block) = &decl.body {
+        if let SpecBody::Impl(input, block) = &decl.body {
             self.with_spec_pat(block.span, ScopeKind::Block, input, |visitor| {
                 visitor.visit_block(block);
             });
@@ -858,21 +852,6 @@ impl GlobalTable {
         let mut errors = Vec::new();
         for node in &*package.nodes {
             match node {
-                // if a namespace is nested, create child namespaces
-                TopLevelNode::Namespace(namespace) => {
-                    let namespace_id = self
-                        .scope
-                        .namespaces
-                        .insert_or_find_namespace(Into::<Vec<_>>::into(namespace.name.clone()));
-
-                    bind_global_items(
-                        &mut self.names,
-                        &mut self.scope,
-                        namespace,
-                        assigner,
-                        &mut errors,
-                    );
-                }
                 TopLevelNode::Namespace(namespace) => {
                     bind_global_items(
                         &mut self.names,
@@ -898,15 +877,7 @@ impl GlobalTable {
             let namespace = self
                 .scope
                 .insert_or_find_namespace(global.namespace.clone());
-            if id == PackageId::CORE
-                || Into::<usize>::into(id) == (Into::<usize>::into(PackageId::CORE) + 1usize)
-            {
-                println!(
-                    "compiling {id}, adding item {} to namespace id {namespace}",
-                    global.name
-                );
-                dbg!(&global);
-            }
+
             match (global.kind, global.visibility) {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
                     self.scope
@@ -928,19 +899,7 @@ impl GlobalTable {
                     }
                 }
                 (global::Kind::Namespace, hir::Visibility::Public) => {
-                    //    TODO ("Verify: does this need to have its items specifically inserted?");
-                    let namespace_id = self.scope.insert_or_find_namespace(global.namespace);
-                    // for item in
-                    // self.scope
-                    //     .tys
-                    //     .entry(namespace_id)
-                    //     .or_default()
-                    //     .insert(global.name.clone(), Res::Item(global.id.clone(), global.status));
-                    // self.scope
-                    //     .terms
-                    //     .entry(namespace_id)
-                    //     .or_default()
-                    //     .insert(global.name.clone(), Res::Item(global.id.clone(), global.status.clone()));
+                   self.scope.insert_or_find_namespace(global.namespace);
                 }
                 (_, hir::Visibility::Internal) => {}
             }
@@ -948,7 +907,7 @@ impl GlobalTable {
     }
 }
 
-/// Given some namespace `namespace`, add all the globals declared within it to the global sc4pe.
+/// Given some namespace `namespace`, add all the globals declared within it to the global scope.
 fn bind_global_items(
     names: &mut IndexMap<NodeId, Res>,
     scope: &mut GlobalScope,
@@ -1101,7 +1060,7 @@ fn bind_global_item(
     }
 }
 
-fn decl_is_intrinsic(decl: &ast::CallableDecl) -> bool {
+fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
     if let CallableBody::Specs(specs) = decl.body.as_ref() {
         specs
             .iter()
@@ -1123,10 +1082,6 @@ fn resolve<'a>(
     let mut candidates: FxHashMap<Res, Open> = FxHashMap::default();
     let mut vars = true;
     let name_str = &(*name.name);
-    if name_str == "Fact" {
-        dbg!();
-    }
-    let namespace_name_str = format!("{namespace_name:?}");
     // the order of the namespaces in this vec is the order in which they will be searched,
     // and that's how the shadowing rules are determined.
     let mut candidate_namespaces = vec![];
@@ -1154,31 +1109,15 @@ fn resolve<'a>(
     }
     // the top-level (root) namespace is the last priority to check.
     candidate_namespaces.push(globals.namespaces.root_id());
-    // FOR DEBUGGING
-    let mut str_buf = String::from("Going to search through the following namespaces: ");
-    for candidate_namespace in &candidate_namespaces {
-        let candidate_namespace = globals.namespaces.find_id(&candidate_namespace).0;
-        str_buf.push_str(&format!("{}", candidate_namespace.join(".")));
-    }
-    let str_buf = str_buf;
-    // END FOR DEBUGGING
+
     // search through each candidate namespace to find the items
     for candidate_namespace_id in candidate_namespaces {
-        let debug_str_currently_searching = format!(
-            "Currently searching through namespace: {}", globals.namespaces.find_id(&candidate_namespace_id).0.join(".")
-        );
         let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
         let namespace = if let Some(namespace) = namespace_name {
-            let res = candidate_namespace.find_namespace(namespace);
-            let res_2 = res.is_some();
-            let stringname = format!("{namespace}");
-            res
+            candidate_namespace.find_namespace(namespace)
         } else {
             None
         };
-        if name_str == "Fact" {
-            dbg!();
-        }
 
         if let Some(res) = globals.get(kind, candidate_namespace_id, name_str) {
             return Ok(res.clone());
@@ -1310,8 +1249,6 @@ fn resolve_scope_locals(
     name: &str,
 ) -> Option<Res> {
     if vars {
-        // TODO(alex) these should have all the declarations
-        let debug_str = format!("{:?}", scope.terms);
         match kind {
             NameKind::Term => {
                 if let Some(&(_, id)) = scope.vars.get(name) {
@@ -1388,7 +1325,6 @@ fn resolve_implicit_opens<'b>(
         let namespace_id = globals
             .find_namespace(namespace)
             .expect("prelude should exist");
-        let debug_str = format!("{:?}", globals.terms.get(&namespace_id));
         if let Some(&res) = globals.get(kind, namespace_id, name) {
             candidates.insert(res, namespace_id);
         }
