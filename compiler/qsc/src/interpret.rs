@@ -145,7 +145,7 @@ impl Interpreter {
         capabilities: RuntimeCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        Self::new_debug_opts(
+        Self::new_internal(
             false,
             std,
             sources,
@@ -165,7 +165,7 @@ impl Interpreter {
         capabilities: RuntimeCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        Self::new_debug_opts(
+        Self::new_internal(
             true,
             std,
             sources,
@@ -175,7 +175,7 @@ impl Interpreter {
         )
     }
 
-    fn new_debug_opts(
+    fn new_internal(
         dbg: bool,
         std: bool,
         sources: SourceMap,
