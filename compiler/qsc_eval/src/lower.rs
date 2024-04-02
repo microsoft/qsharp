@@ -47,8 +47,8 @@ impl Lowerer {
     }
 
     #[must_use]
-    pub fn with_debug(mut self) -> Self {
-        self.enable_debug = true;
+    pub fn with_debug(mut self, dbg: bool) -> Self {
+        self.enable_debug = dbg;
         self
     }
 

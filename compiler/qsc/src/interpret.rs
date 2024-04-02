@@ -190,13 +190,9 @@ impl Interpreter {
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
-                if dbg {
-                    qsc_eval::lower::Lowerer::new()
-                        .with_debug()
-                        .lower_package(&unit.package)
-                } else {
-                    qsc_eval::lower::Lowerer::new().lower_package(&unit.package)
-                },
+                qsc_eval::lower::Lowerer::new()
+                    .with_debug(dbg)
+                    .lower_package(&unit.package),
             );
         }
 
@@ -207,11 +203,7 @@ impl Interpreter {
             lines: 0,
             capabilities,
             fir_store,
-            lowerer: if dbg {
-                qsc_eval::lower::Lowerer::new().with_debug()
-            } else {
-                qsc_eval::lower::Lowerer::new()
-            },
+            lowerer: qsc_eval::lower::Lowerer::new().with_debug(dbg),
             env: Env::default(),
             sim: BackendChain::new(
                 SparseSim::new(),
