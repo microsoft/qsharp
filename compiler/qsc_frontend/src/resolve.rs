@@ -25,6 +25,7 @@ use qsc_hir::{
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
+use qsc_data_structures::namespaces::NamespaceTreeNode;
 
 use crate::compile::preprocess::TrackedName;
 
@@ -653,8 +654,12 @@ impl AstVisitor<'_> for With<'_> {
             .globals
             .find_namespace(Into::<Vec<_>>::into(namespace.name.clone()))
             .expect("namespace should exist by this point");
+
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
+            // the below line ensures that this namespace opens itself, in case
+            // we are re-opening a namespace. This is important, as without this,
+            // a re-opened namespace would only have knowledge of its scopes.
             visitor.resolver.bind_open(&namespace.name, &None);
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
@@ -663,6 +668,7 @@ impl AstVisitor<'_> for With<'_> {
             }
             ast_visit::walk_namespace(visitor, namespace);
         });
+
     }
 
     fn visit_attr(&mut self, attr: &ast::Attr) {
