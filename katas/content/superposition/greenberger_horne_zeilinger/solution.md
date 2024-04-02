@@ -1,5 +1,3 @@
-### Solution
-
 The single-qubit GHZ state is the plus state $\frac{1}{\sqrt{2}} \big (|0\rangle + |1\rangle\big)$ that we've discussed in the first task. As a reminder, that state is prepared by applying a Hadamard gate.
 
 The 2-qubit GHZ state is the Bell state $\frac{1}{\sqrt{2}} \big (|00\rangle + |11\rangle\big)$ that we've discussed in the two previous tasks.
