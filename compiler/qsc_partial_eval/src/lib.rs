@@ -18,7 +18,7 @@ use qsc_fir::{
     visit::Visitor,
 };
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
-use qsc_rir::rir::{self, CallableType, Instruction, Program};
+use qsc_rir::rir::{self, Callable, CallableId, CallableType, Instruction, Program};
 use rustc_hash::FxHashMap;
 use std::{rc::Rc, result::Result};
 
@@ -38,8 +38,9 @@ pub enum Error {
 struct PartialEvaluator<'a> {
     package_store: &'a PackageStore,
     compute_properties: &'a PackageStoreComputeProperties,
-    _assigner: Assigner,
+    assigner: Assigner,
     backend: QubitsAndResultsAllocator,
+    callables_map: FxHashMap<String, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
     error: Option<Error>,
@@ -74,14 +75,19 @@ impl<'a> PartialEvaluator<'a> {
             package_store,
             compute_properties,
             eval_context: context,
-            _assigner: assigner,
+            assigner,
             backend: QubitsAndResultsAllocator::default(),
+            callables_map: FxHashMap::default(),
             program,
             error: None,
         }
     }
 
-    #[allow(clippy::unnecessary_wraps)]
+    fn create_program_callable(&self, callable_decl: &CallableDecl) -> Callable {
+        let _name = callable_decl.name.name.to_string();
+        unimplemented!();
+    }
+
     fn eval(mut self) -> Result<Program, Error> {
         let current_package = self.get_current_package_id();
         let entry_package = self.package_store.get(current_package);
@@ -92,14 +98,18 @@ impl<'a> PartialEvaluator<'a> {
         // Visit the entry point expression.
         self.visit_expr(entry_expr_id);
 
-        // Insert the return expression.
+        // If there was an error, return it.
+        if let Some(error) = self.error {
+            return Err(error);
+        }
+
+        // Insert the return expression and return the generated program.
         let current_block = self
             .program
             .blocks
             .get_mut(self.eval_context.current_block)
             .expect("block does not exist");
         current_block.0.push(Instruction::Return);
-
         Ok(self.program)
     }
 
@@ -207,9 +217,24 @@ impl<'a> PartialEvaluator<'a> {
 
     fn generate_expr_call_intrinsic(
         &mut self,
-        _callable_decl: &CallableDecl,
+        callable_decl: &CallableDecl,
         _args_expr_id: ExprId,
     ) {
+        // Check if the callable is already in the program, and if not add it.
+        let callable_name = callable_decl.name.name.to_string();
+        #[allow(clippy::map_entry)]
+        if !self.callables_map.contains_key(&callable_name) {
+            let callable = self.create_program_callable(callable_decl);
+            let callable_id = self.assigner.next_callable();
+            self.program.callables.insert(callable_id, callable);
+            self.callables_map.insert(callable_name, callable_id);
+        }
+
+        let _callable_id = self
+            .callables_map
+            .get(&callable_decl.name.name.to_string())
+            .expect("callable not present");
+
         unimplemented!();
     }
 
@@ -430,12 +455,27 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
     }
 
     fn visit_stmt(&mut self, stmt_id: StmtId) {
+        // If the statement is classical, we can just evaluate it.
         if self.is_classical_stmt(stmt_id)
             || self.is_qubit_allocation_stmt(stmt_id)
             || self.is_qubit_release_stmt(stmt_id)
         {
             self.eval_classical_stmt(stmt_id);
+            return;
         }
+
+        // If the statement is not classical, we need to generate instructions for it.
+        let store_stmt_id = StoreStmtId::from((self.get_current_package_id(), stmt_id));
+        let stmt = self.package_store.get_stmt(store_stmt_id);
+        match stmt.kind {
+            StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
+                self.generate_instructions(expr_id);
+            }
+            StmtKind::Local(_, _, _) => todo!(),
+            StmtKind::Item(_) => {
+                // Do nothing.
+            }
+        };
     }
 }
 
