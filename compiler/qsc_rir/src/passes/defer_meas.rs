@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_rir::rir::{CallableType, Instruction, Program};
+use crate::rir::{CallableType, Instruction, Program};
 use rustc_hash::FxHashSet;
 
 /// Defers measurements in each block of a program to the end of that block.
@@ -30,6 +30,9 @@ pub fn defer_measurements(program: &mut Program) {
                 output_recording_ids.insert(id);
             }
             CallableType::Regular => {}
+            CallableType::Reset => panic!(
+                "Reset callables should not be present in the RIR when deferring measurements"
+            ),
         }
     }
 

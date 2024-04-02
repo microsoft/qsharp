@@ -7,10 +7,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import samples from "../samples/samples.mjs";
+import samples from "../../samples/samples.mjs";
 
 const thisDir = dirname(fileURLToPath(import.meta.url));
-const sampleDir = join(thisDir, "..", "samples");
+const sampleDir = join(thisDir, "..", "..", "samples");
 const sampleGeneratedDir = join(thisDir, "src");
 
 const result = samples.map((sample) => {

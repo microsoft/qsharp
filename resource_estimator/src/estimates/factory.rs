@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use std::borrow::Cow;
 
 use probability::{distribution::Inverse, prelude::Binomial};

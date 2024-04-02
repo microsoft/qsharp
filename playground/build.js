@@ -72,7 +72,7 @@ function copyLibs() {
 }
 
 export function copyWasmToPlayground() {
-  let qsharpWasm = join(thisDir, "..", "npm/lib/web/qsc_wasm_bg.wasm");
+  let qsharpWasm = join(thisDir, "..", "npm/qsharp/lib/web/qsc_wasm_bg.wasm");
   let qsharpDest = join(thisDir, `public/libs/qsharp`);
 
   console.log("Copying the wasm file to playground from: " + qsharpWasm);

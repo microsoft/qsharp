@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use std::marker::PhantomData;
 
 use crate::estimates::{ErrorCorrection, Factory, FactoryBuilder};

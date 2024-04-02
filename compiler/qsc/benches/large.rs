@@ -12,10 +12,10 @@ use qsc_passes::PackageType;
 const INPUT: &str = include_str!("./large.qs");
 
 pub fn large_file(c: &mut Criterion) {
-    c.bench_function("Large input file", |b| {
+    c.bench_function("Large input file compilation", |b| {
+        let mut store = PackageStore::new(compile::core());
+        let std = store.insert(compile::std(&store, RuntimeCapabilityFlags::all()));
         b.iter(|| {
-            let mut store = PackageStore::new(compile::core());
-            let std = store.insert(compile::std(&store, RuntimeCapabilityFlags::all()));
             let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
             let (_, reports) = compile(
                 &store,
@@ -30,5 +30,21 @@ pub fn large_file(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, large_file);
+pub fn large_file_interpreter(c: &mut Criterion) {
+    c.bench_function("Large input file compilation (interpreter)", |b| {
+        b.iter(|| {
+            let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
+            let _evaluator = qsc::interpret::Interpreter::new(
+                true,
+                sources,
+                PackageType::Exe,
+                RuntimeCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            )
+            .expect("code should compile");
+        });
+    });
+}
+
+criterion_group!(benches, large_file, large_file_interpreter);
 criterion_main!(benches);

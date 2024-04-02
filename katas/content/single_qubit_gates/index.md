@@ -326,6 +326,15 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 @[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
 @[exercise]({
+    "id": "single_qubit_gates__state_flip",
+    "title": "State Flip",
+    "path": "./state_flip/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
     "id": "single_qubit_gates__y_gate",
     "title": "The Y Gate",
     "path": "./y_gate/",

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use crate::estimates::{ErrorCorrection, Factory, FactoryBuilder};
 use std::borrow::Cow;
 
