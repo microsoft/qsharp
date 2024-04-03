@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::rir::{
-    Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Program, Ty, Value,
+    Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Program, Ty,
     Variable, VariableId,
 };
 
@@ -150,52 +150,56 @@ pub fn bell_program() -> Program {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                CallableId(0),
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
             Instruction::Call(
                 CallableId(1),
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Qubit(1)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(2),
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(2),
                 vec![
-                    Value::Literal(Literal::Qubit(1)),
-                    Value::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Result(1)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(3),
                 vec![
-                    Value::Literal(Literal::Integer(2)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Integer(2)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Result(0)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Result(1)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),
@@ -235,43 +239,55 @@ pub fn teleport_program() -> Program {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(CallableId(2), vec![Value::Literal(Literal::Qubit(0))], None),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(2))], None),
+            Instruction::Call(
+                CallableId(2),
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Call(
+                CallableId(0),
+                vec![Operand::Literal(Literal::Qubit(2))],
+                None,
+            ),
             Instruction::Call(
                 CallableId(3),
                 vec![
-                    Value::Literal(Literal::Qubit(2)),
-                    Value::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Qubit(2)),
+                    Operand::Literal(Literal::Qubit(1)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(3),
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Qubit(2)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Qubit(2)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(0), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                CallableId(0),
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(5),
-                vec![Value::Literal(Literal::Result(0))],
+                vec![Operand::Literal(Literal::Result(0))],
                 Some(Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
                 }),
             ),
             Instruction::Branch(
-                Value::Variable(Variable {
+                Operand::Variable(Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
                 }),
@@ -283,7 +299,11 @@ pub fn teleport_program() -> Program {
     program.blocks.insert(
         BlockId(1),
         Block(vec![
-            Instruction::Call(CallableId(1), vec![Value::Literal(Literal::Qubit(1))], None),
+            Instruction::Call(
+                CallableId(1),
+                vec![Operand::Literal(Literal::Qubit(1))],
+                None,
+            ),
             Instruction::Jump(BlockId(2)),
         ]),
     );
@@ -293,21 +313,21 @@ pub fn teleport_program() -> Program {
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Qubit(2)),
-                    Value::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Qubit(2)),
+                    Operand::Literal(Literal::Result(1)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(5),
-                vec![Value::Literal(Literal::Result(1))],
+                vec![Operand::Literal(Literal::Result(1))],
                 Some(Variable {
                     variable_id: VariableId(1),
                     ty: Ty::Boolean,
                 }),
             ),
             Instruction::Branch(
-                Value::Variable(Variable {
+                Operand::Variable(Variable {
                     variable_id: VariableId(1),
                     ty: Ty::Boolean,
                 }),
@@ -319,7 +339,11 @@ pub fn teleport_program() -> Program {
     program.blocks.insert(
         BlockId(3),
         Block(vec![
-            Instruction::Call(CallableId(2), vec![Value::Literal(Literal::Qubit(1))], None),
+            Instruction::Call(
+                CallableId(2),
+                vec![Operand::Literal(Literal::Qubit(1))],
+                None,
+            ),
             Instruction::Jump(BlockId(4)),
         ]),
     );
@@ -329,16 +353,16 @@ pub fn teleport_program() -> Program {
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Qubit(1)),
-                    Value::Literal(Literal::Result(2)),
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Result(2)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(6),
                 vec![
-                    Value::Literal(Literal::Result(2)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Result(2)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),

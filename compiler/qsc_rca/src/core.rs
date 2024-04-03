@@ -3,16 +3,14 @@
 
 use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
-    common::{
-        derive_callable_input_params, try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId,
-        InputParam, Local, LocalKind, TyExt,
-    },
+    common::{try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId, Local, LocalKind, TyExt},
     scaffolding::{InternalItemComputeProperties, InternalPackageStoreComputeProperties},
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ComputePropertiesLookup,
     ParamApplication, QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind,
 };
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
+    extensions::InputParam,
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind, Global,
         Ident, Item, ItemKind, Mutability, Package, PackageId, PackageLookup, PackageStore,
@@ -1026,10 +1024,8 @@ impl<'a> Analyzer<'a> {
 
         // Push the context of the callable the specialization belongs to.
         self.push_item_context(id.callable);
-        let input_params = derive_callable_input_params(
-            callable_decl,
-            &self.package_store.get(id.callable.package).pats,
-        );
+        let package = self.package_store.get(id.callable.package);
+        let input_params = package.derive_callable_input_params(callable_decl);
         let current_callable_context = self.get_current_item_context_mut();
         current_callable_context.set_callable_context(
             callable_decl.kind,
@@ -1491,8 +1487,8 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
         let package_id = self.get_current_package_id();
 
         // Derive the input parameters of the callable and add them to the currently active callable.
-        let input_params =
-            derive_callable_input_params(decl, &self.package_store.get(package_id).pats);
+        let package = self.package_store.get(package_id);
+        let input_params = package.derive_callable_input_params(decl);
         let current_callable_context = self.get_current_item_context_mut();
         current_callable_context.set_callable_context(decl.kind, input_params, decl.output.clone());
         self.visit_callable_impl(&decl.implementation);

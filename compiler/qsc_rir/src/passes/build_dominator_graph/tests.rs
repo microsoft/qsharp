@@ -9,7 +9,7 @@ use qsc_data_structures::index_map::IndexMap;
 use crate::{
     passes::remap_block_ids,
     rir::{
-        Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Program, Value,
+        Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Program,
     },
 };
 
@@ -92,7 +92,7 @@ fn test_dominator_graph_branching_blocks_dominated_by_common_predecessor() {
     program.blocks.insert(
         BlockId(1),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(2),
             BlockId(3),
         )]),
@@ -145,7 +145,7 @@ fn test_dominator_graph_branch_and_loop() {
     program.blocks.insert(
         BlockId(1),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(2),
             BlockId(3),
         )]),
@@ -187,7 +187,7 @@ fn test_dominator_graph_complex_structure_only_dominated_by_entry() {
     program.blocks.insert(
         BlockId(6),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(5),
             BlockId(4),
         )]),
@@ -198,7 +198,7 @@ fn test_dominator_graph_complex_structure_only_dominated_by_entry() {
     program.blocks.insert(
         BlockId(4),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(2),
             BlockId(3),
         )]),
@@ -209,7 +209,7 @@ fn test_dominator_graph_complex_structure_only_dominated_by_entry() {
     program.blocks.insert(
         BlockId(2),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(3),
             BlockId(1),
         )]),
@@ -238,7 +238,7 @@ fn test_dominator_graph_with_node_having_many_predicates() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(1),
             BlockId(2),
         )]),
@@ -246,7 +246,7 @@ fn test_dominator_graph_with_node_having_many_predicates() {
     program.blocks.insert(
         BlockId(1),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(3),
             BlockId(4),
         )]),
@@ -254,7 +254,7 @@ fn test_dominator_graph_with_node_having_many_predicates() {
     program.blocks.insert(
         BlockId(2),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             BlockId(5),
             BlockId(6),
         )]),
