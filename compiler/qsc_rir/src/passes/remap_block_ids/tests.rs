@@ -6,8 +6,8 @@
 use expect_test::expect;
 
 use crate::rir::{
-    Block, BlockId, Callable, CallableId, CallableType, Instruction, Program, Ty, Value, Variable,
-    VariableId,
+    Block, BlockId, Callable, CallableId, CallableType, Instruction, Operand, Program, Ty,
+    Variable, VariableId,
 };
 
 use super::remap_block_ids;
@@ -176,7 +176,7 @@ fn test_remap_block_ids_out_of_order_with_one_branch() {
     program.blocks.insert(
         BlockId(2),
         Block(vec![Instruction::Branch(
-            Value::Variable(Variable {
+            Operand::Variable(Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
             }),
@@ -266,7 +266,7 @@ fn test_remap_block_ids_simple_loop() {
     program.blocks.insert(
         BlockId(4),
         Block(vec![Instruction::Branch(
-            Value::Variable(Variable {
+            Operand::Variable(Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
             }),
@@ -417,7 +417,7 @@ fn test_remap_block_ids_nested_branching_loops() {
     program.blocks.insert(
         BlockId(4),
         Block(vec![Instruction::Branch(
-            Value::Variable(Variable {
+            Operand::Variable(Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
             }),
@@ -428,7 +428,7 @@ fn test_remap_block_ids_nested_branching_loops() {
     program.blocks.insert(
         BlockId(6),
         Block(vec![Instruction::Branch(
-            Value::Variable(Variable {
+            Operand::Variable(Variable {
                 variable_id: VariableId(1),
                 ty: Ty::Boolean,
             }),
