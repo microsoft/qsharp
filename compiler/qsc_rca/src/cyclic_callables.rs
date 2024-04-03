@@ -2,13 +2,12 @@
 // Licensed under the MIT License.
 
 use crate::{
-    common::{derive_callable_input_params, InputParam, LocalSpecId},
-    cycle_detection::CycleDetector,
-    scaffolding::InternalPackageStoreComputeProperties,
-    ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ParamApplication,
-    RuntimeFeatureFlags, ValueKind,
+    common::LocalSpecId, cycle_detection::CycleDetector,
+    scaffolding::InternalPackageStoreComputeProperties, ApplicationGeneratorSet,
+    ArrayParamApplication, ComputeKind, ParamApplication, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_fir::{
+    extensions::{InputParam, PackageExt},
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, Global, Item,
         Package, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecImpl, Stmt, StmtId,
@@ -78,8 +77,8 @@ impl<'a> Analyzer<'a> {
 
         // Create the application generator set differently depending on whether the callable is a function or an
         // operation.
-        let input_params =
-            derive_callable_input_params(callable, &self.package_store.get(package_id).pats);
+        let package = self.package_store.get(package_id);
+        let input_params = package.derive_callable_input_params(callable);
         let application_generator_set = match callable.kind {
             CallableKind::Function => {
                 Self::create_function_specialization_application_generator_set(
