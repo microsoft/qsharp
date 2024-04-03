@@ -11,17 +11,17 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
+use qsc_ast::ast::VecIdent;
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path, TopLevelNode},
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
+use qsc_data_structures::namespaces::{NamespaceId, NamespaceTreeRoot};
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use qsc_hir::assigner::Assigner as HirAssigner;
 use std::fmt::Write;
-use qsc_ast::ast::VecIdent;
-use qsc_data_structures::namespaces::{NamespaceId, NamespaceTreeRoot};
 
 enum Change {
     Res(Res),
@@ -47,7 +47,7 @@ struct Renamer<'a> {
 }
 
 impl<'a> Renamer<'a> {
-    fn new(names: &'a Names, namespaces: NamespaceTreeRoot,) -> Self {
+    fn new(names: &'a Names, namespaces: NamespaceTreeRoot) -> Self {
         Self {
             names,
             changes: Vec::new(),

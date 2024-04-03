@@ -1122,7 +1122,9 @@ fn resolve<'a>(
             provided_symbol_name,
             provided_namespace_name,
             provided_symbol_str,
-            scope_opens.into_iter().map(|open @ Open { namespace, .. }| (namespace, open)),
+            scope_opens
+                .into_iter()
+                .map(|open @ Open { namespace, .. }| (namespace, open)),
         );
         if explicit_open_candidates.len() == 1 {
             return Ok(single(explicit_open_candidates.into_keys()).unwrap());
@@ -1158,9 +1160,7 @@ fn resolve<'a>(
             let mut candidates: Vec<_> = prelude_candidates.into_iter().collect();
             let mut candidates = candidates
                 .into_iter()
-                .map(|(candidate, ns_name)| {
-                    ns_name
-                })
+                .map(|(candidate, ns_name)| ns_name)
                 .collect::<Vec<_>>();
             candidates.sort();
 
@@ -1235,12 +1235,11 @@ fn find_symbol_in_namespaces<T, O>(
 ) -> FxHashMap<Res, O>
 where
     T: Iterator<Item = (NamespaceId, O)>,
-    O: Clone
+    O: Clone,
 {
     let mut candidates = FxHashMap::default();
     // search through each candidate namespace to find the items
-    for (candidate_namespace_id, open) in namespaces_to_search
-    {
+    for (candidate_namespace_id, open) in namespaces_to_search {
         let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
 
         if let Some(ref provided_namespace_name) = provided_namespace_name {
@@ -1286,24 +1285,22 @@ struct CandidateNamespaces {
     root_id: NamespaceId,
 }
 
-
 fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
     let mut prelude = vec![];
 
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
-        let prelude_name =                     prelude_namespace
+        let prelude_name = prelude_namespace
             .into_iter()
             .map(|x| -> Rc<str> { Rc::from(*x) })
             .collect::<Vec<_>>();
-        prelude.push(
-            (prelude_name.join("."), globals
+        prelude.push((
+            prelude_name.join("."),
+            globals
                 .namespaces
-                .find_namespace(prelude_name
-,
-                )
-                .expect("prelude namespaces should exist")),
-        );
+                .find_namespace(prelude_name)
+                .expect("prelude namespaces should exist"),
+        ));
     }
     prelude
 }
