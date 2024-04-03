@@ -26,7 +26,7 @@ $$
 Z|\psi\rangle =
  \begin{bmatrix}1 & 0 \\\0 & -1\end{bmatrix}
  \begin{bmatrix}\alpha\\\\beta\\\ \end{bmatrix}=
-\begin{bmatrix}1\cdot\alpha + 0\cdot\beta\\\0\cdot\alpha + -1\cdot\beta\\\ \end{bmatrix}=
+\begin{bmatrix}1\cdot\alpha + 0\cdot\beta\\\0\cdot\alpha + (-1)\cdot\beta\\\ \end{bmatrix}=
  \begin{bmatrix}\alpha\\\ -\beta\\\ \end{bmatrix}=
  \alpha |0\rangle -\beta |1\rangle
 $$
