@@ -145,6 +145,44 @@ impl Interpreter {
         capabilities: RuntimeCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
+        Self::new_internal(
+            false,
+            std,
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+        )
+    }
+
+    /// Creates a new incremental compiler with debugging stmts enabled, compiling the passed in sources.
+    /// # Errors
+    /// If compiling the sources fails, compiler errors are returned.
+    pub fn new_with_debug(
+        std: bool,
+        sources: SourceMap,
+        package_type: PackageType,
+        capabilities: RuntimeCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
+        Self::new_internal(
+            true,
+            std,
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+        )
+    }
+
+    fn new_internal(
+        dbg: bool,
+        std: bool,
+        sources: SourceMap,
+        package_type: PackageType,
+        capabilities: RuntimeCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
         let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
             .map_err(into_errors)?;
 
@@ -152,7 +190,9 @@ impl Interpreter {
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
-                qsc_eval::lower::Lowerer::new().lower_package(&unit.package),
+                qsc_eval::lower::Lowerer::new()
+                    .with_debug(dbg)
+                    .lower_package(&unit.package),
             );
         }
 
@@ -163,7 +203,7 @@ impl Interpreter {
             lines: 0,
             capabilities,
             fir_store,
-            lowerer: qsc_eval::lower::Lowerer::new(),
+            lowerer: qsc_eval::lower::Lowerer::new().with_debug(dbg),
             env: Env::default(),
             sim: BackendChain::new(
                 SparseSim::new(),
@@ -490,7 +530,7 @@ impl Debugger {
         position_encoding: Encoding,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let interpreter = Interpreter::new(
+        let interpreter = Interpreter::new_with_debug(
             true,
             sources,
             PackageType::Exe,

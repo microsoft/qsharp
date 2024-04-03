@@ -158,10 +158,9 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_jump() {
             call_type: CallableType::Regular,
         },
     );
-    program.blocks.insert(
-        BlockId(0),
-        Block(vec![Instruction::Jump(BlockId(1)), Instruction::Return]),
-    );
+    program
+        .blocks
+        .insert(BlockId(0), Block(vec![Instruction::Jump(BlockId(1))]));
     program
         .blocks
         .insert(BlockId(1), Block(vec![Instruction::Return]));
