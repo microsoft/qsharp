@@ -26,7 +26,6 @@ namespace Kata.Verification {
         }
 
         Message("Correct!");
-        Message("The solution was correct for all test cases.");
         true
     }
 }
