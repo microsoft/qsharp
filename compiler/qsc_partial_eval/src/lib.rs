@@ -20,7 +20,7 @@ use qsc_fir::{
     visit::Visitor,
 };
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
-use qsc_rir::rir::{self, Callable, CallableId, CallableType, Instruction, Program};
+use qsc_rir::rir::{self, Callable, CallableId, CallableType, Instruction, Literal, Program};
 use rustc_hash::FxHashMap;
 use std::{rc::Rc, result::Result};
 
@@ -248,7 +248,7 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
-        _args_expr_id: ExprId,
+        args_expr_id: ExprId,
     ) {
         // Check if the callable is already in the program, and if not add it.
         let callable_name = callable_decl.name.name.to_string();
@@ -260,12 +260,17 @@ impl<'a> PartialEvaluator<'a> {
             self.callables_map.insert(callable_name, callable_id);
         }
 
-        let _callable_id = self
+        let callable_id = *self
             .callables_map
             .get(&callable_decl.name.name.to_string())
             .expect("callable not present");
 
-        //unimplemented!();
+        // Resove the call arguments, create the call instruction and insert it to the current block.
+        let args = self.resolve_call_args(args_expr_id);
+        // Note that we currently just support calls to unitary operations.
+        let instruction = Instruction::Call(callable_id, args, None);
+        let current_block = self.get_current_block_mut();
+        current_block.0.push(instruction);
     }
 
     fn generate_expr_call_spec(
@@ -341,6 +346,13 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::Var(_, _) => todo!(),
             ExprKind::While(_, _) => todo!(),
         };
+    }
+
+    fn get_current_block_mut(&mut self) -> &mut rir::Block {
+        self.program
+            .blocks
+            .get_mut(self.eval_context.current_block)
+            .expect("block does not exist")
     }
 
     fn get_current_package_id(&self) -> PackageId {
@@ -440,6 +452,31 @@ impl<'a> PartialEvaluator<'a> {
                 .eq("__quantum__rt__qubit_release")
         } else {
             false
+        }
+    }
+
+    fn resolve_call_args(&mut self, args_expr_id: ExprId) -> Vec<rir::Value> {
+        let store_args_expr_id = StoreExprId::from((self.get_current_package_id(), args_expr_id));
+        let args_expr = self.package_store.get_expr(store_args_expr_id);
+        match &args_expr.kind {
+            ExprKind::Tuple(exprs) => {
+                let mut values = Vec::<rir::Value>::new();
+                for expr_id in exprs {
+                    self.eval_classical_expr(*expr_id);
+                    let current_scope = self.eval_context.get_current_scope();
+                    let expr_value = current_scope.get_expr_value(*expr_id);
+                    let literal = map_eval_value_to_rir_literal(expr_value.clone());
+                    values.push(rir::Value::Literal(literal));
+                }
+                values
+            }
+            _ => {
+                self.eval_classical_expr(args_expr_id);
+                let current_scope = self.eval_context.get_current_scope();
+                let args_expr_value = current_scope.get_expr_value(args_expr_id);
+                let literal = map_eval_value_to_rir_literal(args_expr_value.clone());
+                vec![rir::Value::Literal(literal)]
+            }
         }
     }
 }
@@ -615,6 +652,12 @@ struct Scope {
 }
 
 impl Scope {
+    fn get_expr_value(&self, expr_id: ExprId) -> &Value {
+        self.expression_value_map
+            .get(&expr_id)
+            .expect("expression value does not exist")
+    }
+
     fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
         self.expression_value_map.insert(expr_id, value);
     }
@@ -638,6 +681,16 @@ fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
             .ctl_adj
             .as_ref()
             .expect("controlled adjoint specialization does not exits")
+    }
+}
+
+fn map_eval_value_to_rir_literal(value: Value) -> Literal {
+    match value {
+        Value::Bool(b) => Literal::Bool(b),
+        Value::Double(d) => Literal::Double(d),
+        Value::Int(i) => Literal::Integer(i),
+        Value::Qubit(q) => Literal::Qubit(q.0.try_into().unwrap()),
+        _ => panic!("{value} cannot be mapped to a RIR literal"),
     }
 }
 

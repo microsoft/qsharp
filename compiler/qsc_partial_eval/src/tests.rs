@@ -77,9 +77,8 @@ fn allocate_one_qubit() {
     );
 }
 
-#[ignore = "WIP"]
 #[test]
-fn perform_intrinsic_operations() {
+fn call_to_single_qubit_operation() {
     check_rir(
         indoc! {r#"
         namespace Test {
@@ -91,7 +90,237 @@ fn perform_intrinsic_operations() {
             }
         }
         "#},
-        &expect![[r#""#]],
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                    Callable 1: Callable:
+                        name: __quantum__qis__h__body
+                        call_type: Regular
+                        input_type: 
+                            [0]: Qubit
+                        output_type:  <VOID>
+                        body:  <NONE>
+                blocks:
+                    Block 0: Block:
+                        Call id(1), args( Qubit(0), )
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
+    );
+}
+
+#[test]
+fn call_to_many_single_qubit_operations() {
+    check_rir(
+        indoc! {r#"
+        namespace Test {
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q0 = Qubit();
+                __quantum__qis__h__body(q0);
+                use q1 = Qubit();
+                __quantum__qis__x__body(q1);
+                use q2 = Qubit();
+                __quantum__qis__y__body(q2);
+                use q3 = Qubit();
+                __quantum__qis__x__body(q3);
+            }
+        }
+        "#},
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                    Callable 1: Callable:
+                        name: __quantum__qis__h__body
+                        call_type: Regular
+                        input_type: 
+                            [0]: Qubit
+                        output_type:  <VOID>
+                        body:  <NONE>
+                    Callable 2: Callable:
+                        name: __quantum__qis__x__body
+                        call_type: Regular
+                        input_type: 
+                            [0]: Qubit
+                        output_type:  <VOID>
+                        body:  <NONE>
+                    Callable 3: Callable:
+                        name: __quantum__qis__y__body
+                        call_type: Regular
+                        input_type: 
+                            [0]: Qubit
+                        output_type:  <VOID>
+                        body:  <NONE>
+                blocks:
+                    Block 0: Block:
+                        Call id(1), args( Qubit(0), )
+                        Call id(2), args( Qubit(1), )
+                        Call id(3), args( Qubit(2), )
+                        Call id(2), args( Qubit(3), )
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
+    );
+}
+
+#[test]
+fn call_to_rotation_operation_using_literal() {
+    check_rir(
+        indoc! {r#"
+        namespace Test {
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                __quantum__qis__rx__body(3.14159, q);
+            }
+        }
+        "#},
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                    Callable 1: Callable:
+                        name: __quantum__qis__rx__body
+                        call_type: Regular
+                        input_type: 
+                            [0]: Double
+                            [1]: Qubit
+                        output_type:  <VOID>
+                        body:  <NONE>
+                blocks:
+                    Block 0: Block:
+                        Call id(1), args( Double(3.14159), Qubit(0), )
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
+    );
+}
+
+#[test]
+fn calls_to_rotation_operation_using_inline_expressions() {
+    check_rir(
+        indoc! {r#"
+        namespace Test {
+            open Microsoft.Quantum.Math;
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                __quantum__qis__ry__body(PI(), q);
+                __quantum__qis__ry__body(PI() / 2.0, q);
+            }
+        }
+        "#},
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                    Callable 1: Callable:
+                        name: __quantum__qis__ry__body
+                        call_type: Regular
+                        input_type: 
+                            [0]: Double
+                            [1]: Qubit
+                        output_type:  <VOID>
+                        body:  <NONE>
+                blocks:
+                    Block 0: Block:
+                        Call id(1), args( Double(3.141592653589793), Qubit(0), )
+                        Call id(1), args( Double(1.5707963267948966), Qubit(0), )
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
+    );
+}
+
+#[test]
+fn calls_to_rotation_operation_using_variables() {
+    check_rir(
+        indoc! {r#"
+        namespace Test {
+            open Microsoft.Quantum.Math;
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let pi_over_two = PI() / 2.0;
+                __quantum__qis__rz__body(pi_over_two, q);
+                mutable some_angle = ArcSin(0.5);
+                __quantum__qis__rz__body(some_angle, q);
+                set some_angle = ArcCos(-0.25);
+                __quantum__qis__rz__body(some_angle, q);
+            }
+        }
+        "#},
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                    Callable 1: Callable:
+                        name: __quantum__qis__rz__body
+                        call_type: Regular
+                        input_type: 
+                            [0]: Double
+                            [1]: Qubit
+                        output_type:  <VOID>
+                        body:  <NONE>
+                blocks:
+                    Block 0: Block:
+                        Call id(1), args( Double(1.5707963267948966), Qubit(0), )
+                        Call id(1), args( Double(0.5235987755982989), Qubit(0), )
+                        Call id(1), args( Double(1.8234765819369754), Qubit(0), )
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
     );
 }
 
