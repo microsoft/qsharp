@@ -456,7 +456,7 @@ fn ambiguous_prelude() {
 
             namespace namespace7 {
                 function item5() : Unit {
-                    item1();
+                    A();
                 }
             }
 
