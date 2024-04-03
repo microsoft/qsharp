@@ -85,11 +85,36 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn create_program_callable(&self, callable_decl: &CallableDecl) -> Callable {
-        let package = self.package_store.get(self.get_current_package_id());
-        let _input_params = package.derive_callable_input_params(callable_decl);
-        let _name = callable_decl.name.name.to_string();
-        unimplemented!();
+    fn create_intrinsic_callable(
+        &self,
+        store_item_id: StoreItemId,
+        callable_decl: &CallableDecl,
+    ) -> Callable {
+        let callable_package = self.package_store.get(store_item_id.package);
+        let name = callable_decl.name.name.to_string();
+        let input_type: Vec<rir::Ty> = callable_package
+            .derive_callable_input_params(callable_decl)
+            .iter()
+            .map(|input_param| map_fir_type_to_rir_type(&input_param.ty))
+            .collect();
+        let output_type = if callable_decl.output == Ty::UNIT {
+            None
+        } else {
+            Some(map_fir_type_to_rir_type(&callable_decl.output))
+        };
+        let body = None;
+        let call_type = if name.eq("__quantum__qis__reset__body") {
+            CallableType::Reset
+        } else {
+            CallableType::Regular
+        };
+        Callable {
+            name,
+            input_type,
+            output_type,
+            body,
+            call_type,
+        }
     }
 
     fn eval(mut self) -> Result<Program, Error> {
@@ -211,7 +236,7 @@ impl<'a> PartialEvaluator<'a> {
         // We generate instructions differently depending on whether
         match &callable_decl.implementation {
             CallableImpl::Intrinsic => {
-                self.generate_expr_call_intrinsic(&callable_decl, args_expr_id);
+                self.generate_expr_call_intrinsic(store_item_id, &callable_decl, args_expr_id);
             }
             CallableImpl::Spec(spec_impl) => {
                 self.generate_expr_call_spec(store_item_id, functor_app, spec_impl, args_expr_id);
@@ -221,6 +246,7 @@ impl<'a> PartialEvaluator<'a> {
 
     fn generate_expr_call_intrinsic(
         &mut self,
+        store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
         _args_expr_id: ExprId,
     ) {
@@ -228,7 +254,7 @@ impl<'a> PartialEvaluator<'a> {
         let callable_name = callable_decl.name.name.to_string();
         #[allow(clippy::map_entry)]
         if !self.callables_map.contains_key(&callable_name) {
-            let callable = self.create_program_callable(callable_decl);
+            let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
             let callable_id = self.assigner.next_callable();
             self.program.callables.insert(callable_id, callable);
             self.callables_map.insert(callable_name, callable_id);
@@ -239,7 +265,7 @@ impl<'a> PartialEvaluator<'a> {
             .get(&callable_decl.name.name.to_string())
             .expect("callable not present");
 
-        unimplemented!();
+        //unimplemented!();
     }
 
     fn generate_expr_call_spec(
@@ -378,7 +404,7 @@ impl<'a> PartialEvaluator<'a> {
         let current_package_id = self.get_current_package_id();
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
         let stmt = self.package_store.get_stmt(store_stmt_id);
-        if let StmtKind::Local(_, _, expr_id) = &stmt.kind {
+        if let StmtKind::Semi(expr_id) = &stmt.kind {
             self.is_qubit_release_expr(*expr_id)
         } else {
             false
@@ -615,7 +641,7 @@ fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
     }
 }
 
-fn map_fir_type_to_rir_type(ty: Ty) -> rir::Ty {
+fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
     let Ty::Prim(prim) = ty else {
         panic!("only some primitive types are supported");
     };
