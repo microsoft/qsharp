@@ -614,7 +614,7 @@ fn local_shadows_global() {
                 function item2() : Int {
                     item1();
                     let local27 = 1;
-                    item1
+                    local27
                 }
             }
         "#]],
