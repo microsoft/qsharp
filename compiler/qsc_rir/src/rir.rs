@@ -3,10 +3,10 @@
 
 use indenter::{indented, Indented};
 use qsc_data_structures::index_map::IndexMap;
-use std::fmt::{self, Debug, Display, Formatter, Write};
+use std::fmt::{self, Display, Formatter, Write};
 
 /// The root of the RIR.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Program {
     pub entry: CallableId,
     pub callables: IndexMap<CallableId, Callable>,
@@ -58,7 +58,7 @@ impl Program {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Config {
     pub remap_qubits_on_reuse: bool,
     pub defer_measurements: bool,
@@ -126,11 +126,11 @@ impl BlockId {
 }
 
 /// A block is a collection of instructions.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
-#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct CallableId(pub u32);
 
 impl From<CallableId> for usize {
@@ -152,7 +152,6 @@ impl CallableId {
     }
 }
 
-#[derive(Debug)]
 /// A callable.
 pub struct Callable {
     /// The name of the callable.
@@ -202,7 +201,7 @@ impl Display for Callable {
 }
 
 /// The type of callable.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CallableType {
     Measurement,
     Reset,
@@ -211,7 +210,7 @@ pub enum CallableType {
     Regular,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum IntPredicate {
     Eq,
     Ne,
@@ -248,7 +247,7 @@ impl Display for CallableType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Instruction {
     Store(Value, Variable),
     Call(CallableId, Vec<Value>, Option<Variable>),
@@ -417,10 +416,10 @@ impl Display for Instruction {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct VariableId(pub u32);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Variable {
     pub variable_id: VariableId,
     pub ty: Ty,
@@ -434,7 +433,7 @@ impl Display for Variable {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Ty {
     Qubit,
     Result,
@@ -458,7 +457,7 @@ impl Display for Ty {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Value {
     Literal(Literal),
     Variable(Variable),
@@ -473,7 +472,7 @@ impl Display for Value {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Literal {
     Qubit(u32),
     Result(u32),

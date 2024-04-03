@@ -458,25 +458,22 @@ impl<'a> PartialEvaluator<'a> {
     fn resolve_call_args(&mut self, args_expr_id: ExprId) -> Vec<rir::Value> {
         let store_args_expr_id = StoreExprId::from((self.get_current_package_id(), args_expr_id));
         let args_expr = self.package_store.get_expr(store_args_expr_id);
-        match &args_expr.kind {
-            ExprKind::Tuple(exprs) => {
-                let mut values = Vec::<rir::Value>::new();
-                for expr_id in exprs {
-                    self.eval_classical_expr(*expr_id);
-                    let current_scope = self.eval_context.get_current_scope();
-                    let expr_value = current_scope.get_expr_value(*expr_id);
-                    let literal = map_eval_value_to_rir_literal(expr_value.clone());
-                    values.push(rir::Value::Literal(literal));
-                }
-                values
-            }
-            _ => {
-                self.eval_classical_expr(args_expr_id);
+        if let ExprKind::Tuple(exprs) = &args_expr.kind {
+            let mut values = Vec::<rir::Value>::new();
+            for expr_id in exprs {
+                self.eval_classical_expr(*expr_id);
                 let current_scope = self.eval_context.get_current_scope();
-                let args_expr_value = current_scope.get_expr_value(args_expr_id);
-                let literal = map_eval_value_to_rir_literal(args_expr_value.clone());
-                vec![rir::Value::Literal(literal)]
+                let expr_value = current_scope.get_expr_value(*expr_id);
+                let literal = map_eval_value_to_rir_literal(expr_value);
+                values.push(rir::Value::Literal(literal));
             }
+            values
+        } else {
+            self.eval_classical_expr(args_expr_id);
+            let current_scope = self.eval_context.get_current_scope();
+            let args_expr_value = current_scope.get_expr_value(args_expr_id);
+            let literal = map_eval_value_to_rir_literal(args_expr_value);
+            vec![rir::Value::Literal(literal)]
         }
     }
 }
@@ -684,12 +681,12 @@ fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
     }
 }
 
-fn map_eval_value_to_rir_literal(value: Value) -> Literal {
+fn map_eval_value_to_rir_literal(value: &Value) -> Literal {
     match value {
-        Value::Bool(b) => Literal::Bool(b),
-        Value::Double(d) => Literal::Double(d),
-        Value::Int(i) => Literal::Integer(i),
-        Value::Qubit(q) => Literal::Qubit(q.0.try_into().unwrap()),
+        Value::Bool(b) => Literal::Bool(*b),
+        Value::Double(d) => Literal::Double(*d),
+        Value::Int(i) => Literal::Integer(*i),
+        Value::Qubit(q) => Literal::Qubit(q.0.try_into().expect("could not convert to u32")),
         _ => panic!("{value} cannot be mapped to a RIR literal"),
     }
 }

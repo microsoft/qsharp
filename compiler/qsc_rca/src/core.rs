@@ -1025,7 +1025,7 @@ impl<'a> Analyzer<'a> {
         // Push the context of the callable the specialization belongs to.
         self.push_item_context(id.callable);
         let package = self.package_store.get(id.callable.package);
-        let input_params = package.derive_callable_input_params(&callable_decl);
+        let input_params = package.derive_callable_input_params(callable_decl);
         let current_callable_context = self.get_current_item_context_mut();
         current_callable_context.set_callable_context(
             callable_decl.kind,
