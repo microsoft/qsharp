@@ -5,7 +5,6 @@ use crate::common::{
     initialize_locals_map, try_resolve_callee, FunctorAppExt, Local, LocalKind, LocalSpecId,
 };
 use qsc_fir::{
-    extensions::PackageExt,
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Item, ItemKind,
         LocalVarId, Mutability, Package, PackageId, PackageLookup, Pat, PatId, PatKind, SpecDecl,

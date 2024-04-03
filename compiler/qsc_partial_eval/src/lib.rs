@@ -10,7 +10,6 @@ use qsc_eval::{
     StepAction, StepResult,
 };
 use qsc_fir::{
-    extensions::PackageExt,
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Global,
         LocalItemId, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl,

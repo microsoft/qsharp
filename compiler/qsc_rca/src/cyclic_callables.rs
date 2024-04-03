@@ -7,7 +7,7 @@ use crate::{
     ArrayParamApplication, ComputeKind, ParamApplication, RuntimeFeatureFlags, ValueKind,
 };
 use qsc_fir::{
-    extensions::{InputParam, PackageExt},
+    extensions::InputParam,
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, Global, Item,
         Package, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecImpl, Stmt, StmtId,

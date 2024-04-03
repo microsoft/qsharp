@@ -10,7 +10,7 @@ use crate::{
 };
 use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_fir::{
-    extensions::{InputParam, PackageExt},
+    extensions::InputParam,
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, CallableKind, Expr, ExprId, ExprKind, Global,
         Ident, Item, ItemKind, Mutability, Package, PackageId, PackageLookup, PackageStore,

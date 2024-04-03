@@ -32,12 +32,9 @@ pub struct InputParam {
     pub var: Option<LocalVarId>,
 }
 
-pub trait PackageExt {
-    fn derive_callable_input_params(&self, callable: &CallableDecl) -> Vec<InputParam>;
-}
-
-impl PackageExt for Package {
-    fn derive_callable_input_params(&self, callable: &CallableDecl) -> Vec<InputParam> {
+impl Package {
+    #[must_use]
+    pub fn derive_callable_input_params(&self, callable: &CallableDecl) -> Vec<InputParam> {
         let input_elements = derive_callable_input_pattern_elements(callable, &self.pats);
         let mut input_params = Vec::new();
         let mut param_index = InputParamIndex(0);
