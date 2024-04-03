@@ -1,6 +1,6 @@
 **Inputs:**
 
-1. Angle α, in radians, represented as Double.
+1. Angle $\alpha$, in radians, represented as Double.
 2. A qubit in state $|\psi\rangle = \beta |0\rangle + \gamma |1\rangle$.
 
 **Goal:** Change the state of the qubit as follows:
