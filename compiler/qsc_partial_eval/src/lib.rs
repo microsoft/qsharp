@@ -21,7 +21,7 @@ use qsc_fir::{
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
 use qsc_rir::rir::{self, Callable, CallableId, CallableType, Instruction, Literal, Program};
 use rustc_hash::FxHashMap;
-use std::{rc::Rc, result::Result};
+use std::{collections::hash_map::Entry, rc::Rc, result::Result};
 
 pub fn partially_evaluate(
     package_id: PackageId,
@@ -41,7 +41,7 @@ struct PartialEvaluator<'a> {
     compute_properties: &'a PackageStoreComputeProperties,
     assigner: Assigner,
     backend: QubitsAndResultsAllocator,
-    callables_map: FxHashMap<String, CallableId>,
+    callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
     error: Option<Error>,
@@ -153,7 +153,10 @@ impl<'a> PartialEvaluator<'a> {
         let callee_expr_generator_set = self.compute_properties.get_expr(store_callee_expr_id);
         let callee_expr_compute_kind = callee_expr_generator_set
             .generate_application_compute_kind(&callable_scope.args_runtime_properties);
-        assert!(matches!(callee_expr_compute_kind, ComputeKind::Classical));
+        assert!(
+            matches!(callee_expr_compute_kind, ComputeKind::Classical),
+            "callee expressions must be classical"
+        );
 
         // Evaluate the callee expression to get the global to call.
         self.eval_classical_expr(callee_expr_id);
@@ -232,7 +235,8 @@ impl<'a> PartialEvaluator<'a> {
     fn generate_expr_call(&mut self, callee_expr_id: ExprId, args_expr_id: ExprId) {
         let (store_item_id, functor_app, callable_decl) = self.eval_callee_expr(callee_expr_id);
 
-        // We generate instructions differently depending on whether
+        // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
+        // with an implementation.
         match &callable_decl.implementation {
             CallableImpl::Intrinsic => {
                 self.generate_expr_call_intrinsic(store_item_id, &callable_decl, args_expr_id);
@@ -250,18 +254,16 @@ impl<'a> PartialEvaluator<'a> {
         args_expr_id: ExprId,
     ) {
         // Check if the callable is already in the program, and if not add it.
-        let callable_name = callable_decl.name.name.to_string();
-        #[allow(clippy::map_entry)]
-        if !self.callables_map.contains_key(&callable_name) {
-            let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
+        if let Entry::Vacant(entry) = self.callables_map.entry(callable_decl.name.name.clone()) {
             let callable_id = self.assigner.next_callable();
+            entry.insert(callable_id);
+            let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
             self.program.callables.insert(callable_id, callable);
-            self.callables_map.insert(callable_name, callable_id);
         }
 
         let callable_id = *self
             .callables_map
-            .get(&callable_decl.name.name.to_string())
+            .get(&callable_decl.name.name)
             .expect("callable not present");
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
@@ -297,12 +299,18 @@ impl<'a> PartialEvaluator<'a> {
             .scopes
             .pop()
             .expect("there are no callable scopes to pop");
-        assert!(popped_scope.package_id == global_callable.package);
+        assert!(
+            popped_scope.package_id == global_callable.package,
+            "scope package ID mismatch"
+        );
         let (popped_callable_id, popped_functor_app) = popped_scope
             .callable
             .expect("callable in scope is not specified");
-        assert!(popped_callable_id == global_callable.item);
-        assert!(popped_functor_app == functor_app);
+        assert!(
+            popped_callable_id == global_callable.item,
+            "scope callable ID mismatch"
+        );
+        assert!(popped_functor_app == functor_app, "scope functor mismatch");
     }
 
     fn generate_instructions(&mut self, expr_id: ExprId) {
