@@ -27,7 +27,7 @@ $$
 R_{y}(\theta) |\psi\rangle=
  \begin{bmatrix}\cos \frac{\theta}{2} & -\sin \frac{\theta}{2}\\\ \sin \frac{\theta}{2} & \cos \frac{\theta}{2} \end{bmatrix}
   \begin{bmatrix}\beta\\\ \gamma\\\ \end{bmatrix}=
-  \begin{bmatrix}cos \frac{\theta}{2}\cdot\beta - sin \frac{\theta}{2}\cdot\gamma\\\ sin \frac{\theta}{2}\cdot\beta +cos \frac{\theta}{2}\cdot\gamma \end{bmatrix}=
+  \begin{bmatrix}\cos \frac{\theta}{2}\cdot\beta - \sin \frac{\theta}{2}\cdot\gamma\\\ \sin \frac{\theta}{2}\cdot\beta +\cos \frac{\theta}{2}\cdot\gamma \end{bmatrix}=
  \begin{bmatrix} 0.6\cdot\cos \frac{\pi}{3} -0.8\cdot\sin \frac{\pi}{3}\\\0.6\cdot\sin \frac{\pi}{3} +0.8\cdot\cos \frac{\pi}{3}\end{bmatrix}=
  \begin{bmatrix}0.3 - 0.6928\\\ 0.5196 + 0.4\end{bmatrix}=
 \begin{bmatrix}-0.3928\\\ 0.9196\\\ \end{bmatrix}
