@@ -85,9 +85,9 @@ impl FileWalker {
         use OutputFormatting::*;
 
         if self.is_write {
-            println!("Formatting {}", path.display());
+            println!("{Verb}Formatting{Reset} {}", path.display());
         } else {
-            println!("Checking {}", path.display());
+            println!("{Verb}Checking{Reset} {}", path.display());
         }
 
         let file_as_string = match std::fs::read_to_string(path) {
@@ -123,6 +123,7 @@ enum OutputFormatting {
     Error,
     Skip,
     Passing,
+    Verb,
     Reset,
 }
 
@@ -132,6 +133,7 @@ impl Display for OutputFormatting {
             OutputFormatting::Error => "\x1B[1;91m", // Bold, Bright Red
             OutputFormatting::Passing => "\x1B[1;92m", // Bold, Bright Green
             OutputFormatting::Skip => "\x1B[1;93m",  // Bold, Bright Yellow
+            OutputFormatting::Verb => "\x1B[1;94m",  // Bold, Bright Blue
             OutputFormatting::Reset => "\x1B[0m",
         };
         write!(f, "{output}")
@@ -164,12 +166,16 @@ fn main() -> Result<(), String> {
 
     if file_walker.is_write {
         if are_changed_files {
-            println!("Updated {} files:", file_walker.changed_files.len());
+            println!(
+                "{Passing}Updated {} files:",
+                file_walker.changed_files.len()
+            );
             for f in file_walker.changed_files.iter() {
-                println!("\t{f}");
+                println!("\t{Passing}{f}");
             }
+            print!("{Reset}");
         } else {
-            println!("No files updated.");
+            println!("{Passing}No files updated.{Reset}");
         }
     } else if are_changed_files {
         println!(
@@ -177,9 +183,9 @@ fn main() -> Result<(), String> {
             file_walker.changed_files.len()
         );
         for f in file_walker.changed_files.iter() {
-            println!("\t{f}");
+            println!("\t{Error}{f}");
         }
-        println!("Run the formatter with the `--write` option to correct formatting for the above files.{Reset}");
+        println!("{Error}Run the formatter with the `--write` option to correct formatting for the above files.{Reset}");
     } else {
         println!(
             "{Passing}{} files are correctly formatted.{Reset}",
@@ -189,7 +195,7 @@ fn main() -> Result<(), String> {
     if are_skipped_files {
         println!("{Skip}Skipped {} files:", file_walker.skipped_files.len());
         for f in file_walker.skipped_files.iter() {
-            println!("\t{f}");
+            println!("\t{Skip}{f}");
         }
         print!("{Reset}");
     }
