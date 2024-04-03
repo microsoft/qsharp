@@ -201,7 +201,7 @@ impl Display for Callable {
 }
 
 /// The type of callable.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CallableType {
     Measurement,
     Reset,
