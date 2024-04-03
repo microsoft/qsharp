@@ -545,15 +545,44 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
             } else {
                 use aux = Qubit[n - 1];
                 within {
-                    ApplyAndAssuming0Target(ctls[0], ctls[1], aux[0]);
-                    for i in 1..n - 2 {
-                        ApplyAndAssuming0Target(aux[i - 1], ctls[i + 1], aux[i]);
-                    }
+                    LogDepthAndChain(ctls, aux);
                 } apply {
-                    Controlled op(aux[n - 2..n - 2], input);
+                    Controlled op([Tail(aux)], input);
                 }
             }
         }
     }
 
+    /// # Summary
+    /// This helper function computes the AND of all control bits in `ctls` into
+    /// the last qubit of `tgts`, using the other qubits in `tgts` as helper
+    /// qubits for the AND of subsets of control bits.  The operation has a
+    /// logarithmic depth of AND gates by aligning them using a balanced binary
+    /// tree.
+    internal operation LogDepthAndChain(ctls : Qubit[], tgts : Qubit[]) : Unit is Adj {
+        let lc = Length(ctls);
+        let lt = Length(tgts);
+
+        Fact(lc == lt + 1, $"There must be exactly one more control qubit than target qubits (got {lc}, {lt})");
+
+        if lt == 1 {
+            ApplyAndAssuming0Target(ctls[0], ctls[1], tgts[0]);
+        } elif lt == 2 {
+            ApplyAndAssuming0Target(ctls[0], ctls[1], tgts[0]);
+            ApplyAndAssuming0Target(ctls[2], tgts[0], tgts[1]);
+        } else {
+            let left = lc / 2;
+            let right = lc - left;
+
+            let ctlsLeft = ctls[...left - 1];
+            let tgtsLeft = tgts[...left - 2];
+
+            let ctlsRight = ctls[left..left + right - 1];
+            let tgtsRight = tgts[left - 1..left + right - 3];
+
+            LogDepthAndChain(ctlsLeft, tgtsLeft);
+            LogDepthAndChain(ctlsRight, tgtsRight);
+            ApplyAndAssuming0Target(Tail(tgtsLeft), Tail(tgtsRight), Tail(tgts));
+        }
+    }
 }
