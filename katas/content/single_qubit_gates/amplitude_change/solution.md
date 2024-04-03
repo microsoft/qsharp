@@ -21,7 +21,7 @@ $$
 
 Recall that when applying a gate, you can tell what its matrix does to the basis states by looking at its columns: the first column of the matrix is the state into which it will transform the $|0\rangle$ state, and the second column is the state into which it will transform the $|1\rangle$ state.
 In the example used by the testing harness we are given $\beta = 0.6, \gamma = 0.8$ and $\alpha = 1.0471975511965976 = \frac{\pi}{3}$.
-Since $\cos \frac{\pi}{3} = 0.5$ and $\sin \frac{\pi}{3} = 0.8660$, working to 4 decimal places, we can compute:
+Since $\cos \frac{\pi}{3} = 0.5$ and $\sin \frac{\pi}{3} = 0.8660$, working to 4 decimal places, we can use $\frac{\theta}{2} = \alpha$ to compute:
 
 $$
 R_{y}(\theta) |\psi\rangle=
