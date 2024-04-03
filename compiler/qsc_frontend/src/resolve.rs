@@ -1089,7 +1089,8 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
     }
 }
 
-/// TODO(alex): rename namespaces to show what are candidates and what are being passed in. Document the hell out of this.
+/// TODO(alex): rename namespaces to show what are candidates and what are being passed in. Document this, especially detailed shadowing
+/// rules.
 fn resolve<'a>(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1216,17 +1217,19 @@ fn find_symbol_in_namespaces(kind: NameKind, globals: &GlobalScope, provided_sym
             });
         }
     }
-    // If there are multiple candidates, remove unimplemented items. This allows resolution to
-    // succeed in cases where both an older, unimplemented API and newer, implemented API with the
-    // same name are both in scope without forcing the user to fully qualify the name.
-    let mut removals = Vec::new();
-    for res in candidates.keys() {
-        if let Res::Item(_, ItemStatus::Unimplemented) = res {
-            removals.push(*res);
+    if candidates.len() > 1 {
+        // If there are multiple candidates, remove unimplemented items. This allows resolution to
+        // succeed in cases where both an older, unimplemented API and newer, implemented API with the
+        // same name are both in scope without forcing the user to fully qualify the name.
+        let mut removals = Vec::new();
+        for res in candidates.keys() {
+            if let Res::Item(_, ItemStatus::Unimplemented) = res {
+                removals.push(*res);
+            }
         }
-    }
-    for res in removals {
-        candidates.remove(&res);
+        for res in removals {
+            candidates.remove(&res);
+        }
     }
     candidates
 }
