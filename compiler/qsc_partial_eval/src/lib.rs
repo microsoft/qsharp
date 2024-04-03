@@ -371,9 +371,7 @@ impl<'a> PartialEvaluator<'a> {
 
     fn get_current_scope_spec_decl(&self) -> Option<&SpecDecl> {
         let current_scope = self.eval_context.get_current_scope();
-        let Some((local_item_id, functor_app)) = current_scope.callable else {
-            return None;
-        };
+        let (local_item_id, functor_app) = current_scope.callable?;
         let store_item_id = StoreItemId::from((current_scope.package_id, local_item_id));
         let global = self
             .package_store
