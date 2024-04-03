@@ -14,9 +14,9 @@ use formatter::{calculate_format_edits, format_str};
 #[command(name = "fmt", version = crate_version!())]
 #[command(author, about, next_line_help = true)]
 struct Cli {
-    /// Path to the file or folder contain files to be formatted.
-    #[arg()]
-    path: PathBuf,
+    /// Paths to the files or folders containing files to be formatted.
+    #[arg(required = true, num_args = 1..)]
+    paths: Vec<PathBuf>,
 
     /// Search for Q# files recursively when a folder is given as PATH.
     #[arg(short, long, default_value("false"))]
@@ -28,7 +28,7 @@ struct Cli {
 }
 
 struct FileWalker {
-    root: PathBuf,
+    roots: Vec<PathBuf>,
     is_write: bool,
     is_recursive: bool,
     file_count: i32,
@@ -40,7 +40,7 @@ impl FileWalker {
     pub fn new() -> Self {
         let cli = Cli::parse();
         Self {
-            root: cli.path,
+            roots: cli.paths,
             is_write: cli.write,
             is_recursive: cli.recursive,
             file_count: 0,
@@ -49,8 +49,11 @@ impl FileWalker {
         }
     }
 
-    fn format_from_root(&mut self) {
-        self.format_file_or_dir(&self.root.clone());
+    fn format_from_roots(&mut self) {
+        let temp = self.roots.clone();
+        for root in temp {
+            self.format_file_or_dir(&root);
+        }
     }
 
     fn format_file_or_dir(&mut self, path: &Path) {
@@ -139,14 +142,20 @@ fn main() -> Result<(), String> {
     use OutputFormatting::*;
 
     let mut file_walker = FileWalker::new();
-    if !file_walker.root.exists() {
-        return Err("Given path can not found.".to_string());
-    }
-    if !file_walker.root.is_dir() && !is_path_qs(&file_walker.root) {
-        return Err("Given path is not a folder or Q# file.".to_string());
+
+    for root in &file_walker.roots {
+        if !root.exists() {
+            return Err(format!("Given path {} can not found.", root.display()));
+        }
+        if !root.is_dir() && !is_path_qs(root) {
+            return Err(format!(
+                "Given path {} is not a folder or Q# file.",
+                root.display()
+            ));
+        }
     }
 
-    file_walker.format_from_root();
+    file_walker.format_from_roots();
 
     println!("Ran against {} files.", file_walker.file_count);
 

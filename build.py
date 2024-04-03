@@ -196,13 +196,16 @@ if args.check:
 
     print("Running Q# format check")
     subprocess.run(
-        ["cargo", "run", "--bin", "qsc_formatter", "--", "./samples/", "-r"],
-        check=True,
-        text=True,
-        cwd=root_dir,
-    )
-    subprocess.run(
-        ["cargo", "run", "--bin", "qsc_formatter", "--", "./library/", "-r"],
+        [
+            "cargo",
+            "run",
+            "--bin",
+            "qsc_formatter",
+            "--",
+            "./library/",
+            "./samples/",
+            "-r",
+        ],
         check=True,
         text=True,
         cwd=root_dir,
