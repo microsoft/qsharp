@@ -1025,17 +1025,17 @@ fn open_ambiguous_terms() {
             }
         "},
         &expect![[r#"
-            namespace item0 {
+            namespace namespace7 {
                 function item1() : Unit {}
             }
 
-            namespace item2 {
+            namespace namespace8 {
                 function item3() : Unit {}
             }
 
-            namespace item4 {
-                open Foo;
-                open Bar;
+            namespace namespace9 {
+                open namespace7;
+                open namespace8;
 
                 function item5() : Unit {
                     A();
@@ -1075,9 +1075,9 @@ fn open_ambiguous_tys() {
                 newtype item3 = Unit;
             }
 
-            namespace item4 {
-                open Foo;
-                open Bar;
+            namespace namespace9 {
+                open namespace7;
+                open namespace8;
 
                 function item5(local28 : A) : Unit {}
             }

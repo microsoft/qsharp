@@ -24,8 +24,8 @@ use qsc_hir::{
     ty::{ParamId, Prim},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use std::cmp::Ordering;
+use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
@@ -314,7 +314,6 @@ impl Ord for Open {
         let b: usize = other.namespace.into();
         a.cmp(&b)
     }
-
 }
 
 pub(super) struct Resolver {
@@ -1104,19 +1103,36 @@ fn resolve<'a>(
 
     for scope in &scopes {
         if provided_namespace_name.is_none() {
-            if let Some(res) =
-                resolve_scope_locals(kind, globals, scope, vars, provided_symbol_str)
+            if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, provided_symbol_str)
             {
                 // Local declarations shadow everything.
                 return Ok(res);
             }
         }
-        let scope_opens = scope.opens.iter().map(|(_, opens)| opens).flatten().map(|open| open.namespace).collect::<Vec<_>>();
-        let explicit_open_candidates = find_symbol_in_namespaces(kind, globals, provided_symbol_name, provided_namespace_name, provided_symbol_str, scope_opens);
+        let scope_opens = scope
+            .opens
+            .iter()
+            .map(|(_, opens)| opens)
+            .flatten()
+            .cloned()
+            .collect::<Vec<_>>();
+        let explicit_open_candidates = find_symbol_in_namespaces(
+            kind,
+            globals,
+            provided_symbol_name,
+            provided_namespace_name,
+            provided_symbol_str,
+            scope_opens.into_iter().map(|open @ Open { namespace, .. }| (namespace, open)),
+        );
         if explicit_open_candidates.len() == 1 {
             return Ok(single(explicit_open_candidates.into_keys()).unwrap());
         } else if explicit_open_candidates.len() > 1 {
-            return ambiguous_symbol_error(globals, provided_symbol_name, provided_symbol_str, explicit_open_candidates);
+            return ambiguous_symbol_error(
+                globals,
+                provided_symbol_name,
+                provided_symbol_str,
+                explicit_open_candidates,
+            );
         }
 
         if scope.kind == ScopeKind::Callable {
@@ -1125,25 +1141,27 @@ fn resolve<'a>(
         }
     }
 
-
-    let CandidateNamespaces {
-        explicit_opens, prelude, root_id
-    } = calculate_candidate_namespaces(globals, &scopes);
-
-
+    let prelude = prelude_namespaces(globals);
     // then, check prelude
     if provided_namespace_name.is_none() {
-        let prelude_candidates = find_symbol_in_namespaces(kind, globals, provided_symbol_name, provided_namespace_name, provided_symbol_str, prelude);
+        let prelude_candidates = find_symbol_in_namespaces(
+            kind,
+            globals,
+            provided_symbol_name,
+            provided_namespace_name,
+            provided_symbol_str,
+            prelude.into_iter().map(|(a, b)| (b, a)),
+        );
 
         if prelude_candidates.len() > 1 {
             // If there are multiple candidates, sort them by namespace and return an error.
             let mut candidates: Vec<_> = prelude_candidates.into_iter().collect();
             let mut candidates = candidates
                 .into_iter()
-                .map(|candidate| {
-                    let ns_name = globals.namespaces.find_id(&candidate.1.namespace).0.join(".");
+                .map(|(candidate, ns_name)| {
                     ns_name
-                }).collect::<Vec<_>>();
+                })
+                .collect::<Vec<_>>();
             candidates.sort();
 
             let mut candidates = candidates.into_iter();
@@ -1167,17 +1185,32 @@ fn resolve<'a>(
     }
 
     // lastly, check unopened globals
-    let global_candidates = find_symbol_in_namespaces(kind, globals, provided_symbol_name, provided_namespace_name, provided_symbol_str, vec![root_id]);
+    let global_candidates = find_symbol_in_namespaces(
+        kind,
+        globals,
+        provided_symbol_name,
+        provided_namespace_name,
+        provided_symbol_str,
+        vec![(globals.namespaces.root_id(), ())].into_iter(),
+    );
+    // we don't have to worry about having extra candidates here, as we are only looking at the root,
+    // and that's only one namespace. individual namespaces cannot have duplicate declarations.
     if global_candidates.len() == 1 {
         return Ok(single(global_candidates.into_keys()).unwrap());
-    } else if global_candidates.len() > 1 {
-        return ambiguous_symbol_error(globals, provided_symbol_name, provided_symbol_str, global_candidates);
     }
 
-    Err(Error::NotFound(provided_symbol_str.to_string(), provided_symbol_name.span))
+    Err(Error::NotFound(
+        provided_symbol_str.to_string(),
+        provided_symbol_name.span,
+    ))
 }
 
-fn ambiguous_symbol_error(globals: &GlobalScope, provided_symbol_name: &Ident, provided_symbol_str: &str, candidates: FxHashMap<Res, Open>) -> Result<Res, Error> {
+fn ambiguous_symbol_error(
+    globals: &GlobalScope,
+    provided_symbol_name: &Ident,
+    provided_symbol_str: &str,
+    candidates: FxHashMap<Res, Open>,
+) -> Result<Res, Error> {
     let mut opens: Vec<_> = candidates.into_values().collect();
     opens.sort_unstable_by_key(|open| open.span);
     let (first_open_ns, _) = globals.namespaces.find_id(&opens[0].namespace);
@@ -1192,29 +1225,34 @@ fn ambiguous_symbol_error(globals: &GlobalScope, provided_symbol_name: &Ident, p
     })
 }
 
-fn find_symbol_in_namespaces(kind: NameKind, globals: &GlobalScope, provided_symbol_name: &Ident, provided_namespace_name: &Option<VecIdent>, provided_symbol_str: &str, explicit_opens: Vec<NamespaceId>) ->  FxHashMap<Res, Open> {
+fn find_symbol_in_namespaces<T, O>(
+    kind: NameKind,
+    globals: &GlobalScope,
+    provided_symbol_name: &Ident,
+    provided_namespace_name: &Option<VecIdent>,
+    provided_symbol_str: &str,
+    namespaces_to_search: T,
+) -> FxHashMap<Res, O>
+where
+    T: Iterator<Item = (NamespaceId, O)>,
+    O: Clone
+{
     let mut candidates = FxHashMap::default();
-// search through each candidate namespace to find the items
-    for candidate_namespace_id in explicit_opens {
+    // search through each candidate namespace to find the items
+    for (candidate_namespace_id, open) in namespaces_to_search
+    {
         let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
 
-        if let Some(namespace) = provided_namespace_name
-            .as_ref()
-            .and_then(|ns| candidate_namespace.find_namespace(ns))
-        {
-            if let Some(res) = globals.get(kind, namespace, provided_symbol_str) {
-                candidates.insert(res.clone(), Open {
-                    namespace,
-                    span: provided_symbol_name.span,
-                });
+        if let Some(ref provided_namespace_name) = provided_namespace_name {
+            if let Some(namespace) = candidate_namespace.find_namespace(provided_namespace_name) {
+                if let Some(res) = globals.get(kind, namespace, provided_symbol_str) {
+                    candidates.insert(res.clone(), open.clone());
+                }
             }
         }
 
         if let Some(res) = globals.get(kind, candidate_namespace_id, provided_symbol_str) {
-            candidates.insert(res.clone(), Open {
-                namespace: candidate_namespace_id,
-                span: provided_symbol_name.span,
-            });
+            candidates.insert(res.clone(), open);
         }
     }
     if candidates.len() > 1 {
@@ -1248,42 +1286,26 @@ struct CandidateNamespaces {
     root_id: NamespaceId,
 }
 
-/// Given a list of scopes, and the global scope, calculate an ordered list of the namespaces to check
-/// for a symbol.
-fn calculate_candidate_namespaces(globals: &GlobalScope, scopes: &Vec<&Scope>) -> CandidateNamespaces {
-    let mut explicit_opens = vec![];
-    // here, we also need to check all opens to see if the namespace is in any of them
-    for scope in scopes {
-        let mut scope_buf = vec![];
-        for open in scope.opens.values().flatten() {
-            // insert each open into the list of places to check for this item
-            scope_buf.push(open.namespace);
-        }
-        explicit_opens.push(scope_buf);
-    }
 
+fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
     let mut prelude = vec![];
 
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
+        let prelude_name =                     prelude_namespace
+            .into_iter()
+            .map(|x| -> Rc<str> { Rc::from(*x) })
+            .collect::<Vec<_>>();
         prelude.push(
-            globals
+            (prelude_name.join("."), globals
                 .namespaces
-                .find_namespace(
-                    prelude_namespace
-                        .into_iter()
-                        .map(|x| -> Rc<str> { Rc::from(*x) })
-                        .collect::<Vec<_>>(),
+                .find_namespace(prelude_name
+,
                 )
-                .expect("prelude namespaces should exist"),
+                .expect("prelude namespaces should exist")),
         );
     }
-
-    CandidateNamespaces {
-        explicit_opens,
-        prelude,
-        root_id: globals.namespaces.root_id(),
-    }
+    prelude
 }
 
 /// Implements shadowing rules within a single scope.
@@ -1363,7 +1385,6 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
 
     names
 }
-
 
 fn resolve_explicit_opens<'a>(
     kind: NameKind,
