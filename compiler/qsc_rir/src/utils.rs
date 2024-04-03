@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::rir::{Block, BlockId, Instruction, Program};
+use qsc_data_structures::index_map::IndexMap;
 use rustc_hash::FxHashSet;
 
 /// Given a block, return the block IDs of its successors.
@@ -44,4 +45,28 @@ pub fn get_all_block_successors(block: BlockId, program: &Program) -> Vec<BlockI
     let mut successors = blocks_visited.into_iter().collect::<Vec<_>>();
     successors.sort_unstable();
     successors
+}
+
+/// Given a program, return a map from block IDs to the block IDs of their predecessors.
+/// The vectors used as values in the map are sorted in ascending order, ensuring that block ids
+/// for predecessors are listed lowest to highest.
+#[must_use]
+pub fn build_predecessors_map(program: &Program) -> IndexMap<BlockId, Vec<BlockId>> {
+    let mut preds: IndexMap<BlockId, Vec<BlockId>> = IndexMap::default();
+
+    for (block_id, block) in program.blocks.iter() {
+        for successor in get_block_successors(block) {
+            if let Some(preds_list) = preds.get_mut(successor) {
+                preds_list.push(block_id);
+            } else {
+                preds.insert(successor, vec![block_id]);
+            }
+        }
+    }
+
+    for preds_list in preds.values_mut() {
+        preds_list.sort_unstable();
+    }
+
+    preds
 }
