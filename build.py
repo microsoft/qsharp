@@ -194,22 +194,23 @@ if args.check:
             cwd=root_dir,
         )
 
-    print("Running Q# format check")
-    subprocess.run(
-        [
-            "cargo",
-            "run",
-            "--bin",
-            "qsc_formatter",
-            "--",
-            "./library/",
-            "./samples/",
-            "-r",
-        ],
-        check=True,
-        text=True,
-        cwd=root_dir,
-    )
+    if build_cli or build_samples:
+        print("Running Q# format check")
+        subprocess.run(
+            [
+                "cargo",
+                "run",
+                "--bin",
+                "qsc_formatter",
+                "--",
+                "./library/",
+                "./samples/",
+                "-r",
+            ],
+            check=True,
+            text=True,
+            cwd=root_dir,
+        )
     step_end()
 
 if build_cli:

@@ -195,6 +195,8 @@ fn main() -> Result<(), String> {
     }
 
     match (file_walker.is_write, are_changed_files, are_skipped_files) {
+        (true, _, false) // writing with no skips
+        | (false, false, false) => Ok(()), // checking with all formatted and no skips
         (true, true, true) => {
             println!(
                 "{Skip}Updated {} files. {} files skipped.{Reset}",
@@ -206,7 +208,6 @@ fn main() -> Result<(), String> {
                 file_walker.skipped_files.len()
             ))
         }
-        (true, true, false) => Ok(()),
         (true, false, true) => {
             println!(
                 "{Skip}No files updated. {} files skipped.{Reset}",
@@ -217,7 +218,6 @@ fn main() -> Result<(), String> {
                 file_walker.skipped_files.len()
             ))
         }
-        (true, false, false) => Ok(()),
         (false, true, true) => {
             println!(
                 "{Error}{} files are not formatted. {} files skipped.{Reset}",
@@ -245,7 +245,6 @@ fn main() -> Result<(), String> {
                 file_walker.skipped_files.len()
             ))
         }
-        (false, false, false) => Ok(()),
     }
 }
 
