@@ -211,7 +211,7 @@ pub enum CallableType {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum IntPredicate {
+pub enum ConditionCode {
     Eq,
     Ne,
     Slt,
@@ -220,7 +220,7 @@ pub enum IntPredicate {
     Sge,
 }
 
-impl Display for IntPredicate {
+impl Display for ConditionCode {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
             Self::Eq => write!(f, "Eq")?,
@@ -249,26 +249,26 @@ impl Display for CallableType {
 
 #[derive(Clone)]
 pub enum Instruction {
-    Store(Value, Variable),
-    Call(CallableId, Vec<Value>, Option<Variable>),
+    Store(Operand, Variable),
+    Call(CallableId, Vec<Operand>, Option<Variable>),
     Jump(BlockId),
-    Branch(Value, BlockId, BlockId),
-    Add(Value, Value, Variable),
-    Sub(Value, Value, Variable),
-    Mul(Value, Value, Variable),
-    Sdiv(Value, Value, Variable),
-    Srem(Value, Value, Variable),
-    Shl(Value, Value, Variable),
-    Ashr(Value, Value, Variable),
-    Icmp(IntPredicate, Value, Value, Variable),
-    LogicalNot(Value, Variable),
-    LogicalAnd(Value, Value, Variable),
-    LogicalOr(Value, Value, Variable),
-    BitwiseNot(Value, Variable),
-    BitwiseAnd(Value, Value, Variable),
-    BitwiseOr(Value, Value, Variable),
-    BitwiseXor(Value, Value, Variable),
-    Phi(Vec<(Value, BlockId)>, Variable),
+    Branch(Operand, BlockId, BlockId),
+    Add(Operand, Operand, Variable),
+    Sub(Operand, Operand, Variable),
+    Mul(Operand, Operand, Variable),
+    Sdiv(Operand, Operand, Variable),
+    Srem(Operand, Operand, Variable),
+    Shl(Operand, Operand, Variable),
+    Ashr(Operand, Operand, Variable),
+    Icmp(ConditionCode, Operand, Operand, Variable),
+    LogicalNot(Operand, Variable),
+    LogicalAnd(Operand, Operand, Variable),
+    LogicalOr(Operand, Operand, Variable),
+    BitwiseNot(Operand, Variable),
+    BitwiseAnd(Operand, Operand, Variable),
+    BitwiseOr(Operand, Operand, Variable),
+    BitwiseXor(Operand, Operand, Variable),
+    Phi(Vec<(Operand, BlockId)>, Variable),
     Return,
 }
 
@@ -278,8 +278,8 @@ impl Display for Instruction {
         fn write_binary_instruction(
             f: &mut Formatter,
             instruction: &str,
-            lhs: &Value,
-            rhs: &Value,
+            lhs: &Operand,
+            rhs: &Operand,
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -289,7 +289,7 @@ impl Display for Instruction {
 
         fn write_branch(
             f: &mut Formatter,
-            condition: &Value,
+            condition: &Operand,
             if_true: BlockId,
             if_false: BlockId,
         ) -> fmt::Result {
@@ -301,7 +301,7 @@ impl Display for Instruction {
         fn write_call(
             f: &mut Formatter,
             callable_id: CallableId,
-            args: &[Value],
+            args: &[Operand],
             variable: Option<Variable>,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -319,7 +319,7 @@ impl Display for Instruction {
         fn write_unary_instruction(
             f: &mut Formatter,
             instruction: &str,
-            value: &Value,
+            value: &Operand,
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -329,19 +329,19 @@ impl Display for Instruction {
 
         fn write_icmp_instruction(
             f: &mut Formatter,
-            op: IntPredicate,
-            lhs: &Value,
-            rhs: &Value,
+            condition: ConditionCode,
+            lhs: &Operand,
+            rhs: &Operand,
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "{variable} = Icmp {op}, {lhs}, {rhs}")?;
+            write!(indent, "{variable} = Icmp {condition}, {lhs}, {rhs}")?;
             Ok(())
         }
 
         fn write_phi_instruction(
             f: &mut Formatter,
-            args: &[(Value, BlockId)],
+            args: &[(Operand, BlockId)],
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -458,12 +458,12 @@ impl Display for Ty {
 }
 
 #[derive(Clone, Copy)]
-pub enum Value {
+pub enum Operand {
     Literal(Literal),
     Variable(Variable),
 }
 
-impl Display for Value {
+impl Display for Operand {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self {
             Self::Literal(literal) => write!(f, "{literal}"),

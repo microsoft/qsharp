@@ -8,7 +8,7 @@ mod instruction_tests;
 mod tests;
 
 use qsc_rir::{
-    rir::{self, IntPredicate},
+    rir::{self, ConditionCode},
     utils::get_all_block_successors,
 };
 
@@ -77,24 +77,24 @@ impl ToQir<String> for rir::Variable {
     }
 }
 
-impl ToQir<String> for rir::Value {
+impl ToQir<String> for rir::Operand {
     fn to_qir(&self, program: &rir::Program) -> String {
         match self {
-            rir::Value::Literal(lit) => ToQir::<String>::to_qir(lit, program),
-            rir::Value::Variable(var) => ToQir::<String>::to_qir(var, program),
+            rir::Operand::Literal(lit) => ToQir::<String>::to_qir(lit, program),
+            rir::Operand::Variable(var) => ToQir::<String>::to_qir(var, program),
         }
     }
 }
 
-impl ToQir<String> for rir::IntPredicate {
+impl ToQir<String> for rir::ConditionCode {
     fn to_qir(&self, _program: &rir::Program) -> String {
         match self {
-            rir::IntPredicate::Eq => "eq".to_string(),
-            rir::IntPredicate::Ne => "ne".to_string(),
-            rir::IntPredicate::Sgt => "sgt".to_string(),
-            rir::IntPredicate::Sge => "sge".to_string(),
-            rir::IntPredicate::Slt => "slt".to_string(),
-            rir::IntPredicate::Sle => "sle".to_string(),
+            rir::ConditionCode::Eq => "eq".to_string(),
+            rir::ConditionCode::Ne => "ne".to_string(),
+            rir::ConditionCode::Sgt => "sgt".to_string(),
+            rir::ConditionCode::Sge => "sge".to_string(),
+            rir::ConditionCode::Slt => "slt".to_string(),
+            rir::ConditionCode::Sle => "sle".to_string(),
         }
     }
 }
@@ -169,7 +169,7 @@ impl ToQir<String> for rir::Instruction {
 }
 
 fn logical_not_to_qir(
-    value: &rir::Value,
+    value: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -190,8 +190,8 @@ fn logical_not_to_qir(
 
 fn logical_binop_to_qir(
     op: &str,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -217,7 +217,7 @@ fn logical_binop_to_qir(
 }
 
 fn bitwise_not_to_qir(
-    value: &rir::Value,
+    value: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -237,7 +237,7 @@ fn bitwise_not_to_qir(
 }
 
 fn call_to_qir(
-    args: &[rir::Value],
+    args: &[rir::Operand],
     call_id: rir::CallableId,
     output: Option<rir::Variable>,
     program: &rir::Program,
@@ -265,9 +265,9 @@ fn call_to_qir(
 }
 
 fn icmp_to_qir(
-    op: IntPredicate,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    op: ConditionCode,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -291,8 +291,8 @@ fn icmp_to_qir(
 
 fn binop_to_qir(
     op: &str,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -319,8 +319,8 @@ fn binop_to_qir(
 
 fn simple_bitwise_to_qir(
     op: &str,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -346,7 +346,7 @@ fn simple_bitwise_to_qir(
 }
 
 fn phi_to_qir(
-    args: &[(rir::Value, rir::BlockId)],
+    args: &[(rir::Operand, rir::BlockId)],
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -378,9 +378,9 @@ fn phi_to_qir(
     )
 }
 
-fn get_value_as_str(value: &rir::Value, program: &rir::Program) -> String {
+fn get_value_as_str(value: &rir::Operand, program: &rir::Program) -> String {
     match value {
-        rir::Value::Literal(lit) => match lit {
+        rir::Operand::Literal(lit) => match lit {
             rir::Literal::Bool(b) => format!("{b}"),
             rir::Literal::Double(d) => {
                 if (d.floor() - d.ceil()).abs() < f64::EPSILON {
@@ -396,13 +396,13 @@ fn get_value_as_str(value: &rir::Value, program: &rir::Program) -> String {
             rir::Literal::Qubit(q) => format!("{q}"),
             rir::Literal::Result(r) => format!("{r}"),
         },
-        rir::Value::Variable(var) => ToQir::<String>::to_qir(&var.variable_id, program),
+        rir::Operand::Variable(var) => ToQir::<String>::to_qir(&var.variable_id, program),
     }
 }
 
-fn get_value_ty(lhs: &rir::Value) -> &str {
+fn get_value_ty(lhs: &rir::Operand) -> &str {
     match lhs {
-        rir::Value::Literal(lit) => match lit {
+        rir::Operand::Literal(lit) => match lit {
             rir::Literal::Integer(_) => "i64",
             rir::Literal::Bool(_) => "i1",
             rir::Literal::Double(_) => "f64",
@@ -410,7 +410,7 @@ fn get_value_ty(lhs: &rir::Value) -> &str {
             rir::Literal::Result(_) => "%Result*",
             rir::Literal::Pointer => "i8*",
         },
-        rir::Value::Variable(var) => get_variable_ty(*var),
+        rir::Operand::Variable(var) => get_variable_ty(*var),
     }
 }
 

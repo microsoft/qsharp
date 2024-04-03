@@ -22,7 +22,7 @@ fn phi_with_empty_args() {
 #[test]
 fn phi_with_single_arg() {
     let args = [(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(13),
             ty: rir::Ty::Integer,
         }),
@@ -43,14 +43,14 @@ fn phi_with_single_arg() {
 fn phi_with_multiple_args() {
     let args = [
         (
-            rir::Value::Variable(rir::Variable {
+            rir::Operand::Variable(rir::Variable {
                 variable_id: rir::VariableId(13),
                 ty: rir::Ty::Integer,
             }),
             rir::BlockId(3),
         ),
         (
-            rir::Value::Variable(rir::Variable {
+            rir::Operand::Variable(rir::Variable {
                 variable_id: rir::VariableId(2),
                 ty: rir::Ty::Integer,
             }),

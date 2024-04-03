@@ -192,7 +192,7 @@ fn call_to_rotation_operation_using_literal() {
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                __quantum__qis__rx__body(3.14159, q);
+                __quantum__qis__rx__body(1.0, q);
             }
         }
         "#},
@@ -216,7 +216,7 @@ fn call_to_rotation_operation_using_literal() {
                         body:  <NONE>
                 blocks:
                     Block 0: Block:
-                        Call id(1), args( Double(3.14159), Qubit(0), )
+                        Call id(1), args( Double(1), Qubit(0), )
                         Return
                 config: Config:
                     remap_qubits_on_reuse: false
@@ -236,8 +236,8 @@ fn calls_to_rotation_operation_using_inline_expressions() {
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                __quantum__qis__ry__body(PI(), q);
-                __quantum__qis__ry__body(PI() / 2.0, q);
+                __quantum__qis__ry__body(PI() * 0.0, q);
+                __quantum__qis__ry__body(PI() / PI(), q);
             }
         }
         "#},
@@ -261,8 +261,8 @@ fn calls_to_rotation_operation_using_inline_expressions() {
                         body:  <NONE>
                 blocks:
                     Block 0: Block:
-                        Call id(1), args( Double(3.141592653589793), Qubit(0), )
-                        Call id(1), args( Double(1.5707963267948966), Qubit(0), )
+                        Call id(1), args( Double(0), Qubit(0), )
+                        Call id(1), args( Double(1), Qubit(0), )
                         Return
                 config: Config:
                     remap_qubits_on_reuse: false
@@ -282,11 +282,11 @@ fn calls_to_rotation_operation_using_variables() {
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                let pi_over_two = PI() / 2.0;
+                let pi_over_two = 4.0 / 2.0;
                 __quantum__qis__rz__body(pi_over_two, q);
-                mutable some_angle = ArcSin(0.5);
+                mutable some_angle = ArcSin(0.0);
                 __quantum__qis__rz__body(some_angle, q);
-                set some_angle = ArcCos(-0.25);
+                set some_angle = ArcCos(-1.0) / PI();
                 __quantum__qis__rz__body(some_angle, q);
             }
         }
@@ -311,9 +311,9 @@ fn calls_to_rotation_operation_using_variables() {
                         body:  <NONE>
                 blocks:
                     Block 0: Block:
-                        Call id(1), args( Double(1.5707963267948966), Qubit(0), )
-                        Call id(1), args( Double(0.5235987755982989), Qubit(0), )
-                        Call id(1), args( Double(1.8234765819369754), Qubit(0), )
+                        Call id(1), args( Double(2), Qubit(0), )
+                        Call id(1), args( Double(0), Qubit(0), )
+                        Call id(1), args( Double(1), Qubit(0), )
                         Return
                 config: Config:
                     remap_qubits_on_reuse: false

@@ -453,17 +453,17 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn resolve_call_args(&mut self, args_expr_id: ExprId) -> Vec<rir::Value> {
+    fn resolve_call_args(&mut self, args_expr_id: ExprId) -> Vec<rir::Operand> {
         let store_args_expr_id = StoreExprId::from((self.get_current_package_id(), args_expr_id));
         let args_expr = self.package_store.get_expr(store_args_expr_id);
         if let ExprKind::Tuple(exprs) = &args_expr.kind {
-            let mut values = Vec::<rir::Value>::new();
+            let mut values = Vec::<rir::Operand>::new();
             for expr_id in exprs {
                 self.eval_classical_expr(*expr_id);
                 let current_scope = self.eval_context.get_current_scope();
                 let expr_value = current_scope.get_expr_value(*expr_id);
                 let literal = map_eval_value_to_rir_literal(expr_value);
-                values.push(rir::Value::Literal(literal));
+                values.push(rir::Operand::Literal(literal));
             }
             values
         } else {
@@ -471,7 +471,7 @@ impl<'a> PartialEvaluator<'a> {
             let current_scope = self.eval_context.get_current_scope();
             let args_expr_value = current_scope.get_expr_value(args_expr_id);
             let literal = map_eval_value_to_rir_literal(args_expr_value);
-            vec![rir::Value::Literal(literal)]
+            vec![rir::Operand::Literal(literal)]
         }
     }
 }
