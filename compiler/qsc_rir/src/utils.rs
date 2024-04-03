@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::rir::{Block, BlockId, Instruction, Program};
+use crate::rir::{Block, BlockId, Instruction, Literal, Operand, Program};
 use qsc_data_structures::index_map::IndexMap;
 use rustc_hash::FxHashSet;
 
@@ -15,12 +15,14 @@ pub fn get_block_successors(block: &Block) -> Vec<BlockId> {
         .last()
         .expect("block should have at least one instruction")
     {
-        Instruction::Jump(target) => {
-            successors.push(*target);
-        }
-        Instruction::Branch(_, target1, target2) => {
+        Instruction::Branch(Operand::Variable(_), target1, target2) => {
             successors.push(*target1);
             successors.push(*target2);
+        }
+        Instruction::Jump(target)
+        | Instruction::Branch(Operand::Literal(Literal::Bool(true)), target, _)
+        | Instruction::Branch(Operand::Literal(Literal::Bool(false)), _, target) => {
+            successors.push(*target);
         }
         _ => {}
     }
