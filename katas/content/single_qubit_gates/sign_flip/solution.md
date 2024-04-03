@@ -14,7 +14,7 @@ $$
 Z|1\rangle =
  \begin{bmatrix} 1 & 0\\\0 & -1 \end{bmatrix}
  \begin{bmatrix}0\\\ 1\\\ \end{bmatrix}=
-\begin{bmatrix}1 \cdot 0 + 0 \cdot1\\\0 \cdot 1 +  -1 \cdot 1\\\ \end{bmatrix}=
+\begin{bmatrix}1 \cdot 0 + 0 \cdot1\\\0 \cdot 1 +  (-1) \cdot 1\\\ \end{bmatrix}=
 \begin{bmatrix}0\\\ -1\\\ \end{bmatrix}=
  -\begin{bmatrix}0\\\ 1\\\ \end{bmatrix}=
 -|1\rangle
