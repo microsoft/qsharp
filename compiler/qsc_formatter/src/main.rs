@@ -81,7 +81,11 @@ impl FileWalker {
     fn format_file(&mut self, path: &Path) {
         use OutputFormatting::*;
 
-        println!("Formatting {}", path.display());
+        if self.is_write {
+            println!("Formatting {}", path.display());
+        } else {
+            println!("Checking {}", path.display());
+        }
 
         let file_as_string = match std::fs::read_to_string(path) {
             Ok(s) => s,
@@ -146,21 +150,19 @@ fn main() -> Result<(), String> {
 
     println!("Ran against {} files.", file_walker.file_count);
 
-    if !file_walker.skipped_files.is_empty() {
-        println!("{Skip}Skipped {} files:", file_walker.skipped_files.len());
-        for f in file_walker.skipped_files.iter() {
-            println!("\t{f}");
-        }
-        print!("{Reset}");
-    }
+    let are_skipped_files = !file_walker.skipped_files.is_empty();
+    let are_changed_files = !file_walker.changed_files.is_empty();
 
     if file_walker.is_write {
-        println!("Updated {} files:", file_walker.changed_files.len());
-        for f in file_walker.changed_files.iter() {
-            println!("\t{f}");
+        if are_changed_files {
+            println!("Updated {} files:", file_walker.changed_files.len());
+            for f in file_walker.changed_files.iter() {
+                println!("\t{f}");
+            }
+        } else {
+            println!("No files updated.");
         }
-        Ok(())
-    } else if !file_walker.changed_files.is_empty() {
+    } else if are_changed_files {
         println!(
             "{Error}{} files are in need of formatting:",
             file_walker.changed_files.len()
@@ -169,17 +171,72 @@ fn main() -> Result<(), String> {
             println!("\t{f}");
         }
         println!("Run the formatter with the `--write` option to correct formatting for the above files.{Reset}");
-        Err("Files are not formatted.".to_string())
-    } else if !file_walker.skipped_files.is_empty() {
-        println!(
-            "{Skip}{} files are correctly formatted. {} files skipped.{Reset}",
-            file_walker.file_count,
-            file_walker.skipped_files.len()
-        );
-        Ok(())
     } else {
-        println!("{Passing}All files are correctly formatted.{Reset}");
-        Ok(())
+        println!(
+            "{Passing}{} files are correctly formatted.{Reset}",
+            file_walker.file_count
+        );
+    }
+    if are_skipped_files {
+        println!("{Skip}Skipped {} files:", file_walker.skipped_files.len());
+        for f in file_walker.skipped_files.iter() {
+            println!("\t{f}");
+        }
+        print!("{Reset}");
+    }
+
+    match (file_walker.is_write, are_changed_files, are_skipped_files) {
+        (true, true, true) => {
+            println!(
+                "{Skip}Updated {} files. {} files skipped.{Reset}",
+                file_walker.changed_files.len(),
+                file_walker.skipped_files.len()
+            );
+            Err(format!(
+                "Could not read/write from {} files",
+                file_walker.skipped_files.len()
+            ))
+        }
+        (true, true, false) => Ok(()),
+        (true, false, true) => {
+            println!(
+                "{Skip}No files updated. {} files skipped.{Reset}",
+                file_walker.skipped_files.len()
+            );
+            Err(format!(
+                "Could not read/write from {} files",
+                file_walker.skipped_files.len()
+            ))
+        }
+        (true, false, false) => Ok(()),
+        (false, true, true) => {
+            println!(
+                "{Error}{} files are not formatted. {} files skipped.{Reset}",
+                file_walker.changed_files.len(),
+                file_walker.skipped_files.len()
+            );
+            Err(format!(
+                "{} files are not formatted and could not read/write from {} files",
+                file_walker.changed_files.len(),
+                file_walker.skipped_files.len()
+            ))
+        }
+        (false, true, false) => Err(format!(
+            "{} files are not formatted",
+            file_walker.changed_files.len()
+        )),
+        (false, false, true) => {
+            println!(
+                "{Skip}{} files are correctly formatted. {} files skipped.{Reset}",
+                file_walker.file_count,
+                file_walker.skipped_files.len()
+            );
+            Err(format!(
+                "Could not read/write from {} files",
+                file_walker.skipped_files.len()
+            ))
+        }
+        (false, false, false) => Ok(()),
     }
 }
 

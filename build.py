@@ -194,7 +194,7 @@ if args.check:
             cwd=root_dir,
         )
 
-    step_start("Runing Q# format check")
+    print("Running Q# format check")
     subprocess.run(
         ["cargo", "run", "--bin", "qsc_formatter", "--", "./samples/", "-r"],
         check=True,
