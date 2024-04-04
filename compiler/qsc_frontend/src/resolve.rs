@@ -14,7 +14,7 @@ use qsc_ast::{
 
 use qsc_data_structures::{
     index_map::IndexMap,
-    namespaces::{NamespaceId, NamespaceTreeRoot},
+    namespaces::{NamespaceId, NamespaceTreeRoot, PRELUDE},
     span::Span,
 };
 use qsc_hir::{
@@ -29,14 +29,6 @@ use std::{collections::hash_map::Entry, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
 
 use crate::compile::preprocess::TrackedName;
-
-// TODO dedup this?
-const PRELUDE: [&[&str; 3]; 4] = [
-    &["Microsoft", "Quantum", "Canon"],
-    &["Microsoft", "Quantum", "Core"],
-    &["Microsoft", "Quantum", "Intrinsic"],
-    &["Microsoft", "Quantum", "Measurement"],
-];
 
 // All AST Path nodes get mapped
 // All AST Ident nodes get mapped, except those under AST Path nodes
@@ -1084,13 +1076,18 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
     }
 }
 
-/// TODO(alex): rename namespaces to show what are candidates and what are being passed in. Document this, especially detailed shadowing
-/// rules.
+/// Resolves a given symbol and namespace name, according to the Q# shadowing rules.
 /// Shadowing rules are as follows:
 /// - Local variables shadow everything. They are the first priority.
 /// - Next, we check open statements for an explicit open.
 /// - Then, we check the prelude.
 /// - Lastly, we check the global namespace.
+/// In the example `Foo.Bar.Baz()` -- the `provided_namespace_name` would be
+///`Foo.Bar` and the `provided_symbol_name` would be `Baz`.
+///
+/// In the example `Foo()` -- the `provided_namespace_name` would be `None` and the
+/// `provided_symbol_name` would be `Foo`.
+/// returns the resolution if successful, or an error if not.
 fn resolve<'a>(
     kind: NameKind,
     globals: &GlobalScope,

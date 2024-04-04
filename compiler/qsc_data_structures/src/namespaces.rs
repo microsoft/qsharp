@@ -4,7 +4,7 @@ mod tests;
 use rustc_hash::FxHashMap;
 use std::{fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
-const PRELUDE: [[&str; 3]; 4] = [
+pub const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
     ["Microsoft", "Quantum", "Core"],
     ["Microsoft", "Quantum", "Intrinsic"],

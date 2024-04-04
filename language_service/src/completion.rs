@@ -13,16 +13,13 @@ use qsc::display::{CodeDisplay, Lookup};
 
 use qsc::hir::{ItemKind, Package, PackageId, Visibility};
 use qsc::line_column::{Encoding, Position, Range};
-use qsc::resolve::{Local, LocalKind};
+use qsc::{
+    resolve::{Local, LocalKind},
+    PRELUDE,
+};
 use rustc_hash::FxHashSet;
 use std::rc::Rc;
 
-const PRELUDE: [[&str; 3]; 4] = [
-    ["Microsoft", "Quantum", "Canon"],
-    ["Microsoft", "Quantum", "Core"],
-    ["Microsoft", "Quantum", "Intrinsic"],
-    ["Microsoft", "Quantum", "Measurement"],
-];
 type NamespaceName = Vec<Rc<str>>;
 type NamespaceAlias = Rc<str>;
 
@@ -464,7 +461,8 @@ impl CompletionListBuilder {
                                                 Some(start) => {
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {};{indent}", namespace.name()
+                                                            "open {};{indent}",
+                                                            namespace.name()
                                                         ),
                                                         range: start,
                                                     });
