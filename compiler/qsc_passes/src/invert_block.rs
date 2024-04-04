@@ -331,7 +331,7 @@ fn make_range_field(range_id: NodeId, field: PrimField) -> Expr {
 fn make_array_index_range_reverse(core: &Table, arr_id: NodeId, arr_ty: &Ty) -> Expr {
     let ns = core
         .find_namespace(vec!["Microsoft".into(), "Quantum".into(), "Core".into()])
-        .unwrap();
+        .expect("prelude namespaces should exist");
     let len = Box::new(Expr {
         id: NodeId::default(),
         span: Span::default(),

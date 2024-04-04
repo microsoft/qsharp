@@ -1215,13 +1215,9 @@ fn check_scoped_resolutions(
     scope: &Scope,
 ) -> Option<Result<Res, Error>> {
     if provided_namespace_name.is_none() {
-        if let Some(res) = resolve_scope_locals(
-            kind,
-            globals,
-            scope,
-            *vars,
-            (&*provided_symbol_name.name).into(),
-        ) {
+        if let Some(res) =
+            resolve_scope_locals(kind, globals, scope, *vars, &provided_symbol_name.name)
+        {
             // Local declarations shadow everything.
             return Some(Ok(res));
         }
@@ -1309,7 +1305,7 @@ where
         if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
             let mut candidates = vec![];
             for (ns_id, open) in opens {
-                if let Some(res) = globals.get(kind, *ns_id, (&*provided_symbol_name.name).into()) {
+                if let Some(res) = globals.get(kind, *ns_id, &provided_symbol_name.name) {
                     candidates.push((*res, open.clone()));
                 }
             }
@@ -1325,19 +1321,13 @@ where
 
         if let Some(ref provided_namespace_name) = provided_namespace_name {
             if let Some(namespace) = candidate_namespace.find_namespace(provided_namespace_name) {
-                if let Some(res) =
-                    globals.get(kind, namespace, (&*provided_symbol_name.name).into())
-                {
+                if let Some(res) = globals.get(kind, namespace, &provided_symbol_name.name) {
                     candidates.insert(*res, open.clone());
                 }
             }
         }
 
-        if let Some(res) = globals.get(
-            kind,
-            candidate_namespace_id,
-            (&*provided_symbol_name.name).into(),
-        ) {
+        if let Some(res) = globals.get(kind, candidate_namespace_id, &provided_symbol_name.name) {
             candidates.insert(*res, open);
         }
     }

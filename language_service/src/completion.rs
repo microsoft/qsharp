@@ -23,6 +23,8 @@ const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Intrinsic"],
     ["Microsoft", "Quantum", "Measurement"],
 ];
+type NamespaceName = Vec<Rc<str>>;
+type NamespaceAlias = Rc<str>;
 
 pub(crate) fn get_completions(
     compilation: &Compilation,
@@ -268,7 +270,7 @@ impl CompletionListBuilder {
     fn push_globals(
         &mut self,
         compilation: &Compilation,
-        opens: &[(Vec<Rc<str>>, Option<Rc<str>>)],
+        opens: &[(NamespaceName, Option<NamespaceAlias>)],
         insert_open_range: Option<Range>,
         current_namespace_name: &Option<Vec<Rc<str>>>,
         indent: &String,
@@ -392,7 +394,7 @@ impl CompletionListBuilder {
         compilation: &'a Compilation,
         package_id: PackageId,
         // name and alias
-        opens: &'a [(Vec<Rc<str>>, Option<Rc<str>>)],
+        opens: &'a [(NamespaceName, Option<NamespaceAlias>)],
         // The range at which to insert an open statement if one is needed
         insert_open_at: Option<Range>,
         // The name of the current namespace, if any --
@@ -611,7 +613,7 @@ fn local_completion(
 struct ContextFinder {
     offset: u32,
     context: Context,
-    opens: Vec<(Vec<Rc<str>>, Option<Rc<str>>)>,
+    opens: Vec<(NamespaceName, Option<NamespaceAlias>)>,
     start_of_namespace: Option<u32>,
     current_namespace_name: Option<Vec<Rc<str>>>,
 }

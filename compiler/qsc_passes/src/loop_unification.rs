@@ -32,7 +32,6 @@ impl LoopUni<'_> {
         span: Span,
     ) -> Expr {
         let cond_span = cond.span;
-
         let continue_cond_id = self.gen_ident("continue_cond", Ty::Prim(Prim::Bool), cond_span);
         let continue_cond_init = continue_cond_id.gen_id_init(
             Mutability::Mutable,
@@ -118,6 +117,7 @@ impl LoopUni<'_> {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn visit_for_array(
         &mut self,
         iter: Pat,
@@ -136,7 +136,7 @@ impl LoopUni<'_> {
         let ns = self
             .core
             .find_namespace(vec!["Microsoft".into(), "Quantum".into(), "Core".into()])
-            .unwrap();
+            .expect("prelude namespaces should exist");
         let mut len_callee = create_gen_core_ref(
             self.core,
             ns,

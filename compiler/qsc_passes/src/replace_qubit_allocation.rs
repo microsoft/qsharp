@@ -241,7 +241,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
         let ns = self
             .core
             .find_namespace(vec!["QIR".into(), "Runtime".into()])
-            .unwrap();
+            .expect("prelude namespaces should exist");
         let mut call_expr = create_gen_core_ref(
             self.core,
             ns,
@@ -257,7 +257,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
         let ns = self
             .core
             .find_namespace(vec!["QIR".into(), "Runtime".into()])
-            .unwrap();
+            .expect("prelude namespaces should exist");
         let mut call_expr =
             create_gen_core_ref(self.core, ns, "AllocateQubitArray", Vec::new(), ident.span);
         call_expr.id = self.assigner.next_node();
@@ -268,7 +268,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
         let ns = self
             .core
             .find_namespace(vec!["QIR".into(), "Runtime".into()])
-            .unwrap();
+            .expect("prelude namespaces should exist");
         let mut call_expr = create_gen_core_ref(
             self.core,
             ns,
@@ -284,7 +284,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
         let ns = self
             .core
             .find_namespace(vec!["QIR".into(), "Runtime".into()])
-            .unwrap();
+            .expect("prelude namespaces should exist");
         let mut call_expr =
             create_gen_core_ref(self.core, ns, "ReleaseQubitArray", Vec::new(), ident.span);
         call_expr.id = self.assigner.next_node();
@@ -420,7 +420,7 @@ fn create_qubit_global_alloc(
     fn qubit_alloc_expr(assigner: &mut Assigner, core: &Table, qubit_init: QubitInit) -> Expr {
         let ns = core
             .find_namespace(vec!["QIR".into(), "Runtime".into()])
-            .unwrap();
+            .expect("prelude namespaces should exist");
         match qubit_init.kind {
             QubitInitKind::Array(mut expr) => {
                 let mut call_expr = create_gen_core_ref(
