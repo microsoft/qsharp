@@ -25,7 +25,7 @@ import {
 // so use those as the set used by the shared compiler
 type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 
-// TODO: Export DocFile type from WASM?
+// This type mirrors DocFile in WASM, which is returned from generate_docs()
 export type DocFile = {
   filename: string;
   metadata: string;
