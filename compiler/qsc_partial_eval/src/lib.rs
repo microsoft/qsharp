@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod allocator;
 mod evaluation_context;
+mod management;
 #[cfg(test)]
 mod tests;
 
-use allocator::{Assigner, QubitsAndResultsAllocator};
 use evaluation_context::{EvaluationContext, Scope};
+use management::{Assigner, QubitsAndResultsAllocator};
 use qsc_data_structures::functors::FunctorApp;
 use qsc_eval::{
     self, exec_graph_section, output::GenericReceiver, val::Value, State, StepAction, StepResult,
