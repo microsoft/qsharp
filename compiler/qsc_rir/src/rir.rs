@@ -416,8 +416,20 @@ impl Display for Instruction {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct VariableId(pub u32);
+
+impl From<VariableId> for usize {
+    fn from(id: VariableId) -> usize {
+        id.0 as usize
+    }
+}
+
+impl From<usize> for VariableId {
+    fn from(id: usize) -> Self {
+        Self(id.try_into().expect("variable id should fit into u32"))
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct Variable {

@@ -3,10 +3,7 @@
 
 use qsc_data_structures::index_map::IndexMap;
 
-use crate::{
-    rir::{BlockId, Program},
-    utils::build_predecessors_map,
-};
+use crate::rir::{BlockId, Program};
 
 #[cfg(test)]
 mod tests;
@@ -19,15 +16,15 @@ mod tests;
 /// - Blocks are assumed to be sequentially numbered starting from 0 in reverse postorder rather than depth first order.
 /// - Given that reversal, intersection between nodes uses the lesser of the two nodes rather than the greater.
 #[must_use]
-pub fn build_dominator_graph(program: &Program) -> IndexMap<BlockId, BlockId> {
+pub fn build_dominator_graph(
+    program: &Program,
+    preds: &IndexMap<BlockId, Vec<BlockId>>,
+) -> IndexMap<BlockId, BlockId> {
     let mut doms = IndexMap::default();
     let entry_block_id = program
         .get_callable(program.entry)
         .body
         .expect("entry point should have a body");
-
-    // Predecessors are needed to compute the dominator tree.
-    let preds = build_predecessors_map(program);
 
     // The entry block dominates itself.
     doms.insert(entry_block_id, entry_block_id);
