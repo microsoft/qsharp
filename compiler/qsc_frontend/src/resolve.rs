@@ -1346,9 +1346,17 @@ where
             .as_ref()
             .and_then(|name| candidate_namespace.find_namespace(name));
 
+        // if a namespace was provided, but not found, then this is not the correct namespace.
+        if provided_namespace_name.is_some() && namespace.is_none() {
+            continue;
+        }
         // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
         let res = namespace
-            .or(Some(candidate_namespace_id))
+            .or(if namespace.is_none() {
+                Some(candidate_namespace_id)
+            } else {
+                None
+            })
             .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
 
         // If a symbol was found, insert it into the candidates map

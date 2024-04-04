@@ -1373,6 +1373,17 @@ impl VecIdent {
             hi: self.0.last().map(|i| i.span.hi).unwrap_or_default(),
         }
     }
+
+    /// The stringified dot-separated path of the idents in this [`VecIdent`]
+    /// E.g. `a.b.c`
+    #[must_use]
+    pub fn name(&self) -> String {
+        self.0
+            .iter()
+            .map(|i| i.name.to_string())
+            .collect::<Vec<String>>()
+            .join(".")
+    }
 }
 
 impl Default for Ident {

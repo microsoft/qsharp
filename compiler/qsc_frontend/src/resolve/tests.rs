@@ -2782,3 +2782,39 @@ fn basic_hierarchical_namespace() {
             }"#]],
     );
 }
+
+#[test]
+fn test_katas_shadowing_use_case() {
+    check(
+        indoc! {
+                    "namespace Kata {
+    operation ApplyX() : Unit {
+        // Do nothing.
+    }
+}
+
+namespace Kata.Verification {
+    operation CheckSolution() : Bool {
+        let _ = Kata.ApplyX();
+        let _ = ApplyX();
+    }
+
+    operation ApplyX() : Unit {}
+}
+" },
+        &expect![["namespace namespace7 {
+    operation item1() : Unit {
+        // Do nothing.
+    }
+}
+
+namespace namespace8 {
+    operation item3() : Bool {
+        let _ = namespace7.item1();
+        let _ = item4();
+    }
+
+    operation item4() : Unit {}
+}"]],
+    );
+}

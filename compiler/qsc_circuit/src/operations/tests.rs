@@ -44,7 +44,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
     );
     (
         only_callable.clone(),
-        format!("{only_namespace}.{callable_name}"),
+        format!("{}.{callable_name}", only_namespace.name()),
     )
 }
 
