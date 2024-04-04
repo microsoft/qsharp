@@ -1390,27 +1390,39 @@ impl<'a> Analyzer<'a> {
                 updated_compute_kind
             }
             ExprKind::Tuple(assignee_exprs) => {
-                let ExprKind::Tuple(value_exprs) = &value_expr.kind else {
-                    panic!("expected a tuple");
-                };
-                assert!(assignee_exprs.len() == value_exprs.len());
+                if let ExprKind::Tuple(value_exprs) = &value_expr.kind {
+                    assert!(assignee_exprs.len() == value_exprs.len());
 
-                // To determine the update compute kind, we aggregate the runtime features of each element.
-                let default_value_kind = ValueKind::new_static_from_type(&value_expr.ty);
-                let mut updated_compute_kind = ComputeKind::Classical;
-                for (element_assignee_expr_id, element_value_expr_id) in
-                    assignee_exprs.iter().zip(value_exprs.iter())
-                {
-                    let element_update_compute_kind = self.update_locals_compute_kind(
-                        *element_assignee_expr_id,
-                        *element_value_expr_id,
-                    );
-                    updated_compute_kind = updated_compute_kind.aggregate_runtime_features(
-                        element_update_compute_kind,
-                        default_value_kind,
-                    );
+                    // To determine the update compute kind, we aggregate the runtime features of each element.
+                    let default_value_kind = ValueKind::new_static_from_type(&value_expr.ty);
+                    let mut updated_compute_kind = ComputeKind::Classical;
+                    for (element_assignee_expr_id, element_value_expr_id) in
+                        assignee_exprs.iter().zip(value_exprs.iter())
+                    {
+                        let element_update_compute_kind = self.update_locals_compute_kind(
+                            *element_assignee_expr_id,
+                            *element_value_expr_id,
+                        );
+                        updated_compute_kind = updated_compute_kind.aggregate_runtime_features(
+                            element_update_compute_kind,
+                            default_value_kind,
+                        );
+                    }
+                    updated_compute_kind
+                } else {
+                    // To determine the update compute kind, we aggregate the runtime features of each update.
+                    let default_value_kind = ValueKind::new_static_from_type(&value_expr.ty);
+                    let mut updated_compute_kind = ComputeKind::Classical;
+                    for element_assignee_expr_id in assignee_exprs {
+                        let element_update_compute_kind = self
+                            .update_locals_compute_kind(*element_assignee_expr_id, value_expr_id);
+                        updated_compute_kind = updated_compute_kind.aggregate_runtime_features(
+                            element_update_compute_kind,
+                            default_value_kind,
+                        );
+                    }
+                    updated_compute_kind
                 }
-                updated_compute_kind
             }
             _ => panic!("expected a local variable or a tuple"),
         }
