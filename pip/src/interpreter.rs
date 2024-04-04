@@ -113,11 +113,11 @@ impl Interpreter {
         // If no features were passed in as an argument, use the features from the manifest.
         // this way we prefer the features from the argument over those from the manifest.
         let language_features: Vec<String> = match (language_features, &manifest_descriptor) {
-            (Some(language_features), _) if !language_features.is_empty() => language_features,
+            (Some(language_features), _) => language_features,
             (_, Some(manifest_descriptor)) => {
                 manifest_descriptor.0.manifest.language_features.clone()
             }
-            _ => vec![],
+            (None, None) => vec![],
         };
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {

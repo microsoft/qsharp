@@ -22,12 +22,18 @@ class Config:
     Configuration hints for the language service.
     """
 
-    def __init__(self, target_profile: TargetProfile, language_features: List[str]):
+    def __init__(
+        self,
+        target_profile: TargetProfile,
+        language_features: Optional[List[str]],
+        manifest: Optional[str],
+    ):
         if target_profile == TargetProfile.Unrestricted:
             self._config = {"targetProfile": "unrestricted"}
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
         self._config["languageFeatures"] = language_features
+        self._config["manifest"] = manifest
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -49,7 +55,7 @@ def init(
     *,
     target_profile: TargetProfile = TargetProfile.Unrestricted,
     project_root: Optional[str] = None,
-    language_features: List[str] = [],
+    language_features: Optional[List[str]] = None,
 ) -> Config:
     """
     Initializes the Q# interpreter.
@@ -65,6 +71,7 @@ def init(
 
     global _interpreter
 
+    manifest_contents = None
     manifest_descriptor = None
     if project_root is not None:
         qsharp_json = join(project_root, "qsharp.json")
@@ -77,8 +84,8 @@ def init(
         manifest_descriptor["manifest_dir"] = project_root
 
         try:
-            (_, file_contents) = read_file(qsharp_json)
-            manifest_descriptor["manifest"] = file_contents
+            (_, manifest_contents) = read_file(qsharp_json)
+            manifest_descriptor["manifest"] = manifest_contents
         except Exception as e:
             raise QSharpError(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
@@ -94,7 +101,7 @@ def init(
 
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features)
+    return Config(target_profile, language_features, manifest_contents)
 
 
 def get_interpreter() -> Interpreter:
