@@ -10,8 +10,8 @@ use crate::{
     builder::new_program,
     passes::remap_block_ids,
     rir::{
-        Block, BlockId, Callable, CallableId, CallableType, Instruction, Operand, Program, Ty,
-        Variable, VariableId,
+        Block, BlockId, Callable, CallableId, CallableType, Instruction, Program, Ty, Variable,
+        VariableId,
     },
     utils::build_predecessors_map,
 };
@@ -104,10 +104,10 @@ fn dominator_graph_branching_blocks_dominated_by_common_predecessor() {
     program.blocks.insert(
         BlockId(1),
         Block(vec![Instruction::Branch(
-            Operand::Variable(Variable {
+            Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
-            }),
+            },
             BlockId(2),
             BlockId(3),
         )]),
@@ -179,10 +179,10 @@ fn dominator_graph_branch_and_loop() {
     program.blocks.insert(
         BlockId(1),
         Block(vec![Instruction::Branch(
-            Operand::Variable(Variable {
+            Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
-            }),
+            },
             BlockId(2),
             BlockId(3),
         )]),
@@ -243,10 +243,10 @@ fn dominator_graph_complex_structure_only_dominated_by_entry() {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(5),
                 BlockId(4),
             ),
@@ -258,10 +258,10 @@ fn dominator_graph_complex_structure_only_dominated_by_entry() {
     program.blocks.insert(
         BlockId(4),
         Block(vec![Instruction::Branch(
-            Operand::Variable(Variable {
+            Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
-            }),
+            },
             BlockId(2),
             BlockId(3),
         )]),
@@ -272,10 +272,10 @@ fn dominator_graph_complex_structure_only_dominated_by_entry() {
     program.blocks.insert(
         BlockId(2),
         Block(vec![Instruction::Branch(
-            Operand::Variable(Variable {
+            Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
-            }),
+            },
             BlockId(3),
             BlockId(1),
         )]),
@@ -323,10 +323,10 @@ fn dominator_graph_with_node_having_many_predicates() {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -335,10 +335,10 @@ fn dominator_graph_with_node_having_many_predicates() {
     program.blocks.insert(
         BlockId(1),
         Block(vec![Instruction::Branch(
-            Operand::Variable(Variable {
+            Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
-            }),
+            },
             BlockId(3),
             BlockId(4),
         )]),
@@ -346,10 +346,10 @@ fn dominator_graph_with_node_having_many_predicates() {
     program.blocks.insert(
         BlockId(2),
         Block(vec![Instruction::Branch(
-            Operand::Variable(Variable {
+            Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
-            }),
+            },
             BlockId(5),
             BlockId(6),
         )]),

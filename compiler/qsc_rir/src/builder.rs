@@ -307,10 +307,10 @@ pub fn teleport_program() -> Program {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -347,10 +347,10 @@ pub fn teleport_program() -> Program {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(1),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(3),
                 BlockId(4),
             ),
