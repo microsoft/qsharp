@@ -1319,20 +1319,23 @@ where
     T: Iterator<Item = (NamespaceId, O)>,
     O: Clone + std::fmt::Debug,
 {
-    // replace aliases with real namespaces
+    // check aliases to see if the provided namespace is actually an alias
     if let Some(provided_namespace_name) = provided_namespace_name {
         if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
-            let mut candidates = vec![];
-            for (ns_id, open) in opens {
-                if let Some(res) = globals.get(kind, *ns_id, &provided_symbol_name.name) {
-                    candidates.push((*res, open.clone()));
-                }
-            }
+            let candidates: Vec<_> = opens
+                .iter()
+                .filter_map(|(ns_id, open)| {
+                    globals
+                        .get(kind, *ns_id, &provided_symbol_name.name)
+                        .map(|res| (*res, open.clone()))
+                })
+                .collect();
             if !candidates.is_empty() {
                 return candidates.into_iter().collect();
             }
         }
     }
+
     let mut candidates = FxHashMap::default();
     for (candidate_namespace_id, open) in namespaces_to_search {
         // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
@@ -1353,6 +1356,7 @@ where
             candidates.insert(*res, open);
         }
     }
+
     if candidates.len() > 1 {
         // If there are multiple candidates, remove unimplemented items. This allows resolution to
         // succeed in cases where both an older, unimplemented API and newer, implemented API with the
@@ -1364,6 +1368,7 @@ where
     candidates
 }
 
+/// Fetch the name and namespace ID of all prelude namespaces.
 fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
     let mut prelude = vec![];
 
@@ -1371,19 +1376,18 @@ fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
     for prelude_namespace in PRELUDE {
         let prelude_name = prelude_namespace
             .iter()
-            .map(|x| -> Rc<str> { Rc::from(*x) })
+            .map(|s| Rc::from(*s))
             .collect::<Vec<_>>();
         prelude.push((
             prelude_name.join("."),
             globals
                 .namespaces
                 .find_namespace(prelude_name)
-                .expect("prelude namespaces should exist"),
+                .expect("prelude should always exist in the namespace map"),
         ));
     }
     prelude
 }
-
 /// Implements shadowing rules within a single scope.
 /// A local variable always wins out against an item with the same name, even if they're declared in
 /// the same scope. It is implemented in a way that resembles Rust:
