@@ -72,14 +72,10 @@ export type Kata = {
 export type Docs = {
   namespace: string;
   content: string;
-}
+};
 
 export async function getAllKatas(): Promise<Kata[]> {
   return katasContent.katas as Kata[];
-}
-
-export async function getAllDocs(): Promise<Docs[]> {
-  return docsContent as Docs[];
 }
 
 export async function getKata(id: string): Promise<Kata> {

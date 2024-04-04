@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+import { getDocumentNames } from "./docs.js";
+
 export function Nav(props: {
   selected: string;
   navSelected: (name: string) => void;
   katas: string[];
   samples: string[];
-  docs: string[];
+  documentNames: string[];
 }) {
   function onSelected(name: string) {
     props.navSelected(name);
@@ -40,9 +42,9 @@ export function Nav(props: {
           {name}
         </div>
       ))}
-      <div class="nav-1">Documentation</div>
 
-      {props.docs.map((name) => (
+      <div class="nav-1">Documentation</div>
+      {props.documentNames.map((name) => (
         <div
           class={
             "nav-2 nav-selectable" +
@@ -53,6 +55,7 @@ export function Nav(props: {
           {name}
         </div>
       ))}
+
     </nav>
   );
 }

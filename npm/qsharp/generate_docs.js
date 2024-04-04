@@ -81,19 +81,17 @@ writeFileSync(
 console.log("Done");
 
 function processContent(namespace, content) {
-  for (var i = 0; i<docSources.length; i++) {
+  for (var i = 0; i < docSources.length; i++) {
     if (docSources[i].namespace == namespace) {
       docSources[i] = {
         namespace: namespace,
-        content: docSources[i].content +
-          "\n<br>\n<br>\n" +
-          content,
-        }
-        return;
+        content: docSources[i].content + "\n<br>\n<br>\n" + content,
+      };
+      return;
     }
   }
   docSources.push({
     namespace: namespace,
     content: content,
-  })
-};
+  });
+}

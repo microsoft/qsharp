@@ -25,6 +25,13 @@ import {
 // so use those as the set used by the shared compiler
 type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 
+// TODO: Export DocFile type from WASM?
+export type DocFile = {
+  filename: string;
+  metadata: string;
+  contents: string;
+};
+
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
@@ -80,6 +87,8 @@ export interface ICompiler {
     target: TargetProfile,
     operation?: IOperationInfo,
   ): Promise<CircuitData>;
+
+  getDocumentation(): Promise<DocFile[]>;
 
   checkExerciseSolution(
     userCode: string,
@@ -233,6 +242,11 @@ export class Compiler implements ICompiler {
     );
   }
 
+  async getDocumentation(): Promise<DocFile[]> {
+    const docs: DocFile[] = this.wasm.generate_docs();
+    return docs;
+  }
+
   async checkExerciseSolution(
     userCode: string,
     exerciseSources: string[],
@@ -288,6 +302,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getQir: "request",
     getEstimates: "request",
     getCircuit: "request",
+    getDocumentation: "request",
     run: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
   },

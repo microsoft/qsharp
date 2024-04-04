@@ -11,9 +11,7 @@ import {
   getCompilerWorker,
   loadWasmModule,
   getAllKatas,
-  getAllDocs,
   Kata,
-  Docs,
   VSDiagnostic,
   log,
   LogLevel,
@@ -25,9 +23,9 @@ import {
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
-import { DocsDisplay } from "./docs.js";
+import { DocumentationDisplay, getDocumentNames, processDocumentFiles } from "./docs.js";
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
@@ -62,7 +60,7 @@ function createCompiler(onStateChange: (val: CompilerState) => void) {
   return compiler;
 }
 
-function App(props: { katas: Kata[]; docs: Docs[]; linkedCode?: string }) {
+function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compilerState, setCompilerState] = useState<CompilerState>("idle");
   const [compiler, setCompiler] = useState(() =>
     createCompiler(setCompilerState),
@@ -94,7 +92,16 @@ function App(props: { katas: Kata[]; docs: Docs[]; linkedCode?: string }) {
 
   const kataTitles = props.katas.map((elem) => elem.title);
   const sampleTitles = samples.map((sample) => sample.title);
-  const docTitles = props.docs.map((doc) => doc.namespace);
+
+  const [documentation, setDocumentation] = useState<Map<string, string> | undefined>(undefined);
+  useEffect(
+    () => {createDocumentation()},
+    []
+  );
+  async function createDocumentation() {
+    const docFiles = await compiler.getDocumentation();
+    setDocumentation(processDocumentFiles(docFiles));
+  }
 
   const sampleCode =
     samples.find((sample) => "sample-" + sample.title === currentNavItem)
@@ -106,10 +113,6 @@ function App(props: { katas: Kata[]; docs: Docs[]; linkedCode?: string }) {
   const activeKata = kataTitles.includes(currentNavItem)
     ? props.katas.find((kata) => kata.title === currentNavItem)
     : undefined;
-
-const currentDocContent = docTitles.includes(currentNavItem)
-    ? props.docs.find((doc) => doc.namespace == currentNavItem)?.content
-    : "";
 
   function onNavItemSelected(name: string) {
     // If there was a ?code link on the URL before, clear it out
@@ -130,7 +133,7 @@ const currentDocContent = docTitles.includes(currentNavItem)
         navSelected={onNavItemSelected}
         katas={kataTitles}
         samples={sampleTitles}
-        docs={docTitles}
+        documentNames={getDocumentNames(documentation)}
       ></Nav>
       {sampleCode ? (
         <>
@@ -167,10 +170,10 @@ const currentDocContent = docTitles.includes(currentNavItem)
           languageService={languageService}
         ></Katas>
       ) : (
-        <DocsDisplay
-          docName={currentNavItem}
-          docContent={currentDocContent!}
-        ></DocsDisplay>
+        <DocumentationDisplay
+          currentDocument={currentNavItem}
+          documentation={documentation}
+        ></DocumentationDisplay>
       )}
       <div id="popup"></div>
     </>
@@ -194,8 +197,6 @@ async function loaded() {
 
   const katas = await getAllKatas();
 
-  const docs = await getAllDocs();
-
   // If URL is a sharing link, populate the editor with the code from the link.
   // Otherwise, populate with sample code.
   let linkedCode: string | undefined;
@@ -209,7 +210,10 @@ async function loaded() {
     }
   }
 
-  render(<App katas={katas} docs={docs} linkedCode={linkedCode}></App>, document.body);
+  render(
+    <App katas={katas} linkedCode={linkedCode}></App>,
+    document.body,
+  );
 }
 
 function registerMonacoLanguageServiceProviders(
@@ -477,3 +481,4 @@ declare const require: {
 };
 require.config({ paths: { vs: monacoPath } });
 require(["vs/editor/editor.main"], loaded);
+

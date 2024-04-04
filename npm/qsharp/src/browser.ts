@@ -174,7 +174,6 @@ export { type CompilerState } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
 export {
   getAllKatas,
-  getAllDocs,
   getExerciseSources,
   getKata,
   type ContentItem,
