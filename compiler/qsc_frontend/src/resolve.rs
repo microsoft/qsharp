@@ -1091,6 +1091,11 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
 
 /// TODO(alex): rename namespaces to show what are candidates and what are being passed in. Document this, especially detailed shadowing
 /// rules.
+/// Shadowing rules are as follows:
+/// - Local variables shadow everything. They are the first priority.
+/// - Next, we check open statements for an explicit open.
+/// - Then, we check the prelude.
+/// - Lastly, we check the global namespace.
 fn resolve<'a>(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1297,19 +1302,6 @@ where
     candidates
 }
 
-/// Shadowing rules are as follows:
-/// - Local variables shadow everything. They are the first priority.
-/// - Next, we check open statements for an explicit open.
-/// - Then, we check the prelude.
-/// - Lastly, we check the global namespace.
-struct CandidateNamespaces {
-    /// the outer vec is shadowing equality. That is, if there is an ambiguity within the inner vec,
-    /// then it is an ambiguous symbol error. If there is ambiguity among outer vecs, then the first
-    /// one takes precedence
-    explicit_opens: Vec<Vec<NamespaceId>>,
-    prelude: Vec<NamespaceId>,
-    root_id: NamespaceId,
-}
 
 fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
     let mut prelude = vec![];
@@ -1409,20 +1401,6 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
     names
 }
 
-fn resolve_explicit_opens<'a>(
-    kind: NameKind,
-    globals: &GlobalScope,
-    opens: impl IntoIterator<Item = &'a Open>,
-    name: &str,
-) -> FxHashMap<Res, &'a Open> {
-    let mut candidates = FxHashMap::default();
-    for open in opens {
-        if let Some(&res) = globals.get(kind, open.namespace, name) {
-            candidates.insert(res, open);
-        }
-    }
-    candidates
-}
 
 /// Creates an [`ItemId`] for an item that is local to this package (internal to it).
 fn intrapackage(item: LocalItemId) -> ItemId {

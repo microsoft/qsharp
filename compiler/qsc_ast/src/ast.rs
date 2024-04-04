@@ -1306,6 +1306,9 @@ pub struct Ident {
     pub name: Rc<str>,
 }
 
+/// A [VecIdent] represents a sequence of idents. It provides a helpful abstraction
+/// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
+/// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct VecIdent(pub Vec<Ident>);
 
@@ -1335,7 +1338,6 @@ impl From<VecIdent> for Vec<Ident> {
 
 impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let idents = self.0.iter();
         let mut buf = Vec::with_capacity(self.0.len());
 
         for ident in self.0.iter() {
@@ -1350,10 +1352,12 @@ impl Display for VecIdent {
     }
 }
 impl VecIdent {
+    /// constructs an iter over the [Ident]s that this contains.
     pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
         self.0.iter()
     }
 
+    /// the conjoined span of all idents in the VecIdent
     pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),

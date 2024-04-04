@@ -1134,6 +1134,9 @@ impl Display for QubitInitKind {
     }
 }
 
+/// A [VecIdent] represents a sequence of idents. It provides a helpful abstraction
+/// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
+/// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct VecIdent(pub Vec<Ident>);
 
@@ -1169,7 +1172,6 @@ impl FromIterator<Ident> for VecIdent {
 
 impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let idents = self.0.iter();
         let mut buf = Vec::with_capacity(self.0.len());
 
         for ident in self.0.iter() {
@@ -1184,10 +1186,12 @@ impl Display for VecIdent {
     }
 }
 impl VecIdent {
+    /// constructs an iter over the [Ident]s that this contains.
     pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
         self.0.iter()
     }
 
+    /// the conjoined span of all idents in the VecIdent
     pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
@@ -1195,10 +1199,12 @@ impl VecIdent {
         }
     }
 
+    /// Whether or not the first ident in this [VecIdent] matches `arg`
     pub fn starts_with(&self, arg: &str) -> bool {
         self.0.first().map(|i| &*i.name == arg).unwrap_or_default()
     }
 
+    /// Whether or not the first `n` idents in this [VecIdent] match `arg`
     pub fn starts_with_sequence(&self, arg: &[&str]) -> bool {
         if arg.len() > self.0.len() {
             return false;
@@ -1211,6 +1217,8 @@ impl VecIdent {
         return true;
     }
 
+    /// The stringified dot-separated path of the idents in this [VecIdent]
+    /// E.g. `a.b.c`
     pub fn name(&self) -> String {
         self.0
             .iter()

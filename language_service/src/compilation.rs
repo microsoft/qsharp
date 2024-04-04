@@ -219,6 +219,7 @@ impl Compilation {
         self.errors = new.errors;
     }
 
+    #[allow(dead_code)]
     pub(crate) fn find_namespace_id(&self, ns: [&str; 3]) -> NamespaceId {
         self.package_store
             .get(self.user_package_id)

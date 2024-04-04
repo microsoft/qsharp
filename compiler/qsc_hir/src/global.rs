@@ -3,7 +3,7 @@
 
 use crate::{
     hir::{
-        Ident, Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, VecIdent,
+         Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, 
         Visibility,
     },
     ty::Scheme,
@@ -13,7 +13,7 @@ use qsc_data_structures::{
     namespaces::{NamespaceId, NamespaceTreeRoot},
 };
 use rustc_hash::FxHashMap;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Global {

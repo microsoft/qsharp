@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::{cell::RefCell, collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
+use std::{ collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
 const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
