@@ -108,11 +108,14 @@ impl Visitor<'_> for Renamer<'_> {
     fn visit_vec_ident(&mut self, vec_ident: &VecIdent) {
         let ns_id = match self.namespaces.find_namespace(vec_ident) {
             Some(x) => x,
-            None => self
+            None => match self
                 .aliases
                 .get(&(Into::<Vec<Rc<str>>>::into(vec_ident)))
                 .copied()
-                .unwrap_or_else(|| panic!("Namespace not found: {:?}", vec_ident)),
+            {
+                Some(x) => x,
+                None => return,
+            }
         };
         self.changes.push((vec_ident.span(), ns_id.into()));
     }
@@ -1813,7 +1816,7 @@ fn unknown_namespace() {
             }
         "},
         &expect![[r#"
-            namespace item0 {
+            namespace namespace7 {
                 open Microsoft.Quantum.Fake;
             }
 
