@@ -2657,7 +2657,7 @@ fn nested_namespaces_with_same_function_name() {
             namespace namespace8 {
                 function item3() : Unit {}
                 function item4() : Unit {
-                    item3();
+                    item1();
                     item3(); // Should call Bar.A without needing to qualify
                 }
             }
@@ -2802,19 +2802,21 @@ namespace Kata.Verification {
     operation ApplyX() : Unit {}
 }
 " },
-        &expect![["namespace namespace7 {
-    operation item1() : Unit {
-        // Do nothing.
-    }
-}
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                    // Do nothing.
+                }
+            }
 
-namespace namespace8 {
-    operation item3() : Bool {
-        let _ = namespace7.item1();
-        let _ = item4();
-    }
+            namespace namespace8 {
+                operation item3() : Bool {
+                    let _ = item1();
+                    let _ = item4();
+                }
 
-    operation item4() : Unit {}
-}"]],
+                operation item4() : Unit {}
+            }
+        "#]],
     );
 }
