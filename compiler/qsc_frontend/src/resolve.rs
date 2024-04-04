@@ -1107,15 +1107,14 @@ fn resolve<'a>(
         return value;
     }
 
-    let prelude = prelude_namespaces(globals);
-    // then, check prelude
+    // check the prelude
     if provided_namespace_name.is_none() {
         let prelude_candidates = find_symbol_in_namespaces(
             kind,
             globals,
             provided_namespace_name,
             provided_symbol_name,
-            prelude.into_iter().map(|(a, b)| (b, a)),
+            prelude_namespaces(globals).into_iter().map(|(a, b)| (b, a)),
             // there are no aliases in the prelude
             &FxHashMap::default(),
         );
@@ -1159,11 +1158,11 @@ fn resolve<'a>(
         // there are no aliases in globals
         &FxHashMap::default(),
     );
-    // we don't have to worry about having extra candidates here, as we are only looking at the root,
+
+    // we don't have to throw an error if there are extra candidates here, as we are only looking at the root,
     // and that's only one namespace. individual namespaces cannot have duplicate declarations.
-    if global_candidates.len() == 1 {
-        return Ok(single(global_candidates.into_keys())
-            .expect("we asserted on the length, so this is infallible"));
+    if let Some(res) = single(global_candidates.into_keys()) {
+        return Ok(res);
     }
 
     Err(Error::NotFound(
@@ -1171,7 +1170,6 @@ fn resolve<'a>(
         provided_symbol_name.span,
     ))
 }
-
 /// Checks all given scopes, in the correct order, for a resolution.
 /// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
 /// using the `vars` parameter.
