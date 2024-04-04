@@ -5,7 +5,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { DocFile } from "../../npm/qsharp/dist/compiler/compiler.js";
 import markdownit from "markdown-it";
 
-export function getDocumentNames(
+export function getNamespaces(
   documentation: Map<string, string> | undefined,
 ): string[] {
   if (documentation) {
@@ -14,15 +14,18 @@ export function getDocumentNames(
   return new Array<string>();
 }
 
+// Takes array of documents (containing data for each item in the standard library)
+// and creates a documentation map, which maps from a namespace
+// to the combined HTML-formatted documentation for all items in that namespace.
 export function processDocumentFiles(docFiles: DocFile[]): Map<string, string> {
   const md = markdownit();
   const contentByNamespace = new Map<string, string>();
   const regex = new RegExp("^qsharp.namespace: (.+)$", "m");
 
   for (const doc of docFiles) {
-    const match = regex.exec(doc.metadata);
+    const match = regex.exec(doc.metadata); // Parse namespace out of metadata
     if (match == null) {
-      continue;
+      continue; // Skip items with non-parsable metadata
     }
     const newNamespace = match[1];
     const newContent = md.render(doc.contents);
@@ -41,7 +44,7 @@ export function processDocumentFiles(docFiles: DocFile[]): Map<string, string> {
 }
 
 export function DocumentationDisplay(props: {
-  currentDocument: string;
+  currentNamespace: string;
   documentation: Map<string, string> | undefined;
 }) {
   const docsDiv = useRef<HTMLDivElement>(null);
@@ -49,9 +52,10 @@ export function DocumentationDisplay(props: {
   useEffect(() => {
     if (!docsDiv.current) return;
     docsDiv.current.innerHTML = props.documentation!.get(
-      props.currentDocument,
+      props.currentNamespace,
     )!;
-  }, [props.currentDocument]);
+    MathJax.typeset();
+  }, [props.currentNamespace]);
 
   return <div ref={docsDiv}></div>;
 }

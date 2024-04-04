@@ -27,7 +27,7 @@ import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
 import {
   DocumentationDisplay,
-  getDocumentNames,
+  getNamespaces,
   processDocumentFiles,
 } from "./docs.js";
 import {
@@ -138,7 +138,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         navSelected={onNavItemSelected}
         katas={kataTitles}
         samples={sampleTitles}
-        documentNames={getDocumentNames(documentation)}
+        namespaces={getNamespaces(documentation)}
       ></Nav>
       {sampleCode ? (
         <>
@@ -176,7 +176,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         ></Katas>
       ) : (
         <DocumentationDisplay
-          currentDocument={currentNavItem}
+          currentNamespace={currentNavItem}
           documentation={documentation}
         ></DocumentationDisplay>
       )}

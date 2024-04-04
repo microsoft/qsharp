@@ -6,7 +6,7 @@ export function Nav(props: {
   navSelected: (name: string) => void;
   katas: string[];
   samples: string[];
-  documentNames: string[];
+  namespaces: string[];
 }) {
   function onSelected(name: string) {
     props.navSelected(name);
@@ -42,7 +42,7 @@ export function Nav(props: {
       ))}
 
       <div class="nav-1">Documentation</div>
-      {props.documentNames.map((name) => (
+      {props.namespaces.map((name) => (
         <div
           class={
             "nav-2 nav-selectable" +
