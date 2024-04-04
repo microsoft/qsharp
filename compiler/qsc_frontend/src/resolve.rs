@@ -1197,10 +1197,25 @@ fn check_all_scopes(
     None
 }
 
+/// This function checks scopes for a given symbol and namespace name.
 /// In a given [Scope], check:
 /// 1. if any locally declared symbols match `provided_symbol_name`
 /// 2. if any aliases in this scope match the provided namespace, and if they contain `provided_symbol_name`
 /// 3. if any opens in this scope contain the `provided_symbol_name`
+/// It follows the Q# shadowing rules:
+/// - Local variables shadow everything. They are the first priority.
+/// - Next, we check open statements for an explicit open.
+/// - Then, we check the prelude.
+/// - Lastly, we check the global namespace.
+///
+/// # Parameters
+///
+/// * `kind` - The [`NameKind`] of the name
+/// * `globals` - The global scope to resolve the name against.
+/// * `provided_symbol_name` - The symbol name to resolve.
+/// * `provided_namespace_name` - The namespace of the symbol, if any.
+/// * `vars` - A mutable reference to a boolean indicating whether to allow local variables in closures in parent scopes.
+/// * `scope` - The scope to check for resolutions.
 fn check_scoped_resolutions(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1264,6 +1279,15 @@ fn check_scoped_resolutions(
     None
 }
 
+/// This function always returns an `Err` variant of `Result`. The error is of type `Error::Ambiguous` and contains
+/// the name of the ambiguous symbol and the namespaces that contain the conflicting entities.
+/// # Arguments
+///
+/// * `globals` - The global scope to resolve the name against.
+/// * `provided_symbol_name` - The symbol name that is ambiguous.
+/// * `candidates` - A map of possible resolutions for the symbol, each associated with the `Open`
+/// statement that brought it into scope. Note that only the first two opens in
+/// the candidates are actually used in the error message.
 fn ambiguous_symbol_error(
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
@@ -1310,19 +1334,22 @@ where
         }
     }
     let mut candidates = FxHashMap::default();
-    // search through each candidate namespace to find the items
     for (candidate_namespace_id, open) in namespaces_to_search {
+        // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
         let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
 
-        if let Some(ref provided_namespace_name) = provided_namespace_name {
-            if let Some(namespace) = candidate_namespace.find_namespace(provided_namespace_name) {
-                if let Some(res) = globals.get(kind, namespace, &provided_symbol_name.name) {
-                    candidates.insert(*res, open.clone());
-                }
-            }
-        }
+        // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
+        let namespace = provided_namespace_name
+            .as_ref()
+            .and_then(|name| candidate_namespace.find_namespace(name));
 
-        if let Some(res) = globals.get(kind, candidate_namespace_id, &provided_symbol_name.name) {
+        // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
+        let res = namespace
+            .or(Some(candidate_namespace_id))
+            .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
+
+        // If a symbol was found, insert it into the candidates map
+        if let Some(res) = res {
             candidates.insert(*res, open);
         }
     }
@@ -1330,14 +1357,8 @@ where
         // If there are multiple candidates, remove unimplemented items. This allows resolution to
         // succeed in cases where both an older, unimplemented API and newer, implemented API with the
         // same name are both in scope without forcing the user to fully qualify the name.
-        let mut removals = Vec::new();
-        for res in candidates.keys() {
-            if let Res::Item(_, ItemStatus::Unimplemented) = res {
-                removals.push(*res);
-            }
-        }
-        for res in removals {
-            candidates.remove(&res);
+        if candidates.len() > 1 {
+            candidates.retain(|&res, _| !matches!(res, Res::Item(_, ItemStatus::Unimplemented)));
         }
     }
     candidates
