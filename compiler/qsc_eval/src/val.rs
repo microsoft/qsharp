@@ -26,6 +26,7 @@ pub enum Value {
     Result(Result),
     String(Rc<str>),
     Tuple(Rc<[Value]>),
+    // TODO (cesarzc): maybe add a reference here.
 }
 
 #[derive(Clone, Debug, PartialEq)]

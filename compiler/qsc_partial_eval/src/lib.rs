@@ -2,24 +2,26 @@
 // Licensed under the MIT License.
 
 mod allocator;
+mod evaluation_context;
 #[cfg(test)]
 mod tests;
 
+use allocator::{Assigner, QubitsAndResultsAllocator};
+use evaluation_context::{EvaluationContext, Scope};
 use qsc_data_structures::functors::FunctorApp;
 use qsc_eval::{
-    self, backend::Backend, exec_graph_section, output::GenericReceiver, val::Value, Env, State,
-    StepAction, StepResult,
+    self, exec_graph_section, output::GenericReceiver, val::Value, State, StepAction, StepResult,
 };
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Global,
-        LocalItemId, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl,
-        Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
+        PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl, Stmt, StmtId,
+        StmtKind, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
     },
     ty::{Prim, Ty},
     visit::Visitor,
 };
-use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
+use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties};
 use qsc_rir::rir::{self, Callable, CallableId, CallableType, Instruction, Literal, Program};
 use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
@@ -162,10 +164,7 @@ impl<'a> PartialEvaluator<'a> {
         // Evaluate the callee expression to get the global to call.
         self.eval_classical_expr(callee_expr_id);
         let callable_scope = self.eval_context.get_current_scope();
-        let callee_value = callable_scope
-            .expression_value_map
-            .get(&callee_expr_id)
-            .expect("callee expression value not present");
+        let callee_value = callable_scope.get_expr_value(callee_expr_id);
         let Value::Global(store_item_id, functor_app) = callee_value else {
             panic!("callee expression value must be a global");
         };
@@ -286,20 +285,14 @@ impl<'a> PartialEvaluator<'a> {
 
         // We are currently not setting the argument values in a way that supports arbitrary calls, but we'll add that
         // support later.
-        let callable_scope = Scope {
-            package_id: global_callable.package,
-            callable: Some((global_callable.item, functor_app)),
-            args_runtime_properties: Vec::new(),
-            env: Env::default(),
-            expression_value_map: FxHashMap::default(),
-        };
-        self.eval_context.scopes.push(callable_scope);
+        let callable_scope = Scope::new(
+            global_callable.package,
+            Some((global_callable.item, functor_app)),
+            Vec::new(),
+        );
+        self.eval_context.push_scope(callable_scope);
         self.visit_block(spec_decl.block);
-        let popped_scope = self
-            .eval_context
-            .scopes
-            .pop()
-            .expect("there are no callable scopes to pop");
+        let popped_scope = self.eval_context.pop_scope();
         assert!(
             popped_scope.package_id == global_callable.package,
             "scope package ID mismatch"
@@ -546,123 +539,6 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
                 // Do nothing.
             }
         };
-    }
-}
-
-#[derive(Default)]
-struct Assigner {
-    next_callable: rir::CallableId,
-    next_block: rir::BlockId,
-}
-
-impl Assigner {
-    pub fn next_block(&mut self) -> rir::BlockId {
-        let id = self.next_block;
-        self.next_block = id.successor();
-        id
-    }
-
-    pub fn next_callable(&mut self) -> rir::CallableId {
-        let id = self.next_callable;
-        self.next_callable = id.successor();
-        id
-    }
-}
-
-#[derive(Default)]
-struct QubitsAndResultsAllocator {
-    qubit_id: usize,
-    result_id: usize,
-}
-
-impl Backend for QubitsAndResultsAllocator {
-    type ResultType = usize;
-
-    fn m(&mut self, _q: usize) -> Self::ResultType {
-        self.next_measurement()
-    }
-
-    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
-        self.next_measurement()
-    }
-
-    fn qubit_allocate(&mut self) -> usize {
-        self.next_qubit()
-    }
-
-    fn qubit_release(&mut self, _q: usize) {
-        // Do nothing.
-    }
-
-    fn qubit_is_zero(&mut self, _q: usize) -> bool {
-        true
-    }
-}
-
-impl QubitsAndResultsAllocator {
-    fn next_measurement(&mut self) -> usize {
-        let result_id = self.result_id;
-        self.result_id += 1;
-        result_id
-    }
-
-    fn next_qubit(&mut self) -> usize {
-        let qubit_id = self.qubit_id;
-        self.qubit_id += 1;
-        qubit_id
-    }
-}
-
-struct EvaluationContext {
-    current_block: rir::BlockId,
-    scopes: Vec<Scope>,
-}
-
-impl EvaluationContext {
-    fn new(entry_package_id: PackageId, initial_block: rir::BlockId) -> Self {
-        let entry_callable_scope = Scope {
-            package_id: entry_package_id,
-            callable: None,
-            args_runtime_properties: Vec::new(),
-            env: Env::default(),
-            expression_value_map: FxHashMap::default(),
-        };
-        Self {
-            current_block: initial_block,
-            scopes: vec![entry_callable_scope],
-        }
-    }
-
-    fn get_current_scope(&self) -> &Scope {
-        self.scopes
-            .last()
-            .expect("the evaluation context does not have a current scope")
-    }
-
-    fn get_current_scope_mut(&mut self) -> &mut Scope {
-        self.scopes
-            .last_mut()
-            .expect("the evaluation context does not have a current scope")
-    }
-}
-
-struct Scope {
-    package_id: PackageId,
-    callable: Option<(LocalItemId, FunctorApp)>,
-    args_runtime_properties: Vec<ValueKind>,
-    env: Env,
-    expression_value_map: FxHashMap<ExprId, Value>,
-}
-
-impl Scope {
-    fn get_expr_value(&self, expr_id: ExprId) -> &Value {
-        self.expression_value_map
-            .get(&expr_id)
-            .expect("expression value does not exist")
-    }
-
-    fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
-        self.expression_value_map.insert(expr_id, value);
     }
 }
 
