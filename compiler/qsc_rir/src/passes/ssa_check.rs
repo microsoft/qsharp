@@ -53,8 +53,8 @@ pub fn check_ssa_form(
 fn check_phi_nodes(program: &Program, preds: &IndexMap<BlockId, Vec<BlockId>>) {
     for (block_id, block) in program.blocks.iter() {
         for instr in &block.0 {
-            if let Instruction::Phi(vals, res) = instr {
-                for (val, pred_block_id) in vals {
+            if let Instruction::Phi(args, res) = instr {
+                for (val, pred_block_id) in args {
                     assert!(
                         preds
                             .get(block_id)
