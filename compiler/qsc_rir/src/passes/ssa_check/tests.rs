@@ -7,32 +7,33 @@ use crate::{
     builder::{bell_program, new_program, teleport_program},
     passes::{build_dominator_graph, remap_block_ids},
     rir::{
-        Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty,
-        Variable, VariableId,
+        Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Program,
+        Ty, Variable, VariableId,
     },
     utils::build_predecessors_map,
 };
 
 use super::check_ssa_form;
 
+fn perform_ssa_check(program: &mut Program) {
+    remap_block_ids(program);
+    let preds = build_predecessors_map(program);
+    let doms = build_dominator_graph(program, &preds);
+    check_ssa_form(program, &preds, &doms);
+}
+
 #[test]
 fn test_ssa_check_passes_for_base_profile_program() {
     let mut program = bell_program();
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
 fn test_ssa_check_passes_for_adaptive_program_with_all_literals() {
     let mut program = teleport_program();
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -56,10 +57,7 @@ fn test_ssa_check_fails_for_instruction_on_literal_values() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -96,10 +94,7 @@ fn test_ssa_check_fails_for_use_before_assignment_in_single_block() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -134,10 +129,7 @@ fn test_ssa_check_fails_for_use_without_assignment_in_single_block() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -181,10 +173,7 @@ fn test_ssa_check_fails_for_use_before_assignment_across_sequential_blocks() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -219,10 +208,7 @@ fn test_ssa_check_fails_for_multiple_assignment_in_single_block() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -299,10 +285,7 @@ fn test_ssa_check_passes_for_variable_that_dominates_usage() {
         .blocks
         .insert(BlockId(3), Block(vec![Instruction::Return]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -395,10 +378,7 @@ fn test_ssa_check_fails_when_definition_does_not_dominates_usage() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -510,10 +490,7 @@ fn test_ssa_check_succeeds_when_phi_handles_multiple_values_from_branches() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -629,10 +606,7 @@ fn test_ssa_check_succeeds_when_phi_handles_value_from_dominator_of_predecessor(
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -779,10 +753,7 @@ fn test_ssa_check_fails_when_phi_handles_value_from_non_dominator_of_predecessor
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }
 
 #[test]
@@ -895,8 +866,5 @@ fn test_ssa_check_fails_when_phi_lists_non_predecessor_block() {
         ]),
     );
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
-    check_ssa_form(&program, &preds, &doms);
+    perform_ssa_check(&mut program);
 }

@@ -10,8 +10,8 @@ use crate::{
     builder::new_program,
     passes::remap_block_ids,
     rir::{
-        Block, BlockId, Callable, CallableId, CallableType, Instruction, Operand, Ty, Variable,
-        VariableId,
+        Block, BlockId, Callable, CallableId, CallableType, Instruction, Operand, Program, Ty,
+        Variable, VariableId,
     },
     utils::build_predecessors_map,
 };
@@ -29,16 +29,20 @@ fn display_dominator_graph(doms: &IndexMap<BlockId, BlockId>) -> String {
     result
 }
 
+fn build_doms(program: &mut Program) -> IndexMap<BlockId, BlockId> {
+    remap_block_ids(program);
+    let preds = build_predecessors_map(program);
+    build_dominator_graph(program, &preds)
+}
+
 #[test]
-fn test_dominator_graph_single_block_dominates_itself() {
+fn dominator_graph_single_block_dominates_itself() {
     let mut program = new_program();
     program
         .blocks
         .insert(BlockId(0), Block(vec![Instruction::Return]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
+    let doms = build_doms(&mut program);
 
     expect![[r#"
         Block 0 dominated by block 0,
@@ -47,7 +51,7 @@ fn test_dominator_graph_single_block_dominates_itself() {
 }
 
 #[test]
-fn test_dominator_graph_sequential_blocks_dominated_by_predecessor() {
+fn dominator_graph_sequential_blocks_dominated_by_predecessor() {
     let mut program = new_program();
     program
         .blocks
@@ -59,9 +63,7 @@ fn test_dominator_graph_sequential_blocks_dominated_by_predecessor() {
         .blocks
         .insert(BlockId(2), Block(vec![Instruction::Return]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
+    let doms = build_doms(&mut program);
 
     expect![[r#"
         Block 0 dominated by block 0,
@@ -72,7 +74,7 @@ fn test_dominator_graph_sequential_blocks_dominated_by_predecessor() {
 }
 
 #[test]
-fn test_dominator_graph_branching_blocks_dominated_by_common_predecessor() {
+fn dominator_graph_branching_blocks_dominated_by_common_predecessor() {
     let mut program = new_program();
     program.callables.insert(
         CallableId(1),
@@ -117,9 +119,7 @@ fn test_dominator_graph_branching_blocks_dominated_by_common_predecessor() {
         .blocks
         .insert(BlockId(3), Block(vec![Instruction::Return]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
+    let doms = build_doms(&mut program);
 
     expect![[r#"
         Block 0 dominated by block 0,
@@ -131,7 +131,7 @@ fn test_dominator_graph_branching_blocks_dominated_by_common_predecessor() {
 }
 
 #[test]
-fn test_dominator_graph_infinite_loop() {
+fn dominator_graph_infinite_loop() {
     let mut program = new_program();
     program
         .blocks
@@ -140,9 +140,7 @@ fn test_dominator_graph_infinite_loop() {
         .blocks
         .insert(BlockId(1), Block(vec![Instruction::Jump(BlockId(1))]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
+    let doms = build_doms(&mut program);
 
     expect![[r#"
         Block 0 dominated by block 0,
@@ -152,7 +150,7 @@ fn test_dominator_graph_infinite_loop() {
 }
 
 #[test]
-fn test_dominator_graph_branch_and_loop() {
+fn dominator_graph_branch_and_loop() {
     let mut program = new_program();
     program.callables.insert(
         CallableId(1),
@@ -199,9 +197,7 @@ fn test_dominator_graph_branch_and_loop() {
         .blocks
         .insert(BlockId(4), Block(vec![Instruction::Return]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
+    let doms = build_doms(&mut program);
 
     expect![[r#"
         Block 0 dominated by block 0,
@@ -214,7 +210,7 @@ fn test_dominator_graph_branch_and_loop() {
 }
 
 #[test]
-fn test_dominator_graph_complex_structure_only_dominated_by_entry() {
+fn dominator_graph_complex_structure_only_dominated_by_entry() {
     // This example comes from the paper from [A Simple, Fast Dominance Algorithm](http://www.hipersoft.rice.edu/grads/publications/dom14.pdf)
     // by Cooper, Harvey, and Kennedy and uses the node numbering from the paper. However, the resulting dominator graph
     // is different due to the numbering of the blocks, such that each block is numbered in reverse postorder.
@@ -288,9 +284,7 @@ fn test_dominator_graph_complex_structure_only_dominated_by_entry() {
         .blocks
         .insert(BlockId(3), Block(vec![Instruction::Jump(BlockId(2))]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
+    let doms = build_doms(&mut program);
 
     expect![[r#"
         Block 0 dominated by block 0,
@@ -304,7 +298,7 @@ fn test_dominator_graph_complex_structure_only_dominated_by_entry() {
 }
 
 #[test]
-fn test_dominator_graph_with_node_having_many_predicates() {
+fn dominator_graph_with_node_having_many_predicates() {
     let mut program = new_program();
     program.callables.insert(
         CallableId(1),
@@ -376,9 +370,7 @@ fn test_dominator_graph_with_node_having_many_predicates() {
         .blocks
         .insert(BlockId(7), Block(vec![Instruction::Return]));
 
-    remap_block_ids(&mut program);
-    let preds = build_predecessors_map(&program);
-    let doms = build_dominator_graph(&program, &preds);
+    let doms = build_doms(&mut program);
 
     expect![[r#"
         Block 0 dominated by block 0,

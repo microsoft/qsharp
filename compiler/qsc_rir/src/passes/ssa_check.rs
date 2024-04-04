@@ -24,9 +24,9 @@ pub fn check_ssa_form(
     let variable_uses = get_variable_uses(program);
 
     for (var_id, uses) in variable_uses.iter() {
-        let (def_block_id, def_idx) = variable_assignments
-            .get(var_id)
-            .unwrap_or_else(|| panic!("{var_id:?} is used but not assigned"));
+        let Some((def_block_id, def_idx)) = variable_assignments.get(var_id) else {
+            panic!("{var_id:?} is used but not assigned");
+        };
         for (use_block_id, use_idx) in uses {
             if use_block_id == def_block_id {
                 assert!(
@@ -188,8 +188,8 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                         }
                     }
                 }
-                Instruction::Phi(vals, _) => {
-                    for (val, pred_block_id) in vals {
+                Instruction::Phi(args, _) => {
+                    for (val, pred_block_id) in args {
                         if let Operand::Variable(var) = val {
                             // As a special case for phi, treat the variable as used in the predecessor block
                             // rather than the phi block, at the max instruction index to avoid failing the
