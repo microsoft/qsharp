@@ -127,6 +127,24 @@ pub fn array_record_decl() -> Callable {
     }
 }
 
+/// Creates a new program with a single, entry callable that has block 0 as its body.
+#[must_use]
+pub fn new_program() -> Program {
+    let mut program = Program::new();
+    program.entry = CallableId(0);
+    program.callables.insert(
+        CallableId(0),
+        Callable {
+            name: "main".to_string(),
+            input_type: Vec::new(),
+            output_type: None,
+            body: Some(BlockId(0)),
+            call_type: CallableType::Regular,
+        },
+    );
+    program
+}
+
 #[must_use]
 pub fn bell_program() -> Program {
     let mut program = Program::default();
@@ -147,6 +165,7 @@ pub fn bell_program() -> Program {
             call_type: CallableType::Regular,
         },
     );
+    program.entry = CallableId(5);
     program.blocks.insert(
         BlockId(0),
         Block(vec![
@@ -236,6 +255,7 @@ pub fn teleport_program() -> Program {
             call_type: CallableType::Regular,
         },
     );
+    program.entry = CallableId(7);
     program.blocks.insert(
         BlockId(0),
         Block(vec![
@@ -287,10 +307,10 @@ pub fn teleport_program() -> Program {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -327,10 +347,10 @@ pub fn teleport_program() -> Program {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(1),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(3),
                 BlockId(4),
             ),

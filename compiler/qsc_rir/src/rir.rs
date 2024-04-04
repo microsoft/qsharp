@@ -252,7 +252,7 @@ pub enum Instruction {
     Store(Operand, Variable),
     Call(CallableId, Vec<Operand>, Option<Variable>),
     Jump(BlockId),
-    Branch(Operand, BlockId, BlockId),
+    Branch(Variable, BlockId, BlockId),
     Add(Operand, Operand, Variable),
     Sub(Operand, Operand, Variable),
     Mul(Operand, Operand, Variable),
@@ -289,7 +289,7 @@ impl Display for Instruction {
 
         fn write_branch(
             f: &mut Formatter,
-            condition: &Operand,
+            condition: Variable,
             if_true: BlockId,
             if_false: BlockId,
         ) -> fmt::Result {
@@ -360,7 +360,7 @@ impl Display for Instruction {
                 write_call(f, *callable_id, args, *variable)?;
             }
             Self::Branch(condition, if_true, if_false) => {
-                write_branch(f, condition, *if_true, *if_false)?;
+                write_branch(f, *condition, *if_true, *if_false)?;
             }
             Self::Add(lhs, rhs, variable) => {
                 write_binary_instruction(f, "Add", lhs, rhs, *variable)?;
@@ -416,8 +416,20 @@ impl Display for Instruction {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct VariableId(pub u32);
+
+impl From<VariableId> for usize {
+    fn from(id: VariableId) -> usize {
+        id.0 as usize
+    }
+}
+
+impl From<usize> for VariableId {
+    fn from(id: usize) -> Self {
+        Self(id.try_into().expect("variable id should fit into u32"))
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct Variable {

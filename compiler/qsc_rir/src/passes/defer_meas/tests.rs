@@ -198,10 +198,10 @@ fn add_branching_measurement_block(program: &mut Program) {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),

@@ -15,13 +15,11 @@ pub fn get_block_successors(block: &Block) -> Vec<BlockId> {
         .last()
         .expect("block should have at least one instruction")
     {
-        Instruction::Jump(target) => {
-            successors.push(*target);
-        }
         Instruction::Branch(_, target1, target2) => {
             successors.push(*target1);
             successors.push(*target2);
         }
+        Instruction::Jump(target) => successors.push(*target),
         _ => {}
     }
     successors

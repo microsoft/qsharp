@@ -131,7 +131,10 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_branch()
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::Branch(
-            Operand::Literal(Literal::Bool(true)),
+            Variable {
+                variable_id: VariableId(0),
+                ty: Ty::Boolean,
+            },
             BlockId(1),
             BlockId(2),
         )]),
@@ -184,7 +187,10 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block_with_branch() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::Branch(
-            Operand::Literal(Literal::Bool(true)),
+            Variable {
+                variable_id: VariableId(0),
+                ty: Ty::Boolean,
+            },
             BlockId(1),
             BlockId(1),
         )]),
