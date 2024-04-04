@@ -237,10 +237,10 @@ fn test_ssa_check_passes_for_variable_that_dominates_usage() {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -317,10 +317,10 @@ fn test_ssa_check_fails_when_definition_does_not_dominates_usage() {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -407,10 +407,10 @@ fn test_ssa_check_succeeds_when_phi_handles_multiple_values_from_branches() {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -519,10 +519,10 @@ fn test_ssa_check_succeeds_when_phi_handles_value_from_dominator_of_predecessor(
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -638,10 +638,10 @@ fn test_ssa_check_fails_when_phi_handles_value_from_non_dominator_of_predecessor
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),
@@ -679,10 +679,10 @@ fn test_ssa_check_fails_when_phi_handles_value_from_non_dominator_of_predecessor
                 },
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(4),
                 BlockId(5),
             ),
@@ -783,10 +783,10 @@ fn test_ssa_check_fails_when_phi_lists_non_predecessor_block() {
                 }),
             ),
             Instruction::Branch(
-                Operand::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),

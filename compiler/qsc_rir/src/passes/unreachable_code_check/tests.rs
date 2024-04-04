@@ -131,10 +131,10 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_branch()
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::Branch(
-            Operand::Variable(Variable {
+            Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
-            }),
+            },
             BlockId(1),
             BlockId(2),
         )]),
@@ -187,7 +187,10 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block_with_branch() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::Branch(
-            Operand::Literal(Literal::Bool(true)),
+            Variable {
+                variable_id: VariableId(0),
+                ty: Ty::Boolean,
+            },
             BlockId(1),
             BlockId(1),
         )]),
@@ -412,36 +415,4 @@ fn test_check_unreachable_callable_succeeds_on_no_unreachable_callables_with_cal
         Block(vec![Instruction::Call(CallableId(1), Vec::new(), None)]),
     );
     check_unreachable_callable(&program);
-}
-
-#[test]
-#[should_panic(expected = "Unreachable blocks found: [BlockId(2)]")]
-fn constant_branches_lead_to_unreachable_blocks() {
-    let mut program = Program::new();
-    program.entry = CallableId(0);
-    program.callables.insert(
-        CallableId(0),
-        Callable {
-            name: "test".to_string(),
-            input_type: vec![],
-            output_type: None,
-            body: Some(BlockId(0)),
-            call_type: CallableType::Regular,
-        },
-    );
-    program.blocks.insert(
-        BlockId(0),
-        Block(vec![Instruction::Branch(
-            Operand::Literal(Literal::Bool(true)),
-            BlockId(1),
-            BlockId(2),
-        )]),
-    );
-    program
-        .blocks
-        .insert(BlockId(1), Block(vec![Instruction::Return]));
-    program
-        .blocks
-        .insert(BlockId(2), Block(vec![Instruction::Return]));
-    check_unreachable_blocks(&program);
 }

@@ -158,7 +158,8 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                 | Instruction::BitwiseOr(Operand::Variable(var), Operand::Literal(_), _)
                 | Instruction::BitwiseOr(Operand::Literal(_), Operand::Variable(var), _)
                 | Instruction::BitwiseXor(Operand::Variable(var), Operand::Literal(_), _)
-                | Instruction::BitwiseXor(Operand::Literal(_), Operand::Variable(var), _) => {
+                | Instruction::BitwiseXor(Operand::Literal(_), Operand::Variable(var), _)
+                | Instruction::Branch(var, _, _) => {
                     add_use(var.variable_id, block_id, idx);
                 }
 
@@ -199,7 +200,7 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                     }
                 }
 
-                // No variables
+                // If an instruction has no variables, it should have been inlined by partial eval.
                 Instruction::Add(Operand::Literal(_), Operand::Literal(_), _)
                 | Instruction::Sub(Operand::Literal(_), Operand::Literal(_), _)
                 | Instruction::Mul(Operand::Literal(_), Operand::Literal(_), _)
@@ -218,7 +219,7 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                     panic!("{block_id:?}, instruction {idx} has no variables: {instr}")
                 }
 
-                Instruction::Jump(..) | Instruction::Branch(..) | Instruction::Return => {}
+                Instruction::Jump(..) | Instruction::Return => {}
 
                 Instruction::Store(..) => {
                     panic!("Unexpected Store at {block_id:?}, instruction {idx}")
