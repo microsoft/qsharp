@@ -176,10 +176,10 @@ class BlochRenderer {
   trail: Group;
   animationCallbackId = 0;
   gateQueue: AppliedGate[] = [];
-  rotataions: Rotations;
+  rotations: Rotations;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.rotataions = new Rotations(64);
+    this.rotations = new Rotations(64);
 
     // For VS Code, WebView body attribute 'data-vscode-theme-kind' will contain 'light' if light theme is active.
     // Note: The value is usually 'vscode-light' or 'vscode-dark', but high-contrast dark is just 'vscode-high-contrast',
@@ -297,19 +297,9 @@ class BlochRenderer {
     this.qubit = qubit;
     this.trail = trail;
 
-    // Initial render
-    //requestAnimationFrame(() => this.render());
+    // Initial render after text is ready
     createText(scene, () => this.render());
   }
-
-  /*
-  TODO: Replace most of the following math logic with the Rotations class
-  - On gate application, it should add it to a queue and start processing (if not already running)
-  - Queue processing should take the next gate, apply it via Rotations, a get a reference to that added gate
-  - In animationFrame callbacks, using easing to rotate the qubits and add points until done.
-  - Once done, remove the gate from the queue and start the next one (or exit)
-  - Track requestAnimationFrame return value to indicate if animation is running already
-  */
 
   queueGate(gate: AppliedGate) {
     this.gateQueue.push(gate);
@@ -317,8 +307,6 @@ class BlochRenderer {
 
     // Close over these values for the running queue
     let currentGate: AppliedGate | undefined;
-
-    // First element is the percent of rotation at which to draw it
     let startTime = 0;
 
     const processQueue = () => {
@@ -340,32 +328,33 @@ class BlochRenderer {
       const t = x < 1 ? easeInOutSine(x) : 1;
 
       // Rotate the qubit to the correct position
-      const currentRotation = this.rotataions.getRotationAtPercent(
+      const currentRotation = this.rotations.getRotationAtPercent(
         currentGate,
         t,
       );
 
       currentRotation.path.forEach((val) => {
         // Draw any that don't already have a point
-        if (!val.ref) {
-          const trackGeo = new SphereGeometry(0.05, 16, 16);
-          const trackBall = new Mesh(
-            trackGeo,
-            new MeshBasicMaterial({ color: 0x808080 }),
-          );
-          trackBall.position.set(0, 5, 0);
+        if (val.ref) return;
+        const trackGeo = new SphereGeometry(0.05, 16, 16);
+        const trackBall = new Mesh(
+          trackGeo,
+          new MeshBasicMaterial({ color: 0x808080 }),
+        );
+        trackBall.position.set(0, 5, 0);
 
-          // Conver to world space
-          trackBall.position.applyQuaternion(val.pos);
+        // Conver to world space
+        trackBall.position.applyQuaternion(val.pos);
 
-          // Save along with the interpolation point
-          this.trail.add(trackBall);
-        }
+        // Save along with the interpolation point
+        this.trail.add(trackBall);
+        val.ref = trackBall;
       });
 
+      // Set qubit position to slerped values
       this.qubit.quaternion.copy(currentRotation.pos);
 
-      // Fade out the trail as needed
+      // Fade out the path trail as needed
       this.trail.children.forEach((child, idx, arr) => {
         const ball = child as Mesh;
         const sat = easeOutSine((idx + 1) / arr.length);
@@ -382,35 +371,34 @@ class BlochRenderer {
       this.animationCallbackId = requestAnimationFrame(processQueue);
     };
 
+    // Kick off processing
     processQueue();
   }
 
-  // The Bloch sphere X axis is the Z axis in WebGL
   rotateX(angle: number) {
-    this.queueGate(this.rotataions.rotateX(angle));
-  }
-  // The Bloch sphere Y axis is the X axis in WebGL
-  rotateY(angle: number) {
-    this.queueGate(this.rotataions.rotateY(angle));
+    this.queueGate(this.rotations.rotateX(angle));
   }
 
-  // The Bloch sphere Z axis is the Y axis in WebGL
+  rotateY(angle: number) {
+    this.queueGate(this.rotations.rotateY(angle));
+  }
+
   rotateZ(angle: number) {
-    this.queueGate(this.rotataions.rotateZ(angle));
+    this.queueGate(this.rotations.rotateZ(angle));
   }
 
   rotateH(angle: number) {
-    this.queueGate(this.rotataions.rotateH(angle));
+    this.queueGate(this.rotations.rotateH(angle));
   }
 
   reset() {
     this.controls.reset();
-    this.rotataions.reset();
+    this.rotations.reset();
+    this.trail.clear();
     this.scene.position.set(0, 0, 0);
     this.qubit.rotation.set(0, 0, 0);
     this.camera.position.set(4, 4, 27);
     this.camera.lookAt(0, 0, 0);
-    this.trail.clear();
     this.render();
   }
 
