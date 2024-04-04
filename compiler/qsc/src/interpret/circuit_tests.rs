@@ -39,7 +39,7 @@ fn empty() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![].assert_eq(&circ.to_string());
@@ -61,7 +61,7 @@ fn one_gate() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -86,7 +86,7 @@ fn rotation_gate() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // The wire isn't visible here since the gate label is longer
@@ -115,7 +115,7 @@ fn classical_for_loop() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -142,7 +142,7 @@ fn m_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -171,7 +171,7 @@ fn m_unrestricted_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -199,7 +199,7 @@ fn mresetz_unrestricted_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -227,7 +227,7 @@ fn mresetz_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -265,7 +265,7 @@ fn unrestricted_profile_result_comparison() {
     interpreter.set_quantum_seed(Some(2));
 
     let circuit_err = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect_err("circuit should return error")
         .pop()
         .expect("error should exist");
@@ -320,7 +320,7 @@ fn custom_intrinsic() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -349,7 +349,7 @@ fn custom_intrinsic_classical_arg() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // A custom intrinsic that doesn't take qubits just doesn't
@@ -380,7 +380,7 @@ fn custom_intrinsic_one_classical_arg() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // A custom intrinsic that doesn't take qubits just doesn't
@@ -418,7 +418,7 @@ fn custom_intrinsic_mixed_args() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::EntryPoint)
+        .circuit(CircuitEntryPoint::EntryPoint, false)
         .expect("circuit generation should succeed");
 
     // This is one gate that spans ten target wires, even though the
@@ -458,7 +458,7 @@ fn operation_with_qubits() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -488,7 +488,7 @@ fn operation_with_qubits_base_profile() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -535,7 +535,7 @@ fn operation_with_qubit_arrays() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -587,7 +587,10 @@ fn adjoint_operation() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("Adjoint Test.Foo".into()))
+        .circuit(
+            CircuitEntryPoint::Operation("Adjoint Test.Foo".into()),
+            false,
+        )
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -608,7 +611,7 @@ fn lambda() {
     );
 
     let circ = interpreter
-        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()))
+        .circuit(CircuitEntryPoint::Operation("q => H(q)".into()), false)
         .expect("circuit generation should succeed");
 
     expect![[r"
@@ -649,7 +652,10 @@ fn controlled_operation() {
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Controlled Test.SWAP".into()))
+        .circuit(
+            CircuitEntryPoint::Operation("Controlled Test.SWAP".into()),
+            false,
+        )
         .expect_err("circuit generation should fail");
 
     // Controlled operations are not supported at the moment.
@@ -682,7 +688,7 @@ fn internal_operation() {
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect_err("circuit generation should fail");
 
     expect![[r#"
@@ -731,7 +737,7 @@ fn operation_with_non_qubit_args() {
     );
 
     let circ_err = interpreter
-        .circuit(CircuitEntryPoint::Operation("Test.Test".into()))
+        .circuit(CircuitEntryPoint::Operation("Test.Test".into()), false)
         .expect_err("circuit generation should fail");
 
     expect![[r"

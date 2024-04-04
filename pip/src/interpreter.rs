@@ -242,7 +242,7 @@ impl Interpreter {
             }
         };
 
-        match self.interpreter.circuit(entrypoint) {
+        match self.interpreter.circuit(entrypoint, false) {
             Ok(circuit) => Ok(Circuit(circuit).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }

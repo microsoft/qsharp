@@ -74,6 +74,14 @@ function registerCommands(context: vscode.ExtensionContext) {
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
   ) {
+    if (
+      vscode.debug.activeDebugSession !== undefined &&
+      vscode.debug.activeDebugSession.type === "qsharp"
+    ) {
+      // Multiple debug sessions disallowed, to reduce confusion
+      return;
+    }
+
     let targetResource = resource;
     if (!targetResource && vscode.window.activeTextEditor) {
       targetResource = vscode.window.activeTextEditor.document.uri;

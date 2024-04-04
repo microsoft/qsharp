@@ -139,8 +139,9 @@ pub fn get_estimates(
 pub fn get_circuit(
     sources: Vec<js_sys::Array>,
     targetProfile: &str,
-    operation: Option<IOperationInfo>,
     language_features: Vec<String>,
+    simulate: bool,
+    operation: Option<IOperationInfo>,
 ) -> Result<JsValue, String> {
     let sources = get_source_map(sources, &None);
     let target_profile = Profile::from_str(targetProfile).expect("invalid target profile");
@@ -155,13 +156,16 @@ pub fn get_circuit(
     .map_err(interpret_errors_into_vs_diagnostics_json)?;
 
     let circuit = interpreter
-        .circuit(match operation {
-            Some(p) => {
-                let o: language_service::OperationInfo = p.into();
-                CircuitEntryPoint::Operation(o.operation)
-            }
-            None => CircuitEntryPoint::EntryPoint,
-        })
+        .circuit(
+            match operation {
+                Some(p) => {
+                    let o: language_service::OperationInfo = p.into();
+                    CircuitEntryPoint::Operation(o.operation)
+                }
+                None => CircuitEntryPoint::EntryPoint,
+            },
+            simulate,
+        )
         .map_err(interpret_errors_into_vs_diagnostics_json)?;
 
     serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())

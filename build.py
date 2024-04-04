@@ -450,11 +450,7 @@ if build_pip and build_widgets and args.integration_tests:
         for dp, _, filenames in os.walk(samples_src)
         for f in filenames
         if f.endswith(".ipynb")
-        and not (
-            f.startswith("sample.")
-            or f.startswith("azure_submission.")
-            or f.startswith("circuits.")
-        )
+        and not (f.startswith("sample.") or f.startswith("azure_submission."))
     ]
     python_bin = use_python_env(samples_src)
 

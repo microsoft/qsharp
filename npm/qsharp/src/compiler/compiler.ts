@@ -78,6 +78,7 @@ export interface ICompiler {
   getCircuit(
     config: ProgramConfig,
     target: TargetProfile,
+    simulate: boolean,
     operation?: IOperationInfo,
   ): Promise<CircuitData>;
 
@@ -223,13 +224,15 @@ export class Compiler implements ICompiler {
   async getCircuit(
     config: ProgramConfig,
     target: TargetProfile,
+    simulate: boolean,
     operation?: IOperationInfo,
   ): Promise<CircuitData> {
     return this.wasm.get_circuit(
       config.sources,
       target,
-      operation,
       config.languageFeatures || [],
+      simulate,
+      operation,
     );
   }
 

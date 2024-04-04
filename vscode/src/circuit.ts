@@ -4,8 +4,10 @@
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
 import { escapeHtml } from "markdown-it/lib/common/utils";
 import {
+  ICompilerWorker,
   IOperationInfo,
   IRange,
+  TargetProfile,
   VSDiagnostic,
   getCompilerWorker,
   log,
@@ -37,7 +39,19 @@ export async function showCircuitCommand(
     throw new Error("The currently active window is not a Q# file");
   }
 
-  sendMessageToPanel("circuit", true, undefined);
+  const docUri = editor.document.uri;
+  const sources = await loadProject(docUri);
+  const targetProfile = getTarget();
+  const programPath = docUri.path;
+  let circuitProps;
+
+  // Before we start, reveal the panel with the "calculating" spinner
+  updateCircuitPanel(
+    targetProfile,
+    programPath,
+    true, // reveal
+    { operation, calculating: true },
+  );
 
   let timeout = false;
 
@@ -46,6 +60,7 @@ export async function showCircuitCommand(
   const compilerTimeout = setTimeout(() => {
     timeout = true;
     sendTelemetryEvent(EventType.CircuitEnd, {
+      simulated: false.toString(),
       associationId,
       reason: "timeout",
       flowStatus: UserFlowStatus.Aborted,
@@ -54,24 +69,30 @@ export async function showCircuitCommand(
     worker.terminate();
   }, compilerRunTimeoutMs);
 
-  const docUri = editor.document.uri;
-  const sources = await loadProject(docUri);
-  const targetProfile = getTarget();
-
   try {
-    sendTelemetryEvent(EventType.CircuitStart, { associationId }, {});
-
-    const circuit = await worker.getCircuit(sources, targetProfile, operation);
-    clearTimeout(compilerTimeout);
-
-    updateCircuitPanel(
-      targetProfile,
-      docUri.path,
-      true, // reveal
-      { circuit, operation },
+    sendTelemetryEvent(
+      EventType.CircuitStart,
+      {
+        associationId,
+        targetProfile,
+        isOperation: (!!operation).toString(),
+      },
+      {},
     );
 
+    // Generate the circuit and update the panel
+    circuitProps = await generateCircuit(
+      worker,
+      programPath,
+      sources,
+      targetProfile,
+      operation,
+    );
+
+    clearTimeout(compilerTimeout);
+
     sendTelemetryEvent(EventType.CircuitEnd, {
+      simulated: circuitProps.simulated.toString(),
       associationId,
       flowStatus: UserFlowStatus.Succeeded,
     });
@@ -88,6 +109,7 @@ export async function showCircuitCommand(
 
     if (!timeout) {
       sendTelemetryEvent(EventType.CircuitEnd, {
+        simulated: false.toString(),
         associationId,
         reason: errors && errors[0] ? errors[0][1].code : undefined,
         flowStatus: UserFlowStatus.Failed,
@@ -96,14 +118,99 @@ export async function showCircuitCommand(
 
     updateCircuitPanel(
       targetProfile,
-      docUri.path,
+      programPath,
       false, // reveal
-      { errorHtml, operation },
+      {
+        errorHtml,
+        operation,
+        ...circuitProps,
+      },
     );
   } finally {
     log.info("terminating circuit worker");
     worker.terminate();
   }
+}
+
+/**
+ * Generate the circuit and update the panel with the results.
+ * We first attempt to generate a circuit without running the simulator,
+ * which should be fast.
+ *
+ * If that fails, specifically due to a result comparison error,
+ * that means this is a dynamic circuit. We fall back to using the
+ * simulator in this case ("trace" mode), which is slower.
+ */
+async function generateCircuit(
+  worker: ICompilerWorker,
+  programPath: string,
+  program: {
+    sources: [string, string][];
+    languageFeatures: string[];
+    lints: { lint: string; level: string }[];
+  },
+  targetProfile: TargetProfile,
+  operation?: IOperationInfo,
+) {
+  let circuit;
+  let simulated = false;
+  let isDynamic = false;
+  try {
+    // First, try without simulating
+    circuit = await worker.getCircuit(
+      program,
+      targetProfile,
+      false, // simulate
+      operation,
+    );
+  } catch (e) {
+    if (hasResultComparisonError(e)) {
+      // Retry with the simulator if circuit generation failed because
+      // there was a result comparison (i.e. if this is a dynamic circuit)
+      simulated = true;
+      isDynamic = true;
+      updateCircuitPanel(
+        targetProfile,
+        programPath,
+        false, // reveal
+        {
+          calculating: true,
+          simulated,
+          operation,
+          isDynamic,
+        },
+      );
+      // try again with the simulator
+      circuit = await worker.getCircuit(
+        program,
+        targetProfile,
+        true, // simulate
+        operation,
+      );
+    } else {
+      throw e;
+    }
+  }
+
+  updateCircuitPanel(
+    targetProfile,
+    programPath,
+    false, // reveal
+    { circuit, operation, simulated, isDynamic },
+  );
+
+  return { simulated, isDynamic };
+}
+
+function hasResultComparisonError(e: unknown) {
+  const errors: [string, VSDiagnostic, string][] =
+    typeof e === "string" ? JSON.parse(e) : undefined;
+  const hasResultComparisonError =
+    errors &&
+    errors.findIndex(
+      ([, diag]) => diag.code === "Qsc.Eval.ResultComparisonUnsupported",
+    ) >= 0;
+  return hasResultComparisonError;
 }
 
 /**
@@ -172,18 +279,20 @@ function errorsToHtml(
 
 export function updateCircuitPanel(
   targetProfile: string,
-  docPath: string,
+  programPath: string,
   reveal: boolean,
   params: {
     circuit?: CircuitData;
     errorHtml?: string;
-    simulating?: boolean;
+    simulated?: boolean;
     operation?: IOperationInfo | undefined;
+    calculating?: boolean;
+    isDynamic?: boolean;
   },
 ) {
   const title = params?.operation
     ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
-    : basename(docPath) || "Circuit";
+    : basename(programPath) || "Circuit";
 
   // Trim the Q#: prefix from the target profile name - that's meant for the ui text in the status bar
   const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("Q#: ", "")} `;
@@ -191,9 +300,11 @@ export function updateCircuitPanel(
   const props = {
     title,
     targetProfile: target,
-    simulating: params?.simulating || false,
+    simulated: params?.simulated || false,
+    calculating: params?.calculating || false,
     circuit: params?.circuit,
     errorHtml: params?.errorHtml,
+    isDynamic: params?.isDynamic || false,
   };
 
   const message = {
@@ -229,7 +340,7 @@ function documentHtml(maybeUri: string, range?: IRange) {
     );
     const fsPath = escapeHtml(uri.fsPath);
     const lineColumn = range
-      ? escapeHtml(`:${range.start.line}:${range.start.character}`)
+      ? escapeHtml(`:${range.start.line + 1}:${range.start.character + 1}`)
       : "";
     location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
   } catch (e) {
