@@ -1,8 +1,1 @@
-{
-    "lints": [
-        {
-            "lint": "divisionByZero",
-            "level": "error"
-        }
-    ]
-}
+{}
