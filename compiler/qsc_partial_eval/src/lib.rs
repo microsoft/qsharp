@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-mod allocation;
+mod allocator;
 #[cfg(test)]
 mod tests;
 
