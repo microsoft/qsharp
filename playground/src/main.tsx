@@ -25,7 +25,11 @@ import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
-import { DocumentationDisplay, getDocumentNames, processDocumentFiles } from "./docs.js";
+import {
+  DocumentationDisplay,
+  getDocumentNames,
+  processDocumentFiles,
+} from "./docs.js";
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
@@ -93,11 +97,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const kataTitles = props.katas.map((elem) => elem.title);
   const sampleTitles = samples.map((sample) => sample.title);
 
-  const [documentation, setDocumentation] = useState<Map<string, string> | undefined>(undefined);
-  useEffect(
-    () => {createDocumentation()},
-    []
-  );
+  const [documentation, setDocumentation] = useState<
+    Map<string, string> | undefined
+  >(undefined);
+  useEffect(() => {
+    createDocumentation();
+  }, []);
   async function createDocumentation() {
     const docFiles = await compiler.getDocumentation();
     setDocumentation(processDocumentFiles(docFiles));
@@ -210,10 +215,7 @@ async function loaded() {
     }
   }
 
-  render(
-    <App katas={katas} linkedCode={linkedCode}></App>,
-    document.body,
-  );
+  render(<App katas={katas} linkedCode={linkedCode}></App>, document.body);
 }
 
 function registerMonacoLanguageServiceProviders(
@@ -481,4 +483,3 @@ declare const require: {
 };
 require.config({ paths: { vs: monacoPath } });
 require(["vs/editor/editor.main"], loaded);
-

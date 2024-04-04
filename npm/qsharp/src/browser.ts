@@ -182,7 +182,6 @@ export {
   type ExplainedSolution,
   type ExplainedSolutionItem,
   type Kata,
-  type Docs,
   type KataSection,
   type Lesson,
   type LessonItem,

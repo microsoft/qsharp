@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 import { default as katasContent } from "./katas-content.generated.js";
-import { default as docsContent } from "./docs.generated.js";
 
 export type Example = {
   type: "example";
@@ -67,11 +66,6 @@ export type Kata = {
   id: string;
   title: string;
   sections: KataSection[];
-};
-
-export type Docs = {
-  namespace: string;
-  content: string;
 };
 
 export async function getAllKatas(): Promise<Kata[]> {

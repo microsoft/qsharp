@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { getDocumentNames } from "./docs.js";
-
 export function Nav(props: {
   selected: string;
   navSelected: (name: string) => void;
@@ -55,7 +53,6 @@ export function Nav(props: {
           {name}
         </div>
       ))}
-
     </nav>
   );
 }
