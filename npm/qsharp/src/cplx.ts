@@ -347,10 +347,11 @@ export const KetMinusI = vec2("1,-i").mul(Math.SQRT1_2);
 // Holds a set of rotations for a qubit, and the points in that rotation
 export type AppliedGate = {
   name: string;
-  startTime: number;
-  path: Quaternion[];
+  path: { pos: Quaternion; ref?: any }[];
   endPos: Quaternion;
 };
+
+export type PathEntry = { pos: Quaternion; ref?: any };
 
 export class Rotations {
   gates: AppliedGate[] = [];
@@ -360,6 +361,11 @@ export class Rotations {
     public pointsPerRotation = 32, // Assuming a common gate rotation of pi radians
     public timePerGateMs = 500,
   ) {}
+
+  reset() {
+    this.gates = [];
+    this.currPosition = new Quaternion();
+  }
 
   getPathLength(axis: Vector3, rotationAngle: number): number {
     /*
@@ -389,12 +395,12 @@ export class Rotations {
     );
 
     // Generate a set of points between the current and target position
-    const path: Quaternion[] = [];
+    const path: PathEntry[] = [];
     for (let i = 0; i < pointCount; i++) {
       const t = i / pointCount;
-      path.push(this.currPosition.clone().slerp(endPos, t));
+      path.push({ pos: this.currPosition.clone().slerp(endPos, t) });
     }
-    const gate = { name, startTime: Date.now(), path, endPos };
+    const gate = { name, path, endPos };
     this.gates.push(gate);
 
     // Update the current position to the final target
@@ -437,9 +443,30 @@ export class Rotations {
     return this.applyGate(name, hAxis, angle);
   }
 
-  getRotationAtPercent(gate: AppliedGate, percent: number): Quaternion {
+  getRotationAtPercent(
+    gate: AppliedGate,
+    percent: number,
+  ): {
+    pos: Quaternion;
+    path: PathEntry[];
+  } {
     if (percent < 0 || percent > 1) throw Error("Invalid percent");
-    if (!gate.path.length) return gate.endPos.clone();
-    return gate.path[0].clone().slerp(gate.endPos, percent);
+
+    // If there is no path, it didn't move. Start and end are the same
+    if (!gate.path.length) return { pos: gate.endPos.clone(), path: [] };
+
+    // Get the path up until this percent. Note that the first element is at
+    // 0%, and the 100% has no entry. For example, if the path has 4 entries
+    // these are at 0, 0.25, 0.5, and 0.75 of the rotation path.
+
+    const stepSize = 1 / gate.path.length;
+    const steps = Math.floor(percent / stepSize);
+
+    // As the first point is at 0%, add one (unless at 100%)
+    const path = gate.path.slice(0, Math.min(steps + 1, gate.path.length));
+    return {
+      pos: gate.path[0].pos.clone().slerp(gate.endPos, percent),
+      path,
+    };
   }
 }

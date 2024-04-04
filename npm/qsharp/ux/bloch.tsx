@@ -179,7 +179,7 @@ class BlochRenderer {
   rotataions: Rotations;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.rotataions = new Rotations();
+    this.rotataions = new Rotations(64);
 
     // For VS Code, WebView body attribute 'data-vscode-theme-kind' will contain 'light' if light theme is active.
     // Note: The value is usually 'vscode-light' or 'vscode-dark', but high-contrast dark is just 'vscode-high-contrast',
@@ -319,7 +319,7 @@ class BlochRenderer {
     let currentGate: AppliedGate | undefined;
 
     // First element is the percent of rotation at which to draw it
-    let pointsToDraw: [number, Quaternion][] = [];
+    let startTime = 0;
 
     const processQueue = () => {
       if (!currentGate) {
@@ -329,118 +329,41 @@ class BlochRenderer {
           this.animationCallbackId = 0;
           return;
         } else {
-          currentGate.startTime = performance.now();
-          pointsToDraw = currentGate.path.map((point, idx, arr) => [
-            idx / arr.length,
-            point,
-          ]);
+          startTime = performance.now();
         }
       }
 
       // Calculate the percent of rotation time elapsed from start to now
-      const now = performance.now();
-      const x =
-        Math.max(now - currentGate.startTime, 1) /
-        this.rotataions.timePerGateMs;
+      const x = (performance.now() - startTime) / rotationTimeMs;
 
       // Ease the rotation
       const t = x < 1 ? easeInOutSine(x) : 1;
-
-      // Add any points in the queue that should be drawn now
-      while (pointsToDraw[0]?.[0] < t) {
-        // TODO: Factor out into helper function
-        const [_, point] = pointsToDraw.shift()!;
-        const trackGeo = new SphereGeometry(0.05, 16, 16);
-        const trackBall = new Mesh(
-          trackGeo,
-          new MeshBasicMaterial({ color: 0x808080 }),
-        );
-        trackBall.position.set(0, 5, 0);
-
-        // Conver to world space
-        trackBall.position.applyQuaternion(point);
-
-        // Save along with the interpolation point
-        this.trail.add(trackBall);
-      }
 
       // Rotate the qubit to the correct position
       const currentRotation = this.rotataions.getRotationAtPercent(
         currentGate,
         t,
       );
-      this.qubit.quaternion.copy(currentRotation);
 
-      // If that gate is done, unset it
-      if (t >= 1) currentGate = undefined;
+      currentRotation.path.forEach((val) => {
+        // Draw any that don't already have a point
+        if (!val.ref) {
+          const trackGeo = new SphereGeometry(0.05, 16, 16);
+          const trackBall = new Mesh(
+            trackGeo,
+            new MeshBasicMaterial({ color: 0x808080 }),
+          );
+          trackBall.position.set(0, 5, 0);
 
-      this.animationCallbackId = requestAnimationFrame(processQueue);
-    };
+          // Conver to world space
+          trackBall.position.applyQuaternion(val.pos);
 
-    processQueue();
-  }
-
-  rotate(axis: Vector3, angle: number) {
-    const startTimeMs = performance.now();
-
-    const initial = this.qubit.quaternion.clone();
-    const target = new Quaternion()
-      .setFromAxisAngle(axis, angle)
-      .multiply(initial);
-
-    // Also slerp the regular intervals between the two quaternions and
-    // translate to world space
-    // TODO:
-    // - Add only as the path is travelled
-    // - Fade out old ones per the current settings
-
-    /*
-To calculate the distance the point travels as the rotation is applied.
-- Calculate the angle (theta) between the axis of rotation and the point
-- Get the circumfence for the circle around the sphere at theta: sin(theta) * 2 * PI
-- Calculate the distance travelled as the angle * circumfence
-    */
-
-    const qubitPointInLocal = new Vector3(0, 5, 0);
-    const qubitPointInWorld = qubitPointInLocal
-      .clone()
-      .applyQuaternion(initial);
-    const qubitToAxisAngle = qubitPointInWorld.angleTo(axis);
-    const pathTravelled = Math.sin(qubitToAxisAngle) * angle;
-
-    const pointArray: [number, Mesh][] = [];
-
-    for (let i = 0; i < 1; i += 1 / (pathTravelled * 25)) {
-      const q = initial.clone().slerp(target, i);
-      const trackGeo = new SphereGeometry(0.05, 16, 16);
-      const trackBall = new Mesh(
-        trackGeo,
-        new MeshBasicMaterial({ color: 0x808080 }),
-      );
-      trackBall.position.set(0, 5, 0);
-
-      // Conver to world space
-      trackBall.position.applyQuaternion(q);
-
-      // Save along with the interpolation point
-      pointArray.push([i, trackBall]);
-    }
-
-    const update = () => {
-      const now = performance.now();
-
-      const x = Math.max(now - startTimeMs, 1) / rotationTimeMs;
-      const t = x < 1 ? easeInOutSine(x) : 1;
-      this.qubit.quaternion.slerpQuaternions(initial, target, t);
-
-      // Add in tracking points as we pass them
-      for (;;) {
-        if (pointArray.length === 0 || pointArray[0][0] > t) {
-          break;
+          // Save along with the interpolation point
+          this.trail.add(trackBall);
         }
-        const pointToAdd = pointArray.shift()!;
-        this.trail.add(pointToAdd[1]);
-      }
+      });
+
+      this.qubit.quaternion.copy(currentRotation.pos);
 
       // Fade out the trail as needed
       this.trail.children.forEach((child, idx, arr) => {
@@ -452,34 +375,37 @@ To calculate the distance the point travels as the rotation is applied.
       });
 
       this.render();
-      if (t < 1) {
-        requestAnimationFrame(update);
-      }
+
+      // If that gate is done, unset it
+      if (t >= 1) currentGate = undefined;
+
+      this.animationCallbackId = requestAnimationFrame(processQueue);
     };
-    requestAnimationFrame(update);
+
+    processQueue();
   }
 
   // The Bloch sphere X axis is the Z axis in WebGL
   rotateX(angle: number) {
-    this.rotate(new Vector3(0, 0, 1), angle);
+    this.queueGate(this.rotataions.rotateX(angle));
   }
   // The Bloch sphere Y axis is the X axis in WebGL
   rotateY(angle: number) {
-    this.rotate(new Vector3(1, 0, 0), angle);
+    this.queueGate(this.rotataions.rotateY(angle));
   }
 
   // The Bloch sphere Z axis is the Y axis in WebGL
   rotateZ(angle: number) {
-    this.rotate(new Vector3(0, 1, 0), angle);
+    this.queueGate(this.rotataions.rotateZ(angle));
   }
 
   rotateH(angle: number) {
-    const hAxis = new Vector3(0, 1, 1).normalize();
-    this.rotate(hAxis, angle);
+    this.queueGate(this.rotataions.rotateH(angle));
   }
 
   reset() {
     this.controls.reset();
+    this.rotataions.reset();
     this.scene.position.set(0, 0, 0);
     this.qubit.rotation.set(0, 0, 0);
     this.camera.position.set(4, 4, 27);

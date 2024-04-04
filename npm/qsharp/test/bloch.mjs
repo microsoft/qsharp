@@ -239,3 +239,21 @@ describe("Rotation tests", () => {
     assert(compare(bitPos.z, Math.SQRT1_2));
   });
 });
+
+describe("It has correct path entries", () => {
+  it("returns the first point", () => {
+    const qubit = new Rotations(64);
+    qubit.rotateY();
+    assert(qubit.gates.length === 1);
+    assert(qubit.gates[0].path.length === 64);
+
+    const after1Percent = qubit.getRotationAtPercent(qubit.gates[0], 0.01);
+    assert(after1Percent.path.length === 1);
+
+    const after50Percent = qubit.getRotationAtPercent(qubit.gates[0], 0.49);
+    assert(after50Percent.path.length === 32);
+
+    const after99Percent = qubit.getRotationAtPercent(qubit.gates[0], 0.99);
+    assert(after99Percent.path.length === 64);
+  });
+});
