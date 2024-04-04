@@ -992,6 +992,7 @@ dependencies = [
  "bitflags 2.4.2",
  "expect-test",
  "miette",
+ "rustc-hash",
  "serde",
 ]
 

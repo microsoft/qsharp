@@ -97,7 +97,7 @@ pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
         ItemKind::Err => {}
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Open(ns, alias) => {
-            vis.visit_vec_ident(&ns);
+            vis.visit_vec_ident(ns);
             alias.iter().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Ty(ident, def) => {

@@ -267,7 +267,7 @@ impl GlobalScope {
     }
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
-    /// item contents. This returns a [NamespaceId] which you can use to add more tys and terms to the scope.
+    /// item contents. This returns a [`NamespaceId`] which you can use to add more tys and terms to the scope.
     fn insert_or_find_namespace(&mut self, name: impl Into<Vec<Rc<str>>>) -> NamespaceId {
         self.namespaces.insert_or_find_namespace(name.into())
     }
@@ -302,9 +302,7 @@ impl PartialEq<Self> for Open {
 
 impl PartialOrd<Self> for Open {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let a: usize = self.namespace.into();
-        let b: usize = other.namespace.into();
-        a.partial_cmp(&b)
+        Some(self.cmp(other))
     }
 }
 
@@ -466,7 +464,7 @@ impl Resolver {
                                 dropped_name
                                     .namespace
                                     .iter()
-                                    .map(|x| x.to_string())
+                                    .map(std::string::ToString::to_string)
                                     .collect::<Vec<_>>()
                                     .join("."),
                                 dropped_name.name
@@ -521,18 +519,15 @@ impl Resolver {
     }
 
     fn bind_open(&mut self, name: &VecIdent, alias: &Option<Box<Ident>>) {
-        let id = match self.globals.find_namespace(name) {
-            Some(id) => id,
-            None => {
-                self.errors.push(Error::NotFound(
-                    name.iter()
-                        .map(|x| x.name.to_string())
-                        .collect::<Vec<_>>()
-                        .join("."),
-                    name.span(),
-                ));
-                return;
-            }
+        let Some(id) = self.globals.find_namespace(name) else {
+            self.errors.push(Error::NotFound(
+                name.iter()
+                    .map(|x| x.name.to_string())
+                    .collect::<Vec<_>>()
+                    .join("."),
+                name.span(),
+            ));
+            return;
         };
         let alias = alias
             .as_ref()
@@ -857,7 +852,7 @@ impl GlobalTable {
             scope: GlobalScope {
                 tys,
                 terms: FxHashMap::default(),
-                namespaces: Default::default(),
+                namespaces: NamespaceTreeRoot::default(),
                 intrinsics: FxHashSet::default(),
             },
         }
@@ -1023,7 +1018,7 @@ fn bind_global_item(
                         decl.name.name.to_string(),
                         namespace_name.to_string(),
                         decl.name.span,
-                    ))
+                    ));
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(res);
@@ -1115,12 +1110,16 @@ fn resolve<'a>(
                 return Ok(res);
             }
         }
-        let aliases = FxHashMap::from_iter(scope.opens.iter().map(|(alias, opens)| {
-            (
-                alias.clone(),
-                opens.iter().cloned().map(|x| (x.namespace, x)).collect(),
-            )
-        }));
+        let aliases = scope
+            .opens
+            .iter()
+            .map(|(alias, opens)| {
+                (
+                    alias.clone(),
+                    opens.iter().cloned().map(|x| (x.namespace, x)).collect(),
+                )
+            })
+            .collect::<FxHashMap<_, _>>();
 
         let scope_opens = scope
             .opens
@@ -1135,19 +1134,23 @@ fn resolve<'a>(
             scope_opens
                 .into_iter()
                 .map(|open @ Open { namespace, .. }| (namespace, open.clone())),
-            aliases,
+            &aliases,
         );
-        if explicit_open_candidates.len() == 1 {
-            return Ok(single(explicit_open_candidates.into_keys()).unwrap());
-        } else if explicit_open_candidates.len() > 1 {
-            return ambiguous_symbol_error(
-                globals,
-                provided_symbol_name,
-                provided_symbol_str,
-                explicit_open_candidates,
-            );
+        match explicit_open_candidates.len() {
+            1 => {
+                return Ok(single(explicit_open_candidates.into_keys())
+                    .expect("we asserted on the length, so this is infallible"))
+            }
+            len if len > 1 => {
+                return ambiguous_symbol_error(
+                    globals,
+                    provided_symbol_name,
+                    provided_symbol_str,
+                    explicit_open_candidates,
+                )
+            }
+            _ => (),
         }
-
         if scope.kind == ScopeKind::Callable {
             // Since local callables are not closures, hide local variables in parent scopes.
             vars = false;
@@ -1164,7 +1167,7 @@ fn resolve<'a>(
             provided_symbol_str,
             prelude.into_iter().map(|(a, b)| (b, a)),
             // there are no aliases in the prelude
-            Default::default(),
+            &FxHashMap::default(),
         );
 
         if prelude_candidates.len() > 1 {
@@ -1204,12 +1207,13 @@ fn resolve<'a>(
         provided_symbol_str,
         vec![(globals.namespaces.root_id(), ())].into_iter(),
         // there are no aliases in globals
-        Default::default(),
+        &FxHashMap::default(),
     );
     // we don't have to worry about having extra candidates here, as we are only looking at the root,
     // and that's only one namespace. individual namespaces cannot have duplicate declarations.
     if global_candidates.len() == 1 {
-        return Ok(single(global_candidates.into_keys()).unwrap());
+        return Ok(single(global_candidates.into_keys())
+            .expect("we asserted on the length, so this is infallible"));
     }
 
     Err(Error::NotFound(
@@ -1244,7 +1248,7 @@ fn find_symbol_in_namespaces<T, O>(
     provided_namespace_name: &Option<VecIdent>,
     provided_symbol_str: &str,
     namespaces_to_search: T,
-    aliases: FxHashMap<Vec<Rc<str>>, Vec<(NamespaceId, O)>>,
+    aliases: &FxHashMap<Vec<Rc<str>>, Vec<(NamespaceId, O)>>,
 ) -> FxHashMap<Res, O>
 where
     T: Iterator<Item = (NamespaceId, O)>,
@@ -1256,7 +1260,7 @@ where
             let mut candidates = vec![];
             for (ns_id, open) in opens {
                 if let Some(res) = globals.get(kind, *ns_id, provided_symbol_str) {
-                    candidates.push((res.clone(), open.clone()));
+                    candidates.push((*res, open.clone()));
                 }
             }
             if !candidates.is_empty() {
@@ -1272,13 +1276,13 @@ where
         if let Some(ref provided_namespace_name) = provided_namespace_name {
             if let Some(namespace) = candidate_namespace.find_namespace(provided_namespace_name) {
                 if let Some(res) = globals.get(kind, namespace, provided_symbol_str) {
-                    candidates.insert(res.clone(), open.clone());
+                    candidates.insert(*res, open.clone());
                 }
             }
         }
 
         if let Some(res) = globals.get(kind, candidate_namespace_id, provided_symbol_str) {
-            candidates.insert(res.clone(), open);
+            candidates.insert(*res, open);
         }
     }
     if candidates.len() > 1 {
@@ -1304,7 +1308,7 @@ fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
         let prelude_name = prelude_namespace
-            .into_iter()
+            .iter()
             .map(|x| -> Rc<str> { Rc::from(*x) })
             .collect::<Vec<_>>();
         prelude.push((

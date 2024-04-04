@@ -1306,7 +1306,7 @@ pub struct Ident {
     pub name: Rc<str>,
 }
 
-/// A [VecIdent] represents a sequence of idents. It provides a helpful abstraction
+/// A [`VecIdent`] represents a sequence of idents. It provides a helpful abstraction
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
@@ -1340,8 +1340,8 @@ impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
 
-        for ident in self.0.iter() {
-            buf.push(format!("{}", ident));
+        for ident in &self.0 {
+            buf.push(format!("{ident}"));
         }
         if buf.len() > 1 {
             // use square brackets only if there are more than one ident
@@ -1351,13 +1351,22 @@ impl Display for VecIdent {
         }
     }
 }
+
+impl<'a> IntoIterator for &'a VecIdent {
+    type IntoIter = std::slice::Iter<'a, Ident>;
+    type Item = &'a Ident;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
 impl VecIdent {
     /// constructs an iter over the [Ident]s that this contains.
-    pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
+    pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
         self.0.iter()
     }
 
-    /// the conjoined span of all idents in the VecIdent
+    /// the conjoined span of all idents in the `VecIdent`
+    #[must_use]
     pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),

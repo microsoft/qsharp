@@ -54,8 +54,8 @@ pub trait MutVisitor: Sized {
     }
 }
 pub fn walk_vec_ident(vis: &mut impl MutVisitor, ident: &mut crate::hir::VecIdent) {
-    for ref mut ident in ident.0.iter_mut() {
-        vis.visit_ident(ident)
+    for ref mut ident in &mut ident.0 {
+        vis.visit_ident(ident);
     }
 }
 pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {

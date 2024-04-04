@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests;
 
-use std::{collections::HashMap, fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
+use rustc_hash::FxHashMap;
+use std::{fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
 
 const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
@@ -83,7 +84,7 @@ impl NamespaceTreeRoot {
 
     pub fn new_namespace_node(
         &mut self,
-        children: HashMap<Rc<str>, NamespaceTreeNode>,
+        children: FxHashMap<Rc<str>, NamespaceTreeNode>,
     ) -> NamespaceTreeNode {
         self.assigner += 1;
         NamespaceTreeNode {
@@ -97,7 +98,7 @@ impl NamespaceTreeRoot {
     }
 
     #[must_use]
-    pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
+    pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, &NamespaceTreeNode) {
         return self.tree.find_id(*id, vec![]);
     }
 
@@ -112,7 +113,7 @@ impl Default for NamespaceTreeRoot {
         let mut tree = Self {
             assigner: 0,
             tree: NamespaceTreeNode {
-                children: HashMap::new(),
+                children: FxHashMap::default(),
                 id: NamespaceId::new(0),
             },
         };
@@ -127,17 +128,17 @@ impl Default for NamespaceTreeRoot {
 
 #[derive(Debug, Clone)]
 pub struct NamespaceTreeNode {
-    pub children: HashMap<Rc<str>, NamespaceTreeNode>,
+    pub children: FxHashMap<Rc<str>, NamespaceTreeNode>,
     pub id: NamespaceId,
 }
 impl NamespaceTreeNode {
     #[must_use]
-    pub fn new(id: NamespaceId, children: HashMap<Rc<str>, NamespaceTreeNode>) -> Self {
+    pub fn new(id: NamespaceId, children: FxHashMap<Rc<str>, NamespaceTreeNode>) -> Self {
         Self { children, id }
     }
 
     #[must_use]
-    pub fn children(&self) -> &HashMap<Rc<str>, NamespaceTreeNode> {
+    pub fn children(&self) -> &FxHashMap<Rc<str>, NamespaceTreeNode> {
         &self.children
     }
 
@@ -192,7 +193,8 @@ impl NamespaceTreeNode {
             _ => {}
         }
         *assigner += 1;
-        let mut new_node = NamespaceTreeNode::new(NamespaceId::new(*assigner), HashMap::new());
+        let mut new_node =
+            NamespaceTreeNode::new(NamespaceId::new(*assigner), FxHashMap::default());
         if iter.peek().is_none() {
             let new_node_id = new_node.id;
             self.children.insert(next_item, new_node);
@@ -208,19 +210,18 @@ impl NamespaceTreeNode {
         &self,
         id: NamespaceId,
         names_buf: Vec<Rc<str>>,
-    ) -> (Vec<Rc<str>>, Rc<&NamespaceTreeNode>) {
+    ) -> (Vec<Rc<str>>, &NamespaceTreeNode) {
         if self.id == id {
-            return (names_buf, Rc::new(self));
-        } else {
-            for (name, node) in self.children.iter() {
-                let mut new_buf = names_buf.clone();
-                new_buf.push(name.clone());
-                let (names, node) = node.find_id(id, new_buf);
-                if names.len() > 0 {
-                    return (names, node);
-                }
-            }
-            return (vec![], Rc::new(self));
+            return (names_buf, &self);
         }
+        for (name, node) in &self.children {
+            let mut new_buf = names_buf.clone();
+            new_buf.push(name.clone());
+            let (names, node) = node.find_id(id, new_buf);
+            if !names.is_empty() {
+                return (names, node);
+            }
+        }
+        (vec![], &self)
     }
 }

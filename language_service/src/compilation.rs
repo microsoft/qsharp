@@ -226,7 +226,7 @@ impl Compilation {
             .expect("user package should exist")
             .ast
             .namespaces
-            .find_namespace(ns.into_iter().map(|s| Rc::from(s)).collect::<Vec<_>>())
+            .find_namespace(ns.into_iter().map(Rc::from).collect::<Vec<_>>())
             .expect("namespace should exist")
     }
 }

@@ -1134,12 +1134,19 @@ impl Display for QubitInitKind {
     }
 }
 
-/// A [VecIdent] represents a sequence of idents. It provides a helpful abstraction
+/// A [`VecIdent`] represents a sequence of idents. It provides a helpful abstraction
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
 pub struct VecIdent(pub Vec<Ident>);
 
+impl<'a> IntoIterator for &'a VecIdent {
+    type IntoIter = std::slice::Iter<'a, Ident>;
+    type Item = &'a Ident;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
 impl From<VecIdent> for Vec<Rc<str>> {
     fn from(v: VecIdent) -> Self {
         v.0.iter().map(|i| i.name.clone()).collect()
@@ -1174,8 +1181,8 @@ impl Display for VecIdent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
 
-        for ident in self.0.iter() {
-            buf.push(format!("{}", ident));
+        for ident in &self.0 {
+            buf.push(format!("{ident}"));
         }
         if buf.len() > 1 {
             // use square brackets only if there are more than one ident
@@ -1187,11 +1194,12 @@ impl Display for VecIdent {
 }
 impl VecIdent {
     /// constructs an iter over the [Ident]s that this contains.
-    pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, Ident> {
+    pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
         self.0.iter()
     }
 
-    /// the conjoined span of all idents in the VecIdent
+    /// the conjoined span of all idents in the `VecIdent`
+    #[must_use]
     pub fn span(&self) -> Span {
         Span {
             lo: self.0.first().map(|i| i.span.lo).unwrap_or_default(),
@@ -1199,12 +1207,14 @@ impl VecIdent {
         }
     }
 
-    /// Whether or not the first ident in this [VecIdent] matches `arg`
+    /// Whether or not the first ident in this [`VecIdent`] matches `arg`
+    #[must_use]
     pub fn starts_with(&self, arg: &str) -> bool {
-        self.0.first().map(|i| &*i.name == arg).unwrap_or_default()
+        self.0.first().is_some_and(|i| &*i.name == arg)
     }
 
-    /// Whether or not the first `n` idents in this [VecIdent] match `arg`
+    /// Whether or not the first `n` idents in this [`VecIdent`] match `arg`
+    #[must_use]
     pub fn starts_with_sequence(&self, arg: &[&str]) -> bool {
         if arg.len() > self.0.len() {
             return false;
@@ -1214,11 +1224,12 @@ impl VecIdent {
                 return false;
             }
         }
-        return true;
+        true
     }
 
-    /// The stringified dot-separated path of the idents in this [VecIdent]
+    /// The stringified dot-separated path of the idents in this [`VecIdent`]
     /// E.g. `a.b.c`
+    #[must_use]
     pub fn name(&self) -> String {
         self.0
             .iter()

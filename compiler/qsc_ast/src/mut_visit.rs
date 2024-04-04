@@ -338,10 +338,10 @@ pub fn walk_qubit_init(vis: &mut impl MutVisitor, init: &mut QubitInit) {
 pub fn walk_path(vis: &mut impl MutVisitor, path: &mut Path) {
     vis.visit_span(&mut path.span);
     if let Some(ref mut namespace) = path.namespace {
-        vis.visit_vec_ident(namespace)
+        vis.visit_vec_ident(namespace);
     }
     if let Some(ref mut ns) = path.namespace {
-        vis.visit_vec_ident(ns)
+        vis.visit_vec_ident(ns);
     }
     vis.visit_ident(&mut path.name);
 }
@@ -350,7 +350,7 @@ pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
 }
 pub fn walk_vec_ident(vis: &mut impl MutVisitor, ident: &mut crate::ast::VecIdent) {
-    for ref mut ident in ident.0.iter_mut() {
-        vis.visit_ident(ident)
+    for ref mut ident in &mut ident.0 {
+        vis.visit_ident(ident);
     }
 }

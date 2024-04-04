@@ -80,9 +80,9 @@ impl FromIterator<Global> for Table {
         }
 
         Self {
-            namespaces,
             tys,
             terms,
+            namespaces,
         }
     }
 }

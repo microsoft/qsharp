@@ -462,8 +462,7 @@ impl CompletionListBuilder {
                                                 Some(start) => {
                                                     additional_edits.push(TextEdit {
                                                         new_text: format!(
-                                                            "open {};{}",
-                                                            namespace, indent,
+                                                            "open {namespace};{indent}",
                                                         ),
                                                         range: start,
                                                     });

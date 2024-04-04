@@ -55,7 +55,7 @@ impl<'a> Renamer<'a> {
             names,
             changes: Vec::new(),
             namespaces,
-            aliases: Default::default(),
+            aliases: FxHashMap::default(),
         }
     }
 
@@ -95,12 +95,11 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_item(&mut self, item: &'_ Item) {
-        match &*item.kind {
-            ItemKind::Open(namespace, Some(alias)) => {
-                let ns_id = self.namespaces.find_namespace(namespace).unwrap();
-                self.aliases.insert(vec![alias.name.clone()], ns_id);
-            }
-            _ => (),
+        if let ItemKind::Open(namespace, Some(alias)) = &*item.kind {
+            let Some(ns_id) = self.namespaces.find_namespace(namespace) else {
+                return;
+            };
+            self.aliases.insert(vec![alias.name.clone()], ns_id);
         }
         visit::walk_item(self, item);
     }
