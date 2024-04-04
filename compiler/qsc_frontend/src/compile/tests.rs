@@ -1283,7 +1283,7 @@ fn hierarchical_namespace_basic() {
         None,
     );
 
-    let mut store = PackageStore::new(super::core());
+    let store = PackageStore::new(super::core());
     let lib = compile(
         &store,
         &[],

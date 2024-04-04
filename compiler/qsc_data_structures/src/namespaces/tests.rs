@@ -1,7 +1,6 @@
 use expect_test::expect;
 
 use super::*;
-use std::collections::HashMap;
 
 #[test]
 fn test_tree_construction() {

@@ -11,7 +11,7 @@ use qsc_ast::{
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
-use qsc_data_structures::namespaces::NamespaceTreeNode;
+
 use qsc_data_structures::{
     index_map::IndexMap,
     namespaces::{NamespaceId, NamespaceTreeRoot},
@@ -1130,7 +1130,6 @@ fn resolve<'a>(
         let explicit_open_candidates = find_symbol_in_namespaces(
             kind,
             globals,
-            provided_symbol_name,
             provided_namespace_name,
             provided_symbol_str,
             scope_opens
@@ -1161,7 +1160,6 @@ fn resolve<'a>(
         let prelude_candidates = find_symbol_in_namespaces(
             kind,
             globals,
-            provided_symbol_name,
             provided_namespace_name,
             provided_symbol_str,
             prelude.into_iter().map(|(a, b)| (b, a)),
@@ -1171,10 +1169,10 @@ fn resolve<'a>(
 
         if prelude_candidates.len() > 1 {
             // If there are multiple candidates, sort them by namespace and return an error.
-            let mut candidates: Vec<_> = prelude_candidates.into_iter().collect();
+            let candidates: Vec<_> = prelude_candidates.into_iter().collect();
             let mut candidates = candidates
                 .into_iter()
-                .map(|(candidate, ns_name)| ns_name)
+                .map(|(_candidate, ns_name)| ns_name)
                 .collect::<Vec<_>>();
             candidates.sort();
 
@@ -1202,7 +1200,6 @@ fn resolve<'a>(
     let global_candidates = find_symbol_in_namespaces(
         kind,
         globals,
-        provided_symbol_name,
         provided_namespace_name,
         provided_symbol_str,
         vec![(globals.namespaces.root_id(), ())].into_iter(),
@@ -1244,7 +1241,6 @@ fn ambiguous_symbol_error(
 fn find_symbol_in_namespaces<T, O>(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_symbol_name: &Ident,
     provided_namespace_name: &Option<VecIdent>,
     provided_symbol_str: &str,
     namespaces_to_search: T,
@@ -1301,7 +1297,6 @@ where
     }
     candidates
 }
-
 
 fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
     let mut prelude = vec![];
@@ -1400,7 +1395,6 @@ fn get_scope_locals(scope: &Scope, offset: u32, vars: bool) -> Vec<Local> {
 
     names
 }
-
 
 /// Creates an [`ItemId`] for an item that is local to this package (internal to it).
 fn intrapackage(item: LocalItemId) -> ItemId {

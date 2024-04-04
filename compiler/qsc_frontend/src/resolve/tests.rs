@@ -115,7 +115,7 @@ impl Visitor<'_> for Renamer<'_> {
             {
                 Some(x) => x,
                 None => return,
-            }
+            },
         };
         self.changes.push((vec_ident.span(), ns_id.into()));
     }

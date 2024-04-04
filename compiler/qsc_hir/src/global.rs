@@ -2,10 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    hir::{
-         Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, 
-        Visibility,
-    },
+    hir::{Item, ItemId, ItemKind, ItemStatus, Package, PackageId, SpecBody, SpecGen, Visibility},
     ty::Scheme,
 };
 use qsc_data_structures::{
