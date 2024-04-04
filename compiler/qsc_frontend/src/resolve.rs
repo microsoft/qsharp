@@ -1099,62 +1099,15 @@ fn resolve<'a>(
     provided_namespace_name: &Option<VecIdent>,
 ) -> Result<Res, Error> {
     let scopes = scopes.collect::<Vec<_>>();
-    let mut vars = true;
-    let provided_symbol_str = &(*provided_symbol_name.name);
 
-    for scope in &scopes {
-        if provided_namespace_name.is_none() {
-            if let Some(res) = resolve_scope_locals(kind, globals, scope, vars, provided_symbol_str)
-            {
-                // Local declarations shadow everything.
-                return Ok(res);
-            }
-        }
-        let aliases = scope
-            .opens
-            .iter()
-            .map(|(alias, opens)| {
-                (
-                    alias.clone(),
-                    opens.iter().cloned().map(|x| (x.namespace, x)).collect(),
-                )
-            })
-            .collect::<FxHashMap<_, _>>();
-
-        let scope_opens = scope
-            .opens
-            .iter()
-            .flat_map(|(_, open)| open.clone())
-            .collect::<Vec<_>>();
-        let explicit_open_candidates = find_symbol_in_namespaces(
-            kind,
-            globals,
-            provided_namespace_name,
-            provided_symbol_str,
-            scope_opens
-                .into_iter()
-                .map(|open @ Open { namespace, .. }| (namespace, open.clone())),
-            &aliases,
-        );
-        match explicit_open_candidates.len() {
-            1 => {
-                return Ok(single(explicit_open_candidates.into_keys())
-                    .expect("we asserted on the length, so this is infallible"))
-            }
-            len if len > 1 => {
-                return ambiguous_symbol_error(
-                    globals,
-                    provided_symbol_name,
-                    provided_symbol_str,
-                    explicit_open_candidates,
-                )
-            }
-            _ => (),
-        }
-        if scope.kind == ScopeKind::Callable {
-            // Since local callables are not closures, hide local variables in parent scopes.
-            vars = false;
-        }
+    if let Some(value) = check_all_scopes(
+        kind,
+        globals,
+        provided_symbol_name,
+        provided_namespace_name,
+        &scopes,
+    ) {
+        return value;
     }
 
     let prelude = prelude_namespaces(globals);
@@ -1164,7 +1117,7 @@ fn resolve<'a>(
             kind,
             globals,
             provided_namespace_name,
-            provided_symbol_str,
+            provided_symbol_name,
             prelude.into_iter().map(|(a, b)| (b, a)),
             // there are no aliases in the prelude
             &FxHashMap::default(),
@@ -1204,7 +1157,7 @@ fn resolve<'a>(
         kind,
         globals,
         provided_namespace_name,
-        provided_symbol_str,
+        provided_symbol_name,
         vec![(globals.namespaces.root_id(), ())].into_iter(),
         // there are no aliases in globals
         &FxHashMap::default(),
@@ -1217,15 +1170,112 @@ fn resolve<'a>(
     }
 
     Err(Error::NotFound(
-        provided_symbol_str.to_string(),
+        provided_symbol_name.name.to_string(),
         provided_symbol_name.span,
     ))
+}
+
+/// Checks all given scopes, in the correct order, for a resolution.
+/// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
+/// using the `vars` parameter.
+fn check_all_scopes(
+    kind: NameKind,
+    globals: &GlobalScope,
+    provided_symbol_name: &Ident,
+    provided_namespace_name: &Option<VecIdent>,
+    scopes: &Vec<&Scope>,
+) -> Option<Result<Res, Error>> {
+    let mut vars = true;
+
+    for scope in scopes {
+        if let Some(value) = check_scoped_resolutions(
+            kind,
+            globals,
+            provided_symbol_name,
+            provided_namespace_name,
+            &mut vars,
+            scope,
+        ) {
+            return Some(value);
+        }
+    }
+    None
+}
+
+/// In a given [Scope], check:
+/// 1. if any locally declared symbols match `provided_symbol_name`
+/// 2. if any aliases in this scope match the provided namespace, and if they contain `provided_symbol_name`
+/// 3. if any opens in this scope contain the `provided_symbol_name`
+fn check_scoped_resolutions(
+    kind: NameKind,
+    globals: &GlobalScope,
+    provided_symbol_name: &Ident,
+    provided_namespace_name: &Option<VecIdent>,
+    vars: &mut bool,
+    scope: &Scope,
+) -> Option<Result<Res, Error>> {
+    if provided_namespace_name.is_none() {
+        if let Some(res) = resolve_scope_locals(
+            kind,
+            globals,
+            scope,
+            *vars,
+            (&*provided_symbol_name.name).into(),
+        ) {
+            // Local declarations shadow everything.
+            return Some(Ok(res));
+        }
+    }
+    let aliases = scope
+        .opens
+        .iter()
+        .map(|(alias, opens)| {
+            (
+                alias.clone(),
+                opens.iter().cloned().map(|x| (x.namespace, x)).collect(),
+            )
+        })
+        .collect::<FxHashMap<_, _>>();
+
+    let scope_opens = scope
+        .opens
+        .iter()
+        .flat_map(|(_, open)| open.clone())
+        .collect::<Vec<_>>();
+    let explicit_open_candidates = find_symbol_in_namespaces(
+        kind,
+        globals,
+        provided_namespace_name,
+        provided_symbol_name,
+        scope_opens
+            .into_iter()
+            .map(|open @ Open { namespace, .. }| (namespace, open.clone())),
+        &aliases,
+    );
+    match explicit_open_candidates.len() {
+        1 => {
+            return Some(Ok(single(explicit_open_candidates.into_keys())
+                .expect("we asserted on the length, so this is infallible")))
+        }
+        len if len > 1 => {
+            return Some(ambiguous_symbol_error(
+                globals,
+                provided_symbol_name,
+                explicit_open_candidates,
+            ))
+        }
+        _ => (),
+    }
+    if scope.kind == ScopeKind::Callable {
+        // Since local callables are not closures, hide local variables in parent scopes.
+        *vars = false;
+    }
+    None
 }
 
 fn ambiguous_symbol_error(
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
-    provided_symbol_str: &str,
     candidates: FxHashMap<Res, Open>,
 ) -> Result<Res, Error> {
     let mut opens: Vec<_> = candidates.into_values().collect();
@@ -1233,7 +1283,7 @@ fn ambiguous_symbol_error(
     let (first_open_ns, _) = globals.namespaces.find_id(&opens[0].namespace);
     let (second_open_ns, _) = globals.namespaces.find_id(&opens[1].namespace);
     Err(Error::Ambiguous {
-        name: provided_symbol_str.to_string(),
+        name: provided_symbol_name.name.to_string(),
         first_open: first_open_ns.join("."),
         second_open: second_open_ns.join("."),
         name_span: provided_symbol_name.span,
@@ -1246,7 +1296,7 @@ fn find_symbol_in_namespaces<T, O>(
     kind: NameKind,
     globals: &GlobalScope,
     provided_namespace_name: &Option<VecIdent>,
-    provided_symbol_str: &str,
+    provided_symbol_name: &Ident,
     namespaces_to_search: T,
     aliases: &FxHashMap<Vec<Rc<str>>, Vec<(NamespaceId, O)>>,
 ) -> FxHashMap<Res, O>
@@ -1259,7 +1309,7 @@ where
         if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
             let mut candidates = vec![];
             for (ns_id, open) in opens {
-                if let Some(res) = globals.get(kind, *ns_id, provided_symbol_str) {
+                if let Some(res) = globals.get(kind, *ns_id, (&*provided_symbol_name.name).into()) {
                     candidates.push((*res, open.clone()));
                 }
             }
@@ -1275,13 +1325,19 @@ where
 
         if let Some(ref provided_namespace_name) = provided_namespace_name {
             if let Some(namespace) = candidate_namespace.find_namespace(provided_namespace_name) {
-                if let Some(res) = globals.get(kind, namespace, provided_symbol_str) {
+                if let Some(res) =
+                    globals.get(kind, namespace, (&*provided_symbol_name.name).into())
+                {
                     candidates.insert(*res, open.clone());
                 }
             }
         }
 
-        if let Some(res) = globals.get(kind, candidate_namespace_id, provided_symbol_str) {
+        if let Some(res) = globals.get(
+            kind,
+            candidate_namespace_id,
+            (&*provided_symbol_name.name).into(),
+        ) {
             candidates.insert(*res, open);
         }
     }
