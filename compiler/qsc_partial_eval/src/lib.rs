@@ -253,6 +253,13 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_expr_id: ExprId,
     ) {
+        // There are a few special cases regarding intrinsic callables: qubit allocation/relase and measurements.
+        // Identify them and handle them before falling through the generic way of handling intrinsics.
+        match callable_decl.name.name.as_ref() {
+            "__quantum__rt__qubit_allocate" => {}
+            _ => {}
+        };
+
         // Check if the callable is already in the program, and if not add it.
         if let Entry::Vacant(entry) = self.callables_map.entry(callable_decl.name.name.clone()) {
             let callable_id = self.assigner.next_callable();
@@ -307,7 +314,12 @@ impl<'a> PartialEvaluator<'a> {
         assert!(popped_functor_app == functor_app, "scope functor mismatch");
     }
 
-    fn generate_instructions(&mut self, expr_id: ExprId) {
+    fn generate_instructions_for_binding(&mut self, pat_id: ExprId, expr_id: ExprId) {
+        self.generate_instructions_for_expr(expr_id);
+        unimplemented!();
+    }
+
+    fn generate_instructions_for_expr(&mut self, expr_id: ExprId) {
         let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
@@ -513,7 +525,7 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         if matches!(compute_kind, ComputeKind::Classical) {
             self.eval_classical_expr(expr_id);
         } else {
-            self.generate_instructions(expr_id);
+            self.generate_instructions_for_expr(expr_id);
         }
     }
 
@@ -532,7 +544,7 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         let stmt = self.package_store.get_stmt(store_stmt_id);
         match stmt.kind {
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
-                self.generate_instructions(expr_id);
+                self.generate_instructions_for_expr(expr_id);
             }
             StmtKind::Local(_, _, _) => todo!(),
             StmtKind::Item(_) => {
@@ -592,4 +604,36 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
     }
+}
+
+fn is_qubit_allocation(callable_decl: &CallableDecl) -> bool {
+    callable_decl
+        .name
+        .name
+        .to_string()
+        .eq("__quantum__rt__qubit_allocate")
+}
+
+fn is_qubit_release(callable_decl: &CallableDecl) -> bool {
+    callable_decl
+        .name
+        .name
+        .to_string()
+        .eq("__quantum__rt__qubit_allocate")
+}
+
+fn is_measurement(callable_decl: &CallableDecl) -> bool {
+    callable_decl
+        .name
+        .name
+        .to_string()
+        .eq("__quantum__qis__m__body")
+}
+
+fn is_measurement_and_reset(callable_decl: &CallableDecl) -> bool {
+    callable_decl
+        .name
+        .name
+        .to_string()
+        .eq("__quantum__qis__mresetz__body")
 }
