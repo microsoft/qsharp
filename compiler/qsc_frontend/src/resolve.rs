@@ -125,7 +125,7 @@ pub struct Scope {
     span: Span,
     kind: ScopeKind,
     /// Open statements. The key is the namespace name or alias.
-    opens: FxHashMap<NamespaceId, Vec<Open>>,
+    opens: FxHashMap<Vec<Rc<str>>, Vec<Open>>,
     /// Local newtype declarations.
     tys: FxHashMap<Rc<str>, ItemId>,
     /// Local callable and newtype declarations.
@@ -521,7 +521,6 @@ impl Resolver {
     }
 
     fn bind_open(&mut self, name: &VecIdent, alias: &Option<Box<Ident>>) {
-        // TODO figure out how aliases are going to work
         let id = match self.globals.find_namespace(name) {
             Some(id) => id,
             None => {
@@ -535,11 +534,13 @@ impl Resolver {
                 return;
             }
         };
-        // let alias = alias.as_ref().map_or("".into(), |a| Rc::clone(&a.name));
+        let alias = alias
+            .as_ref()
+            .map_or(name.into(), |a| vec![Rc::clone(&a.name)]);
         if self.globals.namespaces.find_namespace(name).is_some() {
             self.current_scope_mut()
                 .opens
-                .entry(id)
+                .entry(alias)
                 .or_default()
                 .push(Open {
                     namespace: id,
@@ -1109,12 +1110,17 @@ fn resolve<'a>(
                 return Ok(res);
             }
         }
+        let aliases = FxHashMap::from_iter(scope.opens.iter().map(|(alias, opens)| {
+            (
+                alias.clone(),
+                opens.iter().cloned().map(|x| (x.namespace, x)).collect(),
+            )
+        }));
+
         let scope_opens = scope
             .opens
             .iter()
-            .map(|(_, opens)| opens)
-            .flatten()
-            .cloned()
+            .flat_map(|(_, open)| open.clone())
             .collect::<Vec<_>>();
         let explicit_open_candidates = find_symbol_in_namespaces(
             kind,
@@ -1124,7 +1130,8 @@ fn resolve<'a>(
             provided_symbol_str,
             scope_opens
                 .into_iter()
-                .map(|open @ Open { namespace, .. }| (namespace, open)),
+                .map(|open @ Open { namespace, .. }| (namespace, open.clone())),
+            aliases,
         );
         if explicit_open_candidates.len() == 1 {
             return Ok(single(explicit_open_candidates.into_keys()).unwrap());
@@ -1153,6 +1160,8 @@ fn resolve<'a>(
             provided_namespace_name,
             provided_symbol_str,
             prelude.into_iter().map(|(a, b)| (b, a)),
+            // there are no aliases in the prelude
+            Default::default(),
         );
 
         if prelude_candidates.len() > 1 {
@@ -1192,6 +1201,8 @@ fn resolve<'a>(
         provided_namespace_name,
         provided_symbol_str,
         vec![(globals.namespaces.root_id(), ())].into_iter(),
+        // there are no aliases in globals
+        Default::default(),
     );
     // we don't have to worry about having extra candidates here, as we are only looking at the root,
     // and that's only one namespace. individual namespaces cannot have duplicate declarations.
@@ -1232,11 +1243,26 @@ fn find_symbol_in_namespaces<T, O>(
     provided_namespace_name: &Option<VecIdent>,
     provided_symbol_str: &str,
     namespaces_to_search: T,
+    aliases: FxHashMap<Vec<Rc<str>>, Vec<(NamespaceId, O)>>,
 ) -> FxHashMap<Res, O>
 where
     T: Iterator<Item = (NamespaceId, O)>,
-    O: Clone,
+    O: Clone + std::fmt::Debug,
 {
+    // replace aliases with real namespaces
+    if let Some(provided_namespace_name) = provided_namespace_name {
+        if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
+            let mut candidates = vec![];
+            for (ns_id, open) in opens {
+                if let Some(res) = globals.get(kind, *ns_id, provided_symbol_str) {
+                    candidates.push((res.clone(), open.clone()));
+                }
+            }
+            if !candidates.is_empty() {
+                return candidates.into_iter().collect();
+            }
+        }
+    }
     let mut candidates = FxHashMap::default();
     // search through each candidate namespace to find the items
     for (candidate_namespace_id, open) in namespaces_to_search {

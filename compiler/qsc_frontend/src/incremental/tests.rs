@@ -72,9 +72,9 @@ fn one_callable() {
                             ),
                         ),
                         opens: {
-                            NamespaceId(
-                                9,
-                            ): [
+                            [
+                                "Foo",
+                            ]: [
                                 Open {
                                     namespace: NamespaceId(
                                         9,

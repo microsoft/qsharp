@@ -11,7 +11,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::VecIdent;
+use qsc_ast::ast::{Item, ItemKind, VecIdent};
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path, TopLevelNode},
@@ -21,7 +21,9 @@ use qsc_ast::{
 use qsc_data_structures::namespaces::{NamespaceId, NamespaceTreeRoot};
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 use qsc_hir::assigner::Assigner as HirAssigner;
+use rustc_hash::FxHashMap;
 use std::fmt::Write;
+use std::rc::Rc;
 
 enum Change {
     Res(Res),
@@ -44,6 +46,7 @@ struct Renamer<'a> {
     names: &'a Names,
     changes: Vec<(Span, Change)>,
     namespaces: NamespaceTreeRoot,
+    aliases: FxHashMap<Vec<std::rc::Rc<str>>, NamespaceId>,
 }
 
 impl<'a> Renamer<'a> {
@@ -52,6 +55,7 @@ impl<'a> Renamer<'a> {
             names,
             changes: Vec::new(),
             namespaces,
+            aliases: Default::default(),
         }
     }
 
@@ -90,8 +94,26 @@ impl Visitor<'_> for Renamer<'_> {
         }
     }
 
+    fn visit_item(&mut self, item: &'_ Item) {
+        match &*item.kind {
+            ItemKind::Open(namespace, Some(alias)) => {
+                let ns_id = self.namespaces.find_namespace(namespace).unwrap();
+                self.aliases.insert(vec![alias.name.clone()], ns_id);
+            }
+            _ => (),
+        }
+        visit::walk_item(self, item);
+    }
+
     fn visit_vec_ident(&mut self, vec_ident: &VecIdent) {
-        let ns_id = self.namespaces.find_namespace(vec_ident).unwrap();
+        let ns_id = match self.namespaces.find_namespace(vec_ident) {
+            Some(x) => x,
+            None => self
+                .aliases
+                .get(&(Into::<Vec<Rc<str>>>::into(vec_ident)))
+                .copied()
+                .unwrap_or_else(|| panic!("Namespace not found: {:?}", vec_ident)),
+        };
         self.changes.push((vec_ident.span(), ns_id.into()));
     }
 }
@@ -1122,7 +1144,7 @@ fn merged_aliases_ambiguous_terms() {
                 open namespace8 as Alias;
 
                 function item5() : Unit {
-                    item3();
+                    namespace8.A();
                 }
             }
 
@@ -1163,7 +1185,7 @@ fn merged_aliases_ambiguous_tys() {
                 open namespace7 as Alias;
                 open namespace8 as Alias;
 
-                function item5(local30 : item3) : Unit {}
+                function item5(local30 : namespace8.A) : Unit {}
             }
 
             // Ambiguous { name: "A", first_open: "Foo", second_open: "Bar", name_span: Span { lo: 170, hi: 171 }, first_open_span: Span { lo: 107, hi: 110 }, second_open_span: Span { lo: 130, hi: 133 } }
