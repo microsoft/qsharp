@@ -7,7 +7,7 @@ mod tests;
 use rustc_hash::FxHashMap;
 
 use crate::rir::{
-    Block, Callable, CallableId, CallableType, Instruction, Literal, Program, Ty, Value,
+    Block, Callable, CallableId, CallableType, Instruction, Literal, Operand, Program, Ty,
 };
 
 /// Reindexes qubits after they have been measured or reset. This ensures there is no qubit reuse in
@@ -45,7 +45,7 @@ pub fn reindex_qubits(program: &mut Program) {
             {
                 // Generate any new qubit ids and skip adding the instruction.
                 for arg in args {
-                    if let Value::Literal(Literal::Qubit(qubit_id)) = arg {
+                    if let Operand::Literal(Literal::Qubit(qubit_id)) = arg {
                         qubit_map.insert(*qubit_id, next_qubit_id);
                         next_qubit_id += 1;
                     }
@@ -56,10 +56,10 @@ pub fn reindex_qubits(program: &mut Program) {
                 let new_args = args
                     .iter()
                     .map(|arg| match arg {
-                        Value::Literal(Literal::Qubit(qubit_id)) => {
+                        Operand::Literal(Literal::Qubit(qubit_id)) => {
                             if let Some(mapped_id) = qubit_map.get(qubit_id) {
                                 highest_used_id = highest_used_id.max(*mapped_id);
-                                Value::Literal(Literal::Qubit(*mapped_id))
+                                Operand::Literal(Literal::Qubit(*mapped_id))
                             } else {
                                 *arg
                             }
@@ -81,7 +81,7 @@ pub fn reindex_qubits(program: &mut Program) {
                 if program.get_callable(call_id).call_type == CallableType::Measurement {
                     // Generate any new qubit ids after a measurement.
                     for arg in args {
-                        if let Value::Literal(Literal::Qubit(qubit_id)) = arg {
+                        if let Operand::Literal(Literal::Qubit(qubit_id)) = arg {
                             qubit_map.insert(*qubit_id, next_qubit_id);
                             next_qubit_id += 1;
                         }
