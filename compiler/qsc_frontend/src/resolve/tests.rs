@@ -2786,8 +2786,7 @@ fn basic_hierarchical_namespace() {
 #[test]
 fn test_katas_shadowing_use_case() {
     check(
-        indoc! {
-                    "namespace Kata {
+        indoc! {"namespace Kata {
     operation ApplyX() : Unit {
         // Do nothing.
     }
