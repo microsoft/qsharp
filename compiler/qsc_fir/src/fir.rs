@@ -1481,6 +1481,16 @@ impl Display for VecIdent {
     }
 }
 impl VecIdent {
+    /// The stringified dot-separated path of the idents in this [`VecIdent`]
+    /// E.g. `a.b.c`
+    #[must_use]
+    pub fn name(&self) -> String {
+        self.0
+            .iter()
+            .map(|i| i.name.to_string())
+            .collect::<Vec<String>>()
+            .join(".")
+    }
     /// constructs an iter over the [Ident]s that this contains.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
         self.0.iter()

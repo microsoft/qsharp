@@ -2023,7 +2023,7 @@ fn dropped_callable() {
                 }
             }
 
-            // NotAvailable("Dropped", "Ident 2 [10-11] \"A\".Dropped", Span { lo: 100, hi: 107 })
+            // NotAvailable("Dropped", "A.Dropped", Span { lo: 100, hi: 107 })
         "#]],
     );
 }
