@@ -816,13 +816,14 @@ export class QscDebugSession extends LoggingDebugSession {
           // This will get invoked when the "Quantum Circuit" scope is expanded
           // in the Variables view, but instead of showing any values in the variables
           // view, we can pop open the circuit diagram panel.
-
-          // Keep updating the circuit for the rest of this session, even if
-          // the Variables scope gets collapsed by the user. If we don't do this,
-          // the diagram won't get updated with each step even though the circuit
-          // panel is still being shown, which is misleading.
-          this.config.showCircuit = true;
-          this.updateCircuit();
+          if (!this.config.showCircuit) {
+            // Keep updating the circuit for the rest of this session, even if
+            // the Variables scope gets collapsed by the user. If we don't do this,
+            // the diagram won't get updated with each step even though the circuit
+            // panel is still being shown, which is misleading.
+            this.config.showCircuit = true;
+            this.updateCircuit();
+          }
           response.body = {
             variables: [
               {
