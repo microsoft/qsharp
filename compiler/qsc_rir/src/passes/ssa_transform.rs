@@ -100,8 +100,8 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
                 }
             }
 
-            // Now that the block has finished processing, apply any updates to the variable map,
-            // and use the updated map to propagate variables through the block.
+            // Now that the block has finished processing, apply any updates to the block and
+            // merge those updates into the stored variable map to propagate to successors.
             map_variable_use_in_block(block, &mut var_map_updates);
             for (var_id, operand) in var_map_updates {
                 let var_map = block_var_map
