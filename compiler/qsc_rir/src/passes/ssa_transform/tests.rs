@@ -1195,7 +1195,8 @@ fn ssa_transform_inserts_phi_for_node_with_many_predecessors() {
                 remap_qubits_on_reuse: false
                 defer_measurements: false
             num_qubits: 0
-            num_results: 0"#]].assert_eq(&program.to_string());
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
 
     // After
     transform_program(&mut program);
@@ -1326,9 +1327,9 @@ fn ssa_transform_inserts_phi_for_multiple_stored_values() {
             Instruction::Jump(BlockId(3)),
         ]),
     );
-    program
-        .blocks
-        .insert(BlockId(2), Block(vec![
+    program.blocks.insert(
+        BlockId(2),
+        Block(vec![
             Instruction::LogicalNot(
                 Operand::Variable(Variable {
                     variable_id: VariableId(2),
@@ -1349,7 +1350,9 @@ fn ssa_transform_inserts_phi_for_multiple_stored_values() {
                     ty: Ty::Boolean,
                 },
             ),
-            Instruction::Jump(BlockId(3))]));
+            Instruction::Jump(BlockId(3)),
+        ]),
+    );
     program.blocks.insert(
         BlockId(3),
         Block(vec![
