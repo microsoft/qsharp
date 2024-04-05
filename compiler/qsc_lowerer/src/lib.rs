@@ -19,7 +19,7 @@ pub fn map_hir_package_to_fir(package: hir::PackageId) -> fir::PackageId {
 
 #[must_use]
 pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
-    hir::PackageId::from(<fir::PackageId as Into<usize>>::into(package))
+    hir::PackageId::from(Into::<usize>::into(package))
 }
 
 #[derive(Clone)]
