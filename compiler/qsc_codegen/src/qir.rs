@@ -26,15 +26,22 @@ fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::
 }
 
 /// converts the given sources to QIR using the given language features.
-pub fn to_qir(
+pub fn hir_to_qir(
     package_store: &qsc_frontend::compile::PackageStore,
     package_id: hir::PackageId,
     capabilities: RuntimeCapabilityFlags,
 ) -> Result<String, qsc_partial_eval::Error> {
     let fir_store = lower_store(package_store);
-
     let fir_package_id = map_hir_package_to_fir(package_id);
-    let program = get_rir_from_compilation(&fir_store, fir_package_id, capabilities)?;
+    fir_to_qir(&fir_store, fir_package_id, capabilities)
+}
+
+pub fn fir_to_qir(
+    fir_store: &qsc_fir::fir::PackageStore,
+    fir_package_id: qsc_fir::fir::PackageId,
+    capabilities: RuntimeCapabilityFlags,
+) -> Result<String, qsc_partial_eval::Error> {
+    let program = get_rir_from_compilation(fir_store, fir_package_id, capabilities)?;
     Ok(ToQir::<String>::to_qir(&program, &program))
 }
 

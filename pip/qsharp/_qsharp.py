@@ -27,6 +27,7 @@ class Config:
         if target_profile == TargetProfile.Adaptive:
             self._config = {"targetProfile": "adaptive"}
             warn("The adaptive target profile is a preview feature.")
+            warn("Functionality may be incomplete or incorrect.")
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
         elif target_profile == TargetProfile.Unrestricted:

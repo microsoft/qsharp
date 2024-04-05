@@ -21,7 +21,7 @@ use qsc::{
     LanguageFeatures, PackageStore, PackageType, PassContext, SourceContents, SourceMap,
     SourceName, SparseSim,
 };
-use qsc_codegen::{qir::to_qir, qir_base::generate_qir};
+use qsc_codegen::{qir::hir_to_qir, qir_base::generate_qir};
 use resource_estimator::{self as re, estimate_entry};
 use serde::Serialize;
 use serde_json::json;
@@ -79,7 +79,11 @@ pub fn get_qir(
 ) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = get_source_map(sources, &None);
-    if language_features.contains(LanguageFeatures::QirGenPreview) {
+    if language_features.contains(LanguageFeatures::PreviewQirGen) {
+        // the use of AdaptiveProfileQirGen is currently being used to
+        // determine what profile to target as the get_qir interface doesn't
+        // have a way to specify the profile to target and the old codegen
+        // is hardcoded to use the Base profile.
         let profile = if language_features.contains(LanguageFeatures::AdaptiveProfileQirGen) {
             Profile::Adaptive
         } else {
@@ -155,7 +159,7 @@ fn _get_qir_preview(
         return Err("Failed to generate QIR".to_string());
     }
 
-    to_qir(&package_store, package_id, profile.into()).map_err(|e| e.to_string())
+    hir_to_qir(&package_store, package_id, profile.into()).map_err(|e| e.to_string())
 }
 
 #[wasm_bindgen]

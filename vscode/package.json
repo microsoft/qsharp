@@ -101,8 +101,8 @@
           "default": "unrestricted",
           "enum": [
             "unrestricted",
-            "adaptive",
-            "base"
+            "base",
+            "adaptive"
           ],
           "enumDescriptions": [
             "The set of all capabilities required to run any Q# program.",
@@ -120,7 +120,7 @@
           "default": true,
           "description": "Enables the Circuit code lens to synthesize circuit diagrams for Q# programs and operations."
         },
-        "Q#.useQirGenPreview": {
+        "Q#.enablePreviewQirGen": {
           "type": "boolean",
           "default": false,
           "description": "Enables the preview QIR code generation functionality."

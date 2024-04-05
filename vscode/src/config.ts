@@ -30,10 +30,10 @@ export async function setTarget(target: TargetProfile) {
 
 export function getTargetFriendlyName(targetProfile?: string) {
   switch (targetProfile) {
-    case "base":
-      return "Q#: QIR base";
     case "adaptive":
       return "Q#: QIR adaptive";
+    case "base":
+      return "Q#: QIR base";
     case "unrestricted":
       return "Q#: unrestricted";
     default:
@@ -56,9 +56,9 @@ export function getShowCircuitCodeLens(): boolean {
   );
 }
 
-export function getUseQirGenPreview(): boolean {
+export function getEnablePreviewQirGen(): boolean {
   return vscode.workspace.getConfiguration("Q#").get<boolean>(
-    "useQirGenPreview",
+    "enablePreviewQirGen",
     false, // The default value should be set in `package.json` as well.
   );
 }

@@ -121,10 +121,10 @@ function getTargetProfiles(): {
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
-    case "Q#: QIR base":
-      return "base";
     case "Q#: QIR adaptive":
       return "adaptive";
+    case "Q#: QIR base":
+      return "base";
     case "Q#: unrestricted":
       return "unrestricted";
     default:

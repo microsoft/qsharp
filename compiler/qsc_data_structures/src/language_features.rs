@@ -10,7 +10,7 @@ pub struct LanguageFeatures(u8);
 bitflags! {
     impl LanguageFeatures: u8 {
         const V2PreviewSyntax = 0b1;
-        const QirGenPreview = 0b10;
+        const PreviewQirGen = 0b10;
         const AdaptiveProfileQirGen = 0b100;
     }
 }
@@ -35,7 +35,7 @@ where
         iter.into_iter().fold(LanguageFeatures::empty(), |acc, x| {
             acc | match x.as_ref() {
                 "v2-preview-syntax" => LanguageFeatures::V2PreviewSyntax,
-                "qir-gen-preview" => LanguageFeatures::QirGenPreview,
+                "preview-qir-gen" => LanguageFeatures::PreviewQirGen,
                 "adaptive-qir-gen" => LanguageFeatures::AdaptiveProfileQirGen,
                 _ => LanguageFeatures::empty(),
             }
