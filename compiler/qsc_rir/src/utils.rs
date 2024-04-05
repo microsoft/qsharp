@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::rir::{Block, BlockId, Instruction, Program};
+use crate::rir::{Block, BlockId, Instruction, Program, VariableId};
 use qsc_data_structures::index_map::IndexMap;
 use rustc_hash::FxHashSet;
 
@@ -67,4 +67,48 @@ pub fn build_predecessors_map(program: &Program) -> IndexMap<BlockId, Vec<BlockI
     }
 
     preds
+}
+
+#[must_use]
+pub fn get_variable_assignments(program: &Program) -> IndexMap<VariableId, (BlockId, usize)> {
+    let mut assignments = IndexMap::default();
+    for (block_id, block) in program.blocks.iter() {
+        for (idx, instr) in block.0.iter().enumerate() {
+            match instr {
+                Instruction::Call(_, _, Some(var))
+                | Instruction::Add(_, _, var)
+                | Instruction::Sub(_, _, var)
+                | Instruction::Mul(_, _, var)
+                | Instruction::Sdiv(_, _, var)
+                | Instruction::Srem(_, _, var)
+                | Instruction::Shl(_, _, var)
+                | Instruction::Ashr(_, _, var)
+                | Instruction::Icmp(_, _, _, var)
+                | Instruction::LogicalNot(_, var)
+                | Instruction::LogicalAnd(_, _, var)
+                | Instruction::LogicalOr(_, _, var)
+                | Instruction::BitwiseNot(_, var)
+                | Instruction::BitwiseAnd(_, _, var)
+                | Instruction::BitwiseOr(_, _, var)
+                | Instruction::BitwiseXor(_, _, var)
+                | Instruction::Phi(_, var) => {
+                    assert!(
+                        !assignments.contains_key(var.variable_id),
+                        "Duplicate assignment to {:?} in {block_id:?}, instruction {idx}",
+                        var.variable_id
+                    );
+                    assignments.insert(var.variable_id, (block_id, idx));
+                }
+                Instruction::Call(_, _, None)
+                | Instruction::Jump(..)
+                | Instruction::Branch(..)
+                | Instruction::Return => {}
+
+                Instruction::Store(..) => {
+                    panic!("Unexpected Store at {block_id:?}, instruction {idx}")
+                }
+            }
+        }
+    }
+    assignments
 }
