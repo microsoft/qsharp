@@ -5,7 +5,7 @@
 mod tests;
 
 use crate::{
-    rir::{Block, BlockId, Instruction, Literal, Operand, Program, Ty, Variable, VariableId},
+    rir::{Block, BlockId, Instruction, Operand, Program, Variable, VariableId},
     utils::get_variable_assignments,
 };
 use qsc_data_structures::index_map::IndexMap;
@@ -152,143 +152,61 @@ fn map_store_to_dominated_ssa(
 
 // Propagates stored variables through a block, tracking the latest stored value and replacing
 // usage of the variable with the stored value.
-#[allow(clippy::too_many_lines)]
 fn map_variable_use_in_block(block: &mut Block, var_map: &mut impl VariableMapper) {
     let instrs = block.0.drain(..).collect::<Vec<_>>();
 
-    for instr in instrs {
-        match instr {
+    for mut instr in instrs {
+        match &mut instr {
             // Track the new value of the variable and omit the store instruction.
             Instruction::Store(operand, var) => {
-                var_map.insert(var, operand);
+                var_map.insert(*var, *operand);
+                continue;
             }
 
             // Replace any arguments with the new values of stored variables.
-            Instruction::Call(call_id, args, out) => {
-                let new_args = args
-                    .into_iter()
+            Instruction::Call(_, args, _) => {
+                *args = args
+                    .iter()
                     .map(|arg| match arg {
-                        Operand::Variable(var) => var_map.to_operand(var),
-                        Operand::Literal(_) => arg,
+                        Operand::Variable(var) => var_map.to_operand(*var),
+                        Operand::Literal(_) => *arg,
                     })
                     .collect();
-                block.0.push(Instruction::Call(call_id, new_args, out));
-            }
-            Instruction::Branch(var, true_block, false_block) => {
-                block.0.push(Instruction::Branch(
-                    var_map.to_variable(var),
-                    true_block,
-                    false_block,
-                ));
-            }
-            Instruction::Add(lhs, rhs, out) => {
-                block.0.push(Instruction::Add(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::Sub(lhs, rhs, out) => {
-                block.0.push(Instruction::Sub(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::Mul(lhs, rhs, out) => {
-                block.0.push(Instruction::Mul(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::Sdiv(lhs, rhs, out) => {
-                block.0.push(Instruction::Sdiv(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::Srem(lhs, rhs, out) => {
-                block.0.push(Instruction::Srem(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::Shl(lhs, rhs, out) => {
-                block.0.push(Instruction::Shl(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::Ashr(lhs, rhs, out) => {
-                block.0.push(Instruction::Ashr(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::Icmp(cond, lhs, rhs, out) => {
-                block.0.push(Instruction::Icmp(
-                    cond,
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::LogicalNot(operand, out) => {
-                block
-                    .0
-                    .push(Instruction::LogicalNot(operand.mapped(var_map), out));
-            }
-            Instruction::LogicalAnd(lhs, rhs, out) => {
-                block.0.push(Instruction::LogicalAnd(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::LogicalOr(lhs, rhs, out) => {
-                block.0.push(Instruction::LogicalOr(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::BitwiseNot(operand, out) => {
-                block
-                    .0
-                    .push(Instruction::BitwiseNot(operand.mapped(var_map), out));
-            }
-            Instruction::BitwiseAnd(lhs, rhs, out) => {
-                block.0.push(Instruction::BitwiseAnd(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::BitwiseOr(lhs, rhs, out) => {
-                block.0.push(Instruction::BitwiseOr(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
-            }
-            Instruction::BitwiseXor(lhs, rhs, out) => {
-                block.0.push(Instruction::BitwiseXor(
-                    lhs.mapped(var_map),
-                    rhs.mapped(var_map),
-                    out,
-                ));
             }
 
-            // Phi nodes are handled separately in the SSA transformation, but need to be passed through.
-            Instruction::Phi(..) | Instruction::Jump(..) | Instruction::Return => {
-                block.0.push(instr);
+            // Replace the branch condition with the new value of the variable.
+            Instruction::Branch(var, _, _) => {
+                *var = var_map.to_variable(*var);
             }
-        }
+
+            // Two variable instructions, replace left and right operands with new values.
+            Instruction::Add(lhs, rhs, _)
+            | Instruction::Sub(lhs, rhs, _)
+            | Instruction::Mul(lhs, rhs, _)
+            | Instruction::Sdiv(lhs, rhs, _)
+            | Instruction::Srem(lhs, rhs, _)
+            | Instruction::Shl(lhs, rhs, _)
+            | Instruction::Ashr(lhs, rhs, _)
+            | Instruction::Icmp(_, lhs, rhs, _)
+            | Instruction::LogicalAnd(lhs, rhs, _)
+            | Instruction::LogicalOr(lhs, rhs, _)
+            | Instruction::BitwiseAnd(lhs, rhs, _)
+            | Instruction::BitwiseOr(lhs, rhs, _)
+            | Instruction::BitwiseXor(lhs, rhs, _) => {
+                *lhs = lhs.mapped(var_map);
+                *rhs = rhs.mapped(var_map);
+            }
+
+            // Single variable instructions, replace operand with new value.
+            Instruction::BitwiseNot(operand, _) | Instruction::LogicalNot(operand, _) => {
+                *operand = operand.mapped(var_map);
+            }
+
+            // Phi nodes are handled separately in the SSA transformation, but need to be passed through
+            // like the unconditional terminators.
+            Instruction::Phi(..) | Instruction::Jump(..) | Instruction::Return => {}
+        };
+        block.0.push(instr);
     }
 }
 
@@ -297,20 +215,6 @@ impl Operand {
         match self {
             Operand::Literal(_) => *self,
             Operand::Variable(var) => var_map.to_operand(*var),
-        }
-    }
-
-    fn get_type(&self) -> Ty {
-        match self {
-            Operand::Literal(lit) => match lit {
-                Literal::Qubit(_) => Ty::Qubit,
-                Literal::Result(_) => Ty::Result,
-                Literal::Bool(_) => Ty::Boolean,
-                Literal::Integer(_) => Ty::Integer,
-                Literal::Double(_) => Ty::Double,
-                Literal::Pointer => Ty::Pointer,
-            },
-            Operand::Variable(var) => var.ty,
         }
     }
 }

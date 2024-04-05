@@ -491,6 +491,23 @@ impl Display for Operand {
     }
 }
 
+impl Operand {
+    #[must_use]
+    pub fn get_type(&self) -> Ty {
+        match self {
+            Operand::Literal(lit) => match lit {
+                Literal::Qubit(_) => Ty::Qubit,
+                Literal::Result(_) => Ty::Result,
+                Literal::Bool(_) => Ty::Boolean,
+                Literal::Integer(_) => Ty::Integer,
+                Literal::Double(_) => Ty::Double,
+                Literal::Pointer => Ty::Pointer,
+            },
+            Operand::Variable(var) => var.ty,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum Literal {
     Qubit(u32),
