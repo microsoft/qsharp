@@ -85,7 +85,6 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 }
 
 pub fn walk_namespace<'a>(vis: &mut impl Visitor<'a>, namespace: &'a Namespace) {
-    // possibly this visit is incorrect?
     vis.visit_vec_ident(&namespace.name);
     namespace.items.iter().for_each(|i| vis.visit_item(i));
 }
