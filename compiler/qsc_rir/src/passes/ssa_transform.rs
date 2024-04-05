@@ -102,12 +102,12 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
 
             // Now that the block has finished processing, apply any updates to the variable map,
             // and use the updated map to propagate variables through the block.
+            map_variable_use_in_block(block, &mut var_map_updates);
             for (var_id, operand) in var_map_updates {
                 let var_map = block_var_map
                     .get_mut(block_id)
                     .expect("block should have variable map");
                 var_map.entry(var_id).or_insert(operand);
-                map_variable_use_in_block(block, var_map);
             }
         }
     }
