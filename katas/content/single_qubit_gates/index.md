@@ -339,7 +339,7 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
     "title": "Basis Change",
     "path": "./basis_change/",
     "qsDependencies": [
-        "../KatasLibrary.qs", "./Common.qs"
+        "../KatasLibrary.qs"
     ]
 })
 
@@ -347,15 +347,6 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
     "id": "single_qubit_gates__sign_flip",
     "title": "Sign Flip",
     "path": "./sign_flip/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
-
-@[exercise]({
-    "id": "single_qubit_gates__amplitude_change",
-    "title": "Amplitude_Change",
-    "path": "./amplitude_change/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
@@ -579,6 +570,14 @@ In addition, the rotation gates are very closely related to their respective Pau
 
 $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
+@[exercise]({
+    "id": "single_qubit_gates__amplitude_change",
+    "title": "Amplitude_Change",
+    "path": "./amplitude_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 @[exercise]({
     "id": "single_qubit_gates__prepare_rotated_state",
     "title": "Prepare Rotated State",
