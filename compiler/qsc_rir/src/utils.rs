@@ -29,7 +29,7 @@ pub fn get_block_successors(block: &Block) -> Vec<BlockId> {
 /// The returned block IDs are sorted in ascending order.
 #[must_use]
 pub fn get_all_block_successors(block: BlockId, program: &Program) -> Vec<BlockId> {
-    let mut blocks_to_visit = vec![block];
+    let mut blocks_to_visit = get_block_successors(program.get_block(block));
     let mut blocks_visited = FxHashSet::default();
     while let Some(block_id) = blocks_to_visit.pop() {
         if blocks_visited.contains(&block_id) {

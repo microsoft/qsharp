@@ -611,7 +611,7 @@ fn ssa_check_succeeds_when_phi_handles_value_from_dominator_of_predecessor() {
 
 #[test]
 #[should_panic(
-    expected = "Definition of VariableId(3) in BlockId(5) does not dominate use in BlockId(6), instruction 18446744073709551615"
+    expected = "Definition of VariableId(3) in BlockId(4) does not dominate use in BlockId(5), instruction 18446744073709551615"
 )]
 fn ssa_check_fails_when_phi_handles_value_from_non_dominator_of_predecessor() {
     let mut program = new_program();
@@ -844,7 +844,7 @@ fn ssa_check_fails_when_phi_lists_non_predecessor_block() {
                             variable_id: VariableId(2),
                             ty: Ty::Boolean,
                         }),
-                        BlockId(4),
+                        BlockId(1),
                     ),
                 ],
                 Variable {

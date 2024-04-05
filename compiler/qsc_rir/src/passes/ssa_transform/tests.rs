@@ -1795,3 +1795,291 @@ fn ssa_transform_inserts_phi_nodes_in_successive_blocks_for_chained_branches() {
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
+
+#[test]
+fn ssa_transform_inerts_phi_nodes_for_early_return_graph_pattern() {
+    let mut program = new_program();
+    program.callables.insert(
+        CallableId(1),
+        Callable {
+            name: "dynamic_bool".to_string(),
+            input_type: Vec::new(),
+            output_type: Some(Ty::Boolean),
+            body: None,
+            call_type: CallableType::Regular,
+        },
+    );
+
+    program.blocks.insert(
+        BlockId(0),
+        Block(vec![
+            Instruction::Call(
+                CallableId(1),
+                Vec::new(),
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+                BlockId(1),
+                BlockId(2),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(1),
+        Block(vec![
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Jump(BlockId(3)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(2),
+        Block(vec![
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(3),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Branch(
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+                BlockId(4),
+                BlockId(5),
+            ),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(3),
+        Block(vec![
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(4),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Return,
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(4),
+        Block(vec![
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(5),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(5),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Jump(BlockId(6)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(5),
+        Block(vec![
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(6),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Store(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(6),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Jump(BlockId(6)),
+        ]),
+    );
+    program.blocks.insert(
+        BlockId(6),
+        Block(vec![
+            Instruction::LogicalNot(
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(7),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Jump(BlockId(3)),
+        ]),
+    );
+
+    // Before
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type:  <VOID>
+                    output_type:  <VOID>
+                    body:  0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type:  <VOID>
+                    output_type:  Boolean
+                    body:  <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Variable(1, Boolean) = Store Variable(0, Boolean)
+                    Branch Variable(1, Boolean), 1, 2
+                Block 1: Block:
+                    Variable(2, Boolean) = LogicalNot Variable(1, Boolean)
+                    Variable(1, Boolean) = Store Variable(2, Boolean)
+                    Jump(3)
+                Block 2: Block:
+                    Variable(3, Boolean) = LogicalNot Variable(1, Boolean)
+                    Variable(1, Boolean) = Store Variable(3, Boolean)
+                    Branch Variable(1, Boolean), 4, 5
+                Block 3: Block:
+                    Variable(4, Boolean) = LogicalNot Variable(1, Boolean)
+                    Return
+                Block 4: Block:
+                    Variable(5, Boolean) = LogicalNot Variable(1, Boolean)
+                    Variable(1, Boolean) = Store Variable(5, Boolean)
+                    Jump(6)
+                Block 5: Block:
+                    Variable(6, Boolean) = LogicalNot Variable(1, Boolean)
+                    Variable(1, Boolean) = Store Variable(6, Boolean)
+                    Jump(6)
+                Block 6: Block:
+                    Variable(7, Boolean) = LogicalNot Variable(1, Boolean)
+                    Jump(3)
+            config: Config:
+                remap_qubits_on_reuse: false
+                defer_measurements: false
+            num_qubits: 0
+            num_results: 0"#]].assert_eq(&program.to_string());
+
+    // After
+    transform_program(&mut program);
+    expect![[r#"
+        Program:
+            entry: 0
+            callables:
+                Callable 0: Callable:
+                    name: main
+                    call_type: Regular
+                    input_type:  <VOID>
+                    output_type:  <VOID>
+                    body:  0
+                Callable 1: Callable:
+                    name: dynamic_bool
+                    call_type: Regular
+                    input_type:  <VOID>
+                    output_type:  Boolean
+                    body:  <NONE>
+            blocks:
+                Block 0: Block:
+                    Variable(0, Boolean) = Call id(1), args( )
+                    Branch Variable(0, Boolean), 1, 2
+                Block 1: Block:
+                    Variable(2, Boolean) = LogicalNot Variable(0, Boolean)
+                    Jump(6)
+                Block 2: Block:
+                    Variable(3, Boolean) = LogicalNot Variable(0, Boolean)
+                    Branch Variable(3, Boolean), 3, 4
+                Block 3: Block:
+                    Variable(5, Boolean) = LogicalNot Variable(3, Boolean)
+                    Jump(5)
+                Block 4: Block:
+                    Variable(6, Boolean) = LogicalNot Variable(3, Boolean)
+                    Jump(5)
+                Block 5: Block:
+                    Variable(8, Boolean) = Phi ( [Variable(5, Boolean), 3], [Variable(6, Boolean), 4], )
+                    Variable(7, Boolean) = LogicalNot Variable(8, Boolean)
+                    Jump(6)
+                Block 6: Block:
+                    Variable(9, Boolean) = Phi ( [Variable(2, Boolean), 1], [Variable(8, Boolean), 5], )
+                    Variable(4, Boolean) = LogicalNot Variable(9, Boolean)
+                    Return
+            config: Config:
+                remap_qubits_on_reuse: false
+                defer_measurements: false
+            num_qubits: 0
+            num_results: 0"#]].assert_eq(&program.to_string());
+}
