@@ -14,7 +14,7 @@ use std::{clone::Clone, rc::Rc};
 
 #[must_use]
 pub fn map_hir_package_to_fir(package: hir::PackageId) -> fir::PackageId {
-    fir::PackageId::from(<hir::PackageId as Into<usize>>::into(package))
+    fir::PackageId::from(Into::<usize>::into(package))
 }
 
 #[must_use]
