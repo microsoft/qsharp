@@ -172,6 +172,7 @@ pub enum Error {
     UseOfClosure(#[label] Span),
 }
 
+/// Lower a package store from `qsc_frontend` HIR store to a `qsc_fir` FIR store.
 pub fn lower_store(
     package_store: &qsc_frontend::compile::PackageStore,
 ) -> qsc_fir::fir::PackageStore {
