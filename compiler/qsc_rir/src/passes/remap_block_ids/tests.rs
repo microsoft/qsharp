@@ -592,7 +592,8 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 remap_qubits_on_reuse: false
                 defer_measurements: false
             num_qubits: 0
-            num_results: 0"#]].assert_eq(&program.to_string());
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
 
     // After
     remap_block_ids(&mut program);
@@ -629,5 +630,6 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 remap_qubits_on_reuse: false
                 defer_measurements: false
             num_qubits: 0
-            num_results: 0"#]].assert_eq(&program.to_string());
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
 }

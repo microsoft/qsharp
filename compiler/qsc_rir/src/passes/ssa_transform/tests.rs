@@ -2033,7 +2033,8 @@ fn ssa_transform_inerts_phi_nodes_for_early_return_graph_pattern() {
                 remap_qubits_on_reuse: false
                 defer_measurements: false
             num_qubits: 0
-            num_results: 0"#]].assert_eq(&program.to_string());
+            num_results: 0"#]]
+    .assert_eq(&program.to_string());
 
     // After
     transform_program(&mut program);
