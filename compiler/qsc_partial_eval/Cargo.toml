@@ -16,6 +16,7 @@ qsc_eval = { path = "../qsc_eval" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_rca = { path = "../qsc_rca" }
 qsc_rir = { path = "../qsc_rir" }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }

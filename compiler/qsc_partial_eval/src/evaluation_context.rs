@@ -79,4 +79,8 @@ impl Scope {
     pub fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
         self.hybrid_exprs.insert(expr_id, value);
     }
+
+    pub fn insert_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
+        self.hybrid_vars.insert(local_var_id, value);
+    }
 }
