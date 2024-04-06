@@ -1,41 +1,21 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
-namespace Kata {
-    open Microsoft.Quantum.Intrinsic;
-
-    operation ApplyX(q : Qubit) : Unit is Adj + Ctl {
-        // Do nothing.
-    }
-}
-
-namespace Kata.Verification {
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
+/// # Sample
+/// String
+///
+/// # Description
+/// Text as values that consist of a sequence of UTF-16 code units.
+namespace MyQuantumApp {
 
     @EntryPoint()
-    operation CheckSolution() : Bool {
-        VerifySingleQubitOperation(Kata.ApplyX, Kata.Verification.ApplyX)
-    }
+    operation Main() : String {
+        // Strings literals are declared with double quotes:
+        let myString = "Foo";
 
-    operation ApplyX(q : Qubit) : Unit is Adj + Ctl {
-        X(q);
-    }
+        // Strings can be concatenated with `+`
+        let myString = myString + "Bar";
 
-    operation VerifySingleQubitOperation(
-        op : (Qubit => Unit is Adj + Ctl),
-        reference : (Qubit => Unit is Adj + Ctl)
-    ) : Bool {
-        use (control, target) = (Qubit(), Qubit());
-        within {
-            H(control);
-        } apply {
-            Controlled op([control], target);
-            Adjoint Controlled reference([control], target);
-        }
-        let isCorrect = CheckAllZero([control, target]);
-        ResetAll([control, target]);
+        // Q# supports string interpolation with the `$` prefix.
+        let myString = $"interpolated: {myString}";
 
-        isCorrect
+        return myString;
     }
 }
