@@ -5,14 +5,15 @@ use qsc_eval::{
     backend::Backend,
     val::{Qubit, Result},
 };
-use qsc_rir::rir::{BlockId, CallableId};
+use qsc_rir::rir::{BlockId, CallableId, VariableId};
 
 #[derive(Default)]
 pub struct Allocator {
     qubits_in_use: Vec<bool>,
     next_callable: CallableId,
     next_block: BlockId,
-    next_result_id: usize,
+    next_result: usize,
+    next_var: usize,
 }
 
 impl Allocator {
@@ -43,9 +44,15 @@ impl Allocator {
     }
 
     pub fn next_result(&mut self) -> Result {
-        let result_id = self.next_result_id;
-        self.next_result_id += 1;
+        let result_id = self.next_result;
+        self.next_result += 1;
         Result::Id(result_id)
+    }
+
+    pub fn next_var(&mut self) -> VariableId {
+        let var_id = self.next_var;
+        self.next_var += 1;
+        var_id.into()
     }
 }
 

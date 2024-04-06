@@ -14,22 +14,23 @@ use qsc_data_structures::span::Span;
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
-    val::{self, Value},
+    val::{self, Value, Var},
     State, StepAction, StepResult,
 };
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Global,
-        Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl,
-        SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId, StorePatId,
-        StoreStmtId,
+        BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind,
+        Global, Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res,
+        SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
+        StorePatId, StoreStmtId,
     },
     ty::{Prim, Ty},
     visit::Visitor,
 };
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties};
 use qsc_rir::rir::{
-    self, Callable, CallableId, CallableType, Instruction, Literal, Operand, Program,
+    self, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand,
+    Program, Variable,
 };
 use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
@@ -54,6 +55,9 @@ pub enum Error {
     #[error("failed to evaluate tuple element expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateTupleElementExpression"))]
     FailedToEvaluateTupleElementExpression(#[label] Span),
+    #[error("failed to evaluate binary expression operand")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBinaryExpressionOperand"))]
+    FailedToEvaluateBinaryExpressionOperand(#[label] Span),
 }
 
 struct PartialEvaluator<'a> {
@@ -260,7 +264,9 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::AssignField(_, _, _) => todo!(),
             ExprKind::AssignIndex(_, _, _) => todo!(),
             ExprKind::AssignOp(_, _, _) => todo!(),
-            ExprKind::BinOp(_, _, _) => todo!(),
+            ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
+                self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
+            }
             ExprKind::Block(_) => todo!(),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
                 self.eval_expr_call(*callee_expr_id, *args_expr_id)
@@ -290,19 +296,81 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    #[allow(clippy::similar_names)]
+    fn eval_expr_bin_op(
+        &mut self,
+        bin_op_expr_id: ExprId,
+        bin_op: BinOp,
+        lhs_expr_id: ExprId,
+        rhs_expr_id: ExprId,
+    ) -> Result<Value, Error> {
+        // Visit the both the LHS and RHS expressions to get their value.
+        let maybe_lhs_expr_value = self.try_eval_expr(lhs_expr_id);
+        let Ok(lhs_expr_value) = maybe_lhs_expr_value else {
+            let lhs_expr = self.get_expr(lhs_expr_id);
+            let error = Error::FailedToEvaluateBinaryExpressionOperand(lhs_expr.span);
+            return Err(error);
+        };
+        let lhs_expr_value = lhs_expr_value.clone();
+
+        let maybe_rhs_expr_value = self.try_eval_expr(rhs_expr_id);
+        let Ok(rhs_expr_value) = maybe_rhs_expr_value else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            let error = Error::FailedToEvaluateBinaryExpressionOperand(rhs_expr.span);
+            return Err(error);
+        };
+        let rhs_expr_value = rhs_expr_value.clone();
+
+        // Get the operands to use when generating the binary operation instruction depending on the type of the
+        // expression's value.
+        let lhs_operand = if let Value::Result(result) = lhs_expr_value {
+            self.eval_result_as_operand(result)
+        } else {
+            map_eval_value_to_rir_operand(&lhs_expr_value)
+        };
+        let rhs_operand = if let Value::Result(result) = rhs_expr_value {
+            self.eval_result_as_operand(result)
+        } else {
+            map_eval_value_to_rir_operand(&rhs_expr_value)
+        };
+
+        // Create a variable to store the result of the expression.
+        let bin_op_expr = self.get_expr(bin_op_expr_id);
+        let variable_id = self.allocator.next_var();
+        let variable_ty = map_fir_type_to_rir_type(&bin_op_expr.ty);
+        let variable = Variable {
+            variable_id,
+            ty: variable_ty,
+        };
+
+        // Create the binary operation instruction and add it to the current block.
+        let instruction = match bin_op {
+            BinOp::Eq => Instruction::Icmp(ConditionCode::Eq, lhs_operand, rhs_operand, variable),
+            BinOp::Neq => Instruction::Icmp(ConditionCode::Ne, lhs_operand, rhs_operand, variable),
+            _ => todo!(),
+        };
+        let current_block = self.get_current_block_mut();
+        current_block.0.push(instruction);
+
+        // Return the variable as a value.
+        let value = Value::Var(Var(variable_id.into()));
+        Ok(value)
+    }
+
     fn eval_expr_call(
         &mut self,
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
     ) -> Result<Value, Error> {
         // Visit the both the callee and arguments expressions to get their value.
-        if self.try_get_expr_value(args_expr_id).is_err() {
-            let callee_expr = self.get_expr(callee_expr_id);
-            let error = Error::FailedToEvaluateCalleeExpression(callee_expr.span);
+        let maybe_args_expr_value = self.try_eval_expr(args_expr_id);
+        if maybe_args_expr_value.is_err() {
+            let args_expr = self.get_expr(args_expr_id);
+            let error = Error::FailedToEvaluateCalleeExpression(args_expr.span);
             return Err(error);
         };
 
-        let Ok(callable_value) = self.try_get_expr_value(callee_expr_id) else {
+        let Ok(callable_value) = self.try_eval_expr(callee_expr_id) else {
             let callee_expr = self.get_expr(callee_expr_id);
             let error = Error::FailedToEvaluateCalleeExpression(callee_expr.span);
             return Err(error);
@@ -421,7 +489,7 @@ impl<'a> PartialEvaluator<'a> {
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
         let mut values = Vec::<Value>::new();
         for expr_id in exprs {
-            let maybe_value = self.try_get_expr_value(*expr_id);
+            let maybe_value = self.try_eval_expr(*expr_id);
             let Ok(value) = maybe_value else {
                 let expr = self.get_expr(*expr_id);
                 return Err(Error::FailedToEvaluateTupleElementExpression(expr.span));
@@ -447,6 +515,10 @@ impl<'a> PartialEvaluator<'a> {
                 .get_local_var_value(*local_var_id)
                 .clone(),
         }
+    }
+
+    fn eval_result_as_operand(&mut self, _result: val::Result) -> Operand {
+        unimplemented!();
     }
 
     fn get_current_block_mut(&mut self) -> &mut rir::Block {
@@ -576,7 +648,7 @@ impl<'a> PartialEvaluator<'a> {
         operands
     }
 
-    fn try_get_expr_value(&mut self, expr_id: ExprId) -> Result<&Value, ()> {
+    fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<&Value, ()> {
         // Visit the expression, which will either populate the expression entry in the scope's value map or add an
         // error.
         self.visit_expr(expr_id);
