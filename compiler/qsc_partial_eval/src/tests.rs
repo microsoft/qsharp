@@ -324,15 +324,16 @@ fn calls_to_rotation_operation_using_variables() {
 }
 
 #[test]
-fn measure_qubit() {
+fn measure_qubits() {
     check_rir(
         indoc! {r#"
         namespace Test {
             open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Unit {
-                use q = Qubit();
-                __quantum__qis__m__body(q);
+                use (q0, q1) = (Qubit(), Qubit());
+                __quantum__qis__m__body(q0);
+                __quantum__qis__mresetz__body(q1);
             }
         }
         "#},
@@ -354,9 +355,18 @@ fn measure_qubit() {
                             [1]: Result
                         output_type:  <VOID>
                         body:  <NONE>
+                    Callable 2: Callable:
+                        name: __quantum__qis__mresetz__body
+                        call_type: Measurement
+                        input_type: 
+                            [0]: Qubit
+                            [1]: Result
+                        output_type:  <VOID>
+                        body:  <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Result(0), )
+                        Call id(2), args( Qubit(1), Result(1), )
                         Return
                 config: Config:
                     remap_qubits_on_reuse: false

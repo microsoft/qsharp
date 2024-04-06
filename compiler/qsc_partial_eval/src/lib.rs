@@ -347,7 +347,8 @@ impl<'a> PartialEvaluator<'a> {
         match callable_decl.name.name.as_ref() {
             "__quantum__rt__qubit_allocate" => self.qubit_allocate(),
             "__quantum__rt__qubit_release" => self.qubit_release(args_expr_id),
-            "__quantum__qis__m__body" => self.qubit_measure(args_expr_id),
+            "__quantum__qis__m__body" => self.qubit_measure(mz_callable(), args_expr_id),
+            "__quantum__qis__mresetz__body" => self.qubit_measure(mresetz_callable(), args_expr_id),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_expr_id),
         }
     }
@@ -519,7 +520,7 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn qubit_measure(&mut self, args_expr_id: ExprId) -> Value {
+    fn qubit_measure(&mut self, measure_callable: Callable, args_expr_id: ExprId) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
         let args_expr_value = self
             .eval_context
@@ -534,7 +535,6 @@ impl<'a> PartialEvaluator<'a> {
         let result_operand = map_eval_value_to_rir_operand(&result_value);
 
         // Check if the callable has already been added to the program and if not do so now.
-        let measure_callable = mz_callable();
         let measure_callable_id = self.get_or_insert_callable(measure_callable);
         let args = vec![qubit_operand, result_operand];
         let instruction = Instruction::Call(measure_callable_id, args, None);
@@ -728,6 +728,17 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Int => rir::Ty::Integer,
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
+    }
+}
+
+#[must_use]
+pub fn mresetz_callable() -> Callable {
+    Callable {
+        name: "__quantum__qis__mresetz__body".to_string(),
+        input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Measurement,
     }
 }
 
