@@ -17,7 +17,7 @@ use qsc_eval::{
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Global,
-        Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, SpecDecl,
+        Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl,
         SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId, StorePatId,
         StoreStmtId,
     },
@@ -48,6 +48,9 @@ pub enum Error {
     #[error("failed to evaluate callee expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCalleeExpression"))]
     FailedToEvaluateCalleeExpression(#[label] Span),
+    #[error("failed to evaluate tuple element expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateTupleElementExpression"))]
+    FailedToEvaluateTupleElementExpression(#[label] Span),
 }
 
 struct PartialEvaluator<'a> {
@@ -130,7 +133,7 @@ impl<'a> PartialEvaluator<'a> {
     fn bind_value_to_ident(&mut self, ident: &Ident, value: Value) {
         self.eval_context
             .get_current_scope_mut()
-            .insert_local_value(ident.id, value);
+            .insert_local_var_value(ident.id, value);
     }
 
     fn create_intrinsic_callable(
@@ -275,11 +278,11 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::String(_) => {
                 panic!("instruction generation for string expressions is invalid")
             }
-            ExprKind::Tuple(_) => todo!(),
+            ExprKind::Tuple(exprs) => self.eval_expr_tuple(exprs),
             ExprKind::UnOp(_, _) => todo!(),
             ExprKind::UpdateField(_, _, _) => todo!(),
             ExprKind::UpdateIndex(_, _, _) => todo!(),
-            ExprKind::Var(_, _) => todo!(),
+            ExprKind::Var(res, _) => Ok(self.eval_expr_var(res)),
             ExprKind::While(_, _) => todo!(),
         }
     }
@@ -290,13 +293,13 @@ impl<'a> PartialEvaluator<'a> {
         args_expr_id: ExprId,
     ) -> Result<Value, Error> {
         // Visit the both the callee and arguments expressions to get their value.
-        if self.visit_expr_and_get_value(args_expr_id).is_err() {
+        if self.try_get_expr_value(args_expr_id).is_err() {
             let callee_expr = self.get_expr(callee_expr_id);
             let error = Error::FailedToEvaluateCalleeExpression(callee_expr.span);
             return Err(error);
         };
 
-        let Ok(callable_value) = self.visit_expr_and_get_value(callee_expr_id) else {
+        let Ok(callable_value) = self.try_get_expr_value(callee_expr_id) else {
             let callee_expr = self.get_expr(callee_expr_id);
             let error = Error::FailedToEvaluateCalleeExpression(callee_expr.span);
             return Err(error);
@@ -321,7 +324,7 @@ impl<'a> PartialEvaluator<'a> {
         match &callable_decl.implementation {
             CallableImpl::Intrinsic => {
                 let value =
-                    self.eval_expr_call_to_intrinsic(store_item_id, &callable_decl, args_expr_id);
+                    self.eval_expr_call_to_intrinsic(store_item_id, callable_decl, args_expr_id);
                 Ok(value)
             }
             CallableImpl::Spec(spec_impl) => {
@@ -406,8 +409,39 @@ impl<'a> PartialEvaluator<'a> {
         );
         assert!(popped_functor_app == functor_app, "scope functor mismatch");
 
-        // Assume everything works for now.
+        // TODO (cesarzc): assume everything works for now but handle this properly later.
         Ok(Value::unit())
+    }
+
+    fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
+        let mut values = Vec::<Value>::new();
+        for expr_id in exprs {
+            let maybe_value = self.try_get_expr_value(*expr_id);
+            let Ok(value) = maybe_value else {
+                let expr = self.get_expr(*expr_id);
+                return Err(Error::FailedToEvaluateTupleElementExpression(expr.span));
+            };
+            values.push(value.clone());
+        }
+        Ok(Value::Tuple(values.into()))
+    }
+
+    fn eval_expr_var(&mut self, res: &Res) -> Value {
+        match res {
+            Res::Err => panic!("resolution error"),
+            Res::Item(item) => Value::Global(
+                StoreItemId {
+                    package: item.package.unwrap_or(self.get_current_package_id()),
+                    item: item.item,
+                },
+                FunctorApp::default(),
+            ),
+            Res::Local(local_var_id) => self
+                .eval_context
+                .get_current_scope()
+                .get_local_var_value(*local_var_id)
+                .clone(),
+        }
     }
 
     fn get_current_block_mut(&mut self) -> &mut rir::Block {
@@ -466,31 +500,38 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn qubit_release(&mut self, _args_expr_id: ExprId) -> Value {
-        unimplemented!();
+    fn qubit_release(&mut self, args_expr_id: ExprId) -> Value {
+        let args_expr_value = self
+            .eval_context
+            .get_current_scope()
+            .get_expr_value(args_expr_id);
+        let Value::Qubit(qubit) = args_expr_value else {
+            panic!("argument to qubit release is expected to be a qubit");
+        };
+        self.allocator.qubit_release(*qubit);
+
+        // The value of a qubit release is unit.
+        Value::unit()
     }
 
     fn resolve_call_arg_operands(&mut self, args_expr_id: ExprId) -> Vec<rir::Operand> {
-        let store_args_expr_id = StoreExprId::from((self.get_current_package_id(), args_expr_id));
-        let args_expr = self.package_store.get_expr(store_args_expr_id);
         let current_scope = self.eval_context.get_current_scope();
-        if let ExprKind::Tuple(exprs) = &args_expr.kind {
-            let mut values = Vec::<rir::Operand>::new();
-            for expr_id in exprs {
-                let arg_value = current_scope.get_expr_value(*expr_id);
-                let operand = map_eval_value_to_rir_operand(arg_value);
-                values.push(operand);
+        let args_expr_value = current_scope.get_expr_value(args_expr_id);
+        let mut operands = Vec::<rir::Operand>::new();
+        if let Value::Tuple(elements) = args_expr_value {
+            for value in elements.iter() {
+                let operand = map_eval_value_to_rir_operand(value);
+                operands.push(operand);
             }
-            values
         } else {
-            let current_scope = self.eval_context.get_current_scope();
-            let arg_value = current_scope.get_expr_value(args_expr_id);
-            let operand = map_eval_value_to_rir_operand(arg_value);
-            vec![operand]
+            let operand = map_eval_value_to_rir_operand(args_expr_value);
+            operands.push(operand);
         }
+
+        operands
     }
 
-    fn visit_expr_and_get_value(&mut self, expr_id: ExprId) -> Result<&Value, ()> {
+    fn try_get_expr_value(&mut self, expr_id: ExprId) -> Result<&Value, ()> {
         // Visit the expression, which will either populate the expression entry in the scope's value map or add an
         // error.
         self.visit_expr(expr_id);

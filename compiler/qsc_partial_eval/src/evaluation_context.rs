@@ -76,11 +76,17 @@ impl Scope {
             .expect("expression value does not exist")
     }
 
+    pub fn get_local_var_value(&self, local_var_id: LocalVarId) -> &Value {
+        self.hybrid_vars
+            .get(&local_var_id)
+            .expect("local variable value does not exist")
+    }
+
     pub fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
         self.hybrid_exprs.insert(expr_id, value);
     }
 
-    pub fn insert_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
+    pub fn insert_local_var_value(&mut self, local_var_id: LocalVarId, value: Value) {
         self.hybrid_vars.insert(local_var_id, value);
     }
 }
