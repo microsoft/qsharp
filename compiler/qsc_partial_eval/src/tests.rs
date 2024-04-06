@@ -323,6 +323,49 @@ fn calls_to_rotation_operation_using_variables() {
     );
 }
 
+#[test]
+fn measure_qubit() {
+    check_rir(
+        indoc! {r#"
+        namespace Test {
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                __quantum__qis__m__body(q);
+            }
+        }
+        "#},
+        &expect![[r#"
+            Program:
+                entry: 0
+                callables:
+                    Callable 0: Callable:
+                        name: main
+                        call_type: Regular
+                        input_type:  <VOID>
+                        output_type:  <VOID>
+                        body:  0
+                    Callable 1: Callable:
+                        name: __quantum__qis__mz__body
+                        call_type: Measurement
+                        input_type: 
+                            [0]: Qubit
+                            [1]: Result
+                        output_type:  <VOID>
+                        body:  <NONE>
+                blocks:
+                    Block 0: Block:
+                        Call id(1), args( Qubit(0), Result(0), )
+                        Return
+                config: Config:
+                    remap_qubits_on_reuse: false
+                    defer_measurements: false
+                num_qubits: 0
+                num_results: 0"#]],
+    );
+}
+
 struct CompilationContext {
     fir_store: PackageStore,
     compute_properties: PackageStoreComputeProperties,

@@ -12,7 +12,10 @@ use miette::Diagnostic;
 use qsc_data_structures::functors::FunctorApp;
 use qsc_data_structures::span::Span;
 use qsc_eval::{
-    self, exec_graph_section, output::GenericReceiver, val::Value, State, StepAction, StepResult,
+    self, exec_graph_section,
+    output::GenericReceiver,
+    val::{self, Value},
+    State, StepAction, StepResult,
 };
 use qsc_fir::{
     fir::{
@@ -344,6 +347,7 @@ impl<'a> PartialEvaluator<'a> {
         match callable_decl.name.name.as_ref() {
             "__quantum__rt__qubit_allocate" => self.qubit_allocate(),
             "__quantum__rt__qubit_release" => self.qubit_release(args_expr_id),
+            "__quantum__qis__m__body" => self.qubit_measure(args_expr_id),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_expr_id),
         }
     }
@@ -485,6 +489,21 @@ impl<'a> PartialEvaluator<'a> {
         Some(spec_decl)
     }
 
+    fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
+        // Check if the callable is already in the program, and if not add it.
+        let callable_name = callable.name.clone();
+        if let Entry::Vacant(entry) = self.callables_map.entry(callable_name.clone().into()) {
+            let callable_id = self.allocator.next_callable();
+            entry.insert(callable_id);
+            self.program.callables.insert(callable_id, callable);
+        }
+
+        *self
+            .callables_map
+            .get(callable_name.as_str())
+            .expect("callable not present")
+    }
+
     fn is_classical_stmt(&self, stmt_id: StmtId) -> bool {
         let current_package_id = self.get_current_package_id();
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
@@ -498,6 +517,32 @@ impl<'a> PartialEvaluator<'a> {
     fn qubit_allocate(&mut self) -> Value {
         let qubit = self.allocator.qubit_allocate();
         Value::Qubit(qubit)
+    }
+
+    fn qubit_measure(&mut self, args_expr_id: ExprId) -> Value {
+        // Get the qubit and result IDs to use in the qubit measure instruction.
+        let args_expr_value = self
+            .eval_context
+            .get_current_scope()
+            .get_expr_value(args_expr_id);
+        let Value::Qubit(qubit) = args_expr_value else {
+            panic!("argument to qubit measure is expected to be a qubit");
+        };
+        let qubit_value = Value::Qubit(*qubit);
+        let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
+        let result_value = Value::Result(self.allocator.next_result());
+        let result_operand = map_eval_value_to_rir_operand(&result_value);
+
+        // Check if the callable has already been added to the program and if not do so now.
+        let measure_callable = mz_callable();
+        let measure_callable_id = self.get_or_insert_callable(measure_callable);
+        let args = vec![qubit_operand, result_operand];
+        let instruction = Instruction::Call(measure_callable_id, args, None);
+        let current_block = self.get_current_block_mut();
+        current_block.0.push(instruction);
+
+        // Return the result value.
+        result_value
     }
 
     fn qubit_release(&mut self, args_expr_id: ExprId) -> Value {
@@ -651,8 +696,16 @@ fn map_eval_value_to_rir_operand(value: &Value) -> Operand {
         Value::Double(d) => Operand::Literal(Literal::Double(*d)),
         Value::Int(i) => Operand::Literal(Literal::Integer(*i)),
         Value::Qubit(q) => Operand::Literal(Literal::Qubit(
-            q.0.try_into().expect("could not convert to u32"),
+            q.0.try_into().expect("could not convert qubit ID to u32"),
         )),
+        Value::Result(r) => match r {
+            val::Result::Id(id) => Operand::Literal(Literal::Result(
+                (*id)
+                    .try_into()
+                    .expect("could not convert result ID to u32"),
+            )),
+            val::Result::Val(bool) => Operand::Literal(Literal::Bool(*bool)),
+        },
         _ => panic!("{value} cannot be mapped to a RIR operand"),
     }
 }
@@ -675,5 +728,16 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Int => rir::Ty::Integer,
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
+    }
+}
+
+#[must_use]
+pub fn mz_callable() -> Callable {
+    Callable {
+        name: "__quantum__qis__mz__body".to_string(),
+        input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Measurement,
     }
 }

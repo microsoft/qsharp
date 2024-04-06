@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_eval::{backend::Backend, val::Qubit};
+use qsc_eval::{
+    backend::Backend,
+    val::{Qubit, Result},
+};
 use qsc_rir::rir::{BlockId, CallableId};
 
 #[derive(Default)]
@@ -9,7 +12,7 @@ pub struct Allocator {
     qubits_in_use: Vec<bool>,
     next_callable: CallableId,
     next_block: BlockId,
-    _next_result_id: usize,
+    next_result_id: usize,
 }
 
 impl Allocator {
@@ -39,10 +42,10 @@ impl Allocator {
         id
     }
 
-    pub fn next_result(&mut self) -> usize {
-        let result_id = self._next_result_id;
-        self._next_result_id += 1;
-        result_id
+    pub fn next_result(&mut self) -> Result {
+        let result_id = self.next_result_id;
+        self.next_result_id += 1;
+        Result::Id(result_id)
     }
 }
 
