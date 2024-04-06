@@ -335,15 +335,6 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 })
 
 @[exercise]({
-    "id": "single_qubit_gates__basis_change",
-    "title": "Basis Change",
-    "path": "./basis_change/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
-
-@[exercise]({
     "id": "single_qubit_gates__sign_flip",
     "title": "Sign Flip",
     "path": "./sign_flip/",
@@ -433,6 +424,16 @@ $H|-i\rangle = e^{-i\pi/4}|i\rangle $ <br>
 
 > As a reminder, $e^{i\pi/4} = \frac{1}{\sqrt2} (1 + i)$ and $e^{-i\pi/4} = \frac{1}{\sqrt2} (1 - i)$. This is an application of Euler's formula, $e^{i\theta} = \cos \theta + i\sin \theta$, where $\theta$ is measured in radians.
 > See this [Wikipedia article](https://en.wikipedia.org/wiki/Euler%27s_formula) for an explanation of Euler's formula and/or [this video](https://youtu.be/v0YEaeIClKY) for a more intuitive explanation.
+
+@[exercise]({
+    "id": "single_qubit_gates__basis_change",
+    "title": "Basis Change",
+    "path": "./basis_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 
 @[exercise]({
     "id": "single_qubit_gates__prepare_minus",
