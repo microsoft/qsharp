@@ -3,7 +3,10 @@
 
 use qsc_data_structures::index_map::IndexMap;
 
-use crate::rir::{BlockId, Instruction, Operand, Program, VariableId};
+use crate::{
+    rir::{BlockId, Instruction, Operand, Program, VariableId},
+    utils::get_variable_assignments,
+};
 
 #[cfg(test)]
 mod tests;
@@ -52,8 +55,25 @@ pub fn check_ssa_form(
 
 fn check_phi_nodes(program: &Program, preds: &IndexMap<BlockId, Vec<BlockId>>) {
     for (block_id, block) in program.blocks.iter() {
+        let Some(block_preds) = preds.get(block_id) else {
+            // Block with no predecessors cannot have phi nodes.
+            assert!(
+                block
+                    .0
+                    .iter()
+                    .all(|instr| !matches!(instr, Instruction::Phi(..))),
+                "{block_id:?} has phi nodes but no predecessors"
+            );
+            continue;
+        };
         for instr in &block.0 {
             if let Instruction::Phi(args, res) = instr {
+                assert!(
+                    block_preds.len() == args.len(),
+                    "Phi node in {block_id:?} has {} arguments but {} predecessors",
+                    args.len(),
+                    block_preds.len()
+                );
                 for (val, pred_block_id) in args {
                     assert!(
                         preds
@@ -73,49 +93,6 @@ fn check_phi_nodes(program: &Program, preds: &IndexMap<BlockId, Vec<BlockId>>) {
             }
         }
     }
-}
-
-fn get_variable_assignments(program: &Program) -> IndexMap<VariableId, (BlockId, usize)> {
-    let mut assignments = IndexMap::default();
-    for (block_id, block) in program.blocks.iter() {
-        for (idx, instr) in block.0.iter().enumerate() {
-            match instr {
-                Instruction::Call(_, _, Some(var))
-                | Instruction::Add(_, _, var)
-                | Instruction::Sub(_, _, var)
-                | Instruction::Mul(_, _, var)
-                | Instruction::Sdiv(_, _, var)
-                | Instruction::Srem(_, _, var)
-                | Instruction::Shl(_, _, var)
-                | Instruction::Ashr(_, _, var)
-                | Instruction::Icmp(_, _, _, var)
-                | Instruction::LogicalNot(_, var)
-                | Instruction::LogicalAnd(_, _, var)
-                | Instruction::LogicalOr(_, _, var)
-                | Instruction::BitwiseNot(_, var)
-                | Instruction::BitwiseAnd(_, _, var)
-                | Instruction::BitwiseOr(_, _, var)
-                | Instruction::BitwiseXor(_, _, var)
-                | Instruction::Phi(_, var) => {
-                    assert!(
-                        !assignments.contains_key(var.variable_id),
-                        "Duplicate assignment to {:?} in {block_id:?}, instruction {idx}",
-                        var.variable_id
-                    );
-                    assignments.insert(var.variable_id, (block_id, idx));
-                }
-                Instruction::Call(_, _, None)
-                | Instruction::Jump(..)
-                | Instruction::Branch(..)
-                | Instruction::Return => {}
-
-                Instruction::Store(..) => {
-                    panic!("Unexpected Store at {block_id:?}, instruction {idx}")
-                }
-            }
-        }
-    }
-    assignments
 }
 
 fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, usize)>> {

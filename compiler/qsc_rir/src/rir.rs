@@ -416,8 +416,15 @@ impl Display for Instruction {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct VariableId(pub u32);
+
+impl VariableId {
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
 
 impl From<VariableId> for usize {
     fn from(id: VariableId) -> usize {
@@ -431,7 +438,7 @@ impl From<usize> for VariableId {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Variable {
     pub variable_id: VariableId,
     pub ty: Ty,
@@ -469,7 +476,7 @@ impl Display for Ty {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Operand {
     Literal(Literal),
     Variable(Variable),
@@ -484,7 +491,24 @@ impl Display for Operand {
     }
 }
 
-#[derive(Clone, Copy)]
+impl Operand {
+    #[must_use]
+    pub fn get_type(&self) -> Ty {
+        match self {
+            Operand::Literal(lit) => match lit {
+                Literal::Qubit(_) => Ty::Qubit,
+                Literal::Result(_) => Ty::Result,
+                Literal::Bool(_) => Ty::Boolean,
+                Literal::Integer(_) => Ty::Integer,
+                Literal::Double(_) => Ty::Double,
+                Literal::Pointer => Ty::Pointer,
+            },
+            Operand::Variable(var) => var.ty,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
 pub enum Literal {
     Qubit(u32),
     Result(u32),

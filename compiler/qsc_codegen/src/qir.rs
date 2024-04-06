@@ -463,7 +463,8 @@ impl ToQir<String> for rir::Callable {
             );
         };
         let mut body = String::new();
-        let all_blocks = get_all_block_successors(entry_id, program);
+        let mut all_blocks = vec![entry_id];
+        all_blocks.extend(get_all_block_successors(entry_id, program));
         for block_id in all_blocks {
             let block = program.get_block(block_id);
             body.push_str(&format!(

@@ -7,57 +7,56 @@ use rustc_hash::FxHashMap;
 
 use crate::{
     rir::{BlockId, Instruction, Program},
-    utils::get_block_successors,
+    utils::{get_all_block_successors, get_block_successors},
 };
 
 #[cfg(test)]
 mod tests;
 
 /// Remaps block IDs in the given program to be contiguous, starting from 0,
-/// and in a way that reflects control flow. Specifically, blocks in each new "layer" are
-/// given new IDs such that the graph will be ordered by control flow.
-/// This is useful for passes that need to iterate over all blocks in a program in a well-defined order.
-/// For example, the following graph would be remapped as follows:
-/// Entry: 2,
-/// 2 -> 1,
-/// 1 -> 0 or 3,
-/// 0 -> 4,
-/// 3 -> 4 or 6,
-/// 4 -> 5,
-/// 6 -> 5,
-/// becomes:
-/// Entry: 0,
-/// 0 -> 1,
-/// 1 -> 2 or 3,
-/// 2 -> 4,
-/// 3 -> 4 or 5,
-/// 4 -> 6,
-/// 5 -> 6
+/// and in a topological ordering if the program is Directed Acyclic Graph (DAG).
+/// Toplogical ordering is useful for passes that assume each block's successors
+/// have higher IDs than the block itself. This is best effort; if the program has a cycle,
+/// the function will still remap block IDs but the ordering may not be topological.
 pub fn remap_block_ids(program: &mut Program) {
+    // Check if the program is acyclic, which lets us construct a topological ordering.
+    let is_acyclic = check_acyclic(program);
+
     // Only update the entry point.
     let entry_block_id = program
         .get_callable(program.entry)
         .body
         .expect("entry point should have a body block");
 
-    let mut block_id_map = FxHashMap::default();
+    // Because we know the program is acyclic, we can keep a list as the map from old block IDs to new block IDs, where
+    // the new block ID is the index in the list.
+    let mut block_id_map = Vec::new();
     let mut blocks_to_visit: VecDeque<BlockId> = vec![entry_block_id].into();
-    let mut next_block_id = 0_usize;
     while let Some(block_id) = blocks_to_visit.pop_front() {
-        if block_id_map.contains_key(&block_id) {
+        // If we've already visited this block, remove it from the previous ordering so that we can insert it at the end.
+        // This effectively remaps all the blocks in the list and updates the mapped id of the current block.
+        // This is only safe without cycles, so on a cyclic graph the node is skipped and not remapped.
+        if is_acyclic {
+            block_id_map.retain_mut(|id| *id != block_id);
+        } else if block_id_map.contains(&block_id) {
             continue;
         }
-
-        block_id_map.insert(block_id, next_block_id);
-        next_block_id += 1;
+        block_id_map.push(block_id);
 
         blocks_to_visit.extend(get_block_successors(program.get_block(block_id)));
     }
 
+    let block_id_map = block_id_map
+        .into_iter()
+        .enumerate()
+        .map(|(new_id, old_id)| (old_id, new_id))
+        .collect::<FxHashMap<_, _>>();
+
     let blocks = program.blocks.drain().collect::<Vec<_>>();
     for (old_block_id, mut block) in blocks {
         let new_block_id = block_id_map[&old_block_id];
-        update_instr(
+        update_phi_nodes(&block_id_map, &mut block.0);
+        update_terminator(
             &block_id_map,
             block
                 .0
@@ -73,7 +72,32 @@ pub fn remap_block_ids(program: &mut Program) {
         .body = Some(block_id_map[&entry_block_id].into());
 }
 
-fn update_instr(block_id_map: &FxHashMap<BlockId, usize>, instruction: &mut Instruction) {
+fn check_acyclic(program: &Program) -> bool {
+    for (block_id, _) in program.blocks.iter() {
+        if get_all_block_successors(block_id, program).contains(&block_id) {
+            return false;
+        }
+    }
+    true
+}
+
+fn update_phi_nodes(block_id_map: &FxHashMap<BlockId, usize>, instrs: &mut [Instruction]) {
+    for instr in instrs.iter_mut() {
+        if let Instruction::Phi(args, _) = instr {
+            for arg in args.iter_mut() {
+                arg.1 = (*block_id_map
+                    .get(&arg.1)
+                    .expect("block ids in phi node should exist in block id map"))
+                .into();
+            }
+        } else {
+            // Since phi nodes are always at the top of the block, we can break early.
+            return;
+        }
+    }
+}
+
+fn update_terminator(block_id_map: &FxHashMap<BlockId, usize>, instruction: &mut Instruction) {
     match instruction {
         Instruction::Jump(target) => {
             *target = block_id_map[target].into();
