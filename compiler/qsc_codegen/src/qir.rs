@@ -42,7 +42,13 @@ pub fn fir_to_qir(
     capabilities: RuntimeCapabilityFlags,
 ) -> Result<String, qsc_partial_eval::Error> {
     let program = get_rir_from_compilation(fir_store, fir_package_id, capabilities)?;
+    let mut program = get_rir_from_compilation(fir_store, fir_package_id, capabilities)?;
+    check_and_transform(&mut program);
+    if capabilities.is_empty() {
+        defer_quantum_measurements(&mut program);
+    }
     Ok(ToQir::<String>::to_qir(&program, &program))
+
 }
 
 fn get_rir_from_compilation(
