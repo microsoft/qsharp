@@ -78,16 +78,18 @@ impl Compilation {
             .expect("expected to find user package");
 
         if errors.is_empty() && target_profile != Profile::Unrestricted {
-            let caps_errors = PassContext::run_fir_passes_on_hir(
+            let cap_results = PassContext::run_fir_passes_on_hir(
                 &package_store,
                 package_id,
                 target_profile.into(),
             );
-            for err in caps_errors {
-                errors.push(WithSource::from_map(
-                    &unit.sources,
-                    compile::ErrorKind::Pass(err),
-                ));
+            if let Err(caps_errors) = cap_results {
+                for err in caps_errors {
+                    errors.push(WithSource::from_map(
+                        &unit.sources,
+                        compile::ErrorKind::Pass(err),
+                    ));
+                }
             }
         }
 

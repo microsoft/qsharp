@@ -31,7 +31,7 @@ use qsc_hir::{
     visit::Visitor,
 };
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_rca::PackageComputeProperties;
+use qsc_rca::{PackageComputeProperties, PackageStoreComputeProperties};
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
 
@@ -120,23 +120,21 @@ impl PassContext {
             .collect()
     }
 
-    #[must_use]
     pub fn run_fir_passes_on_hir(
         package_store: &qsc_frontend::compile::PackageStore,
         package_id: qsc_hir::hir::PackageId,
         capabilities: RuntimeCapabilityFlags,
-    ) -> Vec<Error> {
+    ) -> Result<PackageStoreComputeProperties, Vec<Error>> {
         let fir_store = lower_store(package_store);
         let fir_package_id = map_hir_package_to_fir(package_id);
         Self::run_fir_passes_on_fir(&fir_store, fir_package_id, capabilities)
     }
 
-    #[must_use]
     pub fn run_fir_passes_on_fir(
         fir_store: &qsc_fir::fir::PackageStore,
         package_id: qsc_fir::fir::PackageId,
         capabilities: RuntimeCapabilityFlags,
-    ) -> Vec<Error> {
+    ) -> Result<PackageStoreComputeProperties, Vec<Error>> {
         run_rca_pass(fir_store, package_id, capabilities)
     }
 }

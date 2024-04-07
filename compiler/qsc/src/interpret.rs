@@ -476,17 +476,18 @@ impl Interpreter {
         let fir_package = fir_store.get_mut(self.package);
         let stmts = lowerer.lower_and_update_package(fir_package, &unit.hir);
 
-        let caps_errors =
+        let cap_results =
             PassContext::run_fir_passes_on_fir(&fir_store, self.package, self.capabilities);
         // if there are no errors, update the interpreter state
         // with the updated FIR store and lowerer so that we
         // don't have to do this twice.
-        if caps_errors.is_empty() {
+        let Err(caps_errors) = cap_results else {
             self.fir_store = fir_store;
             let graph = lowerer.take_exec_graph();
             self.lowerer = lowerer;
             return Ok((stmts, graph));
-        }
+        };
+
         // if there are errors, convert them to interpreter errors
         // and don't update the lowerer or FIR store.
         let mut errors = Vec::with_capacity(caps_errors.len());

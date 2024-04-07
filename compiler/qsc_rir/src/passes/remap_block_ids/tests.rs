@@ -566,9 +566,9 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  4
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 4
             blocks:
                 Block 0: Block:
                     Jump(8)
@@ -604,9 +604,9 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Branch Variable(0, Boolean), 1, 2

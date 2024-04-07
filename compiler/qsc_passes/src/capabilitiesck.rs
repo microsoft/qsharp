@@ -28,7 +28,8 @@ use qsc_fir::{
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_rca::{
-    Analyzer, ComputeKind, ItemComputeProperties, PackageComputeProperties, RuntimeFeatureFlags,
+    Analyzer, ComputeKind, ItemComputeProperties, PackageComputeProperties,
+    PackageStoreComputeProperties, RuntimeFeatureFlags,
 };
 use rustc_hash::FxHashMap;
 use thiserror::Error;
@@ -188,7 +189,7 @@ pub fn run_rca_pass(
     fir_store: &qsc_fir::fir::PackageStore,
     package_id: qsc_fir::fir::PackageId,
     capabilities: RuntimeCapabilityFlags,
-) -> Vec<crate::Error> {
+) -> Result<PackageStoreComputeProperties, Vec<crate::Error>> {
     let analyzer = Analyzer::init(fir_store);
     let compute_properties = analyzer.analyze_all();
     let fir_package = fir_store.get(package_id);
@@ -196,7 +197,16 @@ pub fn run_rca_pass(
     let package_compute_properties = compute_properties.get(package_id);
     let mut errors =
         check_supported_capabilities(fir_package, package_compute_properties, capabilities);
-    errors.drain(..).map(crate::Error::CapabilitiesCk).collect()
+
+    if errors.is_empty() {
+        Ok(compute_properties)
+    } else {
+        let errors = errors
+            .drain(..)
+            .map(crate::Error::CapabilitiesCk)
+            .collect::<Vec<_>>();
+        Err(errors)
+    }
 }
 
 #[must_use]

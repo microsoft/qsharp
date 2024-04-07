@@ -151,9 +151,10 @@ fn _get_qir_preview(
 
     let package_id = package_store.insert(unit);
 
-    let errors = PassContext::run_fir_passes_on_hir(&package_store, package_id, profile.into());
+    let caps_results =
+        PassContext::run_fir_passes_on_hir(&package_store, package_id, profile.into());
     // Ensure it compiles before trying to add it to the store.
-    if !errors.is_empty() {
+    if caps_results.is_err() {
         // This should never happen, as the program should be checked for errors before trying to
         // generate code for it. But just in case, simply report the failure.
         return Err("Failed to generate QIR".to_string());

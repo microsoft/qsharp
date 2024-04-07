@@ -12,6 +12,7 @@ use qsc_hir::hir;
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_partial_eval::partially_evaluate;
 use qsc_rir::{
+    passes::{check_and_transform, defer_quantum_measurements},
     rir::{self, ConditionCode},
     utils::get_all_block_successors,
 };
@@ -48,7 +49,6 @@ pub fn fir_to_qir(
         defer_quantum_measurements(&mut program);
     }
     Ok(ToQir::<String>::to_qir(&program, &program))
-
 }
 
 fn get_rir_from_compilation(
