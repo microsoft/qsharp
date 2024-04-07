@@ -324,12 +324,12 @@ impl<'a> PartialEvaluator<'a> {
         // Get the operands to use when generating the binary operation instruction depending on the type of the
         // expression's value.
         let lhs_operand = if let Value::Result(result) = lhs_expr_value {
-            self.eval_result_as_operand(result)
+            self.eval_result_as_bool_operand(result)
         } else {
             map_eval_value_to_rir_operand(&lhs_expr_value)
         };
         let rhs_operand = if let Value::Result(result) = rhs_expr_value {
-            self.eval_result_as_operand(result)
+            self.eval_result_as_bool_operand(result)
         } else {
             map_eval_value_to_rir_operand(&rhs_expr_value)
         };
@@ -517,8 +517,31 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn eval_result_as_operand(&mut self, _result: val::Result) -> Operand {
-        unimplemented!();
+    fn eval_result_as_bool_operand(&mut self, result: val::Result) -> Operand {
+        match result {
+            val::Result::Id(id) => {
+                // If this is a result ID, generate the instruction to read it.
+                let result_operand = Operand::Literal(Literal::Result(
+                    id.try_into().expect("could not convert result ID to u32"),
+                ));
+                let read_result_callable_id = self.get_or_insert_callable(read_result_callable());
+                let variable_id = self.allocator.next_var();
+                let variable_ty = rir::Ty::Boolean;
+                let variable = Variable {
+                    variable_id,
+                    ty: variable_ty,
+                };
+                let instruction = Instruction::Call(
+                    read_result_callable_id,
+                    vec![result_operand],
+                    Some(variable),
+                );
+                let current_block = self.get_current_block_mut();
+                current_block.0.push(instruction);
+                Operand::Variable(variable)
+            }
+            val::Result::Val(bool) => Operand::Literal(Literal::Bool(bool)),
+        }
     }
 
     fn get_current_block_mut(&mut self) -> &mut rir::Block {
@@ -822,5 +845,16 @@ pub fn mz_callable() -> Callable {
         output_type: None,
         body: None,
         call_type: CallableType::Measurement,
+    }
+}
+
+#[must_use]
+pub fn read_result_callable() -> Callable {
+    Callable {
+        name: "__quantum__rt__read_result__body".to_string(),
+        input_type: vec![rir::Ty::Result],
+        output_type: Some(rir::Ty::Boolean),
+        body: None,
+        call_type: CallableType::Readout,
     }
 }
