@@ -11,6 +11,7 @@ use qsc_frontend::compile::RuntimeCapabilityFlags;
 use qsc_hir::hir;
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_partial_eval::partially_evaluate;
+use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
     passes::{check_and_transform, defer_quantum_measurements},
     rir::{self, ConditionCode},
@@ -31,18 +32,20 @@ pub fn hir_to_qir(
     package_store: &qsc_frontend::compile::PackageStore,
     package_id: hir::PackageId,
     capabilities: RuntimeCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
 ) -> Result<String, qsc_partial_eval::Error> {
     let fir_store = lower_store(package_store);
     let fir_package_id = map_hir_package_to_fir(package_id);
-    fir_to_qir(&fir_store, fir_package_id, capabilities)
+    fir_to_qir(&fir_store, fir_package_id, capabilities, compute_properties)
 }
 
 pub fn fir_to_qir(
     fir_store: &qsc_fir::fir::PackageStore,
     fir_package_id: qsc_fir::fir::PackageId,
     capabilities: RuntimeCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
 ) -> Result<String, qsc_partial_eval::Error> {
-    let mut program = get_rir_from_compilation(fir_store, fir_package_id, capabilities)?;
+    let mut program = get_rir_from_compilation(fir_store, fir_package_id, compute_properties)?;
     check_and_transform(&mut program);
     if capabilities.is_empty() {
         defer_quantum_measurements(&mut program);
@@ -53,10 +56,13 @@ pub fn fir_to_qir(
 fn get_rir_from_compilation(
     fir_store: &qsc_fir::fir::PackageStore,
     fir_package_id: qsc_fir::fir::PackageId,
-    _capabilities: RuntimeCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
 ) -> Result<rir::Program, qsc_partial_eval::Error> {
-    let analyzer = qsc_rca::Analyzer::init(fir_store);
-    let compute_properties = analyzer.analyze_all();
+    let compute_properties = compute_properties.unwrap_or_else(|| {
+        let analyzer = qsc_rca::Analyzer::init(fir_store);
+        analyzer.analyze_all()
+    });
+
     partially_evaluate(fir_package_id, fir_store, &compute_properties)
 }
 

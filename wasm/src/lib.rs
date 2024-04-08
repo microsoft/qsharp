@@ -154,13 +154,20 @@ fn _get_qir_preview(
     let caps_results =
         PassContext::run_fir_passes_on_hir(&package_store, package_id, profile.into());
     // Ensure it compiles before trying to add it to the store.
-    if caps_results.is_err() {
-        // This should never happen, as the program should be checked for errors before trying to
-        // generate code for it. But just in case, simply report the failure.
-        return Err("Failed to generate QIR".to_string());
+    match caps_results {
+        Ok(compute_properties) => hir_to_qir(
+            &package_store,
+            package_id,
+            profile.into(),
+            Some(compute_properties),
+        )
+        .map_err(|e| e.to_string()),
+        Err(_) => {
+            // This should never happen, as the program should be checked for errors before trying to
+            // generate code for it. But just in case, simply report the failure.
+            Err("Failed to generate QIR".to_string())
+        }
     }
-
-    hir_to_qir(&package_store, package_id, profile.into()).map_err(|e| e.to_string())
 }
 
 #[wasm_bindgen]
