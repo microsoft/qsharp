@@ -30,6 +30,8 @@ type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
 
+  getAst(code: string, languageFeatures?: string[]): Promise<string>;
+
   getHir(code: string, languageFeatures?: string[]): Promise<string>;
 
   /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
@@ -191,6 +193,10 @@ export class Compiler implements ICompiler {
     return this.wasm.get_estimates(sources, params, languageFeatures);
   }
 
+  async getAst(code: string, languageFeatures: string[]): Promise<string> {
+    return this.wasm.get_ast(code, languageFeatures);
+  }
+
   async getHir(code: string, languageFeatures: string[]): Promise<string> {
     return this.wasm.get_hir(code, languageFeatures);
   }
@@ -288,6 +294,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
   class: Compiler,
   methods: {
     checkCode: "request",
+    getAst: "request",
     getHir: "request",
     getQir: "request",
     getEstimates: "request",

@@ -170,6 +170,7 @@ export function Kata(props: {
                   code={section.placeholderCode}
                   kataExercise={section}
                   key={section.id}
+                  setAst={() => ({})}
                   setHir={() => ({})}
                   activeTab="results-tab"
                   languageService={props.languageService}
@@ -180,6 +181,7 @@ export function Kata(props: {
                   showPanel={false}
                   kataMode={true}
                   onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+                  ast=""
                   hir=""
                   activeTab="results-tab"
                   setActiveTab={() => undefined}
