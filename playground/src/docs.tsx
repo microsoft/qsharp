@@ -20,14 +20,16 @@ export function getNamespaces(
 export function processDocumentFiles(docFiles: DocFile[]): Map<string, string> {
   const md = markdownit();
   const contentByNamespace = new Map<string, string>();
-  const regex = new RegExp("^qsharp.namespace: (.+)$", "m");
+  const regex = new RegExp("^qsharp.namespace: Microsoft.Quantum.(.+)$", "m");
 
   for (const doc of docFiles) {
     const match = regex.exec(doc.metadata); // Parse namespace out of metadata
     if (match == null) {
       continue; // Skip items with non-parsable metadata
     }
-    const newNamespace = match[1];
+    // The next line contains "Zero-width space" unicode character
+    // to allow line breaks before the period.
+    const newNamespace = "… " + match[1].replace(".", "​.");
     const newContent = md.render(doc.contents);
 
     if (contentByNamespace.has(newNamespace)) {
