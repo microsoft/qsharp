@@ -49,6 +49,9 @@ pub fn partially_evaluate(
 #[error(transparent)]
 pub enum Error {
     EvaluationFailed(qsc_eval::Error),
+    #[error("failed to evaluate {0}")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallable"))]
+    FailedToEvaluateCallable(String, #[label] Span),
     #[error("failed to evaluate callee expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCalleeExpression"))]
     FailedToEvaluateCalleeExpression(#[label] Span),
@@ -241,8 +244,7 @@ impl<'a> PartialEvaluator<'a> {
         let mut out = Vec::new();
         let mut receiver = GenericReceiver::new(&mut out);
         let mut state = State::new(current_package_id, exec_graph, None);
-        // TODO (cesarzc): handle error.
-        _ = state.eval(
+        let eval_result = state.eval(
             self.package_store,
             &mut scope.env,
             &mut self.backend,
@@ -250,6 +252,9 @@ impl<'a> PartialEvaluator<'a> {
             &[],
             StepAction::Continue,
         );
+        if let Err((eval_error, _)) = eval_result {
+            self.errors.push(Error::EvaluationFailed(eval_error));
+        }
     }
 
     fn eval_expr(&mut self, expr_id: ExprId) -> Result<Value, Error> {
@@ -449,10 +454,9 @@ impl<'a> PartialEvaluator<'a> {
         Value::unit()
     }
 
-    #[allow(clippy::unnecessary_wraps)]
     fn eval_expr_call_to_spec(
         &mut self,
-        global_callable: StoreItemId,
+        global_callable_id: StoreItemId,
         functor_app: FunctorApp,
         spec_impl: &SpecImpl,
         _args_expr_id: ExprId,
@@ -462,28 +466,45 @@ impl<'a> PartialEvaluator<'a> {
         // We are currently not setting the argument values in a way that supports arbitrary calls, but we'll add that
         // support later.
         let callable_scope = Scope::new(
-            global_callable.package,
-            Some((global_callable.item, functor_app)),
+            global_callable_id.package,
+            Some((global_callable_id.item, functor_app)),
             Vec::new(),
         );
         self.eval_context.push_scope(callable_scope);
         self.visit_block(spec_decl.block);
         let popped_scope = self.eval_context.pop_scope();
         assert!(
-            popped_scope.package_id == global_callable.package,
+            popped_scope.package_id == global_callable_id.package,
             "scope package ID mismatch"
         );
         let (popped_callable_id, popped_functor_app) = popped_scope
             .callable
             .expect("callable in scope is not specified");
         assert!(
-            popped_callable_id == global_callable.item,
+            popped_callable_id == global_callable_id.item,
             "scope callable ID mismatch"
         );
         assert!(popped_functor_app == functor_app, "scope functor mismatch");
 
-        // TODO (cesarzc): assume everything works for now but handle this properly later.
-        Ok(Value::unit())
+        // Check whether evaluating the block failed.
+        if self.errors.is_empty() {
+            // Once we have proper support for evaluating all kinds of callables (not just parameterless unitary
+            // callables), we should the variable that stores the callable return value here.
+            Ok(Value::unit())
+        } else {
+            // Evaluating the block failed, generate an error specific to the callable.
+            let global_callable = self
+                .package_store
+                .get_global(global_callable_id)
+                .expect("global does not exist");
+            let Global::Callable(callable_decl) = global_callable else {
+                panic!("global is not a callable");
+            };
+            Err(Error::FailedToEvaluateCallable(
+                callable_decl.name.name.to_string(),
+                callable_decl.name.span,
+            ))
+        }
     }
 
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
@@ -708,6 +729,17 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         self.package_store.get_stmt(stmt_id)
     }
 
+    fn visit_block(&mut self, block: BlockId) {
+        let block = self.get_block(block);
+        for stmt_id in &block.stmts {
+            self.visit_stmt(*stmt_id);
+            // Stop processing more statements if an error occurred.
+            if !self.errors.is_empty() {
+                return;
+            }
+        }
+    }
+
     fn visit_expr(&mut self, expr_id: ExprId) {
         assert!(
             self.errors.is_empty(),
@@ -749,11 +781,9 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         let stmt = self.package_store.get_stmt(store_stmt_id);
         match stmt.kind {
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
-                // TODO (cesarzc): hanlde error.
                 self.visit_expr(expr_id);
             }
             StmtKind::Local(_, pat_id, expr_id) => {
-                // TODO (cesarzc): hanlde error.
                 self.visit_expr(expr_id);
                 self.bind_expr_to_pat(pat_id, expr_id);
             }
