@@ -86,7 +86,7 @@ export async function getQirForActiveWindow(): Promise<string> {
     }
     if (getTarget() === "adaptive") {
       // if the target is adaptive, we already know adaptive is enabled
-      languageFeatures.push("adaptive-qir-gen");
+      languageFeatures.push("adaptive-profile");
     }
     result = await worker.getQir({ sources, languageFeatures });
 
