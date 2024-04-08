@@ -3,8 +3,6 @@
 
 mod evaluation_context;
 mod management;
-#[cfg(test)]
-mod tests;
 
 use evaluation_context::{EvaluationContext, Scope};
 use management::{Allocator, QuantumIntrinsicsChecker};

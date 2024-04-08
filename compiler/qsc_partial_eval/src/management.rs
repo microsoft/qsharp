@@ -19,6 +19,7 @@ pub struct Allocator {
 impl Allocator {
     pub fn qubit_allocate(&mut self) -> Qubit {
         if let Some(qubit_id) = self.qubits_in_use.iter().position(|in_use| !in_use) {
+            self.qubits_in_use[qubit_id] = true;
             Qubit(qubit_id)
         } else {
             self.qubits_in_use.push(true);
