@@ -84,7 +84,7 @@ pub fn get_qir(
         // determine what profile to target as the get_qir interface doesn't
         // have a way to specify the profile to target and the old codegen
         // is hardcoded to use the Base profile.
-        let profile = if language_features.contains(LanguageFeatures::AdaptiveProfileQirGen) {
+        let profile = if language_features.contains(LanguageFeatures::AdaptiveProfile) {
             Profile::Adaptive
         } else {
             Profile::Base
