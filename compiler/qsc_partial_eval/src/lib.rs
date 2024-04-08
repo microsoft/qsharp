@@ -7,7 +7,7 @@ mod management;
 mod tests;
 
 use evaluation_context::{EvaluationContext, Scope};
-use management::{Allocator, QubitsAndResultsAllocator};
+use management::{Allocator, QuantumIntrinsicsChecker};
 use miette::Diagnostic;
 use qsc_data_structures::functors::FunctorApp;
 use qsc_data_structures::span::Span;
@@ -67,7 +67,7 @@ struct PartialEvaluator<'a> {
     package_store: &'a PackageStore,
     compute_properties: &'a PackageStoreComputeProperties,
     allocator: Allocator,
-    backend: QubitsAndResultsAllocator,
+    backend: QuantumIntrinsicsChecker,
     callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
@@ -104,7 +104,7 @@ impl<'a> PartialEvaluator<'a> {
             compute_properties,
             eval_context: context,
             allocator,
-            backend: QubitsAndResultsAllocator::default(),
+            backend: QuantumIntrinsicsChecker::default(),
             callables_map: FxHashMap::default(),
             program,
             errors: Vec::new(),

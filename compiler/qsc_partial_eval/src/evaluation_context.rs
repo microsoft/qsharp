@@ -41,7 +41,7 @@ impl EvaluationContext {
     }
 
     pub fn push_scope(&mut self, s: Scope) {
-        self.scopes.push(s)
+        self.scopes.push(s);
     }
 }
 

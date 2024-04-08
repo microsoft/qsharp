@@ -56,46 +56,19 @@ impl Allocator {
     }
 }
 
+/// Custom backend meant to panic when most of its methods are called.
+/// Since the partial evaluator is meant to generate instructions for most quantum operations, but we are also using
+/// the evaluator for computations that are purely classical, the role of this backend is to catch instances of
+/// quantum operations being simulated when they should not.
 #[derive(Default)]
-pub struct QubitsAndResultsAllocator {
-    qubit_id: usize,
-    result_id: usize,
-}
+pub struct QuantumIntrinsicsChecker {}
 
-impl Backend for QubitsAndResultsAllocator {
+impl Backend for QuantumIntrinsicsChecker {
     type ResultType = usize;
 
-    fn m(&mut self, _q: usize) -> Self::ResultType {
-        self.next_measurement()
-    }
-
-    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
-        self.next_measurement()
-    }
-
-    fn qubit_allocate(&mut self) -> usize {
-        self.next_qubit()
-    }
-
-    fn qubit_release(&mut self, _q: usize) {
-        // Do nothing.
-    }
-
     fn qubit_is_zero(&mut self, _q: usize) -> bool {
+        // Because `qubit_is_zero` is called on every qubit release, this must return
+        // true to avoid a panic.
         true
-    }
-}
-
-impl QubitsAndResultsAllocator {
-    fn next_measurement(&mut self) -> usize {
-        let result_id = self.result_id;
-        self.result_id += 1;
-        result_id
-    }
-
-    fn next_qubit(&mut self) -> usize {
-        let qubit_id = self.qubit_id;
-        self.qubit_id += 1;
-        qubit_id
     }
 }
