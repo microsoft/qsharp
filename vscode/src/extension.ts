@@ -161,6 +161,8 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }),
   );
 
+  // Trigger an update on all .qs child documents when their manifest is deleted,
+  // so that they can get reparented to single-file-projects.
   subscriptions.push(
     vscode.workspace.onDidDeleteFiles((event) => {
       event.files.forEach((uri) => {
