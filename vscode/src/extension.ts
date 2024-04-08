@@ -157,27 +157,37 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
   // Watch manifest changes and update each document in the same project as the manifest.
   subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((manifest) => {
-      if (
-        manifest.languageId === "json" &&
-        manifest.uri.scheme === "file" &&
-        manifest.fileName.endsWith("qsharp.json")
-      ) {
-        const project_folder = manifest.fileName.slice(
-          0,
-          manifest.fileName.length - "qsharp.json".length,
-        );
-        vscode.workspace.textDocuments.forEach((document) => {
-          if (
-            !document.isClosed &&
-            // Check that the document is on the same project as the manifest.
-            document.fileName.startsWith(project_folder)
-          ) {
-            updateIfQsharpDocument(document);
-          }
-        });
-      }
+      updateProjectDocuments(manifest.uri);
     }),
   );
+
+  subscriptions.push(
+    vscode.workspace.onDidDeleteFiles((event) => {
+      event.files.forEach((uri) => {
+        updateProjectDocuments(uri);
+      });
+    }),
+  );
+
+  // Checks if the URI belongs to a qsharp manifest, and updates all
+  // open documents in the same project as the manifest.
+  function updateProjectDocuments(manifest: vscode.Uri) {
+    if (manifest.scheme === "file" && manifest.fsPath.endsWith("qsharp.json")) {
+      const project_folder = manifest.fsPath.slice(
+        0,
+        manifest.fsPath.length - "qsharp.json".length,
+      );
+      vscode.workspace.textDocuments.forEach((document) => {
+        if (
+          !document.isClosed &&
+          // Check that the document is on the same project as the manifest.
+          document.fileName.startsWith(project_folder)
+        ) {
+          updateIfQsharpDocument(document);
+        }
+      });
+    }
+  }
 
   function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
