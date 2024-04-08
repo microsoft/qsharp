@@ -72,12 +72,20 @@ impl Compilation {
             language_features,
         );
 
-        let lints = qsc::linter::run_lints(&unit, Some(lints_config));
-        let lints: Vec<_> = lints
-            .into_iter()
-            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
-            .collect();
-        errors.extend(lints);
+        // Compute new lints and append them to the errors Vec.
+        // Lints are only computed if the erros vector is empty. For performance
+        // reasons we don't want to waste time running lints every few keystrokes,
+        // if the user is in the middle of typing a statement, for example.
+        if errors.is_empty() {
+            let lints = qsc::linter::run_lints(&unit, Some(lints_config));
+            let lints: Vec<_> = lints
+                .into_iter()
+                .map(|lint| {
+                    WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint))
+                })
+                .collect();
+            errors.extend(lints);
+        }
 
         let package_id = package_store.insert(unit);
 
@@ -125,15 +133,22 @@ impl Compilation {
         let (package_store, package_id) = compiler.into_package_store();
 
         // Compute new lints and append them to the errors Vec.
-        let unit = package_store
-            .get(package_id)
-            .expect("user package should exist");
-        let lints = qsc::linter::run_lints(unit, Some(lints_config));
-        let lints: Vec<_> = lints
-            .into_iter()
-            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
-            .collect();
-        errors.extend(lints);
+        // Lints are only computed if the erros vector is empty. For performance
+        // reasons we don't want to waste time running lints every few keystrokes,
+        // if the user is in the middle of typing a statement, for example.
+        if errors.is_empty() {
+            let unit = package_store
+                .get(package_id)
+                .expect("user package should exist");
+            let lints = qsc::linter::run_lints(unit, Some(lints_config));
+            let lints: Vec<_> = lints
+                .into_iter()
+                .map(|lint| {
+                    WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint))
+                })
+                .collect();
+            errors.extend(lints);
+        }
 
         Self {
             package_store,
