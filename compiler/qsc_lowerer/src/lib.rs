@@ -22,7 +22,6 @@ pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
     hir::PackageId::from(Into::<usize>::into(package))
 }
 
-#[derive(Clone)]
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
     locals: IndexMap<hir::NodeId, fir::LocalVarId>,

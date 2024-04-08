@@ -3,7 +3,7 @@
 
 use crate::fir::{BlockId, ExprId, LocalVarId, NodeId, PatId, StmtId};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Assigner {
     next_node: NodeId,
     next_block: BlockId,
