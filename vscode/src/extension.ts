@@ -154,6 +154,31 @@ function registerDocumentUpdateHandlers(languageService: ILanguageService) {
     }),
   );
 
+  // Watch manifest changes and update each document in the same project as the manifest.
+  subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument((manifest) => {
+      if (
+        manifest.languageId === "json" &&
+        manifest.uri.scheme === "file" &&
+        manifest.fileName.endsWith("qsharp.json")
+      ) {
+        const project_folder = manifest.fileName.slice(
+          0,
+          manifest.fileName.length - "qsharp.json".length,
+        );
+        vscode.workspace.textDocuments.forEach((document) => {
+          if (
+            !document.isClosed &&
+            // Check that the document is on the same project as the manifest.
+            document.fileName.startsWith(project_folder)
+          ) {
+            updateIfQsharpDocument(document);
+          }
+        });
+      }
+    }),
+  );
+
   function updateIfQsharpDocument(document: vscode.TextDocument) {
     if (isQsharpDocument(document) && !isQsharpNotebookCell(document)) {
       // Regular (not notebook) Q# document.
@@ -182,36 +207,6 @@ async function activateLanguageService(extensionUri: vscode.Uri) {
   // synchronize notebook cell contents
   subscriptions.push(
     ...registerQSharpNotebookCellUpdateHandlers(languageService),
-  );
-
-  // Watch manifest changes and update each document in the same project as the manifest.
-  subscriptions.push(
-    vscode.workspace.onDidSaveTextDocument((manifest) => {
-      if (
-        manifest.languageId === "json" &&
-        manifest.uri.scheme === "file" &&
-        manifest.fileName.endsWith("qsharp.json")
-      ) {
-        const project_folder = manifest.fileName.slice(
-          0,
-          manifest.fileName.length - "qsharp.json".length,
-        );
-        vscode.workspace.textDocuments.forEach((document) => {
-          if (
-            !document.isClosed &&
-            isQsharpDocument(document) &&
-            // Check that the document is on the same project as the manifest.
-            document.fileName.startsWith(project_folder)
-          ) {
-            languageService.updateDocument(
-              document.uri.toString(),
-              document.version,
-              document.getText(),
-            );
-          }
-        });
-      }
-    }),
   );
 
   // format document
