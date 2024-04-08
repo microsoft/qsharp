@@ -18,10 +18,9 @@ use qsc::{
         CircuitEntryPoint,
     },
     target::Profile,
-    LanguageFeatures, PackageStore, PackageType, PassContext, SourceContents, SourceMap,
-    SourceName, SparseSim,
+    LanguageFeatures, PackageStore, PackageType, SourceContents, SourceMap, SourceName, SparseSim,
 };
-use qsc_codegen::{qir::hir_to_qir, qir_base::generate_qir};
+use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
 use serde::Serialize;
 use serde_json::json;
