@@ -272,6 +272,7 @@ def test_entry_expr_circuit() -> None:
     )
 
 
+# this is by design
 def test_callables_failing_profile_validation_are_still_registered() -> None:
     e = Interpreter(TargetProfile.Adaptive)
     with pytest.raises(Exception) as excinfo:
@@ -284,6 +285,7 @@ def test_callables_failing_profile_validation_are_still_registered() -> None:
     assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
 
 
+# this is by design
 def test_once_rca_validation_fails_following_calls_also_fail() -> None:
     e = Interpreter(TargetProfile.Adaptive)
     with pytest.raises(Exception) as excinfo:
