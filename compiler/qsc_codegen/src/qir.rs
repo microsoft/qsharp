@@ -7,10 +7,64 @@ mod instruction_tests;
 #[cfg(test)]
 mod tests;
 
+use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_hir::hir;
+use qsc_lowerer::map_hir_package_to_fir;
+use qsc_partial_eval::partially_evaluate;
+use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
-    rir::{self, IntPredicate},
+    passes::{check_and_transform, defer_quantum_measurements},
+    rir::{self, ConditionCode},
     utils::get_all_block_successors,
 };
+
+fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::fir::PackageStore {
+    let mut fir_store = qsc_fir::fir::PackageStore::new();
+    for (id, unit) in package_store {
+        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+        fir_store.insert(map_hir_package_to_fir(id), package);
+    }
+    fir_store
+}
+
+/// converts the given sources to QIR using the given language features.
+pub fn hir_to_qir(
+    package_store: &qsc_frontend::compile::PackageStore,
+    package_id: hir::PackageId,
+    capabilities: RuntimeCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
+) -> Result<String, qsc_partial_eval::Error> {
+    let fir_store = lower_store(package_store);
+    let fir_package_id = map_hir_package_to_fir(package_id);
+    fir_to_qir(&fir_store, fir_package_id, capabilities, compute_properties)
+}
+
+pub fn fir_to_qir(
+    fir_store: &qsc_fir::fir::PackageStore,
+    fir_package_id: qsc_fir::fir::PackageId,
+    capabilities: RuntimeCapabilityFlags,
+    compute_properties: Option<PackageStoreComputeProperties>,
+) -> Result<String, qsc_partial_eval::Error> {
+    let mut program = get_rir_from_compilation(fir_store, fir_package_id, compute_properties)?;
+    check_and_transform(&mut program);
+    if capabilities.is_empty() {
+        defer_quantum_measurements(&mut program);
+    }
+    Ok(ToQir::<String>::to_qir(&program, &program))
+}
+
+fn get_rir_from_compilation(
+    fir_store: &qsc_fir::fir::PackageStore,
+    fir_package_id: qsc_fir::fir::PackageId,
+    compute_properties: Option<PackageStoreComputeProperties>,
+) -> Result<rir::Program, qsc_partial_eval::Error> {
+    let compute_properties = compute_properties.unwrap_or_else(|| {
+        let analyzer = qsc_rca::Analyzer::init(fir_store);
+        analyzer.analyze_all()
+    });
+
+    partially_evaluate(fir_package_id, fir_store, &compute_properties)
+}
 
 /// A trait for converting a type into QIR of type `T`.
 /// This can be used to generate QIR strings or other representations.
@@ -77,24 +131,24 @@ impl ToQir<String> for rir::Variable {
     }
 }
 
-impl ToQir<String> for rir::Value {
+impl ToQir<String> for rir::Operand {
     fn to_qir(&self, program: &rir::Program) -> String {
         match self {
-            rir::Value::Literal(lit) => ToQir::<String>::to_qir(lit, program),
-            rir::Value::Variable(var) => ToQir::<String>::to_qir(var, program),
+            rir::Operand::Literal(lit) => ToQir::<String>::to_qir(lit, program),
+            rir::Operand::Variable(var) => ToQir::<String>::to_qir(var, program),
         }
     }
 }
 
-impl ToQir<String> for rir::IntPredicate {
+impl ToQir<String> for rir::ConditionCode {
     fn to_qir(&self, _program: &rir::Program) -> String {
         match self {
-            rir::IntPredicate::Eq => "eq".to_string(),
-            rir::IntPredicate::Ne => "ne".to_string(),
-            rir::IntPredicate::Sgt => "sgt".to_string(),
-            rir::IntPredicate::Sge => "sge".to_string(),
-            rir::IntPredicate::Slt => "slt".to_string(),
-            rir::IntPredicate::Sle => "sle".to_string(),
+            rir::ConditionCode::Eq => "eq".to_string(),
+            rir::ConditionCode::Ne => "ne".to_string(),
+            rir::ConditionCode::Sgt => "sgt".to_string(),
+            rir::ConditionCode::Sge => "sge".to_string(),
+            rir::ConditionCode::Slt => "slt".to_string(),
+            rir::ConditionCode::Sle => "sle".to_string(),
         }
     }
 }
@@ -169,7 +223,7 @@ impl ToQir<String> for rir::Instruction {
 }
 
 fn logical_not_to_qir(
-    value: &rir::Value,
+    value: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -190,8 +244,8 @@ fn logical_not_to_qir(
 
 fn logical_binop_to_qir(
     op: &str,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -217,7 +271,7 @@ fn logical_binop_to_qir(
 }
 
 fn bitwise_not_to_qir(
-    value: &rir::Value,
+    value: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -237,7 +291,7 @@ fn bitwise_not_to_qir(
 }
 
 fn call_to_qir(
-    args: &[rir::Value],
+    args: &[rir::Operand],
     call_id: rir::CallableId,
     output: Option<rir::Variable>,
     program: &rir::Program,
@@ -265,9 +319,9 @@ fn call_to_qir(
 }
 
 fn icmp_to_qir(
-    op: IntPredicate,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    op: ConditionCode,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -291,8 +345,8 @@ fn icmp_to_qir(
 
 fn binop_to_qir(
     op: &str,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -319,8 +373,8 @@ fn binop_to_qir(
 
 fn simple_bitwise_to_qir(
     op: &str,
-    lhs: &rir::Value,
-    rhs: &rir::Value,
+    lhs: &rir::Operand,
+    rhs: &rir::Operand,
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -346,7 +400,7 @@ fn simple_bitwise_to_qir(
 }
 
 fn phi_to_qir(
-    args: &[(rir::Value, rir::BlockId)],
+    args: &[(rir::Operand, rir::BlockId)],
     variable: rir::Variable,
     program: &rir::Program,
 ) -> String {
@@ -378,9 +432,9 @@ fn phi_to_qir(
     )
 }
 
-fn get_value_as_str(value: &rir::Value, program: &rir::Program) -> String {
+fn get_value_as_str(value: &rir::Operand, program: &rir::Program) -> String {
     match value {
-        rir::Value::Literal(lit) => match lit {
+        rir::Operand::Literal(lit) => match lit {
             rir::Literal::Bool(b) => format!("{b}"),
             rir::Literal::Double(d) => {
                 if (d.floor() - d.ceil()).abs() < f64::EPSILON {
@@ -396,13 +450,13 @@ fn get_value_as_str(value: &rir::Value, program: &rir::Program) -> String {
             rir::Literal::Qubit(q) => format!("{q}"),
             rir::Literal::Result(r) => format!("{r}"),
         },
-        rir::Value::Variable(var) => ToQir::<String>::to_qir(&var.variable_id, program),
+        rir::Operand::Variable(var) => ToQir::<String>::to_qir(&var.variable_id, program),
     }
 }
 
-fn get_value_ty(lhs: &rir::Value) -> &str {
+fn get_value_ty(lhs: &rir::Operand) -> &str {
     match lhs {
-        rir::Value::Literal(lit) => match lit {
+        rir::Operand::Literal(lit) => match lit {
             rir::Literal::Integer(_) => "i64",
             rir::Literal::Bool(_) => "i1",
             rir::Literal::Double(_) => "f64",
@@ -410,7 +464,7 @@ fn get_value_ty(lhs: &rir::Value) -> &str {
             rir::Literal::Result(_) => "%Result*",
             rir::Literal::Pointer => "i8*",
         },
-        rir::Value::Variable(var) => get_variable_ty(*var),
+        rir::Operand::Variable(var) => get_variable_ty(*var),
     }
 }
 
@@ -463,7 +517,8 @@ impl ToQir<String> for rir::Callable {
             );
         };
         let mut body = String::new();
-        let all_blocks = get_all_block_successors(entry_id, program);
+        let mut all_blocks = vec![entry_id];
+        all_blocks.extend(get_all_block_successors(entry_id, program));
         for block_id in all_blocks {
             let block = program.get_block(block_id);
             body.push_str(&format!(

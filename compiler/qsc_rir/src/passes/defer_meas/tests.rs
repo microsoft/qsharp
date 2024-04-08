@@ -6,7 +6,8 @@
 use crate::{
     builder,
     rir::{
-        Block, BlockId, CallableId, Instruction, Literal, Program, Ty, Value, Variable, VariableId,
+        Block, BlockId, CallableId, Instruction, Literal, Operand, Program, Ty, Variable,
+        VariableId,
     },
 };
 use expect_test::expect;
@@ -93,57 +94,61 @@ fn add_simple_measurement_block(program: &mut Program) {
             Instruction::Call(
                 CallableId(0),
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(2), vec![Value::Literal(Literal::Qubit(1))], None),
             Instruction::Call(
-                CallableId(1),
-                vec![
-                    Value::Literal(Literal::Qubit(1)),
-                    Value::Literal(Literal::Result(1)),
-                ],
+                CallableId(2),
+                vec![Operand::Literal(Literal::Qubit(1))],
                 None,
             ),
             Instruction::Call(
                 CallableId(1),
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(2)),
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                CallableId(1),
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(2)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(3),
                 vec![
-                    Value::Literal(Literal::Integer(3)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Integer(3)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Result(0)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Result(1)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(4),
                 vec![
-                    Value::Literal(Literal::Result(2)),
-                    Value::Literal(Literal::Pointer),
+                    Operand::Literal(Literal::Result(2)),
+                    Operand::Literal(Literal::Pointer),
                 ],
                 None,
             ),
@@ -166,33 +171,37 @@ fn add_branching_measurement_block(program: &mut Program) {
             Instruction::Call(
                 CallableId(0),
                 vec![
-                    Value::Literal(Literal::Qubit(1)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(CallableId(1), vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(
+                CallableId(1),
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
             Instruction::Call(
                 CallableId(0),
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CallableId(3),
-                vec![Value::Literal(Literal::Result(0))],
+                vec![Operand::Literal(Literal::Result(0))],
                 Some(Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
                 }),
             ),
             Instruction::Branch(
-                Value::Variable(Variable {
+                Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
-                }),
+                },
                 BlockId(1),
                 BlockId(2),
             ),

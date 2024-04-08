@@ -927,6 +927,7 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_linter",
+ "qsc_lowerer",
  "qsc_passes",
  "qsc_project",
  "qsc_rca",
@@ -980,7 +981,10 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_lowerer",
+ "qsc_partial_eval",
  "qsc_passes",
+ "qsc_rca",
  "qsc_rir",
  "rustc-hash",
 ]
@@ -1021,6 +1025,7 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_lowerer",
  "qsc_passes",
  "quantum-sparse-sim",
  "rand",
@@ -1042,6 +1047,7 @@ dependencies = [
 name = "qsc_formatter"
 version = "0.0.0"
 dependencies = [
+ "clap",
  "expect-test",
  "indoc",
  "qsc_data_structures",
@@ -1094,6 +1100,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_lowerer"
+version = "0.0.0"
+dependencies = [
+ "qsc_data_structures",
+ "qsc_fir",
+ "qsc_hir",
+]
+
+[[package]]
 name = "qsc_parse"
 version = "0.0.0"
 dependencies = [
@@ -1105,6 +1120,25 @@ dependencies = [
  "num-traits",
  "qsc_ast",
  "qsc_data_structures",
+ "thiserror",
+]
+
+[[package]]
+name = "qsc_partial_eval"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "indoc",
+ "miette",
+ "qsc",
+ "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
+ "qsc_frontend",
+ "qsc_lowerer",
+ "qsc_rca",
+ "qsc_rir",
+ "rustc-hash",
  "thiserror",
 ]
 
@@ -1121,6 +1155,7 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_lowerer",
  "qsc_rca",
  "rustc-hash",
  "thiserror",
@@ -1150,9 +1185,9 @@ dependencies = [
  "indenter",
  "qsc",
  "qsc_data_structures",
- "qsc_eval",
  "qsc_fir",
  "qsc_frontend",
+ "qsc_lowerer",
  "qsc_passes",
  "rustc-hash",
 ]

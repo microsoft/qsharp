@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use crate::{
     backend::{Backend, SparseSim},
-    debug::{map_hir_package_to_fir, Frame},
+    debug::Frame,
     exec_graph_section,
     output::{GenericReceiver, Receiver},
     val, Env, Error, State, StepAction, StepResult, Value,
@@ -19,6 +19,7 @@ use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::{self, ExecGraphNode, StmtId};
 use qsc_fir::fir::{PackageId, PackageStoreLookup};
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 /// Evaluates the given control flow graph with the given context.
@@ -43,7 +44,7 @@ pub(super) fn eval_graph(
 }
 
 fn check_expr(file: &str, expr: &str, expect: &Expect) {
-    let mut fir_lowerer = crate::lower::Lowerer::new();
+    let mut fir_lowerer = qsc_lowerer::Lowerer::new();
     let mut core = compile::core();
     run_core_passes(&mut core);
     let core_fir = fir_lowerer.lower_package(&core.package);
@@ -112,7 +113,7 @@ fn check_partial_eval_stmt(
 ) {
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = crate::lower::Lowerer::new().lower_package(&core.package);
+    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
@@ -124,7 +125,7 @@ fn check_partial_eval_stmt(
         RuntimeCapabilityFlags::all()
     )
     .is_empty());
-    let std_fir = crate::lower::Lowerer::new().lower_package(&std.package);
+    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
@@ -143,7 +144,7 @@ fn check_partial_eval_stmt(
         RuntimeCapabilityFlags::all(),
     );
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
-    let unit_fir = crate::lower::Lowerer::new().lower_package(&unit.package);
+    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
     fir_expect.assert_eq(&unit_fir.to_string());
 
     let entry = unit_fir.entry_exec_graph.clone();
