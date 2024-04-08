@@ -153,7 +153,7 @@ impl Compiler {
         F: FnMut(Vec<Error>) -> Result<(), E>,
     {
         // Update the AST with source information offset from the current source map.
-        let (ast, parse_errors) = Self::parse_ast_fragments(
+        let (ast, parse_errors) = Self::offset_ast_fragments(
             &mut unit.sources,
             source_name,
             source_contents,
@@ -331,17 +331,26 @@ impl Compiler {
         source_contents: &str,
         features: LanguageFeatures,
     ) -> (ast::Package, Vec<Error>) {
-        let (top_level_nodes, errors) = qsc_parse::top_level_nodes(source_contents, features);
+        let offset = sources.push(source_name.into(), source_contents.into());
+        let (mut top_level_nodes, errors) = qsc_parse::top_level_nodes(source_contents, features);
+        let mut offsetter = Offsetter(offset);
+        for node in &mut top_level_nodes {
+            match node {
+                ast::TopLevelNode::Namespace(ns) => offsetter.visit_namespace(ns),
+                ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),
+            }
+        }
         let package = ast::Package {
             id: ast::NodeId::default(),
             nodes: top_level_nodes.into_boxed_slice(),
             entry: None,
         };
-
-        Self::parse_ast_fragments(sources, source_name, source_contents, package, errors)
+        (package, with_source(errors, sources, offset))
     }
 
-    fn parse_ast_fragments(
+    /// offset all top level nodes based on the source input
+    /// and return the updated package and errors
+    fn offset_ast_fragments(
         sources: &mut SourceMap,
         source_name: &str,
         source_contents: &str,
@@ -350,7 +359,14 @@ impl Compiler {
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
 
-        offset_top_level_node_spans(offset, &mut package);
+        let mut offsetter = Offsetter(offset);
+        for node in package.nodes.iter_mut() {
+            match node {
+                ast::TopLevelNode::Namespace(ns) => offsetter.visit_namespace(ns),
+                ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),
+            }
+        }
+
         (package, with_source(errors, sources, offset))
     }
 
@@ -358,16 +374,6 @@ impl Compiler {
         self.lowerer
             .with(hir_assigner, self.resolver.names(), self.checker.table())
             .lower_package(package)
-    }
-}
-
-fn offset_top_level_node_spans(offset: u32, package: &mut ast::Package) {
-    let mut offsetter = Offsetter(offset);
-    for node in package.nodes.iter_mut() {
-        match node {
-            ast::TopLevelNode::Namespace(ns) => offsetter.visit_namespace(ns),
-            ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),
-        }
     }
 }
 
