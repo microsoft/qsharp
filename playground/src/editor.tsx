@@ -67,6 +67,7 @@ export function Editor(props: {
   shotError?: VSDiagnostic;
   showExpr: boolean;
   showShots: boolean;
+  setAst: (ast: string) => void;
   setHir: (hir: string) => void;
   activeTab: ActiveTab;
   languageService: ILanguageServiceWorker;
@@ -74,6 +75,11 @@ export function Editor(props: {
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
   const editorDiv = useRef<HTMLDivElement>(null);
+
+  // Maintain a ref to the latest getAst function, as it closes over a bunch of stuff
+  const astRef = useRef(async () => {
+    return;
+  });
 
   // Maintain a ref to the latest getHir function, as it closes over a bunch of stuff
   const hirRef = useRef(async () => {
@@ -110,6 +116,15 @@ export function Editor(props: {
     }));
     setErrors(errList);
   }
+
+  astRef.current = async function updateAst() {
+    const code = editor.current?.getValue();
+    if (code == null) return;
+
+    if (props.activeTab === "ast-tab") {
+      props.setAst(await props.compiler.getAst(code, []));
+    }
+  };
 
   hirRef.current = async function updateHir() {
     const code = editor.current?.getValue();
@@ -177,6 +192,7 @@ export function Editor(props: {
     editor.current = newEditor;
     const srcModel = monaco.editor.createModel(props.code, "qsharp");
     newEditor.setModel(srcModel);
+    srcModel.onDidChangeContent(() => astRef.current());
     srcModel.onDidChangeContent(() => hirRef.current());
 
     // TODO: If the language service ever changes, this callback
@@ -252,6 +268,7 @@ export function Editor(props: {
 
   useEffect(() => {
     // Whenever the active tab changes, run check again.
+    astRef.current();
     hirRef.current();
   }, [props.activeTab]);
 

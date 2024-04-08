@@ -31,7 +31,7 @@ import {
   monacoPositionToLsPosition,
 } from "./utils.js";
 
-export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
+export type ActiveTab = "results-tab" | "hir-tab" | "ast-tab" | "logs-tab";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
@@ -79,6 +79,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     undefined,
   );
 
+  const [ast, setAst] = useState<string>("");
   const [hir, setHir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
@@ -135,6 +136,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showShots={true}
             showExpr={true}
             shotError={shotError}
+            setAst={setAst}
             setHir={setHir}
             activeTab={activeTab}
             languageService={languageService}
@@ -143,6 +145,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             evtTarget={evtTarget}
             showPanel={true}
             onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+            ast={ast}
             hir={hir}
             activeTab={activeTab}
             setActiveTab={setActiveTab}

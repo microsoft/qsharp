@@ -193,6 +193,25 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
+#[must_use]
+pub fn get_ast(code: &str, language_features: Vec<String>) -> String {
+    let language_features = LanguageFeatures::from_iter(language_features);
+    let sources = SourceMap::new([("code".into(), code.into())], None);
+    let package = STORE_CORE_STD.with(|(store, std)| {
+        let (unit, _) = compile::compile(
+            store,
+            &[*std],
+            sources,
+            PackageType::Exe,
+            Profile::Unrestricted.into(),
+            language_features,
+        );
+        unit.ast.package
+    });
+    format!("{package}")
+}
+
+#[wasm_bindgen]
 pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);

@@ -259,6 +259,14 @@ html {
   cursor: pointer;
 }
 
+.ast-output {
+  height: 40vh;
+  min-height: 400px;
+  width: 100%;
+  resize: none;
+  white-space: pre;
+}
+
 .hir-output {
   height: 40vh;
   min-height: 400px;
