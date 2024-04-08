@@ -76,13 +76,8 @@ export function Editor(props: {
   const errMarks = useRef<ErrCollection>({ checkDiags: [], shotDiags: [] });
   const editorDiv = useRef<HTMLDivElement>(null);
 
-  // Maintain a ref to the latest getAst function, as it closes over a bunch of stuff
-  const astRef = useRef(async () => {
-    return;
-  });
-
-  // Maintain a ref to the latest getHir function, as it closes over a bunch of stuff
-  const hirRef = useRef(async () => {
+  // Maintain a ref to the latest getAst/getHir functions, as it closes over a bunch of stuff
+  const irRef = useRef(async () => {
     return;
   });
 
@@ -117,19 +112,13 @@ export function Editor(props: {
     setErrors(errList);
   }
 
-  astRef.current = async function updateAst() {
+  irRef.current = async function updateIr() {
     const code = editor.current?.getValue();
     if (code == null) return;
 
     if (props.activeTab === "ast-tab") {
       props.setAst(await props.compiler.getAst(code, []));
     }
-  };
-
-  hirRef.current = async function updateHir() {
-    const code = editor.current?.getValue();
-    if (code == null) return;
-
     if (props.activeTab === "hir-tab") {
       props.setHir(await props.compiler.getHir(code, []));
     }
@@ -192,8 +181,7 @@ export function Editor(props: {
     editor.current = newEditor;
     const srcModel = monaco.editor.createModel(props.code, "qsharp");
     newEditor.setModel(srcModel);
-    srcModel.onDidChangeContent(() => astRef.current());
-    srcModel.onDidChangeContent(() => hirRef.current());
+    srcModel.onDidChangeContent(() => irRef.current());
 
     // TODO: If the language service ever changes, this callback
     // will be invalid as it captures the *original* props.languageService
@@ -268,8 +256,7 @@ export function Editor(props: {
 
   useEffect(() => {
     // Whenever the active tab changes, run check again.
-    astRef.current();
-    hirRef.current();
+    irRef.current();
   }, [props.activeTab]);
 
   // On reset, reload the initial code
