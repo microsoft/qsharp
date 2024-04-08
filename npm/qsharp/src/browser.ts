@@ -170,7 +170,7 @@ export type {
   VSDiagnostic,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
-export { type CompilerState } from "./compiler/compiler.js";
+export { type CompilerState, type ProgramConfig } from "./compiler/compiler.js";
 export { QscEventTarget } from "./compiler/events.js";
 export {
   getAllKatas,

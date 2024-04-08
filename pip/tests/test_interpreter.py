@@ -272,10 +272,36 @@ def test_entry_expr_circuit() -> None:
     )
 
 
+def test_callables_failing_profile_validation_are_still_registered() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret(
+            "operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }"
+        )
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret("Foo()")
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
+def test_once_rca_validation_fails_following_calls_also_fail() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret(
+            "operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }"
+        )
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret("let x = 5;")
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
 def test_adaptive_errors_are_raised_when_interpreting() -> None:
     e = Interpreter(TargetProfile.Adaptive)
     with pytest.raises(Exception) as excinfo:
-        e.interpret("operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }")
+        e.interpret(
+            "operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }"
+        )
     assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
 
 

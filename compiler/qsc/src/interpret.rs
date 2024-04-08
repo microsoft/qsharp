@@ -469,22 +469,17 @@ impl Interpreter {
     fn run_fir_passes(
         &mut self,
         unit: &qsc_frontend::incremental::Increment,
-    ) -> core::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
-        let mut fir_store = self.fir_store.clone();
-        let mut lowerer = self.lowerer.clone();
-
-        let fir_package = fir_store.get_mut(self.package);
-        let stmts = lowerer.lower_and_update_package(fir_package, &unit.hir);
+    ) -> std::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
+        let fir_package = self.fir_store.get_mut(self.package);
+        let stmts = self
+            .lowerer
+            .lower_and_update_package(fir_package, &unit.hir);
 
         let cap_results =
-            PassContext::run_fir_passes_on_fir(&fir_store, self.package, self.capabilities);
-        // if there are no errors, update the interpreter state
-        // with the updated FIR store and lowerer so that we
-        // don't have to do this twice.
+            PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
+
         let Err(caps_errors) = cap_results else {
-            self.fir_store = fir_store;
-            let graph = lowerer.take_exec_graph();
-            self.lowerer = lowerer;
+            let graph = self.lowerer.take_exec_graph();
             return Ok((stmts, graph));
         };
 

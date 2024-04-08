@@ -11,7 +11,6 @@ bitflags! {
     impl LanguageFeatures: u8 {
         const V2PreviewSyntax = 0b1;
         const PreviewQirGen = 0b10;
-        const AdaptiveProfile = 0b100;
     }
 }
 
@@ -36,7 +35,6 @@ where
             acc | match x.as_ref() {
                 "v2-preview-syntax" => LanguageFeatures::V2PreviewSyntax,
                 "preview-qir-gen" => LanguageFeatures::PreviewQirGen,
-                "adaptive-profile" => LanguageFeatures::AdaptiveProfile,
                 _ => LanguageFeatures::empty(),
             }
         })

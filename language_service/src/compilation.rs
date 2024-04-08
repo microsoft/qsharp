@@ -77,7 +77,11 @@ impl Compilation {
             .get(package_id)
             .expect("expected to find user package");
 
-        if errors.is_empty() && target_profile != Profile::Unrestricted {
+        // baseprofchk will handle the case where the target profile is Base
+        if errors.is_empty()
+            && target_profile != Profile::Unrestricted
+            && target_profile != Profile::Base
+        {
             let cap_results = PassContext::run_fir_passes_on_hir(
                 &package_store,
                 package_id,

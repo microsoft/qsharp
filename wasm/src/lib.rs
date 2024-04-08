@@ -76,19 +76,13 @@ pub fn get_source_map(sources: Vec<js_sys::Array>, entry: &Option<String>) -> So
 pub fn get_qir(
     sources: Vec<js_sys::Array>,
     language_features: Vec<String>,
+    profile: &str,
 ) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = get_source_map(sources, &None);
+    let profile =
+        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
     if language_features.contains(LanguageFeatures::PreviewQirGen) {
-        // the use of AdaptiveProfileQirGen is currently being used to
-        // determine what profile to target as the get_qir interface doesn't
-        // have a way to specify the profile to target and the old codegen
-        // is hardcoded to use the Base profile.
-        let profile = if language_features.contains(LanguageFeatures::AdaptiveProfile) {
-            Profile::Adaptive
-        } else {
-            Profile::Base
-        };
         _get_qir_preview(sources, language_features, profile)
     } else {
         _get_qir(sources, language_features)
