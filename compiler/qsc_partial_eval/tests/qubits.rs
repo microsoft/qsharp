@@ -31,16 +31,16 @@ fn check_partial_eval_for_allocate_use_release_one_qubit() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__h__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )
@@ -81,16 +81,16 @@ fn check_partial_eval_for_allocate_use_release_multiple_qubits() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__h__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )
@@ -133,16 +133,16 @@ fn check_partial_eval_for_allocate_use_release_one_qubit_multiple_times() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__h__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )
@@ -191,16 +191,16 @@ fn check_partial_eval_for_allocate_use_release_multiple_qubits_interleaved() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__h__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )

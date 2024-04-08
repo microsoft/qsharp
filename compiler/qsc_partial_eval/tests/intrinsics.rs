@@ -36,58 +36,58 @@ fn check_partial_eval_for_calls_to_single_qubit_operations() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__h__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 2: Callable:
                         name: __quantum__qis__s__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 3: Callable:
                         name: __quantum__qis__s__adj
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 4: Callable:
                         name: __quantum__qis__t__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 5: Callable:
                         name: __quantum__qis__t__adj
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 6: Callable:
                         name: __quantum__qis__x__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 7: Callable:
                         name: __quantum__qis__y__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )
@@ -127,17 +127,17 @@ fn check_partial_eval_for_calls_to_two_qubit_operations() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__swap__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Qubit(1), )
@@ -173,42 +173,42 @@ fn check_partial_eval_for_calls_to_controlled_operations() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__ccx__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Qubit
                             [2]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 2: Callable:
                         name: __quantum__qis__cx__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 3: Callable:
                         name: __quantum__qis__cy__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 4: Callable:
                         name: __quantum__qis__cz__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Qubit(1), Qubit(2), )
@@ -249,60 +249,60 @@ fn check_partial_eval_for_calls_to_rotation_operations() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__rx__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 2: Callable:
                         name: __quantum__qis__rxx__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
                             [2]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 3: Callable:
                         name: __quantum__qis__ry__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 4: Callable:
                         name: __quantum__qis__ryy__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
                             [2]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 5: Callable:
                         name: __quantum__qis__rz__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 6: Callable:
                         name: __quantum__qis__rzz__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
                             [2]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Double(0), Qubit(0), )
@@ -340,16 +340,16 @@ fn check_partial_eval_for_call_to_reset() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__reset__body
                         call_type: Reset
-                        input_type: 
+                        input_type:
                             [0]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), )

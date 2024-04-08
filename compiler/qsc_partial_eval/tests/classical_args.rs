@@ -29,17 +29,17 @@ fn check_partial_eval_for_call_to_operation_using_literal() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__rx__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Double(1), Qubit(0), )
@@ -74,17 +74,17 @@ fn check_partial_eval_for_calls_to_operations_using_inline_expressions() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__ry__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Double(0), Qubit(0), )
@@ -124,17 +124,17 @@ fn check_partial_eval_for_calls_to_operations_using_variables() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__rz__body
                         call_type: Regular
-                        input_type: 
+                        input_type:
                             [0]: Double
                             [1]: Qubit
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Double(2), Qubit(0), )

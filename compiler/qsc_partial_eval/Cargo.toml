@@ -14,6 +14,7 @@ rustc-hash = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_eval = { path = "../qsc_eval" }
 qsc_fir = { path = "../qsc_fir" }
+qsc_lowerer = { path = "../qsc_lowerer" }
 qsc_rca = { path = "../qsc_rca" }
 qsc_rir = { path = "../qsc_rir" }
 thiserror = { workspace = true }

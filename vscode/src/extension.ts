@@ -278,6 +278,7 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
   const targetProfile = getTarget();
 
   switch (targetProfile) {
+    case "adaptive":
     case "base":
     case "unrestricted":
       break;

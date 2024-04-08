@@ -218,6 +218,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
     /// ```
+    @Config(Adaptive)
     @Config(Unrestricted)
     operation M(qubit : Qubit) : Result {
         __quantum__qis__m__body(qubit)
@@ -290,6 +291,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
+    @Config(Adaptive)
     @Config(Unrestricted)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {

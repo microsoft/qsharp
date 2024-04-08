@@ -94,6 +94,8 @@ export type ProgramConfig = {
   sources: [string, string][];
   /** An array of language features to be opted in to in this compilation. */
   languageFeatures?: string[];
+  /** Target compilation profile. */
+  profile?: TargetProfile;
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -138,22 +140,24 @@ export class Compiler implements ICompiler {
     if (Array.isArray(sourcesOrConfig)) {
       return this.deprecatedGetQir(sourcesOrConfig, languageFeatures || []);
     } else {
-      return this.newGetQir(sourcesOrConfig);
+      const config = sourcesOrConfig as ProgramConfig;
+      return this.newGetQir(config);
     }
   }
 
   async newGetQir({
     sources,
     languageFeatures = [],
+    profile = "base",
   }: ProgramConfig): Promise<string> {
-    return this.wasm.get_qir(sources, languageFeatures);
+    return this.wasm.get_qir(sources, languageFeatures, profile);
   }
 
   async deprecatedGetQir(
     sources: [string, string][],
     languageFeatures: string[],
   ): Promise<string> {
-    return this.wasm.get_qir(sources, languageFeatures);
+    return this.wasm.get_qir(sources, languageFeatures, "base");
   }
 
   async getEstimates(

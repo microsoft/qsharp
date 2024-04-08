@@ -29,17 +29,17 @@ fn check_partial_eval_for_measuring_and_resetting_one_qubit() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__mresetz__body
                         call_type: Measurement
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Result
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Result(0), )
@@ -72,17 +72,17 @@ fn check_partial_eval_for_measuring_one_qubit() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__mz__body
                         call_type: Measurement
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Result
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Result(0), )
@@ -117,17 +117,17 @@ fn check_partial_eval_for_measuring_one_qubit_multiple_times() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__mz__body
                         call_type: Measurement
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Result
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Result(0), )
@@ -164,17 +164,17 @@ fn check_partial_eval_for_measuring_multiple_qubits() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__mz__body
                         call_type: Measurement
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Result
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Result(0), )
@@ -211,32 +211,32 @@ fn check_partial_eval_for_comparing_measurement_results() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__mz__body
                         call_type: Measurement
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Result
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 2: Callable:
                         name: __quantum__qis__mresetz__body
                         call_type: Measurement
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Result
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 3: Callable:
                         name: __quantum__rt__read_result__body
                         call_type: Readout
-                        input_type: 
+                        input_type:
                             [0]: Result
-                        output_type:  Boolean
-                        body:  <NONE>
+                        output_type: Boolean
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Result(0), )
@@ -274,24 +274,24 @@ fn check_partial_eval_for_comparing_measurement_result_to_result_literal() {
                     Callable 0: Callable:
                         name: main
                         call_type: Regular
-                        input_type:  <VOID>
-                        output_type:  <VOID>
-                        body:  0
+                        input_type: <VOID>
+                        output_type: <VOID>
+                        body: 0
                     Callable 1: Callable:
                         name: __quantum__qis__mz__body
                         call_type: Measurement
-                        input_type: 
+                        input_type:
                             [0]: Qubit
                             [1]: Result
-                        output_type:  <VOID>
-                        body:  <NONE>
+                        output_type: <VOID>
+                        body: <NONE>
                     Callable 2: Callable:
                         name: __quantum__rt__read_result__body
                         call_type: Readout
-                        input_type: 
+                        input_type:
                             [0]: Result
-                        output_type:  Boolean
-                        body:  <NONE>
+                        output_type: Boolean
+                        body: <NONE>
                 blocks:
                     Block 0: Block:
                         Call id(1), args( Qubit(0), Result(0), )

@@ -44,8 +44,9 @@ pub fn partially_evaluate(
 }
 
 #[derive(Clone, Debug, Diagnostic, Error)]
-#[error(transparent)]
 pub enum Error {
+    #[error("partial evaluation error: {0}")]
+    #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(qsc_eval::Error),
     #[error("failed to evaluate {0}")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallable"))]
