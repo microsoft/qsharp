@@ -431,17 +431,8 @@ impl<'a> PartialEvaluator<'a> {
         args_expr_id: ExprId,
     ) -> Value {
         // Check if the callable is already in the program, and if not add it.
-        if let Entry::Vacant(entry) = self.callables_map.entry(callable_decl.name.name.clone()) {
-            let callable_id = self.allocator.next_callable();
-            entry.insert(callable_id);
-            let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
-            self.program.callables.insert(callable_id, callable);
-        }
-
-        let callable_id = *self
-            .callables_map
-            .get(&callable_decl.name.name)
-            .expect("callable not present");
+        let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
+        let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
         let args = self.resolve_call_arg_operands(args_expr_id);
