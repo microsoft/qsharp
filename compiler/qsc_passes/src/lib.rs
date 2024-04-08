@@ -16,7 +16,7 @@ mod replace_qubit_allocation;
 mod spec_gen;
 
 use callable_limits::CallableLimits;
-use capabilitiesck::check_supported_capabilities;
+use capabilitiesck::{check_supported_capabilities, lower_store, run_rca_pass};
 use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
@@ -30,7 +30,8 @@ use qsc_hir::{
     validate::Validator,
     visit::Visitor,
 };
-use qsc_rca::PackageComputeProperties;
+use qsc_lowerer::map_hir_package_to_fir;
+use qsc_rca::{PackageComputeProperties, PackageStoreComputeProperties};
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
 
@@ -117,6 +118,24 @@ impl PassContext {
             .chain(entry_point_errors)
             .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
             .collect()
+    }
+
+    pub fn run_fir_passes_on_hir(
+        package_store: &qsc_frontend::compile::PackageStore,
+        package_id: qsc_hir::hir::PackageId,
+        capabilities: RuntimeCapabilityFlags,
+    ) -> Result<PackageStoreComputeProperties, Vec<Error>> {
+        let fir_store = lower_store(package_store);
+        let fir_package_id = map_hir_package_to_fir(package_id);
+        Self::run_fir_passes_on_fir(&fir_store, fir_package_id, capabilities)
+    }
+
+    pub fn run_fir_passes_on_fir(
+        fir_store: &qsc_fir::fir::PackageStore,
+        package_id: qsc_fir::fir::PackageId,
+        capabilities: RuntimeCapabilityFlags,
+    ) -> Result<PackageStoreComputeProperties, Vec<Error>> {
+        run_rca_pass(fir_store, package_id, capabilities)
     }
 }
 

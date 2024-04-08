@@ -12,9 +12,12 @@ class TargetProfile:
     The target profile is a description of a target's capabilities.
     """
 
-    Unrestricted: ClassVar[Any]
+    Adaptive: ClassVar[Any]
     """
-    Describes the unrestricted set of capabilities required to run any Q# program.
+    Target supports the core set of adaptive.
+
+    This option maps to the Adaptive Profile as defined by the QIR specification
+    without any extensions.
     """
 
     Base: ClassVar[Any]
@@ -23,6 +26,11 @@ class TargetProfile:
     program.
 
     This option maps to the Base Profile as defined by the QIR specification.
+    """
+
+    Unrestricted: ClassVar[Any]
+    """
+    Describes the unrestricted set of capabilities required to run any Q# program.
     """
 
 class Interpreter:

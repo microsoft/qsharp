@@ -174,7 +174,7 @@ impl Display for Callable {
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
         write!(indent, "\ncall_type: {}", self.call_type)?;
-        write!(indent, "\ninput_type: ")?;
+        write!(indent, "\ninput_type:")?;
         if self.input_type.is_empty() {
             write!(indent, " <VOID>")?;
         } else {
@@ -184,13 +184,13 @@ impl Display for Callable {
             }
             indent = set_indentation(indent, 1);
         }
-        write!(indent, "\noutput_type: ")?;
+        write!(indent, "\noutput_type:")?;
         if let Some(output_type) = &self.output_type {
             write!(indent, " {output_type}")?;
         } else {
             write!(indent, " <VOID>")?;
         }
-        write!(indent, "\nbody: ")?;
+        write!(indent, "\nbody:")?;
         if let Some(body_block_id) = self.body {
             write!(indent, " {}", body_block_id.0)?;
         } else {

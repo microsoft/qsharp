@@ -103,15 +103,15 @@ fn ssa_transform_removes_store_in_single_block_program() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -134,15 +134,15 @@ fn ssa_transform_removes_store_in_single_block_program() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -253,15 +253,15 @@ fn ssa_transform_removes_multiple_stores_in_single_block_program() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -288,15 +288,15 @@ fn ssa_transform_removes_multiple_stores_in_single_block_program() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -414,15 +414,15 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -453,15 +453,15 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -560,15 +560,15 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks_without_i
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -597,15 +597,15 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks_without_i
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -747,15 +747,15 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -788,15 +788,15 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -917,15 +917,15 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage_in_one_branch() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -956,15 +956,15 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage_in_one_branch() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -1156,15 +1156,15 @@ fn ssa_transform_inserts_phi_for_node_with_many_predecessors() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -1207,15 +1207,15 @@ fn ssa_transform_inserts_phi_for_node_with_many_predecessors() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -1388,15 +1388,15 @@ fn ssa_transform_inserts_phi_for_multiple_stored_values() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -1431,15 +1431,15 @@ fn ssa_transform_inserts_phi_for_multiple_stored_values() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -1696,15 +1696,15 @@ fn ssa_transform_inserts_phi_nodes_in_successive_blocks_for_chained_branches() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -1753,15 +1753,15 @@ fn ssa_transform_inserts_phi_nodes_in_successive_blocks_for_chained_branches() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -1993,15 +1993,15 @@ fn ssa_transform_inerts_phi_nodes_for_early_return_graph_pattern() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )
@@ -2045,15 +2045,15 @@ fn ssa_transform_inerts_phi_nodes_for_early_return_graph_pattern() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
                 Callable 1: Callable:
                     name: dynamic_bool
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  Boolean
-                    body:  <NONE>
+                    input_type: <VOID>
+                    output_type: Boolean
+                    body: <NONE>
             blocks:
                 Block 0: Block:
                     Variable(0, Boolean) = Call id(1), args( )

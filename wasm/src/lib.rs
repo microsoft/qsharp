@@ -75,10 +75,17 @@ pub fn get_source_map(sources: Vec<js_sys::Array>, entry: &Option<String>) -> So
 pub fn get_qir(
     sources: Vec<js_sys::Array>,
     language_features: Vec<String>,
+    profile: &str,
 ) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = get_source_map(sources, &None);
-    _get_qir(sources, language_features)
+    let profile =
+        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+    if language_features.contains(LanguageFeatures::PreviewQirGen) {
+        qsc::codegen::get_qir(sources, language_features, profile.into())
+    } else {
+        _get_qir(sources, language_features)
+    }
 }
 
 // allows testing without wasm bindings.
@@ -420,5 +427,5 @@ pub fn generate_docs() -> JsValue {
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "unrestricted";
+export type TargetProfile = "adaptive" | "base" | "unrestricted";
 "#;

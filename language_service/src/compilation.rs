@@ -12,7 +12,7 @@ use qsc::{
     line_column::{Encoding, Position},
     resolve,
     target::Profile,
-    CompileUnit, LanguageFeatures, PackageStore, PackageType, SourceMap, Span,
+    CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::LintConfig;
 use std::sync::Arc;
@@ -72,14 +72,38 @@ impl Compilation {
             language_features,
         );
 
-        let lints = qsc::linter::run_lints(&unit, Some(lints_config));
-        let mut lints = lints
-            .into_iter()
-            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
-            .collect();
-        errors.append(&mut lints);
-
         let package_id = package_store.insert(unit);
+        let unit = package_store
+            .get(package_id)
+            .expect("expected to find user package");
+
+        // baseprofchk will handle the case where the target profile is Base
+        if errors.is_empty()
+            && target_profile != Profile::Unrestricted
+            && target_profile != Profile::Base
+        {
+            let cap_results = PassContext::run_fir_passes_on_hir(
+                &package_store,
+                package_id,
+                target_profile.into(),
+            );
+            if let Err(caps_errors) = cap_results {
+                for err in caps_errors {
+                    errors.push(WithSource::from_map(
+                        &unit.sources,
+                        compile::ErrorKind::Pass(err),
+                    ));
+                }
+            }
+        }
+
+        let lints = qsc::linter::run_lints(unit, Some(lints_config));
+        for lint in lints {
+            errors.push(WithSource::from_map(
+                &unit.sources,
+                qsc::compile::ErrorKind::Lint(lint),
+            ));
+        }
 
         Self {
             package_store,

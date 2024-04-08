@@ -6,7 +6,6 @@
 use std::f64::consts;
 
 use crate::backend::{Backend, SparseSim};
-use crate::debug::map_hir_package_to_fir;
 use crate::tests::eval_graph;
 use crate::Env;
 use crate::{
@@ -20,6 +19,7 @@ use num_bigint::BigInt;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir;
 use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 #[derive(Default)]
@@ -148,7 +148,7 @@ impl Backend for CustomSim {
 fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Value, Error> {
     let mut core = compile::core();
     run_core_passes(&mut core);
-    let core_fir = crate::lower::Lowerer::new().lower_package(&core.package);
+    let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
     let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
@@ -160,7 +160,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         RuntimeCapabilityFlags::all()
     )
     .is_empty());
-    let std_fir = crate::lower::Lowerer::new().lower_package(&std.package);
+    let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
     let std_id = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), file.into())], Some(expr.into()));
@@ -179,7 +179,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         RuntimeCapabilityFlags::all()
     )
     .is_empty());
-    let unit_fir = crate::lower::Lowerer::new().lower_package(&unit.package);
+    let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
     let entry = unit_fir.entry_exec_graph.clone();
 
     let id = store.insert(unit);
