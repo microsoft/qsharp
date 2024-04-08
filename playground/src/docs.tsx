@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 import { useEffect, useRef } from "preact/hooks";
-import { DocFile } from "../../npm/qsharp/dist/compiler/compiler.js";
 import markdownit from "markdown-it";
+import { IDocFile } from "qsharp-lang";
 
 export function getNamespaces(
   documentation: Map<string, string> | undefined,
@@ -17,7 +17,9 @@ export function getNamespaces(
 // Takes array of documents (containing data for each item in the standard library)
 // and creates a documentation map, which maps from a namespace
 // to the combined HTML-formatted documentation for all items in that namespace.
-export function processDocumentFiles(docFiles: DocFile[]): Map<string, string> {
+export function processDocumentFiles(
+  docFiles: IDocFile[],
+): Map<string, string> {
   const md = markdownit();
   const contentByNamespace = new Map<string, string>();
   const regex = new RegExp("^qsharp.namespace: Microsoft.Quantum.(.+)$", "m");

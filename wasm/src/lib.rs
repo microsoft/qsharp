@@ -22,7 +22,7 @@ use qsc::{
 };
 use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Write, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
@@ -401,28 +401,39 @@ pub fn check_exercise_solution(
     })
 }
 
-#[derive(Serialize)]
-struct DocFile {
-    filename: String,
-    metadata: String,
-    contents: String,
+serializable_type! {
+    DocFile,
+    {
+        filename: String,
+        metadata: String,
+        contents: String,
+    },
+    r#"export interface IDocFile {
+        filename: string;
+        metadata: string;
+        contents: string;
+    }"#,
+    IDocFile
 }
 
 #[wasm_bindgen]
 #[must_use]
-pub fn generate_docs() -> JsValue {
+pub fn generate_docs() -> Vec<IDocFile> {
     let docs = qsc_doc_gen::generate_docs::generate_docs();
-    let mut result: Vec<DocFile> = vec![];
+    let mut result: Vec<IDocFile> = vec![];
 
     for (name, metadata, contents) in docs {
-        result.push(DocFile {
-            filename: name.to_string(),
-            metadata: metadata.to_string(),
-            contents: contents.to_string(),
-        });
+        result.push(
+            DocFile {
+                filename: name.to_string(),
+                metadata: metadata.to_string(),
+                contents: contents.to_string(),
+            }
+            .into(),
+        );
     }
 
-    serde_wasm_bindgen::to_value(&result).expect("Serializing docs should succeed")
+    result
 }
 
 #[wasm_bindgen(typescript_custom_section)]

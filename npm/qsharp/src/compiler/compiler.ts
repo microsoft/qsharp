@@ -3,6 +3,7 @@
 
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
 import {
+  IDocFile,
   IOperationInfo,
   TargetProfile,
   type VSDiagnostic,
@@ -24,13 +25,6 @@ import {
 // The wasm types generated for the node.js bundle are just the exported APIs,
 // so use those as the set used by the shared compiler
 type Wasm = typeof import("../../lib/web/qsc_wasm.js");
-
-// This type mirrors DocFile in WASM, which is returned from generate_docs()
-export type DocFile = {
-  filename: string;
-  metadata: string;
-  contents: string;
-};
 
 // These need to be async/promise results for when communicating across a WebWorker, however
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
@@ -88,7 +82,7 @@ export interface ICompiler {
     operation?: IOperationInfo,
   ): Promise<CircuitData>;
 
-  getDocumentation(): Promise<DocFile[]>;
+  getDocumentation(): Promise<IDocFile[]>;
 
   checkExerciseSolution(
     userCode: string,
@@ -246,9 +240,8 @@ export class Compiler implements ICompiler {
     );
   }
 
-  async getDocumentation(): Promise<DocFile[]> {
-    const docs: DocFile[] = this.wasm.generate_docs();
-    return docs;
+  async getDocumentation(): Promise<IDocFile[]> {
+    return this.wasm.generate_docs();
   }
 
   async checkExerciseSolution(
