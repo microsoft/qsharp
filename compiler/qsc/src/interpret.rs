@@ -60,6 +60,7 @@ use qsc_fir::{
 use qsc_frontend::{
     compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
     error::WithSource,
+    incremental::Increment,
 };
 use qsc_passes::{PackageType, PassContext};
 use rustc_hash::FxHashSet;
@@ -218,6 +219,61 @@ impl Interpreter {
         })
     }
 
+    pub fn from(
+        include_std: bool,
+        store: PackageStore,
+        source_package_id: qsc_hir::hir::PackageId,
+        capabilities: RuntimeCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
+        let compiler = Compiler::from(
+            include_std,
+            store,
+            source_package_id,
+            capabilities,
+            language_features,
+        )
+        .map_err(into_errors)?;
+
+        let mut fir_store = fir::PackageStore::new();
+        for (id, unit) in compiler.package_store() {
+            let mut lowerer = qsc_lowerer::Lowerer::new();
+            fir_store.insert(
+                map_hir_package_to_fir(id),
+                lowerer.lower_package(&unit.package),
+            );
+        }
+
+        let source_package_id = compiler.source_package_id();
+        let package_id = compiler.package_id();
+
+        Ok(Self {
+            compiler,
+            lines: 0,
+            capabilities,
+            fir_store,
+            lowerer: qsc_lowerer::Lowerer::new(),
+            env: Env::default(),
+            sim: BackendChain::new(
+                SparseSim::new(),
+                CircuitBuilder::new(CircuitConfig {
+                    // When using in conjunction with the simulator,
+                    // the circuit builder should *not* perform base profile
+                    // decompositions, in order to match the simulator's behavior.
+                    //
+                    // Note that conditional compilation (e.g. @Config(Base) attributes)
+                    // will still respect the selected profile. This also
+                    // matches the behavior of the simulator.
+                    base_profile: false,
+                }),
+            ),
+            quantum_seed: None,
+            classical_seed: None,
+            package: map_hir_package_to_fir(package_id),
+            source_package: map_hir_package_to_fir(source_package_id),
+        })
+    }
+
     pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
         self.quantum_seed = seed;
         self.sim.set_seed(seed);
@@ -293,6 +349,36 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
+        self.eval_increment(receiver, increment)
+    }
+
+    /// It is assumed that if there were any parse errors on the fragments, the caller would have
+    /// already handled them. This function is intended to be used in cases where the caller wants
+    /// to handle the parse errors themselves.
+    ///  # Errors
+    /// If the compilation of the fragments fails, an error is returned.
+    /// If there is a runtime error when interpreting the fragments, an error is returned.
+    pub fn eval_ast_fragments(
+        &mut self,
+        receiver: &mut impl Receiver,
+        fragments: &str,
+        package: qsc_ast::ast::Package,
+    ) -> InterpretResult {
+        let label = self.next_line_label();
+
+        let increment = self
+            .compiler
+            .compile_ast_fragments_fail_fast(&label, fragments, package)
+            .map_err(into_errors)?;
+
+        self.eval_increment(receiver, increment)
+    }
+
+    fn eval_increment(
+        &mut self,
+        receiver: &mut impl Receiver,
+        increment: Increment,
+    ) -> InterpretResult {
         let (graph, _) = self.lower(&increment)?;
 
         // Updating the compiler state with the new AST/HIR nodes
