@@ -489,6 +489,15 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
 $$T^2 = S, S^2 = Z$$
 
 @[exercise]({
+    "id": "single_qubit_gates__phase_flip",
+    "title": "Phase_Flip",
+    "path": "./phase_flip/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
     "id": "single_qubit_gates__three_quarters_pi_phase",
     "title": "Three-Fourths Phase",
     "path": "./three_quarters_pi_phase/",
@@ -572,6 +581,15 @@ In addition, the rotation gates are very closely related to their respective Pau
 $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
+    "id": "single_qubit_gates__phase_change",
+    "title": "Phase_Change",
+    "path": "./phase_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
     "id": "single_qubit_gates__amplitude_change",
     "title": "Amplitude_Change",
     "path": "./amplitude_change/",
@@ -579,6 +597,16 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
         "../KatasLibrary.qs"
     ]
 })
+
+@[exercise]({
+    "id": "single_qubit_gates__global_phase_change",
+    "title": "Global Phase_Change",
+    "path": "./global_phase_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[exercise]({
     "id": "single_qubit_gates__prepare_rotated_state",
     "title": "Prepare Rotated State",
