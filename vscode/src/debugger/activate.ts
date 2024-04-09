@@ -74,10 +74,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
   ) {
-    if (
-      vscode.debug.activeDebugSession !== undefined &&
-      vscode.debug.activeDebugSession.type === "qsharp"
-    ) {
+    if (vscode.debug.activeDebugSession?.type === "qsharp") {
       // Multiple debug sessions disallowed, to reduce confusion
       return;
     }
