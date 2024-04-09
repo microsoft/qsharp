@@ -5,214 +5,206 @@
 
 mod test_utils;
 
-use expect_test::expect;
 use indoc::indoc;
-use test_utils::check_rir;
+use qsc_rir::rir::{
+    BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty,
+};
+use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+
+fn single_qubit_intrinsic_op() -> Callable {
+    Callable {
+        name: "op".to_string(),
+        input_type: vec![Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Regular,
+    }
+}
 
 #[test]
-fn check_partial_eval_for_allocate_use_release_one_qubit() {
-    check_rir(
-        indoc! {r#"
+fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
-            open QIR.Runtime;
+            operation op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                let q = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q);
-                __quantum__rt__qubit_release(q);
+                let q = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q);
+                QIR.Runtime.__quantum__rt__qubit_release(q);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__h__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_allocate_use_release_multiple_qubits() {
-    check_rir(
-        indoc! {r#"
+fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
-            open QIR.Runtime;
+            operation op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                let q0 = __quantum__rt__qubit_allocate();
-                let q1 = __quantum__rt__qubit_allocate();
-                let q2 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q0);
-                __quantum__qis__h__body(q1);
-                __quantum__qis__h__body(q2);
-                __quantum__rt__qubit_release(q2);
-                __quantum__rt__qubit_release(q1);
-                __quantum__rt__qubit_release(q0);
+                let q0 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                let q1 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                let q2 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q0);
+                op(q1);
+                op(q2);
+                QIR.Runtime.__quantum__rt__qubit_release(q2);
+                QIR.Runtime.__quantum__rt__qubit_release(q1);
+                QIR.Runtime.__quantum__rt__qubit_release(q0);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__h__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), )
-                        Call id(1), args( Qubit(1), )
-                        Call id(1), args( Qubit(2), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(1))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(2))],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_allocate_use_release_one_qubit_multiple_times() {
-    check_rir(
-        indoc! {r#"
+fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
-            open QIR.Runtime;
+            operation op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                let q0 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q0);
-                __quantum__rt__qubit_release(q0);
-                let q1 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q1);
-                __quantum__rt__qubit_release(q1);
-                let q2 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q2);
-                __quantum__rt__qubit_release(q2);
+                let q0 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q0);
+                QIR.Runtime.__quantum__rt__qubit_release(q0);
+                let q1 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q1);
+                QIR.Runtime.__quantum__rt__qubit_release(q1);
+                let q2 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q2);
+                QIR.Runtime.__quantum__rt__qubit_release(q2);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__h__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), )
-                        Call id(1), args( Qubit(0), )
-                        Call id(1), args( Qubit(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_allocate_use_release_multiple_qubits_interleaved() {
-    check_rir(
-        indoc! {r#"
+fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
-            open QIR.Runtime;
+            operation op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                let q0 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q0);
-                let q1 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q1);
-                let q2 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q2);
-                __quantum__rt__qubit_release(q2);
-                let q3 = __quantum__rt__qubit_allocate();
-                let q4 = __quantum__rt__qubit_allocate();
-                __quantum__qis__h__body(q3);
-                __quantum__qis__h__body(q4);
-                __quantum__rt__qubit_release(q4);
-                __quantum__rt__qubit_release(q3);
-                __quantum__rt__qubit_release(q1);
-                __quantum__rt__qubit_release(q0);
+                let q0 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q0);
+                let q1 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q1);
+                let q2 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q2);
+                QIR.Runtime.__quantum__rt__qubit_release(q2);
+                let q3 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                let q4 = QIR.Runtime.__quantum__rt__qubit_allocate();
+                op(q3);
+                op(q4);
+                QIR.Runtime.__quantum__rt__qubit_release(q4);
+                QIR.Runtime.__quantum__rt__qubit_release(q3);
+                QIR.Runtime.__quantum__rt__qubit_release(q1);
+                QIR.Runtime.__quantum__rt__qubit_release(q0);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__h__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), )
-                        Call id(1), args( Qubit(1), )
-                        Call id(1), args( Qubit(2), )
-                        Call id(1), args( Qubit(2), )
-                        Call id(1), args( Qubit(3), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(1))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(2))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(2))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(3))],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }

@@ -5,146 +5,128 @@
 
 mod test_utils;
 
-use expect_test::expect;
 use indoc::indoc;
-use test_utils::check_rir;
+use qsc_rir::rir::{
+    BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty,
+};
+use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+
+fn double_to_unit_intrinsic_op() -> Callable {
+    Callable {
+        name: "op".to_string(),
+        input_type: vec![Ty::Double],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Regular,
+    }
+}
 
 #[test]
-fn check_partial_eval_for_call_to_operation_using_literal() {
-    check_rir(
-        indoc! {r#"
+fn call_to_intrinsic_operation_using_double_literal() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
         namespace Test {
-            open QIR.Intrinsic;
+            operation op(d : Double) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                use q = Qubit();
-                __quantum__qis__rx__body(1.0, q);
+                op(1.0);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__rx__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Double(1), Qubit(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+    "#});
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, double_to_unit_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Double(1.0))],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_calls_to_operations_using_inline_expressions() {
-    check_rir(
-        indoc! {r#"
+fn calls_to_intrinsic_operation_using_inline_expressions() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
         namespace Test {
-            open Microsoft.Quantum.Math;
-            open QIR.Intrinsic;
+            function PI() : Double { 3.14159 }
+            operation op(d : Double) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                use q = Qubit();
-                __quantum__qis__ry__body(PI() * 0.0, q);
-                __quantum__qis__ry__body(PI() / PI(), q);
+                op(2.71828 * 0.0);
+                op(PI() / PI());
+                op((PI() + PI()) / (2.0 * PI()));
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__ry__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Double(0), Qubit(0), )
-                        Call id(1), args( Double(1), Qubit(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+    "#});
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, double_to_unit_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Double(0.0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Double(1.0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Double(1.0))],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_calls_to_operations_using_variables() {
-    check_rir(
-        indoc! {r#"
+fn calls_to_intrinsic_operation_using_variables() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
         namespace Test {
-            open Microsoft.Quantum.Math;
-            open QIR.Intrinsic;
+            operation op(d : Double) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                use q = Qubit();
-                let pi_over_two = 4.0 / 2.0;
-                __quantum__qis__rz__body(pi_over_two, q);
-                mutable some_angle = ArcSin(0.0);
-                __quantum__qis__rz__body(some_angle, q);
-                set some_angle = ArcCos(-1.0) / PI();
-                __quantum__qis__rz__body(some_angle, q);
+                let pi = 4.0;
+                let pi_over_two = pi / 2.0;
+                op(pi_over_two);
+                mutable n_pi = 1.0 * pi;
+                op(n_pi);
+                set n_pi = 2.0 * pi;
+                op(n_pi);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__rz__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Double(2), Qubit(0), )
-                        Call id(1), args( Double(0), Qubit(0), )
-                        Call id(1), args( Double(1), Qubit(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+    "#});
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, double_to_unit_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Double(2.0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Double(4.0))],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Double(8.0))],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }

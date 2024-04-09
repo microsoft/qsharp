@@ -5,359 +5,516 @@
 
 mod test_utils;
 
-use expect_test::expect;
-use indoc::indoc;
-use test_utils::check_rir;
+use indoc::{formatdoc, indoc};
+use qsc_rir::rir::{
+    BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty,
+};
+use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+
+fn check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+    intrinsic_name: &str,
+) {
+    let program = compile_and_partially_evaluate(
+        formatdoc! {
+            r#"
+            namespace Test {{
+                @EntryPoint()
+                operation Main() : Unit {{
+                    use q = Qubit();
+                    QIR.Intrinsic.{intrinsic_name}(q);
+                }}
+            }}
+            "#,
+            intrinsic_name = intrinsic_name
+        }
+        .as_str(),
+    );
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        single_qubit_intrinsic_op(intrinsic_name),
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+fn check_call_to_single_qubit_rotation_instrinsic_adds_callable_and_generates_instruction(
+    intrinsic_name: &str,
+) {
+    let program = compile_and_partially_evaluate(
+        formatdoc! {
+            r#"
+            namespace Test {{
+                @EntryPoint()
+                operation Main() : Unit {{
+                    use q = Qubit();
+                    QIR.Intrinsic.{intrinsic_name}(0.0, q);
+                }}
+            }}
+            "#,
+            intrinsic_name = intrinsic_name
+        }
+        .as_str(),
+    );
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        single_qubit_rotation_intrinsic_op(intrinsic_name),
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Double(0.0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+fn check_call_to_two_qubits_rotation_instrinsic_adds_callable_and_generates_instruction(
+    intrinsic_name: &str,
+) {
+    let program = compile_and_partially_evaluate(
+        formatdoc! {
+            r#"
+            namespace Test {{
+                @EntryPoint()
+                operation Main() : Unit {{
+                    use (q0, q1) = (Qubit(), Qubit());
+                    QIR.Intrinsic.{intrinsic_name}(0.0, q0, q1);
+                }}
+            }}
+            "#,
+            intrinsic_name = intrinsic_name
+        }
+        .as_str(),
+    );
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        two_qubits_rotation_intrinsic_op(intrinsic_name),
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Double(0.0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Qubit(1)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+fn check_call_to_two_qubits_instrinsic_adds_callable_and_generates_instruction(
+    intrinsic_name: &str,
+) {
+    let program = compile_and_partially_evaluate(
+        formatdoc! {
+            r#"
+            namespace Test {{
+                @EntryPoint()
+                operation Main() : Unit {{
+                    use (q0, q1) = (Qubit(), Qubit());
+                    QIR.Intrinsic.{intrinsic_name}(q0, q1);
+                }}
+            }}
+            "#,
+            intrinsic_name = intrinsic_name
+        }
+        .as_str(),
+    );
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        two_qubits_intrinsic_op(intrinsic_name),
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Qubit(1)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+fn check_call_to_three_qubits_instrinsic_adds_callable_and_generates_instruction(
+    intrinsic_name: &str,
+) {
+    let program = compile_and_partially_evaluate(
+        formatdoc! {
+            r#"
+            namespace Test {{
+                @EntryPoint()
+                operation Main() : Unit {{
+                    use (q0, q1, q2) = (Qubit(), Qubit(), Qubit());
+                    QIR.Intrinsic.{intrinsic_name}(q0, q1, q2);
+                }}
+            }}
+            "#,
+            intrinsic_name = intrinsic_name
+        }
+        .as_str(),
+    );
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        three_qubits_intrinsic_op(intrinsic_name),
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Qubit(2)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+fn measurement_intrinsic_op(name: &str) -> Callable {
+    Callable {
+        name: name.to_string(),
+        input_type: vec![Ty::Qubit, Ty::Result],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Measurement,
+    }
+}
+
+fn reset_intrinsic_op() -> Callable {
+    Callable {
+        name: "__quantum__qis__reset__body".to_string(),
+        input_type: vec![Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Reset,
+    }
+}
+
+fn single_qubit_intrinsic_op(name: &str) -> Callable {
+    Callable {
+        name: name.to_string(),
+        input_type: vec![Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Regular,
+    }
+}
+
+fn single_qubit_rotation_intrinsic_op(name: &str) -> Callable {
+    Callable {
+        name: name.to_string(),
+        input_type: vec![Ty::Double, Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Regular,
+    }
+}
+
+fn two_qubits_intrinsic_op(name: &str) -> Callable {
+    Callable {
+        name: name.to_string(),
+        input_type: vec![Ty::Qubit, Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Regular,
+    }
+}
+
+fn two_qubits_rotation_intrinsic_op(name: &str) -> Callable {
+    Callable {
+        name: name.to_string(),
+        input_type: vec![Ty::Double, Ty::Qubit, Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Regular,
+    }
+}
+
+fn three_qubits_intrinsic_op(name: &str) -> Callable {
+    Callable {
+        name: name.to_string(),
+        input_type: vec![Ty::Qubit, Ty::Qubit, Ty::Qubit],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Regular,
+    }
+}
 
 #[test]
-fn check_partial_eval_for_calls_to_single_qubit_operations() {
-    check_rir(
-        indoc! {r#"
-        namespace Test {
-            open QIR.Intrinsic;
-            @EntryPoint()
-            operation Main() : Unit {
-                use q = Qubit();
-                __quantum__qis__h__body(q);
-                __quantum__qis__s__body(q);
-                __quantum__qis__s__adj(q);
-                __quantum__qis__t__body(q);
-                __quantum__qis__t__adj(q);
-                __quantum__qis__x__body(q);
-                __quantum__qis__y__body(q);
-                __quantum__qis__x__body(q);
-            }
-        }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__h__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 2: Callable:
-                        name: __quantum__qis__s__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 3: Callable:
-                        name: __quantum__qis__s__adj
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 4: Callable:
-                        name: __quantum__qis__t__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 5: Callable:
-                        name: __quantum__qis__t__adj
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 6: Callable:
-                        name: __quantum__qis__x__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 7: Callable:
-                        name: __quantum__qis__y__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), )
-                        Call id(2), args( Qubit(0), )
-                        Call id(3), args( Qubit(0), )
-                        Call id(4), args( Qubit(0), )
-                        Call id(5), args( Qubit(0), )
-                        Call id(6), args( Qubit(0), )
-                        Call id(7), args( Qubit(0), )
-                        Call id(6), args( Qubit(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+fn call_to_intrinsic_h_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__h__body",
     );
 }
 
 #[test]
-fn check_partial_eval_for_calls_to_two_qubit_operations() {
-    check_rir(
-        indoc! {r#"
-        namespace Test {
-            open QIR.Intrinsic;
-            @EntryPoint()
-            operation Main() : Unit {
-                use (q0, q1) = (Qubit(), Qubit());
-                __quantum__qis__swap__body(q0, q1);
-            }
-        }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__swap__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Qubit(1), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+fn call_to_intrinsic_s_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__s__body",
     );
 }
 
 #[test]
-fn check_partial_eval_for_calls_to_controlled_operations() {
-    check_rir(
-        indoc! {r#"
-        namespace Test {
-            open QIR.Intrinsic;
-            @EntryPoint()
-            operation Main() : Unit {
-                use (ctl0, ctl1, target) = (Qubit(), Qubit(), Qubit());
-                __quantum__qis__ccx__body(ctl0, ctl1, target);
-                __quantum__qis__cx__body(ctl0, target);
-                __quantum__qis__cy__body(ctl0, target);
-                __quantum__qis__cz__body(ctl0, target);
-            }
-        }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__ccx__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                            [1]: Qubit
-                            [2]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 2: Callable:
-                        name: __quantum__qis__cx__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 3: Callable:
-                        name: __quantum__qis__cy__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 4: Callable:
-                        name: __quantum__qis__cz__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Qubit
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Qubit(1), Qubit(2), )
-                        Call id(2), args( Qubit(0), Qubit(2), )
-                        Call id(3), args( Qubit(0), Qubit(2), )
-                        Call id(4), args( Qubit(0), Qubit(2), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+fn call_to_intrinsic_adjoint_s_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__s__adj",
     );
 }
 
 #[test]
-fn check_partial_eval_for_calls_to_rotation_operations() {
-    check_rir(
-        indoc! {r#"
-        namespace Test {
-            open QIR.Intrinsic;
-            @EntryPoint()
-            operation Main() : Unit {
-                use (target0, target1) = (Qubit(), Qubit());
-                __quantum__qis__rx__body(0.0, target0);
-                __quantum__qis__rxx__body(0.0, target0, target1);
-                __quantum__qis__ry__body(0.0, target0);
-                __quantum__qis__ryy__body(0.0, target0, target1);
-                __quantum__qis__rz__body(0.0, target0);
-                __quantum__qis__rzz__body(0.0, target0, target1);
-            }
-        }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__rx__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 2: Callable:
-                        name: __quantum__qis__rxx__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                            [2]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 3: Callable:
-                        name: __quantum__qis__ry__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 4: Callable:
-                        name: __quantum__qis__ryy__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                            [2]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 5: Callable:
-                        name: __quantum__qis__rz__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 6: Callable:
-                        name: __quantum__qis__rzz__body
-                        call_type: Regular
-                        input_type:
-                            [0]: Double
-                            [1]: Qubit
-                            [2]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Double(0), Qubit(0), )
-                        Call id(2), args( Double(0), Qubit(0), Qubit(1), )
-                        Call id(3), args( Double(0), Qubit(0), )
-                        Call id(4), args( Double(0), Qubit(0), Qubit(1), )
-                        Call id(5), args( Double(0), Qubit(0), )
-                        Call id(6), args( Double(0), Qubit(0), Qubit(1), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+fn call_to_intrinsic_t_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__t__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_adjoint_t_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__t__adj",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_x_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__x__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_y_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__y__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_z_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__z__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_swap_adds_callable_and_generates_instruction() {
+    check_call_to_two_qubits_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__swap__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_cx_adds_callable_and_generates_instruction() {
+    check_call_to_two_qubits_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__cx__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_cy_adds_callable_and_generates_instruction() {
+    check_call_to_two_qubits_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__cy__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_cz_adds_callable_and_generates_instruction() {
+    check_call_to_two_qubits_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__cz__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_ccx_adds_callable_and_generates_instruction() {
+    check_call_to_three_qubits_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__ccx__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_rx_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_rotation_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__rx__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_rxx_adds_callable_and_generates_instruction() {
+    check_call_to_two_qubits_rotation_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__rxx__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_ry_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_rotation_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__ry__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_ryy_adds_callable_and_generates_instruction() {
+    check_call_to_two_qubits_rotation_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__ryy__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_rz_adds_callable_and_generates_instruction() {
+    check_call_to_single_qubit_rotation_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__rz__body",
+    );
+}
+
+#[test]
+fn call_to_intrinsic_rzz_adds_callable_and_generates_instruction() {
+    check_call_to_two_qubits_rotation_instrinsic_adds_callable_and_generates_instruction(
+        "__quantum__qis__rzz__body",
     );
 }
 
 #[test]
 fn check_partial_eval_for_call_to_reset() {
-    check_rir(
-        indoc! {r#"
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                __quantum__qis__reset__body(q);
+                QIR.Intrinsic.__quantum__qis__reset__body(q);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__reset__body
-                        call_type: Reset
-                        input_type:
-                            [0]: Qubit
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, reset_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![Operand::Literal(Literal::Qubit(0))],
+                None,
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+#[test]
+fn call_to_intrinsic_m_adds_callable_and_generates_instruction() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                QIR.Intrinsic.__quantum__qis__m__body(q);
+            }
+        }
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        measurement_intrinsic_op("__quantum__qis__mz__body"),
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+#[test]
+fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                QIR.Intrinsic.__quantum__qis__mresetz__body(q);
+            }
+        }
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        measurement_intrinsic_op("__quantum__qis__mresetz__body"),
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }

@@ -315,7 +315,6 @@ impl<'a> PartialEvaluator<'a> {
             let error = Error::FailedToEvaluateBinaryExpressionOperand(lhs_expr.span);
             return Err(error);
         };
-        let lhs_expr_value = lhs_expr_value.clone();
 
         let maybe_rhs_expr_value = self.try_eval_expr(rhs_expr_id);
         let Ok(rhs_expr_value) = maybe_rhs_expr_value else {
@@ -323,7 +322,6 @@ impl<'a> PartialEvaluator<'a> {
             let error = Error::FailedToEvaluateBinaryExpressionOperand(rhs_expr.span);
             return Err(error);
         };
-        let rhs_expr_value = rhs_expr_value.clone();
 
         // Get the operands to use when generating the binary operation instruction depending on the type of the
         // expression's value.
@@ -384,7 +382,6 @@ impl<'a> PartialEvaluator<'a> {
         let Value::Global(store_item_id, functor_app) = callable_value else {
             panic!("callee expression is expected to be a global");
         };
-        let (store_item_id, functor_app) = (*store_item_id, *functor_app);
         let global = self
             .package_store
             .get_global(store_item_id)
@@ -505,7 +502,7 @@ impl<'a> PartialEvaluator<'a> {
                 let expr = self.get_expr(*expr_id);
                 return Err(Error::FailedToEvaluateTupleElementExpression(expr.span));
             };
-            values.push(value.clone());
+            values.push(value);
         }
         Ok(Value::Tuple(values.into()))
     }
@@ -682,7 +679,7 @@ impl<'a> PartialEvaluator<'a> {
         operands
     }
 
-    fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<&Value, ()> {
+    fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<Value, ()> {
         // Visit the expression, which will either populate the expression entry in the scope's value map or add an
         // error.
         self.visit_expr(expr_id);
@@ -691,7 +688,7 @@ impl<'a> PartialEvaluator<'a> {
                 .eval_context
                 .get_current_scope()
                 .get_expr_value(expr_id);
-            Ok(expr_value)
+            Ok(expr_value.clone())
         } else {
             Err(())
         }

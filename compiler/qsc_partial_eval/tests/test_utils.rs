@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use expect_test::Expect;
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::{PackageId, PackageStore};
@@ -9,17 +8,44 @@ use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFl
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::partially_evaluate;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
+use qsc_rir::rir::{BlockId, Callable, CallableId, Instruction, Program};
 
-pub fn check_rir(source: &str, expect: &Expect) {
+pub fn assert_block_instructions(
+    program: &Program,
+    block_id: BlockId,
+    expected_insts: &[Instruction],
+) {
+    let block = program.blocks.get(block_id).expect("block does not exist");
+    assert_eq!(
+        block.0.len(),
+        expected_insts.len(),
+        "expected number of instructions is different than actual number of instructions"
+    );
+    for (expected_inst, actual_inst) in expected_insts.iter().zip(block.0.iter()) {
+        assert_eq!(expected_inst, actual_inst);
+    }
+}
+
+pub fn assert_callable(program: &Program, callable_id: CallableId, expected_callable: Callable) {
+    let actual_callable = program
+        .callables
+        .get(callable_id)
+        .expect("callable does not exist ");
+    assert_eq!(expected_callable, *actual_callable);
+}
+
+#[must_use]
+pub fn compile_and_partially_evaluate(source: &str) -> Program {
     let compilation_context = CompilationContext::new(source);
-    let Ok(rir) = partially_evaluate(
+    let maybe_program = partially_evaluate(
         compilation_context.package_id,
         &compilation_context.fir_store,
         &compilation_context.compute_properties,
-    ) else {
-        panic!("partial evaluation failed");
-    };
-    expect.assert_eq(&rir.to_string());
+    );
+    match maybe_program {
+        Ok(program) => program,
+        Err(error) => panic!("partial evaluation failed: {error:?}"),
+    }
 }
 
 struct CompilationContext {

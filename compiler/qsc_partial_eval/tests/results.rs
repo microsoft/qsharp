@@ -5,303 +5,465 @@
 
 mod test_utils;
 
-use expect_test::expect;
 use indoc::indoc;
-use test_utils::check_rir;
+use qsc_rir::rir::{
+    BlockId, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand, Ty,
+    Variable, VariableId,
+};
+use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+
+fn m_intrinsic_op() -> Callable {
+    Callable {
+        name: "__quantum__qis__mz__body".to_string(),
+        input_type: vec![Ty::Qubit, Ty::Result],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Measurement,
+    }
+}
+
+fn mresetz_intrinsic_op() -> Callable {
+    Callable {
+        name: "__quantum__qis__mresetz__body".to_string(),
+        input_type: vec![Ty::Qubit, Ty::Result],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Measurement,
+    }
+}
+
+fn read_reasult_intrinsic_op() -> Callable {
+    Callable {
+        name: "__quantum__rt__read_result__body".to_string(),
+        input_type: vec![Ty::Result],
+        output_type: Some(Ty::Boolean),
+        body: None,
+        call_type: CallableType::Readout,
+    }
+}
 
 #[test]
-fn check_partial_eval_for_measuring_and_resetting_one_qubit() {
-    check_rir(
-        indoc! {r#"
+fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                __quantum__qis__mresetz__body(q);
+                QIR.Intrinsic.__quantum__qis__mresetz__body(q);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__mresetz__body
-                        call_type: Measurement
-                        input_type:
-                            [0]: Qubit
-                            [1]: Result
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Result(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, mresetz_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_measuring_one_qubit() {
-    check_rir(
-        indoc! {r#"
+fn result_ids_are_correct_for_measuring_one_qubit() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                __quantum__qis__m__body(q);
+                QIR.Intrinsic.__quantum__qis__m__body(q);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__mz__body
-                        call_type: Measurement
-                        input_type:
-                            [0]: Qubit
-                            [1]: Result
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Result(0), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, m_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_measuring_one_qubit_multiple_times() {
-    check_rir(
-        indoc! {r#"
+fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                __quantum__qis__m__body(q);
-                __quantum__qis__m__body(q);
-                __quantum__qis__m__body(q);
+                QIR.Intrinsic.__quantum__qis__m__body(q);
+                QIR.Intrinsic.__quantum__qis__m__body(q);
+                QIR.Intrinsic.__quantum__qis__m__body(q);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__mz__body
-                        call_type: Measurement
-                        input_type:
-                            [0]: Qubit
-                            [1]: Result
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Result(0), )
-                        Call id(1), args( Qubit(0), Result(1), )
-                        Call id(1), args( Qubit(0), Result(2), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, m_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(2)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_measuring_multiple_qubits() {
-    check_rir(
-        indoc! {r#"
+fn result_ids_are_correct_for_measuring_multiple_qubits() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Unit {
                 use (q0, q1, q2) = (Qubit(), Qubit(), Qubit());
-                __quantum__qis__m__body(q0);
-                __quantum__qis__m__body(q1);
-                __quantum__qis__m__body(q2);
+                QIR.Intrinsic.__quantum__qis__m__body(q0);
+                QIR.Intrinsic.__quantum__qis__m__body(q1);
+                QIR.Intrinsic.__quantum__qis__m__body(q2);
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__mz__body
-                        call_type: Measurement
-                        input_type:
-                            [0]: Qubit
-                            [1]: Result
-                        output_type: <VOID>
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Result(0), )
-                        Call id(1), args( Qubit(1), Result(1), )
-                        Call id(1), args( Qubit(2), Result(2), )
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(&program, op_callable_id, m_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                op_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(2)),
+                    Operand::Literal(Literal::Result(2)),
+                ],
+                None,
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_comparing_measurement_results() {
-    check_rir(
-        indoc! {r#"
+fn comparing_measurement_results_for_equality_adds_read_result_and_comparison_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
             @EntryPoint()
             operation Main() : Unit {
                 use (q0, q1) = (Qubit(), Qubit());
-                let r0 = __quantum__qis__m__body(q0);
-                let r1 = __quantum__qis__mresetz__body(q1);
+                let r0 = QIR.Intrinsic.__quantum__qis__m__body(q0);
+                let r1 = QIR.Intrinsic.__quantum__qis__m__body(q1);
                 let b = r0 == r1;
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__mz__body
-                        call_type: Measurement
-                        input_type:
-                            [0]: Qubit
-                            [1]: Result
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 2: Callable:
-                        name: __quantum__qis__mresetz__body
-                        call_type: Measurement
-                        input_type:
-                            [0]: Qubit
-                            [1]: Result
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 3: Callable:
-                        name: __quantum__rt__read_result__body
-                        call_type: Readout
-                        input_type:
-                            [0]: Result
-                        output_type: Boolean
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Result(0), )
-                        Call id(2), args( Qubit(1), Result(1), )
-                        Variable(0, Boolean) = Call id(3), args( Result(0), )
-                        Variable(1, Boolean) = Call id(3), args( Result(1), )
-                        Variable(2, Boolean) = Icmp Eq, Variable(0, Boolean), Variable(1, Boolean)
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    let readout_callable_id = CallableId(2);
+    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &vec![
+            Instruction::Call(
+                measurement_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                measurement_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                readout_callable_id,
+                vec![Operand::Literal(Literal::Result(0))],
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Call(
+                readout_callable_id,
+                vec![Operand::Literal(Literal::Result(1))],
+                Some(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Icmp(
+                ConditionCode::Eq,
+                Operand::Variable(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Return,
+        ],
     );
 }
 
 #[test]
-fn check_partial_eval_for_comparing_measurement_result_to_result_literal() {
-    check_rir(
-        indoc! {r#"
+fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
         namespace Test {
-            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use (q0, q1) = (Qubit(), Qubit());
+                let r0 = QIR.Intrinsic.__quantum__qis__m__body(q0);
+                let r1 = QIR.Intrinsic.__quantum__qis__m__body(q1);
+                let b = r0 != r1;
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    let readout_callable_id = CallableId(2);
+    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &vec![
+            Instruction::Call(
+                measurement_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                measurement_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Result(1)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                readout_callable_id,
+                vec![Operand::Literal(Literal::Result(0))],
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Call(
+                readout_callable_id,
+                vec![Operand::Literal(Literal::Result(1))],
+                Some(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Icmp(
+                ConditionCode::Ne,
+                Operand::Variable(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+                Operand::Variable(Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                }),
+                Variable {
+                    variable_id: VariableId(2),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+#[test]
+fn comparing_measurement_result_against_result_literal_for_equality_adds_read_result_and_comparison_instructions(
+) {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                let r = __quantum__qis__m__body(q);
+                let r = QIR.Intrinsic.__quantum__qis__m__body(q);
                 let b = r == One;
             }
         }
-        "#},
-        &expect![[r#"
-            Program:
-                entry: 0
-                callables:
-                    Callable 0: Callable:
-                        name: main
-                        call_type: Regular
-                        input_type: <VOID>
-                        output_type: <VOID>
-                        body: 0
-                    Callable 1: Callable:
-                        name: __quantum__qis__mz__body
-                        call_type: Measurement
-                        input_type:
-                            [0]: Qubit
-                            [1]: Result
-                        output_type: <VOID>
-                        body: <NONE>
-                    Callable 2: Callable:
-                        name: __quantum__rt__read_result__body
-                        call_type: Readout
-                        input_type:
-                            [0]: Result
-                        output_type: Boolean
-                        body: <NONE>
-                blocks:
-                    Block 0: Block:
-                        Call id(1), args( Qubit(0), Result(0), )
-                        Variable(0, Boolean) = Call id(2), args( Result(0), )
-                        Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-                        Return
-                config: Config:
-                    remap_qubits_on_reuse: false
-                    defer_measurements: false
-                num_qubits: 0
-                num_results: 0"#]],
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    let readout_callable_id = CallableId(2);
+    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                measurement_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                readout_callable_id,
+                vec![Operand::Literal(Literal::Result(0))],
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Icmp(
+                ConditionCode::Eq,
+                Operand::Variable(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+                Operand::Literal(Literal::Bool(true)),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Return,
+        ],
+    );
+}
+
+#[test]
+fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_result_and_comparison_instructions(
+) {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let r = QIR.Intrinsic.__quantum__qis__m__body(q);
+                let b = r != Zero;
+            }
+        }
+        "#,
+    });
+    let measurement_callable_id = CallableId(1);
+    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    let readout_callable_id = CallableId(2);
+    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &[
+            Instruction::Call(
+                measurement_callable_id,
+                vec![
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
+                ],
+                None,
+            ),
+            Instruction::Call(
+                readout_callable_id,
+                vec![Operand::Literal(Literal::Result(0))],
+                Some(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+            ),
+            Instruction::Icmp(
+                ConditionCode::Ne,
+                Operand::Variable(Variable {
+                    variable_id: VariableId(0),
+                    ty: Ty::Boolean,
+                }),
+                Operand::Literal(Literal::Bool(false)),
+                Variable {
+                    variable_id: VariableId(1),
+                    ty: Ty::Boolean,
+                },
+            ),
+            Instruction::Return,
+        ],
     );
 }
