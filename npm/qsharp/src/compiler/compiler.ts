@@ -3,6 +3,7 @@
 
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
 import {
+  IDocFile,
   IOperationInfo,
   TargetProfile,
   type VSDiagnostic,
@@ -82,6 +83,8 @@ export interface ICompiler {
     target: TargetProfile,
     operation?: IOperationInfo,
   ): Promise<CircuitData>;
+
+  getDocumentation(): Promise<IDocFile[]>;
 
   checkExerciseSolution(
     userCode: string,
@@ -243,6 +246,10 @@ export class Compiler implements ICompiler {
     );
   }
 
+  async getDocumentation(): Promise<IDocFile[]> {
+    return this.wasm.generate_docs();
+  }
+
   async checkExerciseSolution(
     userCode: string,
     exerciseSources: string[],
@@ -299,6 +306,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getQir: "request",
     getEstimates: "request",
     getCircuit: "request",
+    getDocumentation: "request",
     run: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
   },

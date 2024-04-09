@@ -3,6 +3,7 @@
 
 // Use esbuild to bundle and copy the CSS files to the output directory.
 import "modern-normalize/modern-normalize.css";
+import "./main.css";
 
 import { render } from "preact";
 import {
@@ -23,8 +24,13 @@ import {
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
+import {
+  DocumentationDisplay,
+  getNamespaces,
+  processDocumentFiles,
+} from "./docs.js";
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
@@ -93,6 +99,17 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const kataTitles = props.katas.map((elem) => elem.title);
   const sampleTitles = samples.map((sample) => sample.title);
 
+  const [documentation, setDocumentation] = useState<
+    Map<string, string> | undefined
+  >(undefined);
+  useEffect(() => {
+    createDocumentation();
+  }, []);
+  async function createDocumentation() {
+    const docFiles = await compiler.getDocumentation();
+    setDocumentation(processDocumentFiles(docFiles));
+  }
+
   const sampleCode =
     samples.find((sample) => "sample-" + sample.title === currentNavItem)
       ?.code || props.linkedCode;
@@ -123,6 +140,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         navSelected={onNavItemSelected}
         katas={kataTitles}
         samples={sampleTitles}
+        namespaces={getNamespaces(documentation)}
       ></Nav>
       {sampleCode ? (
         <>
@@ -151,7 +169,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             setActiveTab={setActiveTab}
           ></OutputTabs>
         </>
-      ) : (
+      ) : activeKata ? (
         <Katas
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
@@ -160,6 +178,11 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           onRestartCompiler={onRestartCompiler}
           languageService={languageService}
         ></Katas>
+      ) : (
+        <DocumentationDisplay
+          currentNamespace={currentNavItem}
+          documentation={documentation}
+        ></DocumentationDisplay>
       )}
       <div id="popup"></div>
     </>

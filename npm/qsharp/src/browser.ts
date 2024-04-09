@@ -168,6 +168,7 @@ export type {
   IRange,
   IStackFrame,
   VSDiagnostic,
+  IDocFile,
 } from "../lib/web/qsc_wasm.js";
 export { type Dump, type ShotResult } from "./compiler/common.js";
 export { type CompilerState, type ProgramConfig } from "./compiler/compiler.js";
