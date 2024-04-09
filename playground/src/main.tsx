@@ -3,6 +3,7 @@
 
 // Use esbuild to bundle and copy the CSS files to the output directory.
 import "modern-normalize/modern-normalize.css";
+import "./main.css";
 
 import { render } from "preact";
 import {
