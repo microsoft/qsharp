@@ -349,6 +349,27 @@ class StateDump:
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
 
+    def check_eq(self, state: dict[int, complex]) -> bool:
+        """
+        Checks if the state dump is equal to the given state. This is not mathematical equality,
+        as the check ignores global phase.
+
+        :param state: The state to check against, provided as a dictionary of state indices to complex amplitudes.
+        """
+        phase = None
+        # Filter out zero states
+        state = {k: v for k, v in state.items() if v != 0}
+        if len(state) != len(self):
+            return False
+        for key in state:
+            if key not in self.__inner:
+                return False
+            if phase is None:
+                phase = self.__inner[key] / state[key]
+            elif phase != self.__inner[key] / state[key]:
+                return False
+        return True
+
 
 def dump_machine() -> StateDump:
     """

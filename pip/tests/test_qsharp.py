@@ -98,6 +98,18 @@ def test_dump_machine() -> None:
     # Check that the state dump correctly supports iteration and membership checks
     for idx in state_dump:
         assert idx in state_dump
+    # Check that the sate dump is correct and equivalence check ignores global phase, allowing passing
+    # in of different, potentially unnormalized states. The state should be
+    # |01⟩: 0.7071+0.0000𝑖, |11⟩: −0.7071+0.0000𝑖
+    assert state_dump.check_eq({1: complex(0.7071, 0.0), 3: complex(-0.7071, 0.0)})
+    assert state_dump.check_eq({1: complex(0.0, 0.7071), 3: complex(0.0, -0.7071)})
+    assert state_dump.check_eq({1: complex(0.5, 0.0), 3: complex(-0.5, 0.0)})
+    assert state_dump.check_eq(
+        {1: complex(0.7071, 0.0), 3: complex(-0.7071, 0.0), 0: complex(0.0, 0.0)}
+    )
+    assert not state_dump.check_eq({1: complex(0.7071, 0.0), 3: complex(0.7071, 0.0)})
+    assert not state_dump.check_eq({1: complex(0.5, 0.0), 3: complex(0.0, 0.5)})
+    assert not state_dump.check_eq({2: complex(0.5, 0.0), 3: complex(-0.5, 0.0)})
 
 
 def test_dump_operation() -> None:
