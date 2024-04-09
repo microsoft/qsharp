@@ -24,6 +24,8 @@ export class Cplx {
   static i = new Cplx(0, 1);
   static negOne = new Cplx(-1, 0);
   static negI = new Cplx(0, -1);
+  static e_to_i_pi_over_2 = new Cplx(0, 1);
+  static e_to_i_pi_over_4 = new Cplx(Math.SQRT1_2, Math.SQRT1_2);
 
   add(c: Cplx): Cplx {
     return new Cplx(this.re + c.re, this.im + c.im);
@@ -137,6 +139,26 @@ export class Cplx {
       return `${reTo4}${this.im > 0 ? "+" : ""}${imTo4}i`;
     }
   }
+
+  toLaTeX() {
+    if (this.compare(Cplx.zero)) {
+      return "{0}";
+    } else if (this.compare(Cplx.one)) {
+      return "{1}";
+    } else if (this.compare(Cplx.i)) {
+      return "{i}";
+    } else if (this.compare(Cplx.negOne)) {
+      return "{-1}";
+    } else if (this.compare(Cplx.negI)) {
+      return "{-i}";
+    } else if (this.compare(Cplx.e_to_i_pi_over_2)) {
+      return "{e^{i {\\pi \\over 2}}}";
+    } else if (this.compare(Cplx.e_to_i_pi_over_4)) {
+      return "{e^{i {\\pi \\over 4}}}";
+    } else {
+      return "{" + this.toString() + "}";
+    }
+  }
 }
 
 export function cplx(x: number | string | Cplx): Cplx {
@@ -188,6 +210,10 @@ export class Vec2 {
 
   compare(v: Vec2): boolean {
     return this.x.compare(v.x) && this.y.compare(v.y);
+  }
+
+  toLaTeX() {
+    return `\\begin{bmatrix} ${this.x.toLaTeX()} \\\\ ${this.y.toLaTeX()} \\end{bmatrix}`;
   }
 }
 

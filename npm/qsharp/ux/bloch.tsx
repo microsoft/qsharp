@@ -5,14 +5,13 @@
 
 /* TODO:
 
-- Move more logic out of the component for unit tests
-- Add queuing to avoid mid-rotation clicks cutting off the animation
 - Show the state vector / 'pretty' linear combination
 - Show the equations from state vector to bloch angles
 - Show as a history running below the gates using LaTeX
 - Calculate the T / H gates for an arbitrary point
 - Animiate the axes (including for H) when rotating
   - Maybe add a new geo/mesh for axis with rotation arrow that rotates with the qubit
+  - Could also use as the X, Y, Z axis anyway with a blade screw on the top
 - Show the matrix to be applied when hovering over a gate
 - Add the trailing dots with a slider for history and fade out speed
 
@@ -58,7 +57,19 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
-import { AppliedGate, Rotations } from "../src/cplx.js";
+import {
+  AppliedGate,
+  Rotations,
+  Ket0,
+  cplx,
+  vec2,
+  PauliX,
+  PauliY,
+  PauliZ,
+  SGate,
+  TGate,
+  Hadamard,
+} from "../src/cplx.js";
 
 const colors = {
   sphereColor: 0x404080,
@@ -80,6 +91,15 @@ const fontMap = {
 const weightMap = {
   regular: 0,
   bold: 1,
+};
+
+const gateLaTeX = {
+  X: "\\begin{bmatrix} 0 & 1 \\\\ 1 & 0 \\end{bmatrix}",
+  Y: "\\begin{bmatrix} 0 & -i \\\\ i & 0 \\end{bmatrix}",
+  Z: "\\begin{bmatrix} 1 & 0 \\\\ 0 & -1 \\end{bmatrix}",
+  S: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{i {\\pi \\over 2}} \\end{bmatrix}",
+  T: "\\begin{bmatrix} 1 & 0 \\\\ 0 & e^{i {\\pi \\over 4}} \\end{bmatrix}",
+  H: "{1 \\over \\sqrt{2}} \\begin{bmatrix} 1 & 1 \\\\ 1 & -1 \\end{bmatrix}",
 };
 
 // See https://gizma.com/easing/#easeInOutSine
@@ -417,63 +437,114 @@ export function BlochSphere(props: {
   const latexDiv = useRef<HTMLDivElement>(null);
 
   const [gates, setGates] = useState<string[]>(props.gates || []);
+  const [gateArray, setGateArray] = useState<string[]>([]);
+  const [state, setState] = useState(Ket0);
 
   useEffect(() => {
     if (canvasRef.current) {
       renderer.current = new BlochRenderer(canvasRef.current);
     }
+  }, []);
+
+  useEffect(() => {
     if (latexDiv.current) {
       props.renderLaTeX([latexDiv.current]);
     }
-  }, []);
+  }, [gates]);
+
+  const getLaTeX = (
+    gateName: string,
+    gateMatrix: string,
+    oldState: string,
+    newState: string,
+  ) => `$$ ${gateName} | \\psi \\rangle =
+  ${gateMatrix}
+  \\cdot ${oldState}
+  = ${newState}
+  $$`;
 
   function rotate(gate: string): void {
-    setGates([...gates, gate]);
+    let newState = vec2(state);
     if (renderer.current) {
       switch (gate) {
         case "X":
           renderer.current.rotateX(Math.PI);
+          newState = PauliX.mulVec2(state);
+          setGateArray([
+            ...gateArray,
+            getLaTeX("X", gateLaTeX.X, state.toLaTeX(), newState.toLaTeX()),
+          ]);
           break;
         case "Y":
           renderer.current.rotateY(Math.PI);
+          newState = PauliY.mulVec2(state);
+          setGateArray([
+            ...gateArray,
+            getLaTeX("Y", gateLaTeX.Y, state.toLaTeX(), newState.toLaTeX()),
+          ]);
           break;
         case "Z":
           renderer.current.rotateZ(Math.PI);
+          newState = PauliZ.mulVec2(state);
+          setGateArray([
+            ...gateArray,
+            getLaTeX("Z", gateLaTeX.Z, state.toLaTeX(), newState.toLaTeX()),
+          ]);
           break;
         case "S":
           renderer.current.rotateZ(Math.PI / 2);
+          newState = SGate.mulVec2(state);
+          setGateArray([
+            ...gateArray,
+            getLaTeX("S", gateLaTeX.S, state.toLaTeX(), newState.toLaTeX()),
+          ]);
           break;
         case "T":
           renderer.current.rotateZ(Math.PI / 4);
+          newState = TGate.mulVec2(state);
+          setGateArray([
+            ...gateArray,
+            getLaTeX("T", gateLaTeX.T, state.toLaTeX(), newState.toLaTeX()),
+          ]);
           break;
         case "H":
           renderer.current.rotateH(Math.PI);
+          newState = Hadamard.mulVec2(state);
+          setGateArray([
+            ...gateArray,
+            getLaTeX("H", gateLaTeX.H, state.toLaTeX(), newState.toLaTeX()),
+          ]);
           break;
         default:
           console.error("Unknown gate: " + gate);
       }
     }
-    props.renderLaTeX([latexDiv.current!]);
+    setState(newState);
+    setGates([...gates, gate]);
   }
 
   function reset() {
     setGates([]);
+    setGateArray([]);
+    setState(vec2(Ket0));
     if (renderer.current) {
       renderer.current.reset();
     }
-
-    // TODO: Reset any saved history
-    if (latexDiv.current) {
-      props.renderLaTeX([latexDiv.current]);
-    }
   }
-
-  const demoMatrix = `\\begin{bmatrix}1 & 0 \\\\ 0 & e^{i {\\pi \\over 2}} \\end{bmatrix} \\theta \\begin{bmatrix} i \\over 2 \\\\ 0 \\\\ 1 \\over 2 \\\\ 0 \\end{bmatrix}
-  `;
 
   return (
     <div style="position: relative;">
       <canvas ref={canvasRef} width="600" height="600"></canvas>
+      <div
+        ref={latexDiv}
+        style="position: absolute; left: 600px; top: 50px; height: 500px; min-width: 200px; background: #eee;overflow-y: scroll;"
+      >
+        {gateArray.map((str) => (
+          <div style="border-bottom: 1px dotted gray; text-align: left">
+            {str}
+          </div>
+        ))}
+      </div>
       <div>{"Applied: " + gates.join(", ")}</div>
       <div class="qs-gate-buttons">
         <button type="button" onClick={() => rotate("X")}>
@@ -497,10 +568,6 @@ export function BlochSphere(props: {
         <button type="button" onClick={reset}>
           Reset
         </button>
-      </div>
-      <div ref={latexDiv}>
-        <div>Put the current state here $$\theta \over \pi$$</div>
-        <div>{demoMatrix}</div>
       </div>
     </div>
   );
