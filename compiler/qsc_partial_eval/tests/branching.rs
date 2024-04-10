@@ -21,7 +21,6 @@ fn single_qubit_intrinsic_op_a() -> Callable {
     }
 }
 
-#[ignore = "WIP"]
 #[test]
 fn classic_condition_evaluates_true_branch() {
     let program = compile_and_partially_evaluate(indoc! {
@@ -41,6 +40,7 @@ fn classic_condition_evaluates_true_branch() {
         }
         "#,
     });
+    println!("{program}");
     let op_a_callable_id = CallableId(1);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
     assert_block_instructions(

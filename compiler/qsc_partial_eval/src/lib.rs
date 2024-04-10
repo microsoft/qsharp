@@ -48,18 +48,35 @@ pub enum Error {
     #[error("partial evaluation error: {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(qsc_eval::Error),
+
     #[error("failed to evaluate {0}")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallable"))]
     FailedToEvaluateCallable(String, #[label] Span),
+
     #[error("failed to evaluate callee expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCalleeExpression"))]
     FailedToEvaluateCalleeExpression(#[label] Span),
+
     #[error("failed to evaluate tuple element expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateTupleElementExpression"))]
     FailedToEvaluateTupleElementExpression(#[label] Span),
+
     #[error("failed to evaluate binary expression operand")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBinaryExpressionOperand"))]
     FailedToEvaluateBinaryExpressionOperand(#[label] Span),
+
+    #[error("failed to evaluate condition expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateConditionExpression"))]
+    FailedToEvaluateConditionExpression(#[label] Span),
+
+    #[error("failed to evaluate if body expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateIfBodyExpression"))]
+    FailedToEvaluateIfBodyExpression(#[label] Span),
+
+    #[error("failed to evaluate block expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBlockExpression"))]
+    FailedToEvaluateBlockExpression(#[label] Span),
+
     #[error("failed to evaluate: {0} not yet implemented")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] Span),
@@ -280,7 +297,7 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
                 self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
             }
-            ExprKind::Block(_) => Err(Error::Unimplemented("Block Expr".to_string(), expr.span)),
+            ExprKind::Block(block_id) => self.eval_expr_block(*block_id),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
                 self.eval_expr_call(*callee_expr_id, *args_expr_id)
             }
@@ -290,7 +307,9 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
             ExprKind::Field(_, _) => Err(Error::Unimplemented("Field Expr".to_string(), expr.span)),
             ExprKind::Hole => panic!("instruction generation for hole expressions is invalid"),
-            ExprKind::If(_, _, _) => Err(Error::Unimplemented("If Expr".to_string(), expr.span)),
+            ExprKind::If(condition_expr_id, body_expr_id, otherwise_expr_id) => {
+                self.eval_expr_if(*condition_expr_id, *body_expr_id, *otherwise_expr_id)
+            }
             ExprKind::Index(_, _) => Err(Error::Unimplemented("Index Expr".to_string(), expr.span)),
             ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
             ExprKind::Range(_, _, _) => {
@@ -377,6 +396,18 @@ impl<'a> PartialEvaluator<'a> {
         // Return the variable as a value.
         let value = Value::Var(Var(variable_id.into()));
         Ok(value)
+    }
+
+    fn eval_expr_block(&mut self, block_id: BlockId) -> Result<Value, Error> {
+        self.visit_block(block_id);
+        if self.errors.is_empty() {
+            // This should change eventually, but return UNIT for now.
+            Ok(Value::unit())
+        } else {
+            let block = self.get_block(block_id);
+            let error = Error::FailedToEvaluateBlockExpression(block.span);
+            Err(error)
+        }
     }
 
     fn eval_expr_call(
@@ -513,6 +544,38 @@ impl<'a> PartialEvaluator<'a> {
                 callable_decl.name.span,
             ))
         }
+    }
+
+    fn eval_expr_if(
+        &mut self,
+        condition_expr_id: ExprId,
+        body_expr_id: ExprId,
+        _otherwise_expr_id: Option<ExprId>,
+    ) -> Result<Value, Error> {
+        // Visit the both the condition expression to get its value.
+        let maybe_condition_value = self.try_eval_expr(condition_expr_id);
+        let Ok(condition_value) = maybe_condition_value else {
+            let condition_expr = self.get_expr(condition_expr_id);
+            let error = Error::FailedToEvaluateConditionExpression(condition_expr.span);
+            return Err(error);
+        };
+
+        //
+        if let Value::Bool(condition_bool) = condition_value {
+            if condition_bool {
+                let maybe_body_value = self.try_eval_expr(body_expr_id);
+                return if let Ok(body_value) = maybe_body_value {
+                    Ok(body_value)
+                } else {
+                    let body_expr = self.get_expr(body_expr_id);
+                    let error = Error::FailedToEvaluateConditionExpression(body_expr.span);
+                    Err(error)
+                };
+            }
+        }
+
+        // TODO (cesarzc): do the right thing.
+        Ok(Value::unit())
     }
 
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
@@ -767,8 +830,10 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
                 self.visit_expr(expr_id);
             }
             StmtKind::Local(_, pat_id, expr_id) => {
-                self.visit_expr(expr_id);
-                self.bind_expr_to_pat(pat_id, expr_id);
+                let maybe_expr_value = self.try_eval_expr(expr_id);
+                if maybe_expr_value.is_ok() {
+                    self.bind_expr_to_pat(pat_id, expr_id);
+                }
             }
             StmtKind::Item(_) => {
                 // Do nothing.
