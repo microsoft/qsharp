@@ -1,0 +1,9 @@
+.language-qsharp {
+  line-height: 125%;
+}
+pre:has(code) {
+  background-color: White;
+  border-left: solid DarkBlue;
+  margin: 5px 0px 5px 0px;
+  padding: 0em 0em 0em 0.5em;
+}

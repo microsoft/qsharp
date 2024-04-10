@@ -27,6 +27,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool` representing the `input`.
+    @Config(Adaptive)
     @Config(Unrestricted)
     function ResultAsBool(input : Result) : Bool {
         input == One
@@ -42,6 +43,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result` representing the `input`.
+    @Config(Adaptive)
     @Config(Unrestricted)
     function BoolAsResult(input : Bool) : Result {
         if input { One } else { Zero }
@@ -168,6 +170,7 @@ namespace Microsoft.Quantum.Convert {
     /// // The following returns 1
     /// let int1 = ResultArrayAsInt([One,Zero])
     /// ```
+    @Config(Adaptive)
     @Config(Unrestricted)
     function ResultArrayAsInt(results : Result[]) : Int {
         let nBits = Length(results);
@@ -193,6 +196,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool[]` representing the `input`.
+    @Config(Adaptive)
     @Config(Unrestricted)
     function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
         mutable output = [];
@@ -213,6 +217,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result[]` representing the `input`.
+    @Config(Adaptive)
     @Config(Unrestricted)
     function BoolArrayAsResultArray(input : Bool[]) : Result[] {
         mutable output = [];

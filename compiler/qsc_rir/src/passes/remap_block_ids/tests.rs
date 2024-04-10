@@ -43,9 +43,9 @@ fn remap_block_ids_no_changes() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Jump(1)
@@ -68,9 +68,9 @@ fn remap_block_ids_no_changes() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Jump(1)
@@ -117,9 +117,9 @@ fn remap_block_ids_out_of_order_no_branches() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  5
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 5
             blocks:
                 Block 3: Block:
                     Jump(7)
@@ -142,9 +142,9 @@ fn remap_block_ids_out_of_order_no_branches() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Jump(1)
@@ -202,9 +202,9 @@ fn remap_block_ids_out_of_order_with_one_branch() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  2
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 2
             blocks:
                 Block 0: Block:
                     Return
@@ -230,9 +230,9 @@ fn remap_block_ids_out_of_order_with_one_branch() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Branch Variable(0, Boolean), 1, 2
@@ -289,9 +289,9 @@ fn remap_block_ids_simple_loop() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  4
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 4
             blocks:
                 Block 2: Block:
                     Return
@@ -315,9 +315,9 @@ fn remap_block_ids_simple_loop() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Branch Variable(0, Boolean), 1, 2
@@ -361,9 +361,9 @@ fn remap_block_ids_infinite_loop() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  4
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 4
             blocks:
                 Block 0: Block:
                     Jump(4)
@@ -385,9 +385,9 @@ fn remap_block_ids_infinite_loop() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Jump(1)
@@ -448,9 +448,9 @@ fn remap_block_ids_nested_branching_loops() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  4
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 4
             blocks:
                 Block 2: Block:
                     Return
@@ -474,9 +474,9 @@ fn remap_block_ids_nested_branching_loops() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Branch Variable(0, Boolean), 1, 2
@@ -566,9 +566,9 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  4
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 4
             blocks:
                 Block 0: Block:
                     Jump(8)
@@ -604,9 +604,9 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
                 Callable 0: Callable:
                     name: main
                     call_type: Regular
-                    input_type:  <VOID>
-                    output_type:  <VOID>
-                    body:  0
+                    input_type: <VOID>
+                    output_type: <VOID>
+                    body: 0
             blocks:
                 Block 0: Block:
                     Branch Variable(0, Boolean), 1, 2

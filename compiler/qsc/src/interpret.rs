@@ -23,6 +23,7 @@ pub use qsc_eval::{
     val::Value,
     StepAction, StepResult,
 };
+use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
 
 use crate::{
     error::{self, WithStack},
@@ -46,7 +47,6 @@ use qsc_data_structures::{
 };
 use qsc_eval::{
     backend::{Backend, Chain as BackendChain, SparseSim},
-    debug::{map_fir_package_to_hir, map_hir_package_to_fir},
     output::Receiver,
     val, Env, State, VariableInfo,
 };
@@ -59,7 +59,7 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, Source, SourceMap},
     error::WithSource,
 };
-use qsc_passes::PackageType;
+use qsc_passes::{PackageType, PassContext};
 use rustc_hash::FxHashSet;
 use thiserror::Error;
 
@@ -112,7 +112,7 @@ pub struct Interpreter {
     // The FIR store
     fir_store: fir::PackageStore,
     /// FIR lowerer
-    lowerer: qsc_eval::lower::Lowerer,
+    lowerer: qsc_lowerer::Lowerer,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -190,7 +190,7 @@ impl Interpreter {
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
-                qsc_eval::lower::Lowerer::new()
+                qsc_lowerer::Lowerer::new()
                     .with_debug(dbg)
                     .lower_package(&unit.package),
             );
@@ -203,7 +203,7 @@ impl Interpreter {
             lines: 0,
             capabilities,
             fir_store,
-            lowerer: qsc_eval::lower::Lowerer::new().with_debug(dbg),
+            lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             env: Env::default(),
             sim: BackendChain::new(
                 SparseSim::new(),
@@ -300,7 +300,7 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
-        let (_, graph) = self.lower(&increment);
+        let (_, graph) = self.lower(&increment)?;
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -432,7 +432,7 @@ impl Interpreter {
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
-        let (_, graph) = self.lower(&increment);
+        let (_, graph) = self.lower(&increment)?;
 
         // The AST and HIR packages in `increment` only contain an entry
         // expression and no statements. The HIR *can* contain items if the entry
@@ -454,13 +454,52 @@ impl Interpreter {
     fn lower(
         &mut self,
         unit_addition: &qsc_frontend::incremental::Increment,
-    ) -> (Vec<StmtId>, Vec<ExecGraphNode>) {
+    ) -> core::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
+        if self.capabilities != RuntimeCapabilityFlags::all() {
+            return self.run_fir_passes(unit_addition);
+        }
         let fir_package = self.fir_store.get_mut(self.package);
-        (
+        Ok((
             self.lowerer
                 .lower_and_update_package(fir_package, &unit_addition.hir),
             self.lowerer.take_exec_graph(),
-        )
+        ))
+    }
+
+    fn run_fir_passes(
+        &mut self,
+        unit: &qsc_frontend::incremental::Increment,
+    ) -> std::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
+        let fir_package = self.fir_store.get_mut(self.package);
+        let stmts = self
+            .lowerer
+            .lower_and_update_package(fir_package, &unit.hir);
+
+        let cap_results =
+            PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
+
+        let Err(caps_errors) = cap_results else {
+            let graph = self.lowerer.take_exec_graph();
+            return Ok((stmts, graph));
+        };
+
+        // if there are errors, convert them to interpreter errors
+        // and don't update the lowerer or FIR store.
+        let mut errors = Vec::with_capacity(caps_errors.len());
+        let source_package = self
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(self.package))
+            .expect("package should exist in the package store");
+
+        for error in caps_errors {
+            errors.push(Error::Pass(WithSource::from_map(
+                &source_package.sources,
+                error,
+            )));
+        }
+
+        Err(errors)
     }
 
     fn next_line_label(&mut self) -> String {

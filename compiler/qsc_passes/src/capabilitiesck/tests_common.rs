@@ -8,9 +8,9 @@ use expect_test::Expect;
 use crate::capabilitiesck::check_supported_capabilities;
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{Package, PackageId, PackageStore};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties};
 
 pub fn check(source: &str, expect: &Expect, capabilities: RuntimeCapabilityFlags) {
@@ -196,7 +196,7 @@ pub const USE_DYNAMIC_OPERATION: &str = r#"
         }
     }"#;
 
-pub const CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT: &str = r#"
+pub const CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT: &str = r#"
     function GaussSum(n : Int) : Int {
         if n == 0 {
             0
@@ -208,7 +208,7 @@ pub const CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT: &str = r#"
         let sum = GaussSum(10);
     }"#;
 
-pub const CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT: &str = r#"
+pub const CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT: &str = r#"
     function GaussSum(n : Int) : Int {
         if n == 0 {
             0
@@ -221,7 +221,7 @@ pub const CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT: &str = r#"
         let sum = GaussSum(M(q) == Zero ? 10 | 20);
     }"#;
 
-pub const CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT: &str = r#"
+pub const CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT: &str = r#"
     operation GaussSum(n : Int) : Int {
         if n == 0 {
             0
@@ -233,7 +233,7 @@ pub const CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT: &str = r#"
         let sum = GaussSum(10);
     }"#;
 
-pub const CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT: &str = r#"
+pub const CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT: &str = r#"
     operation GaussSum(n : Int) : Int {
         if n == 0 {
             0
