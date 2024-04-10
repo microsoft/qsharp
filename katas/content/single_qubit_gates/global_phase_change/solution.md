@@ -6,7 +6,8 @@ As a reminder, the R gate is defined as $R_{\mu}(\theta) = \exp(\frac{\theta}{2}
 
 For the problem at hand, we'll use the rotation gate $R_{\mu}(\theta) = \exp(\frac{\theta}{2}i\cdot\sigma_{\mu})$ with $\sigma_{\mu} = I$.
 
-$R(PauliI, 2\pi) = \exp(\frac{2\pi}{2} iI) = \exp(i\pi) I = (\cos\pi + i\sin\pi) I$ and, since $\cos\pi = -1$ and $\sin\pi = 0$, we have that $R(PauliI, 2\pi) = -I$:
+$$R(PauliI, 2\pi) = \exp(\frac{2\pi}{2} iI) = \exp(i\pi) I = (\cos\pi + i\sin\pi) I$$
+Since $\cos\pi = -1$ and $\sin\pi = 0$, we have that $R(PauliI, 2\pi) = -I$:
 
 $$
 R(\beta |0\rangle + \gamma |1\rangle) =
