@@ -10,7 +10,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 **This kata covers the following topics:**
 
 - single-qubit measurements,
-- distinguishing orthogonal and nonorthogonal states.
+- distinguishing orthogonal and non-orthogonal states.
 
 **What you should know to start working on this kata:**
 
