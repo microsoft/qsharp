@@ -372,7 +372,12 @@ impl<'a> PartialEvaluator<'a> {
         let instruction = match bin_op {
             BinOp::Eq => Instruction::Icmp(ConditionCode::Eq, lhs_operand, rhs_operand, variable),
             BinOp::Neq => Instruction::Icmp(ConditionCode::Ne, lhs_operand, rhs_operand, variable),
-            _ => todo!(),
+            _ => {
+                return Err(Error::Unimplemented(
+                    format!("BinOp Expr ({bin_op:?})"),
+                    bin_op_expr.span,
+                ))
+            }
         };
         let current_block = self.get_current_block_mut();
         current_block.0.push(instruction);
