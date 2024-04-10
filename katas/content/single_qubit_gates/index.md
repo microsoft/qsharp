@@ -490,7 +490,7 @@ $$T^2 = S, S^2 = Z$$
 
 @[exercise]({
     "id": "single_qubit_gates__phase_flip",
-    "title": "Phase_Flip",
+    "title": "Relative Phase i",
     "path": "./phase_flip/",
     "qsDependencies": [
         "../KatasLibrary.qs"
