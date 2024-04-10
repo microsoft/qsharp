@@ -349,7 +349,7 @@ class StateDump:
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
 
-    def check_eq(self, state: dict[int, complex]) -> bool:
+    def check_eq(self, state: Dict[int, complex]) -> bool:
         """
         Checks if the state dump is equal to the given state. This is not mathematical equality,
         as the check ignores global phase.
