@@ -44,7 +44,7 @@ fn test_entry_point_attr_to_expr() {
             }"},
         "",
         &expect![[r#"
-            Expr 12 [40-73] [Type Int]: Call:
+            Expr 12 [50-54] [Type Int]: Call:
                 Expr 11 [40-73] [Type Int]: Var: Item 1
                 Expr 10 [40-73] [Type Unit]: Unit"#]],
     );
