@@ -69,9 +69,13 @@ pub enum Error {
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateConditionExpression"))]
     FailedToEvaluateConditionExpression(#[label] Span),
 
-    #[error("failed to evaluate if body expression")]
+    #[error("failed to evaluate the true block of an if expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateIfBodyExpression"))]
-    FailedToEvaluateIfBodyExpression(#[label] Span),
+    FailedToEvaluateIfExpressionTrueBlock(#[label] Span),
+
+    #[error("failed to evaluate the false block of an if expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateIfExpressionFalseBlock"))]
+    FailedToEvaluateIfExpressionFalseBlock(#[label] Span),
 
     #[error("failed to evaluate block expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBlockExpression"))]
@@ -550,7 +554,7 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         condition_expr_id: ExprId,
         body_expr_id: ExprId,
-        _otherwise_expr_id: Option<ExprId>,
+        otherwise_expr_id: Option<ExprId>,
     ) -> Result<Value, Error> {
         // Visit the both the condition expression to get its value.
         let maybe_condition_value = self.try_eval_expr(condition_expr_id);
@@ -560,18 +564,31 @@ impl<'a> PartialEvaluator<'a> {
             return Err(error);
         };
 
-        //
+        // If the condition value is a Boolean literal, use the value to decide which branch to
+        // evaluate.
         if let Value::Bool(condition_bool) = condition_value {
-            if condition_bool {
+            let maybe_if_expr_value = if condition_bool {
                 let maybe_body_value = self.try_eval_expr(body_expr_id);
-                return if let Ok(body_value) = maybe_body_value {
+                if let Ok(body_value) = maybe_body_value {
                     Ok(body_value)
                 } else {
                     let body_expr = self.get_expr(body_expr_id);
-                    let error = Error::FailedToEvaluateConditionExpression(body_expr.span);
+                    let error = Error::FailedToEvaluateIfExpressionTrueBlock(body_expr.span);
                     Err(error)
-                };
-            }
+                }
+            } else if let Some(otherwise_expr_id) = otherwise_expr_id {
+                let maybe_otherwise_value = self.try_eval_expr(otherwise_expr_id);
+                if let Ok(otherwise_value) = maybe_otherwise_value {
+                    Ok(otherwise_value)
+                } else {
+                    let otherwise_expr = self.get_expr(otherwise_expr_id);
+                    let error = Error::FailedToEvaluateIfExpressionFalseBlock(otherwise_expr.span);
+                    Err(error)
+                }
+            } else {
+                Ok(Value::unit())
+            };
+            return maybe_if_expr_value;
         }
 
         // TODO (cesarzc): do the right thing.
