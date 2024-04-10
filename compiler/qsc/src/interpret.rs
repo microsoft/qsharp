@@ -363,30 +363,34 @@ impl Interpreter {
             // compile the expression which will update the
             // entry expression in the FIR store.
             let graph = self.compile_entry_expr(expr)?;
+            // The above line updated the entry expr in the FIR store, but we need to update
+            // the user package exec graph.
             let package = self.fir_store.get_mut(self.package);
             package.entry_exec_graph = graph.into();
 
-            // we have caps, use new code gen.
+            // normal compilation has already been done
+            // analyze the capabilities before generate QIR
+            // This was already done as part of lowering, but we don't have the results here.
             let caps_results = PassContext::run_fir_passes_on_fir(
                 &self.fir_store,
                 self.package,
                 self.capabilities,
             );
-            // Ensure it compiles before trying to add it to the store.
-            match caps_results {
-                Ok(compute_properties) => fir_to_qir(
-                    &self.fir_store,
-                    self.package,
-                    self.capabilities,
-                    Some(compute_properties),
-                )
-                .map_err(|e| vec![Error::PartialEvaluation(e)]),
-                Err(_) => {
-                    // This should never happen, as the program should be checked for errors before trying to
-                    // generate code for it. But just in case, simply report the failure.
-                    Err(vec![Error::UnsupportedRuntimeCapabilities])
-                }
-            }
+
+            let Ok(compute_properties) = caps_results else {
+                // This should never happen, as the program should be checked for errors before trying to
+                // generate code for it. But just in case, simply report the failure.
+                return Err(vec![Error::UnsupportedRuntimeCapabilities]);
+            };
+
+            // Generate QIR
+            fir_to_qir(
+                &self.fir_store,
+                self.package,
+                self.capabilities,
+                Some(compute_properties),
+            )
+            .map_err(|e| vec![Error::PartialEvaluation(e)])
         }
     }
 
