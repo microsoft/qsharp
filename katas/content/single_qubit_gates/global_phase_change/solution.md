@@ -2,7 +2,7 @@ We recognize that a global phase change can be accomplished by using the R rotat
 As a reminder, the R gate is defined as $R_{\mu}(\theta) = \exp(\frac{\theta}{2}i\cdot\sigma_{\mu})$, where $\sigma_{\mu}$ is one of the Pauli gates I, X, Y or Z.
 
 > Note that a global phase is not detectable and has no physical meaning - it disappears when you take a measurement of the state.  
-> You can read more about this in the [Single-qubit measurements tutorial](../tutorials/SingleQubitSystemMeasurements/SingleQubitSystemMeasurements.ipynb#Measurements-in-arbitrary-orthogonal-bases).
+> You can read more about this in the Single-Qubit Measurements kata.
 
 For the problem at hand, we'll use the rotation gate $R_{\mu}(\theta) = \exp(\frac{\theta}{2}i\cdot\sigma_{\mu})$ with $\sigma_{\mu} = I$.
 
