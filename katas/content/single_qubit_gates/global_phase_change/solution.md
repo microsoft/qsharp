@@ -20,7 +20,6 @@ R(\beta |0\rangle + \gamma |1\rangle) =
 -\beta |0\rangle - \gamma |1\rangle
 $$
 
-The test harness for this test shows the result of applying the _controlled_ variant of your solution to be able to detect the phase change.
 @[solution]({
 "id": "single_qubit_gates__global_phase_change_solution",
 "codePath": "./Solution.qs"
