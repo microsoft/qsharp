@@ -600,7 +600,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
     "id": "single_qubit_gates__global_phase_change",
-    "title": "Global Phase_Change",
+    "title": "Global Phase -1",
     "path": "./global_phase_change/",
     "qsDependencies": [
         "../KatasLibrary.qs"
