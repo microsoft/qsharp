@@ -17,7 +17,7 @@ R(\beta |0\rangle + \gamma |1\rangle) =
  \begin{bmatrix}\beta\\\ \gamma\\\ \end{bmatrix} =
  \begin{bmatrix}-1\cdot\beta + 0\cdot\gamma\\\ 0\cdot\beta +  -1\cdot\gamma \\\ \end{bmatrix}=
 \begin{bmatrix}-\beta\\\ -\gamma\\\ \end{bmatrix}=
-- \beta |0\rangle - \gamma |1\rangle
+-\beta |0\rangle - \gamma |1\rangle
 $$
 
 The test harness for this test shows the result of applying the _controlled_ variant of your solution to be able to detect the phase change.
