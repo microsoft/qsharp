@@ -2,74 +2,17 @@
 // Licensed under the MIT License.
 
 use indenter::Indented;
-use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
+use qsc_data_structures::functors::FunctorApp;
 use qsc_fir::{
+    extensions::{InputParam, InputParamIndex},
     fir::{
-        CallableDecl, ExprId, ExprKind, Functor, ItemId, LocalItemId, LocalVarId, PackageId,
-        PackageLookup, Pat, PatId, PatKind, Res, StoreItemId, UnOp,
+        ExprId, ExprKind, Functor, ItemId, LocalItemId, LocalVarId, PackageId, PackageLookup,
+        PatId, Res, StoreItemId, UnOp,
     },
     ty::{FunctorSetValue, Ty},
 };
 use rustc_hash::FxHashMap;
 use std::fmt::{Debug, Formatter};
-
-/// The index corresponding to an input parameter node.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct InputParamIndex(usize);
-
-impl From<InputParamIndex> for usize {
-    fn from(value: InputParamIndex) -> Self {
-        value.0
-    }
-}
-
-impl From<usize> for InputParamIndex {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
-}
-
-/// An input parameter node.
-#[derive(Clone, Debug)]
-pub struct InputParam {
-    pub index: InputParamIndex,
-    pub pat: PatId,
-    pub ty: Ty,
-    pub var: Option<LocalVarId>,
-}
-
-pub fn derive_callable_input_params(
-    callable: &CallableDecl,
-    pats: &IndexMap<PatId, Pat>,
-) -> Vec<InputParam> {
-    let input_elements = derive_callable_input_pattern_elements(callable, pats);
-    let mut input_params = Vec::new();
-    let mut param_index = InputParamIndex(0);
-    for element in input_elements {
-        let maybe_input_param = match &element.kind {
-            InputPatternElementKind::Discard => Some(InputParam {
-                index: param_index,
-                pat: element.pat,
-                ty: element.ty.clone(),
-                var: None,
-            }),
-            InputPatternElementKind::Ident(local_var_id) => Some(InputParam {
-                index: param_index,
-                pat: element.pat,
-                ty: element.ty.clone(),
-                var: Some(*local_var_id),
-            }),
-            InputPatternElementKind::Tuple => None,
-        };
-
-        if let Some(input_param) = maybe_input_param {
-            input_params.push(input_param);
-            param_index.0 += 1;
-        }
-    }
-
-    input_params
-}
 
 /// A represenation of a local symbol.
 #[derive(Clone, Debug)]
@@ -198,63 +141,6 @@ impl TyExt for Ty {
             Self::Err => panic!("unexpected type error"),
         }
     }
-}
-
-/// An element related to an input pattern.
-#[derive(Debug)]
-struct InputPatternElement {
-    pub pat: PatId,
-    pub ty: Ty,
-    pub kind: InputPatternElementKind,
-}
-
-/// Kinds of input pattern elements.
-#[derive(Debug)]
-enum InputPatternElementKind {
-    Discard,
-    Ident(LocalVarId),
-    Tuple,
-}
-
-/// Creates a vector of flattened input pattern elements.
-fn derive_callable_input_pattern_elements(
-    callable: &CallableDecl,
-    pats: &IndexMap<PatId, Pat>,
-) -> Vec<InputPatternElement> {
-    fn create_input_elements(
-        pat_id: PatId,
-        pats: &IndexMap<PatId, Pat>,
-    ) -> Vec<InputPatternElement> {
-        let pat = pats.get(pat_id).expect("pattern should exist");
-        match &pat.kind {
-            PatKind::Bind(ident) => {
-                vec![InputPatternElement {
-                    pat: pat_id,
-                    ty: pat.ty.clone(),
-                    kind: InputPatternElementKind::Ident(ident.id),
-                }]
-            }
-            PatKind::Tuple(tuple_pats) => {
-                let mut tuple_params = vec![InputPatternElement {
-                    pat: pat_id,
-                    ty: pat.ty.clone(),
-                    kind: InputPatternElementKind::Tuple,
-                }];
-                for tuple_item_pat_id in tuple_pats {
-                    let mut tuple_item_params = create_input_elements(*tuple_item_pat_id, pats);
-                    tuple_params.append(&mut tuple_item_params);
-                }
-                tuple_params
-            }
-            PatKind::Discard => vec![InputPatternElement {
-                pat: pat_id,
-                ty: pat.ty.clone(),
-                kind: InputPatternElementKind::Discard,
-            }],
-        }
-    }
-
-    create_input_elements(callable.input, pats)
 }
 
 #[derive(Debug)]

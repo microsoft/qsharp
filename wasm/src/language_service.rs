@@ -502,7 +502,7 @@ serializable_type! {
         pub manifest: Option<String>,
     },
     r#"export interface INotebookMetadata {
-        targetProfile?: "unrestricted" | "base";
+        targetProfile?: "adaptive" | "base" | "unrestricted";
         languageFeatures?: "v2-preview-syntax"[];
         manifest?: string;
     }"#,

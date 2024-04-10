@@ -9,6 +9,7 @@ from ._native import (
     Output,
     Circuit,
 )
+from warnings import warn
 from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
@@ -28,10 +29,15 @@ class Config:
         language_features: Optional[List[str]],
         manifest: Optional[str],
     ):
-        if target_profile == TargetProfile.Unrestricted:
-            self._config = {"targetProfile": "unrestricted"}
+        if target_profile == TargetProfile.Adaptive:
+            self._config = {"targetProfile": "adaptive"}
+            warn("The adaptive target profile is a preview feature.")
+            warn("Functionality may be incomplete or incorrect.")
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
+        elif target_profile == TargetProfile.Unrestricted:
+            self._config = {"targetProfile": "unrestricted"}
+
         self._config["languageFeatures"] = language_features
         self._config["manifest"] = manifest
 

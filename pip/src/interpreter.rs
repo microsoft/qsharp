@@ -51,14 +51,18 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
 /// A target profile describes the capabilities of the hardware or simulator
 /// which will be used to run the Q# program.
 pub(crate) enum TargetProfile {
-    /// Target supports the full set of capabilities required to run any Q# program.
+    /// Target supports the core set of adaptive.
     ///
-    /// This option maps to the Full Profile as defined by the QIR specification.
-    Unrestricted,
+    /// This option maps to the Adaptive Profile as defined by the QIR specification without any extensions.
+    Adaptive,
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
+    /// Target supports the full set of capabilities required to run any Q# program.
+    ///
+    /// This option maps to the Full Profile as defined by the QIR specification.
+    Unrestricted,
 }
 
 #[pyclass(unsendable)]
@@ -107,8 +111,9 @@ impl Interpreter {
         list_directory: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
-            TargetProfile::Unrestricted => Profile::Unrestricted,
+            TargetProfile::Adaptive => Profile::Adaptive,
             TargetProfile::Base => Profile::Base,
+            TargetProfile::Unrestricted => Profile::Unrestricted,
         };
         // If no features were passed in as an argument, use the features from the manifest.
         // this way we prefer the features from the argument over those from the manifest.

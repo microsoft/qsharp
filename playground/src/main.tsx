@@ -3,6 +3,7 @@
 
 // Use esbuild to bundle and copy the CSS files to the output directory.
 import "modern-normalize/modern-normalize.css";
+import "./main.css";
 
 import { render } from "preact";
 import {
@@ -23,15 +24,20 @@ import {
 import { Nav } from "./nav.js";
 import { Editor } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
+import {
+  DocumentationDisplay,
+  getNamespaces,
+  processDocumentFiles,
+} from "./docs.js";
 import {
   compressedBase64ToCode,
   lsRangeToMonacoRange,
   monacoPositionToLsPosition,
 } from "./utils.js";
 
-export type ActiveTab = "results-tab" | "hir-tab" | "logs-tab";
+export type ActiveTab = "results-tab" | "hir-tab" | "ast-tab" | "logs-tab";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
@@ -73,12 +79,13 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   });
 
   const [currentNavItem, setCurrentNavItem] = useState(
-    props.linkedCode ? "linked" : "Minimal",
+    props.linkedCode ? "linked" : "sample-Minimal",
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined,
   );
 
+  const [ast, setAst] = useState<string>("");
   const [hir, setHir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
@@ -92,9 +99,20 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const kataTitles = props.katas.map((elem) => elem.title);
   const sampleTitles = samples.map((sample) => sample.title);
 
+  const [documentation, setDocumentation] = useState<
+    Map<string, string> | undefined
+  >(undefined);
+  useEffect(() => {
+    createDocumentation();
+  }, []);
+  async function createDocumentation() {
+    const docFiles = await compiler.getDocumentation();
+    setDocumentation(processDocumentFiles(docFiles));
+  }
+
   const sampleCode =
-    samples.find((sample) => sample.title === currentNavItem)?.code ||
-    props.linkedCode;
+    samples.find((sample) => "sample-" + sample.title === currentNavItem)
+      ?.code || props.linkedCode;
 
   const defaultShots =
     samples.find((sample) => sample.title === currentNavItem)?.shots || 100;
@@ -122,6 +140,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
         navSelected={onNavItemSelected}
         katas={kataTitles}
         samples={sampleTitles}
+        namespaces={getNamespaces(documentation)}
       ></Nav>
       {sampleCode ? (
         <>
@@ -135,6 +154,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showShots={true}
             showExpr={true}
             shotError={shotError}
+            setAst={setAst}
             setHir={setHir}
             activeTab={activeTab}
             languageService={languageService}
@@ -143,12 +163,13 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             evtTarget={evtTarget}
             showPanel={true}
             onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
+            ast={ast}
             hir={hir}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
           ></OutputTabs>
         </>
-      ) : (
+      ) : activeKata ? (
         <Katas
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
@@ -157,6 +178,11 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           onRestartCompiler={onRestartCompiler}
           languageService={languageService}
         ></Katas>
+      ) : (
+        <DocumentationDisplay
+          currentNamespace={currentNavItem}
+          documentation={documentation}
+        ></DocumentationDisplay>
       )}
       <div id="popup"></div>
     </>

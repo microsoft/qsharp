@@ -69,11 +69,13 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
+    @Config(Adaptive)
     @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
+    @Config(Adaptive)
     @Config(Unrestricted)
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
@@ -120,11 +122,13 @@ namespace Microsoft.Quantum.Diagnostics {
     /// Operation defining the expected behavior for the operation under test.
     /// # Output
     /// True if operations are equal, false otherwise.
+    @Config(Adaptive)
     @Config(Unrestricted)
-    operation CheckOperationsAreEqual (
+    operation CheckOperationsAreEqual(
         nQubits : Int,
         actual : (Qubit[] => Unit),
-        expected : (Qubit[] => Unit is Adj)) : Bool {
+        expected : (Qubit[] => Unit is Adj)
+    ) : Bool {
 
         // Prepare a reference register entangled with the target register.
         use reference = Qubit[nQubits];
@@ -132,7 +136,7 @@ namespace Microsoft.Quantum.Diagnostics {
 
         // Apply operations.
         within {
-            for i in 0 .. nQubits - 1  {
+            for i in 0..nQubits - 1 {
                 H(reference[i]);
                 CNOT(reference[i], target[i]);
             }

@@ -325,8 +325,7 @@ impl<'a> TFactoryDistillationUnit<'a> {
                 1,
                 TFactoryDistillationUnitType::Combined | TFactoryDistillationUnitType::Physical,
             ) => &template.physical_qubit_specification,
-            (1, TFactoryDistillationUnitType::Logical)
-            | (_, TFactoryDistillationUnitType::Physical) => &None,
+            (_, TFactoryDistillationUnitType::Physical) => &None,
             (_, TFactoryDistillationUnitType::Combined | TFactoryDistillationUnitType::Logical) => {
                 if template
                     .logical_qubit_specification_first_round_override

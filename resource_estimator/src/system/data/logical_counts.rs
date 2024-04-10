@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::{
-    estimates::Overhead,
+    estimates::{ErrorBudget, Overhead},
     system::constants::{
         NUM_MEASUREMENTS_PER_R, NUM_MEASUREMENTS_PER_TOF, NUM_TS_PER_ROTATION_A_COEFFICIENT,
         NUM_TS_PER_ROTATION_B_COEFFICIENT,
@@ -20,6 +20,7 @@ pub trait LayoutReportData {
     fn ccz_count(&self) -> u64;
     fn ccix_count(&self) -> u64;
     fn measurement_count(&self) -> u64;
+    fn num_ts_per_rotation(&self, eps_synthesis: f64) -> Option<u64>;
 }
 
 /// Resource counts output from `qir_estimate_counts` program
@@ -58,33 +59,23 @@ impl Overhead for LogicalResourceCounts {
         2 * self.num_qubits + qubit_padding
     }
 
-    fn logical_qubits_without_padding(&self) -> u64 {
-        2 * self.num_qubits
-    }
-
-    fn logical_depth(&self, num_ts_per_rotation: u64) -> u64 {
+    fn logical_depth(&self, budget: &ErrorBudget) -> u64 {
         (self.measurement_count + self.rotation_count + self.t_count) * NUM_MEASUREMENTS_PER_R
             + (self.ccz_count + self.ccix_count) * NUM_MEASUREMENTS_PER_TOF
-            + num_ts_per_rotation * self.rotation_depth * NUM_MEASUREMENTS_PER_R
+            + self
+                .num_ts_per_rotation(budget.rotations())
+                .unwrap_or_default()
+                * self.rotation_depth
+                * NUM_MEASUREMENTS_PER_R
     }
 
-    fn num_magic_states(&self, num_ts_per_rotation: u64) -> u64 {
+    fn num_magic_states(&self, budget: &ErrorBudget, _index: usize) -> u64 {
         4 * (self.ccz_count + self.ccix_count)
             + self.t_count
-            + num_ts_per_rotation * self.rotation_count
-    }
-
-    fn num_magic_states_per_rotation(&self, eps_synthesis: f64) -> Option<u64> {
-        if self.rotation_count > 0 {
-            Some(
-                (NUM_TS_PER_ROTATION_A_COEFFICIENT
-                    * ((self.rotation_count as f64) / eps_synthesis).log2()
-                    + NUM_TS_PER_ROTATION_B_COEFFICIENT)
-                    .ceil() as _,
-            )
-        } else {
-            None
-        }
+            + self
+                .num_ts_per_rotation(budget.rotations())
+                .unwrap_or_default()
+                * self.rotation_count
     }
 }
 
@@ -125,5 +116,18 @@ impl LayoutReportData for LogicalResourceCounts {
 
     fn measurement_count(&self) -> u64 {
         self.measurement_count
+    }
+
+    fn num_ts_per_rotation(&self, eps_synthesis: f64) -> Option<u64> {
+        if self.rotation_count > 0 {
+            Some(
+                (NUM_TS_PER_ROTATION_A_COEFFICIENT
+                    * ((self.rotation_count as f64) / eps_synthesis).log2()
+                    + NUM_TS_PER_ROTATION_B_COEFFICIENT)
+                    .ceil() as _,
+            )
+        } else {
+            None
+        }
     }
 }

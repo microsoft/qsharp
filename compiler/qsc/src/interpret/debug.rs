@@ -4,11 +4,12 @@
 #[cfg(test)]
 mod tests;
 
-use qsc_eval::debug::{map_fir_package_to_hir, Frame};
+use qsc_eval::debug::Frame;
 use qsc_fir::fir::{Global, PackageStoreLookup, StoreItemId};
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir;
 use qsc_hir::hir::{Item, ItemKind};
+use qsc_lowerer::map_fir_package_to_hir;
 
 #[must_use]
 pub(crate) fn format_call_stack(

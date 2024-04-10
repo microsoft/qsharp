@@ -5,7 +5,7 @@ pr: none
 
 variables:
   CARGO_TERM_COLOR: always
-  RUST_TOOLCHAIN_VERSION: "1.76"
+  RUST_TOOLCHAIN_VERSION: "1.77"
 
 # variables set by pipeline
 # - BASE_IMAGE
@@ -47,12 +47,12 @@ jobs:
     displayName: Build VSCode Extension
 
   - script: |
-      mkdir -p '$(System.DefaultWorkingDirectory)/target/npm'
-      npm pack --pack-destination '$(System.DefaultWorkingDirectory)/target/npm'
+      mkdir -p '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
+      npm pack --pack-destination '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
     displayName: Pack NPM Package
-    workingDirectory: '$(System.DefaultWorkingDirectory)/npm'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/npm/qsharp'
 
-  - publish: $(System.DefaultWorkingDirectory)/target/npm
+  - publish: $(System.DefaultWorkingDirectory)/target/npm/qsharp
     artifact: NPM
     displayName: Upload NPM Package Artifact
 
@@ -393,9 +393,9 @@ jobs:
     displayName: Download NPM Artifacts
 
   - script: |
-      mkdir -p                            target/npm
-      mv ../NPM/*.tgz                     target/npm
-      ls                                  target/npm/*
+      mkdir -p                            target/npm/qsharp
+      mv ../NPM/*.tgz                     target/npm/qsharp
+      ls                                  target/npm/qsharp/*
     displayName: Move NPM Artifacts to Publishing Dir
 
   - task: EsrpRelease@4
@@ -403,7 +403,7 @@ jobs:
      ConnectedServiceName: 'ESRP_Release'
      Intent: 'PackageDistribution'
      ContentType: 'NPM'
-     FolderLocation: '$(System.DefaultWorkingDirectory)/target/npm'
+     FolderLocation: '$(System.DefaultWorkingDirectory)/target/npm/qsharp'
      Owners: '$(OwnerPersonalAlias)@microsoft.com'  # NB: Group email here fails the task with non-actionable output.
      Approvers: 'billti@microsoft.com'
      # Auto-inserted Debugging defaults:

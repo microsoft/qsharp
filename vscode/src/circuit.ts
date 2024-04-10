@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
+import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
+import { escapeHtml } from "markdown-it/lib/common/utils";
 import {
   IOperationInfo,
+  IRange,
   VSDiagnostic,
   getCompilerWorker,
   log,
@@ -51,7 +53,9 @@ export async function showCircuitCommand(
     log.info("terminating circuit worker due to timeout");
     worker.terminate();
   }, compilerRunTimeoutMs);
-  const sources = await loadProject(editor.document.uri);
+
+  const docUri = editor.document.uri;
+  const sources = await loadProject(docUri);
   const targetProfile = getTarget();
 
   try {
@@ -62,9 +66,9 @@ export async function showCircuitCommand(
 
     updateCircuitPanel(
       targetProfile,
-      editor.document.uri.path,
-      circuit,
-      operation,
+      docUri.path,
+      true, // reveal
+      { circuit, operation },
     );
 
     sendTelemetryEvent(EventType.CircuitEnd, {
@@ -75,11 +79,11 @@ export async function showCircuitCommand(
     log.error("Circuit error. ", e.toString());
     clearTimeout(compilerTimeout);
 
-    const errors: [string, VSDiagnostic][] =
+    const errors: [string, VSDiagnostic, string][] =
       typeof e === "string" ? JSON.parse(e) : undefined;
     let errorHtml = "There was an error generating the circuit.";
     if (errors) {
-      errorHtml = errorsToHtml(errors);
+      errorHtml = errorsToHtml(errors, docUri);
     }
 
     if (!timeout) {
@@ -92,9 +96,9 @@ export async function showCircuitCommand(
 
     updateCircuitPanel(
       targetProfile,
-      editor.document.uri.path,
-      errorHtml,
-      operation,
+      docUri.path,
+      false, // reveal
+      { errorHtml, operation },
     );
   } finally {
     log.info("terminating circuit worker");
@@ -102,90 +106,137 @@ export async function showCircuitCommand(
   }
 }
 
-export function updateCircuitPanel(
-  targetProfile: string,
-  docPath: string,
-  circuitOrErrorHtml: CircuitData | string,
-  operation?: IOperationInfo | undefined,
-) {
-  let title;
-  let subtitle;
-  if (operation) {
-    title = `${operation.operation} with ${operation.totalNumQubits} input qubits`;
-    subtitle = `${getTargetFriendlyName(targetProfile)} `;
-  } else {
-    title = basename(docPath) || "Circuit";
-    subtitle = `${getTargetFriendlyName(targetProfile)}`;
-  }
-
-  const message = {
-    command: "circuit",
-    title,
-    subtitle,
-    circuit:
-      typeof circuitOrErrorHtml === "object" ? circuitOrErrorHtml : undefined,
-    errorHtml:
-      typeof circuitOrErrorHtml === "string" ? circuitOrErrorHtml : undefined,
-  };
-  sendMessageToPanel("circuit", false, message);
-}
-
 /**
  * Formats an array of compiler/runtime errors into HTML to be presented to the user.
  *
- * @param {[string, VSDiagnostic][]} errors
- *  The string is the document URI or "<project>" if the error isn't associated with a specific document.
+ * @param errors
+ *  The first string is the document URI or "<project>" if the error isn't associated with a specific document.
  *  The VSDiagnostic is the error information.
+ *  The last string is the stack trace.
  *
- * @returns {string} - The HTML formatted errors, to be set as the inner contents of a container element.
+ * @returns The HTML formatted errors, to be set as the inner contents of a container element.
  */
-function errorsToHtml(errors: [string, VSDiagnostic][]): string {
+function errorsToHtml(
+  errors: [string, VSDiagnostic, string][],
+  programUri: Uri,
+) {
   let errorHtml = "";
   for (const error of errors) {
-    let location;
-    const document = error[0];
-    try {
-      // If the error location is a document URI, create a link to that document.
-      // We use the `vscode.open` command (https://code.visualstudio.com/api/references/commands#commands)
-      // to open the document in the editor.
-      // The line and column information is displayed, but are not part of the link.
-      //
-      // At the time of writing this is the only way we know to create a direct
-      // link to a Q# document from a Web View.
-      //
-      // If we wanted to handle line/column information from the link, an alternate
-      // implementation might be having our own command that navigates to the correct
-      // location. Then this would be a link to that command instead.
-      const uri = Uri.parse(document, true);
-      const openCommandUri = Uri.parse(
-        `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
+    const [document, diag, rawStack] = error;
+
+    if (diag.code === "Qsc.Eval.ResultComparisonUnsupported") {
+      const commandUri = Uri.parse(
+        `command:qsharp-vscode.runEditorContentsWithCircuit?${encodeURIComponent(JSON.stringify([programUri]))}`,
         true,
       );
-      const fsPath = escapeHtml(uri.fsPath);
-      const lineColumn = escapeHtml(
-        `:${error[1].range.start.line}:${error[1].range.start.character}`,
+      const messageHtml =
+        `<p>Synthesizing circuits is unsupported for programs that ` +
+        `contain behavior that is conditional on a qubit measurement result, ` +
+        `since the resulting circuit may depend on the outcome of the measurement.</p>` +
+        `<p>If you would like to generate a circuit for this program, you can ` +
+        `<a href="${commandUri}">run the program in the simulator and show the resulting circuit</a>, ` +
+        `or edit your code to avoid the result comparison indicated by the call stack below.</p>`;
+
+      errorHtml += messageHtml;
+    } else {
+      const location = documentHtml(document, diag.range);
+
+      const message = escapeHtml(`(${diag.code}) ${diag.message}`).replace(
+        "\n",
+        "<br/><br/>",
       );
-      location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
-    } catch (e) {
-      // Likely could not parse document URI - it must be a project level error,
-      // use the document name directly
-      location = escapeHtml(error[0]);
+
+      errorHtml += `<p>${location}: ${message}<br/></p>`;
     }
 
-    const message = escapeHtml(
-      `(${error[1].code}) ${error[1].message}`,
-    ).replace("\n", "<br/>");
+    if (rawStack) {
+      const stack = rawStack
+        .split("\n")
+        .map((l) => {
+          // Link-ify the document names in the stack trace
+          const match = l.match(/^(\s*)at (.*) in (.*)/);
+          if (match) {
+            const [, leadingWs, callable, doc] = match;
+            return `${leadingWs}at ${escapeHtml(callable)} in ${documentHtml(doc)}`;
+          } else {
+            return l;
+          }
+        })
 
-    errorHtml += `${location}: ${message}<br/>`;
+        .join("\n");
+      errorHtml += `<br/><pre>${stack}</pre>`;
+    }
   }
   return errorHtml;
 }
 
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+export function updateCircuitPanel(
+  targetProfile: string,
+  docPath: string,
+  reveal: boolean,
+  params: {
+    circuit?: CircuitData;
+    errorHtml?: string;
+    simulating?: boolean;
+    operation?: IOperationInfo | undefined;
+  },
+) {
+  const title = params?.operation
+    ? `${params.operation.operation} with ${params.operation.totalNumQubits} input qubits`
+    : basename(docPath) || "Circuit";
+
+  // Trim the Q#: prefix from the target profile name - that's meant for the ui text in the status bar
+  const target = `Target profile: ${getTargetFriendlyName(targetProfile).replace("Q#: ", "")} `;
+
+  const props = {
+    title,
+    targetProfile: target,
+    simulating: params?.simulating || false,
+    circuit: params?.circuit,
+    errorHtml: params?.errorHtml,
+  };
+
+  const message = {
+    command: "circuit",
+    props,
+  };
+  sendMessageToPanel("circuit", reveal, message);
+}
+
+/**
+ * If the input is a URI, turns it into a document open link.
+ * Otherwise returns the HTML-escaped input
+ */
+function documentHtml(maybeUri: string, range?: IRange) {
+  let location;
+  try {
+    // If the error location is a document URI, create a link to that document.
+    // We use the `vscode.open` command (https://code.visualstudio.com/api/references/commands#commands)
+    // to open the document in the editor.
+    // The line and column information is displayed, but are not part of the link.
+    //
+    // At the time of writing this is the only way we know to create a direct
+    // link to a Q# document from a Web View.
+    //
+    // If we wanted to handle line/column information from the link, an alternate
+    // implementation might be having our own command that navigates to the correct
+    // location. Then this would be a link to that command instead. Yet another
+    // alternative is to have the webview pass a message back to the extension.
+    const uri = Uri.parse(maybeUri, true);
+    const openCommandUri = Uri.parse(
+      `command:vscode.open?${encodeURIComponent(JSON.stringify([uri]))}`,
+      true,
+    );
+    const fsPath = escapeHtml(uri.fsPath);
+    const lineColumn = range
+      ? escapeHtml(`:${range.start.line}:${range.start.character}`)
+      : "";
+    location = `<a href="${openCommandUri}">${fsPath}</a>${lineColumn}`;
+  } catch (e) {
+    // Likely could not parse document URI - it must be a project level error
+    // or an error from stdlib, use the document name directly
+    location = escapeHtml(maybeUri);
+  }
+
+  return location;
 }

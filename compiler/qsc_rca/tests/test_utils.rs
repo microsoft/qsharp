@@ -4,9 +4,9 @@
 use expect_test::Expect;
 use qsc::incremental::Compiler;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, ComputePropertiesLookup, PackageStoreComputeProperties};
 
@@ -28,15 +28,14 @@ impl CompilationContext {
             LanguageFeatures::default(),
         )
         .expect("should be able to create a new compiler");
-        let mut lowerer = Lowerer::new();
-        let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
+        let fir_store = lower_hir_package_store(compiler.package_store());
         let analyzer = Analyzer::init(&fir_store);
         let compute_properties = analyzer.analyze_all();
         Self {
             compiler,
             fir_store,
             compute_properties,
-            lowerer,
+            lowerer: Lowerer::new(),
         }
     }
 
@@ -144,12 +143,10 @@ pub fn check_last_statement_compute_properties(
     expect.assert_eq(&stmt_compute_properties.to_string());
 }
 
-fn lower_hir_package_store(
-    lowerer: &mut Lowerer,
-    hir_package_store: &HirPackageStore,
-) -> PackageStore {
+fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore {
     let mut fir_store = PackageStore::new();
     for (id, unit) in hir_package_store {
+        let mut lowerer = Lowerer::new();
         fir_store.insert(
             map_hir_package_to_fir(id),
             lowerer.lower_package(&unit.package),

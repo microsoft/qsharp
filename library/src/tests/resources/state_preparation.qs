@@ -6,7 +6,7 @@ namespace Test {
     open Microsoft.Quantum.Unstable.StatePreparation;
 
 
-    operation TestPlusState(): Unit {
+    operation TestPlusState() : Unit {
         use q = Qubit();
         PreparePureStateD([Sqrt(0.5), Sqrt(0.5)], [q]);
         DumpMachine();
@@ -14,7 +14,7 @@ namespace Test {
         H(q);
     }
 
-    operation TestMinusState(): Unit {
+    operation TestMinusState() : Unit {
         use q = Qubit();
         PreparePureStateD([Sqrt(0.5), -Sqrt(0.5)], [q]);
         DumpMachine();
@@ -23,7 +23,7 @@ namespace Test {
         X(q);
     }
 
-    operation TestBellState(): Unit {
+    operation TestBellState() : Unit {
         use q = Qubit[2];
         PreparePureStateD([Sqrt(0.5), 0.0, 0.0, Sqrt(0.5)], q);
         DumpMachine();
@@ -32,7 +32,7 @@ namespace Test {
         H(q[0]);
     }
 
-    operation TestCat3State(): Unit {
+    operation TestCat3State() : Unit {
         use q = Qubit[3];
         PreparePureStateD([Sqrt(0.5), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Sqrt(0.5)], q);
         DumpMachine();
@@ -49,18 +49,18 @@ namespace Test {
         T(qs[1]);
     }
 
-    operation TestPrepareComplex(): Unit {
+    operation TestPrepareComplex() : Unit {
         use q = Qubit[2];
         let c00 = ComplexPolar(0.5, 0.0);
-        let c01 = ComplexPolar(0.5, PI()/4.0);
-        let c10 = ComplexPolar(0.5, PI()/2.0);
-        let c11 = ComplexPolar(0.5, 3.0*PI()/4.0);
+        let c01 = ComplexPolar(0.5, PI() / 4.0);
+        let c10 = ComplexPolar(0.5, PI() / 2.0);
+        let c11 = ComplexPolar(0.5, 3.0 * PI() / 4.0);
         ApproximatelyPreparePureStateCP(0.0, [c00, c01, c10, c11], q);
         DumpMachine();
         Adjoint PrepareComplex(q);
     }
 
-    operation TestPreparationCompletion(): Unit {
+    operation TestPreparationCompletion() : Unit {
         let testCases = [
             // Test positive coefficients
             [0.773761, 0.633478],
@@ -83,7 +83,7 @@ namespace Test {
 
         for coefficients in testCases {
             let L = Length(coefficients);
-            let N = Ceiling(Log(IntAsDouble(L))/LogOf2() - 0.001);
+            let N = Ceiling(Log(IntAsDouble(L)) / LogOf2() - 0.001);
             use q = Qubit[N];
             PreparePureStateD(coefficients, q);
             DumpMachine();
@@ -91,11 +91,11 @@ namespace Test {
         }
     }
 
-    operation TestEndianness(): Unit {
+    operation TestEndianness() : Unit {
         let n = 4;
         use qs = Qubit[n];
         let bitsize = 2^n;
-        for i in 0..bitsize-1 {
+        for i in 0..bitsize - 1 {
             mutable c = Repeated(0.0, bitsize);
             set c w/= i <- 1.0;
             PreparePureStateD(c, qs);

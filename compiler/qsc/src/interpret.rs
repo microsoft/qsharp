@@ -23,6 +23,7 @@ pub use qsc_eval::{
     val::Value,
     StepAction, StepResult,
 };
+use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
 
 use crate::{
     error::{self, WithStack},
@@ -39,13 +40,13 @@ use qsc_circuit::{
 };
 use qsc_codegen::qir_base::BaseProfSim;
 use qsc_data_structures::{
+    functors::FunctorApp,
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
 };
 use qsc_eval::{
     backend::{Backend, Chain as BackendChain, SparseSim},
-    debug::{map_fir_package_to_hir, map_hir_package_to_fir},
     output::Receiver,
     val, Env, State, VariableInfo,
 };
@@ -58,7 +59,7 @@ use qsc_frontend::{
     compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, Source, SourceMap},
     error::WithSource,
 };
-use qsc_passes::PackageType;
+use qsc_passes::{PackageType, PassContext};
 use rustc_hash::FxHashSet;
 use thiserror::Error;
 
@@ -83,18 +84,19 @@ pub enum Error {
     #[error("runtime error")]
     #[diagnostic(transparent)]
     Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
+    #[error("circuit error")]
+    #[diagnostic(transparent)]
+    Circuit(#[from] qsc_circuit::Error),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
     UnsupportedRuntimeCapabilities,
-    #[error("expression does not evaluate to an operation that takes qubit parameters")]
-    #[diagnostic(code("Qsc.Interpret.NoCircuitForOperation"))]
-    #[diagnostic(help(
-        "provide the name of a callable or a lambda expression that only takes qubits as parameters"
-    ))]
-    NoCircuitForOperation,
+    #[error("expression does not evaluate to an operation")]
+    #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]
+    #[diagnostic(help("provide the name of a callable or a lambda expression"))]
+    NotAnOperation,
 }
 
 /// A Q# interpreter.
@@ -110,7 +112,7 @@ pub struct Interpreter {
     // The FIR store
     fir_store: fir::PackageStore,
     /// FIR lowerer
-    lowerer: qsc_eval::lower::Lowerer,
+    lowerer: qsc_lowerer::Lowerer,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -143,28 +145,65 @@ impl Interpreter {
         capabilities: RuntimeCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let mut lowerer = qsc_eval::lower::Lowerer::new();
-        let mut fir_store = fir::PackageStore::new();
+        Self::new_internal(
+            false,
+            std,
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+        )
+    }
 
+    /// Creates a new incremental compiler with debugging stmts enabled, compiling the passed in sources.
+    /// # Errors
+    /// If compiling the sources fails, compiler errors are returned.
+    pub fn new_with_debug(
+        std: bool,
+        sources: SourceMap,
+        package_type: PackageType,
+        capabilities: RuntimeCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
+        Self::new_internal(
+            true,
+            std,
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+        )
+    }
+
+    fn new_internal(
+        dbg: bool,
+        std: bool,
+        sources: SourceMap,
+        package_type: PackageType,
+        capabilities: RuntimeCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
         let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
             .map_err(into_errors)?;
 
+        let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
             fir_store.insert(
                 map_hir_package_to_fir(id),
-                lowerer.lower_package(&unit.package),
+                qsc_lowerer::Lowerer::new()
+                    .with_debug(dbg)
+                    .lower_package(&unit.package),
             );
         }
 
         let source_package_id = compiler.source_package_id();
         let package_id = compiler.package_id();
-
         Ok(Self {
             compiler,
             lines: 0,
             capabilities,
             fir_store,
-            lowerer,
+            lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             env: Env::default(),
             sim: BackendChain::new(
                 SparseSim::new(),
@@ -261,7 +300,7 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
-        let (_, graph) = self.lower(&increment);
+        let (_, graph) = self.lower(&increment)?;
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -338,52 +377,22 @@ impl Interpreter {
 
         let entry_expr = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
-                // To determine whether the passed in expression is a valid callable name
-                // or lambda, we evaluate it and inspect the runtime value.
-                let maybe_operation = match self.eval_fragments(&mut out, &operation_expr)? {
-                    Value::Closure(b) => Some((b.id, b.functor)),
-                    Value::Global(item_id, functor_app) => Some((item_id, functor_app)),
-                    _ => None,
-                };
-
-                let maybe_invoke_expr = if let Some((item_id, functor_app)) = maybe_operation {
-                    // Controlled operations are not supported at the moment.
-                    if functor_app.controlled > 0 {
-                        return Err(vec![Error::NoCircuitForOperation]);
-                    }
-
-                    // Find the item in the HIR
-                    let package = map_fir_package_to_hir(item_id.package);
-                    let local_item_id = crate::hir::LocalItemId::from(usize::from(item_id.item));
-                    let package_store = self.compiler.package_store();
-
-                    let item = package_store
-                        .get(package)
-                        .and_then(|unit| unit.package.items.get(local_item_id));
-
-                    // Generate the entry expression to invoke the operation.
-                    // Will return `None` if item is not a valid callable that takes qubits.
-                    item.and_then(|item| entry_expr_for_qubit_operation(item, &operation_expr))
-                } else {
-                    return Err(vec![Error::NoCircuitForOperation]);
-                };
-
-                if maybe_invoke_expr.is_none() {
-                    return Err(vec![Error::NoCircuitForOperation]);
-                }
-                maybe_invoke_expr
+                let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
+                let expr = entry_expr_for_qubit_operation(item, functor_app, &operation_expr)
+                    .map_err(|e| vec![e.into()])?;
+                Some(expr)
             }
             CircuitEntryPoint::EntryExpr(expr) => Some(expr),
             CircuitEntryPoint::EntryPoint => None,
         };
 
-        let val = if let Some(entry_expr) = entry_expr {
+        if let Some(entry_expr) = entry_expr {
             self.run_with_sim(&mut sim, &mut out, &entry_expr)?
         } else {
             self.eval_entry_with_sim(&mut sim, &mut out)
         }?;
 
-        Ok(sim.finish(&val))
+        Ok(sim.finish())
     }
 
     /// Runs the given entry expression on the given simulator with a new instance of the environment
@@ -423,7 +432,7 @@ impl Interpreter {
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
-        let (_, graph) = self.lower(&increment);
+        let (_, graph) = self.lower(&increment)?;
 
         // The AST and HIR packages in `increment` only contain an entry
         // expression and no statements. The HIR *can* contain items if the entry
@@ -445,19 +454,88 @@ impl Interpreter {
     fn lower(
         &mut self,
         unit_addition: &qsc_frontend::incremental::Increment,
-    ) -> (Vec<StmtId>, Vec<ExecGraphNode>) {
+    ) -> core::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
+        if self.capabilities != RuntimeCapabilityFlags::all() {
+            return self.run_fir_passes(unit_addition);
+        }
         let fir_package = self.fir_store.get_mut(self.package);
-        (
+        Ok((
             self.lowerer
                 .lower_and_update_package(fir_package, &unit_addition.hir),
             self.lowerer.take_exec_graph(),
-        )
+        ))
+    }
+
+    fn run_fir_passes(
+        &mut self,
+        unit: &qsc_frontend::incremental::Increment,
+    ) -> std::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
+        let fir_package = self.fir_store.get_mut(self.package);
+        let stmts = self
+            .lowerer
+            .lower_and_update_package(fir_package, &unit.hir);
+
+        let cap_results =
+            PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
+
+        let Err(caps_errors) = cap_results else {
+            let graph = self.lowerer.take_exec_graph();
+            return Ok((stmts, graph));
+        };
+
+        // if there are errors, convert them to interpreter errors
+        // and don't update the lowerer or FIR store.
+        let mut errors = Vec::with_capacity(caps_errors.len());
+        let source_package = self
+            .compiler
+            .package_store()
+            .get(map_fir_package_to_hir(self.package))
+            .expect("package should exist in the package store");
+
+        for error in caps_errors {
+            errors.push(Error::Pass(WithSource::from_map(
+                &source_package.sources,
+                error,
+            )));
+        }
+
+        Err(errors)
     }
 
     fn next_line_label(&mut self) -> String {
         let label = format!("line_{}", self.lines);
         self.lines += 1;
         label
+    }
+
+    /// Evaluate the name of an operation, or any expression that evaluates to a callable,
+    /// and return the Item ID and function application for the callable.
+    /// Examples: "Microsoft.Quantum.Diagnostics.DumpMachine", "(qs: Qubit[]) => H(qs[0])",
+    /// "Controlled SWAP"
+    fn eval_to_operation(
+        &mut self,
+        operation_expr: &str,
+    ) -> std::result::Result<(&qsc_hir::hir::Item, FunctorApp), Vec<Error>> {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+        let (store_item_id, functor_app) = match self.eval_fragments(&mut out, operation_expr)? {
+            Value::Closure(b) => (b.id, b.functor),
+            Value::Global(item_id, functor_app) => (item_id, functor_app),
+            _ => return Err(vec![Error::NotAnOperation]),
+        };
+        let package = map_fir_package_to_hir(store_item_id.package);
+        let local_item_id = crate::hir::LocalItemId::from(usize::from(store_item_id.item));
+        let unit = self
+            .compiler
+            .package_store()
+            .get(package)
+            .expect("package should exist in the package store");
+        let item = unit
+            .package
+            .items
+            .get(local_item_id)
+            .expect("item should exist in the package");
+        Ok((item, functor_app))
     }
 }
 
@@ -491,7 +569,7 @@ impl Debugger {
         position_encoding: Encoding,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let interpreter = Interpreter::new(
+        let interpreter = Interpreter::new_with_debug(
             true,
             sources,
             PackageType::Exe,
