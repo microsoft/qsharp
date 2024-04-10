@@ -243,6 +243,11 @@ impl Compilation {
     }
 }
 
+/// Runs the passes required for code generation
+/// appending any errors to the `errors` vector.
+/// This function only runs passes if there are no compile
+/// errors in the package and if the target profile is not `Base`
+/// or `Unrestricted`.
 fn run_fir_passes(
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
     target_profile: Profile,
@@ -250,20 +255,27 @@ fn run_fir_passes(
     package_id: PackageId,
     unit: &CompileUnit,
 ) {
-    // baseprofchk will handle the case where the target profile is Base
-    if errors.is_empty()
-        && target_profile != Profile::Unrestricted
-        && target_profile != Profile::Base
-    {
-        let cap_results =
-            PassContext::run_fir_passes_on_hir(package_store, package_id, target_profile.into());
-        if let Err(caps_errors) = cap_results {
-            for err in caps_errors {
-                errors.push(WithSource::from_map(
-                    &unit.sources,
-                    compile::ErrorKind::Pass(err),
-                ));
-            }
+    if !errors.is_empty() {
+        // can't run passes on a package with errors
+        return;
+    }
+
+    if target_profile == Profile::Base {
+        // baseprofchk will handle the case where the target profile is Base
+        return;
+    }
+
+    if target_profile == Profile::Unrestricted {
+        // no point in running passes on unrestricted profile
+        return;
+    }
+
+    let cap_results =
+        PassContext::run_fir_passes_on_hir(package_store, package_id, target_profile.into());
+    if let Err(caps_errors) = cap_results {
+        for err in caps_errors {
+            let err = WithSource::from_map(&unit.sources, compile::ErrorKind::Pass(err));
+            errors.push(err);
         }
     }
 }
