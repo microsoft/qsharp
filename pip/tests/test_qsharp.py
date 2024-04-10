@@ -107,9 +107,12 @@ def test_dump_machine() -> None:
     assert state_dump.check_eq(
         {1: complex(0.7071, 0.0), 3: complex(-0.7071, 0.0), 0: complex(0.0, 0.0)}
     )
+    assert state_dump.check_eq([0.0, 0.5, 0.0, -0.5])
+    assert state_dump.check_eq([0.0, 0.5001, 0.0, -0.5], tolerance=1e-3)
     assert not state_dump.check_eq({1: complex(0.7071, 0.0), 3: complex(0.7071, 0.0)})
     assert not state_dump.check_eq({1: complex(0.5, 0.0), 3: complex(0.0, 0.5)})
     assert not state_dump.check_eq({2: complex(0.5, 0.0), 3: complex(-0.5, 0.0)})
+    assert not state_dump.check_eq([0.0, 0.5001, 0.0, -0.5], tolerance=1e-6)
 
 
 def test_dump_operation() -> None:

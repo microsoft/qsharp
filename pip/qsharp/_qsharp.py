@@ -10,7 +10,7 @@ from ._native import (
     Circuit,
 )
 from warnings import warn
-from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
+from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 
@@ -349,14 +349,21 @@ class StateDump:
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
 
-    def check_eq(self, state: Dict[int, complex]) -> bool:
+    def check_eq(
+        self, state: Union[Dict[int, complex], List[float]], tolerance: float = 1e-10
+    ) -> bool:
         """
         Checks if the state dump is equal to the given state. This is not mathematical equality,
         as the check ignores global phase.
 
-        :param state: The state to check against, provided as a dictionary of state indices to complex amplitudes.
+        :param state: The state to check against, provided either as a dictionary of state indices to complex amplitudes,
+            or as a list of real amplitudes.
+        :param tolerance: The tolerance for the check. Defaults to 1e-10.
         """
         phase = None
+        # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
+        if isinstance(state, list):
+            state = {i: complex(state[i], 0) for i in range(len(state))}
         # Filter out zero states
         state = {k: v for k, v in state.items() if v != 0}
         if len(state) != len(self):
@@ -366,7 +373,7 @@ class StateDump:
                 return False
             if phase is None:
                 phase = self.__inner[key] / state[key]
-            elif phase != self.__inner[key] / state[key]:
+            elif abs(phase - self.__inner[key] / state[key]) > tolerance:
                 return False
         return True
 
