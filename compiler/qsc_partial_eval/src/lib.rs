@@ -5,7 +5,7 @@ mod evaluation_context;
 mod management;
 
 use evaluation_context::{EvaluationContext, Scope};
-use management::{Allocator, QuantumIntrinsicsChecker};
+use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::functors::FunctorApp;
 use qsc_data_structures::span::Span;
@@ -68,7 +68,7 @@ pub enum Error {
 struct PartialEvaluator<'a> {
     package_store: &'a PackageStore,
     compute_properties: &'a PackageStoreComputeProperties,
-    allocator: Allocator,
+    resource_manager: ResourceManager,
     backend: QuantumIntrinsicsChecker,
     callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
@@ -83,12 +83,12 @@ impl<'a> PartialEvaluator<'a> {
         compute_properties: &'a PackageStoreComputeProperties,
     ) -> Self {
         // Create the entry-point callable.
-        let mut allocator = Allocator::default();
+        let mut resource_manager = ResourceManager::default();
         let mut program = Program::new();
-        let entry_block_id = allocator.next_block();
+        let entry_block_id = resource_manager.next_block();
         let entry_block = rir::Block(Vec::new());
         program.blocks.insert(entry_block_id, entry_block);
-        let entry_point_id = allocator.next_callable();
+        let entry_point_id = resource_manager.next_callable();
         let entry_point = rir::Callable {
             name: "main".into(),
             input_type: Vec::new(),
@@ -105,7 +105,7 @@ impl<'a> PartialEvaluator<'a> {
             package_store,
             compute_properties,
             eval_context: context,
-            allocator,
+            resource_manager,
             backend: QuantumIntrinsicsChecker::default(),
             callables_map: FxHashMap::default(),
             program,
@@ -214,14 +214,12 @@ impl<'a> PartialEvaluator<'a> {
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
         let scope = self.eval_context.get_current_scope_mut();
         let exec_graph = exec_graph_section(&scope_exec_graph, expr.exec_graph_range.clone());
-        let mut out = Vec::new();
-        let mut receiver = GenericReceiver::new(&mut out);
         let mut state = State::new(current_package_id, exec_graph, None);
         let eval_result = state.eval(
             self.package_store,
             &mut scope.env,
             &mut self.backend,
-            &mut receiver,
+            &mut GenericReceiver::new(&mut std::io::sink()),
             &[],
             StepAction::Continue,
         );
@@ -243,14 +241,12 @@ impl<'a> PartialEvaluator<'a> {
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
         let scope = self.eval_context.get_current_scope_mut();
         let exec_graph = exec_graph_section(&scope_exec_graph, stmt.exec_graph_range.clone());
-        let mut out = Vec::new();
-        let mut receiver = GenericReceiver::new(&mut out);
         let mut state = State::new(current_package_id, exec_graph, None);
         let eval_result = state.eval(
             self.package_store,
             &mut scope.env,
             &mut self.backend,
-            &mut receiver,
+            &mut GenericReceiver::new(&mut std::io::sink()),
             &[],
             StepAction::Continue,
         );
@@ -361,7 +357,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // Create a variable to store the result of the expression.
         let bin_op_expr = self.get_expr(bin_op_expr_id);
-        let variable_id = self.allocator.next_var();
+        let variable_id = self.resource_manager.next_var();
         let variable_ty = map_fir_type_to_rir_type(&bin_op_expr.ty);
         let variable = Variable {
             variable_id,
@@ -443,10 +439,10 @@ impl<'a> PartialEvaluator<'a> {
         // There are a few special cases regarding intrinsic callables: qubit allocation/release and measurements.
         // Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
-            "__quantum__rt__qubit_allocate" => self.qubit_allocate(),
-            "__quantum__rt__qubit_release" => self.qubit_release(&args_value),
-            "__quantum__qis__m__body" => self.qubit_measure(mz_callable(), &args_value),
-            "__quantum__qis__mresetz__body" => self.qubit_measure(mresetz_callable(), &args_value),
+            "__quantum__rt__qubit_allocate" => self.allocate_qubit(),
+            "__quantum__rt__qubit_release" => self.release_qubit(&args_value),
+            "__quantum__qis__m__body" => self.measure_qubit(mz_callable(), &args_value),
+            "__quantum__qis__mresetz__body" => self.measure_qubit(mresetz_callable(), &args_value),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
     }
@@ -562,7 +558,7 @@ impl<'a> PartialEvaluator<'a> {
                     id.try_into().expect("could not convert result ID to u32"),
                 ));
                 let read_result_callable_id = self.get_or_insert_callable(read_result_callable());
-                let variable_id = self.allocator.next_var();
+                let variable_id = self.resource_manager.next_var();
                 let variable_ty = rir::Ty::Boolean;
                 let variable = Variable {
                     variable_id,
@@ -626,7 +622,7 @@ impl<'a> PartialEvaluator<'a> {
         // Check if the callable is already in the program, and if not add it.
         let callable_name = callable.name.clone();
         if let Entry::Vacant(entry) = self.callables_map.entry(callable_name.clone().into()) {
-            let callable_id = self.allocator.next_callable();
+            let callable_id = self.resource_manager.next_callable();
             entry.insert(callable_id);
             self.program.callables.insert(callable_id, callable);
         }
@@ -647,19 +643,19 @@ impl<'a> PartialEvaluator<'a> {
         matches!(compute_kind, ComputeKind::Classical)
     }
 
-    fn qubit_allocate(&mut self) -> Value {
-        let qubit = self.allocator.qubit_allocate();
+    fn allocate_qubit(&mut self) -> Value {
+        let qubit = self.resource_manager.allocate_qubit();
         Value::Qubit(qubit)
     }
 
-    fn qubit_measure(&mut self, measure_callable: Callable, args_value: &Value) -> Value {
+    fn measure_qubit(&mut self, measure_callable: Callable, args_value: &Value) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
         let Value::Qubit(qubit) = args_value else {
             panic!("argument to qubit measure is expected to be a qubit");
         };
         let qubit_value = Value::Qubit(*qubit);
         let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
-        let result_value = Value::Result(self.allocator.next_result());
+        let result_value = Value::Result(self.resource_manager.next_result());
         let result_operand = map_eval_value_to_rir_operand(&result_value);
 
         // Check if the callable has already been added to the program and if not do so now.
@@ -673,11 +669,11 @@ impl<'a> PartialEvaluator<'a> {
         result_value
     }
 
-    fn qubit_release(&mut self, args_value: &Value) -> Value {
+    fn release_qubit(&mut self, args_value: &Value) -> Value {
         let Value::Qubit(qubit) = args_value else {
             panic!("argument to qubit release is expected to be a qubit");
         };
-        self.allocator.qubit_release(*qubit);
+        self.resource_manager.release_qubit(*qubit);
 
         // The value of a qubit release is unit.
         Value::unit()

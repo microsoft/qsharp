@@ -8,7 +8,7 @@ use qsc_eval::{
 use qsc_rir::rir::{BlockId, CallableId, VariableId};
 
 #[derive(Default)]
-pub struct Allocator {
+pub struct ResourceManager {
     qubits_in_use: Vec<bool>,
     next_callable: CallableId,
     next_block: BlockId,
@@ -16,8 +16,8 @@ pub struct Allocator {
     next_var: usize,
 }
 
-impl Allocator {
-    pub fn qubit_allocate(&mut self) -> Qubit {
+impl ResourceManager {
+    pub fn allocate_qubit(&mut self) -> Qubit {
         if let Some(qubit_id) = self.qubits_in_use.iter().position(|in_use| !in_use) {
             self.qubits_in_use[qubit_id] = true;
             Qubit(qubit_id)
@@ -28,7 +28,7 @@ impl Allocator {
         }
     }
 
-    pub fn qubit_release(&mut self, q: Qubit) {
+    pub fn release_qubit(&mut self, q: Qubit) {
         self.qubits_in_use[q.0] = false;
     }
 
