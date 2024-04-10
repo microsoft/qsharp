@@ -60,6 +60,9 @@ pub enum Error {
     #[error("failed to evaluate binary expression operand")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBinaryExpressionOperand"))]
     FailedToEvaluateBinaryExpressionOperand(#[label] Span),
+    #[error("failed to evaluate: {0} not yet implemented")]
+    #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
+    Unimplemented(String, #[label] Span),
 }
 
 struct PartialEvaluator<'a> {
@@ -261,17 +264,31 @@ impl<'a> PartialEvaluator<'a> {
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
         match &expr.kind {
-            ExprKind::Array(_) => todo!(),
-            ExprKind::ArrayLit(_) => todo!(),
-            ExprKind::ArrayRepeat(_, _) => todo!(),
-            ExprKind::Assign(_, _) => todo!(),
-            ExprKind::AssignField(_, _, _) => todo!(),
-            ExprKind::AssignIndex(_, _, _) => todo!(),
-            ExprKind::AssignOp(_, _, _) => todo!(),
+            ExprKind::Array(_) => Err(Error::Unimplemented("Array Expr".to_string(), expr.span)),
+            ExprKind::ArrayLit(_) => Err(Error::Unimplemented("Array Lit".to_string(), expr.span)),
+            ExprKind::ArrayRepeat(_, _) => {
+                Err(Error::Unimplemented("Array Repeat".to_string(), expr.span))
+            }
+            ExprKind::Assign(_, _) => Err(Error::Unimplemented(
+                "Assignement Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::AssignField(_, _, _) => Err(Error::Unimplemented(
+                "Field Assignment Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::AssignIndex(_, _, _) => Err(Error::Unimplemented(
+                "Assignment Index Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::AssignOp(_, _, _) => Err(Error::Unimplemented(
+                "Assignment Op Expr".to_string(),
+                expr.span,
+            )),
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
                 self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
             }
-            ExprKind::Block(_) => todo!(),
+            ExprKind::Block(_) => Err(Error::Unimplemented("Block Expr".to_string(), expr.span)),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
                 self.eval_expr_call(*callee_expr_id, *args_expr_id)
             }
@@ -279,24 +296,30 @@ impl<'a> PartialEvaluator<'a> {
                 panic!("instruction generation for closure expressions is unsupported")
             }
             ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
-            ExprKind::Field(_, _) => todo!(),
+            ExprKind::Field(_, _) => Err(Error::Unimplemented("Field Expr".to_string(), expr.span)),
             ExprKind::Hole => panic!("instruction generation for hole expressions is invalid"),
-            ExprKind::If(_, _, _) => todo!(),
-            ExprKind::Index(_, _) => todo!(),
+            ExprKind::If(_, _, _) => Err(Error::Unimplemented("If Expr".to_string(), expr.span)),
+            ExprKind::Index(_, _) => Err(Error::Unimplemented("Index Expr".to_string(), expr.span)),
             ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
             ExprKind::Range(_, _, _) => {
                 panic!("instruction generation for range expressions is invalid")
             }
-            ExprKind::Return(_) => todo!(),
+            ExprKind::Return(_) => Err(Error::Unimplemented("Return Expr".to_string(), expr.span)),
             ExprKind::String(_) => {
                 panic!("instruction generation for string expressions is invalid")
             }
             ExprKind::Tuple(exprs) => self.eval_expr_tuple(exprs),
-            ExprKind::UnOp(_, _) => todo!(),
-            ExprKind::UpdateField(_, _, _) => todo!(),
-            ExprKind::UpdateIndex(_, _, _) => todo!(),
+            ExprKind::UnOp(_, _) => Err(Error::Unimplemented("Unary Expr".to_string(), expr.span)),
+            ExprKind::UpdateField(_, _, _) => Err(Error::Unimplemented(
+                "Updated Field Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::UpdateIndex(_, _, _) => Err(Error::Unimplemented(
+                "Update Index Expr".to_string(),
+                expr.span,
+            )),
             ExprKind::Var(res, _) => Ok(self.eval_expr_var(res)),
-            ExprKind::While(_, _) => todo!(),
+            ExprKind::While(_, _) => Err(Error::Unimplemented("While Expr".to_string(), expr.span)),
         }
     }
 
@@ -365,16 +388,17 @@ impl<'a> PartialEvaluator<'a> {
         args_expr_id: ExprId,
     ) -> Result<Value, Error> {
         // Visit the both the callee and arguments expressions to get their value.
-        let maybe_args_expr_value = self.try_eval_expr(args_expr_id);
-        if maybe_args_expr_value.is_err() {
-            let args_expr = self.get_expr(args_expr_id);
-            let error = Error::FailedToEvaluateCalleeExpression(args_expr.span);
+        let maybe_callable_value = self.try_eval_expr(callee_expr_id);
+        let Ok(callable_value) = maybe_callable_value else {
+            let callee_expr = self.get_expr(callee_expr_id);
+            let error = Error::FailedToEvaluateCalleeExpression(callee_expr.span);
             return Err(error);
         };
 
-        let Ok(callable_value) = self.try_eval_expr(callee_expr_id) else {
-            let callee_expr = self.get_expr(callee_expr_id);
-            let error = Error::FailedToEvaluateCalleeExpression(callee_expr.span);
+        let maybe_args_value = self.try_eval_expr(args_expr_id);
+        let Ok(args_value) = maybe_args_value else {
+            let args_expr = self.get_expr(args_expr_id);
+            let error = Error::FailedToEvaluateCalleeExpression(args_expr.span);
             return Err(error);
         };
 
@@ -396,7 +420,7 @@ impl<'a> PartialEvaluator<'a> {
         match &callable_decl.implementation {
             CallableImpl::Intrinsic => {
                 let value =
-                    self.eval_expr_call_to_intrinsic(store_item_id, callable_decl, args_expr_id);
+                    self.eval_expr_call_to_intrinsic(store_item_id, callable_decl, args_value);
                 Ok(value)
             }
             CallableImpl::Spec(spec_impl) => {
@@ -409,16 +433,16 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
-        args_expr_id: ExprId,
+        args_value: Value,
     ) -> Value {
         // There are a few special cases regarding intrinsic callables: qubit allocation/relase and measurements.
         // Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
             "__quantum__rt__qubit_allocate" => self.qubit_allocate(),
-            "__quantum__rt__qubit_release" => self.qubit_release(args_expr_id),
-            "__quantum__qis__m__body" => self.qubit_measure(mz_callable(), args_expr_id),
-            "__quantum__qis__mresetz__body" => self.qubit_measure(mresetz_callable(), args_expr_id),
-            _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_expr_id),
+            "__quantum__rt__qubit_release" => self.qubit_release(args_value),
+            "__quantum__qis__m__body" => self.qubit_measure(mz_callable(), args_value),
+            "__quantum__qis__mresetz__body" => self.qubit_measure(mresetz_callable(), args_value),
+            _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
     }
 
@@ -426,14 +450,14 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
-        args_expr_id: ExprId,
+        args_value: Value,
     ) -> Value {
         // Check if the callable is already in the program, and if not add it.
         let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
-        let args = self.resolve_call_arg_operands(args_expr_id);
+        let args = resolve_call_arg_operands(args_value);
         // Note that we currently just support calls to unitary operations.
         let instruction = Instruction::Call(callable_id, args, None);
         let current_block = self.get_current_block_mut();
@@ -623,16 +647,12 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn qubit_measure(&mut self, measure_callable: Callable, args_expr_id: ExprId) -> Value {
+    fn qubit_measure(&mut self, measure_callable: Callable, args_value: Value) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
-        let args_expr_value = self
-            .eval_context
-            .get_current_scope()
-            .get_expr_value(args_expr_id);
-        let Value::Qubit(qubit) = args_expr_value else {
+        let Value::Qubit(qubit) = args_value else {
             panic!("argument to qubit measure is expected to be a qubit");
         };
-        let qubit_value = Value::Qubit(*qubit);
+        let qubit_value = Value::Qubit(qubit);
         let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
         let result_value = Value::Result(self.allocator.next_result());
         let result_operand = map_eval_value_to_rir_operand(&result_value);
@@ -648,35 +668,14 @@ impl<'a> PartialEvaluator<'a> {
         result_value
     }
 
-    fn qubit_release(&mut self, args_expr_id: ExprId) -> Value {
-        let args_expr_value = self
-            .eval_context
-            .get_current_scope()
-            .get_expr_value(args_expr_id);
-        let Value::Qubit(qubit) = args_expr_value else {
+    fn qubit_release(&mut self, args_value: Value) -> Value {
+        let Value::Qubit(qubit) = args_value else {
             panic!("argument to qubit release is expected to be a qubit");
         };
-        self.allocator.qubit_release(*qubit);
+        self.allocator.qubit_release(qubit);
 
         // The value of a qubit release is unit.
         Value::unit()
-    }
-
-    fn resolve_call_arg_operands(&mut self, args_expr_id: ExprId) -> Vec<rir::Operand> {
-        let current_scope = self.eval_context.get_current_scope();
-        let args_expr_value = current_scope.get_expr_value(args_expr_id);
-        let mut operands = Vec::<rir::Operand>::new();
-        if let Value::Tuple(elements) = args_expr_value {
-            for value in elements.iter() {
-                let operand = map_eval_value_to_rir_operand(value);
-                operands.push(operand);
-            }
-        } else {
-            let operand = map_eval_value_to_rir_operand(args_expr_value);
-            operands.push(operand);
-        }
-
-        operands
     }
 
     fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<Value, ()> {
@@ -843,8 +842,7 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
     }
 }
 
-#[must_use]
-pub fn mresetz_callable() -> Callable {
+fn mresetz_callable() -> Callable {
     Callable {
         name: "__quantum__qis__mresetz__body".to_string(),
         input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
@@ -854,8 +852,7 @@ pub fn mresetz_callable() -> Callable {
     }
 }
 
-#[must_use]
-pub fn mz_callable() -> Callable {
+fn mz_callable() -> Callable {
     Callable {
         name: "__quantum__qis__mz__body".to_string(),
         input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
@@ -865,8 +862,7 @@ pub fn mz_callable() -> Callable {
     }
 }
 
-#[must_use]
-pub fn read_result_callable() -> Callable {
+fn read_result_callable() -> Callable {
     Callable {
         name: "__quantum__rt__read_result__body".to_string(),
         input_type: vec![rir::Ty::Result],
@@ -874,4 +870,19 @@ pub fn read_result_callable() -> Callable {
         body: None,
         call_type: CallableType::Readout,
     }
+}
+
+fn resolve_call_arg_operands(args_value: Value) -> Vec<rir::Operand> {
+    let mut operands = Vec::<rir::Operand>::new();
+    if let Value::Tuple(elements) = args_value {
+        for value in elements.iter() {
+            let operand = map_eval_value_to_rir_operand(value);
+            operands.push(operand);
+        }
+    } else {
+        let operand = map_eval_value_to_rir_operand(&args_value);
+        operands.push(operand);
+    }
+
+    operands
 }
