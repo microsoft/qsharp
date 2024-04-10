@@ -11,7 +11,7 @@
   },
   "type": "commonjs",
   "engines": {
-    "vscode": "^1.77.0"
+    "vscode": "^1.88.0"
   },
   "categories": [
     "Programming Languages",
@@ -26,6 +26,11 @@
     "onDebugDynamicConfigurations:qsharp",
     "onFileSystem:qsharp-vfs",
     "onWebviewPanel:qsharp-webview"
+  ],
+  "enabledApiProposals": [
+    "chatParticipant",
+    "chatVariableResolver",
+    "languageModels"
   ],
   "contributes": {
     "walkthroughs": [
@@ -446,7 +451,28 @@
       "[qsharp]": {
         "debug.saveBeforeStart": "none"
       }
-    }
+    },
+    "extensionDependencies": [
+      "github.copilot-chat"
+    ],
+    "chatParticipants": [
+      {
+        "id": "quantum.chatbot",
+        "name": "quantum",
+        "description": "Azure Quantum Copilot",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "samples",
+            "description": "Show Q# samples"
+          },
+          {
+            "name": "quantumNotebook",
+            "description": "Create an Azure Quantum Jupyter Notebook"
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "build": "npm run tsc:check && node build.mjs",
