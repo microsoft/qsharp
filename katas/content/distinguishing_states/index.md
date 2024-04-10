@@ -35,7 +35,7 @@ This kata is designed to get you familiar with the concept of measurements and u
 
 @[section]({
     "id": "distinguishing_states__nonorthogonal_states",
-    "title": "Distinguishing Nonorthogonal States"
+    "title": "Distinguishing Non-orthogonal States"
 })
 
 @[section]({
