@@ -98,7 +98,7 @@ fn create_entry_from_callables(
                         };
                         let call = Expr {
                             id: assigner.next_node(),
-                            span: ep.span,
+                            span: ep.name.span,
                             ty: block.ty.clone(),
                             kind: ExprKind::Call(Box::new(callee), Box::new(arg)),
                         };
