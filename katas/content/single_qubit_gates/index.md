@@ -582,7 +582,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
     "id": "single_qubit_gates__phase_change",
-    "title": "Phase_Change",
+    "title": "Complex Relative Phase",
     "path": "./phase_change/",
     "qsDependencies": [
         "../KatasLibrary.qs"
