@@ -591,7 +591,7 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
     "id": "single_qubit_gates__amplitude_change",
-    "title": "Amplitude_Change",
+    "title": "Amplitude Change",
     "path": "./amplitude_change/",
     "qsDependencies": [
         "../KatasLibrary.qs"
