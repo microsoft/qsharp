@@ -440,7 +440,7 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
     ) -> Value {
-        // There are a few special cases regarding intrinsic callables: qubit allocation/relase and measurements.
+        // There are a few special cases regarding intrinsic callables: qubit allocation/release and measurements.
         // Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
             "__quantum__rt__qubit_allocate" => self.qubit_allocate(),
