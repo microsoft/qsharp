@@ -37,7 +37,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -74,7 +74,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -121,7 +121,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -174,7 +174,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() 
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, single_qubit_intrinsic_op());
+    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),

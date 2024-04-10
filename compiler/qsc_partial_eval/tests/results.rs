@@ -56,7 +56,7 @@ fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, mresetz_intrinsic_op());
+    assert_callable(&program, op_callable_id, &mresetz_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -88,7 +88,7 @@ fn result_ids_are_correct_for_measuring_one_qubit() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, m_intrinsic_op());
+    assert_callable(&program, op_callable_id, &m_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -122,7 +122,7 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, m_intrinsic_op());
+    assert_callable(&program, op_callable_id, &m_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -172,7 +172,7 @@ fn result_ids_are_correct_for_measuring_multiple_qubits() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, m_intrinsic_op());
+    assert_callable(&program, op_callable_id, &m_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -222,9 +222,9 @@ fn comparing_measurement_results_for_equality_adds_read_result_and_comparison_in
         "#,
     });
     let measurement_callable_id = CallableId(1);
-    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    assert_callable(&program, measurement_callable_id, &m_intrinsic_op());
     let readout_callable_id = CallableId(2);
-    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_callable(&program, readout_callable_id, &read_reasult_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -297,9 +297,9 @@ fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_
         "#,
     });
     let measurement_callable_id = CallableId(1);
-    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    assert_callable(&program, measurement_callable_id, &m_intrinsic_op());
     let readout_callable_id = CallableId(2);
-    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_callable(&program, readout_callable_id, &read_reasult_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -372,9 +372,9 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
         "#,
     });
     let measurement_callable_id = CallableId(1);
-    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    assert_callable(&program, measurement_callable_id, &m_intrinsic_op());
     let readout_callable_id = CallableId(2);
-    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_callable(&program, readout_callable_id, &read_reasult_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -428,9 +428,9 @@ fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_
         "#,
     });
     let measurement_callable_id = CallableId(1);
-    assert_callable(&program, measurement_callable_id, m_intrinsic_op());
+    assert_callable(&program, measurement_callable_id, &m_intrinsic_op());
     let readout_callable_id = CallableId(2);
-    assert_callable(&program, readout_callable_id, read_reasult_intrinsic_op());
+    assert_callable(&program, readout_callable_id, &read_reasult_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),

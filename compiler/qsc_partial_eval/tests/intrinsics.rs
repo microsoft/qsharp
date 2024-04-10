@@ -33,7 +33,7 @@ fn check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction
     assert_callable(
         &program,
         op_callable_id,
-        single_qubit_intrinsic_op(intrinsic_name),
+        &single_qubit_intrinsic_op(intrinsic_name),
     );
     assert_block_instructions(
         &program,
@@ -71,7 +71,7 @@ fn check_call_to_single_qubit_rotation_instrinsic_adds_callable_and_generates_in
     assert_callable(
         &program,
         op_callable_id,
-        single_qubit_rotation_intrinsic_op(intrinsic_name),
+        &single_qubit_rotation_intrinsic_op(intrinsic_name),
     );
     assert_block_instructions(
         &program,
@@ -112,7 +112,7 @@ fn check_call_to_two_qubits_rotation_instrinsic_adds_callable_and_generates_inst
     assert_callable(
         &program,
         op_callable_id,
-        two_qubits_rotation_intrinsic_op(intrinsic_name),
+        &two_qubits_rotation_intrinsic_op(intrinsic_name),
     );
     assert_block_instructions(
         &program,
@@ -154,7 +154,7 @@ fn check_call_to_two_qubits_instrinsic_adds_callable_and_generates_instruction(
     assert_callable(
         &program,
         op_callable_id,
-        two_qubits_intrinsic_op(intrinsic_name),
+        &two_qubits_intrinsic_op(intrinsic_name),
     );
     assert_block_instructions(
         &program,
@@ -195,7 +195,7 @@ fn check_call_to_three_qubits_instrinsic_adds_callable_and_generates_instruction
     assert_callable(
         &program,
         op_callable_id,
-        three_qubits_intrinsic_op(intrinsic_name),
+        &three_qubits_intrinsic_op(intrinsic_name),
     );
     assert_block_instructions(
         &program,
@@ -432,7 +432,7 @@ fn check_partial_eval_for_call_to_reset() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, reset_intrinsic_op());
+    assert_callable(&program, op_callable_id, &reset_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -464,7 +464,7 @@ fn call_to_intrinsic_m_adds_callable_and_generates_instruction() {
     assert_callable(
         &program,
         op_callable_id,
-        measurement_intrinsic_op("__quantum__qis__mz__body"),
+        &measurement_intrinsic_op("__quantum__qis__mz__body"),
     );
     assert_block_instructions(
         &program,
@@ -500,7 +500,7 @@ fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
     assert_callable(
         &program,
         op_callable_id,
-        measurement_intrinsic_op("__quantum__qis__mresetz__body"),
+        &measurement_intrinsic_op("__quantum__qis__mresetz__body"),
     );
     assert_block_instructions(
         &program,

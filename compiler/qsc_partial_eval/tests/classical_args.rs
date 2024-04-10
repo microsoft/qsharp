@@ -33,7 +33,7 @@ fn call_to_intrinsic_operation_using_double_literal() {
         }
     "#});
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, double_to_unit_intrinsic_op());
+    assert_callable(&program, op_callable_id, &double_to_unit_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -63,7 +63,7 @@ fn calls_to_intrinsic_operation_using_inline_expressions() {
         }
     "#});
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, double_to_unit_intrinsic_op());
+    assert_callable(&program, op_callable_id, &double_to_unit_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),
@@ -106,7 +106,7 @@ fn calls_to_intrinsic_operation_using_variables() {
         }
     "#});
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, double_to_unit_intrinsic_op());
+    assert_callable(&program, op_callable_id, &double_to_unit_intrinsic_op());
     assert_block_instructions(
         &program,
         BlockId(0),

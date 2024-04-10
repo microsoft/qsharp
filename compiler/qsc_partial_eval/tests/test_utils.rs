@@ -26,12 +26,12 @@ pub fn assert_block_instructions(
     }
 }
 
-pub fn assert_callable(program: &Program, callable_id: CallableId, expected_callable: Callable) {
+pub fn assert_callable(program: &Program, callable_id: CallableId, expected_callable: &Callable) {
     let actual_callable = program
         .callables
         .get(callable_id)
         .expect("callable does not exist ");
-    assert_eq!(expected_callable, *actual_callable);
+    assert_eq!(expected_callable, actual_callable);
 }
 
 #[must_use]
