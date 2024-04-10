@@ -8,6 +8,7 @@
   "multi_qubit_gates",
   "single_qubit_measurements",
   "multi_qubit_measurements",
+  "distinguishing_states",
   "random_numbers",
   "oracles",
   "deutsch_algo",

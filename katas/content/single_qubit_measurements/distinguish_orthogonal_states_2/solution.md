@@ -11,6 +11,5 @@ Therefore, if we apply $R_x(-\theta)$ to the qubit and measure it using `M`, a m
 
 @[solution]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_2_solution",
-    "exerciseId": "distinguish_orthogonal_states_2",
     "codePath": "Solution.qs"
 })

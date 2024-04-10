@@ -10,6 +10,5 @@ The final rotation ensures that the state of the qubit is in the state correspon
 
 @[solution]({
     "id": "single_qubit_measurements__a_b_basis_measurements_solution",
-    "exerciseId": "a_b_basis_measurements",
     "codePath": "Solution.qs"
 })
