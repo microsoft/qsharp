@@ -9,7 +9,7 @@ use qsc_rir::rir::BlockId;
 use rustc_hash::FxHashMap;
 
 pub struct EvaluationContext {
-    pub current_block: BlockId,
+    active_blocks: Vec<BlockNode>,
     scopes: Vec<Scope>,
 }
 
@@ -17,9 +17,16 @@ impl EvaluationContext {
     pub fn new(entry_package_id: PackageId, initial_block: BlockId) -> Self {
         let entry_callable_scope = Scope::new(entry_package_id, None, Vec::new());
         Self {
-            current_block: initial_block,
+            active_blocks: vec![BlockNode {
+                id: initial_block,
+                next: None,
+            }],
             scopes: vec![entry_callable_scope],
         }
+    }
+
+    pub fn get_current_block_id(&self) -> BlockId {
+        self.active_blocks.last().expect("no active blocks").id
     }
 
     pub fn get_current_scope(&self) -> &Scope {
@@ -43,6 +50,11 @@ impl EvaluationContext {
     pub fn push_scope(&mut self, s: Scope) {
         self.scopes.push(s);
     }
+}
+
+pub struct BlockNode {
+    pub id: BlockId,
+    pub next: Option<BlockId>,
 }
 
 pub struct Scope {

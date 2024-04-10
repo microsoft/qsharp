@@ -198,11 +198,7 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Insert the return expression and return the generated program.
-        let current_block = self
-            .program
-            .blocks
-            .get_mut(self.eval_context.current_block)
-            .expect("block does not exist");
+        let current_block = self.get_current_block_mut();
         current_block.0.push(Instruction::Return);
         Ok(self.program)
     }
@@ -580,7 +576,7 @@ impl<'a> PartialEvaluator<'a> {
     fn get_current_block_mut(&mut self) -> &mut rir::Block {
         self.program
             .blocks
-            .get_mut(self.eval_context.current_block)
+            .get_mut(self.eval_context.get_current_block_id())
             .expect("block does not exist")
     }
 
