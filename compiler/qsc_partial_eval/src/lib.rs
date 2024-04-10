@@ -439,9 +439,9 @@ impl<'a> PartialEvaluator<'a> {
         // Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
             "__quantum__rt__qubit_allocate" => self.qubit_allocate(),
-            "__quantum__rt__qubit_release" => self.qubit_release(args_value),
-            "__quantum__qis__m__body" => self.qubit_measure(mz_callable(), args_value),
-            "__quantum__qis__mresetz__body" => self.qubit_measure(mresetz_callable(), args_value),
+            "__quantum__rt__qubit_release" => self.qubit_release(&args_value),
+            "__quantum__qis__m__body" => self.qubit_measure(mz_callable(), &args_value),
+            "__quantum__qis__mresetz__body" => self.qubit_measure(mresetz_callable(), &args_value),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
     }
@@ -647,12 +647,12 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn qubit_measure(&mut self, measure_callable: Callable, args_value: Value) -> Value {
+    fn qubit_measure(&mut self, measure_callable: Callable, args_value: &Value) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
         let Value::Qubit(qubit) = args_value else {
             panic!("argument to qubit measure is expected to be a qubit");
         };
-        let qubit_value = Value::Qubit(qubit);
+        let qubit_value = Value::Qubit(*qubit);
         let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
         let result_value = Value::Result(self.allocator.next_result());
         let result_operand = map_eval_value_to_rir_operand(&result_value);
@@ -668,11 +668,11 @@ impl<'a> PartialEvaluator<'a> {
         result_value
     }
 
-    fn qubit_release(&mut self, args_value: Value) -> Value {
+    fn qubit_release(&mut self, args_value: &Value) -> Value {
         let Value::Qubit(qubit) = args_value else {
             panic!("argument to qubit release is expected to be a qubit");
         };
-        self.allocator.qubit_release(qubit);
+        self.allocator.qubit_release(*qubit);
 
         // The value of a qubit release is unit.
         Value::unit()
