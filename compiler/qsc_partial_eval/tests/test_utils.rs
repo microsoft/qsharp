@@ -11,6 +11,16 @@ use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 use qsc_rir::rir::{BlockId, Callable, CallableId, Instruction, Program};
 use std::{fs::File, io::Write};
 
+pub fn assert_block_last_instruction(
+    program: &Program,
+    block_id: BlockId,
+    expected_inst: &Instruction,
+) {
+    let block = program.blocks.get(block_id).expect("block does not exist");
+    let actual_inst = block.0.last().expect("block does not have instructions");
+    assert_eq!(expected_inst, actual_inst);
+}
+
 pub fn assert_block_instructions(
     program: &Program,
     block_id: BlockId,

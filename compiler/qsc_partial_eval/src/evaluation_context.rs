@@ -41,10 +41,20 @@ impl EvaluationContext {
             .expect("the evaluation context does not have a current scope")
     }
 
+    pub fn pop_block_node(&mut self) -> BlockNode {
+        self.active_blocks
+            .pop()
+            .expect("there are no active blocks in the evaluation context")
+    }
+
     pub fn pop_scope(&mut self) -> Scope {
         self.scopes
             .pop()
             .expect("there are no scopes in the evaluation context")
+    }
+
+    pub fn push_block_node(&mut self, b: BlockNode) {
+        self.active_blocks.push(b);
     }
 
     pub fn push_scope(&mut self, s: Scope) {
