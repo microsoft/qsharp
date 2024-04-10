@@ -15,7 +15,7 @@ R(\beta |0\rangle + \gamma |1\rangle) =
  \begin{bmatrix}\beta\\\ \gamma\\\ \end{bmatrix}=
  \begin{bmatrix}-1 & 0 \\\ 0 & -1 \end{bmatrix}
  \begin{bmatrix}\beta\\\ \gamma\\\ \end{bmatrix} =
- \begin{bmatrix}-1\cdot\beta + 0\cdot\gamma\\\ 0\cdot\beta +  -1\cdot\gamma \\\ \end{bmatrix}=
+ \begin{bmatrix}(-1)\cdot\beta + 0\cdot\gamma\\\ 0\cdot\beta +  (-1)\cdot\gamma \\\ \end{bmatrix}=
 \begin{bmatrix}-\beta\\\ -\gamma\\\ \end{bmatrix}=
 -\beta |0\rangle - \gamma |1\rangle
 $$
