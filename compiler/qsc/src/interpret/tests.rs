@@ -713,6 +713,66 @@ mod given_interpreter {
         }
 
         #[test]
+        fn adaptive_qirgen() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::ForwardBranching,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                namespace Test {
+                    open Microsoft.Quantum.Math;
+                    open QIR.Intrinsic;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        use q = Qubit();
+                        let pi_over_2 = 4.0 / 2.0;
+                        __quantum__qis__rz__body(pi_over_2, q);
+                        mutable some_angle = ArcSin(0.0);
+                        __quantum__qis__rz__body(some_angle, q);
+                        set some_angle = ArcCos(-1.0) / PI();
+                        __quantum__qis__rz__body(some_angle, q);
+                    }
+                }"#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Test.Main()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                block_0:
+                  call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  ret void
+                }
+
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]]
+            .assert_eq(&res);
+        }
+
+        #[test]
         fn qirgen_entry_expr_in_block() {
             let mut interpreter = Interpreter::new(
                 true,

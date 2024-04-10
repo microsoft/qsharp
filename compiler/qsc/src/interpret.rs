@@ -38,7 +38,7 @@ use qsc_circuit::{
     operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
     Config as CircuitConfig,
 };
-use qsc_codegen::qir_base::BaseProfSim;
+use qsc_codegen::{qir::fir_to_qir, qir_base::BaseProfSim};
 use qsc_data_structures::{
     functors::FunctorApp,
     language_features::LanguageFeatures,
@@ -97,6 +97,9 @@ pub enum Error {
     #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]
     #[diagnostic(help("provide the name of a callable or a lambda expression"))]
     NotAnOperation,
+    #[error("partial evaluation error")]
+    #[diagnostic(transparent)]
+    PartialEvaluation(#[from] qsc_partial_eval::Error),
 }
 
 /// A Q# interpreter.
@@ -345,17 +348,46 @@ impl Interpreter {
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> std::result::Result<String, Vec<Error>> {
-        if self.capabilities != RuntimeCapabilityFlags::empty() {
+        if self.capabilities == RuntimeCapabilityFlags::all() {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
+        if self.capabilities == RuntimeCapabilityFlags::empty() {
+            let mut sim = BaseProfSim::new();
+            let mut stdout = std::io::sink();
+            let mut out = GenericReceiver::new(&mut stdout);
 
-        let mut sim = BaseProfSim::new();
-        let mut stdout = std::io::sink();
-        let mut out = GenericReceiver::new(&mut stdout);
+            let val = self.run_with_sim(&mut sim, &mut out, expr)??;
 
-        let val = self.run_with_sim(&mut sim, &mut out, expr)??;
+            Ok(sim.finish(&val))
+        } else {
+            // compile the expression which will update the
+            // entry expression in the FIR store.
+            let graph = self.compile_entry_expr(expr)?;
+            let package = self.fir_store.get_mut(self.package);
+            package.entry_exec_graph = graph.into();
 
-        Ok(sim.finish(&val))
+            // we have caps, use new code gen.
+            let caps_results = PassContext::run_fir_passes_on_fir(
+                &self.fir_store,
+                self.package,
+                self.capabilities,
+            );
+            // Ensure it compiles before trying to add it to the store.
+            match caps_results {
+                Ok(compute_properties) => fir_to_qir(
+                    &self.fir_store,
+                    self.package,
+                    self.capabilities,
+                    Some(compute_properties),
+                )
+                .map_err(|e| vec![Error::PartialEvaluation(e)]),
+                Err(_) => {
+                    // This should never happen, as the program should be checked for errors before trying to
+                    // generate code for it. But just in case, simply report the failure.
+                    Err(vec![Error::UnsupportedRuntimeCapabilities])
+                }
+            }
+        }
     }
 
     /// Generates a circuit representation for the program.
