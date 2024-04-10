@@ -270,7 +270,7 @@ impl<'a> PartialEvaluator<'a> {
                 Err(Error::Unimplemented("Array Repeat".to_string(), expr.span))
             }
             ExprKind::Assign(_, _) => Err(Error::Unimplemented(
-                "Assignement Expr".to_string(),
+                "Assignment Expr".to_string(),
                 expr.span,
             )),
             ExprKind::AssignField(_, _, _) => Err(Error::Unimplemented(
