@@ -511,21 +511,16 @@ impl Interpreter {
         let compute_properties = cap_results.map_err(|caps_errors| {
             // if there are errors, convert them to interpreter errors
             // and don't update the lowerer or FIR store.
-            let mut errors = Vec::with_capacity(caps_errors.len());
             let source_package = self
                 .compiler
                 .package_store()
                 .get(map_fir_package_to_hir(self.package))
                 .expect("package should exist in the package store");
 
-            for error in caps_errors {
-                errors.push(Error::Pass(WithSource::from_map(
-                    &source_package.sources,
-                    error,
-                )));
-            }
-
-            errors
+            caps_errors
+                .into_iter()
+                .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
+                .collect::<Vec<_>>()
         })?;
 
         let graph = self.lowerer.take_exec_graph();
