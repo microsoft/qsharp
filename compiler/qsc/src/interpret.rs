@@ -360,8 +360,8 @@ impl Interpreter {
 
             Ok(sim.finish(&val))
         } else {
-            // compile the expression which will update the
-            // entry expression in the FIR store.
+            // Compile the expression. This operation will set the expression as
+            // the entry-point in the FIR store.
             let graph = self.compile_entry_expr(expr)?;
             // The above line updated the entry expr in the FIR store, but we need to update
             // the user package exec graph.
