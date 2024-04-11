@@ -24,6 +24,7 @@ pub use qsc_eval::{
     StepAction, StepResult,
 };
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
+use qsc_rca::PackageStoreComputeProperties;
 
 use crate::{
     error::{self, WithStack},
@@ -303,7 +304,7 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
-        let (_, graph) = self.lower(&increment)?;
+        let (graph, _) = self.lower(&increment)?;
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -362,25 +363,18 @@ impl Interpreter {
         } else {
             // Compile the expression. This operation will set the expression as
             // the entry-point in the FIR store.
-            let graph = self.compile_entry_expr(expr)?;
+            let (graph, compute_properties) = self.compile_entry_expr(expr)?;
             // The above line updated the entry expr in the FIR store, but we need to update
             // the user package exec graph.
             let package = self.fir_store.get_mut(self.package);
             package.entry_exec_graph = graph.into();
 
-            // Normal compilation has already been done, analyze the runtime capabilities
-            // of the program since they are needed to generate QIR.
-            // This was already done as part of lowering, but we don't have the results here.
-            let caps_results = PassContext::run_fir_passes_on_fir(
-                &self.fir_store,
-                self.package,
-                self.capabilities,
-            );
-
-            let Ok(compute_properties) = caps_results else {
-                // This should never happen, as the program should be checked for errors before trying to
-                // generate code for it. But just in case, simply report the failure.
-                return Err(vec![Error::UnsupportedRuntimeCapabilities]);
+            let Some(compute_properties) = compute_properties else {
+                // This can only happen if capability analysis was not run. This would be a bug
+                // and we are in a bad state and can't proceed.
+                panic!(
+                    "internal error: compute properties not set after lowering entry expression"
+                );
             };
 
             // Generate QIR
@@ -439,7 +433,7 @@ impl Interpreter {
         receiver: &mut impl Receiver,
         expr: &str,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        let graph = self.compile_entry_expr(expr)?;
+        let (graph, _) = self.compile_entry_expr(expr)?;
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -460,7 +454,8 @@ impl Interpreter {
     fn compile_entry_expr(
         &mut self,
         expr: &str,
-    ) -> std::result::Result<Vec<ExecGraphNode>, Vec<Error>> {
+    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
+    {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
@@ -468,7 +463,7 @@ impl Interpreter {
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
-        let (_, graph) = self.lower(&increment)?;
+        let (graph, compute_properties) = self.lower(&increment)?;
 
         // The AST and HIR packages in `increment` only contain an entry
         // expression and no statements. The HIR *can* contain items if the entry
@@ -484,58 +479,58 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        Ok(graph)
+        Ok((graph, compute_properties))
     }
 
     fn lower(
         &mut self,
         unit_addition: &qsc_frontend::incremental::Increment,
-    ) -> core::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
+    ) -> core::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
+    {
         if self.capabilities != RuntimeCapabilityFlags::all() {
             return self.run_fir_passes(unit_addition);
         }
         let fir_package = self.fir_store.get_mut(self.package);
-        Ok((
-            self.lowerer
-                .lower_and_update_package(fir_package, &unit_addition.hir),
-            self.lowerer.take_exec_graph(),
-        ))
+        self.lowerer
+            .lower_and_update_package(fir_package, &unit_addition.hir);
+        Ok((self.lowerer.take_exec_graph(), None))
     }
 
     fn run_fir_passes(
         &mut self,
         unit: &qsc_frontend::incremental::Increment,
-    ) -> std::result::Result<(Vec<StmtId>, Vec<ExecGraphNode>), Vec<Error>> {
+    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
+    {
         let fir_package = self.fir_store.get_mut(self.package);
-        let stmts = self
+        let _ = self
             .lowerer
             .lower_and_update_package(fir_package, &unit.hir);
 
         let cap_results =
             PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
 
-        let Err(caps_errors) = cap_results else {
-            let graph = self.lowerer.take_exec_graph();
-            return Ok((stmts, graph));
-        };
+        let compute_properties = cap_results.map_err(|caps_errors| {
+            // if there are errors, convert them to interpreter errors
+            // and don't update the lowerer or FIR store.
+            let mut errors = Vec::with_capacity(caps_errors.len());
+            let source_package = self
+                .compiler
+                .package_store()
+                .get(map_fir_package_to_hir(self.package))
+                .expect("package should exist in the package store");
 
-        // if there are errors, convert them to interpreter errors
-        // and don't update the lowerer or FIR store.
-        let mut errors = Vec::with_capacity(caps_errors.len());
-        let source_package = self
-            .compiler
-            .package_store()
-            .get(map_fir_package_to_hir(self.package))
-            .expect("package should exist in the package store");
+            for error in caps_errors {
+                errors.push(Error::Pass(WithSource::from_map(
+                    &source_package.sources,
+                    error,
+                )));
+            }
 
-        for error in caps_errors {
-            errors.push(Error::Pass(WithSource::from_map(
-                &source_package.sources,
-                error,
-            )));
-        }
+            errors
+        })?;
 
-        Err(errors)
+        let graph = self.lowerer.take_exec_graph();
+        Ok((graph, Some(compute_properties)))
     }
 
     fn next_line_label(&mut self) -> String {
