@@ -368,8 +368,8 @@ impl Interpreter {
             let package = self.fir_store.get_mut(self.package);
             package.entry_exec_graph = graph.into();
 
-            // normal compilation has already been done
-            // analyze the capabilities before generate QIR
+            // Normal compilation has already been done, analyze the runtime capabilities
+            // of the program since they are needed to generate QIR.
             // This was already done as part of lowering, but we don't have the results here.
             let caps_results = PassContext::run_fir_passes_on_fir(
                 &self.fir_store,
