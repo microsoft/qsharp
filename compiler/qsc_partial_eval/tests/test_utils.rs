@@ -6,7 +6,7 @@ use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::PackageStore;
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
-use qsc_partial_eval::{partially_evaluate, EntryRequirements};
+use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 use qsc_rir::rir::{BlockId, Callable, CallableId, Instruction, Program};
 
@@ -51,7 +51,7 @@ pub fn compile_and_partially_evaluate(source: &str) -> Program {
 struct CompilationContext {
     fir_store: PackageStore,
     compute_properties: PackageStoreComputeProperties,
-    entry: EntryRequirements,
+    entry: ProgramEntry,
 }
 
 impl CompilationContext {
@@ -70,9 +70,9 @@ impl CompilationContext {
         let analyzer = Analyzer::init(&fir_store);
         let compute_properties = analyzer.analyze_all();
         let package = fir_store.get(package_id);
-        let entry = EntryRequirements {
-            entry_exec_graph: package.entry_exec_graph.clone(),
-            entry_expr_id: (
+        let entry = ProgramEntry {
+            exec_graph: package.entry_exec_graph.clone(),
+            expr: (
                 package_id,
                 package
                     .entry

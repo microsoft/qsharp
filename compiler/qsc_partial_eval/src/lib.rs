@@ -34,15 +34,15 @@ use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
 use thiserror::Error;
 
-pub struct EntryRequirements {
-    pub entry_exec_graph: Rc<[ExecGraphNode]>,
-    pub entry_expr_id: fir::StoreExprId,
+pub struct ProgramEntry {
+    pub exec_graph: Rc<[ExecGraphNode]>,
+    pub expr: fir::StoreExprId,
 }
 
 pub fn partially_evaluate(
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,
-    entry: &EntryRequirements,
+    entry: &ProgramEntry,
 ) -> Result<Program, Error> {
     let partial_evaluator = PartialEvaluator::new(package_store, compute_properties, entry);
     partial_evaluator.eval()
@@ -78,7 +78,7 @@ struct PartialEvaluator<'a> {
     callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
-    entry: &'a EntryRequirements,
+    entry: &'a ProgramEntry,
     errors: Vec<Error>,
 }
 
@@ -86,7 +86,7 @@ impl<'a> PartialEvaluator<'a> {
     fn new(
         package_store: &'a PackageStore,
         compute_properties: &'a PackageStoreComputeProperties,
-        entry: &'a EntryRequirements,
+        entry: &'a ProgramEntry,
     ) -> Self {
         // Create the entry-point callable.
         let mut resource_manager = ResourceManager::default();
@@ -106,7 +106,7 @@ impl<'a> PartialEvaluator<'a> {
         program.entry = entry_point_id;
 
         // Initialize the evaluation context and create a new partial evaluator.
-        let context = EvaluationContext::new(entry.entry_expr_id.package, entry_block_id);
+        let context = EvaluationContext::new(entry.expr.package, entry_block_id);
         Self {
             package_store,
             compute_properties,
@@ -189,7 +189,7 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval(mut self) -> Result<Program, Error> {
         // Visit the entry point expression.
-        self.visit_expr(self.entry.entry_expr_id.expr);
+        self.visit_expr(self.entry.expr.expr);
 
         // Return the first error, if any.
         // We should eventually return all the errors but since that is an interface change, we will do that as its own
@@ -593,7 +593,7 @@ impl<'a> PartialEvaluator<'a> {
         if let Some(spec_decl) = self.get_current_scope_spec_decl() {
             &spec_decl.exec_graph
         } else {
-            &self.entry.entry_exec_graph
+            &self.entry.exec_graph
         }
     }
 

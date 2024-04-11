@@ -9,7 +9,7 @@ mod tests;
 
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_partial_eval::{partially_evaluate, EntryRequirements};
+use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
     passes::{check_and_transform, defer_quantum_measurements},
@@ -31,7 +31,7 @@ pub fn hir_to_qir(
     package_store: &qsc_frontend::compile::PackageStore,
     capabilities: RuntimeCapabilityFlags,
     compute_properties: Option<PackageStoreComputeProperties>,
-    entry: &EntryRequirements,
+    entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
     let fir_store = lower_store(package_store);
     fir_to_qir(&fir_store, capabilities, compute_properties, entry)
@@ -41,7 +41,7 @@ pub fn fir_to_qir(
     fir_store: &qsc_fir::fir::PackageStore,
     capabilities: RuntimeCapabilityFlags,
     compute_properties: Option<PackageStoreComputeProperties>,
-    entry: &EntryRequirements,
+    entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
     let mut program = get_rir_from_compilation(fir_store, compute_properties, entry)?;
     check_and_transform(&mut program);
@@ -54,7 +54,7 @@ pub fn fir_to_qir(
 fn get_rir_from_compilation(
     fir_store: &qsc_fir::fir::PackageStore,
     compute_properties: Option<PackageStoreComputeProperties>,
-    entry: &EntryRequirements,
+    entry: &ProgramEntry,
 ) -> Result<rir::Program, qsc_partial_eval::Error> {
     let compute_properties = compute_properties.unwrap_or_else(|| {
         let analyzer = qsc_rca::Analyzer::init(fir_store);

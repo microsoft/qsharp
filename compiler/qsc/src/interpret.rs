@@ -24,7 +24,7 @@ pub use qsc_eval::{
     StepAction, StepResult,
 };
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
-use qsc_partial_eval::EntryRequirements;
+use qsc_partial_eval::ProgramEntry;
 use qsc_rca::PackageStoreComputeProperties;
 
 use crate::{
@@ -374,9 +374,9 @@ impl Interpreter {
                 );
             };
             let package = self.fir_store.get(self.package);
-            let entry = EntryRequirements {
-                entry_exec_graph: graph.into(),
-                entry_expr_id: (
+            let entry = ProgramEntry {
+                exec_graph: graph.into(),
+                expr: (
                     self.package,
                     package
                         .entry

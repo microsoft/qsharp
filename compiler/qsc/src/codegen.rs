@@ -4,7 +4,7 @@
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags, SourceMap};
-use qsc_partial_eval::EntryRequirements;
+use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 
 use crate::compile;
@@ -39,9 +39,9 @@ pub fn get_qir(
     let (fir_store, fir_package_id) = qsc_passes::lower_hir_to_fir(&package_store, package_id);
     let caps_results = PassContext::run_fir_passes_on_fir(&fir_store, fir_package_id, capabilities);
     let package = fir_store.get(fir_package_id);
-    let entry = EntryRequirements {
-        entry_exec_graph: package.entry_exec_graph.clone(),
-        entry_expr_id: (
+    let entry = ProgramEntry {
+        exec_graph: package.entry_exec_graph.clone(),
+        expr: (
             fir_package_id,
             package
                 .entry
