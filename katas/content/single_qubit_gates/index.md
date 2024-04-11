@@ -372,7 +372,7 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 
 @[exercise]({
     "id": "single_qubit_gates__global_phase_i",
-    "title": "Applying a Global Phase",
+    "title": "Global Phase i",
     "path": "./global_phase_i/",
     "qsDependencies": [
         "../KatasLibrary.qs"
