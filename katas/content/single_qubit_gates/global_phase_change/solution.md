@@ -4,8 +4,6 @@ Our task is to implement an operation that transforms the given qubit state from
 
 To do that, we utilize a sequence of gates. The Pauli Z gate followed by the Pauli X gate can be used to achieve this effect when applied in succession twice.
 
-### Step-by-Step Solution
-
 1. **Apply the Pauli Z gate**: The Z gate adds a phase of$\pi$to the$\beta |0\rangle + \gamma |1\rangle$ state but does not change the $|0\rangle$ state.
 
    The matrix representation of the Z gate is:
