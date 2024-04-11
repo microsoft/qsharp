@@ -80,8 +80,8 @@ impl CompilationContext {
         let fir_store = lower_hir_package_store(compiler.package_store());
         let analyzer = Analyzer::init(&fir_store);
         let compute_properties = analyzer.analyze_all();
-        write_fir_store_to_files(&fir_store);
-        write_compute_properties_to_files(&compute_properties);
+        //write_fir_store_to_files(&fir_store);
+        //write_compute_properties_to_files(&compute_properties);
         Self {
             fir_store,
             compute_properties,
