@@ -81,6 +81,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateLoopCondition"))]
     FailedToEvaluateLoopCondition(#[label] Span),
 
+    #[error("failed to evaluate loop body")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateLoopBody"))]
+    FailedToEvaluateLoopBody(#[label] Span),
+
     #[error("failed to evaluate: {0} not yet implemented")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] Span),
@@ -751,23 +755,30 @@ impl<'a> PartialEvaluator<'a> {
         );
 
         // Evaluate the block until the loop condition is false.
-        let mut eval_condition = || {
-            let maybe_condition_expr_value = self.try_eval_expr(condition_expr_id);
-            if let Ok(condition_expr_value) = maybe_condition_expr_value {
-                let Value::Bool(condition_bool) = condition_expr_value else {
-                    panic!("loop condition must be a Boolean");
-                };
-                Ok(condition_bool)
-            } else {
-                let condition_expr = self.get_expr(condition_expr_id);
-                let error = Error::FailedToEvaluateLoopCondition(condition_expr.span);
-                Err(error)
+        while self.eval_expr_while_condition(condition_expr_id)? {
+            let maybe_block_value = self.try_eval_block(body_block_id);
+            if maybe_block_value.is_err() {
+                let block = self.get_block(body_block_id);
+                let error = Error::FailedToEvaluateLoopBody(block.span);
+                return Err(error);
             }
-        };
-        // TODO (cesarzc): implement.
-        //while eval_condition()? {}
+        }
 
-        unimplemented!();
+        Ok(Value::unit())
+    }
+
+    fn eval_expr_while_condition(&mut self, condition_expr_id: ExprId) -> Result<bool, Error> {
+        let maybe_condition_expr_value = self.try_eval_expr(condition_expr_id);
+        if let Ok(condition_expr_value) = maybe_condition_expr_value {
+            let Value::Bool(condition_bool) = condition_expr_value else {
+                panic!("loop condition must be a Boolean");
+            };
+            Ok(condition_bool)
+        } else {
+            let condition_expr = self.get_expr(condition_expr_id);
+            let error = Error::FailedToEvaluateLoopCondition(condition_expr.span);
+            Err(error)
+        }
     }
 
     fn eval_result_as_bool_operand(&mut self, result: val::Result) -> Operand {
