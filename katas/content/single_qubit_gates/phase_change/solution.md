@@ -19,9 +19,9 @@ $$
 > Suppose now that $\alpha = \frac{\pi}{2}$.
 > Then $e^{i\alpha}= \cos\frac{\pi}{2} + i\sin\frac{\pi}{2}$.
 > And, since $\cos\frac{\pi}{2}= 0$ and $\sin\frac{\pi}{2} = 1$, then we have that $\cos\frac{\pi}{2} + i \sin\frac{\pi}{2} = i$, and  
-> $R1(\frac{\pi}{2}) = S$, which we used in the second solution to task phase_filp.
-> @[solution]({
+> $R1(\frac{\pi}{2}) = S$, which we used in the second solution to the task "Relative Phase i".
 
+@[solution]({
     "id": "single_qubit_gates__phase_change_solution",
     "codePath": "./Solution.qs"
 
