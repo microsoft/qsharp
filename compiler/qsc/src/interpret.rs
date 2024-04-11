@@ -100,7 +100,7 @@ pub enum Error {
     NotAnOperation,
     #[error("partial evaluation error")]
     #[diagnostic(transparent)]
-    PartialEvaluation(#[from] qsc_partial_eval::Error),
+    PartialEvaluation(#[from] WithSource<qsc_partial_eval::Error>),
 }
 
 /// A Q# interpreter.
@@ -384,7 +384,17 @@ impl Interpreter {
                 self.capabilities,
                 Some(compute_properties),
             )
-            .map_err(|e| vec![Error::PartialEvaluation(e)])
+            .map_err(|e| {
+                let source_package = self
+                    .compiler
+                    .package_store()
+                    .get(map_fir_package_to_hir(self.package))
+                    .expect("package should exist in the package store");
+                vec![Error::PartialEvaluation(WithSource::from_map(
+                    &source_package.sources,
+                    e,
+                ))]
+            })
         }
     }
 
