@@ -1,24 +1,30 @@
-We recognize that a global phase change can be accomplished by using the R rotation gate with the PauliI (identity) gate.
-As a reminder, the R gate is defined as $R_{\mu}(\theta) = \exp(\frac{\theta}{2}i\cdot\sigma_{\mu})$, where $\sigma_{\mu}$ is one of the Pauli gates I, X, Y or Z.
+A global phase is a phase factor that multiplies the entire quantum state. It is not observable when measuring the qubit's state, as the probabilities remain unchanged. However, it is significant when considering quantum state transformations.
 
-> Note that a global phase is not detectable and has no physical meaning - it disappears when you take a measurement of the state.  
-> You can read more about this in the Single-Qubit Measurements kata.
+Our task is to implement an operation that transforms the given qubit state from $|\psi\rangle = \beta |0\rangle + \gamma |1\rangle$ to$- \beta |0\rangle - \gamma |1\rangle$.
 
-For the problem at hand, we'll use the rotation gate $R_{\mu}(\theta) = \exp(\frac{\theta}{2}i\cdot\sigma_{\mu})$ with $\sigma_{\mu} = I$.
+To apply a global phase of $\pi$(which is equivalent to multiplying by -1), we utilize a sequence of gates. The Pauli Z gate followed by the Pauli X gate can be used to achieve this effect when applied in succession twice.
 
-$$R(PauliI, 2\pi) = \exp(\frac{2\pi}{2} iI) = \exp(i\pi) I = (\cos\pi + i\sin\pi) I$$
-Since $\cos\pi = -1$ and $\sin\pi = 0$, we have that $R(PauliI, 2\pi) = -I$:
+### Step-by-Step Solution
 
-$$
-R(\beta |0\rangle + \gamma |1\rangle) =
- -1\begin{bmatrix}1 & 0 \\\ 0 & 1 \end{bmatrix}
- \begin{bmatrix}\beta\\\ \gamma\\\ \end{bmatrix}=
- \begin{bmatrix}-1 & 0 \\\ 0 & -1 \end{bmatrix}
- \begin{bmatrix}\beta\\\ \gamma\\\ \end{bmatrix} =
- \begin{bmatrix}(-1)\cdot\beta + 0\cdot\gamma\\\ 0\cdot\beta +  (-1)\cdot\gamma \\\ \end{bmatrix}=
-\begin{bmatrix}-\beta\\\ -\gamma\\\ \end{bmatrix}=
--\beta |0\rangle - \gamma |1\rangle
-$$
+1. **Apply the Pauli Z gate**: The Z gate adds a phase of$\pi$to the$\beta |0\rangle + \gamma |1\rangle$ state but does not change the $|0\rangle$ state.
+
+   The matrix representation of the Z gate is:
+
+   $$
+   Z =
+   \begin{bmatrix}1 & 0 \\\ 0 & -1 \end{bmatrix}
+   $$
+
+2. **Apply the Pauli X gate**: The X gate flips the$|0\rangle$ and$|1\rangle$states.
+
+   The matrix representation of the X gate is:
+
+   $$
+   X =
+   \begin{bmatrix}0 & 1 \\\1 & 0\end{bmatrix}
+   $$
+
+3. **Repeat the Z and X gates**: Applying the Z gate again will add another phase of$\pi$ to the now$|0\rangle$ state (since the X gate has flipped the states), and the second X gate will restore the original basis states but with both amplitudes having acquired an additional phase of$\pi$ . This means our state has been multiplied by -1, achieving the global phase change.
 
 @[solution]({
 "id": "single_qubit_gates__global_phase_change_solution",
