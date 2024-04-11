@@ -502,8 +502,7 @@ impl Interpreter {
     ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
     {
         let fir_package = self.fir_store.get_mut(self.package);
-        let _ = self
-            .lowerer
+        self.lowerer
             .lower_and_update_package(fir_package, &unit.hir);
 
         let cap_results =

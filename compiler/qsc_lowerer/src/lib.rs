@@ -110,7 +110,7 @@ impl Lowerer {
         &mut self,
         fir_package: &mut fir::Package,
         hir_package: &hir::Package,
-    ) -> Vec<StmtId> {
+    ) {
         let items: IndexMap<LocalItemId, fir::Item> = hir_package
             .items
             .values()
@@ -118,11 +118,9 @@ impl Lowerer {
             .map(|i| (i.id, i))
             .collect();
 
-        let new_stmts = hir_package
-            .stmts
-            .iter()
-            .map(|s| self.lower_stmt(s))
-            .collect();
+        for stmt in &hir_package.stmts {
+            let _ = self.lower_stmt(stmt);
+        }
 
         let entry = hir_package.entry.as_ref().map(|e| self.lower_expr(e));
 
@@ -135,8 +133,6 @@ impl Lowerer {
         fir_package.entry = entry;
 
         qsc_fir::validate::validate(fir_package);
-
-        new_stmts
     }
 
     fn update_package(&mut self, package: &mut fir::Package) {
