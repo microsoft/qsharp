@@ -14,8 +14,8 @@ pub struct EvaluationContext {
 }
 
 impl EvaluationContext {
-    pub fn new(entry_package_id: PackageId, initial_block: BlockId) -> Self {
-        let entry_callable_scope = Scope::new(entry_package_id, None, Vec::new());
+    pub fn new(package_id: PackageId, initial_block: BlockId) -> Self {
+        let entry_callable_scope = Scope::new(package_id, None, Vec::new());
         Self {
             current_block: initial_block,
             scopes: vec![entry_callable_scope],

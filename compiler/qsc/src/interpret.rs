@@ -24,6 +24,7 @@ pub use qsc_eval::{
     StepAction, StepResult,
 };
 use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
+use qsc_partial_eval::EntryRequirements;
 use qsc_rca::PackageStoreComputeProperties;
 
 use crate::{
@@ -364,10 +365,6 @@ impl Interpreter {
             // Compile the expression. This operation will set the expression as
             // the entry-point in the FIR store.
             let (graph, compute_properties) = self.compile_entry_expr(expr)?;
-            // The above line updated the entry expr in the FIR store, but we need to update
-            // the user package exec graph.
-            let package = self.fir_store.get_mut(self.package);
-            package.entry_exec_graph = graph.into();
 
             let Some(compute_properties) = compute_properties else {
                 // This can only happen if capability analysis was not run. This would be a bug
@@ -376,13 +373,23 @@ impl Interpreter {
                     "internal error: compute properties not set after lowering entry expression"
                 );
             };
-
+            let package = self.fir_store.get(self.package);
+            let entry = EntryRequirements {
+                entry_exec_graph: graph.into(),
+                entry_expr_id: (
+                    self.package,
+                    package
+                        .entry
+                        .expect("package must have an entry expression"),
+                )
+                    .into(),
+            };
             // Generate QIR
             fir_to_qir(
                 &self.fir_store,
-                self.package,
                 self.capabilities,
                 Some(compute_properties),
+                &entry,
             )
             .map_err(|e| {
                 let source_package = self

@@ -54,6 +54,16 @@ pub enum PackageType {
     Lib,
 }
 
+#[must_use]
+pub fn lower_hir_to_fir(
+    package_store: &qsc_frontend::compile::PackageStore,
+    package_id: qsc_hir::hir::PackageId,
+) -> (fir::PackageStore, fir::PackageId) {
+    let fir_store = lower_store(package_store);
+    let fir_package_id = map_hir_package_to_fir(package_id);
+    (fir_store, fir_package_id)
+}
+
 pub struct PassContext {
     capabilities: RuntimeCapabilityFlags,
     borrow_check: borrowck::Checker,
@@ -118,16 +128,6 @@ impl PassContext {
             .chain(entry_point_errors)
             .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
             .collect()
-    }
-
-    pub fn run_fir_passes_on_hir(
-        package_store: &qsc_frontend::compile::PackageStore,
-        package_id: qsc_hir::hir::PackageId,
-        capabilities: RuntimeCapabilityFlags,
-    ) -> Result<PackageStoreComputeProperties, Vec<Error>> {
-        let fir_store = lower_store(package_store);
-        let fir_package_id = map_hir_package_to_fir(package_id);
-        Self::run_fir_passes_on_fir(&fir_store, fir_package_id, capabilities)
     }
 
     pub fn run_fir_passes_on_fir(
