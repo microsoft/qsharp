@@ -13,7 +13,7 @@ To do that, we utilize a sequence of gates. The Pauli Z gate followed by the Pau
    \begin{bmatrix}1 & 0 \\\ 0 & -1 \end{bmatrix}
    $$
 
-2. **Apply the Pauli X gate**: The X gate flips the$|0\rangle$ and$|1\rangle$states.
+2. **Apply the Pauli X gate**: The X gate flips the $|0\rangle$ and $|1\rangle$ basis states, converting our $\beta |0\rangle - \gamma |1\rangle$ state to $\beta |1\rangle - \gamma |0\rangle$.
 
    The matrix representation of the X gate is:
 
