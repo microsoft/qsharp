@@ -315,9 +315,7 @@ def test_adaptive_errors_are_raised_from_entry_expr() -> None:
     assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
 
 
-# This is temporary but asserts that the functionality is
-# Not yet implemented.
-def test_adaptive_qir_cannot_be_generated() -> None:
+def test_adaptive_qir_can_be_generated() -> None:
     adaptive_input = """
         namespace Test {
             open Microsoft.Quantum.Math;
@@ -336,10 +334,35 @@ def test_adaptive_qir_cannot_be_generated() -> None:
         """
     e = Interpreter(TargetProfile.Adaptive)
     e.interpret(adaptive_input)
-    with pytest.raises(Exception) as excinfo:
-        e.qir("Test.Main()")
+    qir = e.qir("Test.Main()")
+    assert qir == dedent(
+        """\
+        %Result = type opaque
+        %Qubit = type opaque
 
-    assert "UnsupportedRuntimeCapabilities" in str(excinfo)
+        define void @ENTRYPOINT__main() #0 {
+        block_0:
+          call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          ret void
+        }
+
+        declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        """
+    )
 
 
 def test_operation_circuit() -> None:

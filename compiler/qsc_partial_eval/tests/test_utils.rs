@@ -3,10 +3,10 @@
 
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_fir::fir::{PackageId, PackageStore};
+use qsc_fir::fir::PackageStore;
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
-use qsc_partial_eval::partially_evaluate;
+use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 use qsc_rir::rir::{BlockId, Callable, CallableId, Instruction, Program};
 
@@ -38,9 +38,9 @@ pub fn assert_callable(program: &Program, callable_id: CallableId, expected_call
 pub fn compile_and_partially_evaluate(source: &str) -> Program {
     let compilation_context = CompilationContext::new(source);
     let maybe_program = partially_evaluate(
-        compilation_context.package_id,
         &compilation_context.fir_store,
         &compilation_context.compute_properties,
+        &compilation_context.entry,
     );
     match maybe_program {
         Ok(program) => program,
@@ -51,7 +51,7 @@ pub fn compile_and_partially_evaluate(source: &str) -> Program {
 struct CompilationContext {
     fir_store: PackageStore,
     compute_properties: PackageStoreComputeProperties,
-    package_id: PackageId,
+    entry: ProgramEntry,
 }
 
 impl CompilationContext {
@@ -69,10 +69,22 @@ impl CompilationContext {
         let fir_store = lower_hir_package_store(compiler.package_store());
         let analyzer = Analyzer::init(&fir_store);
         let compute_properties = analyzer.analyze_all();
+        let package = fir_store.get(package_id);
+        let entry = ProgramEntry {
+            exec_graph: package.entry_exec_graph.clone(),
+            expr: (
+                package_id,
+                package
+                    .entry
+                    .expect("package must have an entry expression"),
+            )
+                .into(),
+        };
+
         Self {
             fir_store,
             compute_properties,
-            package_id,
+            entry,
         }
     }
 }

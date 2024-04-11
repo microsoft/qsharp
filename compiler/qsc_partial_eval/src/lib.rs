@@ -17,9 +17,9 @@ use qsc_eval::{
 };
 use qsc_fir::{
     fir::{
-        BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind,
-        Global, Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res,
-        SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
+        self, BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId,
+        ExprKind, Global, Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind,
+        Res, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
         StorePatId, StoreStmtId,
     },
     ty::{Prim, Ty},
@@ -34,12 +34,17 @@ use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
 use thiserror::Error;
 
+pub struct ProgramEntry {
+    pub exec_graph: Rc<[ExecGraphNode]>,
+    pub expr: fir::StoreExprId,
+}
+
 pub fn partially_evaluate(
-    package_id: PackageId,
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,
+    entry: &ProgramEntry,
 ) -> Result<Program, Error> {
-    let partial_evaluator = PartialEvaluator::new(package_id, package_store, compute_properties);
+    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties, entry);
     partial_evaluator.eval()
 }
 
@@ -73,14 +78,15 @@ struct PartialEvaluator<'a> {
     callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
+    entry: &'a ProgramEntry,
     errors: Vec<Error>,
 }
 
 impl<'a> PartialEvaluator<'a> {
     fn new(
-        entry_package_id: PackageId,
         package_store: &'a PackageStore,
         compute_properties: &'a PackageStoreComputeProperties,
+        entry: &'a ProgramEntry,
     ) -> Self {
         // Create the entry-point callable.
         let mut resource_manager = ResourceManager::default();
@@ -100,7 +106,7 @@ impl<'a> PartialEvaluator<'a> {
         program.entry = entry_point_id;
 
         // Initialize the evaluation context and create a new partial evaluator.
-        let context = EvaluationContext::new(entry_package_id, entry_block_id);
+        let context = EvaluationContext::new(entry.expr.package, entry_block_id);
         Self {
             package_store,
             compute_properties,
@@ -109,6 +115,7 @@ impl<'a> PartialEvaluator<'a> {
             backend: QuantumIntrinsicsChecker::default(),
             callables_map: FxHashMap::default(),
             program,
+            entry,
             errors: Vec::new(),
         }
     }
@@ -181,14 +188,8 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn eval(mut self) -> Result<Program, Error> {
-        let current_package = self.get_current_package_id();
-        let entry_package = self.package_store.get(current_package);
-        let Some(entry_expr_id) = entry_package.entry else {
-            panic!("package does not have an entry expression");
-        };
-
         // Visit the entry point expression.
-        self.visit_expr(entry_expr_id);
+        self.visit_expr(self.entry.expr.expr);
 
         // Return the first error, if any.
         // We should eventually return all the errors but since that is an interface change, we will do that as its own
@@ -592,9 +593,7 @@ impl<'a> PartialEvaluator<'a> {
         if let Some(spec_decl) = self.get_current_scope_spec_decl() {
             &spec_decl.exec_graph
         } else {
-            let package_id = self.get_current_package_id();
-            let package = self.package_store.get(package_id);
-            &package.entry_exec_graph
+            &self.entry.exec_graph
         }
     }
 

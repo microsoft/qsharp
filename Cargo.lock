@@ -928,6 +928,7 @@ dependencies = [
  "qsc_hir",
  "qsc_linter",
  "qsc_lowerer",
+ "qsc_partial_eval",
  "qsc_passes",
  "qsc_project",
  "qsc_rca",
