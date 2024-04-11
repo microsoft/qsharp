@@ -9,8 +9,9 @@ use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::partially_evaluate;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 use qsc_rir::rir::{BlockId, Callable, CallableId, Instruction, Program};
-use std::{fs::File, io::Write};
 
+// Allowing this function as dead code is needed because not all integration tests use it.
+#[allow(dead_code)]
 pub fn assert_block_last_instruction(
     program: &Program,
     block_id: BlockId,
@@ -80,8 +81,6 @@ impl CompilationContext {
         let fir_store = lower_hir_package_store(compiler.package_store());
         let analyzer = Analyzer::init(&fir_store);
         let compute_properties = analyzer.analyze_all();
-        //write_fir_store_to_files(&fir_store);
-        //write_compute_properties_to_files(&compute_properties);
         Self {
             fir_store,
             compute_properties,
@@ -100,24 +99,4 @@ fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore 
         );
     }
     fir_store
-}
-
-// TODO (cesarzc): remove.
-fn write_fir_store_to_files(store: &PackageStore) {
-    for (id, package) in store {
-        let filename = format!("dbg/fir.package{id}.txt");
-        let mut package_file = File::create(filename).expect("File could be created");
-        let package_string = format!("{package}");
-        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
-    }
-}
-
-// TODO (cesarzc): remove.
-fn write_compute_properties_to_files(store: &PackageStoreComputeProperties) {
-    for (id, package) in store.iter() {
-        let filename = format!("dbg/rca.package{id}.txt");
-        let mut package_file = File::create(filename).expect("File could be created");
-        let package_string = format!("{package}");
-        write!(package_file, "{package_string}").expect("Writing to file should succeed.");
-    }
 }

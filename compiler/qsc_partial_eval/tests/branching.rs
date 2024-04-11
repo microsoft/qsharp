@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes, clippy::similar_names)]
 
-mod test_utils;
+pub mod test_utils;
 
 use indoc::indoc;
 use qsc_rir::rir::{
