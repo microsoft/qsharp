@@ -1,6 +1,6 @@
 A global phase is a phase factor that multiplies the entire quantum state. It is not observable when measuring the qubit's state, as the probabilities remain unchanged. However, it is significant when considering quantum state transformations.
 
-Our task is to implement an operation that transforms the given qubit state from $|\psi\rangle = \beta |0\rangle + \gamma |1\rangle$ to$- \beta |0\rangle - \gamma |1\rangle$.
+Our task is to implement an operation that transforms the given qubit state from $|\psi\rangle = \beta |0\rangle + \gamma |1\rangle$ to $- \beta |0\rangle - \gamma |1\rangle$.
 
 To apply a global phase of $\pi$(which is equivalent to multiplying by -1), we utilize a sequence of gates. The Pauli Z gate followed by the Pauli X gate can be used to achieve this effect when applied in succession twice.
 
