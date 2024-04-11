@@ -77,6 +77,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBlockExpression"))]
     FailedToEvaluateBlockExpression(#[label] Span),
 
+    #[error("failed to evaluate loop condition")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateLoopCondition"))]
+    FailedToEvaluateLoopCondition(#[label] Span),
+
     #[error("failed to evaluate: {0} not yet implemented")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] Span),
@@ -338,7 +342,9 @@ impl<'a> PartialEvaluator<'a> {
                 expr.span,
             )),
             ExprKind::Var(res, _) => Ok(self.eval_expr_var(res)),
-            ExprKind::While(_, _) => Err(Error::Unimplemented("While Expr".to_string(), expr.span)),
+            ExprKind::While(condition_expr_id, body_block_id) => {
+                self.eval_expr_while(*condition_expr_id, *body_block_id)
+            }
         }
     }
 
@@ -727,6 +733,43 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    fn eval_expr_while(
+        &mut self,
+        condition_expr_id: ExprId,
+        body_block_id: BlockId,
+    ) -> Result<Value, Error> {
+        // Verify assumptions.
+        assert!(
+            self.is_classical_expr(condition_expr_id),
+            "loop conditions must be purely classical"
+        );
+        let body_block = self.get_block(body_block_id);
+        assert_eq!(
+            body_block.ty,
+            Ty::UNIT,
+            "the type of a loop block is expected to be Unit"
+        );
+
+        // Evaluate the block until the loop condition is false.
+        let mut eval_condition = || {
+            let maybe_condition_expr_value = self.try_eval_expr(condition_expr_id);
+            if let Ok(condition_expr_value) = maybe_condition_expr_value {
+                let Value::Bool(condition_bool) = condition_expr_value else {
+                    panic!("loop condition must be a Boolean");
+                };
+                Ok(condition_bool)
+            } else {
+                let condition_expr = self.get_expr(condition_expr_id);
+                let error = Error::FailedToEvaluateLoopCondition(condition_expr.span);
+                Err(error)
+            }
+        };
+        // TODO (cesarzc): implement.
+        //while eval_condition()? {}
+
+        unimplemented!();
+    }
+
     fn eval_result_as_bool_operand(&mut self, result: val::Result) -> Operand {
         match result {
             val::Result::Id(id) => {
@@ -792,6 +835,24 @@ impl<'a> PartialEvaluator<'a> {
         Some(spec_decl)
     }
 
+    fn get_expr_compute_kind(&self, expr_id: ExprId) -> ComputeKind {
+        let current_package_id = self.get_current_package_id();
+        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
+        let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
+        let callable_scope = self.eval_context.get_current_scope();
+        expr_generator_set
+            .generate_application_compute_kind(&callable_scope.args_runtime_properties)
+    }
+
+    fn get_stmt_compute_kind(&self, stmt_id: StmtId) -> ComputeKind {
+        let current_package_id = self.get_current_package_id();
+        let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
+        let stmt_generator_set = self.compute_properties.get_stmt(store_stmt_id);
+        let callable_scope = self.eval_context.get_current_scope();
+        stmt_generator_set
+            .generate_application_compute_kind(&callable_scope.args_runtime_properties)
+    }
+
     fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
         // Check if the callable is already in the program, and if not add it.
         let callable_name = callable.name.clone();
@@ -814,13 +875,13 @@ impl<'a> PartialEvaluator<'a> {
             .expect("program block does not exist")
     }
 
+    fn is_classical_expr(&self, expr_id: ExprId) -> bool {
+        let compute_kind = self.get_expr_compute_kind(expr_id);
+        matches!(compute_kind, ComputeKind::Classical)
+    }
+
     fn is_classical_stmt(&self, stmt_id: StmtId) -> bool {
-        let current_package_id = self.get_current_package_id();
-        let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
-        let stmt_generator_set = self.compute_properties.get_stmt(store_stmt_id);
-        let callable_scope = self.eval_context.get_current_scope();
-        let compute_kind = stmt_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
+        let compute_kind = self.get_stmt_compute_kind(stmt_id);
         matches!(compute_kind, ComputeKind::Classical)
     }
 
@@ -924,14 +985,8 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
             "visiting an expression when errors have already happened should never happen"
         );
 
-        // Determine whether the expression is classical since how we evaluate it depends on it.
-        let current_package_id = self.get_current_package_id();
-        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
-        let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
-        let callable_scope = self.eval_context.get_current_scope();
-        let compute_kind = expr_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
-        let expr_result = if matches!(compute_kind, ComputeKind::Classical) {
+        // We evaluate an expression differently depending on whether it is classical or not.
+        let expr_result = if self.is_classical_expr(expr_id) {
             self.eval_classical_expr(expr_id)
         } else {
             self.eval_expr(expr_id)
