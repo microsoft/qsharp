@@ -773,6 +773,37 @@ mod given_interpreter {
         }
 
         #[test]
+        fn adaptive_qirgen_fails_when_entry_expr_does_not_match_profile() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::ForwardBranching,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                use q = Qubit();
+                mutable x = 1;
+                "#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter
+                .qirgen("if M(q) == One { set x = 2; }")
+                .expect_err("expected error");
+            is_error(
+                &res,
+                &expect![[r#"
+                    cannot use a dynamic integer value
+                       [<entry>] [set x = 2]
+                "#]],
+            );
+        }
+
+        #[test]
         fn qirgen_entry_expr_in_block() {
             let mut interpreter = Interpreter::new(
                 true,
