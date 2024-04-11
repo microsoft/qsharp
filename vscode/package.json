@@ -28,9 +28,7 @@
     "onWebviewPanel:qsharp-webview"
   ],
   "enabledApiProposals": [
-    "chatParticipant",
-    "chatVariableResolver",
-    "languageModels"
+    "chatParticipant"
   ],
   "contributes": {
     "walkthroughs": [
