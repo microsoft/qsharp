@@ -24,7 +24,7 @@ It is therefore easy to see that when $|\psi\rangle = 0.6|0\rangle +  0.8|1\rang
 
 #### Solution 2
 
-Alternatively, see the Phase Change task later in the kata for an explanation of using R1 gate to implement the same transformation
+Alternatively, see the Phase Change task later in the kata for an explanation of using R1 gate to implement the same transformation.
 
 @[solution]({
 "id": "single_qubit_gates_phase_flip_solution_b",
