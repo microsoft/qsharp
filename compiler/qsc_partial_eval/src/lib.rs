@@ -407,15 +407,11 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn eval_expr_block(&mut self, block_id: BlockId) -> Result<Value, Error> {
-        self.visit_block(block_id);
-        if self.errors.is_empty() {
-            // This should change eventually, but return UNIT for now.
-            Ok(Value::unit())
-        } else {
+        let maybe_block_value = self.try_eval_block(block_id);
+        maybe_block_value.map_err(|()| {
             let block = self.get_block(block_id);
-            let error = Error::FailedToEvaluateBlockExpression(block.span);
-            Err(error)
-        }
+            Error::FailedToEvaluateBlockExpression(block.span)
+        })
     }
 
     fn eval_expr_call(
@@ -862,6 +858,16 @@ impl<'a> PartialEvaluator<'a> {
 
         // The value of a qubit release is unit.
         Value::unit()
+    }
+
+    fn try_eval_block(&mut self, block_id: BlockId) -> Result<Value, ()> {
+        self.visit_block(block_id);
+        if self.errors.is_empty() {
+            // This should change eventually, but return UNIT for now.
+            Ok(Value::unit())
+        } else {
+            Err(())
+        }
     }
 
     fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<Value, ()> {
