@@ -93,6 +93,36 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__ghz_state",
+    "title": "Greenberger-Horne-Zellinger State",
+    "path": "./greenberger_horne_zeilinger/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superposition__all_basis_vectors",
+    "title": "All Basis Vectors",
+    "path": "./all_basis_vectors/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superposition__even_odd",
+    "title": "Even and Odd Numbers",
+    "path": "./even_odd/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__uneven_superpositions",
     "title": "Uneven superpositions"

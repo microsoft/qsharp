@@ -50,16 +50,18 @@ bitflags! {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ConfigAttr {
-    Unrestricted,
+    Adaptive,
     Base,
+    Unrestricted,
 }
 
 impl ConfigAttr {
     #[must_use]
     pub fn to_str(&self) -> &'static str {
         match self {
-            Self::Unrestricted => "Unrestricted",
+            Self::Adaptive => "Adaptive",
             Self::Base => "Base",
+            Self::Unrestricted => "Unrestricted",
         }
     }
 
@@ -74,8 +76,9 @@ impl FromStr for ConfigAttr {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Unrestricted" => Ok(ConfigAttr::Unrestricted),
+            "Adaptive" => Ok(ConfigAttr::Adaptive),
             "Base" => Ok(ConfigAttr::Base),
+            "Unrestricted" => Ok(ConfigAttr::Unrestricted),
             _ => Err(()),
         }
     }
@@ -86,6 +89,7 @@ impl From<ConfigAttr> for RuntimeCapabilityFlags {
         match value {
             ConfigAttr::Unrestricted => Self::all(),
             ConfigAttr::Base => Self::empty(),
+            ConfigAttr::Adaptive => Self::ForwardBranching,
         }
     }
 }

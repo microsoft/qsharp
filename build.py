@@ -110,7 +110,7 @@ root_dir = os.path.dirname(os.path.abspath(__file__))
 wasm_src = os.path.join(root_dir, "wasm")
 wasm_bld = os.path.join(root_dir, "target", "wasm32", build_type)
 samples_src = os.path.join(root_dir, "samples")
-npm_src = os.path.join(root_dir, "npm")
+npm_src = os.path.join(root_dir, "npm", "qsharp")
 play_src = os.path.join(root_dir, "playground")
 pip_src = os.path.join(root_dir, "pip")
 widgets_src = os.path.join(root_dir, "widgets")
@@ -188,6 +188,24 @@ if args.check:
                 "--",
                 "-D",
                 "warnings",
+            ],
+            check=True,
+            text=True,
+            cwd=root_dir,
+        )
+
+    if build_cli or build_samples:
+        print("Running Q# format check")
+        subprocess.run(
+            [
+                "cargo",
+                "run",
+                "--bin",
+                "qsc_formatter",
+                "--",
+                "./library/",
+                "./samples/",
+                "-r",
             ],
             check=True,
             text=True,
@@ -432,7 +450,11 @@ if build_pip and build_widgets and args.integration_tests:
         for dp, _, filenames in os.walk(samples_src)
         for f in filenames
         if f.endswith(".ipynb")
-        and not (f.startswith("sample.") or f.startswith("azure_submission.") or f.startswith("circuits."))
+        and not (
+            f.startswith("sample.")
+            or f.startswith("azure_submission.")
+            or f.startswith("circuits.")
+        )
     ]
     python_bin = use_python_env(samples_src)
 

@@ -11,9 +11,11 @@ license.workspace = true
 [dependencies]
 miette = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
+qsc_eval = { path = "../qsc_eval" }
 qsc_fir = { path = "../qsc_fir" }
 qsc_frontend = { path = "../qsc_frontend" }
 qsc_hir = { path = "../qsc_hir" }
+qsc_lowerer = { path = "../qsc_lowerer" }
 qsc_rca = { path = "../qsc_rca" }
 rustc-hash = { workspace = true }
 thiserror = { workspace = true }

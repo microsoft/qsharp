@@ -22,7 +22,7 @@ use qsc::{
 };
 use qsc_codegen::qir_base::generate_qir;
 use resource_estimator::{self as re, estimate_entry};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Write, str::FromStr, sync::Arc};
 use wasm_bindgen::prelude::*;
@@ -75,10 +75,17 @@ pub fn get_source_map(sources: Vec<js_sys::Array>, entry: &Option<String>) -> So
 pub fn get_qir(
     sources: Vec<js_sys::Array>,
     language_features: Vec<String>,
+    profile: &str,
 ) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = get_source_map(sources, &None);
-    _get_qir(sources, language_features)
+    let profile =
+        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+    if language_features.contains(LanguageFeatures::PreviewQirGen) {
+        qsc::codegen::get_qir(sources, language_features, profile.into())
+    } else {
+        _get_qir(sources, language_features)
+    }
 }
 
 // allows testing without wasm bindings.
@@ -190,6 +197,25 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 
         None
     })
+}
+
+#[wasm_bindgen]
+#[must_use]
+pub fn get_ast(code: &str, language_features: Vec<String>) -> String {
+    let language_features = LanguageFeatures::from_iter(language_features);
+    let sources = SourceMap::new([("code".into(), code.into())], None);
+    let package = STORE_CORE_STD.with(|(store, std)| {
+        let (unit, _) = compile::compile(
+            store,
+            &[*std],
+            sources,
+            PackageType::Exe,
+            Profile::Unrestricted.into(),
+            language_features,
+        );
+        unit.ast.package
+    });
+    format!("{package}")
 }
 
 #[wasm_bindgen]
@@ -394,31 +420,42 @@ pub fn check_exercise_solution(
     })
 }
 
-#[derive(Serialize)]
-struct DocFile {
-    filename: String,
-    metadata: String,
-    contents: String,
+serializable_type! {
+    DocFile,
+    {
+        filename: String,
+        metadata: String,
+        contents: String,
+    },
+    r#"export interface IDocFile {
+        filename: string;
+        metadata: string;
+        contents: string;
+    }"#,
+    IDocFile
 }
 
 #[wasm_bindgen]
 #[must_use]
-pub fn generate_docs() -> JsValue {
+pub fn generate_docs() -> Vec<IDocFile> {
     let docs = qsc_doc_gen::generate_docs::generate_docs();
-    let mut result: Vec<DocFile> = vec![];
+    let mut result: Vec<IDocFile> = vec![];
 
     for (name, metadata, contents) in docs {
-        result.push(DocFile {
-            filename: name.to_string(),
-            metadata: metadata.to_string(),
-            contents: contents.to_string(),
-        });
+        result.push(
+            DocFile {
+                filename: name.to_string(),
+                metadata: metadata.to_string(),
+                contents: contents.to_string(),
+            }
+            .into(),
+        );
     }
 
-    serde_wasm_bindgen::to_value(&result).expect("Serializing docs should succeed")
+    result
 }
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "unrestricted";
+export type TargetProfile = "adaptive" | "base" | "unrestricted";
 "#;

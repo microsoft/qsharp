@@ -41,7 +41,7 @@ const coreDir = join(thisDir, "compiler");
 const libsDir = join(thisDir, "library");
 const vslsDir = join(thisDir, "language_service");
 const wasmDir = join(thisDir, "wasm");
-const npmDir = join(thisDir, "npm");
+const npmDir = join(thisDir, "npm", "qsharp");
 
 const isWin = process.platform === "win32";
 const npmCmd = isWin ? "npm.cmd" : "npm";

@@ -8,8 +8,8 @@ use qsc_rir::rir;
 #[test]
 fn add_integer_literals() {
     let inst = rir::Instruction::Add(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -21,11 +21,11 @@ fn add_integer_literals() {
 #[test]
 fn add_integer_variables() {
     let inst = rir::Instruction::Add(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -40,8 +40,8 @@ fn add_integer_variables() {
 #[test]
 fn ashr_integer_literals() {
     let inst = rir::Instruction::Ashr(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -53,11 +53,11 @@ fn ashr_integer_literals() {
 #[test]
 fn ashr_integer_variables() {
     let inst = rir::Instruction::Ashr(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -72,8 +72,8 @@ fn ashr_integer_variables() {
 #[test]
 fn bitwise_and_integer_literals() {
     let inst = rir::Instruction::BitwiseAnd(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -85,11 +85,11 @@ fn bitwise_and_integer_literals() {
 #[test]
 fn bitwise_add_integer_variables() {
     let inst = rir::Instruction::BitwiseAnd(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -104,7 +104,7 @@ fn bitwise_add_integer_variables() {
 #[test]
 fn bitwise_not_integer_literals() {
     let inst = rir::Instruction::BitwiseNot(
-        rir::Value::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -116,7 +116,7 @@ fn bitwise_not_integer_literals() {
 #[test]
 fn bitwise_not_integer_variables() {
     let inst = rir::Instruction::BitwiseNot(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
@@ -131,8 +131,8 @@ fn bitwise_not_integer_variables() {
 #[test]
 fn bitwise_or_integer_literals() {
     let inst = rir::Instruction::BitwiseOr(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -144,11 +144,11 @@ fn bitwise_or_integer_literals() {
 #[test]
 fn bitwise_or_integer_variables() {
     let inst = rir::Instruction::BitwiseOr(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -163,8 +163,8 @@ fn bitwise_or_integer_variables() {
 #[test]
 fn bitwise_xor_integer_literals() {
     let inst = rir::Instruction::BitwiseXor(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -176,11 +176,11 @@ fn bitwise_xor_integer_literals() {
 #[test]
 fn bitwise_xor_integer_variables() {
     let inst = rir::Instruction::BitwiseXor(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -195,9 +195,9 @@ fn bitwise_xor_integer_variables() {
 #[test]
 fn icmp_eq_integer_literals() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Eq,
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::ConditionCode::Eq,
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -209,12 +209,12 @@ fn icmp_eq_integer_literals() {
 #[test]
 fn icmp_eq_integer_variables() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Eq,
-        rir::Value::Variable(rir::Variable {
+        rir::ConditionCode::Eq,
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -230,9 +230,9 @@ fn icmp_eq_integer_variables() {
 #[test]
 fn icmp_ne_integer_literals() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Ne,
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::ConditionCode::Ne,
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -244,12 +244,12 @@ fn icmp_ne_integer_literals() {
 #[test]
 fn icmp_ne_integer_variables() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Ne,
-        rir::Value::Variable(rir::Variable {
+        rir::ConditionCode::Ne,
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -264,9 +264,9 @@ fn icmp_ne_integer_variables() {
 #[test]
 fn icmp_slt_integer_literals() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Slt,
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::ConditionCode::Slt,
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -278,12 +278,12 @@ fn icmp_slt_integer_literals() {
 #[test]
 fn icmp_slt_integer_variables() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Slt,
-        rir::Value::Variable(rir::Variable {
+        rir::ConditionCode::Slt,
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -298,9 +298,9 @@ fn icmp_slt_integer_variables() {
 #[test]
 fn icmp_sle_integer_literals() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Sle,
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::ConditionCode::Sle,
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -312,12 +312,12 @@ fn icmp_sle_integer_literals() {
 #[test]
 fn icmp_sle_integer_variables() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Sle,
-        rir::Value::Variable(rir::Variable {
+        rir::ConditionCode::Sle,
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -332,9 +332,9 @@ fn icmp_sle_integer_variables() {
 #[test]
 fn icmp_sgt_integer_literals() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Sgt,
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::ConditionCode::Sgt,
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -346,12 +346,12 @@ fn icmp_sgt_integer_literals() {
 #[test]
 fn icmp_sgt_integer_variables() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Sgt,
-        rir::Value::Variable(rir::Variable {
+        rir::ConditionCode::Sgt,
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -366,9 +366,9 @@ fn icmp_sgt_integer_variables() {
 #[test]
 fn icmp_sge_integer_literals() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Sge,
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::ConditionCode::Sge,
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -380,12 +380,12 @@ fn icmp_sge_integer_literals() {
 #[test]
 fn icmp_sge_integer_variables() {
     let inst = rir::Instruction::Icmp(
-        rir::IntPredicate::Sge,
-        rir::Value::Variable(rir::Variable {
+        rir::ConditionCode::Sge,
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -401,8 +401,8 @@ fn icmp_sge_integer_variables() {
 #[test]
 fn mul_integer_literals() {
     let inst = rir::Instruction::Mul(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -414,11 +414,11 @@ fn mul_integer_literals() {
 #[test]
 fn mul_integer_variables() {
     let inst = rir::Instruction::Mul(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -433,8 +433,8 @@ fn mul_integer_variables() {
 #[test]
 fn sdiv_integer_literals() {
     let inst = rir::Instruction::Sdiv(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -446,11 +446,11 @@ fn sdiv_integer_literals() {
 #[test]
 fn sdiv_integer_variables() {
     let inst = rir::Instruction::Sdiv(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -465,8 +465,8 @@ fn sdiv_integer_variables() {
 #[test]
 fn shl_integer_literals() {
     let inst = rir::Instruction::Shl(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -478,11 +478,11 @@ fn shl_integer_literals() {
 #[test]
 fn shl_integer_variables() {
     let inst = rir::Instruction::Shl(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -497,8 +497,8 @@ fn shl_integer_variables() {
 #[test]
 fn srem_integer_literals() {
     let inst = rir::Instruction::Srem(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -510,11 +510,11 @@ fn srem_integer_literals() {
 #[test]
 fn srem_integer_variables() {
     let inst = rir::Instruction::Srem(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
@@ -529,8 +529,8 @@ fn srem_integer_variables() {
 #[test]
 fn sub_integer_literals() {
     let inst = rir::Instruction::Sub(
-        rir::Value::Literal(rir::Literal::Integer(2)),
-        rir::Value::Literal(rir::Literal::Integer(5)),
+        rir::Operand::Literal(rir::Literal::Integer(2)),
+        rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Integer,
@@ -542,11 +542,11 @@ fn sub_integer_literals() {
 #[test]
 fn sub_integer_variables() {
     let inst = rir::Instruction::Sub(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),

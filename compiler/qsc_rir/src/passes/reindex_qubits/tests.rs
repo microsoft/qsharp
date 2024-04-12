@@ -7,7 +7,7 @@ use expect_test::expect;
 
 use crate::{
     builder::{cx_decl, h_decl, mresetz_decl, mz_decl, reset_decl, x_decl},
-    rir::{Block, BlockId, CallableId, CallableType, Instruction, Literal, Program, Value},
+    rir::{Block, BlockId, CallableId, CallableType, Instruction, Literal, Operand, Program},
 };
 
 use super::reindex_qubits;
@@ -23,10 +23,10 @@ fn qubit_reindexed_after_reset_removes_reset() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
-            Instruction::Call(RESET, vec![Value::Literal(Literal::Qubit(0))], None),
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
-            Instruction::Call(RESET, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(RESET, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(RESET, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Return,
         ]),
     );
@@ -68,21 +68,21 @@ fn qubit_reindexed_after_mz() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
                 ],
                 None,
             ),
@@ -124,21 +124,21 @@ fn qubit_reindexed_after_mresetz_and_changed_to_mz() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MRESETZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MRESETZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
                 ],
                 None,
             ),
@@ -182,20 +182,20 @@ fn multiple_qubit_reindex() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(H, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(H, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MRESETZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
             Instruction::Call(
                 CX,
                 vec![
-                    Value::Literal(Literal::Qubit(1)),
-                    Value::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Qubit(1)),
+                    Operand::Literal(Literal::Qubit(0)),
                 ],
                 None,
             ),
@@ -235,39 +235,39 @@ fn qubit_reindexed_multiple_times() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(0)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(0)),
                 ],
                 None,
             ),
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(1)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(1)),
                 ],
                 None,
             ),
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(2)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(2)),
                 ],
                 None,
             ),
-            Instruction::Call(X, vec![Value::Literal(Literal::Qubit(0))], None),
+            Instruction::Call(X, vec![Operand::Literal(Literal::Qubit(0))], None),
             Instruction::Call(
                 MZ,
                 vec![
-                    Value::Literal(Literal::Qubit(0)),
-                    Value::Literal(Literal::Result(3)),
+                    Operand::Literal(Literal::Qubit(0)),
+                    Operand::Literal(Literal::Result(3)),
                 ],
                 None,
             ),

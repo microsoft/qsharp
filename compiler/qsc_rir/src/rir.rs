@@ -3,14 +3,14 @@
 
 use indenter::{indented, Indented};
 use qsc_data_structures::index_map::IndexMap;
-use std::fmt::{self, Debug, Display, Formatter, Write};
+use std::fmt::{self, Display, Formatter, Write};
 
 /// The root of the RIR.
 #[derive(Default)]
 pub struct Program {
-    pub blocks: IndexMap<BlockId, Block>,
-    pub callables: IndexMap<CallableId, Callable>,
     pub entry: CallableId,
+    pub callables: IndexMap<CallableId, Callable>,
+    pub blocks: IndexMap<BlockId, Block>,
     pub config: Config,
     pub num_qubits: u32,
     pub num_results: u32,
@@ -87,7 +87,7 @@ impl Config {
 }
 
 /// A unique identifier for a block in a RIR program.
-#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct BlockId(pub u32);
 
 impl From<BlockId> for usize {
@@ -118,12 +118,19 @@ impl Display for Block {
     }
 }
 
+impl BlockId {
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
 /// A block is a collection of instructions.
 #[derive(Default)]
 pub struct Block(pub Vec<Instruction>);
 
 /// A unique identifier for a callable in a RIR program.
-#[derive(Debug, Clone, Copy, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd, Ord)]
 pub struct CallableId(pub u32);
 
 impl From<CallableId> for usize {
@@ -138,7 +145,15 @@ impl From<usize> for CallableId {
     }
 }
 
+impl CallableId {
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
 /// A callable.
+#[derive(Debug, Eq, PartialEq)]
 pub struct Callable {
     /// The name of the callable.
     pub name: String,
@@ -160,7 +175,7 @@ impl Display for Callable {
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
         write!(indent, "\ncall_type: {}", self.call_type)?;
-        write!(indent, "\ninput_type: ")?;
+        write!(indent, "\ninput_type:")?;
         if self.input_type.is_empty() {
             write!(indent, " <VOID>")?;
         } else {
@@ -170,13 +185,13 @@ impl Display for Callable {
             }
             indent = set_indentation(indent, 1);
         }
-        write!(indent, "\noutput_type: ")?;
+        write!(indent, "\noutput_type:")?;
         if let Some(output_type) = &self.output_type {
             write!(indent, " {output_type}")?;
         } else {
             write!(indent, " <VOID>")?;
         }
-        write!(indent, "\nbody: ")?;
+        write!(indent, "\nbody:")?;
         if let Some(body_block_id) = self.body {
             write!(indent, " {}", body_block_id.0)?;
         } else {
@@ -187,7 +202,7 @@ impl Display for Callable {
 }
 
 /// The type of callable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CallableType {
     Measurement,
     Reset,
@@ -196,8 +211,8 @@ pub enum CallableType {
     Regular,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum IntPredicate {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ConditionCode {
     Eq,
     Ne,
     Slt,
@@ -206,7 +221,7 @@ pub enum IntPredicate {
     Sge,
 }
 
-impl Display for IntPredicate {
+impl Display for ConditionCode {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match &self {
             Self::Eq => write!(f, "Eq")?,
@@ -233,28 +248,28 @@ impl Display for CallableType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Instruction {
-    Store(Value, Variable),
-    Call(CallableId, Vec<Value>, Option<Variable>),
+    Store(Operand, Variable),
+    Call(CallableId, Vec<Operand>, Option<Variable>),
     Jump(BlockId),
-    Branch(Value, BlockId, BlockId),
-    Add(Value, Value, Variable),
-    Sub(Value, Value, Variable),
-    Mul(Value, Value, Variable),
-    Sdiv(Value, Value, Variable),
-    Srem(Value, Value, Variable),
-    Shl(Value, Value, Variable),
-    Ashr(Value, Value, Variable),
-    Icmp(IntPredicate, Value, Value, Variable),
-    LogicalNot(Value, Variable),
-    LogicalAnd(Value, Value, Variable),
-    LogicalOr(Value, Value, Variable),
-    BitwiseNot(Value, Variable),
-    BitwiseAnd(Value, Value, Variable),
-    BitwiseOr(Value, Value, Variable),
-    BitwiseXor(Value, Value, Variable),
-    Phi(Vec<(Value, BlockId)>, Variable),
+    Branch(Variable, BlockId, BlockId),
+    Add(Operand, Operand, Variable),
+    Sub(Operand, Operand, Variable),
+    Mul(Operand, Operand, Variable),
+    Sdiv(Operand, Operand, Variable),
+    Srem(Operand, Operand, Variable),
+    Shl(Operand, Operand, Variable),
+    Ashr(Operand, Operand, Variable),
+    Icmp(ConditionCode, Operand, Operand, Variable),
+    LogicalNot(Operand, Variable),
+    LogicalAnd(Operand, Operand, Variable),
+    LogicalOr(Operand, Operand, Variable),
+    BitwiseNot(Operand, Variable),
+    BitwiseAnd(Operand, Operand, Variable),
+    BitwiseOr(Operand, Operand, Variable),
+    BitwiseXor(Operand, Operand, Variable),
+    Phi(Vec<(Operand, BlockId)>, Variable),
     Return,
 }
 
@@ -264,8 +279,8 @@ impl Display for Instruction {
         fn write_binary_instruction(
             f: &mut Formatter,
             instruction: &str,
-            lhs: &Value,
-            rhs: &Value,
+            lhs: &Operand,
+            rhs: &Operand,
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -275,7 +290,7 @@ impl Display for Instruction {
 
         fn write_branch(
             f: &mut Formatter,
-            condition: &Value,
+            condition: Variable,
             if_true: BlockId,
             if_false: BlockId,
         ) -> fmt::Result {
@@ -287,7 +302,7 @@ impl Display for Instruction {
         fn write_call(
             f: &mut Formatter,
             callable_id: CallableId,
-            args: &[Value],
+            args: &[Operand],
             variable: Option<Variable>,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -305,7 +320,7 @@ impl Display for Instruction {
         fn write_unary_instruction(
             f: &mut Formatter,
             instruction: &str,
-            value: &Value,
+            value: &Operand,
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -315,19 +330,19 @@ impl Display for Instruction {
 
         fn write_icmp_instruction(
             f: &mut Formatter,
-            op: IntPredicate,
-            lhs: &Value,
-            rhs: &Value,
+            condition: ConditionCode,
+            lhs: &Operand,
+            rhs: &Operand,
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
-            write!(indent, "{variable} = Icmp {op}, {lhs}, {rhs}")?;
+            write!(indent, "{variable} = Icmp {condition}, {lhs}, {rhs}")?;
             Ok(())
         }
 
         fn write_phi_instruction(
             f: &mut Formatter,
-            args: &[(Value, BlockId)],
+            args: &[(Operand, BlockId)],
             variable: Variable,
         ) -> fmt::Result {
             let mut indent = set_indentation(indented(f), 0);
@@ -346,7 +361,7 @@ impl Display for Instruction {
                 write_call(f, *callable_id, args, *variable)?;
             }
             Self::Branch(condition, if_true, if_false) => {
-                write_branch(f, condition, *if_true, *if_false)?;
+                write_branch(f, *condition, *if_true, *if_false)?;
             }
             Self::Add(lhs, rhs, variable) => {
                 write_binary_instruction(f, "Add", lhs, rhs, *variable)?;
@@ -402,10 +417,29 @@ impl Display for Instruction {
     }
 }
 
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Hash)]
 pub struct VariableId(pub u32);
 
-#[derive(Clone, Copy)]
+impl VariableId {
+    #[must_use]
+    pub fn successor(self) -> Self {
+        Self(self.0 + 1)
+    }
+}
+
+impl From<VariableId> for usize {
+    fn from(id: VariableId) -> usize {
+        id.0 as usize
+    }
+}
+
+impl From<usize> for VariableId {
+    fn from(id: usize) -> Self {
+        Self(id.try_into().expect("variable id should fit into u32"))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Variable {
     pub variable_id: VariableId,
     pub ty: Ty,
@@ -419,7 +453,7 @@ impl Display for Variable {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Ty {
     Qubit,
     Result,
@@ -443,13 +477,13 @@ impl Display for Ty {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum Value {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Operand {
     Literal(Literal),
     Variable(Variable),
 }
 
-impl Display for Value {
+impl Display for Operand {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match &self {
             Self::Literal(literal) => write!(f, "{literal}"),
@@ -458,7 +492,24 @@ impl Display for Value {
     }
 }
 
-#[derive(Clone, Copy)]
+impl Operand {
+    #[must_use]
+    pub fn get_type(&self) -> Ty {
+        match self {
+            Operand::Literal(lit) => match lit {
+                Literal::Qubit(_) => Ty::Qubit,
+                Literal::Result(_) => Ty::Result,
+                Literal::Bool(_) => Ty::Boolean,
+                Literal::Integer(_) => Ty::Integer,
+                Literal::Double(_) => Ty::Double,
+                Literal::Pointer => Ty::Pointer,
+            },
+            Operand::Variable(var) => var.ty,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub enum Literal {
     Qubit(u32),
     Result(u32),
@@ -481,6 +532,53 @@ impl Display for Literal {
         Ok(())
     }
 }
+
+// The `PartialEq` and `Eq` traits are explicitly implemented for literals to allow assertions on instructions where we
+// might need to compare floating point values.
+impl PartialEq for Literal {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            Self::Bool(self_bool) => {
+                if let Self::Bool(other_bool) = other {
+                    self_bool == other_bool
+                } else {
+                    false
+                }
+            }
+            Self::Double(self_double) => {
+                if let Self::Double(other_double) = other {
+                    (self_double - other_double).abs() < f64::EPSILON
+                } else {
+                    false
+                }
+            }
+            Self::Integer(self_integer) => {
+                if let Self::Integer(other_integer) = other {
+                    self_integer == other_integer
+                } else {
+                    false
+                }
+            }
+            Self::Pointer => matches!(other, Self::Pointer),
+            Self::Qubit(self_qubit) => {
+                if let Self::Qubit(other_qubit) = other {
+                    self_qubit == other_qubit
+                } else {
+                    false
+                }
+            }
+            Self::Result(self_result) => {
+                if let Self::Result(other_result) = other {
+                    self_result == other_result
+                } else {
+                    false
+                }
+            }
+        }
+    }
+}
+
+impl Eq for Literal {}
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
