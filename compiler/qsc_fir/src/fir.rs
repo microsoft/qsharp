@@ -549,7 +549,7 @@ pub trait PackageLookup {
 /// within the containing node. Node ids are used to identify nodes within
 /// the package and require mapping from the HIR node id to the new FIR node id.
 /// `PackageId`s and `LocalItemId`s are 1:1 from the HIR and are not remapped.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Package {
     /// The items in the package.
     pub items: IndexMap<LocalItemId, Item>,

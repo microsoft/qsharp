@@ -3,6 +3,7 @@
 
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib/circuit.js";
 import {
+  IDocFile,
   IOperationInfo,
   TargetProfile,
   type VSDiagnostic,
@@ -29,6 +30,8 @@ type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 // for running the compiler in the same thread the result will be synchronous (a resolved promise).
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
+
+  getAst(code: string, languageFeatures?: string[]): Promise<string>;
 
   getHir(code: string, languageFeatures?: string[]): Promise<string>;
 
@@ -81,6 +84,8 @@ export interface ICompiler {
     operation?: IOperationInfo,
   ): Promise<CircuitData>;
 
+  getDocumentation(): Promise<IDocFile[]>;
+
   checkExerciseSolution(
     userCode: string,
     exerciseSources: string[],
@@ -94,6 +99,8 @@ export type ProgramConfig = {
   sources: [string, string][];
   /** An array of language features to be opted in to in this compilation. */
   languageFeatures?: string[];
+  /** Target compilation profile. */
+  profile?: TargetProfile;
 };
 
 // WebWorker also support being explicitly terminated to tear down the worker thread
@@ -138,22 +145,24 @@ export class Compiler implements ICompiler {
     if (Array.isArray(sourcesOrConfig)) {
       return this.deprecatedGetQir(sourcesOrConfig, languageFeatures || []);
     } else {
-      return this.newGetQir(sourcesOrConfig);
+      const config = sourcesOrConfig as ProgramConfig;
+      return this.newGetQir(config);
     }
   }
 
   async newGetQir({
     sources,
     languageFeatures = [],
+    profile = "base",
   }: ProgramConfig): Promise<string> {
-    return this.wasm.get_qir(sources, languageFeatures);
+    return this.wasm.get_qir(sources, languageFeatures, profile);
   }
 
   async deprecatedGetQir(
     sources: [string, string][],
     languageFeatures: string[],
   ): Promise<string> {
-    return this.wasm.get_qir(sources, languageFeatures);
+    return this.wasm.get_qir(sources, languageFeatures, "base");
   }
 
   async getEstimates(
@@ -185,6 +194,10 @@ export class Compiler implements ICompiler {
     languageFeatures: string[],
   ): Promise<string> {
     return this.wasm.get_estimates(sources, params, languageFeatures);
+  }
+
+  async getAst(code: string, languageFeatures: string[]): Promise<string> {
+    return this.wasm.get_ast(code, languageFeatures);
   }
 
   async getHir(code: string, languageFeatures: string[]): Promise<string> {
@@ -231,6 +244,10 @@ export class Compiler implements ICompiler {
       operation,
       config.languageFeatures || [],
     );
+  }
+
+  async getDocumentation(): Promise<IDocFile[]> {
+    return this.wasm.generate_docs();
   }
 
   async checkExerciseSolution(
@@ -284,10 +301,12 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
   class: Compiler,
   methods: {
     checkCode: "request",
+    getAst: "request",
     getHir: "request",
     getQir: "request",
     getEstimates: "request",
     getCircuit: "request",
+    getDocumentation: "request",
     run: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
   },

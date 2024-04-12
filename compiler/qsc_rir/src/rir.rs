@@ -153,6 +153,7 @@ impl CallableId {
 }
 
 /// A callable.
+#[derive(Debug, Eq, PartialEq)]
 pub struct Callable {
     /// The name of the callable.
     pub name: String,
@@ -174,7 +175,7 @@ impl Display for Callable {
         indent = set_indentation(indent, 1);
         write!(indent, "\nname: {}", self.name)?;
         write!(indent, "\ncall_type: {}", self.call_type)?;
-        write!(indent, "\ninput_type: ")?;
+        write!(indent, "\ninput_type:")?;
         if self.input_type.is_empty() {
             write!(indent, " <VOID>")?;
         } else {
@@ -184,13 +185,13 @@ impl Display for Callable {
             }
             indent = set_indentation(indent, 1);
         }
-        write!(indent, "\noutput_type: ")?;
+        write!(indent, "\noutput_type:")?;
         if let Some(output_type) = &self.output_type {
             write!(indent, " {output_type}")?;
         } else {
             write!(indent, " <VOID>")?;
         }
-        write!(indent, "\nbody: ")?;
+        write!(indent, "\nbody:")?;
         if let Some(body_block_id) = self.body {
             write!(indent, " {}", body_block_id.0)?;
         } else {
@@ -210,7 +211,7 @@ pub enum CallableType {
     Regular,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConditionCode {
     Eq,
     Ne,
@@ -247,7 +248,7 @@ impl Display for CallableType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Instruction {
     Store(Operand, Variable),
     Call(CallableId, Vec<Operand>, Option<Variable>),
@@ -438,7 +439,7 @@ impl From<usize> for VariableId {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Variable {
     pub variable_id: VariableId,
     pub ty: Ty,
@@ -452,7 +453,7 @@ impl Display for Variable {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Ty {
     Qubit,
     Result,
@@ -476,7 +477,7 @@ impl Display for Ty {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Operand {
     Literal(Literal),
     Variable(Variable),
@@ -508,7 +509,7 @@ impl Operand {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug)]
 pub enum Literal {
     Qubit(u32),
     Result(u32),
@@ -531,6 +532,53 @@ impl Display for Literal {
         Ok(())
     }
 }
+
+// The `PartialEq` and `Eq` traits are explicitly implemented for literals to allow assertions on instructions where we
+// might need to compare floating point values.
+impl PartialEq for Literal {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            Self::Bool(self_bool) => {
+                if let Self::Bool(other_bool) = other {
+                    self_bool == other_bool
+                } else {
+                    false
+                }
+            }
+            Self::Double(self_double) => {
+                if let Self::Double(other_double) = other {
+                    (self_double - other_double).abs() < f64::EPSILON
+                } else {
+                    false
+                }
+            }
+            Self::Integer(self_integer) => {
+                if let Self::Integer(other_integer) = other {
+                    self_integer == other_integer
+                } else {
+                    false
+                }
+            }
+            Self::Pointer => matches!(other, Self::Pointer),
+            Self::Qubit(self_qubit) => {
+                if let Self::Qubit(other_qubit) = other {
+                    self_qubit == other_qubit
+                } else {
+                    false
+                }
+            }
+            Self::Result(self_result) => {
+                if let Self::Result(other_result) = other {
+                    self_result == other_result
+                } else {
+                    false
+                }
+            }
+        }
+    }
+}
+
+impl Eq for Literal {}
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,

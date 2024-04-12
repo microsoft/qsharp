@@ -134,7 +134,10 @@ impl MutVisitor for Conditional {
 }
 
 fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> bool {
-    attrs.iter().all(|attr| {
+    if attrs.is_empty() {
+        return true;
+    }
+    attrs.iter().any(|attr| {
         if hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config) {
             if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
                 match inner.kind.as_ref() {
@@ -144,6 +147,9 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> 
                     ExprKind::Path(path) => match ConfigAttr::from_str(path.name.name.as_ref()) {
                         Ok(ConfigAttr::Unrestricted) => capabilities.is_all(),
                         Ok(ConfigAttr::Base) => capabilities.is_empty(),
+                        Ok(ConfigAttr::Adaptive) => {
+                            capabilities == RuntimeCapabilityFlags::ForwardBranching
+                        }
                         _ => true,
                     },
                     _ => true, // Unknown config attribute, so we assume it matches

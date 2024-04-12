@@ -146,6 +146,7 @@ namespace Microsoft.Quantum.Measurement {
     /// # Remarks
     /// This operation resets its input register to the |00...0> state,
     /// suitable for releasing back to a target machine.
+    @Config(Adaptive)
     @Config(Unrestricted)
     operation MeasureInteger(target : Qubit[]) : Int {
         let nBits = Length(target);

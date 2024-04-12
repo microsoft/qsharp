@@ -4,9 +4,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::incremental::Compiler;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::PackageStore;
 use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 

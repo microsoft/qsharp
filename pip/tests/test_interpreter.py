@@ -272,6 +272,99 @@ def test_entry_expr_circuit() -> None:
     )
 
 
+# this is by design
+def test_callables_failing_profile_validation_are_still_registered() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret(
+            "operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }"
+        )
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret("Foo()")
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
+# this is by design
+def test_once_rca_validation_fails_following_calls_also_fail() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret(
+            "operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }"
+        )
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret("let x = 5;")
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
+def test_adaptive_errors_are_raised_when_interpreting() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    with pytest.raises(Exception) as excinfo:
+        e.interpret(
+            "operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }"
+        )
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
+def test_adaptive_errors_are_raised_from_entry_expr() -> None:
+    e = Interpreter(TargetProfile.Adaptive)
+    e.interpret("use q = Qubit();")
+    with pytest.raises(Exception) as excinfo:
+        e.run("{mutable x = 1; if MResetZ(q) == One { set x = 2; }}")
+    assert "Qsc.CapabilitiesCk.UseOfDynamicInt" in str(excinfo)
+
+
+def test_adaptive_qir_can_be_generated() -> None:
+    adaptive_input = """
+        namespace Test {
+            open Microsoft.Quantum.Math;
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let pi_over_two = 4.0 / 2.0;
+                __quantum__qis__rz__body(pi_over_two, q);
+                mutable some_angle = ArcSin(0.0);
+                __quantum__qis__rz__body(some_angle, q);
+                set some_angle = ArcCos(-1.0) / PI();
+                __quantum__qis__rz__body(some_angle, q);
+            }
+        }
+        """
+    e = Interpreter(TargetProfile.Adaptive)
+    e.interpret(adaptive_input)
+    qir = e.qir("Test.Main()")
+    assert qir == dedent(
+        """\
+        %Result = type opaque
+        %Qubit = type opaque
+
+        define void @ENTRYPOINT__main() #0 {
+        block_0:
+          call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          ret void
+        }
+
+        declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        """
+    )
+
+
 def test_operation_circuit() -> None:
     e = Interpreter(TargetProfile.Unrestricted)
     e.interpret("operation Foo(q: Qubit) : Result { H(q); return M(q) }")

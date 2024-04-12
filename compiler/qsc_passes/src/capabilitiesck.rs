@@ -15,6 +15,7 @@ pub mod tests_common;
 
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
+
 use qsc_fir::{
     fir::{
         Block, BlockId, CallableImpl, Expr, ExprId, ExprKind, Global, Ident, Item, ItemKind,
@@ -25,7 +26,11 @@ use qsc_fir::{
     visit::Visitor,
 };
 use qsc_frontend::compile::RuntimeCapabilityFlags;
-use qsc_rca::{ComputeKind, ItemComputeProperties, PackageComputeProperties, RuntimeFeatureFlags};
+use qsc_lowerer::map_hir_package_to_fir;
+use qsc_rca::{
+    Analyzer, ComputeKind, ItemComputeProperties, PackageComputeProperties,
+    PackageStoreComputeProperties, RuntimeFeatureFlags,
+};
 use rustc_hash::FxHashMap;
 use thiserror::Error;
 
@@ -166,6 +171,42 @@ pub enum Error {
     #[diagnostic(help("closures are not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfClosure"))]
     UseOfClosure(#[label] Span),
+}
+
+/// Lower a package store from `qsc_frontend` HIR store to a `qsc_fir` FIR store.
+pub fn lower_store(
+    package_store: &qsc_frontend::compile::PackageStore,
+) -> qsc_fir::fir::PackageStore {
+    let mut fir_store = qsc_fir::fir::PackageStore::new();
+    for (id, unit) in package_store {
+        let package = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
+        fir_store.insert(map_hir_package_to_fir(id), package);
+    }
+    fir_store
+}
+
+pub fn run_rca_pass(
+    fir_store: &qsc_fir::fir::PackageStore,
+    package_id: qsc_fir::fir::PackageId,
+    capabilities: RuntimeCapabilityFlags,
+) -> Result<PackageStoreComputeProperties, Vec<crate::Error>> {
+    let analyzer = Analyzer::init(fir_store);
+    let compute_properties = analyzer.analyze_all();
+    let fir_package = fir_store.get(package_id);
+
+    let package_compute_properties = compute_properties.get(package_id);
+    let mut errors =
+        check_supported_capabilities(fir_package, package_compute_properties, capabilities);
+
+    if errors.is_empty() {
+        Ok(compute_properties)
+    } else {
+        let errors = errors
+            .drain(..)
+            .map(crate::Error::CapabilitiesCk)
+            .collect::<Vec<_>>();
+        Err(errors)
+    }
 }
 
 #[must_use]

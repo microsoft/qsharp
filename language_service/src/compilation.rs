@@ -12,7 +12,8 @@ use qsc::{
     line_column::{Encoding, Position},
     resolve,
     target::Profile,
-    CompileUnit, LanguageFeatures, NamespaceId, PackageStore, PackageType, SourceMap, Span,
+    CompileUnit, LanguageFeatures, NamespaceId, PackageStore, PackageType, PassContext, SourceMap,
+    Span,
 };
 use qsc_linter::LintConfig;
 use std::{rc::Rc, sync::Arc};
@@ -72,14 +73,26 @@ impl Compilation {
             language_features,
         );
 
-        let lints = qsc::linter::run_lints(&unit, Some(lints_config));
-        let mut lints = lints
-            .into_iter()
-            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
-            .collect();
-        errors.append(&mut lints);
-
         let package_id = package_store.insert(unit);
+        let unit = package_store
+            .get(package_id)
+            .expect("expected to find user package");
+
+        run_fir_passes(
+            &mut errors,
+            target_profile,
+            &package_store,
+            package_id,
+            unit,
+        );
+
+        let lints = qsc::linter::run_lints(unit, Some(lints_config));
+        for lint in lints {
+            errors.push(WithSource::from_map(
+                &unit.sources,
+                qsc::compile::ErrorKind::Lint(lint),
+            ));
+        }
 
         Self {
             package_store,
@@ -122,6 +135,17 @@ impl Compilation {
         }
 
         let (package_store, package_id) = compiler.into_package_store();
+        let unit = package_store
+            .get(package_id)
+            .expect("expected to find user package");
+
+        run_fir_passes(
+            &mut errors,
+            target_profile,
+            &package_store,
+            package_id,
+            unit,
+        );
 
         Self {
             package_store,
@@ -228,6 +252,44 @@ impl Compilation {
             .namespaces
             .find_namespace(ns.into_iter().map(Rc::from).collect::<Vec<_>>())
             .expect("namespace should exist")
+    }
+}
+
+/// Runs the passes required for code generation
+/// appending any errors to the `errors` vector.
+/// This function only runs passes if there are no compile
+/// errors in the package and if the target profile is not `Base`
+/// or `Unrestricted`.
+fn run_fir_passes(
+    errors: &mut Vec<WithSource<compile::ErrorKind>>,
+    target_profile: Profile,
+    package_store: &PackageStore,
+    package_id: PackageId,
+    unit: &CompileUnit,
+) {
+    if !errors.is_empty() {
+        // can't run passes on a package with errors
+        return;
+    }
+
+    if target_profile == Profile::Base {
+        // baseprofchk will handle the case where the target profile is Base
+        return;
+    }
+
+    if target_profile == Profile::Unrestricted {
+        // no point in running passes on unrestricted profile
+        return;
+    }
+
+    let (fir_store, fir_package_id) = qsc::lower_hir_to_fir(package_store, package_id);
+    let caps_results =
+        PassContext::run_fir_passes_on_fir(&fir_store, fir_package_id, target_profile.into());
+    if let Err(caps_errors) = caps_results {
+        for err in caps_errors {
+            let err = WithSource::from_map(&unit.sources, compile::ErrorKind::Pass(err));
+            errors.push(err);
+        }
     }
 }
 
