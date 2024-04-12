@@ -28,7 +28,7 @@ qsc_rir = { path = "../qsc_rir" }
 expect-test = { workspace = true }
 indoc = { workspace = true }
 qsc_passes = { path = "../qsc_passes" }
-difference = "2.0.0"
+difference = { workspace = true }
 
 [lints]
 workspace = true
