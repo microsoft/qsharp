@@ -1,6 +1,6 @@
 #### Solution 1
 
-We can recognize that the S gate performs this particular relative phase addition to the $|1\rangle$ basis state. As a reminder,
+We can recognize that the $S$ gate performs this particular relative phase addition to the $|1\rangle$ basis state. As a reminder,
 
 $$
 S =
@@ -18,15 +18,15 @@ $$
 
 It is therefore easy to see that when $|\psi\rangle = 0.6|0\rangle +  0.8|1\rangle, S|\psi\rangle =  0.6|0\rangle + 0.8i|1\rangle$.
 @[solution]({
-"id": "single_qubit_gates__phase_flip_solution_a",
-"codePath": "./SolutionA.qs"
+    "id": "single_qubit_gates__phase_i_solution_a",
+    "codePath": "./SolutionA.qs"
 })
 
 #### Solution 2
 
-Alternatively, see the Phase Change task later in the kata for an explanation of using R1 gate to implement the same transformation.
+Alternatively, see the Complex Relative Phase task later in the kata for an explanation of using $R1$ gate to implement the same transformation.
 
 @[solution]({
-"id": "single_qubit_gates_phase_flip_solution_b",
-"codePath": "./SolutionB.qs"
+    "id": "single_qubit_gates_phase_i_solution_b",
+    "codePath": "./SolutionB.qs"
 })

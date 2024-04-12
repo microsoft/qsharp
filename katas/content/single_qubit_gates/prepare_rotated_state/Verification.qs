@@ -21,9 +21,7 @@ namespace Kata.Verification {
                 Message($"The solution was incorrect for the test case alpha = {alpha}, beta = {beta}.");
                 Message("Hint: examine the state prepared by your solution and compare it with the state it " +
                     "is expected to prepare.");
-                use initial = Qubit(); // |0〉
-                ShowQuantumStateComparison([initial], solution, reference);
-                Reset(initial);
+                ShowQuantumStateComparison(1, qs => (), solution, reference);
                 return false;
             }
         }
