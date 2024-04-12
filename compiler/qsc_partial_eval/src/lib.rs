@@ -569,28 +569,11 @@ impl<'a> PartialEvaluator<'a> {
         // If the condition value is a Boolean literal, use the value to decide which branch to
         // evaluate.
         if let Value::Bool(condition_bool) = condition_value {
-            let maybe_if_expr_value = if condition_bool {
-                let maybe_body_value = self.try_eval_expr(body_expr_id);
-                if let Ok(body_value) = maybe_body_value {
-                    Ok(body_value)
-                } else {
-                    let body_expr = self.get_expr(body_expr_id);
-                    let error = Error::FailedToEvaluateIfExpressionBranchBlock(body_expr.span);
-                    Err(error)
-                }
-            } else if let Some(otherwise_expr_id) = otherwise_expr_id {
-                let maybe_otherwise_value = self.try_eval_expr(otherwise_expr_id);
-                if let Ok(otherwise_value) = maybe_otherwise_value {
-                    Ok(otherwise_value)
-                } else {
-                    let otherwise_expr = self.get_expr(otherwise_expr_id);
-                    let error = Error::FailedToEvaluateIfExpressionBranchBlock(otherwise_expr.span);
-                    Err(error)
-                }
-            } else {
-                Ok(Value::unit())
-            };
-            return maybe_if_expr_value;
+            return self.eval_expr_if_with_classical_condition(
+                condition_bool,
+                body_expr_id,
+                otherwise_expr_id,
+            );
         }
 
         // At this point the condition value is not classical, so we need to generate a branching instruction.
@@ -619,34 +602,22 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Evaluate the body expression.
-        let (body_block_node_id, body_expr_value) =
-            self.eval_expr_if_branch(body_expr_id, continuation_block_node_id)?;
-        // If there is a variable to save to, add a store instruction at the end of the body block.
-        if let Some(if_expr_var) = maybe_if_expr_var {
-            let body_operand = map_eval_value_to_rir_operand(&body_expr_value);
-            let store_ins = Instruction::Store(body_operand, if_expr_var);
-            let body_block = self.get_program_block_mut(body_block_node_id);
-            body_block.0.push(store_ins);
-        }
+        let if_true_block_id =
+            self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
 
         // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
-        let otherwise_block_node_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
-            let (otherwise_block_node_id, otherwise_expr_value) =
-                self.eval_expr_if_branch(otherwise_expr_id, continuation_block_node_id)?;
-            // If there is a variable to save to, add a store instruction at the end of the otherwise block.
-            if let Some(if_expr_var) = maybe_if_expr_var {
-                let otherwise_operand = map_eval_value_to_rir_operand(&otherwise_expr_value);
-                let store_ins = Instruction::Store(otherwise_operand, if_expr_var);
-                let otherwise_block = self.get_program_block_mut(otherwise_block_node_id);
-                otherwise_block.0.push(store_ins);
-            }
-            otherwise_block_node_id
+        let if_false_block_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
+            self.eval_expr_if_branch(
+                otherwise_expr_id,
+                continuation_block_node_id,
+                maybe_if_expr_var,
+            )?
         } else {
             continuation_block_node_id
         };
 
         // Finally, we insert the branch instruction.
-        let condition_var = if let Value::Var(var) = condition_value {
+        let condition_as_var = if let Value::Var(var) = condition_value {
             Variable {
                 variable_id: var.0.into(),
                 ty: rir::Ty::Boolean,
@@ -654,10 +625,10 @@ impl<'a> PartialEvaluator<'a> {
         } else {
             panic!("the condition of an if expression is expected to be a variable");
         };
-        let branch_ins =
-            Instruction::Branch(condition_var, body_block_node_id, otherwise_block_node_id);
-        let current_block = self.get_program_block_mut(current_block_node.id);
-        current_block.0.push(branch_ins);
+        let branch_ins = Instruction::Branch(condition_as_var, if_true_block_id, if_false_block_id);
+        self.get_program_block_mut(current_block_node.id)
+            .0
+            .push(branch_ins);
 
         // Return the value of the if expression.
         let if_expr_value = if let Some(if_expr_var) = maybe_if_expr_var {
@@ -672,7 +643,8 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         branch_body_expr_id: ExprId,
         continuation_block_id: rir::BlockId,
-    ) -> Result<(rir::BlockId, Value), Error> {
+        if_expr_var: Option<Variable>,
+    ) -> Result<rir::BlockId, Error> {
         // Create the block node that corresponds to the branch body and push it as the active one.
         let block_node_id = self.create_program_block();
         let block_node = BlockNode {
@@ -689,12 +661,44 @@ impl<'a> PartialEvaluator<'a> {
             return Err(error);
         };
 
+        // If there is a variable to save the value of the if expression to, add a store instruction.
+        if let Some(if_expr_var) = if_expr_var {
+            let body_operand = map_eval_value_to_rir_operand(&body_value);
+            let store_ins = Instruction::Store(body_operand, if_expr_var);
+            self.get_current_block_mut().0.push(store_ins);
+        }
+
         // Finally, jump to the continuation block and pop the current block node.
-        let current_block = self.get_current_block_mut();
         let jump_ins = Instruction::Jump(continuation_block_id);
-        current_block.0.push(jump_ins);
+        self.get_current_block_mut().0.push(jump_ins);
         let _ = self.eval_context.pop_block_node();
-        Ok((block_node_id, body_value))
+        Ok(block_node_id)
+    }
+
+    fn eval_expr_if_with_classical_condition(
+        &mut self,
+        condition_bool: bool,
+        body_expr_id: ExprId,
+        otherwise_expr_id: Option<ExprId>,
+    ) -> Result<Value, Error> {
+        if condition_bool {
+            let maybe_body_value = self.try_eval_expr(body_expr_id);
+            maybe_body_value.map_err(|()| {
+                let body_expr = self.get_expr(body_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(body_expr.span)
+            })
+        } else if let Some(otherwise_expr_id) = otherwise_expr_id {
+            let maybe_otherwise_value = self.try_eval_expr(otherwise_expr_id);
+            maybe_otherwise_value.map_err(|()| {
+                let otherwise_expr = self.get_expr(otherwise_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(otherwise_expr.span)
+            })
+        } else {
+            // A the classical condition evaluated to false, but there is not otherwise block so there is nothing to
+            // evaluate.
+            // Return unit since it is the only possibility for if expressions with no otherwise block.
+            Ok(Value::unit())
+        }
     }
 
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
