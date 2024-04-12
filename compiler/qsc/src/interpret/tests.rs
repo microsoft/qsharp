@@ -507,6 +507,74 @@ mod given_interpreter {
         }
 
         #[test]
+        fn callables_failing_profile_validation_are_still_registered() {
+            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
+            where
+                E: Diagnostic,
+            {
+                is_only_error(
+                    result,
+                    output,
+                    &expect![[r#"
+                    cannot use a dynamic integer value
+                       [line_0] [set x = 2]
+                    cannot use a dynamic integer value
+                       [line_0] [x]
+                "#]],
+                );
+            }
+            let mut interpreter =
+                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            verify_same_error(&result, &output);
+            // do something innocuous
+            let (result, output) = line(&mut interpreter, indoc! {r#"Foo()"#});
+            // if the callable wasn't registered, this would panic instead of returning an error.
+            verify_same_error(&result, &output);
+        }
+
+        #[test]
+        fn once_rca_validation_fails_following_calls_also_fail_by_design() {
+            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
+            where
+                E: Diagnostic,
+            {
+                is_only_error(
+                    result,
+                    output,
+                    &expect![[r#"
+                    cannot use a dynamic integer value
+                       [line_0] [set x = 2]
+                    cannot use a dynamic integer value
+                       [line_0] [x]
+                "#]],
+                );
+            }
+            let mut interpreter =
+                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            verify_same_error(&result, &output);
+            // do something innocuous
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    let y = 7;
+                "#},
+            );
+            verify_same_error(&result, &output);
+        }
+
+        #[test]
         fn namespace_usable_before_definition() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(
@@ -642,6 +710,97 @@ mod given_interpreter {
                 !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
             "#]].assert_eq(&res);
+        }
+
+        #[test]
+        fn adaptive_qirgen() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::ForwardBranching,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                namespace Test {
+                    open Microsoft.Quantum.Math;
+                    open QIR.Intrinsic;
+                    @EntryPoint()
+                    operation Main() : Unit {
+                        use q = Qubit();
+                        let pi_over_2 = 4.0 / 2.0;
+                        __quantum__qis__rz__body(pi_over_2, q);
+                        mutable some_angle = ArcSin(0.0);
+                        __quantum__qis__rz__body(some_angle, q);
+                        set some_angle = ArcCos(-1.0) / PI();
+                        __quantum__qis__rz__body(some_angle, q);
+                    }
+                }"#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Test.Main()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                block_0:
+                  call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  ret void
+                }
+
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]]
+            .assert_eq(&res);
+        }
+
+        #[test]
+        fn adaptive_qirgen_fails_when_entry_expr_does_not_match_profile() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::ForwardBranching,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                use q = Qubit();
+                mutable x = 1;
+                "#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter
+                .qirgen("if M(q) == One { set x = 2; }")
+                .expect_err("expected error");
+            is_error(
+                &res,
+                &expect![[r#"
+                    cannot use a dynamic integer value
+                       [<entry>] [set x = 2]
+                "#]],
+            );
         }
 
         #[test]
@@ -1097,6 +1256,17 @@ mod given_interpreter {
             SourceMap::default(),
             PackageType::Lib,
             RuntimeCapabilityFlags::all(),
+            LanguageFeatures::default(),
+        )
+        .expect("interpreter should be created")
+    }
+
+    fn get_interpreter_with_capbilities(capabilities: RuntimeCapabilityFlags) -> Interpreter {
+        Interpreter::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            capabilities,
             LanguageFeatures::default(),
         )
         .expect("interpreter should be created")

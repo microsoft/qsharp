@@ -242,15 +242,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98cc8fbded0c607b7ba9dd60cd98df59af97e84d24e49c8557331cfc26d301ce"
 
 [[package]]
-name = "cmake"
-version = "0.1.50"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a31c789563b815f77f4250caee12365734369f942439b7defd71e18a48197130"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -682,7 +673,6 @@ name = "mimalloc-sys"
 version = "0.0.0"
 dependencies = [
  "cc",
- "cmake",
 ]
 
 [[package]]
@@ -937,6 +927,8 @@ dependencies = [
  "qsc_frontend",
  "qsc_hir",
  "qsc_linter",
+ "qsc_lowerer",
+ "qsc_partial_eval",
  "qsc_passes",
  "qsc_project",
  "qsc_rca",
@@ -961,6 +953,7 @@ dependencies = [
  "expect-test",
  "indoc",
  "log",
+ "miette",
  "num-bigint",
  "num-complex",
  "qsc_codegen",
@@ -973,6 +966,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -988,7 +982,11 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_lowerer",
+ "qsc_partial_eval",
  "qsc_passes",
+ "qsc_rca",
+ "qsc_rir",
  "rustc-hash",
 ]
 
@@ -1028,6 +1026,7 @@ dependencies = [
  "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_lowerer",
  "qsc_passes",
  "quantum-sparse-sim",
  "rand",
@@ -1049,6 +1048,7 @@ dependencies = [
 name = "qsc_formatter"
 version = "0.0.0"
 dependencies = [
+ "clap",
  "expect-test",
  "indoc",
  "qsc_data_structures",
@@ -1101,6 +1101,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_lowerer"
+version = "0.0.0"
+dependencies = [
+ "qsc_data_structures",
+ "qsc_fir",
+ "qsc_hir",
+]
+
+[[package]]
 name = "qsc_parse"
 version = "0.0.0"
 dependencies = [
@@ -1116,15 +1125,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsc_partial_eval"
+version = "0.0.0"
+dependencies = [
+ "expect-test",
+ "indoc",
+ "miette",
+ "qsc",
+ "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
+ "qsc_frontend",
+ "qsc_lowerer",
+ "qsc_rca",
+ "qsc_rir",
+ "rustc-hash",
+ "thiserror",
+]
+
+[[package]]
 name = "qsc_passes"
 version = "0.0.0"
 dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "qsc",
  "qsc_data_structures",
+ "qsc_eval",
+ "qsc_fir",
  "qsc_frontend",
  "qsc_hir",
+ "qsc_lowerer",
+ "qsc_rca",
  "rustc-hash",
  "thiserror",
 ]
@@ -1153,9 +1186,9 @@ dependencies = [
  "indenter",
  "qsc",
  "qsc_data_structures",
- "qsc_eval",
  "qsc_fir",
  "qsc_frontend",
+ "qsc_lowerer",
  "qsc_passes",
  "rustc-hash",
 ]
@@ -1164,7 +1197,10 @@ dependencies = [
 name = "qsc_rir"
 version = "0.0.0"
 dependencies = [
+ "expect-test",
+ "indenter",
  "qsc_data_structures",
+ "rustc-hash",
 ]
 
 [[package]]

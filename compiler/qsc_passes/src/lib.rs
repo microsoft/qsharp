@@ -4,6 +4,7 @@
 mod baseprofck;
 mod borrowck;
 mod callable_limits;
+mod capabilitiesck;
 mod common;
 mod conjugate_invert;
 mod entry_point;
@@ -15,9 +16,11 @@ mod replace_qubit_allocation;
 mod spec_gen;
 
 use callable_limits::CallableLimits;
+use capabilitiesck::{check_supported_capabilities, lower_store, run_rca_pass};
 use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
+use qsc_fir::fir;
 use qsc_frontend::compile::{CompileUnit, RuntimeCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
@@ -27,6 +30,8 @@ use qsc_hir::{
     validate::Validator,
     visit::Visitor,
 };
+use qsc_lowerer::map_hir_package_to_fir;
+use qsc_rca::{PackageComputeProperties, PackageStoreComputeProperties};
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
 
@@ -37,6 +42,7 @@ pub enum Error {
     BaseProfCk(baseprofck::Error),
     BorrowCk(borrowck::Error),
     CallableLimits(callable_limits::Error),
+    CapabilitiesCk(capabilitiesck::Error),
     ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),
@@ -46,6 +52,16 @@ pub enum Error {
 pub enum PackageType {
     Exe,
     Lib,
+}
+
+#[must_use]
+pub fn lower_hir_to_fir(
+    package_store: &qsc_frontend::compile::PackageStore,
+    package_id: qsc_hir::hir::PackageId,
+) -> (fir::PackageStore, fir::PackageId) {
+    let fir_store = lower_store(package_store);
+    let fir_package_id = map_hir_package_to_fir(package_id);
+    (fir_store, fir_package_id)
 }
 
 pub struct PassContext {
@@ -113,6 +129,14 @@ impl PassContext {
             .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
             .collect()
     }
+
+    pub fn run_fir_passes_on_fir(
+        fir_store: &qsc_fir::fir::PackageStore,
+        package_id: qsc_fir::fir::PackageId,
+        capabilities: RuntimeCapabilityFlags,
+    ) -> Result<PackageStoreComputeProperties, Vec<Error>> {
+        run_rca_pass(fir_store, package_id, capabilities)
+    }
 }
 
 /// Run the default set of passes required for evaluation.
@@ -152,5 +176,18 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
         .into_iter()
         .map(Error::BorrowCk)
         .chain(base_prof_errors.into_iter().map(Error::BaseProfCk))
+        .collect()
+}
+
+pub fn run_fir_passes(
+    package: &fir::Package,
+    compute_properties: &PackageComputeProperties,
+    capabilities: RuntimeCapabilityFlags,
+) -> Vec<Error> {
+    let capabilities_errors =
+        check_supported_capabilities(package, compute_properties, capabilities);
+    capabilities_errors
+        .into_iter()
+        .map(Error::CapabilitiesCk)
         .collect()
 }

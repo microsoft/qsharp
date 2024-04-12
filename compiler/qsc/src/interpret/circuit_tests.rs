@@ -656,7 +656,9 @@ fn controlled_operation() {
     // We don't generate an accurate call signature with the tuple arguments.
     expect![[r"
         [
-            NoCircuitForOperation,
+            Circuit(
+                ControlledUnsupported,
+            ),
         ]
     "]]
     .assert_debug_eq(&circ_err);
@@ -734,7 +736,9 @@ fn operation_with_non_qubit_args() {
 
     expect![[r"
         [
-            NoCircuitForOperation,
+            Circuit(
+                NoQubitParameters,
+            ),
         ]
     "]]
     .assert_debug_eq(&circ_err);

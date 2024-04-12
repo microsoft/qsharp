@@ -227,7 +227,7 @@ impl Builder {
     }
 
     #[must_use]
-    pub fn finish(mut self, _val: &Value) -> Circuit {
+    pub fn finish(mut self) -> Circuit {
         let circuit = take(&mut self.circuit);
         self.finish_circuit(circuit)
     }

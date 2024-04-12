@@ -131,6 +131,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
+    @Config(Adaptive)
     @Config(Unrestricted)
     internal operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         body ... {

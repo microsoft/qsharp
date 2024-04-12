@@ -738,18 +738,16 @@ bitflags! {
         const CallToDynamicCallee = 1 << 15;
         /// A callee expression could not be resolved to a specific callable.
         const CallToUnresolvedCallee = 1 << 16;
-        /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 1 << 17;
-        /// Result allocation that happens within a dynamic scope.
-        const DynamicResultAllocation = 1 << 18;
+        /// Performing a measurement within a dynamic scope.
+        const MeasurementWithinDynamicScope = 1 << 17;
         /// Use of a dynamic index to access or update an array.
-        const UseOfDynamicIndex = 1 << 19;
+        const UseOfDynamicIndex = 1 << 18;
         /// A return expression withing a dynamic scope.
-        const ReturnWithinDynamicScope = 1 << 20;
+        const ReturnWithinDynamicScope = 1 << 19;
         /// A loop with a dynamic condition.
-        const LoopWithDynamicCondition = 1 << 21;
+        const LoopWithDynamicCondition = 1 << 20;
         /// Use of a closure.
-        const UseOfClosure = 1 << 22;
+        const UseOfClosure = 1 << 21;
     }
 }
 
@@ -825,11 +823,8 @@ impl RuntimeFeatureFlags {
         if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::ForwardBranchingOnDynamicValue) {
+        if self.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
             runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
-        }
-        if self.contains(RuntimeFeatureFlags::DynamicResultAllocation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;

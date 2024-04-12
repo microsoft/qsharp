@@ -63,6 +63,27 @@ impl<K, V> IndexMap<K, V> {
             base: self.values.iter_mut(),
         }
     }
+
+    pub fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(K, &V) -> bool,
+        K: From<usize>,
+    {
+        for (k, v) in self.values.iter_mut().enumerate() {
+            let remove = if let Some(value) = v {
+                !f(K::from(k), value)
+            } else {
+                false
+            };
+            if remove {
+                *v = None;
+            }
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.values.clear();
+    }
 }
 
 impl<K: Into<usize>, V> IndexMap<K, V> {
@@ -94,10 +115,6 @@ impl<K: Into<usize>, V> IndexMap<K, V> {
         if index < self.values.len() {
             self.values[index] = None;
         }
-    }
-
-    pub fn clear(&mut self) {
-        self.values.clear();
     }
 }
 

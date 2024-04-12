@@ -326,18 +326,27 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 @[example]({"id": "single_qubit_gates__pauli_gates_in_qsharp_demo", "codePath": "./examples/PauliGates.qs"})
 
 @[exercise]({
-    "id": "single_qubit_gates__y_gate",
-    "title": "The Y Gate",
-    "path": "./y_gate/",
+    "id": "single_qubit_gates__state_flip",
+    "title": "State Flip",
+    "path": "./state_flip/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
 })
 
 @[exercise]({
-    "id": "single_qubit_gates__global_phase_i",
-    "title": "Applying a Global Phase",
-    "path": "./global_phase_i/",
+    "id": "single_qubit_gates__sign_flip",
+    "title": "Sign Flip",
+    "path": "./sign_flip/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "single_qubit_gates__y_gate",
+    "title": "The Y Gate",
+    "path": "./y_gate/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
@@ -352,13 +361,32 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
     ]
 })
 
+@[exercise]({
+    "id": "single_qubit_gates__global_phase_minusone",
+    "title": "Global Phase -1",
+    "path": "./global_phase_minusone/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "single_qubit_gates__global_phase_i",
+    "title": "Global Phase i",
+    "path": "./global_phase_i/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+
 @[section]({
     "id": "identity_gate",
     "title": "Identity Gate"
 })
 
 The identity gate is mostly here for completeness, at least for now. It will come in handy when dealing with multi-qubit systems and multi-qubit gates. It is represented by the identity matrix, and does not affect the state of the qubit.
-  
+
 <table>
 <tr>
 <th>Gate</th>
@@ -406,6 +434,16 @@ $H|-i\rangle = e^{-i\pi/4}|i\rangle $ <br>
 
 > As a reminder, $e^{i\pi/4} = \frac{1}{\sqrt2} (1 + i)$ and $e^{-i\pi/4} = \frac{1}{\sqrt2} (1 - i)$. This is an application of Euler's formula, $e^{i\theta} = \cos \theta + i\sin \theta$, where $\theta$ is measured in radians.
 > See this [Wikipedia article](https://en.wikipedia.org/wiki/Euler%27s_formula) for an explanation of Euler's formula and/or [this video](https://youtu.be/v0YEaeIClKY) for a more intuitive explanation.
+
+@[exercise]({
+    "id": "single_qubit_gates__basis_change",
+    "title": "Basis Change",
+    "path": "./basis_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 
 @[exercise]({
     "id": "single_qubit_gates__prepare_minus",
@@ -459,6 +497,15 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
 
 > Notice that applying the $T$ gate twice is equivalent to applying the $S$ gate, and applying the $S$ gate twice is equivalent to applying the $Z$ gate:
 $$T^2 = S, S^2 = Z$$
+
+@[exercise]({
+    "id": "single_qubit_gates__phase_i",
+    "title": "Relative Phase i",
+    "path": "./phase_i/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 @[exercise]({
     "id": "single_qubit_gates__three_quarters_pi_phase",
@@ -542,6 +589,24 @@ $$R_1(\theta) = e^{i\theta/2}R_z(\theta)$$
 In addition, the rotation gates are very closely related to their respective Pauli gates:
 
 $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
+
+@[exercise]({
+    "id": "single_qubit_gates__complex_phase",
+    "title": "Complex Relative Phase",
+    "path": "./complex_phase/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "single_qubit_gates__amplitude_change",
+    "title": "Amplitude Change",
+    "path": "./amplitude_change/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 @[exercise]({
     "id": "single_qubit_gates__prepare_rotated_state",

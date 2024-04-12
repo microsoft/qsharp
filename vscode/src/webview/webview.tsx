@@ -8,6 +8,7 @@ const vscodeApi = acquireVsCodeApi();
 import { render } from "preact";
 import {
   CircuitPanel,
+  CircuitProps,
   EstimatesPanel,
   Histogram,
   type ReData,
@@ -18,7 +19,6 @@ import { HelpPage } from "./help";
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
-import { CircuitData } from "qsharp-lang/ux/circuit";
 const md = markdownIt();
 md.use(mk);
 
@@ -46,10 +46,7 @@ type EstimatesState = {
 
 type CircuitState = {
   viewType: "circuit";
-  title: string;
-  subtitle: string;
-  circuit?: CircuitData;
-  errorHtml?: string;
+  props: CircuitProps;
 };
 
 type State =
@@ -179,14 +176,7 @@ function App({ state }: { state: State }) {
         />
       );
     case "circuit":
-      return (
-        <CircuitPanel
-          title={state.title}
-          subtitle={state.subtitle}
-          circuit={state.circuit}
-          errorHtml={state.errorHtml}
-        ></CircuitPanel>
-      );
+      return <CircuitPanel {...state.props}></CircuitPanel>;
     case "help":
       return <HelpPage />;
     default:
