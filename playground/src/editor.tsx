@@ -14,6 +14,7 @@ import {
   QscEventTarget,
   VSDiagnostic,
   log,
+  ProgramConfig,
 } from "qsharp-lang";
 import { codeToCompressedBase64, lsRangeToMonacoRange } from "./utils.js";
 import { ActiveTab } from "./main.js";
@@ -59,6 +60,7 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
 export function Editor(props: {
   code: string;
   compiler: ICompilerWorker;
+  compiler_worker_factory: () => ICompilerWorker;
   compilerState: CompilerState;
   defaultShots: number;
   evtTarget: QscEventTarget;
@@ -69,6 +71,7 @@ export function Editor(props: {
   showShots: boolean;
   setAst: (ast: string) => void;
   setHir: (hir: string) => void;
+  setQir: (qir: string) => void;
   activeTab: ActiveTab;
   languageService: ILanguageServiceWorker;
 }) {
@@ -121,6 +124,34 @@ export function Editor(props: {
     }
     if (props.activeTab === "hir-tab") {
       props.setHir(await props.compiler.getHir(code, []));
+    }
+    if (props.activeTab === "qir-tab") {
+      const config = {
+        sources: [["test", code]],
+        languageFeatures: ["preview-qir-gen"],
+        profile: "adaptive",
+      } as ProgramConfig;
+      let timedOut = false;
+      const compiler = props.compiler_worker_factory();
+      const compilerTimeout = setTimeout(() => {
+        log.info("Compiler timeout. Terminating worker.");
+        timedOut = true;
+        compiler.terminate();
+      }, 2000);
+      try {
+        const qir = await compiler.getQir(config);
+        clearTimeout(compilerTimeout);
+        props.setQir(qir);
+      } catch (e: any) {
+        // Stop the 'calculating' animation
+        if (timedOut) {
+          props.setQir("timed out");
+        } else {
+          props.setQir(e.toString());
+        }
+      } finally {
+        compiler.terminate();
+      }
     }
   };
 
