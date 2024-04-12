@@ -635,7 +635,8 @@ impl ValueKind {
         }
     }
 
-    pub(crate) fn is_dynamic(self) -> bool {
+    #[must_use]
+    pub fn is_dynamic(self) -> bool {
         match self {
             Self::Array(content_runtime_kind, size_runtime_kind) => {
                 matches!(content_runtime_kind, RuntimeKind::Dynamic)

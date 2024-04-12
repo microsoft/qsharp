@@ -457,7 +457,7 @@ impl<'a> PartialEvaluator<'a> {
                 Ok(value)
             }
             CallableImpl::Spec(spec_impl) => {
-                self.eval_expr_call_to_spec(store_item_id, functor_app, spec_impl, args_expr_id)
+                self.eval_expr_call_to_spec(store_item_id, functor_app, spec_impl, args_value)
             }
         }
     }
@@ -503,18 +503,18 @@ impl<'a> PartialEvaluator<'a> {
         global_callable_id: StoreItemId,
         functor_app: FunctorApp,
         spec_impl: &SpecImpl,
-        _args_expr_id: ExprId,
+        args_value: Value,
     ) -> Result<Value, Error> {
         let spec_decl = get_spec_decl(spec_impl, functor_app);
 
-        // We are currently not setting the argument values in a way that supports arbitrary calls, but we'll add that
-        // support later.
-        let callable_scope = Scope::new(
+        // Create new call scope.
+        let args = resolve_individual_call_args(args_value);
+        let call_scope = Scope::new(
             global_callable_id.package,
             Some((global_callable_id.item, functor_app)),
-            Vec::new(),
+            args,
         );
-        self.eval_context.push_scope(callable_scope);
+        self.eval_context.push_scope(call_scope);
         self.visit_block(spec_decl.block);
         let popped_scope = self.eval_context.pop_scope();
         assert!(
@@ -822,8 +822,8 @@ impl<'a> PartialEvaluator<'a> {
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
         let stmt_generator_set = self.compute_properties.get_stmt(store_stmt_id);
         let callable_scope = self.eval_context.get_current_scope();
-        let compute_kind = stmt_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
+        let compute_kind =
+            stmt_generator_set.generate_application_compute_kind(&callable_scope.args_runtime_kind);
         matches!(compute_kind, ComputeKind::Classical)
     }
 
@@ -932,8 +932,8 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
         let callable_scope = self.eval_context.get_current_scope();
-        let compute_kind = expr_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
+        let compute_kind =
+            expr_generator_set.generate_application_compute_kind(&callable_scope.args_runtime_kind);
         let expr_result = if matches!(compute_kind, ComputeKind::Classical) {
             self.eval_classical_expr(expr_id)
         } else {
@@ -1066,6 +1066,14 @@ fn read_result_callable() -> Callable {
         output_type: Some(rir::Ty::Boolean),
         body: None,
         call_type: CallableType::Readout,
+    }
+}
+
+fn resolve_individual_call_args(args_value: Value) -> Vec<Value> {
+    if let Value::Tuple(elements) = args_value {
+        elements.to_vec()
+    } else {
+        vec![args_value]
     }
 }
 
