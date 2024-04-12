@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use qsc_data_structures::functors::FunctorApp;
-use qsc_eval::{val::Value, Env};
+use qsc_eval::{val::Value, Env, Variable};
 use qsc_fir::fir::{ExprId, LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
 use qsc_rir::rir::BlockId;
@@ -70,7 +70,7 @@ pub struct BlockNode {
 pub struct Scope {
     pub package_id: PackageId,
     pub callable: Option<(LocalItemId, FunctorApp)>,
-    pub args_runtime_kind: Vec<ValueKind>,
+    pub args_value_kind: Vec<ValueKind>,
     pub env: Env,
     hybrid_exprs: FxHashMap<ExprId, Value>,
     hybrid_vars: FxHashMap<LocalVarId, Value>,
@@ -80,18 +80,34 @@ impl Scope {
     pub fn new(
         package_id: PackageId,
         callable: Option<(LocalItemId, FunctorApp)>,
-        args: Vec<Value>,
+        args: Vec<Arg>,
     ) -> Self {
         // Determine the runtimne kind (static or dynamic) of the arguments.
-        let args_runtime_kind = args.iter().map(map_eval_value_to_value_kind).collect();
+        let args_runtime_kind: Vec<ValueKind> = args
+            .iter()
+            .map(|arg| {
+                let value = match arg {
+                    Arg::Discard(value) => value,
+                    Arg::Var(_, var) => &var.value,
+                };
+                map_eval_value_to_value_kind(value)
+            })
+            .collect();
 
         // Add the static values to the environment.
-        // TODO (cesarzc): implement.
         let mut env = Env::default();
+        let arg_runtime_kind_tuple = args.into_iter().zip(args_runtime_kind.iter());
+        for (arg, value_kind) in arg_runtime_kind_tuple {
+            if !value_kind.is_dynamic() {
+                if let Arg::Var(local_var_id, var) = arg {
+                    env.bind_variable_in_top_frame(local_var_id, var);
+                }
+            }
+        }
         Self {
             package_id,
             callable,
-            args_runtime_kind,
+            args_value_kind: args_runtime_kind,
             env,
             hybrid_exprs: FxHashMap::default(),
             hybrid_vars: FxHashMap::default(),
@@ -162,4 +178,9 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Range(_)
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
     }
+}
+
+pub enum Arg {
+    Discard(Value),
+    Var(LocalVarId, Variable),
 }
