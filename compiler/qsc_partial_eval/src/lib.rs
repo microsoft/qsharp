@@ -522,7 +522,7 @@ impl<'a> PartialEvaluator<'a> {
         let spec_decl = get_spec_decl(spec_impl, functor_app);
 
         // Create new call scope.
-        let args = self.resolve_args(args_pat, args_value);
+        let args = self.resolve_args((global_callable_id.package, args_pat).into(), args_value);
         let call_scope = Scope::new(
             global_callable_id.package,
             Some((global_callable_id.item, functor_app)),
@@ -937,8 +937,8 @@ impl<'a> PartialEvaluator<'a> {
         Value::unit()
     }
 
-    fn resolve_args(&self, pat_id: PatId, value: Value) -> Vec<Arg> {
-        let pat = self.get_pat(pat_id);
+    fn resolve_args(&self, store_pat_id: StorePatId, value: Value) -> Vec<Arg> {
+        let pat = self.package_store.get_pat(store_pat_id);
         match &pat.kind {
             PatKind::Discard => vec![Arg::Discard(value)],
             PatKind::Bind(ident) => {
@@ -961,7 +961,8 @@ impl<'a> PartialEvaluator<'a> {
                 let mut args = Vec::new();
                 let pat_value_tuples = pats.iter().zip(values.to_vec());
                 for (pat_id, value) in pat_value_tuples {
-                    let mut element_args = self.resolve_args(*pat_id, value);
+                    let mut element_args =
+                        self.resolve_args((store_pat_id.package, *pat_id).into(), value);
                     args.append(&mut element_args);
                 }
                 args
