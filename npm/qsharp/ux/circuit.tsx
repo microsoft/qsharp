@@ -188,7 +188,7 @@ export function CircuitPanel(props: CircuitProps) {
       <p>{props.targetProfile}</p>
       <p>
         {
-          props.isDynamic
+          props.simulated
             ? "WARNING: This diagram shows the result of tracing a dynamic circuit, and may change from run to run."
             : "\xa0" /* nbsp to keep line height consistent */
         }

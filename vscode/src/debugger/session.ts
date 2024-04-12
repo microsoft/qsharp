@@ -954,8 +954,6 @@ export class QscDebugSession extends LoggingDebugSession {
           circuit,
           errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
           simulated: true,
-          isDynamic:
-            true /* Don't know for sure, but flag the circuit as dynamic so we display the warning */,
         },
       );
 

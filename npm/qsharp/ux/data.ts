@@ -73,8 +73,6 @@ export type CircuitProps = {
   simulated: boolean;
   /** Circuit is still being generated */
   calculating: boolean;
-  /** Circuit has measurement result comparisons */
-  isDynamic: boolean;
 };
 
 export type CircuitData = import("@microsoft/quantum-viz.js/lib").Circuit;
