@@ -306,6 +306,58 @@ async fn compile_error() {
 }
 
 #[tokio::test]
+async fn rca_errors_are_reported_when_compilation_succeeds() {
+    let errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors);
+
+    updater.update_configuration(WorkspaceConfigurationUpdate {
+        target_profile: Some(Profile::Adaptive),
+        package_type: Some(PackageType::Lib),
+    });
+
+    updater
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x } }")
+        .await;
+
+    // we expect two errors, one for `set x = 2` and one for `x`
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "single/foo.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Pass(
+                            CapabilitiesCk(
+                                UseOfDynamicInt(
+                                    Span {
+                                        lo: 101,
+                                        hi: 110,
+                                    },
+                                ),
+                            ),
+                        ),
+                        Pass(
+                            CapabilitiesCk(
+                                UseOfDynamicInt(
+                                    Span {
+                                        lo: 114,
+                                        hi: 115,
+                                    },
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[tokio::test]
 async fn package_type_update_causes_error() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);

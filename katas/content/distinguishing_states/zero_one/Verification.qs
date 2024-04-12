@@ -1,24 +1,20 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Katas;
 
-    // Distinguish |+❭ and |-❭ using Measure operation
-    operation StatePrep_IsQubitMinus (q : Qubit, state : Int) : Unit is Adj {
+    operation StatePrep_IsQubitOne (q : Qubit, state : Int) : Unit is Adj {
         if state == 1 {
-            // convert |0⟩ to |-⟩
+            // convert |0⟩ to |1⟩
             X(q);
-            H(q);
-        } else {
-            // convert |0⟩ to |+⟩
-            H(q);
         }
     }
 
     @EntryPoint()
     operation CheckSolution() : Bool {
         let isCorrect = DistinguishTwoStates_SingleQubit(
-            StatePrep_IsQubitMinus,
-            Kata.IsQubitMinus,
-            ["|+⟩", "|-⟩"],
+            StatePrep_IsQubitOne,
+            Kata.IsQubitOne,
+            ["|0⟩", "|1⟩"],
             false);
         if isCorrect {
             Message("Correct!");
