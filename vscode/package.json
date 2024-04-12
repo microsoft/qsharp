@@ -467,7 +467,7 @@
     ],
     "chatParticipants": [
       {
-        "id": "quantum.chatbot",
+        "id": "quantum.copilot",
         "name": "quantum",
         "description": "Azure Quantum Copilot",
         "isSticky": true,

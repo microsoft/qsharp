@@ -114,18 +114,17 @@ const requestHandler: vscode.ChatRequestHandler = async (
 };
 
 export function activateChatParticipant(context: vscode.ExtensionContext) {
-  const chatbot = vscode.chat.createChatParticipant(
-    "quantum.chatbot",
+  const copilot = vscode.chat.createChatParticipant(
+    "quantum.copilot",
     requestHandler,
   );
 
-  // Register a chat agent
-  context.subscriptions.push(chatbot);
-
-  // ToDo: this icon doesn't look great in this context
-  chatbot.iconPath = vscode.Uri.joinPath(
+  copilot.iconPath = vscode.Uri.joinPath(
     context.extensionUri,
     "resources",
-    "qdk.png",
+    "copilotIcon.png",
   );
+
+  // Register a chat agent
+  context.subscriptions.push(copilot);
 }
