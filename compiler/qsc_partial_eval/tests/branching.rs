@@ -11,28 +11,8 @@ use qsc_rir::rir::{
 };
 use test_utils::{
     assert_block_instructions, assert_block_last_instruction, assert_callable,
-    compile_and_partially_evaluate,
+    compile_and_partially_evaluate, mresetz_callable, read_result_callable,
 };
-
-fn mresetz() -> Callable {
-    Callable {
-        name: "__quantum__qis__mresetz__body".to_string(),
-        input_type: vec![Ty::Qubit, Ty::Result],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Measurement,
-    }
-}
-
-fn read_result() -> Callable {
-    Callable {
-        name: "__quantum__rt__read_result__body".to_string(),
-        input_type: vec![Ty::Result],
-        output_type: Some(Ty::Boolean),
-        body: None,
-        call_type: CallableType::Readout,
-    }
-}
 
 fn single_qubit_intrinsic_op_a() -> Callable {
     Callable {
@@ -256,9 +236,9 @@ fn if_expression_with_dynamic_condition() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
 
@@ -316,9 +296,9 @@ fn if_else_expression_with_dynamic_condition() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
     let op_b_callable_id = CallableId(4);
@@ -397,9 +377,9 @@ fn if_elif_else_expression_with_dynamic_condition() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
     let op_b_callable_id = CallableId(4);
@@ -504,9 +484,9 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_true_condi
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
 
@@ -563,9 +543,9 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_false_cond
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
 
     // Set the IDs of the blocks we want to verify.
     let initial_block_id = BlockId(0);
@@ -616,9 +596,9 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_true_
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
     let op_b_callable_id = CallableId(4);
@@ -695,9 +675,9 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_false
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
 
@@ -763,9 +743,9 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_dynamic_co
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
 
@@ -856,9 +836,9 @@ fn doubly_nested_if_else_expressions_with_dynamic_conditions() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
     let op_b_callable_id = CallableId(4);
@@ -1008,9 +988,9 @@ fn if_expression_with_dynamic_condition_and_subsequent_call_to_operation() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
     let op_b_callable_id = CallableId(4);
@@ -1083,9 +1063,9 @@ fn if_else_expression_with_dynamic_condition_and_subsequent_call_to_operation() 
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz());
+    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result());
+    assert_callable(&program, read_result_callable_id, &read_result_callable());
     let op_a_callable_id = CallableId(3);
     assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
     let op_b_callable_id = CallableId(4);

@@ -17,9 +17,9 @@ use qsc_eval::{
 };
 use qsc_fir::{
     fir::{
-        BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind,
-        Global, Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind, Res,
-        SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
+        self, BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId,
+        ExprKind, Global, Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind,
+        Res, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
         StorePatId, StoreStmtId,
     },
     ty::{Prim, Ty},
@@ -34,12 +34,17 @@ use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
 use thiserror::Error;
 
+pub struct ProgramEntry {
+    pub exec_graph: Rc<[ExecGraphNode]>,
+    pub expr: fir::StoreExprId,
+}
+
 pub fn partially_evaluate(
-    package_id: PackageId,
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,
+    entry: &ProgramEntry,
 ) -> Result<Program, Error> {
-    let partial_evaluator = PartialEvaluator::new(package_id, package_store, compute_properties);
+    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties, entry);
     partial_evaluator.eval()
 }
 
@@ -98,14 +103,15 @@ struct PartialEvaluator<'a> {
     callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
+    entry: &'a ProgramEntry,
     errors: Vec<Error>,
 }
 
 impl<'a> PartialEvaluator<'a> {
     fn new(
-        entry_package_id: PackageId,
         package_store: &'a PackageStore,
         compute_properties: &'a PackageStoreComputeProperties,
+        entry: &'a ProgramEntry,
     ) -> Self {
         // Create the entry-point callable.
         let mut resource_manager = ResourceManager::default();
@@ -124,7 +130,7 @@ impl<'a> PartialEvaluator<'a> {
         program.entry = entry_point_id;
 
         // Initialize the evaluation context and create a new partial evaluator.
-        let context = EvaluationContext::new(entry_package_id, entry_block_id);
+        let context = EvaluationContext::new(entry.expr.package, entry_block_id);
         Self {
             package_store,
             compute_properties,
@@ -133,6 +139,7 @@ impl<'a> PartialEvaluator<'a> {
             backend: QuantumIntrinsicsChecker::default(),
             callables_map: FxHashMap::default(),
             program,
+            entry,
             errors: Vec::new(),
         }
     }
@@ -211,14 +218,8 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn eval(mut self) -> Result<Program, Error> {
-        let current_package = self.get_current_package_id();
-        let entry_package = self.package_store.get(current_package);
-        let Some(entry_expr_id) = entry_package.entry else {
-            panic!("package does not have an entry expression");
-        };
-
         // Visit the entry point expression.
-        self.visit_expr(entry_expr_id);
+        self.visit_expr(self.entry.expr.expr);
 
         // Return the first error, if any.
         // We should eventually return all the errors but since that is an interface change, we will do that as its own
@@ -578,28 +579,11 @@ impl<'a> PartialEvaluator<'a> {
         // If the condition value is a Boolean literal, use the value to decide which branch to
         // evaluate.
         if let Value::Bool(condition_bool) = condition_value {
-            let maybe_if_expr_value = if condition_bool {
-                let maybe_body_value = self.try_eval_expr(body_expr_id);
-                if let Ok(body_value) = maybe_body_value {
-                    Ok(body_value)
-                } else {
-                    let body_expr = self.get_expr(body_expr_id);
-                    let error = Error::FailedToEvaluateIfExpressionBranchBlock(body_expr.span);
-                    Err(error)
-                }
-            } else if let Some(otherwise_expr_id) = otherwise_expr_id {
-                let maybe_otherwise_value = self.try_eval_expr(otherwise_expr_id);
-                if let Ok(otherwise_value) = maybe_otherwise_value {
-                    Ok(otherwise_value)
-                } else {
-                    let otherwise_expr = self.get_expr(otherwise_expr_id);
-                    let error = Error::FailedToEvaluateIfExpressionBranchBlock(otherwise_expr.span);
-                    Err(error)
-                }
-            } else {
-                Ok(Value::unit())
-            };
-            return maybe_if_expr_value;
+            return self.eval_expr_if_with_classical_condition(
+                condition_bool,
+                body_expr_id,
+                otherwise_expr_id,
+            );
         }
 
         // At this point the condition value is not classical, so we need to generate a branching instruction.
@@ -628,34 +612,22 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Evaluate the body expression.
-        let (body_block_node_id, body_expr_value) =
-            self.eval_expr_if_branch(body_expr_id, continuation_block_node_id)?;
-        // If there is a variable to save to, add a store instruction at the end of the body block.
-        if let Some(if_expr_var) = maybe_if_expr_var {
-            let body_operand = map_eval_value_to_rir_operand(&body_expr_value);
-            let store_ins = Instruction::Store(body_operand, if_expr_var);
-            let body_block = self.get_program_block_mut(body_block_node_id);
-            body_block.0.push(store_ins);
-        }
+        let if_true_block_id =
+            self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
 
         // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
-        let otherwise_block_node_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
-            let (otherwise_block_node_id, otherwise_expr_value) =
-                self.eval_expr_if_branch(otherwise_expr_id, continuation_block_node_id)?;
-            // If there is a variable to save to, add a store instruction at the end of the otherwise block.
-            if let Some(if_expr_var) = maybe_if_expr_var {
-                let otherwise_operand = map_eval_value_to_rir_operand(&otherwise_expr_value);
-                let store_ins = Instruction::Store(otherwise_operand, if_expr_var);
-                let otherwise_block = self.get_program_block_mut(otherwise_block_node_id);
-                otherwise_block.0.push(store_ins);
-            }
-            otherwise_block_node_id
+        let if_false_block_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
+            self.eval_expr_if_branch(
+                otherwise_expr_id,
+                continuation_block_node_id,
+                maybe_if_expr_var,
+            )?
         } else {
             continuation_block_node_id
         };
 
         // Finally, we insert the branch instruction.
-        let condition_var = if let Value::Var(var) = condition_value {
+        let condition_as_var = if let Value::Var(var) = condition_value {
             Variable {
                 variable_id: var.0.into(),
                 ty: rir::Ty::Boolean,
@@ -663,10 +635,10 @@ impl<'a> PartialEvaluator<'a> {
         } else {
             panic!("the condition of an if expression is expected to be a variable");
         };
-        let branch_ins =
-            Instruction::Branch(condition_var, body_block_node_id, otherwise_block_node_id);
-        let current_block = self.get_program_block_mut(current_block_node.id);
-        current_block.0.push(branch_ins);
+        let branch_ins = Instruction::Branch(condition_as_var, if_true_block_id, if_false_block_id);
+        self.get_program_block_mut(current_block_node.id)
+            .0
+            .push(branch_ins);
 
         // Return the value of the if expression.
         let if_expr_value = if let Some(if_expr_var) = maybe_if_expr_var {
@@ -681,7 +653,8 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         branch_body_expr_id: ExprId,
         continuation_block_id: rir::BlockId,
-    ) -> Result<(rir::BlockId, Value), Error> {
+        if_expr_var: Option<Variable>,
+    ) -> Result<rir::BlockId, Error> {
         // Create the block node that corresponds to the branch body and push it as the active one.
         let block_node_id = self.create_program_block();
         let block_node = BlockNode {
@@ -698,12 +671,44 @@ impl<'a> PartialEvaluator<'a> {
             return Err(error);
         };
 
+        // If there is a variable to save the value of the if expression to, add a store instruction.
+        if let Some(if_expr_var) = if_expr_var {
+            let body_operand = map_eval_value_to_rir_operand(&body_value);
+            let store_ins = Instruction::Store(body_operand, if_expr_var);
+            self.get_current_block_mut().0.push(store_ins);
+        }
+
         // Finally, jump to the continuation block and pop the current block node.
-        let current_block = self.get_current_block_mut();
         let jump_ins = Instruction::Jump(continuation_block_id);
-        current_block.0.push(jump_ins);
+        self.get_current_block_mut().0.push(jump_ins);
         let _ = self.eval_context.pop_block_node();
-        Ok((block_node_id, body_value))
+        Ok(block_node_id)
+    }
+
+    fn eval_expr_if_with_classical_condition(
+        &mut self,
+        condition_bool: bool,
+        body_expr_id: ExprId,
+        otherwise_expr_id: Option<ExprId>,
+    ) -> Result<Value, Error> {
+        if condition_bool {
+            let maybe_body_value = self.try_eval_expr(body_expr_id);
+            maybe_body_value.map_err(|()| {
+                let body_expr = self.get_expr(body_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(body_expr.span)
+            })
+        } else if let Some(otherwise_expr_id) = otherwise_expr_id {
+            let maybe_otherwise_value = self.try_eval_expr(otherwise_expr_id);
+            maybe_otherwise_value.map_err(|()| {
+                let otherwise_expr = self.get_expr(otherwise_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(otherwise_expr.span)
+            })
+        } else {
+            // A the classical condition evaluated to false, but there is not otherwise block so there is nothing to
+            // evaluate.
+            // Return unit since it is the only possibility for if expressions with no otherwise block.
+            Ok(Value::unit())
+        }
     }
 
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
@@ -820,9 +825,7 @@ impl<'a> PartialEvaluator<'a> {
         if let Some(spec_decl) = self.get_current_scope_spec_decl() {
             &spec_decl.exec_graph
         } else {
-            let package_id = self.get_current_package_id();
-            let package = self.package_store.get(package_id);
-            &package.entry_exec_graph
+            &self.entry.exec_graph
         }
     }
 

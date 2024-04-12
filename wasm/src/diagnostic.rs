@@ -216,6 +216,7 @@ fn interpret_error_labels(err: &interpret::Error) -> Vec<Label> {
         interpret::Error::Compile(e) => error_labels(e),
         interpret::Error::Pass(e) => error_labels(e),
         interpret::Error::NoEntryPoint
+        | interpret::Error::PartialEvaluation(_)
         | interpret::Error::UnsupportedRuntimeCapabilities
         | interpret::Error::Circuit(_)
         | interpret::Error::NotAnOperation => Vec::new(),
