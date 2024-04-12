@@ -46,7 +46,7 @@ const npmDir = join(thisDir, "npm", "qsharp");
 const isWin = process.platform === "win32";
 const npmCmd = isWin ? "npm.cmd" : "npm";
 
-function onRustChange() {
+function buildRust() {
   console.log("Compiling the .wasm module with wasm-pack");
 
   // This takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
@@ -72,12 +72,30 @@ function onRustChange() {
   copyWasmToPlayground();
 }
 
+// Minor delay to ensure all changes flush to disk before starting a build if
+// saving multiple files close together (e.g. a formatter running over a directory)
+// or saving the same file multiple times (e.g. format-on-save)
+const buildDelayMs = 100;
+let buildPending = false;
+function onRustChange() {
+  if (buildPending) return; // Already queued
+  buildPending = true;
+  setTimeout(() => {
+    // The build task runs sychronously, so we can clear the timeout handle and
+    // run the build knowing that nothing will interleave with those operations
+    if (buildPending) {
+      buildPending = false;
+      buildRust();
+    }
+  }, buildDelayMs);
+}
+
 // Do an initial build
 onRustChange();
 
 // Then watch the Rust directories for code changes
 [coreDir, libsDir, vslsDir, wasmDir].forEach((dir) =>
-  subscribe(dir, debounce(onRustChange)),
+  subscribe(dir, onRustChange),
 );
 
 /**
@@ -97,25 +115,6 @@ function runWatcher(dir, name, watchTask = "tsc:watch") {
   npmWatcher.on("close", (code) =>
     console.log(`tsc:watch for ${name} exited with: `, code),
   );
-}
-
-/**
- * Returns a new, "debounced" function that defers the execution of `fn`
- * to the end of the event loop, such that if this function
- * is called multiple times in a row, `fn` will only be called once.
- * @param { () => void } fn
- */
-function debounce(fn) {
-  let dirty = true;
-  return () => {
-    dirty = true;
-    setTimeout(() => {
-      if (dirty) {
-        dirty = false;
-        fn();
-      }
-    });
-  };
 }
 
 // Build the npm project in watch mode
