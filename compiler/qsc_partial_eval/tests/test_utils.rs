@@ -8,7 +8,17 @@ use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFl
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
-use qsc_rir::rir::{BlockId, Callable, CallableId, Instruction, Program};
+use qsc_rir::rir::{BlockId, Callable, CallableId, CallableType, Instruction, Program, Ty};
+
+pub fn assert_block_last_instruction(
+    program: &Program,
+    block_id: BlockId,
+    expected_inst: &Instruction,
+) {
+    let block = program.blocks.get(block_id).expect("block does not exist");
+    let actual_inst = block.0.last().expect("block does not have instructions");
+    assert_eq!(expected_inst, actual_inst);
+}
 
 pub fn assert_block_instructions(
     program: &Program,
@@ -45,6 +55,28 @@ pub fn compile_and_partially_evaluate(source: &str) -> Program {
     match maybe_program {
         Ok(program) => program,
         Err(error) => panic!("partial evaluation failed: {error:?}"),
+    }
+}
+
+#[must_use]
+pub fn mresetz_callable() -> Callable {
+    Callable {
+        name: "__quantum__qis__mresetz__body".to_string(),
+        input_type: vec![Ty::Qubit, Ty::Result],
+        output_type: None,
+        body: None,
+        call_type: CallableType::Measurement,
+    }
+}
+
+#[must_use]
+pub fn read_result_callable() -> Callable {
+    Callable {
+        name: "__quantum__rt__read_result__body".to_string(),
+        input_type: vec![Ty::Result],
+        output_type: Some(Ty::Boolean),
+        body: None,
+        call_type: CallableType::Readout,
     }
 }
 

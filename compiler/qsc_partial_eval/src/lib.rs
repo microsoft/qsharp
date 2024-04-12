@@ -4,7 +4,7 @@
 mod evaluation_context;
 mod management;
 
-use evaluation_context::{EvaluationContext, Scope};
+use evaluation_context::{BlockNode, EvaluationContext, Scope};
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::functors::FunctorApp;
@@ -53,18 +53,35 @@ pub enum Error {
     #[error("partial evaluation error: {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(qsc_eval::Error),
+
     #[error("failed to evaluate {0}")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallable"))]
     FailedToEvaluateCallable(String, #[label] Span),
+
     #[error("failed to evaluate callee expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCalleeExpression"))]
     FailedToEvaluateCalleeExpression(#[label] Span),
+
     #[error("failed to evaluate tuple element expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateTupleElementExpression"))]
     FailedToEvaluateTupleElementExpression(#[label] Span),
+
     #[error("failed to evaluate binary expression operand")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBinaryExpressionOperand"))]
     FailedToEvaluateBinaryExpressionOperand(#[label] Span),
+
+    #[error("failed to evaluate condition expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateConditionExpression"))]
+    FailedToEvaluateConditionExpression(#[label] Span),
+
+    #[error("failed to evaluate a branch block of an if expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateIfExpressionBranchBlock"))]
+    FailedToEvaluateIfExpressionBranchBlock(#[label] Span),
+
+    #[error("failed to evaluate block expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBlockExpression"))]
+    FailedToEvaluateBlockExpression(#[label] Span),
+
     #[error("failed to evaluate: {0} not yet implemented")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] Span),
@@ -92,8 +109,7 @@ impl<'a> PartialEvaluator<'a> {
         let mut resource_manager = ResourceManager::default();
         let mut program = Program::new();
         let entry_block_id = resource_manager.next_block();
-        let entry_block = rir::Block(Vec::new());
-        program.blocks.insert(entry_block_id, entry_block);
+        program.blocks.insert(entry_block_id, rir::Block::default());
         let entry_point_id = resource_manager.next_callable();
         let entry_point = rir::Callable {
             name: "main".into(),
@@ -187,6 +203,12 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    fn create_program_block(&mut self) -> rir::BlockId {
+        let block_id = self.resource_manager.next_block();
+        self.program.blocks.insert(block_id, rir::Block::default());
+        block_id
+    }
+
     fn eval(mut self) -> Result<Program, Error> {
         // Visit the entry point expression.
         self.visit_expr(self.entry.expr.expr);
@@ -199,11 +221,7 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Insert the return expression and return the generated program.
-        let current_block = self
-            .program
-            .blocks
-            .get_mut(self.eval_context.current_block)
-            .expect("block does not exist");
+        let current_block = self.get_current_block_mut();
         current_block.0.push(Instruction::Return);
         Ok(self.program)
     }
@@ -285,7 +303,7 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
                 self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
             }
-            ExprKind::Block(_) => Err(Error::Unimplemented("Block Expr".to_string(), expr.span)),
+            ExprKind::Block(block_id) => self.eval_expr_block(*block_id),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
                 self.eval_expr_call(*callee_expr_id, *args_expr_id)
             }
@@ -295,7 +313,12 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
             ExprKind::Field(_, _) => Err(Error::Unimplemented("Field Expr".to_string(), expr.span)),
             ExprKind::Hole => panic!("instruction generation for hole expressions is invalid"),
-            ExprKind::If(_, _, _) => Err(Error::Unimplemented("If Expr".to_string(), expr.span)),
+            ExprKind::If(condition_expr_id, body_expr_id, otherwise_expr_id) => self.eval_expr_if(
+                expr_id,
+                *condition_expr_id,
+                *body_expr_id,
+                *otherwise_expr_id,
+            ),
             ExprKind::Index(_, _) => Err(Error::Unimplemented("Index Expr".to_string(), expr.span)),
             ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
             ExprKind::Range(_, _, _) => {
@@ -382,6 +405,14 @@ impl<'a> PartialEvaluator<'a> {
         // Return the variable as a value.
         let value = Value::Var(Var(variable_id.into()));
         Ok(value)
+    }
+
+    fn eval_expr_block(&mut self, block_id: BlockId) -> Result<Value, Error> {
+        let maybe_block_value = self.try_eval_block(block_id);
+        maybe_block_value.map_err(|()| {
+            let block = self.get_block(block_id);
+            Error::FailedToEvaluateBlockExpression(block.span)
+        })
     }
 
     fn eval_expr_call(
@@ -520,6 +551,156 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    fn eval_expr_if(
+        &mut self,
+        if_expr_id: ExprId,
+        condition_expr_id: ExprId,
+        body_expr_id: ExprId,
+        otherwise_expr_id: Option<ExprId>,
+    ) -> Result<Value, Error> {
+        // Visit the both the condition expression to get its value.
+        let maybe_condition_value = self.try_eval_expr(condition_expr_id);
+        let Ok(condition_value) = maybe_condition_value else {
+            let condition_expr = self.get_expr(condition_expr_id);
+            let error = Error::FailedToEvaluateConditionExpression(condition_expr.span);
+            return Err(error);
+        };
+
+        // If the condition value is a Boolean literal, use the value to decide which branch to
+        // evaluate.
+        if let Value::Bool(condition_bool) = condition_value {
+            return self.eval_expr_if_with_classical_condition(
+                condition_bool,
+                body_expr_id,
+                otherwise_expr_id,
+            );
+        }
+
+        // At this point the condition value is not classical, so we need to generate a branching instruction.
+        // First, we pop the current block node and generate a new one which the new branches will jump to when their
+        // instructions end.
+        let current_block_node = self.eval_context.pop_block_node();
+        let continuation_block_node_id = self.create_program_block();
+        let continuation_block_node = BlockNode {
+            id: continuation_block_node_id,
+            next: current_block_node.next,
+        };
+        self.eval_context.push_block_node(continuation_block_node);
+
+        // Since the if expression can represent a dynamic value, create a variable to store it if the expression is
+        // non-unit.
+        let if_expr = self.get_expr(if_expr_id);
+        let maybe_if_expr_var = if if_expr.ty == Ty::UNIT {
+            None
+        } else {
+            let variable_id = self.resource_manager.next_var();
+            let variable_ty = map_fir_type_to_rir_type(&if_expr.ty);
+            Some(Variable {
+                variable_id,
+                ty: variable_ty,
+            })
+        };
+
+        // Evaluate the body expression.
+        let if_true_block_id =
+            self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
+
+        // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
+        let if_false_block_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
+            self.eval_expr_if_branch(
+                otherwise_expr_id,
+                continuation_block_node_id,
+                maybe_if_expr_var,
+            )?
+        } else {
+            continuation_block_node_id
+        };
+
+        // Finally, we insert the branch instruction.
+        let condition_as_var = if let Value::Var(var) = condition_value {
+            Variable {
+                variable_id: var.0.into(),
+                ty: rir::Ty::Boolean,
+            }
+        } else {
+            panic!("the condition of an if expression is expected to be a variable");
+        };
+        let branch_ins = Instruction::Branch(condition_as_var, if_true_block_id, if_false_block_id);
+        self.get_program_block_mut(current_block_node.id)
+            .0
+            .push(branch_ins);
+
+        // Return the value of the if expression.
+        let if_expr_value = if let Some(if_expr_var) = maybe_if_expr_var {
+            Value::Var(Var(if_expr_var.variable_id.into()))
+        } else {
+            Value::unit()
+        };
+        Ok(if_expr_value)
+    }
+
+    fn eval_expr_if_branch(
+        &mut self,
+        branch_body_expr_id: ExprId,
+        continuation_block_id: rir::BlockId,
+        if_expr_var: Option<Variable>,
+    ) -> Result<rir::BlockId, Error> {
+        // Create the block node that corresponds to the branch body and push it as the active one.
+        let block_node_id = self.create_program_block();
+        let block_node = BlockNode {
+            id: block_node_id,
+            next: Some(continuation_block_id),
+        };
+        self.eval_context.push_block_node(block_node);
+
+        // Evaluate the branch body expression.
+        let maybe_body_value = self.try_eval_expr(branch_body_expr_id);
+        let Ok(body_value) = maybe_body_value else {
+            let body_body_expr = self.get_expr(branch_body_expr_id);
+            let error = Error::FailedToEvaluateIfExpressionBranchBlock(body_body_expr.span);
+            return Err(error);
+        };
+
+        // If there is a variable to save the value of the if expression to, add a store instruction.
+        if let Some(if_expr_var) = if_expr_var {
+            let body_operand = map_eval_value_to_rir_operand(&body_value);
+            let store_ins = Instruction::Store(body_operand, if_expr_var);
+            self.get_current_block_mut().0.push(store_ins);
+        }
+
+        // Finally, jump to the continuation block and pop the current block node.
+        let jump_ins = Instruction::Jump(continuation_block_id);
+        self.get_current_block_mut().0.push(jump_ins);
+        let _ = self.eval_context.pop_block_node();
+        Ok(block_node_id)
+    }
+
+    fn eval_expr_if_with_classical_condition(
+        &mut self,
+        condition_bool: bool,
+        body_expr_id: ExprId,
+        otherwise_expr_id: Option<ExprId>,
+    ) -> Result<Value, Error> {
+        if condition_bool {
+            let maybe_body_value = self.try_eval_expr(body_expr_id);
+            maybe_body_value.map_err(|()| {
+                let body_expr = self.get_expr(body_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(body_expr.span)
+            })
+        } else if let Some(otherwise_expr_id) = otherwise_expr_id {
+            let maybe_otherwise_value = self.try_eval_expr(otherwise_expr_id);
+            maybe_otherwise_value.map_err(|()| {
+                let otherwise_expr = self.get_expr(otherwise_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(otherwise_expr.span)
+            })
+        } else {
+            // A the classical condition evaluated to false, but there is not otherwise block so there is nothing to
+            // evaluate.
+            // Return unit since it is the only possibility for if expressions with no otherwise block.
+            Ok(Value::unit())
+        }
+    }
+
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
         let mut values = Vec::<Value>::new();
         for expr_id in exprs {
@@ -579,10 +760,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn get_current_block_mut(&mut self) -> &mut rir::Block {
-        self.program
-            .blocks
-            .get_mut(self.eval_context.current_block)
-            .expect("block does not exist")
+        self.get_program_block_mut(self.eval_context.get_current_block_id())
     }
 
     fn get_current_package_id(&self) -> PackageId {
@@ -632,6 +810,13 @@ impl<'a> PartialEvaluator<'a> {
             .expect("callable not present")
     }
 
+    fn get_program_block_mut(&mut self, id: rir::BlockId) -> &mut rir::Block {
+        self.program
+            .blocks
+            .get_mut(id)
+            .expect("program block does not exist")
+    }
+
     fn is_classical_stmt(&self, stmt_id: StmtId) -> bool {
         let current_package_id = self.get_current_package_id();
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
@@ -676,6 +861,16 @@ impl<'a> PartialEvaluator<'a> {
 
         // The value of a qubit release is unit.
         Value::unit()
+    }
+
+    fn try_eval_block(&mut self, block_id: BlockId) -> Result<Value, ()> {
+        self.visit_block(block_id);
+        if self.errors.is_empty() {
+            // This should change eventually, but return UNIT for now.
+            Ok(Value::unit())
+        } else {
+            Err(())
+        }
     }
 
     fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<Value, ()> {
@@ -770,8 +965,10 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
                 self.visit_expr(expr_id);
             }
             StmtKind::Local(_, pat_id, expr_id) => {
-                self.visit_expr(expr_id);
-                self.bind_expr_to_pat(pat_id, expr_id);
+                let maybe_expr_value = self.try_eval_expr(expr_id);
+                if maybe_expr_value.is_ok() {
+                    self.bind_expr_to_pat(pat_id, expr_id);
+                }
             }
             StmtKind::Item(_) => {
                 // Do nothing.
