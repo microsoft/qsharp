@@ -353,15 +353,6 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
 })
 
 @[exercise]({
-    "id": "single_qubit_gates__global_phase_i",
-    "title": "Applying a Global Phase",
-    "path": "./global_phase_i/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
-
-@[exercise]({
     "id": "single_qubit_gates__sign_flip_on_zero",
     "title": "Sign Flip on Zero",
     "path": "./sign_flip_on_zero/",
@@ -369,6 +360,25 @@ All the basic gates we will be covering in this kata are part of the Intrinsic n
         "../KatasLibrary.qs"
     ]
 })
+
+@[exercise]({
+    "id": "single_qubit_gates__global_phase_minusone",
+    "title": "Global Phase -1",
+    "path": "./global_phase_minusone/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "single_qubit_gates__global_phase_i",
+    "title": "Global Phase i",
+    "path": "./global_phase_i/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 
 @[section]({
     "id": "identity_gate",
@@ -489,9 +499,9 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
 $$T^2 = S, S^2 = Z$$
 
 @[exercise]({
-    "id": "single_qubit_gates__phase_flip",
+    "id": "single_qubit_gates__phase_i",
     "title": "Relative Phase i",
-    "path": "./phase_flip/",
+    "path": "./phase_i/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
@@ -581,9 +591,9 @@ In addition, the rotation gates are very closely related to their respective Pau
 $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
 
 @[exercise]({
-    "id": "single_qubit_gates__phase_change",
+    "id": "single_qubit_gates__complex_phase",
     "title": "Complex Relative Phase",
-    "path": "./phase_change/",
+    "path": "./complex_phase/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
@@ -593,15 +603,6 @@ $$X = iR_x(\pi), Y = iR_y(\pi), Z = iR_z(\pi)$$
     "id": "single_qubit_gates__amplitude_change",
     "title": "Amplitude Change",
     "path": "./amplitude_change/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
-
-@[exercise]({
-    "id": "single_qubit_gates__global_phase_change",
-    "title": "Global Phase -1",
-    "path": "./global_phase_change/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
