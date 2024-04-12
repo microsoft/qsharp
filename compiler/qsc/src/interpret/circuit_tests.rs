@@ -283,9 +283,23 @@ fn unrestricted_profile_result_comparison() {
     let mut out = std::io::sink();
     let mut r = GenericReceiver::new(&mut out);
 
-    // Counterintuitive but expected: result comparisons
-    // are okay if calling get_circuit() after incremental
-    // evaluation, because we're using the current simulator
+    // Result comparisons are okay when tracing
+    // circuit with the simulator.
+    let circ = interpreter
+        .circuit(CircuitEntryPoint::EntryPoint, true)
+        .expect("circuit generation should succeed");
+
+    expect![[r"
+        q_0    ── H ──── M ──── X ─── |0〉 ─
+                         ╘═════════════════
+        q_1    ── H ──── M ─── |0〉 ────────
+                         ╘═════════════════
+    "]]
+    .assert_eq(&circ.to_string());
+
+    // Result comparisons are also okay if calling
+    // get_circuit() after incremental evaluation,
+    // because we're using the current simulator
     // state.
     interpreter
         .eval_fragments(&mut r, "Test.Main();")
