@@ -123,6 +123,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__four_bitstrings",
+    "title": "Four Bitstrings",
+    "path": "./four_bitstrings/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__uneven_superpositions",
     "title": "Uneven superpositions"
