@@ -23,13 +23,7 @@ namespace Kata.Verification {
             }
         }
     }
-// AssertEqualOnZeroState(n, EvenOddNumbersSuperposition(_, isEven), EvenOddNumbersSuperposition_Reference(_, isEven), false, "");
-// if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-//                    Kata.EvenOddNumbersSuperposition(_, boolVal),
-//                    EvenOddNumbersSuperposition_Reference(_, boolVal),
-//                    i) {
-//                    return false;
-//                }
+
     @EntryPoint()
     operation CheckSolution() : Bool {
 
