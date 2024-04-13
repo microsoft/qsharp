@@ -68,5 +68,7 @@ namespace Kata.Verification {
                 return false;
             }
         }
+
+        return true;
     }
 }
