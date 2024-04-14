@@ -1,8 +1,8 @@
-﻿# Multi-Qubit Systems
+# Multi-Qubit Systems
 
 @[section]({
-    "id": "multi_qubit_systems__overview",
-    "title": "Overview"
+"id": "multi_qubit_systems__overview",
+"title": "Overview"
 })
 
 This kata introduces you to multi-qubit systems, their representation in mathematical notation and in Q# code, and the concept of entanglement.
@@ -21,8 +21,8 @@ If you are not familiar with single-qubit systems, we recommend that you complet
 - The concept of tensor product
 
 @[section]({
-    "id": "multi_qubit_systems__introduction",
-    "title": "Multi-Qubit Systems"
+"id": "multi_qubit_systems__introduction",
+"title": "Multi-Qubit Systems"
 })
 
 In The Qubit kata we discussed the concept of a qubit - the basic building block of a quantum computer.
@@ -42,10 +42,12 @@ The computational basis for an $N$-qubit system is a set of $2^N$ vectors, in ea
 
 For example, this is the **computational basis** for a two-qubit system:
 
-$$\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix},
+$$
+\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix},
 \begin{bmatrix} 0 \\\ 1 \\\ 0 \\\ 0 \end{bmatrix},
 \begin{bmatrix} 0 \\\ 0 \\\ 1 \\\ 0 \end{bmatrix},
-\begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}$$
+\begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}
+$$
 
 It is easy to see that these vectors form an orthonormal basis. Note that each of these basis states can be represented as a tensor product of some combination of single-qubit basis states:
 
@@ -77,16 +79,18 @@ The coefficients of the basis vectors define how "close" is the system state to 
 
 > Just like with single-qubit systems, there exist other orthonormal bases states for multi-qubit systems. An example for a two-qubit system is the **Bell basis**:
 >
-> $$\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix},
-\frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ -1 \end{bmatrix},
-\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ 1 \\\ 0 \end{bmatrix},
-\frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ -1 \\\ 0 \end{bmatrix}$$
+> $$
+> \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix},
+> \frac{1}{\sqrt{2}}\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ -1 \end{bmatrix},
+> \frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ 1 \\\ 0 \end{bmatrix},
+> \frac{1}{\sqrt{2}}\begin{bmatrix} 0 \\\ 1 \\\ -1 \\\ 0 \end{bmatrix}
+> $$
 >
-> You can check that these vectors are normalized, and orthogonal to each other, and that any two-qubit state can be expressed as a linear combination of these vectors.  The vectors of Bell basis, however, can not be represented as tensor products of single-qubit basis states.
+> You can check that these vectors are normalized, and orthogonal to each other, and that any two-qubit state can be expressed as a linear combination of these vectors. The vectors of Bell basis, however, can not be represented as tensor products of single-qubit basis states.
 
 @[section]({
-    "id": "multi_qubit_systems__separable_states",
-    "title": "Separable States"
+"id": "multi_qubit_systems__separable_states",
+"title": "Separable States"
 })
 
 Sometimes the global state of a multi-qubit system can be separated into the states of individual qubits or subsystems. To do this, you would express the vector state of the global system as a tensor product of the vectors representing each individual qubit/subsystem. Here is an example of a two-qubit state:
@@ -101,6 +105,7 @@ You can see that the first qubit is in state $\frac{1}{\sqrt{2}}\big(|0\rangle +
 ## 🔎 Analyze
 
 Show that the state is separable:
+
 $$
 \frac{1}{2} \begin{bmatrix} 1 \\\ i \\\ -i \\\ 1 \end{bmatrix} =
 \begin{bmatrix} ? \\\ ? \end{bmatrix} \otimes \begin{bmatrix} ? \\\ ? \end{bmatrix}
@@ -133,6 +138,7 @@ $$
 $$
 
 Note that finding such representation is not always possible, as you will see in the next exercise.
+
 </details>
 
 ## 🔎 Analyze
@@ -160,11 +166,12 @@ $$
 $$
 
 We can see that this system of equations doesn't have a solution, which means that this state is <b>not separable</b>.
+
 </details>
 
 @[section]({
-    "id": "multi_qubit_systems__entanglement",
-    "title": "Entanglement"
+"id": "multi_qubit_systems__entanglement",
+"title": "Entanglement"
 })
 
 Sometimes, quantum states cannot be written as individual qubit states. Quantum systems that are not separable are called **entangled** systems. If a state can be written as the product state of the individual subsystems, that state is not entangled.
@@ -184,8 +191,8 @@ In such a state, only two outcomes are possible when you measure the state of bo
 This property is used extensively in many quantum algorithms.
 
 @[section]({
-    "id": "multi_qubit_systems__dirac_notation",
-    "title": "Dirac Notation"
+"id": "multi_qubit_systems__dirac_notation",
+"title": "Dirac Notation"
 })
 
 Just like with single qubits, Dirac notation provides a useful shorthand for writing down states of multi-qubit systems.
@@ -235,11 +242,11 @@ $$|\phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$$
 $$|\psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big)$$
 $$|\psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
 
->## Endianness
+> ## Endianness
 >
-> In classical computing, endianness refers to the order of bits (or bytes) when representing numbers in binary. You're probably familiar with the typical way of writing numbers in binary: $0 = 0_2$, $1 = 1_2$, $2 = 10_2$, $3 = 11_2$, $4 = 100_2$, $5 = 101_2$, $6 = 110_2$, etc. This is known as **big-endian format**. In big-endian format, the *most significant* bits come first. For example: $110_2 = 1 \cdot 4 + 1 \cdot 2 + 0 \cdot 1 = 4 + 2 = 6$.
+> In classical computing, endianness refers to the order of bits (or bytes) when representing numbers in binary. You're probably familiar with the typical way of writing numbers in binary: $0 = 0_2$, $1 = 1_2$, $2 = 10_2$, $3 = 11_2$, $4 = 100_2$, $5 = 101_2$, $6 = 110_2$, etc. This is known as **big-endian format**. In big-endian format, the _most significant_ bits come first. For example: $110_2 = 1 \cdot 4 + 1 \cdot 2 + 0 \cdot 1 = 4 + 2 = 6$.
 >
-> There is an alternate way of writing binary numbers - **little-endian format**. In little-endian format, the *least significant* bits come first. For example, $2$ would be written as $01$, $4$ as $001$, and $6$ as $011$. To put it another way, in little endian format, the number is written backwards compared to the big-endian format.
+> There is an alternate way of writing binary numbers - **little-endian format**. In little-endian format, the _least significant_ bits come first. For example, $2$ would be written as $01$, $4$ as $001$, and $6$ as $011$. To put it another way, in little endian format, the number is written backwards compared to the big-endian format.
 >
 > In Dirac notation for multi-qubit systems, it's common to see integer numbers within the kets instead of bit sequences. What those numbers mean depends on the context - whether the notation used is big-endian or little-endian.
 >
@@ -279,13 +286,13 @@ $$|\psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
 >        <td>$|011\rangle$</td>
 >        <td>$|111\rangle$</td>
 >    </tr>
-></table>
+> </table>
 >
 > Multi-qubit quantum systems that store superpositions of numbers are often referred to as **quantum registers**.
 
 @[section]({
-    "id": "multi_qubit_systems__in_qsharp",
-    "title": "Multi-Qubit Systems in Q#"
+"id": "multi_qubit_systems__in_qsharp",
+"title": "Multi-Qubit Systems in Q#"
 })
 
 This demo shows you how to allocate multiple qubits in Q# and examine their joint state. It uses single-qubit gates for manipulating the individual qubit states - if you need a refresher on them, please review the Single-Qubit Gates kata.
@@ -302,71 +309,98 @@ to the first element of the array.)
 > The reason for this is entanglement.
 >
 > Consider running a program on a quantum computer: the number of qubits is very limited, and you want to reuse the released qubits in other parts of the program.
-If they are not in zero state by that time, they can potentially be still entangled with the qubits which are not yet released, thus operations you perform on them can affect the state of other parts of the program, causing erroneous and hard to debug behavior.
+> If they are not in zero state by that time, they can potentially be still entangled with the qubits which are not yet released, thus operations you perform on them can affect the state of other parts of the program, causing erroneous and hard to debug behavior.
 >
 > Resetting the qubits to zero state automatically when they go outside the scope of the block they were allocated in is dangerous as well: if they were entangled with others, measuring them to reset them can affect the state of the unreleased qubits, and thus change the results of the program - without the developer noticing this.
 >
 > The requirement that the qubits should be in zero state before they can be released aims to remind the developer to double-check that all necessary information has been properly extracted from the qubits, and that they are not entangled with unreleased qubits any more.
 
 @[exercise]({
-    "id": "multi_qubit_systems__learn_basis_state_amplitudes",
-    "title": "Learn Basis State Amplitudes Using DumpMachine",
-    "path": "./learn_basis_state_amplitudes/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+"id": "multi_qubit_systems__learn_basis_state_amplitudes",
+"title": "Learn Basis State Amplitudes Using DumpMachine",
+"path": "./learn_basis_state_amplitudes/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
 })
 
 @[section]({
-    "id": "multi_qubit_systems__exercises",
-    "title": "Separable State Preparation"
+"id": "multi_qubit_systems__exercises",
+"title": "Separable State Preparation"
 })
 
 In the following exercises you will learn to prepare separable quantum states by manipulating individual qubits.
 You will only need knowledge from the Single-Qubit Gates kata for that.
 
 > In each exercise, you'll be given an array of qubits to manipulate; you can access $i$-th element of the array `qs` as `qs[i]`.
-Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
+> Array elements are indexed starting with 0, the first array element corresponds to the leftmost qubit in Dirac notation.
 
 @[exercise]({
-    "id": "multi_qubit_systems__prepare_basis_state",
-    "title": "Prepare a Basis State",
-    "path": "./prepare_basis_state/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+"id": "multi_qubit_systems__prepare_basis_state",
+"title": "Prepare a Basis State",
+"path": "./prepare_basis_state/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
 })
 
 @[exercise]({
-    "id": "multi_qubit_systems__prepare_superposition",
-    "title": "Prepare a Superposition of Two Basis States",
-    "path": "./prepare_superposition/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+"id": "multi_qubit_systems__bell_state_change_1 ",
+"title": "Bell State Change 1",
+"path": "./bell_state_change_1/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
 })
 
 @[exercise]({
-    "id": "multi_qubit_systems__prepare_with_real",
-    "title": " Prepare a Superposition with Real Amplitudes",
-    "path": "./prepare_with_real/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+"id": "multi_qubit_systems__bell_state_change_2 ",
+"title": "Bell State Change -2",
+"path": "./bell_state_change_2/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
 })
 
 @[exercise]({
-    "id": "multi_qubit_systems__prepare_with_complex",
-    "title": "Prepare a Superposition with Complex Amplitudes",
-    "path": "./prepare_with_complex/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
+"id": "multi_qubit_systems__bell_state_change_3 ",
+"title": "Bell State Change 3",
+"path": "./bell_state_change_3/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
+})
+
+@[exercise]({
+"id": "multi_qubit_systems__prepare_superposition",
+"title": "Prepare a Superposition of Two Basis States",
+"path": "./prepare_superposition/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
+})
+
+@[exercise]({
+"id": "multi_qubit_systems__prepare_with_real",
+"title": " Prepare a Superposition with Real Amplitudes",
+"path": "./prepare_with_real/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
+})
+
+@[exercise]({
+"id": "multi_qubit_systems__prepare_with_complex",
+"title": "Prepare a Superposition with Complex Amplitudes",
+"path": "./prepare_with_complex/",
+"qsDependencies": [
+"../KatasLibrary.qs"
+]
 })
 
 @[section]({
-    "id": "multi_qubit_systems__conclusion",
-    "title": "Conclusion"
+"id": "multi_qubit_systems__conclusion",
+"title": "Conclusion"
 })
 
 Congratulations! In this kata you learned to prepare separable multi-qubit states using only single-qubit gates. You also learned the difference between separable states and entangled states. Here are a few key concepts to keep in mind:
