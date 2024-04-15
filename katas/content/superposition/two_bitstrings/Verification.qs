@@ -39,16 +39,34 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let qubits = 3;
-        for i in 0 .. (2 ^ qubits) - 1 {
-            let bits1 = IntAsBoolArray(i, qubits);
-            // get unsigned inverse of bits1
-            let bits2 = IntAsBoolArray(~~~i &&& 0x7, qubits);
+        let bitstrings_one = [
+            [false],
+            [true],
+            [false, false],
+            [true, false],
+            [false, false],
+            [false, false, false],
+            [false, false, false]
+        ];
+
+        let bitstrings_two = [
+            [true],
+            [false],
+            [false, true],
+            [false, true],
+            [true, true],
+            [false, false, true],
+            [true, false, true]
+        ];
+
+        for i in 0 .. Length(bitstrings_one) - 1 {
+            let bits1 = bitstrings_one[i];
+            let bits2 = bitstrings_two[i];
             Message($"Testing for bits1 = {bits1} and bits2 = {bits2}...");
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-            Kata.TwoBitstringSuperposition(_, bits1, bits2),
-            TwoBitstringSuperposition_Reference(_, bits1, bits2),
-            qubits) {
+                Kata.TwoBitstringSuperposition(_, bits1, bits2),
+                TwoBitstringSuperposition_Reference(_, bits1, bits2),
+                Length(bits1)) {
                 return false;
             }
         }

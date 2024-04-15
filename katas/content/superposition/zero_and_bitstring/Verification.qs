@@ -14,14 +14,22 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let qubits = 3;
-        for i in 0 .. (2 ^ qubits) - 1 {
-            let bits = IntAsBoolArray(i, qubits);
+        let bitstrings = [
+            [true],
+            [true, false],
+            [true, true],
+            [true, false, false],
+            [true, false, true],
+            [true, true, false],
+            [true, true, true]
+        ];
+
+        for bits in bitstrings {
             Message($"Testing for bits = {bits}...");
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-            Kata.ZeroAndBitstringSuperposition(_, bits),
-            ZeroAndBitstringSuperposition_Reference(_, bits),
-            qubits) {
+                Kata.ZeroAndBitstringSuperposition(_, bits),
+                ZeroAndBitstringSuperposition_Reference(_, bits),
+                Length(bits)) {
                 return false;
             }
         }
