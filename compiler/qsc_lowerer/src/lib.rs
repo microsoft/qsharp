@@ -12,6 +12,16 @@ use qsc_hir::hir::{self, SpecBody, SpecGen};
 use std::iter::once;
 use std::{clone::Clone, rc::Rc};
 
+#[must_use]
+pub fn map_hir_package_to_fir(package: hir::PackageId) -> fir::PackageId {
+    fir::PackageId::from(Into::<usize>::into(package))
+}
+
+#[must_use]
+pub fn map_fir_package_to_hir(package: fir::PackageId) -> hir::PackageId {
+    hir::PackageId::from(Into::<usize>::into(package))
+}
+
 pub struct Lowerer {
     nodes: IndexMap<hir::NodeId, fir::NodeId>,
     locals: IndexMap<hir::NodeId, fir::LocalVarId>,
@@ -21,6 +31,7 @@ pub struct Lowerer {
     blocks: IndexMap<BlockId, Block>,
     assigner: Assigner,
     exec_graph: Vec<ExecGraphNode>,
+    enable_debug: bool,
 }
 
 impl Default for Lowerer {
@@ -41,7 +52,14 @@ impl Lowerer {
             blocks: IndexMap::new(),
             assigner: Assigner::new(),
             exec_graph: Vec::new(),
+            enable_debug: false,
         }
+    }
+
+    #[must_use]
+    pub fn with_debug(mut self, dbg: bool) -> Self {
+        self.enable_debug = dbg;
+        self
     }
 
     pub fn take_exec_graph(&mut self) -> Vec<ExecGraphNode> {
@@ -92,7 +110,7 @@ impl Lowerer {
         &mut self,
         fir_package: &mut fir::Package,
         hir_package: &hir::Package,
-    ) -> Vec<StmtId> {
+    ) {
         let items: IndexMap<LocalItemId, fir::Item> = hir_package
             .items
             .values()
@@ -100,11 +118,9 @@ impl Lowerer {
             .map(|i| (i.id, i))
             .collect();
 
-        let new_stmts = hir_package
-            .stmts
-            .iter()
-            .map(|s| self.lower_stmt(s))
-            .collect();
+        for stmt in &hir_package.stmts {
+            let _ = self.lower_stmt(stmt);
+        }
 
         let entry = hir_package.entry.as_ref().map(|e| self.lower_expr(e));
 
@@ -117,8 +133,6 @@ impl Lowerer {
         fir_package.entry = entry;
 
         qsc_fir::validate::validate(fir_package);
-
-        new_stmts
     }
 
     fn update_package(&mut self, package: &mut fir::Package) {
@@ -281,7 +295,9 @@ impl Lowerer {
     fn lower_stmt(&mut self, stmt: &hir::Stmt) -> fir::StmtId {
         let id = self.assigner.next_stmt();
         let graph_start_idx = self.exec_graph.len();
-        self.exec_graph.push(ExecGraphNode::Stmt(id));
+        if self.enable_debug {
+            self.exec_graph.push(ExecGraphNode::Stmt(id));
+        }
         let kind = match &stmt.kind {
             hir::StmtKind::Expr(expr) => fir::StmtKind::Expr(self.lower_expr(expr)),
             hir::StmtKind::Item(item) => fir::StmtKind::Item(lower_local_item_id(*item)),

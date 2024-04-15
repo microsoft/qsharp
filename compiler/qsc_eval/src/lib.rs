@@ -21,14 +21,13 @@ pub mod backend;
 pub mod debug;
 mod error;
 mod intrinsic;
-pub mod lower;
 pub mod output;
 pub mod state;
 pub mod val;
 
 use crate::val::Value;
 use backend::Backend;
-use debug::{map_fir_package_to_hir, CallStack, Frame};
+use debug::{CallStack, Frame};
 use error::PackageSpan;
 use miette::Diagnostic;
 use num_bigint::BigInt;
@@ -40,6 +39,7 @@ use qsc_fir::fir::{
     StoreItemId, StringComponent, UnOp,
 };
 use qsc_fir::ty::Ty;
+use qsc_lowerer::map_fir_package_to_hir;
 use rand::{rngs::StdRng, SeedableRng};
 use std::ops;
 use std::{

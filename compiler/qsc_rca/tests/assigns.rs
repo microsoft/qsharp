@@ -132,3 +132,147 @@ fn check_rca_for_dynamic_double_assign_to_local() {
         ],
     );
 }
+
+#[test]
+fn chec_rca_for_assign_call_result_to_tuple_of_vars() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function Foo() : (Int, Int) {
+            return (1,2);
+        }
+        mutable a = 1;
+        mutable b = 2;
+        set (a, b) = Foo();
+        "#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn chec_rca_for_assign_var_binded_to_call_result_to_tuple_of_vars() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function Foo() : (Int, Int) {
+            return (1,2);
+        }
+        let x = Foo();
+        mutable a = 1;
+        mutable b = 2;
+        set (a, b) = x;
+        "#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn chec_rca_for_assign_tuple_var_to_tuple_of_vars() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        let x = (1, (2, 3));
+        mutable a = 4;
+        mutable b = (5, 6);
+        set (a, b) = x;
+        "#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_assign_classical_call_result_to_tuple_of_vars() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function Foo(a : Int, b : Int) : (Int, Int) {
+            return (b, a);
+        }
+        mutable a = 1;
+        mutable b = 2;
+        set (a, b) = Foo(a, b);
+        a
+        "#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+    compilation_context.update(
+        r#"
+        b
+        "#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_assign_dynamic_call_result_to_tuple_of_vars() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function Foo(a : Int, b : Int) : (Int, Int) {
+            return (b, a);
+        }
+        use q = Qubit();
+        let r = MResetZ(q);
+        mutable a = r == Zero ? 0 | 1;
+        mutable b = 2;
+        set (a, b) = Foo(a, b);
+        a
+        "#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+    compilation_context.update(
+        r#"
+        b
+        "#,
+    );
+    check_last_statement_compute_properties(
+        compilation_context.get_compute_properties(),
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}

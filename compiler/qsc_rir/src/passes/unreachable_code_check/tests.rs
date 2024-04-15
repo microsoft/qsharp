@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use crate::rir::{
-    Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Program, Ty, Value,
+    Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Program, Ty,
     Variable, VariableId,
 };
 
@@ -15,7 +15,7 @@ fn test_check_unreachable_instrs_panics_on_missing_terminator() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::BitwiseNot(
-            Value::Literal(Literal::Bool(true)),
+            Operand::Literal(Literal::Bool(true)),
             Variable {
                 variable_id: VariableId(0),
                 ty: Ty::Boolean,
@@ -41,7 +41,7 @@ fn test_check_unreachable_instrs_succeeds_on_terminator_after_other_instrs() {
         BlockId(0),
         Block(vec![
             Instruction::BitwiseNot(
-                Value::Literal(Literal::Bool(true)),
+                Operand::Literal(Literal::Bool(true)),
                 Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
@@ -62,7 +62,7 @@ fn test_check_unreachable_instrs_panics_on_unreachable_instrs_after_terminator()
         Block(vec![
             Instruction::Return,
             Instruction::BitwiseNot(
-                Value::Literal(Literal::Bool(true)),
+                Operand::Literal(Literal::Bool(true)),
                 Variable {
                     variable_id: VariableId(0),
                     ty: Ty::Boolean,
@@ -131,7 +131,10 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_branch()
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Variable {
+                variable_id: VariableId(0),
+                ty: Ty::Boolean,
+            },
             BlockId(1),
             BlockId(2),
         )]),
@@ -158,10 +161,9 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_jump() {
             call_type: CallableType::Regular,
         },
     );
-    program.blocks.insert(
-        BlockId(0),
-        Block(vec![Instruction::Jump(BlockId(1)), Instruction::Return]),
-    );
+    program
+        .blocks
+        .insert(BlockId(0), Block(vec![Instruction::Jump(BlockId(1))]));
     program
         .blocks
         .insert(BlockId(1), Block(vec![Instruction::Return]));
@@ -185,7 +187,10 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block_with_branch() {
     program.blocks.insert(
         BlockId(0),
         Block(vec![Instruction::Branch(
-            Value::Literal(Literal::Bool(true)),
+            Variable {
+                variable_id: VariableId(0),
+                ty: Ty::Boolean,
+            },
             BlockId(1),
             BlockId(1),
         )]),

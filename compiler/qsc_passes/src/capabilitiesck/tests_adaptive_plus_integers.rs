@@ -7,9 +7,9 @@ use crate::capabilitiesck::tests_common::USE_DYNAMIC_RANGE;
 
 use super::tests_common::{
     check, CALL_DYNAMIC_FUNCTION, CALL_DYNAMIC_OPERATION,
-    CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
-    CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
-    CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
+    CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT, CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
+    CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
+    CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT, CALL_UNRESOLVED_FUNCTION,
     LOOP_WITH_DYNAMIC_CONDITION, MEASUREMENT_WITHIN_DYNAMIC_SCOPE, MINIMAL,
     RETURN_WITHIN_DYNAMIC_SCOPE, USE_CLOSURE_FUNCTION, USE_DYNAMICALLY_SIZED_ARRAY,
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
@@ -222,7 +222,7 @@ fn use_of_dynamic_operation_yields_errors() {
 #[test]
 fn call_cyclic_function_with_classical_argument_yields_no_errors() {
     check_profile(
-        CALL_TO_CICLYC_FUNCTION_WITH_CLASSICAL_ARGUMENT,
+        CALL_TO_CYCLIC_FUNCTION_WITH_CLASSICAL_ARGUMENT,
         &expect![[r#"
             []
         "#]],
@@ -232,7 +232,7 @@ fn call_cyclic_function_with_classical_argument_yields_no_errors() {
 #[test]
 fn call_cyclic_function_with_dynamic_argument_yields_error() {
     check_profile(
-        CALL_TO_CICLYC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
+        CALL_TO_CYCLIC_FUNCTION_WITH_DYNAMIC_ARGUMENT,
         &expect![[r#"
             [
                 CallToCyclicFunctionWithDynamicArg(
@@ -249,7 +249,7 @@ fn call_cyclic_function_with_dynamic_argument_yields_error() {
 #[test]
 fn call_cyclic_operation_with_classical_argument_yields_errors() {
     check_profile(
-        CALL_TO_CICLYC_OPERATION_WITH_CLASSICAL_ARGUMENT,
+        CALL_TO_CYCLIC_OPERATION_WITH_CLASSICAL_ARGUMENT,
         &expect![[r#"
             [
                 CyclicOperationSpec(
@@ -272,7 +272,7 @@ fn call_cyclic_operation_with_classical_argument_yields_errors() {
 #[test]
 fn call_cyclic_operation_with_dynamic_argument_yields_errors() {
     check_profile(
-        CALL_TO_CICLYC_OPERATION_WITH_DYNAMIC_ARGUMENT,
+        CALL_TO_CYCLIC_OPERATION_WITH_DYNAMIC_ARGUMENT,
         &expect![[r#"
             [
                 CyclicOperationSpec(

@@ -8,8 +8,8 @@ use qsc_rir::rir;
 #[test]
 fn logical_and_literals() {
     let inst = rir::Instruction::LogicalAnd(
-        rir::Value::Literal(rir::Literal::Bool(true)),
-        rir::Value::Literal(rir::Literal::Bool(false)),
+        rir::Operand::Literal(rir::Literal::Bool(true)),
+        rir::Operand::Literal(rir::Literal::Bool(false)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -21,11 +21,11 @@ fn logical_and_literals() {
 #[test]
 fn logical_and_variables() {
     let inst = rir::Instruction::LogicalAnd(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Boolean,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Boolean,
         }),
@@ -40,7 +40,7 @@ fn logical_and_variables() {
 #[test]
 fn logical_not_true_literal() {
     let inst = rir::Instruction::LogicalNot(
-        rir::Value::Literal(rir::Literal::Bool(true)),
+        rir::Operand::Literal(rir::Literal::Bool(true)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -52,7 +52,7 @@ fn logical_not_true_literal() {
 #[test]
 fn logical_not_variables() {
     let inst = rir::Instruction::LogicalNot(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Boolean,
         }),
@@ -67,7 +67,7 @@ fn logical_not_variables() {
 #[test]
 fn logical_not_false_literal() {
     let inst = rir::Instruction::LogicalNot(
-        rir::Value::Literal(rir::Literal::Bool(false)),
+        rir::Operand::Literal(rir::Literal::Bool(false)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -79,8 +79,8 @@ fn logical_not_false_literal() {
 #[test]
 fn logical_or_literals() {
     let inst = rir::Instruction::LogicalOr(
-        rir::Value::Literal(rir::Literal::Bool(true)),
-        rir::Value::Literal(rir::Literal::Bool(false)),
+        rir::Operand::Literal(rir::Literal::Bool(true)),
+        rir::Operand::Literal(rir::Literal::Bool(false)),
         rir::Variable {
             variable_id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
@@ -92,11 +92,11 @@ fn logical_or_literals() {
 #[test]
 fn logical_or_variables() {
     let inst = rir::Instruction::LogicalOr(
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(1),
             ty: rir::Ty::Boolean,
         }),
-        rir::Value::Variable(rir::Variable {
+        rir::Operand::Variable(rir::Variable {
             variable_id: rir::VariableId(2),
             ty: rir::Ty::Boolean,
         }),

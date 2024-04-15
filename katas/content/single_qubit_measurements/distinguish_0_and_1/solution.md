@@ -4,6 +4,5 @@ In Q# the operation `M` can be used to measure a single qubit in the computation
 
 @[solution]({
     "id": "single_qubit_measurements__distinguish_0_and_1_solution",
-    "exerciseId": "distinguish_0_and_1",
     "codePath": "Solution.qs"
 })
