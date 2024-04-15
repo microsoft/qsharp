@@ -389,7 +389,7 @@ export class QscDebugSession extends LoggingDebugSession {
           this.eventTarget,
         );
 
-        this.updateCircuit();
+        await this.updateCircuit();
 
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);
@@ -822,7 +822,7 @@ export class QscDebugSession extends LoggingDebugSession {
             // the diagram won't get updated with each step even though the circuit
             // panel is still being shown, which is misleading.
             this.config.showCircuit = true;
-            this.updateCircuit();
+            await this.updateCircuit();
           }
           response.body = {
             variables: [

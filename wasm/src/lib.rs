@@ -162,17 +162,16 @@ pub fn get_circuit(
     )
     .map_err(interpret_errors_into_vs_diagnostics_json)?;
 
+    let entry_point = match operation {
+        Some(p) => {
+            let o: language_service::OperationInfo = p.into();
+            CircuitEntryPoint::Operation(o.operation)
+        }
+        None => CircuitEntryPoint::EntryPoint,
+    };
+
     let circuit = interpreter
-        .circuit(
-            match operation {
-                Some(p) => {
-                    let o: language_service::OperationInfo = p.into();
-                    CircuitEntryPoint::Operation(o.operation)
-                }
-                None => CircuitEntryPoint::EntryPoint,
-            },
-            simulate,
-        )
+        .circuit(entry_point, simulate)
         .map_err(interpret_errors_into_vs_diagnostics_json)?;
 
     serde_wasm_bindgen::to_value(&circuit).map_err(|e| e.to_string())

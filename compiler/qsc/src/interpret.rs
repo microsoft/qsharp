@@ -475,8 +475,10 @@ impl Interpreter {
         let mut out = GenericReceiver::new(&mut sink);
 
         let (package_id, graph) = if let Some(entry_expr) = entry_expr {
-            (self.package, self.compile_entry_expr(&entry_expr)?.into())
+            // entry expression is provided
+            (self.package, self.compile_entry_expr(&entry_expr)?.0.into())
         } else {
+            // no entry expression, use the entrypoint in the package
             (self.source_package, self.get_entry_exec_graph()?)
         };
 
