@@ -94,8 +94,7 @@ impl Scope {
         }
     }
 
-    // Maybe this can be removed in favor of a single value getter, which would also eliminate the need
-    // for `hybrid_exprs` entirely?
+    // Potential candidate for removal if only the last expression value is needed.
     pub fn _get_expr_value(&self, expr_id: ExprId) -> &Value {
         self.hybrid_exprs
             .get(&expr_id)

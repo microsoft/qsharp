@@ -780,6 +780,76 @@ mod given_interpreter {
         }
 
         #[test]
+        fn adaptive_qirgen_nested_output_types() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                RuntimeCapabilityFlags::ForwardBranching,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                namespace Test {
+                    open QIR.Intrinsic;
+                    @EntryPoint()
+                    operation Main() : (Result, (Bool, Bool)) {
+                        use q = Qubit();
+                        let r = __quantum__qis__mresetz__body(q);
+                        (r, (r == One, r == Zero))
+                    }
+                }"#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Test.Main()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                block_0:
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  %var_0 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_1 = icmp eq i1 %var_0, true
+                  %var_2 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_3 = icmp eq i1 %var_2, false
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_1, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_3, i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare i1 @__quantum__qis__read_result__body(%Result*)
+
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+                declare void @__quantum__rt__bool_record_output(i1, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]]
+            .assert_eq(&res);
+        }
+
+        #[test]
         fn adaptive_qirgen_fails_when_entry_expr_does_not_match_profile() {
             let mut interpreter = Interpreter::new(
                 true,
