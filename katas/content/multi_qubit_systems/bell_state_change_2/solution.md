@@ -1,4 +1,4 @@
-We have seen in Task "State flip" that the Pauli X gate flips $|0\rangle$ to $|1\rangle$ and vice versa, and as we seem to need some flipping of states, perhaps this gate may be of use. (Bearing in mind, of course, that the X gate operates on a single qubit).
+We have seen in the Single-Qubit Gates kata that the Pauli X gate flips $|0\rangle$ to $|1\rangle$ and vice versa, and as we seem to need some flipping of states, perhaps this gate may be of use. (Bearing in mind, of course, that the X gate operates on a single qubit).
 
 Let's compare the starting state $\frac{1}{\sqrt{2}} \big(|0_A0_B\rangle + |1_A1_B\rangle\big)$ with the goal state $\frac{1}{\sqrt{2}} \big(1_A0_B\rangle + |0_A1_B\rangle\big)$ term by term and see how we need to transform it to reach the goal.
 
