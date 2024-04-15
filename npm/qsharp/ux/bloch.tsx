@@ -450,7 +450,7 @@ export function BlochSphere(props: {
     if (latexDiv.current) {
       props.renderLaTeX([latexDiv.current]);
     }
-  }, [gates]);
+  }, [gateArray]);
 
   const getLaTeX = (
     gateName: string,
@@ -465,55 +465,68 @@ export function BlochSphere(props: {
 
   function rotate(gate: string): void {
     let newState = vec2(state);
+    let newLaTeX = "";
     if (renderer.current) {
       switch (gate) {
         case "X":
           renderer.current.rotateX(Math.PI);
           newState = PauliX.mulVec2(state);
-          setGateArray([
-            ...gateArray,
-            getLaTeX("X", gateLaTeX.X, state.toLaTeX(), newState.toLaTeX()),
-          ]);
+          newLaTeX = getLaTeX(
+            "X",
+            gateLaTeX.X,
+            state.toLaTeX(),
+            newState.toLaTeX(),
+          );
           break;
         case "Y":
           renderer.current.rotateY(Math.PI);
           newState = PauliY.mulVec2(state);
-          setGateArray([
-            ...gateArray,
-            getLaTeX("Y", gateLaTeX.Y, state.toLaTeX(), newState.toLaTeX()),
-          ]);
+          newLaTeX = getLaTeX(
+            "Y",
+            gateLaTeX.Y,
+            state.toLaTeX(),
+            newState.toLaTeX(),
+          );
           break;
         case "Z":
           renderer.current.rotateZ(Math.PI);
           newState = PauliZ.mulVec2(state);
-          setGateArray([
-            ...gateArray,
-            getLaTeX("Z", gateLaTeX.Z, state.toLaTeX(), newState.toLaTeX()),
-          ]);
+          newLaTeX = getLaTeX(
+            "Z",
+            gateLaTeX.Z,
+            state.toLaTeX(),
+            newState.toLaTeX(),
+          );
           break;
         case "S":
           renderer.current.rotateZ(Math.PI / 2);
           newState = SGate.mulVec2(state);
-          setGateArray([
-            ...gateArray,
-            getLaTeX("S", gateLaTeX.S, state.toLaTeX(), newState.toLaTeX()),
-          ]);
+          newLaTeX = getLaTeX(
+            "S",
+            gateLaTeX.S,
+            state.toLaTeX(),
+            newState.toLaTeX(),
+          );
           break;
         case "T":
           renderer.current.rotateZ(Math.PI / 4);
           newState = TGate.mulVec2(state);
-          setGateArray([
-            ...gateArray,
-            getLaTeX("T", gateLaTeX.T, state.toLaTeX(), newState.toLaTeX()),
-          ]);
+          newLaTeX = getLaTeX(
+            "T",
+            gateLaTeX.T,
+            state.toLaTeX(),
+            newState.toLaTeX(),
+          );
           break;
         case "H":
           renderer.current.rotateH(Math.PI);
           newState = Hadamard.mulVec2(state);
-          setGateArray([
-            ...gateArray,
-            getLaTeX("H", gateLaTeX.H, state.toLaTeX(), newState.toLaTeX()),
-          ]);
+          newLaTeX = getLaTeX(
+            "H",
+            gateLaTeX.H,
+            state.toLaTeX(),
+            newState.toLaTeX(),
+          );
           break;
         default:
           console.error("Unknown gate: " + gate);
@@ -521,6 +534,7 @@ export function BlochSphere(props: {
     }
     setState(newState);
     setGates([...gates, gate]);
+    setGateArray([...gateArray, newLaTeX]);
   }
 
   function reset() {

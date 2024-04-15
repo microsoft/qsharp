@@ -189,11 +189,13 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           languageService={languageService}
         ></Katas>
       ) : (
-        <BlochSphere renderLaTeX={onRenderLaTeX} />
-        <DocumentationDisplay
-          currentNamespace={currentNavItem}
-          documentation={documentation}
-        ></DocumentationDisplay>
+        <>
+          <BlochSphere renderLaTeX={onRenderLaTeX} />
+          <DocumentationDisplay
+            currentNamespace={currentNavItem}
+            documentation={documentation}
+          ></DocumentationDisplay>
+        </>
       )}
       <div id="popup"></div>
     </>
