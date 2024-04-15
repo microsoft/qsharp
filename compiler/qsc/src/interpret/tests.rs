@@ -729,7 +729,7 @@ mod given_interpreter {
                     open Microsoft.Quantum.Math;
                     open QIR.Intrinsic;
                     @EntryPoint()
-                    operation Main() : Unit {
+                    operation Main() : Result {
                         use q = Qubit();
                         let pi_over_2 = 4.0 / 2.0;
                         __quantum__qis__rz__body(pi_over_2, q);
@@ -737,6 +737,7 @@ mod given_interpreter {
                         __quantum__qis__rz__body(some_angle, q);
                         set some_angle = ArcCos(-1.0) / PI();
                         __quantum__qis__rz__body(some_angle, q);
+                        __quantum__qis__mresetz__body(q)
                     }
                 }"#
                 },
@@ -752,10 +753,16 @@ mod given_interpreter {
                   call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
                 declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
                 attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
                 attributes #1 = { "irreversible" }

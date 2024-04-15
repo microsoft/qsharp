@@ -4,6 +4,7 @@
 mod evaluation_context;
 mod management;
 
+use core::panic;
 use evaluation_context::{BlockNode, EvaluationContext, Scope};
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
@@ -26,9 +27,12 @@ use qsc_fir::{
     visit::Visitor,
 };
 use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties};
-use qsc_rir::rir::{
-    self, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand,
-    Program, Variable,
+use qsc_rir::{
+    builder,
+    rir::{
+        self, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand,
+        Program, Variable,
+    },
 };
 use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
@@ -53,6 +57,10 @@ pub enum Error {
     #[error("partial evaluation error: {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(qsc_eval::Error),
+
+    #[error("failed to evaluate array element expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateArrayElementExpression"))]
+    FailedToEvaluateArrayElementExpression(#[label] Span),
 
     #[error("failed to evaluate {0}")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallable"))]
@@ -144,28 +152,18 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn bind_expr_to_pat(&mut self, pat_id: PatId, expr_id: ExprId) {
+    fn bind_value_to_pat(&mut self, pat_id: PatId, value: Value) {
         let pat = self.get_pat(pat_id);
         match &pat.kind {
             PatKind::Bind(ident) => {
-                let expr_value = self
-                    .eval_context
-                    .get_current_scope_mut()
-                    .get_expr_value(expr_id)
-                    .clone();
-                self.bind_value_to_ident(ident, expr_value);
+                self.bind_value_to_ident(ident, value);
             }
             PatKind::Tuple(pats) => {
-                let expr = self.get_expr(expr_id);
-                match &expr.kind {
-                    ExprKind::Tuple(exprs) => {
-                        assert!(pats.len() == exprs.len());
-                        for (pat_id, expr_id) in pats.iter().zip(exprs.iter()) {
-                            self.bind_expr_to_pat(*pat_id, *expr_id);
-                        }
-                    }
-                    _ => panic!("expected a tuple expression to bind to a tuple pattern"),
-                };
+                let tup = value.unwrap_tuple();
+                assert!(pats.len() == tup.len());
+                for (pat_id, value) in pats.iter().zip(tup.iter()) {
+                    self.bind_value_to_pat(*pat_id, value.clone());
+                }
             }
             PatKind::Discard => {
                 // Nothing to bind to.
@@ -228,8 +226,16 @@ impl<'a> PartialEvaluator<'a> {
             return Err(error);
         }
 
+        // Get the final value from the execution context.
+        let ret_val = self.eval_context.get_current_scope().last_expr_value();
+        let output_recording: Vec<Instruction> = self.generate_output_recording_instructions(
+            ret_val,
+            &self.get_expr(self.entry.expr.expr).ty,
+        );
+
         // Insert the return expression and return the generated program.
         let current_block = self.get_current_block_mut();
+        current_block.0.extend(output_recording);
         current_block.0.push(Instruction::Return);
         Ok(self.program)
     }
@@ -287,8 +293,8 @@ impl<'a> PartialEvaluator<'a> {
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
         match &expr.kind {
-            ExprKind::Array(_) => Err(Error::Unimplemented("Array Expr".to_string(), expr.span)),
-            ExprKind::ArrayLit(_) => Err(Error::Unimplemented("Array Lit".to_string(), expr.span)),
+            ExprKind::Array(exprs) => self.eval_expr_array(exprs),
+            ExprKind::ArrayLit(_) => panic!("array of literal values should always be classical"),
             ExprKind::ArrayRepeat(_, _) => {
                 Err(Error::Unimplemented("Array Repeat".to_string(), expr.span))
             }
@@ -483,8 +489,10 @@ impl<'a> PartialEvaluator<'a> {
         match callable_decl.name.name.as_ref() {
             "__quantum__rt__qubit_allocate" => self.allocate_qubit(),
             "__quantum__rt__qubit_release" => self.release_qubit(&args_value),
-            "__quantum__qis__m__body" => self.measure_qubit(mz_callable(), &args_value),
-            "__quantum__qis__mresetz__body" => self.measure_qubit(mresetz_callable(), &args_value),
+            "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), &args_value),
+            "__quantum__qis__mresetz__body" => {
+                self.measure_qubit(builder::mresetz_decl(), &args_value)
+            }
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
     }
@@ -542,9 +550,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // Check whether evaluating the block failed.
         if self.errors.is_empty() {
-            // Once we have proper support for evaluating all kinds of callables (not just parameterless unitary
-            // callables), we should the variable that stores the callable return value here.
-            Ok(Value::unit())
+            Ok(popped_scope.last_expr_value())
         } else {
             // Evaluating the block failed, generate an error specific to the callable.
             let global_callable = self
@@ -711,6 +717,19 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    fn eval_expr_array(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
+        let mut values = Vec::<Value>::new();
+        for expr_id in exprs {
+            let maybe_value = self.try_eval_expr(*expr_id);
+            let Ok(value) = maybe_value else {
+                let expr = self.get_expr(*expr_id);
+                return Err(Error::FailedToEvaluateArrayElementExpression(expr.span));
+            };
+            values.push(value);
+        }
+        Ok(Value::Array(values.into()))
+    }
+
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
         let mut values = Vec::<Value>::new();
         for expr_id in exprs {
@@ -793,7 +812,8 @@ impl<'a> PartialEvaluator<'a> {
                 let result_operand = Operand::Literal(Literal::Result(
                     id.try_into().expect("could not convert result ID to u32"),
                 ));
-                let read_result_callable_id = self.get_or_insert_callable(read_result_callable());
+                let read_result_callable_id =
+                    self.get_or_insert_callable(builder::read_result_decl());
                 let variable_id = self.resource_manager.next_var();
                 let variable_ty = rir::Ty::Boolean;
                 let variable = Variable {
@@ -938,8 +958,7 @@ impl<'a> PartialEvaluator<'a> {
     fn try_eval_block(&mut self, block_id: BlockId) -> Result<Value, ()> {
         self.visit_block(block_id);
         if self.errors.is_empty() {
-            // This should change eventually, but return UNIT for now.
-            Ok(Value::unit())
+            Ok(self.eval_context.get_current_scope().last_expr_value())
         } else {
             Err(())
         }
@@ -950,14 +969,180 @@ impl<'a> PartialEvaluator<'a> {
         // error.
         self.visit_expr(expr_id);
         if self.errors.is_empty() {
-            let expr_value = self
-                .eval_context
-                .get_current_scope()
-                .get_expr_value(expr_id);
-            Ok(expr_value.clone())
+            Ok(self.eval_context.get_current_scope().last_expr_value())
         } else {
             Err(())
         }
+    }
+
+    fn generate_output_recording_instructions(
+        &mut self,
+        ret_val: Value,
+        ty: &Ty,
+    ) -> Vec<Instruction> {
+        let mut instrs = Vec::new();
+
+        match ret_val {
+            Value::Array(vals) => {
+                let Ty::Array(elem_ty) = ty else {
+                    panic!("expected array type for array value");
+                };
+                let array_record_callable_id = self.get_array_record_callable();
+                instrs.push(Instruction::Call(
+                    array_record_callable_id,
+                    vec![
+                        Operand::Literal(Literal::Integer(
+                            vals.len()
+                                .try_into()
+                                .expect("array length should fit into u32"),
+                        )),
+                        Operand::Literal(Literal::Pointer),
+                    ],
+                    None,
+                ));
+                for val in vals.iter() {
+                    instrs
+                        .extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+                }
+            }
+            Value::Tuple(vals) => {
+                let Ty::Tuple(elem_tys) = ty else {
+                    panic!("expected tuple type for tuple value");
+                };
+                let tuple_record_callable_id = self.get_tuple_record_callable();
+                instrs.push(Instruction::Call(
+                    tuple_record_callable_id,
+                    vec![
+                        Operand::Literal(Literal::Integer(
+                            vals.len()
+                                .try_into()
+                                .expect("tuple length should fit into u32"),
+                        )),
+                        Operand::Literal(Literal::Pointer),
+                    ],
+                    None,
+                ));
+                for (val, elem_ty) in vals.iter().zip(elem_tys.iter()) {
+                    instrs
+                        .extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+                }
+            }
+
+            Value::Result(res) => {
+                let result_record_callable_id = self.get_result_record_callable();
+                instrs.push(Instruction::Call(
+                    result_record_callable_id,
+                    vec![
+                        Operand::Literal(Literal::Result(
+                            res.unwrap_id()
+                                .try_into()
+                                .expect("result id should fit into u32"),
+                        )),
+                        Operand::Literal(Literal::Pointer),
+                    ],
+                    None,
+                ));
+            }
+            Value::Var(var) => {
+                let (record_callable_id, record_ty) = match ty {
+                    Ty::Prim(Prim::Bool) => (self.get_bool_record_callable(), rir::Ty::Boolean),
+                    Ty::Prim(Prim::Int) => (self.get_int_record_callable(), rir::Ty::Integer),
+                    _ => panic!("unsupported variable type in output recording"),
+                };
+                instrs.push(Instruction::Call(
+                    record_callable_id,
+                    vec![
+                        Operand::Variable(Variable {
+                            variable_id: var.0.into(),
+                            ty: record_ty,
+                        }),
+                        Operand::Literal(Literal::Pointer),
+                    ],
+                    None,
+                ));
+            }
+
+            Value::BigInt(_)
+            | Value::Bool(_)
+            | Value::Closure(_)
+            | Value::Double(_)
+            | Value::Global(_, _)
+            | Value::Int(_)
+            | Value::Pauli(_)
+            | Value::Qubit(_)
+            | Value::Range(_)
+            | Value::String(_) => panic!("unsupported value type in output recording"),
+        }
+
+        instrs
+    }
+
+    fn get_array_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__array_record_output") {
+            return *id;
+        }
+
+        let callable = builder::array_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__array_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_tuple_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__tuple_record_output") {
+            return *id;
+        }
+
+        let callable = builder::tuple_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__tuple_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_result_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self
+            .callables_map
+            .get("__quantum__rt__result_record_output")
+        {
+            return *id;
+        }
+
+        let callable = builder::result_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__result_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_bool_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__bool_record_output") {
+            return *id;
+        }
+
+        let callable = builder::bool_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__bool_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_int_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__int_record_output") {
+            return *id;
+        }
+
+        let callable = builder::int_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__int_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
     }
 }
 
@@ -1027,13 +1212,16 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         let store_stmt_id = StoreStmtId::from((self.get_current_package_id(), stmt_id));
         let stmt = self.package_store.get_stmt(store_stmt_id);
         match stmt.kind {
-            StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
+            StmtKind::Expr(expr_id) => {
                 self.visit_expr(expr_id);
             }
+            StmtKind::Semi(expr_id) => {
+                self.visit_expr(expr_id);
+                self.eval_context.get_current_scope_mut().clear_last_expr();
+            }
             StmtKind::Local(_, pat_id, expr_id) => {
-                let maybe_expr_value = self.try_eval_expr(expr_id);
-                if maybe_expr_value.is_ok() {
-                    self.bind_expr_to_pat(pat_id, expr_id);
+                if let Ok(value) = self.try_eval_expr(expr_id) {
+                    self.bind_value_to_pat(pat_id, value);
                 }
             }
             StmtKind::Item(_) => {
@@ -1102,36 +1290,6 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Int => rir::Ty::Integer,
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
-    }
-}
-
-fn mresetz_callable() -> Callable {
-    Callable {
-        name: "__quantum__qis__mresetz__body".to_string(),
-        input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Measurement,
-    }
-}
-
-fn mz_callable() -> Callable {
-    Callable {
-        name: "__quantum__qis__mz__body".to_string(),
-        input_type: vec![rir::Ty::Qubit, rir::Ty::Result],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Measurement,
-    }
-}
-
-fn read_result_callable() -> Callable {
-    Callable {
-        name: "__quantum__rt__read_result__body".to_string(),
-        input_type: vec![rir::Ty::Result],
-        output_type: Some(rir::Ty::Boolean),
-        body: None,
-        call_type: CallableType::Readout,
     }
 }
 
