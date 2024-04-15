@@ -122,7 +122,7 @@ impl Compiler {
             self.language_features,
         );
 
-        self._compile_fragments(unit, ast, parse_errors, accumulate_errors)
+        self.compile_fragments_internal(unit, ast, parse_errors, accumulate_errors)
     }
 
     /// Compiles Q# AST fragments.
@@ -161,10 +161,10 @@ impl Compiler {
             vec![],
         );
 
-        self._compile_fragments(unit, ast, parse_errors, accumulate_errors)
+        self.compile_fragments_internal(unit, ast, parse_errors, accumulate_errors)
     }
 
-    fn _compile_fragments<F, E>(
+    fn compile_fragments_internal<F, E>(
         &mut self,
         unit: &mut CompileUnit,
         mut ast: ast::Package,
