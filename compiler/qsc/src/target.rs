@@ -9,7 +9,7 @@ use qsc_frontend::compile::RuntimeCapabilityFlags;
 pub enum Profile {
     Unrestricted,
     Base,
-    Adaptive,
+    Quantinuum,
 }
 
 impl Profile {
@@ -18,7 +18,7 @@ impl Profile {
         match self {
             Self::Unrestricted => "Unrestricted",
             Self::Base => "Base",
-            Self::Adaptive => "Adaptive",
+            Self::Quantinuum => "Quantinuum",
         }
     }
 }
@@ -28,7 +28,7 @@ impl From<Profile> for RuntimeCapabilityFlags {
         match value {
             Profile::Unrestricted => Self::all(),
             Profile::Base => Self::empty(),
-            Profile::Adaptive => Self::ForwardBranching,
+            Profile::Quantinuum => Self::ForwardBranching | Self::IntegerComputations,
         }
     }
 }
@@ -38,7 +38,7 @@ impl FromStr for Profile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Adaptive" | "adaptive" => Ok(Self::Adaptive),
+            "Quantinuum" | "quantinuum" => Ok(Self::Quantinuum),
             "Base" | "base" => Ok(Self::Base),
             "Unrestricted" | "unrestricted" => Ok(Self::Unrestricted),
             _ => Err(()),

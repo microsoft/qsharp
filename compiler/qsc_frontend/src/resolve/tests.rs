@@ -1952,7 +1952,7 @@ fn dropped_callable() {
     check(
         indoc! {"
             namespace A {
-                @Config(Base)
+                @Config(None)
                 function Dropped() : Unit {}
 
                 function B() : Unit {
@@ -1962,7 +1962,7 @@ fn dropped_callable() {
         "},
         &expect![[r#"
             namespace item0 {
-                @Config(Base)
+                @Config(None)
                 function Dropped() : Unit {}
 
                 function item1() : Unit {
@@ -1980,13 +1980,13 @@ fn multiple_definition_dropped_is_not_found() {
     check(
         indoc! {"
             namespace A {
-                @Config(Unrestricted)
+                @Config(ForwardBranching)
                 operation B() : Unit {}
-                @Config(Base)
+                @Config(None)
                 operation B() : Unit {}
-                @Config(Base)
+                @Config(None)
                 operation C() : Unit {}
-                @Config(Unrestricted)
+                @Config(ForwardBranching)
                 operation C() : Unit {}
             }
             namespace D {
@@ -2003,13 +2003,13 @@ fn multiple_definition_dropped_is_not_found() {
         "},
         &expect![[r#"
             namespace item0 {
-                @Config(Unrestricted)
+                @Config(ForwardBranching)
                 operation item1() : Unit {}
-                @Config(Base)
+                @Config(None)
                 operation B() : Unit {}
-                @Config(Base)
+                @Config(None)
                 operation C() : Unit {}
-                @Config(Unrestricted)
+                @Config(ForwardBranching)
                 operation item2() : Unit {}
             }
             namespace item3 {
@@ -2024,8 +2024,8 @@ fn multiple_definition_dropped_is_not_found() {
                 }
             }
 
-            // NotFound("B", Span { lo: 265, hi: 266 })
-            // NotFound("C", Span { lo: 278, hi: 279 })
+            // NotFound("B", Span { lo: 273, hi: 274 })
+            // NotFound("C", Span { lo: 286, hi: 287 })
         "#]],
     );
 }

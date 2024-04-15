@@ -243,7 +243,7 @@ fn conditional_compilation_not_available() {
             &mut CompileUnit::default(),
             "test_1",
             indoc! {"
-                @Config(Base)
+                @Config(None)
                 function Dropped() : Unit {}
 
                 function Usage() : Unit {

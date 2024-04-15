@@ -218,8 +218,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
     /// ```
-    @Config(Adaptive)
-    @Config(Unrestricted)
+    @Config(ForwardBranching)
     operation M(qubit : Qubit) : Result {
         __quantum__qis__m__body(qubit)
     }
@@ -250,7 +249,7 @@ namespace Microsoft.Quantum.Intrinsic {
     /// ```qsharp
     /// Measure([PauliZ], [qubit]);
     /// ```
-    @Config(Base)
+    @Config(None)
     operation M(qubit : Qubit) : Result {
         Measure([PauliZ], [qubit])
     }
@@ -291,8 +290,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
-    @Config(Adaptive)
-    @Config(Unrestricted)
+    @Config(ForwardBranching)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
             fail "Arrays 'bases' and 'qubits' must be of the same length.";
@@ -352,7 +350,7 @@ namespace Microsoft.Quantum.Intrinsic {
     ///
     /// If the basis array and qubit array are different lengths, then the
     /// operation will fail.
-    @Config(Base)
+    @Config(None)
     operation Measure(bases : Pauli[], qubits : Qubit[]) : Result {
         if Length(bases) != Length(qubits) {
             fail "Arrays 'bases' and 'qubits' must be of the same length.";

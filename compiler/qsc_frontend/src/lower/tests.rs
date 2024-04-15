@@ -94,24 +94,7 @@ fn test_target_profile_base_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @Config(Base)
-                operation Foo() : Unit {
-                    body ... {}
-                }
-            }
-        "},
-        &expect![[r#"
-            []
-        "#]],
-    );
-}
-
-#[test]
-fn test_target_profile_full_attr_allowed() {
-    check_errors(
-        indoc! {"
-            namespace input {
-                @Config(Unrestricted)
+                @Config(None)
                 operation Foo() : Unit {
                     body ... {}
                 }
@@ -137,7 +120,7 @@ fn test_target_profile_attr_wrong_args() {
         &expect![[r#"
             [
                 InvalidAttrArgs(
-                    "Unrestricted or Base",
+                    "runtime capability",
                     Span {
                         lo: 29,
                         hi: 34,

@@ -48,48 +48,19 @@ bitflags! {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ConfigAttr {
-    Adaptive,
-    Base,
-    Unrestricted,
-}
-
-impl ConfigAttr {
-    #[must_use]
-    pub fn to_str(&self) -> &'static str {
-        match self {
-            Self::Adaptive => "Adaptive",
-            Self::Base => "Base",
-            Self::Unrestricted => "Unrestricted",
-        }
-    }
-
-    #[must_use]
-    pub fn is_target_str(s: &str) -> bool {
-        Self::from_str(s).is_ok()
-    }
-}
-
-impl FromStr for ConfigAttr {
+impl FromStr for RuntimeCapabilityFlags {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Adaptive" => Ok(ConfigAttr::Adaptive),
-            "Base" => Ok(ConfigAttr::Base),
-            "Unrestricted" => Ok(ConfigAttr::Unrestricted),
+            "Base" | "None" => Ok(RuntimeCapabilityFlags::empty()),
+            "ForwardBranching" => Ok(RuntimeCapabilityFlags::ForwardBranching),
+            "IntegerComputations" => Ok(RuntimeCapabilityFlags::IntegerComputations),
+            "FloatingPointComputations" => Ok(RuntimeCapabilityFlags::FloatingPointComputations),
+            "BackwardsBranching" => Ok(RuntimeCapabilityFlags::BackwardsBranching),
+            "HigherLevelConstructs" => Ok(RuntimeCapabilityFlags::HigherLevelConstructs),
+            "Unrestricted" => Ok(RuntimeCapabilityFlags::all()),
             _ => Err(()),
-        }
-    }
-}
-
-impl From<ConfigAttr> for RuntimeCapabilityFlags {
-    fn from(value: ConfigAttr) -> Self {
-        match value {
-            ConfigAttr::Unrestricted => Self::all(),
-            ConfigAttr::Base => Self::empty(),
-            ConfigAttr::Adaptive => Self::ForwardBranching,
         }
     }
 }
