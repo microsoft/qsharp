@@ -96,21 +96,28 @@ impl Scope {
 
         // Add the static values to the environment.
         let mut env = Env::default();
+        let mut hybrid_vars = FxHashMap::default();
         let arg_runtime_kind_tuple = args.into_iter().zip(args_runtime_kind.iter());
         for (arg, value_kind) in arg_runtime_kind_tuple {
-            if !value_kind.is_dynamic() {
-                if let Arg::Var(local_var_id, var) = arg {
-                    env.bind_variable_in_top_frame(local_var_id, var);
-                }
+            let Arg::Var(local_var_id, var) = arg else {
+                continue;
+            };
+
+            if value_kind.is_dynamic() {
+                hybrid_vars.insert(local_var_id, var.value);
+            } else {
+                env.bind_variable_in_top_frame(local_var_id, var);
             }
         }
+
+        // Add the dynamic values to the hybrid variables
         Self {
             package_id,
             callable,
             args_value_kind: args_runtime_kind,
             env,
             hybrid_exprs: FxHashMap::default(),
-            hybrid_vars: FxHashMap::default(),
+            hybrid_vars,
         }
     }
 
@@ -165,7 +172,9 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
     match value {
         Value::Array(elements) => map_array_eval_value_to_value_kind(elements),
         Value::Tuple(elements) => map_tuple_eval_value_to_value_kind(elements),
-        Value::Result(_) | Value::Var(_) => ValueKind::Element(RuntimeKind::Dynamic),
+        Value::Qubit(_) | Value::Result(_) | Value::Var(_) => {
+            ValueKind::Element(RuntimeKind::Dynamic)
+        }
         Value::BigInt(_)
         | Value::Bool(_)
         | Value::Closure(_)
@@ -173,8 +182,6 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Global(_, _)
         | Value::Int(_)
         | Value::Pauli(_)
-        // We assume there are no dynamically allocated qubits
-        | Value::Qubit(_)
         | Value::Range(_)
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
     }
