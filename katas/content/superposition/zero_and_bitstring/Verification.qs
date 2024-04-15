@@ -19,9 +19,9 @@ namespace Kata.Verification {
             let bits = IntAsBoolArray(i, qubits);
             Message($"Testing for bits = {bits}...");
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-            Kata.ZeroAndBitstringSuperposition(_, bits),
-            ZeroAndBitstringSuperposition_Reference(_, bits),
-            qubits) {
+                Kata.ZeroAndBitstringSuperposition(_, bits),
+                ZeroAndBitstringSuperposition_Reference(_, bits),
+                qubits) {
                 return false;
             }
         }
