@@ -1,4 +1,5 @@
 namespace Kata.Verification {
+    open Microsoft.Quantum.Katas;
 
     // Distinguish |+❭ and |-❭ using Measure operation
     operation StatePrep_IsQubitMinus (q : Qubit, state : Int) : Unit is Adj {
@@ -14,7 +15,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        let isCorrect = DistinguishTwoStates(
+        let isCorrect = DistinguishTwoStates_SingleQubit(
             StatePrep_IsQubitMinus,
             Kata.IsQubitMinus,
             ["|+⟩", "|-⟩"],

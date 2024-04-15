@@ -20,10 +20,7 @@ namespace Kata.Verification {
             Message("Incorrect.");
             Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                 "transformation");
-            use initial = Qubit[3]; // |000〉
-            PrepRandomState(initial);
-            ShowQuantumStateComparison(initial, Kata.IsSeven_PhaseOracle, IsSeven_PhaseOracle_Reference);
-            ResetAll(initial);
+            ShowQuantumStateComparison(3, PrepRandomState, Kata.IsSeven_PhaseOracle, IsSeven_PhaseOracle_Reference);
         }
         isCorrect
     }
