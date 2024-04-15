@@ -70,6 +70,7 @@ $$
 This approach can be generalized to larger systems and gates that act on multiple qubits as well.
 It can be less straightforward when a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this kata.
 
+
 @[exercise]({
     "id": "multi_qubit_gates__compound_gate",
     "title": "Compound Gate",
@@ -78,6 +79,7 @@ It can be less straightforward when a multi-qubit gate is applied to a subset of
         "../KatasLibrary.qs"
     ]
 })
+
 
 @[section]({
     "id": "multi_qubit_gates__cnot_gate",
@@ -125,6 +127,14 @@ The $CNOT$ gate is self-adjoint: applying it for the second time reverses its ef
     "id": "multi_qubit_gates__preparing_bell_state",
     "title": "Preparing a Bell State",
     "path": "./preparing_bell_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+@[exercise]({
+    "id": "multi_qubit_gates__two_qubit_gate_1",
+    "title": "Two Qubit Gate Controll Not",
+    "path": "./two_qubit_gate_1/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
@@ -259,7 +269,14 @@ The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantu
         </td>
     </tr>
 </table>
-
+@[exercise]({
+    "id": "multi_qubit_gates__two_qubit_gate_3",
+    "title": "Two Qubit Gate Qubit Swap",
+    "path": "./two_qubit_gate_3/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 @[exercise]({
     "id": "multi_qubit_gates__qubit_swap",
     "title": "Qubit SWAP",
@@ -268,6 +285,7 @@ The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantu
         "../KatasLibrary.qs"
     ]
 })
+
 
 @[section]({
     "id": "multi_qubit_gates__acting_on_non_adjacent_qubits",
@@ -560,6 +578,14 @@ The sequence of steps that implement this variant are:
 1. Apply the $X$ gate to each control qubit that corresponds to a `false` element of the bit mask (in the example, that's just the second qubit). After this, if the control qubits started in the $|10\rangle$ state, they'll end up in the $|11\rangle$ state, and if they started in any other state, they'll end up in any state but $|11\rangle$.
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
+@[exercise]({
+    "id": "multi_qubit_gates__two_qubit_gate_2",
+    "title": "Two Qubit Gate Controll Z",
+    "path": "./two_qubit_gate_2/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 @[exercise]({
     "id": "multi_qubit_gates__arbitrary_controls",
