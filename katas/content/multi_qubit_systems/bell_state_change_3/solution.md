@@ -2,7 +2,7 @@ We remember from Task "Sign flip" that the Pauli-Z gate leaves the sign of the $
 
 First of all, which qubit? Looking back at"Bell state change 2", it seems clear that we need to use qubit `qs[0]`, like we did there.
 
-Second, in what order should we apply the gates? Remember that the Pauli-Z gate flips the phase of the $|1\rangle$ component of the superposition and leaves the $|0\rangle$ component alone.  
+Second, in what order should we apply the gates? Remember that the Pauli Z gate flips the phase of the $|1\rangle$ component of the superposition and leaves the $|0\rangle$ component alone.
 Let's experiment with applying X to `qs[0]` first. Looking at our "halfway answer" state $\frac{1}{\sqrt{2}} \big(|01\rangle + |10\rangle\big)$, we can see that if we apply the Z gate to `qs[0]`, it will leave the $|0_{A}\rangle$ alone but flip the phase of $|1_{A}\rangle$ to $-|1_{A}\rangle$, thus flipping the phase of the $|11\rangle$ component of our Bell state.
 
 @[solution]({
