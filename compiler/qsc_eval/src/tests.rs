@@ -3,7 +3,6 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use core::panic;
 use std::rc::Rc;
 
 use crate::{
@@ -173,7 +172,7 @@ fn check_partial_eval_stmt(
             &mut GenericReceiver::new(&mut out),
         ) {
             Ok(_) => {}
-            Err(err) => panic!("Unexpected error: {:?}", err),
+            Err(err) => panic!("Unexpected error: {err:?}"),
         }
     }
 

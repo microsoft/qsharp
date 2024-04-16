@@ -4,7 +4,6 @@
 mod evaluation_context;
 mod management;
 
-use core::panic;
 use evaluation_context::{BlockNode, EvaluationContext, Scope};
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
