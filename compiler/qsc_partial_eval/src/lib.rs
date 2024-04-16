@@ -237,6 +237,19 @@ impl<'a> PartialEvaluator<'a> {
         let current_block = self.get_current_block_mut();
         current_block.0.extend(output_recording);
         current_block.0.push(Instruction::Return);
+
+        // Set the number of qubits and results used by the program.
+        self.program.num_qubits = self
+            .resource_manager
+            .qubit_count()
+            .try_into()
+            .expect("qubits count should fit into a u32");
+        self.program.num_results = self
+            .resource_manager
+            .results_count()
+            .try_into()
+            .expect("results count should fit into a u32");
+
         Ok(self.program)
     }
 

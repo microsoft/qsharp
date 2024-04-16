@@ -60,6 +60,8 @@ fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
             Call id(2), args( Result(0), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }
 
 #[test]
@@ -112,6 +114,8 @@ fn result_ids_are_correct_for_measuring_one_qubit() {
             Call id(2), args( Result(0), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }
 
 #[test]
@@ -258,6 +262,8 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times_into_array() {
             Call id(3), args( Result(2), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 3);
 }
 
 #[test]
@@ -331,6 +337,8 @@ fn result_ids_are_correct_for_measuring_multiple_qubits() {
             Call id(3), args( Result(2), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 3);
+    assert_eq!(program.num_results, 3);
 }
 
 #[test]
@@ -402,6 +410,8 @@ fn comparing_measurement_results_for_equality_adds_read_result_and_comparison_in
             Call id(3), args( Variable(2, Boolean), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 2);
+    assert_eq!(program.num_results, 2);
 }
 
 #[test]
@@ -473,6 +483,8 @@ fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_
             Call id(3), args( Variable(2, Boolean), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 2);
+    assert_eq!(program.num_results, 2);
 }
 
 #[test]
@@ -542,6 +554,8 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
             Call id(3), args( Variable(1, Boolean), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }
 
 #[test]
@@ -611,4 +625,6 @@ fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_
             Call id(3), args( Variable(1, Boolean), Pointer, )
             Return"#]],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }
