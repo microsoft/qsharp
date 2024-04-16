@@ -57,7 +57,9 @@ fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classic
             body: <NONE>"#]],
     );
 
-    assert_blocks(&program, &expect![[r#"
+    assert_blocks(
+        &program,
+        &expect![[r#"
         Blocks:
         Block 0:Block:
             Call id(1), args( Qubit(0), Result(0), )
@@ -72,7 +74,8 @@ fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classic
             Jump(1)
         Block 3:Block:
             Variable(2, Integer) = Store Integer(1)
-            Jump(1)"#]]);
+            Jump(1)"#]],
+    );
 }
 
 #[test]
