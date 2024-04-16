@@ -5,11 +5,12 @@
 
 pub mod test_utils;
 
+use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{BlockId, CallableId, Instruction, Literal, Operand, Ty, Variable};
+use qsc_rir::rir::{BlockId, CallableId};
 use test_utils::{
     assert_block_instructions, assert_block_last_instruction, assert_callable,
-    compile_and_partially_evaluate, mresetz_callable, read_result_callable,
+    compile_and_partially_evaluate,
 };
 
 #[test]
@@ -30,9 +31,32 @@ fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classic
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
 
     // Set the IDs of the blocks we want to verify.
     let initial_block_id = BlockId(0);
@@ -41,41 +65,41 @@ fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classic
     let else_block_id = BlockId(3);
 
     // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Create the expected variable that will hold the dynamic integer value.
-    let dynamic_int_var = Variable {
-        variable_id: 2.into(),
-        ty: Ty::Integer,
-    };
+    assert_block_last_instruction(
+        &program,
+        initial_block_id,
+        &expect!["Branch Variable(1, Boolean), 2, 3"],
+    );
 
     // Verify the instructions in the if-block.
     assert_block_instructions(
         &program,
         if_block_id,
-        &[
-            Instruction::Store(Operand::Literal(Literal::Integer(0)), dynamic_int_var),
-            Instruction::Jump(continuation_block_id),
-        ],
+        &expect![[r#"
+        Block:
+            Variable(2, Integer) = Store Integer(0)
+            Jump(1)"#]],
     );
 
     // Verify the instructions in the else-block.
     assert_block_instructions(
         &program,
         else_block_id,
-        &[
-            Instruction::Store(Operand::Literal(Literal::Integer(1)), dynamic_int_var),
-            Instruction::Jump(continuation_block_id),
-        ],
+        &expect![[r#"
+        Block:
+            Variable(2, Integer) = Store Integer(1)
+            Jump(1)"#]],
     );
 
     // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
+    assert_block_instructions(
+        &program,
+        continuation_block_id,
+        &expect![[r#"
+        Block:
+            Call id(3), args( Integer(0), Pointer, )
+            Return"#]],
+    );
 }
 
 #[test]
