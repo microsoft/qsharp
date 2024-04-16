@@ -143,6 +143,10 @@ fn callable_specs() {
                 operation op7() : Unit is Adj * Adj {
                     body ... {}
                 }
+                operation op8() : Unit is (Adj) {}
+                operation op9(bar: () => Unit is Ctl) : Unit {}
+                operation op10(bar: () => Unit is Adj) : Unit {}
+                operation op11(bar: () => Unit is Adj + Ctl) : Unit {}
             }"#},
         None,
         &expect![[r#"
@@ -194,6 +198,10 @@ fn callable_specs() {
                 operation op7() : Unit is Adj * Adj {
                     body ... {}
                 }
+                operation op8() : Unit is (Adj) {}
+                operation op9(bar : () => Unit is Ctl) : Unit {}
+                operation op10(bar : () => Unit is Adj) : Unit {}
+                operation op11(bar : () => Unit is Adj + Ctl) : Unit {}
             }"#]],
     );
 }

@@ -74,7 +74,7 @@ where
     }
 
     pub fn write(&mut self, args: &str) {
-        let _ = write!(&mut self.output, "{args}");
+        write!(&mut self.output, "{args}").expect("write failed");
     }
 
     pub fn writeln(&mut self, args: &str) {
@@ -125,9 +125,9 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             ItemKind::Open(ns, alias) => {
                 self.write("open ");
                 self.visit_ident(ns);
-                for a in alias {
+                if let Some(alias) = alias {
                     self.write(" as ");
-                    self.visit_ident(a);
+                    self.visit_ident(alias);
                 }
                 self.writeln(";");
             }
@@ -206,7 +206,6 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         if let Some(functors) = decl.functors.as_deref() {
             self.write(" is ");
             self.visit_functor_expr(functors);
-            self.writeln("");
         }
 
         match &*decl.body {
@@ -258,9 +257,9 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 Functor::Ctl => self.write("Ctl"),
             },
             FunctorExprKind::Paren(expr) => {
-                self.write("{");
+                self.write("(");
                 self.visit_functor_expr(expr);
-                self.write("}");
+                self.write(")");
             }
         }
     }
@@ -278,7 +277,10 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                     CallableKind::Operation => self.write(" => "),
                 }
                 self.visit_ty(rhs);
-                functors.iter().for_each(|f| self.visit_functor_expr(f));
+                if let Some(functors) = functors.as_deref() {
+                    self.write(" is ");
+                    self.visit_functor_expr(functors);
+                }
             }
             TyKind::Hole => self.write("_"),
             TyKind::Paren(ty) => {
@@ -290,7 +292,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             TyKind::Param(name) => self.visit_ident(name),
             TyKind::Tuple(tys) => {
                 if tys.is_empty() {
-                    self.write("Unit");
+                    self.write("()");
                 } else {
                     self.write("(");
                     if let Some((last, most)) = tys.split_last() {
