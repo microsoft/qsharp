@@ -25,7 +25,7 @@ class TargetProfile:
     Target supports Quantinuum profile.
 
     This option maps to the Adaptive Profile as defined by the QIR
-    specification with integer computations and reset extensions.
+    specification with integer computations and qubit reset extensions.
     """
 
     Unrestricted: ClassVar[Any]

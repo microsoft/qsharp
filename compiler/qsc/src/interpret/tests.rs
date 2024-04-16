@@ -524,7 +524,7 @@ mod given_interpreter {
                 );
             }
             let mut interpreter =
-                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+                get_interpreter_with_capbilities(RuntimeCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -556,7 +556,7 @@ mod given_interpreter {
                 );
             }
             let mut interpreter =
-                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+                get_interpreter_with_capbilities(RuntimeCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -718,7 +718,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::ForwardBranching,
+                RuntimeCapabilityFlags::Adaptive,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -778,7 +778,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::ForwardBranching,
+                RuntimeCapabilityFlags::Adaptive,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");

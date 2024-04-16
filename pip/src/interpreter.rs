@@ -44,6 +44,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
+// This ordering must match the _native.pyi file.
 #[derive(Clone, Copy)]
 #[pyclass(unsendable)]
 /// A Q# target profile.
@@ -58,7 +59,7 @@ pub(crate) enum TargetProfile {
     /// Target supports Quantinuum profile.
     ///
     /// This option maps to the Adaptive Profile as defined by the QIR
-    /// specification with integer computations and reset extensions.
+    /// specification with integer computations and qubit reset extensions.
     Quantinuum,
     /// Target supports the full set of capabilities required to run any Q# program.
     ///

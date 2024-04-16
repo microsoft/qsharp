@@ -18,7 +18,7 @@ use expect_test::{expect, Expect};
 use qsc_frontend::compile::RuntimeCapabilityFlags;
 
 fn check_profile(source: &str, expect: &Expect) {
-    check(source, expect, RuntimeCapabilityFlags::ForwardBranching);
+    check(source, expect, RuntimeCapabilityFlags::Adaptive);
 }
 
 #[test]

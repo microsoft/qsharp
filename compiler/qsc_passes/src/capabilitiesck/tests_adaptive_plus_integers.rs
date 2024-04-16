@@ -23,7 +23,7 @@ fn check_profile(source: &str, expect: &Expect) {
     check(
         source,
         expect,
-        RuntimeCapabilityFlags::ForwardBranching | RuntimeCapabilityFlags::IntegerComputations,
+        RuntimeCapabilityFlags::Adaptive | RuntimeCapabilityFlags::IntegerComputations,
     );
 }
 

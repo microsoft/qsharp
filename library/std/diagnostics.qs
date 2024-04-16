@@ -69,12 +69,12 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    @Config(ForwardBranching)
+    @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
-    @Config(ForwardBranching)
+    @Config(Unrestricted)
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
             if not CheckZero(q) {
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.Diagnostics {
     /// Operation defining the expected behavior for the operation under test.
     /// # Output
     /// True if operations are equal, false otherwise.
-    @Config(ForwardBranching)
+    @Config(Unrestricted)
     operation CheckOperationsAreEqual(
         nQubits : Int,
         actual : (Qubit[] => Unit),

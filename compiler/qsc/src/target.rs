@@ -28,7 +28,7 @@ impl From<Profile> for RuntimeCapabilityFlags {
         match value {
             Profile::Unrestricted => Self::all(),
             Profile::Base => Self::empty(),
-            Profile::Quantinuum => Self::ForwardBranching | Self::IntegerComputations,
+            Profile::Quantinuum => Self::Adaptive | Self::IntegerComputations | Self::QubitReset,
         }
     }
 }

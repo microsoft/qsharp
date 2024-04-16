@@ -40,11 +40,12 @@ use thiserror::Error;
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
     pub struct RuntimeCapabilityFlags: u32 {
-        const ForwardBranching = 0b0000_0001;
+        const Adaptive = 0b0000_0001;
         const IntegerComputations = 0b0000_0010;
         const FloatingPointComputations = 0b0000_0100;
         const BackwardsBranching = 0b0000_1000;
         const HigherLevelConstructs = 0b0001_0000;
+        const QubitReset = 0b0010_0000;
     }
 }
 
@@ -54,11 +55,12 @@ impl FromStr for RuntimeCapabilityFlags {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Base" | "None" => Ok(RuntimeCapabilityFlags::empty()),
-            "ForwardBranching" => Ok(RuntimeCapabilityFlags::ForwardBranching),
+            "Adaptive" => Ok(RuntimeCapabilityFlags::Adaptive),
             "IntegerComputations" => Ok(RuntimeCapabilityFlags::IntegerComputations),
             "FloatingPointComputations" => Ok(RuntimeCapabilityFlags::FloatingPointComputations),
             "BackwardsBranching" => Ok(RuntimeCapabilityFlags::BackwardsBranching),
             "HigherLevelConstructs" => Ok(RuntimeCapabilityFlags::HigherLevelConstructs),
+            "QubitReset" => Ok(RuntimeCapabilityFlags::QubitReset),
             "Unrestricted" => Ok(RuntimeCapabilityFlags::all()),
             _ => Err(()),
         }

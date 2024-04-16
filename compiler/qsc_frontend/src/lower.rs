@@ -30,7 +30,7 @@ pub(super) enum Error {
     UnknownAttr(String, #[label] Span),
     #[error("invalid attribute arguments: expected {0}")]
     #[diagnostic(code("Qsc.LowerAst.InvalidAttrArgs"))]
-    InvalidAttrArgs(&'static str, #[label] Span),
+    InvalidAttrArgs(String, #[label] Span),
     #[error("missing callable body")]
     #[diagnostic(code("Qsc.LowerAst.MissingBody"))]
     MissingBody(#[label] Span),
@@ -213,7 +213,7 @@ impl With<'_> {
                 _ => {
                     self.lowerer
                         .errors
-                        .push(Error::InvalidAttrArgs("()", attr.arg.span));
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
                     None
                 }
             },
@@ -222,7 +222,7 @@ impl With<'_> {
                 _ => {
                     self.lowerer
                         .errors
-                        .push(Error::InvalidAttrArgs("()", attr.arg.span));
+                        .push(Error::InvalidAttrArgs("()".to_string(), attr.arg.span));
                     None
                 }
             },
@@ -231,9 +231,10 @@ impl With<'_> {
                     if matches!(inner.kind.as_ref(), ast::ExprKind::Path(path)
                         if RuntimeCapabilityFlags::from_str(path.name.name.as_ref()).is_ok()))
                 {
-                    self.lowerer
-                        .errors
-                        .push(Error::InvalidAttrArgs("runtime capability", attr.arg.span));
+                    self.lowerer.errors.push(Error::InvalidAttrArgs(
+                        "runtime capability".to_string(),
+                        attr.arg.span,
+                    ));
                 }
                 None
             }

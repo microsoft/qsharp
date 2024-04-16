@@ -1980,13 +1980,13 @@ fn multiple_definition_dropped_is_not_found() {
     check(
         indoc! {"
             namespace A {
-                @Config(ForwardBranching)
+                @Config(Adaptive)
                 operation B() : Unit {}
                 @Config(None)
                 operation B() : Unit {}
                 @Config(None)
                 operation C() : Unit {}
-                @Config(ForwardBranching)
+                @Config(Adaptive)
                 operation C() : Unit {}
             }
             namespace D {
@@ -2003,13 +2003,13 @@ fn multiple_definition_dropped_is_not_found() {
         "},
         &expect![[r#"
             namespace item0 {
-                @Config(ForwardBranching)
+                @Config(Adaptive)
                 operation item1() : Unit {}
                 @Config(None)
                 operation B() : Unit {}
                 @Config(None)
                 operation C() : Unit {}
-                @Config(ForwardBranching)
+                @Config(Adaptive)
                 operation item2() : Unit {}
             }
             namespace item3 {
@@ -2024,8 +2024,8 @@ fn multiple_definition_dropped_is_not_found() {
                 }
             }
 
-            // NotFound("B", Span { lo: 273, hi: 274 })
-            // NotFound("C", Span { lo: 286, hi: 287 })
+            // NotFound("B", Span { lo: 257, hi: 258 })
+            // NotFound("C", Span { lo: 270, hi: 271 })
         "#]],
     );
 }

@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    @Config(ForwardBranching)
+    @Config(Adaptive)
     internal operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         body ... {
             __quantum__qis__ccx__body(control1, control2, target);

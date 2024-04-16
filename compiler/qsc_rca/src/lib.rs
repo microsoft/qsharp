@@ -773,7 +773,7 @@ impl RuntimeFeatureFlags {
     pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
         let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
         if self.contains(RuntimeFeatureFlags::UseOfDynamicBool) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            runtume_capabilities |= RuntimeCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicInt) {
             runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
@@ -824,13 +824,13 @@ impl RuntimeFeatureFlags {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            runtume_capabilities |= RuntimeCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
             runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::ReturnWithinDynamicScope) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            runtume_capabilities |= RuntimeCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
             runtume_capabilities |= RuntimeCapabilityFlags::BackwardsBranching;
