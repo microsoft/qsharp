@@ -55,10 +55,10 @@ fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(2), args( Result(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(2), args( Result(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 1);
     assert_eq!(program.num_results, 1);
@@ -109,10 +109,10 @@ fn result_ids_are_correct_for_measuring_one_qubit() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(2), args( Result(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(2), args( Result(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 1);
     assert_eq!(program.num_results, 1);
@@ -179,15 +179,15 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(0), Result(1), )
-            Call id(1), args( Qubit(0), Result(2), )
-            Call id(2), args( Integer(3), Pointer, )
-            Call id(3), args( Result(0), Pointer, )
-            Call id(3), args( Result(1), Pointer, )
-            Call id(3), args( Result(2), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(0), Result(1), )
+                Call id(1), args( Qubit(0), Result(2), )
+                Call id(2), args( Integer(3), Pointer, )
+                Call id(3), args( Result(0), Pointer, )
+                Call id(3), args( Result(1), Pointer, )
+                Call id(3), args( Result(2), Pointer, )
+                Return"#]],
     );
 }
 
@@ -252,15 +252,15 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times_into_array() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(0), Result(1), )
-            Call id(1), args( Qubit(0), Result(2), )
-            Call id(2), args( Integer(3), Pointer, )
-            Call id(3), args( Result(0), Pointer, )
-            Call id(3), args( Result(1), Pointer, )
-            Call id(3), args( Result(2), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(0), Result(1), )
+                Call id(1), args( Qubit(0), Result(2), )
+                Call id(2), args( Integer(3), Pointer, )
+                Call id(3), args( Result(0), Pointer, )
+                Call id(3), args( Result(1), Pointer, )
+                Call id(3), args( Result(2), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 1);
     assert_eq!(program.num_results, 3);
@@ -327,15 +327,15 @@ fn result_ids_are_correct_for_measuring_multiple_qubits() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(1), Result(1), )
-            Call id(1), args( Qubit(2), Result(2), )
-            Call id(2), args( Integer(3), Pointer, )
-            Call id(3), args( Result(0), Pointer, )
-            Call id(3), args( Result(1), Pointer, )
-            Call id(3), args( Result(2), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Call id(1), args( Qubit(2), Result(2), )
+                Call id(2), args( Integer(3), Pointer, )
+                Call id(3), args( Result(0), Pointer, )
+                Call id(3), args( Result(1), Pointer, )
+                Call id(3), args( Result(2), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 3);
     assert_eq!(program.num_results, 3);
@@ -401,14 +401,14 @@ fn comparing_measurement_results_for_equality_adds_read_result_and_comparison_in
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(1), Result(1), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Call id(2), args( Result(1), )
-            Variable(2, Boolean) = Icmp Eq, Variable(0, Boolean), Variable(1, Boolean)
-            Call id(3), args( Variable(2, Boolean), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Call id(2), args( Result(1), )
+                Variable(2, Boolean) = Icmp Eq, Variable(0, Boolean), Variable(1, Boolean)
+                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 2);
     assert_eq!(program.num_results, 2);
@@ -474,14 +474,14 @@ fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(1), args( Qubit(1), Result(1), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Call id(2), args( Result(1), )
-            Variable(2, Boolean) = Icmp Ne, Variable(0, Boolean), Variable(1, Boolean)
-            Call id(3), args( Variable(2, Boolean), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(1), args( Qubit(1), Result(1), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Call id(2), args( Result(1), )
+                Variable(2, Boolean) = Icmp Ne, Variable(0, Boolean), Variable(1, Boolean)
+                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 2);
     assert_eq!(program.num_results, 2);
@@ -547,12 +547,12 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-            Call id(3), args( Variable(1, Boolean), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Call id(3), args( Variable(1, Boolean), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 1);
     assert_eq!(program.num_results, 1);
@@ -618,12 +618,12 @@ fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(false)
-            Call id(3), args( Variable(1, Boolean), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(false)
+                Call id(3), args( Variable(1, Boolean), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 1);
     assert_eq!(program.num_results, 1);

@@ -11,11 +11,8 @@ pub mod test_utils;
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{
-    assert_block_instructions, assert_block_last_instruction, assert_callable,
-    compile_and_partially_evaluate,
-};
+use qsc_rir::rir::CallableId;
+use test_utils::{assert_blocks, assert_callable, compile_and_partially_evaluate};
 
 #[test]
 fn if_expression_with_true_condition() {
@@ -46,11 +43,11 @@ fn if_expression_with_true_condition() {
             output_type: <VOID>
             body: <NONE>"#]],
     );
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        BlockId(0),
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
             Call id(1), args( Qubit(0), )
             Call id(2), args( Integer(0), Pointer, )
             Return"#]],
@@ -73,11 +70,11 @@ fn if_expression_with_false_condition() {
         }
         "#,
     });
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        BlockId(0),
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
             Call id(1), args( Integer(0), Pointer, )
             Return"#]],
     );
@@ -115,11 +112,11 @@ fn if_else_expression_with_true_condition() {
             output_type: <VOID>
             body: <NONE>"#]],
     );
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        BlockId(0),
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
             Call id(1), args( Qubit(0), )
             Call id(2), args( Integer(0), Pointer, )
             Return"#]],
@@ -158,11 +155,11 @@ fn if_else_expression_with_false_condition() {
             output_type: <VOID>
             body: <NONE>"#]],
     );
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        BlockId(0),
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
             Call id(1), args( Qubit(0), )
             Call id(2), args( Integer(0), Pointer, )
             Return"#]],
@@ -204,11 +201,11 @@ fn if_elif_else_expression_with_true_elif_condition() {
             output_type: <VOID>
             body: <NONE>"#]],
     );
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        BlockId(0),
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
             Call id(1), args( Qubit(0), )
             Call id(2), args( Integer(0), Pointer, )
             Return"#]],
@@ -275,36 +272,21 @@ fn if_expression_with_dynamic_condition() {
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 1"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
-            Call id(4), args( Integer(0), Pointer, )
-            Return"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 1
+            Block 1:Block:
+                Call id(4), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(0), )
+                Jump(1)"#]],
     );
 }
 
@@ -384,47 +366,24 @@ fn if_else_expression_with_dynamic_condition() {
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 3"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(5), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
             Call id(3), args( Qubit(0), )
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
-        &program,
-        else_block_id,
-        &expect![[r#"
-        Block:
+            Jump(1)
+        Block 3:Block:
             Call id(4), args( Qubit(0), )
             Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
-            Call id(5), args( Integer(0), Pointer, )
-            Return"#]],
     );
 }
 
@@ -521,66 +480,34 @@ fn if_elif_else_expression_with_dynamic_condition() {
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-    let nested_if_block_id = BlockId(5);
-    let nested_else_block_id = BlockId(6);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 3"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(6), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
             Call id(3), args( Qubit(2), )
-            Jump(1)"#]],
-    );
-
-    // Verify the branch instruction in the else-block.
-    assert_block_last_instruction(
-        &program,
-        else_block_id,
-        &expect!["Branch Variable(3, Boolean), 5, 6"],
-    );
-
-    // Verify the instructions in the nested-if-block.
-    assert_block_instructions(
-        &program,
-        nested_if_block_id,
-        &expect![[r#"
-        Block:
+            Jump(1)
+        Block 3:Block:
+            Variable(2, Boolean) = Call id(2), args( Result(1), )
+            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+            Branch Variable(3, Boolean), 5, 6
+        Block 4:Block:
+            Jump(1)
+        Block 5:Block:
             Call id(4), args( Qubit(2), )
-            Jump(4)"#]],
-    );
-
-    // Verify the instructions in the nested-else-block.
-    assert_block_instructions(
-        &program,
-        nested_else_block_id,
-        &expect![[r#"
-        Block:
+            Jump(4)
+        Block 6:Block:
             Call id(5), args( Qubit(2), )
             Jump(4)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
-            Call id(6), args( Integer(0), Pointer, )
-            Return"#]],
     );
 }
 
@@ -646,36 +573,21 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_true_condi
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 1"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
+            Call id(4), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
             Call id(3), args( Qubit(0), )
             Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
-            Call id(4), args( Integer(0), Pointer, )
-            Return"#]],
     );
 }
 
@@ -728,35 +640,20 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_false_cond
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 1"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
             Call id(3), args( Integer(0), Pointer, )
-            Return"#]],
+            Return
+        Block 2:Block:
+            Jump(1)"#]],
     );
 }
 
@@ -838,47 +735,24 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_true_
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 3"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(5), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
             Call id(3), args( Qubit(0), )
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
-        &program,
-        else_block_id,
-        &expect![[r#"
-        Block:
+            Jump(1)
+        Block 3:Block:
             Call id(4), args( Qubit(0), )
             Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
-            Call id(5), args( Integer(0), Pointer, )
-            Return"#]],
     );
 }
 
@@ -947,46 +821,23 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_false
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 3"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
-        &program,
-        else_block_id,
-        &expect![[r#"
-        Block:
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
             Call id(4), args( Integer(0), Pointer, )
-            Return"#]],
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)
+        Block 3:Block:
+            Jump(1)"#]],
     );
 }
 
@@ -1053,54 +904,28 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_dynamic_co
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let nested_continuation_block_id = BlockId(3);
-    let nested_if_block_id = BlockId(4);
-
-    // Verify the branch instruction in the initial block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 1"],
-    );
-
-    // Verify the branch instruction in the if-block.
-    assert_block_last_instruction(
-        &program,
-        if_block_id,
-        &expect!["Branch Variable(3, Boolean), 4, 3"],
-    );
-
-    // Verify the instructions in the nested-if-block.
-    assert_block_instructions(
-        &program,
-        nested_if_block_id,
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
+            Call id(4), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Boolean) = Call id(2), args( Result(1), )
+            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+            Branch Variable(3, Boolean), 4, 3
+        Block 3:Block:
+            Jump(1)
+        Block 4:Block:
             Call id(3), args( Qubit(2), )
             Jump(3)"#]],
-    );
-
-    // Verify the instructions in the nested-continuation-block.
-    assert_block_instructions(
-        &program,
-        nested_continuation_block_id,
-        &expect![[r#"
-        Block:
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
-            Call id(4), args( Integer(0), Pointer, )
-            Return"#]],
     );
 }
 
@@ -1218,105 +1043,43 @@ fn doubly_nested_if_else_expressions_with_dynamic_conditions() {
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(6);
-    let first_nested_continuation_block_id = BlockId(3);
-    let first_nested_if_block_id = BlockId(4);
-    let first_nested_else_block_id = BlockId(5);
-    let second_nested_continuation_block_id = BlockId(7);
-    let second_nested_if_block_id = BlockId(8);
-    let second_nested_else_block_id = BlockId(9);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 6"],
-    );
-
-    // Verify the branch instruction in the if-block.
-    assert_block_last_instruction(
-        &program,
-        if_block_id,
-        &expect!["Branch Variable(3, Boolean), 4, 5"],
-    );
-
-    // Verify the instructions in the first nested if-block.
-    assert_block_instructions(
-        &program,
-        first_nested_if_block_id,
         &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 6
+        Block 1:Block:
+            Call id(7), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Boolean) = Call id(2), args( Result(1), )
+            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
+            Branch Variable(3, Boolean), 4, 5
+        Block 3:Block:
+            Jump(1)
+        Block 4:Block:
             Call id(3), args( Qubit(2), )
-            Jump(3)"#]],
-    );
-
-    // Verify the instructions in the first nested else-block.
-    assert_block_instructions(
-        &program,
-        first_nested_else_block_id,
-        &expect![[r#"
-        Block:
+            Jump(3)
+        Block 5:Block:
             Call id(4), args( Qubit(2), )
-            Jump(3)"#]],
-    );
-
-    // Verify the instructions in the first nested continuation-block.
-    assert_block_instructions(
-        &program,
-        first_nested_continuation_block_id,
-        &expect![[r#"
-        Block:
-            Jump(1)"#]],
-    );
-
-    // Verify the branch instruction in the else-block.
-    assert_block_last_instruction(
-        &program,
-        else_block_id,
-        &expect!["Branch Variable(5, Boolean), 8, 9"],
-    );
-
-    // Verify the instructions in the second nested if-block.
-    assert_block_instructions(
-        &program,
-        second_nested_if_block_id,
-        &expect![[r#"
-        Block:
+            Jump(3)
+        Block 6:Block:
+            Variable(4, Boolean) = Call id(2), args( Result(1), )
+            Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(true)
+            Branch Variable(5, Boolean), 8, 9
+        Block 7:Block:
+            Jump(1)
+        Block 8:Block:
             Call id(5), args( Qubit(2), )
-            Jump(7)"#]],
-    );
-
-    // Verify the instructions in the second nested else-block.
-    assert_block_instructions(
-        &program,
-        second_nested_else_block_id,
-        &expect![[r#"
-        Block:
+            Jump(7)
+        Block 9:Block:
             Call id(6), args( Qubit(2), )
             Jump(7)"#]],
-    );
-
-    // Verify the instructions in the second nested continuation-block.
-    assert_block_instructions(
-        &program,
-        second_nested_continuation_block_id,
-        &expect![[r#"
-        Block:
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
-            Call id(7), args( Integer(0), Pointer, )
-            Return"#]],
     );
 }
 
@@ -1395,37 +1158,22 @@ fn if_expression_with_dynamic_condition_and_subsequent_call_to_operation() {
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 1"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
             Call id(4), args( Qubit(0), )
             Call id(5), args( Integer(0), Pointer, )
-            Return"#]],
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)"#]],
     );
 }
 
@@ -1520,47 +1268,24 @@ fn if_else_expression_with_dynamic_condition_and_subsequent_call_to_operation() 
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
+    assert_blocks(
         &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 3"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
         &expect![[r#"
-        Block:
-            Call id(3), args( Qubit(0), )
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
-        &program,
-        else_block_id,
-        &expect![[r#"
-        Block:
-            Call id(4), args( Qubit(0), )
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
             Call id(5), args( Qubit(0), )
             Call id(6), args( Integer(0), Pointer, )
-            Return"#]],
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)
+        Block 3:Block:
+            Call id(4), args( Qubit(0), )
+            Jump(1)"#]],
     );
 }

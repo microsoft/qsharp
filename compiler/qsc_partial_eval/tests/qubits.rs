@@ -104,12 +104,12 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(1), )
-            Call id(1), args( Qubit(2), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(1), )
+                Call id(1), args( Qubit(2), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 3);
     assert_eq!(program.num_results, 0);
@@ -167,12 +167,12 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 1);
     assert_eq!(program.num_results, 0);
@@ -236,14 +236,14 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() 
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(1), )
-            Call id(1), args( Qubit(2), )
-            Call id(1), args( Qubit(2), )
-            Call id(1), args( Qubit(3), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(1), )
+                Call id(1), args( Qubit(2), )
+                Call id(1), args( Qubit(2), )
+                Call id(1), args( Qubit(3), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 4);
     assert_eq!(program.num_results, 0);

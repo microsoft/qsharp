@@ -560,10 +560,10 @@ fn check_partial_eval_for_call_to_reset() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -598,10 +598,10 @@ fn call_to_intrinsic_m_adds_callable_and_generates_instruction() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -636,9 +636,9 @@ fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }

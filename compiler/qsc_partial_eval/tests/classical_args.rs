@@ -38,10 +38,10 @@ fn call_to_intrinsic_operation_using_double_literal() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Double(1), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Double(1), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -76,12 +76,12 @@ fn calls_to_intrinsic_operation_using_inline_expressions() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Double(0), )
-            Call id(1), args( Double(1), )
-            Call id(1), args( Double(1), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Double(0), )
+                Call id(1), args( Double(1), )
+                Call id(1), args( Double(1), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -119,11 +119,11 @@ fn calls_to_intrinsic_operation_using_variables() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Double(2), )
-            Call id(1), args( Double(4), )
-            Call id(1), args( Double(8), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Double(2), )
+                Call id(1), args( Double(4), )
+                Call id(1), args( Double(8), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }

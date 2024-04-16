@@ -46,12 +46,12 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_for_loop() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -93,12 +93,12 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_while_loop() {
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -140,11 +140,11 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_repeat_until_loop
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(1), args( Qubit(0), )
-            Call id(2), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }

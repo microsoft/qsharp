@@ -7,11 +7,10 @@ pub mod test_utils;
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{
-    assert_block_instructions, assert_block_last_instruction, assert_callable,
-    compile_and_partially_evaluate,
-};
+use qsc_rir::rir::CallableId;
+use test_utils::{assert_callable, compile_and_partially_evaluate};
+
+use crate::test_utils::assert_blocks;
 
 #[test]
 fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classical_blocks() {
@@ -58,48 +57,22 @@ fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classic
             body: <NONE>"#]],
     );
 
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    assert_block_last_instruction(
-        &program,
-        initial_block_id,
-        &expect!["Branch Variable(1, Boolean), 2, 3"],
-    );
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
-        &program,
-        if_block_id,
-        &expect![[r#"
-        Block:
-            Variable(2, Integer) = Store Integer(0)
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
-        &program,
-        else_block_id,
-        &expect![[r#"
-        Block:
-            Variable(2, Integer) = Store Integer(1)
-            Jump(1)"#]],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &expect![[r#"
-        Block:
+    assert_blocks(&program, &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
             Call id(3), args( Integer(0), Pointer, )
-            Return"#]],
-    );
+            Return
+        Block 2:Block:
+            Variable(2, Integer) = Store Integer(0)
+            Jump(1)
+        Block 3:Block:
+            Variable(2, Integer) = Store Integer(1)
+            Jump(1)"#]]);
 }
 
 #[test]

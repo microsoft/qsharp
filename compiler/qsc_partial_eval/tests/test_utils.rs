@@ -11,15 +11,19 @@ use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 use qsc_rir::rir::{BlockId, CallableId, Program};
 
-pub fn assert_block_last_instruction(program: &Program, block_id: BlockId, expected_inst: &Expect) {
-    let block = program.get_block(block_id);
-    let actual_inst = block.0.last().expect("block does not have instructions");
-    expected_inst.assert_eq(&actual_inst.to_string());
-}
-
 pub fn assert_block_instructions(program: &Program, block_id: BlockId, expected_insts: &Expect) {
     let block = program.get_block(block_id);
     expected_insts.assert_eq(&block.to_string());
+}
+
+pub fn assert_blocks(program: &Program, expected_blocks: &Expect) {
+    let all_blocks = program
+        .blocks
+        .iter()
+        .fold("Blocks:".to_string(), |acc, (id, block)| {
+            acc + &format!("\nBlock {}:", id.0) + &block.to_string()
+        });
+    expected_blocks.assert_eq(&all_blocks);
 }
 
 pub fn assert_callable(program: &Program, callable_id: CallableId, expected_callable: &Expect) {
