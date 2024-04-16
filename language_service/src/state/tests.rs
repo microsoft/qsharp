@@ -311,12 +311,12 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     let mut updater = new_updater(&errors);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        target_profile: Some(Profile::Adaptive),
+        target_profile: Some(Profile::Quantinuum),
         package_type: Some(PackageType::Lib),
     });
 
     updater
-        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x } }")
+        .update_document("single/foo.qs", 1, "namespace Test { operation RcaCheck() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x } }")
         .await;
 
     // we expect two errors, one for `set x = 2` and one for `x`
@@ -332,20 +332,20 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
                     [
                         Pass(
                             CapabilitiesCk(
-                                UseOfDynamicInt(
+                                UseOfDynamicDouble(
                                     Span {
-                                        lo: 101,
-                                        hi: 110,
+                                        lo: 106,
+                                        hi: 117,
                                     },
                                 ),
                             ),
                         ),
                         Pass(
                             CapabilitiesCk(
-                                UseOfDynamicInt(
+                                UseOfDynamicDouble(
                                     Span {
-                                        lo: 114,
-                                        hi: 115,
+                                        lo: 121,
+                                        hi: 122,
                                     },
                                 ),
                             ),

@@ -9,11 +9,11 @@ use crate::capabilitiesck::check_supported_capabilities;
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::{Package, PackageId, PackageStore};
-use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_rca::{Analyzer, PackageComputeProperties, PackageStoreComputeProperties};
 
-pub fn check(source: &str, expect: &Expect, capabilities: RuntimeCapabilityFlags) {
+pub fn check(source: &str, expect: &Expect, capabilities: TargetCapabilityFlags) {
     let compilation_context = CompilationContext::new(source);
     let (package, compute_properties) = compilation_context.get_package_compute_properties_tuple();
     let errors = check_supported_capabilities(package, compute_properties, capabilities);
@@ -46,7 +46,7 @@ impl CompilationContext {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
         )
         .expect("should be able to create a new compiler");

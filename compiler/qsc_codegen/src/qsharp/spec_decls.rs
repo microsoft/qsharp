@@ -36,14 +36,14 @@ fn attributes() {
         indoc! {r#"
             namespace Sample {
                 @EntryPoint()
-                @Config(Base)
+                @Config(Unrestricted)
                 operation Entry() : Unit {}
             }"#},
         None,
         &expect![[r#"
             namespace Sample {
                 @EntryPoint()
-                @Config(Base)
+                @Config(Unrestricted)
                 operation Entry() : Unit {}
             }"#]],
     );
