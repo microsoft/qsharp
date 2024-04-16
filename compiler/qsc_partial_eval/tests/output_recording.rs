@@ -85,8 +85,8 @@ fn output_recording_for_tuple_of_different_types() {
             config: Config:
                 remap_qubits_on_reuse: false
                 defer_measurements: false
-            num_qubits: 0
-            num_results: 0"#]]
+            num_qubits: 1
+            num_results: 1"#]]
     .assert_eq(&program.to_string());
 }
 
@@ -172,8 +172,8 @@ fn output_recording_for_nested_tuples() {
             config: Config:
                 remap_qubits_on_reuse: false
                 defer_measurements: false
-            num_qubits: 0
-            num_results: 0"#]]
+            num_qubits: 1
+            num_results: 1"#]]
     .assert_eq(&program.to_string());
 }
 
@@ -267,8 +267,8 @@ fn output_recording_for_tuple_of_arrays() {
             config: Config:
                 remap_qubits_on_reuse: false
                 defer_measurements: false
-            num_qubits: 0
-            num_results: 0"#]]
+            num_qubits: 1
+            num_results: 1"#]]
     .assert_eq(&program.to_string());
 }
 
@@ -362,7 +362,7 @@ fn output_recording_for_array_of_tuples() {
             config: Config:
                 remap_qubits_on_reuse: false
                 defer_measurements: false
-            num_qubits: 0
-            num_results: 0"#]]
+            num_qubits: 1
+            num_results: 1"#]]
     .assert_eq(&program.to_string());
 }
