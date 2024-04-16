@@ -54,8 +54,8 @@ export function DocumentationDisplay(props: {
   const docsDiv = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!docsDiv.current) return;
-    docsDiv.current.innerHTML = props.documentation!.get(
+    if (!docsDiv.current || !props.documentation) return;
+    docsDiv.current.innerHTML = props.documentation.get(
       props.currentNamespace,
     )!;
     MathJax.typeset();

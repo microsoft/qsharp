@@ -757,7 +757,7 @@ mod given_interpreter {
 
                 declare void @__quantum__qis__rz__body(double, %Qubit*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="0" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags

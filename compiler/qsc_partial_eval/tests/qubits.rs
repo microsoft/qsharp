@@ -50,6 +50,8 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 0);
 }
 
 #[test]
@@ -97,6 +99,8 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 3);
+    assert_eq!(program.num_results, 0);
 }
 
 #[test]
@@ -144,6 +148,8 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 0);
 }
 
 #[test]
@@ -207,4 +213,6 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() 
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 4);
+    assert_eq!(program.num_results, 0);
 }

@@ -46,7 +46,7 @@ const npmDir = join(thisDir, "npm", "qsharp");
 const isWin = process.platform === "win32";
 const npmCmd = isWin ? "npm.cmd" : "npm";
 
-function onRustChange() {
+function buildRust() {
   console.log("Compiling the .wasm module with wasm-pack");
 
   // This takes ~3-4 seconds on rebuild after some Rust changes. (Non-dev builds take ~15-20 seconds)
@@ -59,7 +59,7 @@ function onRustChange() {
   );
   console.log("wasm-pack done! ", result.stderr.toString());
 
-  console.log("Copying the wasm-pack ouput files to the npm package");
+  console.log("Copying the wasm-pack output files to the npm package");
   const npmLibDir = join(npmDir, "lib", "web");
 
   ["qsc_wasm_bg.wasm", "qsc_wasm.d.ts", "qsc_wasm.js"].forEach((file) =>
@@ -70,6 +70,24 @@ function onRustChange() {
   // They already watch the .d.ts file from the npm package, so will rebuild if it changes.
   copyWasmToVsCode();
   copyWasmToPlayground();
+}
+
+// Minor delay to ensure all changes flush to disk before starting a build if
+// saving multiple files close together (e.g. a formatter running over a directory)
+// or saving the same file multiple times (e.g. format-on-save)
+const buildDelayMs = 100;
+let buildPending = false;
+function onRustChange() {
+  if (buildPending) return; // Already queued
+  buildPending = true;
+  setTimeout(() => {
+    // The build task runs sychronously, so we can clear the timeout handle and
+    // run the build knowing that nothing will interleave with those operations
+    if (buildPending) {
+      buildPending = false;
+      buildRust();
+    }
+  }, buildDelayMs);
 }
 
 // Do an initial build
