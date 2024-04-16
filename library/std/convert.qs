@@ -168,8 +168,8 @@ namespace Microsoft.Quantum.Convert {
     /// // The following returns 1
     /// let int1 = ResultArrayAsInt([One,Zero])
     /// ```
-    @Config(IntegerComputations)
     @Config(ForwardBranching)
+    @Config(IntegerComputations)
     function ResultArrayAsInt(results : Result[]) : Int {
         let nBits = Length(results);
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
