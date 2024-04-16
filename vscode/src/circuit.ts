@@ -7,6 +7,7 @@ import {
   ICompilerWorker,
   IOperationInfo,
   IRange,
+  ProgramConfig,
   TargetProfile,
   VSDiagnostic,
   getCompilerWorker,
@@ -19,7 +20,6 @@ import { loadProject } from "./projectSystem";
 import { EventType, UserFlowStatus, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
 import { sendMessageToPanel } from "./webviewPanel";
-import { ProgramConfig } from "../../npm/qsharp/dist/compiler/compiler";
 
 const compilerRunTimeoutMs = 1000 * 60 * 5; // 5 minutes
 
