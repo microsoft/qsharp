@@ -13,6 +13,53 @@ export function compare(a: number, b: number): boolean {
 const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 4 });
 const numToStr = (n: number) => fmt.format(n);
 
+// Some common numbers after various gates to display in LaTeX
+// - 1 / sqrt(2) = 0.7071067811865476 = sqrt(2) / 2
+// - 1 / (2 * sqrt(2)) = 0.3535533905932738 = sqrt(2) / 4
+// - (1 + sqrt(2)) / (2 * sqrt(2)) = 0.8535533905932737 = cos^2(pi / 8)
+// - (-1 + sqrt(2)) / (2 * sqrt(2)) = 0.14644660940672624 = sin^2(pi / 8)
+function numToLaTeX(n: number, forceSign = false): string {
+  let result = "";
+  if (n < 0) {
+    result += "- {";
+  } else if (forceSign) {
+    result += "+ {";
+  } else {
+    result += "{";
+  }
+
+  n = Math.abs(n);
+  if (compare(n, 0)) {
+    result += "0";
+  } else if (compare(n, 1)) {
+    result += "1";
+  } else if (compare(n, 0.5)) {
+    result += "1 \\over 2";
+  } else if (compare(n, 0.25)) {
+    result += "1 \\over 4";
+  } else if (compare(n, 0.75)) {
+    result += "3 \\over 4";
+  } else if (compare(n, Math.SQRT1_2)) {
+    result += "1 \\over \\sqrt{2}";
+    // result += "\\sqrt{2} \\over 2";
+  } else if (compare(n, 0.1464466094)) {
+    result += "{-1 + \\sqrt{2}} \\over 2 \\sqrt{2}";
+    // result += "\\sin^2{\\pi \\over 8}";
+  } else if (compare(n, 0.3535533905)) {
+    result += "1 \\over {2 \\sqrt{2}}";
+    // result += "\\sqrt{2} \\over 4";
+  } else if (compare(n, 0.8535533905)) {
+    result += "{1 + \\sqrt{2}} \\over {2 \\sqrt{2}}";
+    // result += "\\cos^2{\\pi \\over 8}";
+  } else if (compare(n, 0.8660254037844386)) {
+    result += "\\sqrt{3} \\over 2";
+  } else {
+    result += numToStr(n);
+  }
+
+  return result + "}";
+}
+
 export class Cplx {
   constructor(
     public re: number,
@@ -155,8 +202,12 @@ export class Cplx {
       return "{e^{i {\\pi \\over 2}}}";
     } else if (this.compare(Cplx.e_to_i_pi_over_4)) {
       return "{e^{i {\\pi \\over 4}}}";
+    } else if (compare(this.re, 0)) {
+      return numToLaTeX(this.im) + "i";
+    } else if (compare(this.im, 0)) {
+      return numToLaTeX(this.re);
     } else {
-      return "{" + this.toString() + "}";
+      return `${numToLaTeX(this.re)} ${numToLaTeX(this.im, true)}i`;
     }
   }
 }

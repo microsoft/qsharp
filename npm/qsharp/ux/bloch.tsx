@@ -551,7 +551,7 @@ export function BlochSphere(props: {
       <canvas ref={canvasRef} width="600" height="600"></canvas>
       <div
         ref={latexDiv}
-        style="position: absolute; left: 600px; top: 50px; height: 500px; min-width: 200px; background: #eee;overflow-y: scroll;"
+        style="position: absolute; left: 600px; top: 50px; height: 700px; min-width: 200px; background: #eee; overflow-y: scroll; display: flex; flex-direction: column; align-items: flex-start;"
       >
         {gateArray.map((str) => (
           <div style="border-bottom: 1px dotted gray; text-align: left">
