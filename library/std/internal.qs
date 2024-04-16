@@ -144,7 +144,7 @@ namespace Microsoft.Quantum.Intrinsic {
         }
     }
 
-    @Config(None)
+    @Config(Base)
     internal operation AND(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         PhaseCCX(control1, control2, target);
     }

@@ -1952,7 +1952,7 @@ fn dropped_callable() {
     check(
         indoc! {"
             namespace A {
-                @Config(None)
+                @Config(Base)
                 function Dropped() : Unit {}
 
                 function B() : Unit {
@@ -1962,7 +1962,7 @@ fn dropped_callable() {
         "},
         &expect![[r#"
             namespace item0 {
-                @Config(None)
+                @Config(Base)
                 function Dropped() : Unit {}
 
                 function item1() : Unit {
@@ -1982,9 +1982,9 @@ fn multiple_definition_dropped_is_not_found() {
             namespace A {
                 @Config(Adaptive)
                 operation B() : Unit {}
-                @Config(None)
+                @Config(Base)
                 operation B() : Unit {}
-                @Config(None)
+                @Config(Base)
                 operation C() : Unit {}
                 @Config(Adaptive)
                 operation C() : Unit {}
@@ -2005,9 +2005,9 @@ fn multiple_definition_dropped_is_not_found() {
             namespace item0 {
                 @Config(Adaptive)
                 operation item1() : Unit {}
-                @Config(None)
+                @Config(Base)
                 operation B() : Unit {}
-                @Config(None)
+                @Config(Base)
                 operation C() : Unit {}
                 @Config(Adaptive)
                 operation item2() : Unit {}

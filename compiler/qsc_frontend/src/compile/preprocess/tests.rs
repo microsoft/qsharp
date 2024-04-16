@@ -69,7 +69,7 @@ fn unknown_attrs_matches() {
 #[test]
 fn none_attrs_matches_empty() {
     assert!(matches_config(
-        &[Box::new(name_value_attr("Config", "None"))],
+        &[Box::new(name_value_attr("Config", "Base"))],
         RuntimeCapabilityFlags::empty()
     ));
 }
@@ -77,7 +77,7 @@ fn none_attrs_matches_empty() {
 #[test]
 fn none_attrs_does_not_match_all() {
     assert!(!matches_config(
-        &[Box::new(name_value_attr("Config", "None"))],
+        &[Box::new(name_value_attr("Config", "Base"))],
         RuntimeCapabilityFlags::all()
     ));
 }
@@ -85,7 +85,7 @@ fn none_attrs_does_not_match_all() {
 #[test]
 fn none_attrs_does_not_match_adaptive() {
     assert!(!matches_config(
-        &[Box::new(name_value_attr("Config", "None"))],
+        &[Box::new(name_value_attr("Config", "Base"))],
         RuntimeCapabilityFlags::Adaptive
     ));
 }

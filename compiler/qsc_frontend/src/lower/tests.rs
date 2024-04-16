@@ -94,7 +94,7 @@ fn test_target_profile_base_attr_allowed() {
     check_errors(
         indoc! {"
             namespace input {
-                @Config(None)
+                @Config(Base)
                 operation Foo() : Unit {
                     body ... {}
                 }

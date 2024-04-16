@@ -54,7 +54,7 @@ impl FromStr for RuntimeCapabilityFlags {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Base" | "None" => Ok(RuntimeCapabilityFlags::empty()),
+            "Base" => Ok(RuntimeCapabilityFlags::empty()),
             "Adaptive" => Ok(RuntimeCapabilityFlags::Adaptive),
             "IntegerComputations" => Ok(RuntimeCapabilityFlags::IntegerComputations),
             "FloatingPointComputations" => Ok(RuntimeCapabilityFlags::FloatingPointComputations),
