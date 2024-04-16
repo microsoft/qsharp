@@ -17,6 +17,14 @@ pub struct ResourceManager {
 }
 
 impl ResourceManager {
+    pub fn qubit_count(&self) -> usize {
+        self.qubits_in_use.len()
+    }
+
+    pub fn results_count(&self) -> usize {
+        self.next_result
+    }
+
     pub fn allocate_qubit(&mut self) -> Qubit {
         if let Some(qubit_id) = self.qubits_in_use.iter().position(|in_use| !in_use) {
             self.qubits_in_use[qubit_id] = true;

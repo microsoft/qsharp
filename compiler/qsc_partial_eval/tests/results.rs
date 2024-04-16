@@ -72,6 +72,8 @@ fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }
 
 #[test]
@@ -104,6 +106,8 @@ fn result_ids_are_correct_for_measuring_one_qubit() {
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }
 
 #[test]
@@ -154,6 +158,8 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 3);
 }
 
 #[test]
@@ -204,6 +210,8 @@ fn result_ids_are_correct_for_measuring_multiple_qubits() {
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 3);
+    assert_eq!(program.num_results, 3);
 }
 
 #[test]
@@ -279,6 +287,8 @@ fn comparing_measurement_results_for_equality_adds_read_result_and_comparison_in
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 2);
+    assert_eq!(program.num_results, 2);
 }
 
 #[test]
@@ -354,6 +364,8 @@ fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 2);
+    assert_eq!(program.num_results, 2);
 }
 
 #[test]
@@ -410,6 +422,8 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }
 
 #[test]
@@ -466,4 +480,6 @@ fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_
             Instruction::Return,
         ],
     );
+    assert_eq!(program.num_qubits, 1);
+    assert_eq!(program.num_results, 1);
 }

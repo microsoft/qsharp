@@ -5,7 +5,7 @@ use crate::compile::{self, compile, core, std};
 use miette::Diagnostic;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
-    compile::{OpenPackageStore, PackageStore, RuntimeCapabilityFlags, SourceMap},
+    compile::{OpenPackageStore, PackageStore, SourceMap, TargetCapabilityFlags},
     error::WithSource,
     incremental::Increment,
 };
@@ -37,7 +37,7 @@ impl Compiler {
         include_std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
         let core = core();

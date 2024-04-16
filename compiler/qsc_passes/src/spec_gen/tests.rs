@@ -7,7 +7,7 @@
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_hir::{validate::Validator, visit::Visitor};
 
 use crate::spec_gen::generate_specs;
@@ -19,7 +19,7 @@ fn check(file: &str, expect: &Expect) {
         &store,
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
