@@ -144,9 +144,20 @@ This kata is designed to get you familiar with the concept of superposition and 
 })
 
 @[section]({
-    "id": "superposition__uneven_superpositions",
-    "title": "Uneven superpositions"
+    "id": "superposition__arbitrary_rotations",
+    "title": "Arbitrary Rotations"
 })
+
+@[exercise]({
+    "id": "superposition__unequal_superposition",
+    "title": "Unequal Superposition",
+    "path": "./unequal_superposition/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 
 @[section]({
     "id": "superposition__conclusion",
