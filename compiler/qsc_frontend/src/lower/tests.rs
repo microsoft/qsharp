@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use crate::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
@@ -14,7 +14,7 @@ fn check_hir(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     expect.assert_eq(&unit.package.to_string());
@@ -26,7 +26,7 @@ fn check_errors(input: &str, expect: &Expect) {
         &PackageStore::new(compile::core()),
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
 

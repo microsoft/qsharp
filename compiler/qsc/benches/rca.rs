@@ -5,7 +5,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::incremental::Compiler;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::PackageStore;
-use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
@@ -130,7 +130,7 @@ impl Default for CompilationContext {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
         )
         .expect("should be able to create a new compiler");

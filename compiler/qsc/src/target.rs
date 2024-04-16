@@ -3,7 +3,7 @@
 
 use std::str::FromStr;
 
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_frontend::compile::TargetCapabilityFlags;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Profile {
@@ -23,7 +23,7 @@ impl Profile {
     }
 }
 
-impl From<Profile> for RuntimeCapabilityFlags {
+impl From<Profile> for TargetCapabilityFlags {
     fn from(value: Profile) -> Self {
         match value {
             Profile::Unrestricted => Self::all(),

@@ -39,7 +39,7 @@ use thiserror::Error;
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct RuntimeCapabilityFlags: u32 {
+    pub struct TargetCapabilityFlags: u32 {
         const Adaptive = 0b0000_0001;
         const IntegerComputations = 0b0000_0010;
         const FloatingPointComputations = 0b0000_0100;
@@ -49,19 +49,19 @@ bitflags! {
     }
 }
 
-impl FromStr for RuntimeCapabilityFlags {
+impl FromStr for TargetCapabilityFlags {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Base" => Ok(RuntimeCapabilityFlags::empty()),
-            "Adaptive" => Ok(RuntimeCapabilityFlags::Adaptive),
-            "IntegerComputations" => Ok(RuntimeCapabilityFlags::IntegerComputations),
-            "FloatingPointComputations" => Ok(RuntimeCapabilityFlags::FloatingPointComputations),
-            "BackwardsBranching" => Ok(RuntimeCapabilityFlags::BackwardsBranching),
-            "HigherLevelConstructs" => Ok(RuntimeCapabilityFlags::HigherLevelConstructs),
-            "QubitReset" => Ok(RuntimeCapabilityFlags::QubitReset),
-            "Unrestricted" => Ok(RuntimeCapabilityFlags::all()),
+            "Base" => Ok(TargetCapabilityFlags::empty()),
+            "Adaptive" => Ok(TargetCapabilityFlags::Adaptive),
+            "IntegerComputations" => Ok(TargetCapabilityFlags::IntegerComputations),
+            "FloatingPointComputations" => Ok(TargetCapabilityFlags::FloatingPointComputations),
+            "BackwardsBranching" => Ok(TargetCapabilityFlags::BackwardsBranching),
+            "HigherLevelConstructs" => Ok(TargetCapabilityFlags::HigherLevelConstructs),
+            "QubitReset" => Ok(TargetCapabilityFlags::QubitReset),
+            "Unrestricted" => Ok(TargetCapabilityFlags::all()),
             _ => Err(()),
         }
     }
@@ -318,7 +318,7 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources, language_features);
@@ -393,7 +393,7 @@ pub fn core() -> CompileUnit {
         &store,
         &[],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
@@ -406,7 +406,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
+pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let std: Vec<(SourceName, SourceContents)> = library::STD_LIB
         .iter()
         .map(|(name, contents)| ((*name).into(), (*contents).into()))

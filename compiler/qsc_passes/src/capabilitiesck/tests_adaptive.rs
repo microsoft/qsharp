@@ -15,10 +15,10 @@ use super::tests_common::{
     USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
 };
 use expect_test::{expect, Expect};
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_frontend::compile::TargetCapabilityFlags;
 
 fn check_profile(source: &str, expect: &Expect) {
-    check(source, expect, RuntimeCapabilityFlags::Adaptive);
+    check(source, expect, TargetCapabilityFlags::Adaptive);
 }
 
 #[test]

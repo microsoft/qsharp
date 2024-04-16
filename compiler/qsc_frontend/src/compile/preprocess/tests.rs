@@ -4,7 +4,7 @@
 use qsc_ast::ast::{Attr, Expr, ExprKind, Ident, NodeId, Path};
 use qsc_data_structures::span::Span;
 
-use crate::compile::{preprocess::matches_config, RuntimeCapabilityFlags};
+use crate::compile::{preprocess::matches_config, TargetCapabilityFlags};
 
 fn named_attr(name: &str) -> Attr {
     Attr {
@@ -55,14 +55,14 @@ fn name_value_attr(name: &str, value: &str) -> Attr {
 
 #[test]
 fn no_attrs_matches() {
-    assert!(matches_config(&[], RuntimeCapabilityFlags::empty()));
+    assert!(matches_config(&[], TargetCapabilityFlags::empty()));
 }
 
 #[test]
 fn unknown_attrs_matches() {
     assert!(matches_config(
         &[Box::new(named_attr("unknown"))],
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     ));
 }
 
@@ -70,7 +70,7 @@ fn unknown_attrs_matches() {
 fn none_attrs_matches_empty() {
     assert!(matches_config(
         &[Box::new(name_value_attr("Config", "Base"))],
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     ));
 }
 
@@ -78,7 +78,7 @@ fn none_attrs_matches_empty() {
 fn none_attrs_does_not_match_all() {
     assert!(!matches_config(
         &[Box::new(name_value_attr("Config", "Base"))],
-        RuntimeCapabilityFlags::all()
+        TargetCapabilityFlags::all()
     ));
 }
 
@@ -86,7 +86,7 @@ fn none_attrs_does_not_match_all() {
 fn none_attrs_does_not_match_adaptive() {
     assert!(!matches_config(
         &[Box::new(name_value_attr("Config", "Base"))],
-        RuntimeCapabilityFlags::Adaptive
+        TargetCapabilityFlags::Adaptive
     ));
 }
 
@@ -94,7 +94,7 @@ fn none_attrs_does_not_match_adaptive() {
 fn adaptive_attrs_does_not_match_empty() {
     assert!(!matches_config(
         &[Box::new(name_value_attr("Config", "Adaptive"))],
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     ));
 }
 
@@ -102,7 +102,7 @@ fn adaptive_attrs_does_not_match_empty() {
 fn integercomputations_attrs_does_not_match_empty() {
     assert!(!matches_config(
         &[Box::new(name_value_attr("Config", "IntegerComputations"))],
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     ));
 }
 
@@ -113,7 +113,7 @@ fn floatingpointcomputations_attrs_does_not_match_empty() {
             "Config",
             "FloatingPointComputations"
         ))],
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     ));
 }
 
@@ -121,7 +121,7 @@ fn floatingpointcomputations_attrs_does_not_match_empty() {
 fn unrestricted_attrs_does_not_match_empty() {
     assert!(!matches_config(
         &[Box::new(name_value_attr("Config", "Unrestricted"))],
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     ));
 }
 
@@ -129,6 +129,6 @@ fn unrestricted_attrs_does_not_match_empty() {
 fn unrestricted_attrs_matches_all() {
     assert!(matches_config(
         &[Box::new(name_value_attr("Config", "Unrestricted"))],
-        RuntimeCapabilityFlags::all()
+        TargetCapabilityFlags::all()
     ));
 }

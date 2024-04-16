@@ -9,7 +9,7 @@ use qsc_ast::{
 use qsc_hir::hir;
 use std::rc::Rc;
 
-use super::RuntimeCapabilityFlags;
+use super::TargetCapabilityFlags;
 
 #[cfg(test)]
 mod tests;
@@ -21,13 +21,13 @@ pub struct TrackedName {
 }
 
 pub(crate) struct Conditional {
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     dropped_names: Vec<TrackedName>,
     included_names: Vec<TrackedName>,
 }
 
 impl Conditional {
-    pub(crate) fn new(capabilities: RuntimeCapabilityFlags) -> Self {
+    pub(crate) fn new(capabilities: TargetCapabilityFlags) -> Self {
         Self {
             capabilities,
             dropped_names: Vec::new(),
@@ -121,7 +121,7 @@ impl MutVisitor for Conditional {
     }
 }
 
-fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> bool {
+fn matches_config(attrs: &[Box<Attr>], capabilities: TargetCapabilityFlags) -> bool {
     let attrs: Vec<_> = attrs
         .iter()
         .filter(|attr| hir::Attr::from_str(attr.name.name.as_ref()) == Ok(hir::Attr::Config))
@@ -130,14 +130,13 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> 
     if attrs.is_empty() {
         return true;
     }
-    let mut found_capabilities = RuntimeCapabilityFlags::empty();
+    let mut found_capabilities = TargetCapabilityFlags::empty();
 
     for attr in attrs {
         if let ExprKind::Paren(inner) = attr.arg.kind.as_ref() {
             match inner.kind.as_ref() {
                 ExprKind::Path(path) => {
-                    if let Ok(capability) =
-                        RuntimeCapabilityFlags::from_str(path.name.name.as_ref())
+                    if let Ok(capability) = TargetCapabilityFlags::from_str(path.name.name.as_ref())
                     {
                         found_capabilities |= capability;
                     } else {
@@ -151,10 +150,10 @@ fn matches_config(attrs: &[Box<Attr>], capabilities: RuntimeCapabilityFlags) -> 
             return true;
         }
     }
-    if found_capabilities == RuntimeCapabilityFlags::empty() {
+    if found_capabilities == TargetCapabilityFlags::empty() {
         // There was at least one config attribute, but it was None
         // Therefore, we only match if there are no capabilities
-        return capabilities == RuntimeCapabilityFlags::empty();
+        return capabilities == TargetCapabilityFlags::empty();
     }
     capabilities.contains(found_capabilities)
 }
