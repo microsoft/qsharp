@@ -244,13 +244,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     ///   [arXiv:1212.5069](https://arxiv.org/abs/1212.5069)
     ///   doi:10.1103/PhysRevA.87.022328
     @Config(Adaptive)
-    @Config(Unrestricted)
     internal operation ApplyAndAssuming0Target(control1 : Qubit, control2 : Qubit, target : Qubit) : Unit is Adj {
         // NOTE: Eventually this operation will be public and intrinsic.
         body (...) {
-            if not CheckZero(target) {
-                fail "ApplyAndAssuming0Target expects `target` to be in |0> state.";
-            }
             CCNOT(control1, control2, target);
         }
         adjoint (...) {

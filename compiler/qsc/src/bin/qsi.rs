@@ -14,7 +14,7 @@ use qsc_eval::{
     state::format_state_id,
     val::Value,
 };
-use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName};
+use qsc_frontend::compile::{SourceContents, SourceMap, SourceName, TargetCapabilityFlags};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{
@@ -106,7 +106,7 @@ fn main() -> miette::Result<ExitCode> {
             !cli.nostdlib,
             SourceMap::new(sources, cli.entry.map(std::convert::Into::into)),
             PackageType::Exe,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             features,
         ) {
             Ok(interpreter) => interpreter,
@@ -126,7 +126,7 @@ fn main() -> miette::Result<ExitCode> {
         !cli.nostdlib,
         SourceMap::new(sources, None),
         PackageType::Lib,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         features,
     ) {
         Ok(interpreter) => interpreter,

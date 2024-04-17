@@ -3,7 +3,7 @@
 
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 
@@ -12,7 +12,7 @@ use crate::compile;
 pub fn get_qir(
     sources: SourceMap,
     language_features: LanguageFeatures,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<String, String> {
     let core = compile::core();
     let mut package_store = PackageStore::new(core);

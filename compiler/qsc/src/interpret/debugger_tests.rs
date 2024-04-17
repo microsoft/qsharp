@@ -8,7 +8,7 @@ use crate::line_column::Encoding;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::{output::CursorReceiver, StepAction, StepResult};
 use qsc_fir::fir::StmtId;
-use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
 use std::io::Cursor;
 
 fn get_breakpoint_ids(debugger: &Debugger, path: &str) -> Vec<StmtId> {
@@ -131,7 +131,7 @@ mod given_debugger {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(
                 sources,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;
@@ -154,7 +154,7 @@ mod given_debugger {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(
                 sources,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;
@@ -173,7 +173,7 @@ mod given_debugger {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(
                 sources,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;
@@ -199,7 +199,7 @@ mod given_debugger {
             let sources = SourceMap::new([("test".into(), STEPPING_SOURCE.into())], None);
             let mut debugger = Debugger::new(
                 sources,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )?;

@@ -426,6 +426,10 @@ export function sendMessageToPanel(
   if (message) panelRecord.panel.sendMessage(message);
 }
 
+export function isPanelOpen(panelType: PanelType) {
+  return panelTypeToPanel[panelType].panel !== undefined;
+}
+
 export class QSharpWebViewPanel {
   public static extensionUri: Uri;
   private _ready = false;

@@ -1,58 +1,18 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(clippy::needless_raw_string_hashes, clippy::similar_names)]
+#![allow(
+    clippy::needless_raw_string_hashes,
+    clippy::similar_names,
+    clippy::too_many_lines
+)]
 
 pub mod test_utils;
 
+use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{
-    BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty, Variable,
-};
-use test_utils::{
-    assert_block_instructions, assert_block_last_instruction, assert_callable,
-    compile_and_partially_evaluate, mresetz_callable, read_result_callable,
-};
-
-fn single_qubit_intrinsic_op_a() -> Callable {
-    Callable {
-        name: "opA".to_string(),
-        input_type: vec![Ty::Qubit],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Regular,
-    }
-}
-
-fn single_qubit_intrinsic_op_b() -> Callable {
-    Callable {
-        name: "opB".to_string(),
-        input_type: vec![Ty::Qubit],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Regular,
-    }
-}
-
-fn single_qubit_intrinsic_op_c() -> Callable {
-    Callable {
-        name: "opC".to_string(),
-        input_type: vec![Ty::Qubit],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Regular,
-    }
-}
-
-fn single_qubit_intrinsic_op_d() -> Callable {
-    Callable {
-        name: "opD".to_string(),
-        input_type: vec![Ty::Qubit],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Regular,
-    }
-}
+use qsc_rir::rir::CallableId;
+use test_utils::{assert_blocks, assert_callable, compile_and_partially_evaluate};
 
 #[test]
 fn if_expression_with_true_condition() {
@@ -71,18 +31,26 @@ fn if_expression_with_true_condition() {
         "#,
     });
     let op_a_callable_id = CallableId(1);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
-    assert_block_instructions(
+    assert_callable(
         &program,
-        BlockId(0),
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]],
     );
 }
 
@@ -102,10 +70,14 @@ fn if_expression_with_false_condition() {
         }
         "#,
     });
-    // This program is expected to just have the entry-point callable, whose block only has a return
-    // intruction.
-    assert_eq!(program.callables.iter().count(), 1);
-    assert_block_instructions(&program, BlockId(0), &[Instruction::Return]);
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
 }
 
 #[test]
@@ -128,18 +100,26 @@ fn if_else_expression_with_true_condition() {
         "#,
     });
     let op_a_callable_id = CallableId(1);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
-    assert_block_instructions(
+    assert_callable(
         &program,
-        BlockId(0),
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]],
     );
 }
 
@@ -163,18 +143,26 @@ fn if_else_expression_with_false_condition() {
         "#,
     });
     let op_b_callable_id = CallableId(1);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
-    assert_block_instructions(
+    assert_callable(
         &program,
-        BlockId(0),
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]],
     );
 }
 
@@ -201,18 +189,26 @@ fn if_elif_else_expression_with_true_elif_condition() {
         "#,
     });
     let op_b_callable_id = CallableId(1);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
-    assert_block_instructions(
+    assert_callable(
         &program,
-        BlockId(0),
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]],
     );
 }
 
@@ -236,41 +232,62 @@ fn if_expression_with_dynamic_condition() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
-    let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
-    let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, continuation_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let op_a_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 1
+            Block 1:Block:
+                Call id(4), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(0), )
+                Jump(1)"#]],
+    );
 }
 
 #[test]
@@ -296,58 +313,78 @@ fn if_else_expression_with_dynamic_condition() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
     let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_b_callable_id = CallableId(4);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        else_block_id,
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(5), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)
+        Block 3:Block:
+            Call id(4), args( Qubit(0), )
+            Jump(1)"#]],
     );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
 }
 
 #[test]
@@ -377,89 +414,101 @@ fn if_elif_else_expression_with_dynamic_condition() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
     let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_b_callable_id = CallableId(4);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
+    assert_callable(
+        &program,
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_c_callable_id = CallableId(5);
-    assert_callable(&program, op_c_callable_id, &single_qubit_intrinsic_op_c());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-    let nested_continuation_block_id = BlockId(4);
-    let nested_if_block_id = BlockId(5);
-    let nested_else_block_id = BlockId(6);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        op_c_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opC
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the branch instruction in the else-block.
-    let nested_condition_var = Variable {
-        variable_id: 3.into(),
-        ty: Ty::Boolean,
-    };
-    let nested_branch_inst = Instruction::Branch(
-        nested_condition_var,
-        nested_if_block_id,
-        nested_else_block_id,
-    );
-    assert_block_last_instruction(&program, else_block_id, &nested_branch_inst);
-
-    // Verify the instructions in the nested-if-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        nested_if_block_id,
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(nested_continuation_block_id),
-        ],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(6), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(2), )
+            Jump(1)
+        Block 3:Block:
+            Variable(2, Boolean) = Call id(2), args( Result(1), )
+            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+            Branch Variable(3, Boolean), 5, 6
+        Block 4:Block:
+            Jump(1)
+        Block 5:Block:
+            Call id(4), args( Qubit(2), )
+            Jump(4)
+        Block 6:Block:
+            Call id(5), args( Qubit(2), )
+            Jump(4)"#]],
     );
-
-    // Verify the instructions in the nested-else-block.
-    assert_block_instructions(
-        &program,
-        nested_else_block_id,
-        &[
-            Instruction::Call(
-                op_c_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(nested_continuation_block_id),
-        ],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
 }
 
 #[test]
@@ -484,41 +533,62 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_true_condi
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
-    let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
-    let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, continuation_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let op_a_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
+            Call id(4), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)"#]],
+    );
 }
 
 #[test]
@@ -543,32 +613,48 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_false_cond
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
-    let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, continuation_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[Instruction::Jump(continuation_block_id)],
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
+            Call id(3), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Jump(1)"#]],
+    );
 }
 
 #[test]
@@ -596,58 +682,78 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_true_
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
     let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_b_callable_id = CallableId(4);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        else_block_id,
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(5), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)
+        Block 3:Block:
+            Call id(4), args( Qubit(0), )
+            Jump(1)"#]],
     );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
 }
 
 #[test]
@@ -675,49 +781,64 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_false
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
     let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        else_block_id,
-        &[Instruction::Jump(continuation_block_id)],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(4), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)
+        Block 3:Block:
+            Jump(1)"#]],
     );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
 }
 
 #[test]
@@ -743,62 +864,69 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_dynamic_co
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
     let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let nested_continuation_block_id = BlockId(3);
-    let nested_if_block_id = BlockId(4);
-
-    // Verify the branch instruction in the initial block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, continuation_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the branch instruction in the if-block.
-    let nested_condition_var = Variable {
-        variable_id: 3.into(),
-        ty: Ty::Boolean,
-    };
-    let nested_branch_inst = Instruction::Branch(
-        nested_condition_var,
-        nested_if_block_id,
-        nested_continuation_block_id,
-    );
-    assert_block_last_instruction(&program, if_block_id, &nested_branch_inst);
-
-    // Verify the instructions in the nested-if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        nested_if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(nested_continuation_block_id),
-        ],
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the nested-continuation-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        nested_continuation_block_id,
-        &[Instruction::Jump(continuation_block_id)],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
+            Call id(4), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Boolean) = Call id(2), args( Result(1), )
+            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+            Branch Variable(3, Boolean), 4, 3
+        Block 3:Block:
+            Jump(1)
+        Block 4:Block:
+            Call id(3), args( Qubit(2), )
+            Jump(3)"#]],
     );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
 }
 
 #[allow(clippy::too_many_lines)]
@@ -836,134 +964,123 @@ fn doubly_nested_if_else_expressions_with_dynamic_conditions() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
     let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_b_callable_id = CallableId(4);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
+    assert_callable(
+        &program,
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_c_callable_id = CallableId(5);
-    assert_callable(&program, op_c_callable_id, &single_qubit_intrinsic_op_c());
+    assert_callable(
+        &program,
+        op_c_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opC
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_d_callable_id = CallableId(6);
-    assert_callable(&program, op_d_callable_id, &single_qubit_intrinsic_op_d());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(6);
-    let first_nested_continuation_block_id = BlockId(3);
-    let first_nested_if_block_id = BlockId(4);
-    let first_nested_else_block_id = BlockId(5);
-    let second_nested_continuation_block_id = BlockId(7);
-    let second_nested_if_block_id = BlockId(8);
-    let second_nested_else_block_id = BlockId(9);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the branch instruction in the if-block.
-    let first_nested_condition_var = Variable {
-        variable_id: 3.into(),
-        ty: Ty::Boolean,
-    };
-    let first_nested_branch_inst = Instruction::Branch(
-        first_nested_condition_var,
-        first_nested_if_block_id,
-        first_nested_else_block_id,
-    );
-    assert_block_last_instruction(&program, if_block_id, &first_nested_branch_inst);
-
-    // Verify the instructions in the first nested if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        first_nested_if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(first_nested_continuation_block_id),
-        ],
+        op_d_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opD
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the first nested else-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        first_nested_else_block_id,
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(first_nested_continuation_block_id),
-        ],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(1), args( Qubit(1), Result(1), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 6
+        Block 1:Block:
+            Call id(7), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Boolean) = Call id(2), args( Result(1), )
+            Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(false)
+            Branch Variable(3, Boolean), 4, 5
+        Block 3:Block:
+            Jump(1)
+        Block 4:Block:
+            Call id(3), args( Qubit(2), )
+            Jump(3)
+        Block 5:Block:
+            Call id(4), args( Qubit(2), )
+            Jump(3)
+        Block 6:Block:
+            Variable(4, Boolean) = Call id(2), args( Result(1), )
+            Variable(5, Boolean) = Icmp Eq, Variable(4, Boolean), Bool(true)
+            Branch Variable(5, Boolean), 8, 9
+        Block 7:Block:
+            Jump(1)
+        Block 8:Block:
+            Call id(5), args( Qubit(2), )
+            Jump(7)
+        Block 9:Block:
+            Call id(6), args( Qubit(2), )
+            Jump(7)"#]],
     );
-
-    // Verify the instructions in the first nested continuation-block.
-    assert_block_instructions(
-        &program,
-        first_nested_continuation_block_id,
-        &[Instruction::Jump(continuation_block_id)],
-    );
-
-    // Verify the branch instruction in the else-block.
-    let second_nested_condition_var = Variable {
-        variable_id: 5.into(),
-        ty: Ty::Boolean,
-    };
-    let second_nested_branch_inst = Instruction::Branch(
-        second_nested_condition_var,
-        second_nested_if_block_id,
-        second_nested_else_block_id,
-    );
-    assert_block_last_instruction(&program, else_block_id, &second_nested_branch_inst);
-
-    // Verify the instructions in the second nested if-block.
-    assert_block_instructions(
-        &program,
-        second_nested_if_block_id,
-        &[
-            Instruction::Call(
-                op_c_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(second_nested_continuation_block_id),
-        ],
-    );
-
-    // Verify the instructions in the second nested else-block.
-    assert_block_instructions(
-        &program,
-        second_nested_else_block_id,
-        &[
-            Instruction::Call(
-                op_d_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Jump(second_nested_continuation_block_id),
-        ],
-    );
-
-    // Verify the instructions in the second nested continuation-block.
-    assert_block_instructions(
-        &program,
-        second_nested_continuation_block_id,
-        &[Instruction::Jump(continuation_block_id)],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
 }
 
 #[test]
@@ -988,53 +1105,75 @@ fn if_expression_with_dynamic_condition_and_subsequent_call_to_operation() {
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
-    let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
-    let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
-    let op_b_callable_id = CallableId(4);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, continuation_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let op_a_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let op_b_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        continuation_block_id,
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 1
+        Block 1:Block:
+            Call id(4), args( Qubit(0), )
+            Call id(5), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)"#]],
     );
 }
 
@@ -1063,69 +1202,90 @@ fn if_else_expression_with_dynamic_condition_and_subsequent_call_to_operation() 
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
     let op_a_callable_id = CallableId(3);
-    assert_callable(&program, op_a_callable_id, &single_qubit_intrinsic_op_a());
+    assert_callable(
+        &program,
+        op_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_b_callable_id = CallableId(4);
-    assert_callable(&program, op_b_callable_id, &single_qubit_intrinsic_op_b());
+    assert_callable(
+        &program,
+        op_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let op_c_callable_id = CallableId(5);
-    assert_callable(&program, op_c_callable_id, &single_qubit_intrinsic_op_c());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Call(
-                op_a_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
+        op_c_callable_id,
+        &expect![[r#"
+        Callable:
+            name: opC
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        else_block_id,
-        &[
-            Instruction::Call(
-                op_b_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Jump(continuation_block_id),
-        ],
-    );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(
-        &program,
-        continuation_block_id,
-        &[
-            Instruction::Call(
-                op_c_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(5), args( Qubit(0), )
+            Call id(6), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Call id(3), args( Qubit(0), )
+            Jump(1)
+        Block 3:Block:
+            Call id(4), args( Qubit(0), )
+            Jump(1)"#]],
     );
 }

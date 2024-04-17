@@ -9,8 +9,8 @@ export function getTarget(): TargetProfile {
     .getConfiguration("Q#")
     .get<TargetProfile>("targetProfile", "unrestricted");
   switch (target) {
-    case "adaptive":
     case "base":
+    case "quantinuum":
     case "unrestricted":
       return target;
     default:
@@ -30,10 +30,10 @@ export async function setTarget(target: TargetProfile) {
 
 export function getTargetFriendlyName(targetProfile?: string) {
   switch (targetProfile) {
-    case "adaptive":
-      return "Q#: QIR adaptive";
     case "base":
       return "Q#: QIR base";
+    case "quantinuum":
+      return "Q#: QIR Quantinuum";
     case "unrestricted":
       return "Q#: unrestricted";
     default:

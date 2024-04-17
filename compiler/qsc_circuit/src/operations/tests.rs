@@ -4,13 +4,13 @@
 use super::*;
 use expect_test::expect;
 use qsc_data_structures::{functors::FunctorApp, language_features::LanguageFeatures};
-use qsc_frontend::compile::{compile, core, std, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{compile, core, std, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_hir::hir::{Item, ItemKind};
 
 fn compile_one_operation(code: &str) -> (Item, String) {
     let core_pkg = core();
     let mut store = PackageStore::new(core_pkg);
-    let std = std(&store, RuntimeCapabilityFlags::empty());
+    let std = std(&store, TargetCapabilityFlags::empty());
     let std = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), code.into())], None);
@@ -18,7 +18,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     let mut callables = unit.package.items.values().filter_map(|i| {

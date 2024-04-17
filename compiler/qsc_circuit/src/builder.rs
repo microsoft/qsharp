@@ -206,7 +206,13 @@ impl Backend for Builder {
                 Some(classical_args)
             },
         ));
-        Some(Ok(Value::unit()))
+
+        match name {
+            // Special case this known intrinsic to match the simulator
+            // behavior, so that our samples will work
+            "BeginEstimateCaching" => Some(Ok(Value::Bool(true))),
+            _ => Some(Ok(Value::unit())),
+        }
     }
 }
 

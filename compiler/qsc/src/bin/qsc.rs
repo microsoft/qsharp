@@ -10,7 +10,7 @@ use qsc::compile::compile;
 use qsc_codegen::qir_base;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
-    compile::{PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName},
+    compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetCapabilityFlags},
     error::WithSource,
 };
 use qsc_hir::hir::{Package, PackageId};
@@ -74,9 +74,9 @@ fn main() -> miette::Result<ExitCode> {
     let mut dependencies = Vec::new();
 
     let (package_type, capabilities) = if cli.emit.contains(&Emit::Qir) {
-        (PackageType::Exe, RuntimeCapabilityFlags::empty())
+        (PackageType::Exe, TargetCapabilityFlags::empty())
     } else {
-        (PackageType::Lib, RuntimeCapabilityFlags::all())
+        (PackageType::Lib, TargetCapabilityFlags::all())
     };
 
     if !cli.nostdlib {
