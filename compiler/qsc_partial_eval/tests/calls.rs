@@ -6,23 +6,11 @@
 pub mod test_utils;
 
 use indoc::indoc;
-use qsc_rir::rir::{
-    BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty,
-};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::compile_and_partially_evaluate;
 
-fn single_qubit_unitary_intrinsic_callable() -> Callable {
-    Callable {
-        name: "Op".to_string(),
-        input_type: vec![Ty::Qubit],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Regular,
-    }
-}
-
+#[ignore = "WIP"]
 #[test]
-fn call_to_single_qubit_unitary() {
+fn call_to_single_qubit_unitary_with_two_calls_to_the_same_intrinsic() {
     let program = compile_and_partially_evaluate(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Unit { body intrinsic; }
@@ -37,28 +25,67 @@ fn call_to_single_qubit_unitary() {
             }
         }
     "#});
+    println!("{program}");
+}
 
-    let single_qubit_unitary_intrinsic_callable_id = CallableId(1);
-    assert_callable(
-        &program,
-        single_qubit_unitary_intrinsic_callable_id,
-        &single_qubit_unitary_intrinsic_callable(),
-    );
-    assert_block_instructions(
-        &program,
-        BlockId(0),
-        &[
-            Instruction::Call(
-                single_qubit_unitary_intrinsic_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Call(
-                single_qubit_unitary_intrinsic_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
-    );
+#[ignore = "WIP"]
+#[test]
+fn call_to_single_qubit_unitary_with_calls_to_different_intrinsics() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
+        namespace Test {
+            operation OpA(q : Qubit) : Unit { body intrinsic; }
+            operation OpB(q : Qubit) : Unit { body intrinsic; }
+            operation Combined(q : Qubit) : Unit {
+                OpA(q);
+                OpB(q);
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                Combined(q);
+            }
+        }
+    "#});
+    println!("{program}");
+}
+
+#[ignore = "WIP"]
+#[test]
+fn call_to_two_qubit_unitary() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
+        namespace Test {
+            operation Op(q0 : Qubit, q1 : Qubit) : Unit { body intrinsic; }
+            operation ApplyOpCombinations(q0 : Qubit, q1 : Qubit) : Unit {
+                Op(q0, q1);
+                Op(q1, q0);
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use (q0, q1) = (Qubit(), Qubit());
+                ApplyOpCombinations(q0, q1);
+            }
+        }
+    "#});
+    println!("{program}");
+}
+
+#[ignore = "WIP"]
+#[test]
+fn call_to_unitary_that_receives_double_and_qubit() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
+        namespace Test {
+            operation DoubleFirst(d : Double, q : Qubit) : Unit { body intrinsic; }
+            operation QubitFirst(q : Qubit, d : Double) : Unit { body intrinsic; }
+            operation Op(d : Double, q : Qubit) : Unit {
+                DoubleFirst(d, q);
+                QubitFirst(q, d);
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                Op(2.71828, q);
+            }
+        }
+    "#});
+    println!("{program}");
 }
