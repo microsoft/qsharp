@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use expect_test::Expect;
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::PackageStore;
@@ -8,40 +9,26 @@ use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCa
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
-use qsc_rir::rir::{BlockId, Callable, CallableId, CallableType, Instruction, Program, Ty};
+use qsc_rir::rir::{BlockId, CallableId, Program};
 
-pub fn assert_block_last_instruction(
-    program: &Program,
-    block_id: BlockId,
-    expected_inst: &Instruction,
-) {
-    let block = program.blocks.get(block_id).expect("block does not exist");
-    let actual_inst = block.0.last().expect("block does not have instructions");
-    assert_eq!(expected_inst, actual_inst);
+pub fn assert_block_instructions(program: &Program, block_id: BlockId, expected_insts: &Expect) {
+    let block = program.get_block(block_id);
+    expected_insts.assert_eq(&block.to_string());
 }
 
-pub fn assert_block_instructions(
-    program: &Program,
-    block_id: BlockId,
-    expected_insts: &[Instruction],
-) {
-    let block = program.blocks.get(block_id).expect("block does not exist");
-    assert_eq!(
-        block.0.len(),
-        expected_insts.len(),
-        "expected number of instructions is different than actual number of instructions"
-    );
-    for (expected_inst, actual_inst) in expected_insts.iter().zip(block.0.iter()) {
-        assert_eq!(expected_inst, actual_inst);
-    }
+pub fn assert_blocks(program: &Program, expected_blocks: &Expect) {
+    let all_blocks = program
+        .blocks
+        .iter()
+        .fold("Blocks:".to_string(), |acc, (id, block)| {
+            acc + &format!("\nBlock {}:", id.0) + &block.to_string()
+        });
+    expected_blocks.assert_eq(&all_blocks);
 }
 
-pub fn assert_callable(program: &Program, callable_id: CallableId, expected_callable: &Callable) {
-    let actual_callable = program
-        .callables
-        .get(callable_id)
-        .expect("callable does not exist ");
-    assert_eq!(expected_callable, actual_callable);
+pub fn assert_callable(program: &Program, callable_id: CallableId, expected_callable: &Expect) {
+    let actual_callable = program.get_callable(callable_id);
+    expected_callable.assert_eq(&actual_callable.to_string());
 }
 
 #[must_use]
@@ -55,28 +42,6 @@ pub fn compile_and_partially_evaluate(source: &str) -> Program {
     match maybe_program {
         Ok(program) => program,
         Err(error) => panic!("partial evaluation failed: {error:?}"),
-    }
-}
-
-#[must_use]
-pub fn mresetz_callable() -> Callable {
-    Callable {
-        name: "__quantum__qis__mresetz__body".to_string(),
-        input_type: vec![Ty::Qubit, Ty::Result],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Measurement,
-    }
-}
-
-#[must_use]
-pub fn read_result_callable() -> Callable {
-    Callable {
-        name: "__quantum__rt__read_result__body".to_string(),
-        input_type: vec![Ty::Result],
-        output_type: Some(Ty::Boolean),
-        body: None,
-        call_type: CallableType::Readout,
     }
 }
 

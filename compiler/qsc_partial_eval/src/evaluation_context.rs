@@ -72,6 +72,7 @@ pub struct Scope {
     pub callable: Option<(LocalItemId, FunctorApp)>,
     pub args_runtime_properties: Vec<ValueKind>,
     pub env: Env,
+    last_expr: Option<ExprId>,
     hybrid_exprs: FxHashMap<ExprId, Value>,
     hybrid_vars: FxHashMap<LocalVarId, Value>,
 }
@@ -87,12 +88,14 @@ impl Scope {
             callable,
             args_runtime_properties,
             env: Env::default(),
+            last_expr: None,
             hybrid_exprs: FxHashMap::default(),
             hybrid_vars: FxHashMap::default(),
         }
     }
 
-    pub fn get_expr_value(&self, expr_id: ExprId) -> &Value {
+    // Potential candidate for removal if only the last expression value is needed.
+    pub fn _get_expr_value(&self, expr_id: ExprId) -> &Value {
         self.hybrid_exprs
             .get(&expr_id)
             .expect("expression value does not exist")
@@ -105,10 +108,21 @@ impl Scope {
     }
 
     pub fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
+        self.last_expr = Some(expr_id);
         self.hybrid_exprs.insert(expr_id, value);
     }
 
     pub fn insert_local_var_value(&mut self, local_var_id: LocalVarId, value: Value) {
         self.hybrid_vars.insert(local_var_id, value);
+    }
+
+    pub fn clear_last_expr(&mut self) {
+        self.last_expr = None;
+    }
+
+    pub fn last_expr_value(&self) -> Value {
+        self.last_expr
+            .and_then(|expr_id| self.hybrid_exprs.get(&expr_id))
+            .map_or_else(Value::unit, Clone::clone)
     }
 }
