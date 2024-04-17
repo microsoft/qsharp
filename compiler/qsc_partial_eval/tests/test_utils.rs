@@ -5,7 +5,7 @@ use expect_test::Expect;
 use qsc::{incremental::Compiler, PackageType};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::PackageStore;
-use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
@@ -58,7 +58,7 @@ impl CompilationContext {
             true,
             source_map,
             PackageType::Exe,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
         )
         .expect("should be able to create a new compiler");

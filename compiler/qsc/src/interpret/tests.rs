@@ -9,7 +9,7 @@ mod given_interpreter {
     use miette::Diagnostic;
     use qsc_data_structures::language_features::LanguageFeatures;
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+    use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
@@ -42,7 +42,7 @@ mod given_interpreter {
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::RuntimeCapabilityFlags;
+        use qsc_frontend::compile::TargetCapabilityFlags;
 
         use super::*;
 
@@ -58,7 +58,7 @@ mod given_interpreter {
                     false,
                     SourceMap::default(),
                     PackageType::Lib,
-                    RuntimeCapabilityFlags::all(),
+                    TargetCapabilityFlags::all(),
                     LanguageFeatures::default(),
                 )
                 .expect("interpreter should be created");
@@ -523,8 +523,7 @@ mod given_interpreter {
                 "#]],
                 );
             }
-            let mut interpreter =
-                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -555,8 +554,7 @@ mod given_interpreter {
                 "#]],
                 );
             }
-            let mut interpreter =
-                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -620,7 +618,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -651,7 +649,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -718,7 +716,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::ForwardBranching,
+                TargetCapabilityFlags::Adaptive,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -855,7 +853,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::ForwardBranching,
+                TargetCapabilityFlags::Adaptive,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -886,7 +884,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -953,7 +951,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1035,7 +1033,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1062,7 +1060,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1149,7 +1147,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1213,7 +1211,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1318,7 +1316,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1332,13 +1330,13 @@ mod given_interpreter {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
         )
         .expect("interpreter should be created")
     }
 
-    fn get_interpreter_with_capbilities(capabilities: RuntimeCapabilityFlags) -> Interpreter {
+    fn get_interpreter_with_capbilities(capabilities: TargetCapabilityFlags) -> Interpreter {
         Interpreter::new(
             true,
             SourceMap::default(),
@@ -1433,7 +1431,7 @@ mod given_interpreter {
         use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+        use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
         use qsc_passes::PackageType;
 
         #[test]
@@ -1451,7 +1449,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1474,7 +1472,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1501,7 +1499,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1543,7 +1541,7 @@ mod given_interpreter {
             let sources = SourceMap::new(sources, None);
             let debugger = Debugger::new(
                 sources,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )
@@ -1574,7 +1572,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1605,7 +1603,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");

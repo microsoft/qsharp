@@ -9,7 +9,7 @@ use std::sync::Arc;
 use expect_test::Expect;
 use qsc_ast::{ast::Package, mut_visit::MutVisitor};
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
-use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
@@ -31,12 +31,12 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
     let mut core = compile::core();
     assert!(run_core_passes(&mut core).is_empty());
     let mut store = PackageStore::new(core);
-    let mut std = compile::std(&store, RuntimeCapabilityFlags::empty());
+    let mut std = compile::std(&store, TargetCapabilityFlags::empty());
     assert!(run_default_passes(
         store.core(),
         &mut std,
         PackageType::Lib,
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     )
     .is_empty());
     let std = store.insert(std);
@@ -45,7 +45,7 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
         &store,
         &[std],
         sources.unwrap_or_default(),
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::empty(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
@@ -53,7 +53,7 @@ pub(crate) fn get_compilation(sources: Option<SourceMap>) -> (PackageId, Package
         store.core(),
         &mut unit,
         PackageType::Lib,
-        RuntimeCapabilityFlags::all()
+        TargetCapabilityFlags::all()
     )
     .is_empty());
     let package_id = store.insert(unit);

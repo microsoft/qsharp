@@ -6,7 +6,7 @@
 pub mod test_utils;
 
 use expect_test::expect;
-use qsc::RuntimeCapabilityFlags;
+use qsc::TargetCapabilityFlags;
 use test_utils::{
     check_callable_compute_properties, check_last_statement_compute_properties, CompilationContext,
 };
@@ -200,7 +200,7 @@ fn check_rca_for_unrestricted_h() {
 
 #[test]
 fn check_rca_for_base_h() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -304,7 +304,7 @@ fn check_rca_for_unrestricted_r1() {
 
 #[test]
 fn check_rca_for_base_r1() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -420,7 +420,7 @@ fn check_rca_for_unrestricted_rx() {
 
 #[test]
 fn check_rca_for_base_rx() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -548,7 +548,7 @@ fn check_rca_for_unrestricted_rxx() {
 
 #[test]
 fn check_rca_for_base_rxx() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -676,7 +676,7 @@ fn check_rca_for_unrestricted_ry() {
 
 #[test]
 fn check_rca_for_base_ry() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -804,7 +804,7 @@ fn check_rca_for_unrestricted_ryy() {
 
 #[test]
 fn check_rca_for_base_ryy() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -932,7 +932,7 @@ fn check_rca_for_unrestricted_rz() {
 
 #[test]
 fn check_rca_for_base_rz() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1060,7 +1060,7 @@ fn check_rca_for_unrestricted_rzz() {
 
 #[test]
 fn check_rca_for_base_rzz() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1176,7 +1176,7 @@ fn check_rca_for_unrestricted_s() {
 
 #[test]
 fn check_rca_for_base_s() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1268,7 +1268,7 @@ fn check_rca_for_unrestricted_t() {
 
 #[test]
 fn check_rca_for_base_t() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1360,7 +1360,7 @@ fn check_rca_for_unrestricted_x() {
 
 #[test]
 fn check_rca_for_base_x() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1452,7 +1452,7 @@ fn check_rca_for_unrestricted_y() {
 
 #[test]
 fn check_rca_for_base_y() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1544,7 +1544,7 @@ fn check_rca_for_unrestricted_z() {
 
 #[test]
 fn check_rca_for_base_z() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
