@@ -121,18 +121,86 @@ $$\alpha|00\rangle + \beta|11\rangle$$
 
 The $CNOT$ gate is self-adjoint: applying it for the second time reverses its effect.
 
+
 @[exercise]({
-    "id": "multi_qubit_gates__preparing_bell_state",
-    "title": "Preparing a Bell State",
-    "path": "./preparing_bell_state/",
+    "id": "multi_qubit_gates__two_qubit_gate_1",
+    "title": "Two Qubit Gate 1",
+    "path": "./two_qubit_gate_1/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+@[section]({
+    "id": "multi_qubit_gates__cz_gate",
+    "title": "CZ Gate"
+})
+
+## CZ Gate (Controlled-Z Gate)
+
+The $CZ$ ("controlled-Z") gate is a two-qubit gate, with one qubit referred to as the **control** qubit, and the other as the **target** qubit. Typically, the first qubit is the control, and the second qubit is the target.
+
+The $CZ$ gate acts as a conditional gate: if the control qubit is in state $|1\rangle$, it applies the $Z$ gate to the target qubit, otherwise it does nothing.
+
+> If the system is in a superposition of several basis states, the effects of the gate will be a linear combination of the effects of it acting separately on each of the basis states.
+> This is a common feature for all quantum gates you'll encounter that are specified in terms of basis states: since all unitary gates are linear, it is sufficient to define their effect on the basis states, and use linearity to figure out their effect on any state.
+
+<table>
+    <tr>
+        <th>Gate</th>
+        <th>Matrix</th>
+        <th>Applying to $|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \gamma|10\rangle + \delta|11\rangle$</th>
+        <th>Applying to basis states</th>
+    </tr>
+    <tr>
+        <td>$CZ$</td>
+        <td>
+            $$\begin{bmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & -1
+            \end{bmatrix}$$
+        </td>
+        <td>$CZ|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \gamma|10\rangle - \delta|11\rangle$</td>
+        <td>
+            $$CZ|00\rangle = |00\rangle$$
+            $$CZ|01\rangle = |01\rangle$$
+            $$CZ|10\rangle = |10\rangle$$
+            $$CZ|11\rangle = -|11\rangle$$
+        </td>
+    </tr>
+</table>
+
+The $CZ$ gate is particularly useful for creating and manipulating entangled states where the phase of the quantum state is crucial. Consider the following separable state:
+
+$$\big(\alpha|0\rangle + \beta|1\rangle\big) \otimes \big(\gamma|0\rangle + \delta|1\rangle\big) = \alpha\gamma|00\rangle + \alpha\delta|01\rangle + \beta\gamma|10\rangle + \beta\delta|11\rangle$$
+
+If we apply the $CZ$ gate to it, with the first qubit as the control and the second as the target, we get the following state, which can no longer be easily separated:
+
+$$\alpha\gamma|00\rangle + \alpha\delta|01\rangle + \beta\gamma|10\rangle - \beta\delta|11\rangle$$
+
+The $CZ$ gate is also self-adjoint: applying it a second time reverses its effect, similar to the $CNOT$ gate.
+
+@[exercise]({
+    "id": "multi_qubit_gates__two_qubit_gate_2",
+    "title": "Two Qubit Gate 2",
+    "path": "./two_qubit_gate_2/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
 })
 @[exercise]({
-    "id": "multi_qubit_gates__two_qubit_gate_1",
-    "title": "Two Qubit Gate Controll Not",
-    "path": "./two_qubit_gate_1/",
+    "id": "multi_qubit_gates__two_qubit_gate_3",
+    "title": "Two Qubit Gate 3",
+    "path": "./two_qubit_gate_3/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+@[exercise]({
+    "id": "multi_qubit_gates__preparing_bell_state",
+    "title": "Preparing a Bell State",
+    "path": "./preparing_bell_state/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
@@ -267,14 +335,7 @@ The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantu
         </td>
     </tr>
 </table>
-@[exercise]({
-    "id": "multi_qubit_gates__two_qubit_gate_3",
-    "title": "Two Qubit Gate Qubit Swap",
-    "path": "./two_qubit_gate_3/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
+
 @[exercise]({
     "id": "multi_qubit_gates__qubit_swap",
     "title": "Qubit SWAP",
@@ -575,14 +636,6 @@ The sequence of steps that implement this variant are:
 1. Apply the $X$ gate to each control qubit that corresponds to a `false` element of the bit mask (in the example, that's just the second qubit). After this, if the control qubits started in the $|10\rangle$ state, they'll end up in the $|11\rangle$ state, and if they started in any other state, they'll end up in any state but $|11\rangle$.
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
-@[exercise]({
-    "id": "multi_qubit_gates__two_qubit_gate_2",
-    "title": "Two Qubit Gate Controll Z",
-    "path": "./two_qubit_gate_2/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
 
 @[exercise]({
     "id": "multi_qubit_gates__arbitrary_controls",
