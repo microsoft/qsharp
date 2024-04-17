@@ -5,26 +5,12 @@
 
 /* TODO:
 
-- Show the state vector / 'pretty' linear combination
 - Show the equations from state vector to bloch angles
-- Show as a history running below the gates using LaTeX
 - Calculate the T / H gates for an arbitrary point
-- Animiate the axes (including for H) when rotating
-  - Maybe add a new geo/mesh for axis with rotation arrow that rotates with the qubit
-  - Could also use as the X, Y, Z axis anyway with a blade screw on the top
 - Show the matrix to be applied when hovering over a gate
 - Add the trailing dots with a slider for history and fade out speed
 
-[1] To show the state vector
-- Add the complex vector / matrix library
-- Map the gate options to matrices
-- Start in (1, 0) state
-- When a gate is applied, apply to the state vector, save to a list
-- Render the matrix multiplication
-[2] Add function to convert C^2 to bloch angles
-[3] Show (and verify) the state vector to bloch angles
-
-To convert basis coeffeicients a & b into a point on the Bloch sphere:
+To convert basis state coeffeicients a & b into a point on the Bloch sphere:
  - Calculate the angle theta = 2 * acos(magnitute(a))
  - Calculate the angle phi = arg(b) - arg(a), normalized to [0, 2 * PI)
 */
@@ -32,19 +18,17 @@ To convert basis coeffeicients a & b into a point on the Bloch sphere:
 import { useEffect, useRef, useState } from "preact/hooks";
 
 import {
-  Color,
+  BoxGeometry,
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
   Group,
   LineSegments,
-  Material,
   Mesh,
   MeshBasicMaterial,
   MeshBasicMaterialParameters,
   MeshLambertMaterial,
   PerspectiveCamera,
-  Quaternion,
   Scene,
   SphereGeometry,
   Vector3,
@@ -53,7 +37,6 @@ import {
 } from "three";
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
 import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 
@@ -61,7 +44,6 @@ import {
   AppliedGate,
   Rotations,
   Ket0,
-  cplx,
   vec2,
   PauliX,
   PauliY,
@@ -194,6 +176,7 @@ class BlochRenderer {
   controls: OrbitControls;
   qubit: Group;
   trail: Group;
+  rotationAxis: Group;
   animationCallbackId = 0;
   gateQueue: AppliedGate[] = [];
   rotations: Rotations;
@@ -305,6 +288,35 @@ class BlochRenderer {
     xPointerMesh.rotateX(Math.PI / 2);
     scene.add(xPointerMesh);
 
+    const rotationAxis = new Group();
+    const rotationAxisMaterial = new MeshLambertMaterial({
+      emissive: 0x808080,
+      emissiveIntensity: 1.5,
+      transparent: true,
+      opacity: 0.75,
+    });
+    const axisBox = new BoxGeometry(0.33, 0.33, 12.5);
+    const axisBoxMesh = new Mesh(axisBox, rotationAxisMaterial);
+    rotationAxis.add(axisBoxMesh);
+
+    const fins = [
+      [2, 0.25, 0.25, 0, 0, 5.75],
+      [0.25, 2, 0.25, 0, 0, 5.75],
+      [2, 0.25, 0.25, 0, 0, -5.75],
+      [0.25, 0.25, 2, 0, 0, -5.75],
+    ];
+
+    fins.forEach((fin) => {
+      const finBox = new BoxGeometry(fin[0], fin[1], fin[2]);
+      const finBoxMesh = new Mesh(finBox, rotationAxisMaterial);
+      finBoxMesh.position.set(fin[3], fin[4], fin[5]);
+      rotationAxis.add(finBoxMesh);
+    });
+
+    // TODO: Only to be added when rotating
+    // scene.add(rotationAxis);
+    this.rotationAxis = rotationAxis;
+
     // See https://threejs.org/manual/#en/rendering-on-demand
     controls.addEventListener("change", () =>
       requestAnimationFrame(() => this.render()),
@@ -337,6 +349,9 @@ class BlochRenderer {
           this.animationCallbackId = 0;
           return;
         } else {
+          const axisInLocal = this.qubit.worldToLocal(currentGate.axis);
+          this.rotationAxis.lookAt(axisInLocal);
+          this.qubit.add(this.rotationAxis);
           startTime = performance.now();
         }
       }
@@ -386,7 +401,11 @@ class BlochRenderer {
       this.render();
 
       // If that gate is done, unset it
-      if (t >= 1) currentGate = undefined;
+      if (t >= 1) {
+        currentGate = undefined;
+        this.qubit.remove(this.rotationAxis);
+        this.render();
+      }
 
       this.animationCallbackId = requestAnimationFrame(processQueue);
     };

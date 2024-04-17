@@ -424,6 +424,8 @@ export const KetMinusI = vec2("1,-i").mul(Math.SQRT1_2);
 // Holds a set of rotations for a qubit, and the points in that rotation
 export type AppliedGate = {
   name: string;
+  axis: Vector3;
+  angle: number;
   path: { pos: Quaternion; ref?: any }[];
   endPos: Quaternion;
 };
@@ -477,7 +479,7 @@ export class Rotations {
       const t = i / pointCount;
       path.push({ pos: this.currPosition.clone().slerp(endPos, t) });
     }
-    const gate = { name, path, endPos };
+    const gate = { name, path, endPos, axis, angle };
     this.gates.push(gate);
 
     // Update the current position to the final target
