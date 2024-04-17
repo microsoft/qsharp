@@ -69,7 +69,7 @@ update_file(
 )
 
 update_file(
-    os.path.join(root_dir, "npm/package.json"),
+    os.path.join(root_dir, "npm/qsharp/package.json"),
     r'"version": "0.0.0",',
     r'"version": "{}",'.format(npm_version),
 )
