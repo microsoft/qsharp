@@ -284,7 +284,6 @@ The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantu
     ]
 })
 
-
 @[section]({
     "id": "multi_qubit_gates__acting_on_non_adjacent_qubits",
     "title": "Multi-Qubit Gates Acting on Non-Adjacent Qubits"
