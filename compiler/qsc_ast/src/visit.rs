@@ -263,6 +263,9 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
+        ExprKind::Struct(name) => {
+            vis.visit_expr(name);
+        }
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);
             vis.visit_expr(e2);

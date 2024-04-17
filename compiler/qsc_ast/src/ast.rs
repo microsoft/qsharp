@@ -807,6 +807,8 @@ pub enum ExprKind {
     Repeat(Box<Block>, Box<Expr>, Option<Box<Block>>),
     /// A return: `return a`.
     Return(Box<Expr>),
+    /// A struct constructor.
+    Struct(Box<Expr>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -847,6 +849,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
+            ExprKind::Struct(name) => write!(indent, "Struct: {name}")?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }

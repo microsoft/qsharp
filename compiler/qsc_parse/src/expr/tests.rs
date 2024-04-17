@@ -1678,6 +1678,15 @@ fn call_op_unit() {
 }
 
 #[test]
+fn struct_op_unit() {
+    check(
+        expr,
+        "Foo {}",
+        &expect![[r#"Expr _id_ [0-6]: Struct: Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Foo")"#]],
+    );
+}
+
+#[test]
 fn call_op_one() {
     check(
         expr,

@@ -444,6 +444,7 @@ impl<'a> Context<'a> {
                 }
                 self.diverge()
             }
+            ExprKind::Struct(_) => converge(Ty::UNIT),
             ExprKind::TernOp(TernOp::Cond, cond, if_true, if_false) => {
                 let cond_span = cond.span;
                 let cond = self.infer_expr(cond);

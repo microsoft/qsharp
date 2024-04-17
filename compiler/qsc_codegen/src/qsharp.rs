@@ -490,6 +490,10 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.write("return ");
                 self.visit_expr(expr);
             }
+            ExprKind::Struct(name) => {
+                self.visit_expr(name);
+                self.write(" {}");
+            }
             ExprKind::UnOp(op, expr) => {
                 let op_str = unop_as_str(op);
                 if op == &UnOp::Unwrap {
