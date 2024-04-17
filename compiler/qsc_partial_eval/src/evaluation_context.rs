@@ -191,3 +191,12 @@ pub enum Arg {
     Discard(Value),
     Var(LocalVarId, Variable),
 }
+
+impl Arg {
+    pub fn as_value(self) -> Value {
+        match self {
+            Self::Discard(value) => value,
+            Self::Var(_, var) => var.value,
+        }
+    }
+}

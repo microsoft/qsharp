@@ -498,14 +498,24 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
     ) -> Value {
+        // Intrinsic callables that make it to this point are expected to be unitary.
+        assert_eq!(callable_decl.output, Ty::UNIT);
+
         // Check if the callable is already in the program, and if not add it.
         let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
-        let args = resolve_call_arg_operands(args_value);
-        // Note that we currently just support calls to unitary operations.
-        let instruction = Instruction::Call(callable_id, args, None);
+        let args = self.resolve_args(
+            (store_item_id.package, callable_decl.input).into(),
+            args_value,
+        );
+        let args_operands = args
+            .into_iter()
+            .map(|arg| map_eval_value_to_rir_operand(&arg.as_value()))
+            .collect();
+
+        let instruction = Instruction::Call(callable_id, args_operands, None);
         let current_block = self.get_current_block_mut();
         current_block.0.push(instruction);
         Value::unit()
@@ -1168,20 +1178,4 @@ fn read_result_callable() -> Callable {
         body: None,
         call_type: CallableType::Readout,
     }
-}
-
-// TODO (cesarzc): Should remove.
-fn resolve_call_arg_operands(args_value: Value) -> Vec<rir::Operand> {
-    let mut operands = Vec::<rir::Operand>::new();
-    if let Value::Tuple(elements) = args_value {
-        for value in elements.iter() {
-            let operand = map_eval_value_to_rir_operand(value);
-            operands.push(operand);
-        }
-    } else {
-        let operand = map_eval_value_to_rir_operand(&args_value);
-        operands.push(operand);
-    }
-
-    operands
 }

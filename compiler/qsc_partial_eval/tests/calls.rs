@@ -83,7 +83,27 @@ fn call_to_unitary_that_receives_double_and_qubit() {
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
-                Op(2.71828, q);
+                Op(1.0, q);
+            }
+        }
+    "#});
+    println!("{program}");
+}
+
+#[ignore = "WIP"]
+#[test]
+fn call_to_unitary_rotation_unitary_with_computation() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
+        namespace Test {
+            operation Rotation(d : Double, q : Qubit) : Unit { body intrinsic; }
+            operation RotationWithComputation(d : Double, q : Qubit) : Unit {
+                Rotation(2.0 * d, q);
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                RotationWithComputation(2.0, q);
+                RotationWithComputation(3.0, q);
             }
         }
     "#});
