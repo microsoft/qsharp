@@ -5,12 +5,12 @@
 
 pub mod test_utils;
 
+use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{BlockId, CallableId, Instruction, Literal, Operand, Ty, Variable};
-use test_utils::{
-    assert_block_instructions, assert_block_last_instruction, assert_callable,
-    compile_and_partially_evaluate, mresetz_callable, read_result_callable,
-};
+use qsc_rir::rir::CallableId;
+use test_utils::{assert_callable, compile_and_partially_evaluate};
+
+use crate::test_utils::assert_blocks;
 
 #[test]
 fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classical_blocks() {
@@ -30,52 +30,52 @@ fn dynamic_int_from_if_expression_with_single_measurement_comparison_and_classic
 
     // Verify the callables added to the program.
     let mresetz_callable_id = CallableId(1);
-    assert_callable(&program, mresetz_callable_id, &mresetz_callable());
+    assert_callable(
+        &program,
+        mresetz_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mresetz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     let read_result_callable_id = CallableId(2);
-    assert_callable(&program, read_result_callable_id, &read_result_callable());
-
-    // Set the IDs of the blocks we want to verify.
-    let initial_block_id = BlockId(0);
-    let continuation_block_id = BlockId(1);
-    let if_block_id = BlockId(2);
-    let else_block_id = BlockId(3);
-
-    // Verify the branch instruction in the initial-block.
-    let condition_var = Variable {
-        variable_id: 1.into(),
-        ty: Ty::Boolean,
-    };
-    let branch_inst = Instruction::Branch(condition_var, if_block_id, else_block_id);
-    assert_block_last_instruction(&program, initial_block_id, &branch_inst);
-
-    // Create the expected variable that will hold the dynamic integer value.
-    let dynamic_int_var = Variable {
-        variable_id: 2.into(),
-        ty: Ty::Integer,
-    };
-
-    // Verify the instructions in the if-block.
-    assert_block_instructions(
+    assert_callable(
         &program,
-        if_block_id,
-        &[
-            Instruction::Store(Operand::Literal(Literal::Integer(0)), dynamic_int_var),
-            Instruction::Jump(continuation_block_id),
-        ],
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
     );
 
-    // Verify the instructions in the else-block.
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        else_block_id,
-        &[
-            Instruction::Store(Operand::Literal(Literal::Integer(1)), dynamic_int_var),
-            Instruction::Jump(continuation_block_id),
-        ],
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Call id(3), args( Integer(0), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Integer) = Store Integer(0)
+            Jump(1)
+        Block 3:Block:
+            Variable(2, Integer) = Store Integer(1)
+            Jump(1)"#]],
     );
-
-    // Verify the instructions in the continuation-block.
-    assert_block_instructions(&program, continuation_block_id, &[Instruction::Return]);
 }
 
 #[test]

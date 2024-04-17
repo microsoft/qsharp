@@ -6,7 +6,7 @@
 use super::{Error, Locals, Names, Res};
 use crate::{
     compile,
-    compile::RuntimeCapabilityFlags,
+    compile::TargetCapabilityFlags,
     resolve::{LocalKind, Resolver},
 };
 use expect_test::{expect, Expect};
@@ -104,7 +104,7 @@ fn compile(
 
     AstAssigner::new().visit_package(&mut package);
 
-    let mut cond_compile = compile::preprocess::Conditional::new(RuntimeCapabilityFlags::all());
+    let mut cond_compile = compile::preprocess::Conditional::new(TargetCapabilityFlags::all());
     cond_compile.visit_package(&mut package);
     let dropped_names = cond_compile.into_names();
 
@@ -1980,13 +1980,13 @@ fn multiple_definition_dropped_is_not_found() {
     check(
         indoc! {"
             namespace A {
-                @Config(Unrestricted)
+                @Config(Adaptive)
                 operation B() : Unit {}
                 @Config(Base)
                 operation B() : Unit {}
                 @Config(Base)
                 operation C() : Unit {}
-                @Config(Unrestricted)
+                @Config(Adaptive)
                 operation C() : Unit {}
             }
             namespace D {
@@ -2003,13 +2003,13 @@ fn multiple_definition_dropped_is_not_found() {
         "},
         &expect![[r#"
             namespace item0 {
-                @Config(Unrestricted)
+                @Config(Adaptive)
                 operation item1() : Unit {}
                 @Config(Base)
                 operation B() : Unit {}
                 @Config(Base)
                 operation C() : Unit {}
-                @Config(Unrestricted)
+                @Config(Adaptive)
                 operation item2() : Unit {}
             }
             namespace item3 {
@@ -2024,8 +2024,8 @@ fn multiple_definition_dropped_is_not_found() {
                 }
             }
 
-            // NotFound("B", Span { lo: 265, hi: 266 })
-            // NotFound("C", Span { lo: 278, hi: 279 })
+            // NotFound("B", Span { lo: 257, hi: 258 })
+            // NotFound("C", Span { lo: 270, hi: 271 })
         "#]],
     );
 }

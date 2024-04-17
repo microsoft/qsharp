@@ -72,6 +72,7 @@ pub struct Scope {
     pub callable: Option<(LocalItemId, FunctorApp)>,
     pub args_value_kind: Vec<ValueKind>,
     pub env: Env,
+    last_expr: Option<ExprId>,
     hybrid_exprs: FxHashMap<ExprId, Value>,
     hybrid_vars: FxHashMap<LocalVarId, Value>,
 }
@@ -83,7 +84,7 @@ impl Scope {
         args: Vec<Arg>,
     ) -> Self {
         // Determine the runtimne kind (static or dynamic) of the arguments.
-        let args_runtime_kind: Vec<ValueKind> = args
+        let args_value_kind: Vec<ValueKind> = args
             .iter()
             .map(|arg| {
                 let value = match arg {
@@ -97,7 +98,7 @@ impl Scope {
         // Add the static values to the environment.
         let mut env = Env::default();
         let mut hybrid_vars = FxHashMap::default();
-        let arg_runtime_kind_tuple = args.into_iter().zip(args_runtime_kind.iter());
+        let arg_runtime_kind_tuple = args.into_iter().zip(args_value_kind.iter());
         for (arg, value_kind) in arg_runtime_kind_tuple {
             let Arg::Var(local_var_id, var) = arg else {
                 continue;
@@ -114,14 +115,16 @@ impl Scope {
         Self {
             package_id,
             callable,
-            args_value_kind: args_runtime_kind,
+            args_value_kind,
             env,
+            last_expr: None,
             hybrid_exprs: FxHashMap::default(),
             hybrid_vars,
         }
     }
 
-    pub fn get_expr_value(&self, expr_id: ExprId) -> &Value {
+    // Potential candidate for removal if only the last expression value is needed.
+    pub fn _get_expr_value(&self, expr_id: ExprId) -> &Value {
         self.hybrid_exprs
             .get(&expr_id)
             .expect("expression value does not exist")
@@ -134,11 +137,22 @@ impl Scope {
     }
 
     pub fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
+        self.last_expr = Some(expr_id);
         self.hybrid_exprs.insert(expr_id, value);
     }
 
     pub fn insert_local_var_value(&mut self, local_var_id: LocalVarId, value: Value) {
         self.hybrid_vars.insert(local_var_id, value);
+    }
+
+    pub fn clear_last_expr(&mut self) {
+        self.last_expr = None;
+    }
+
+    pub fn last_expr_value(&self) -> Value {
+        self.last_expr
+            .and_then(|expr_id| self.hybrid_exprs.get(&expr_id))
+            .map_or_else(Value::unit, Clone::clone)
     }
 }
 

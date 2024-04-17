@@ -58,7 +58,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, Source, SourceMap},
+    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
     error::WithSource,
 };
 use qsc_passes::{PackageType, PassContext};
@@ -108,8 +108,8 @@ pub enum Error {
 pub struct Interpreter {
     /// The incremental Q# compiler.
     compiler: Compiler,
-    /// The runtime capabilities used for compilation.
-    capabilities: RuntimeCapabilityFlags,
+    /// The target capabilities used for compilation.
+    capabilities: TargetCapabilityFlags,
     /// The number of lines that have so far been compiled.
     /// This field is used to generate a unique label
     /// for each line evaluated with `eval_fragments`.
@@ -147,7 +147,7 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
@@ -167,7 +167,7 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
@@ -185,7 +185,7 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
         let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
@@ -350,10 +350,10 @@ impl Interpreter {
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> std::result::Result<String, Vec<Error>> {
-        if self.capabilities == RuntimeCapabilityFlags::all() {
+        if self.capabilities == TargetCapabilityFlags::all() {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
-        if self.capabilities == RuntimeCapabilityFlags::empty() {
+        if self.capabilities == TargetCapabilityFlags::empty() {
             let mut sim = BaseProfSim::new();
             let mut stdout = std::io::sink();
             let mut out = GenericReceiver::new(&mut stdout);
@@ -504,7 +504,7 @@ impl Interpreter {
         unit_addition: &qsc_frontend::incremental::Increment,
     ) -> core::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
     {
-        if self.capabilities != RuntimeCapabilityFlags::all() {
+        if self.capabilities != TargetCapabilityFlags::all() {
             return self.run_fir_passes(unit_addition);
         }
         let fir_package = self.fir_store.get_mut(self.package);
@@ -607,7 +607,7 @@ pub struct Debugger {
 impl Debugger {
     pub fn new(
         sources: SourceMap,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         position_encoding: Encoding,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {

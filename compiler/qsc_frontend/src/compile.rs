@@ -39,57 +39,30 @@ use thiserror::Error;
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct RuntimeCapabilityFlags: u32 {
-        const ForwardBranching = 0b0000_0001;
+    pub struct TargetCapabilityFlags: u32 {
+        const Adaptive = 0b0000_0001;
         const IntegerComputations = 0b0000_0010;
         const FloatingPointComputations = 0b0000_0100;
         const BackwardsBranching = 0b0000_1000;
         const HigherLevelConstructs = 0b0001_0000;
+        const QubitReset = 0b0010_0000;
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ConfigAttr {
-    Adaptive,
-    Base,
-    Unrestricted,
-}
-
-impl ConfigAttr {
-    #[must_use]
-    pub fn to_str(&self) -> &'static str {
-        match self {
-            Self::Adaptive => "Adaptive",
-            Self::Base => "Base",
-            Self::Unrestricted => "Unrestricted",
-        }
-    }
-
-    #[must_use]
-    pub fn is_target_str(s: &str) -> bool {
-        Self::from_str(s).is_ok()
-    }
-}
-
-impl FromStr for ConfigAttr {
+impl FromStr for TargetCapabilityFlags {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Adaptive" => Ok(ConfigAttr::Adaptive),
-            "Base" => Ok(ConfigAttr::Base),
-            "Unrestricted" => Ok(ConfigAttr::Unrestricted),
+            "Base" => Ok(TargetCapabilityFlags::empty()),
+            "Adaptive" => Ok(TargetCapabilityFlags::Adaptive),
+            "IntegerComputations" => Ok(TargetCapabilityFlags::IntegerComputations),
+            "FloatingPointComputations" => Ok(TargetCapabilityFlags::FloatingPointComputations),
+            "BackwardsBranching" => Ok(TargetCapabilityFlags::BackwardsBranching),
+            "HigherLevelConstructs" => Ok(TargetCapabilityFlags::HigherLevelConstructs),
+            "QubitReset" => Ok(TargetCapabilityFlags::QubitReset),
+            "Unrestricted" => Ok(TargetCapabilityFlags::all()),
             _ => Err(()),
-        }
-    }
-}
-
-impl From<ConfigAttr> for RuntimeCapabilityFlags {
-    fn from(value: ConfigAttr) -> Self {
-        match value {
-            ConfigAttr::Unrestricted => Self::all(),
-            ConfigAttr::Base => Self::empty(),
-            ConfigAttr::Adaptive => Self::ForwardBranching,
         }
     }
 }
@@ -345,7 +318,7 @@ pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> CompileUnit {
     let (mut ast_package, parse_errors) = parse_all(&sources, language_features);
@@ -420,7 +393,7 @@ pub fn core() -> CompileUnit {
         &store,
         &[],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert_no_errors(&unit.sources, &mut unit.errors);
@@ -433,7 +406,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
+pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let std: Vec<(SourceName, SourceContents)> = library::STD_LIB
         .iter()
         .map(|(name, contents)| ((*name).into(), (*contents).into()))

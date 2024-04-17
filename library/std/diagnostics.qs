@@ -69,13 +69,11 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    @Config(Adaptive)
     @Config(Unrestricted)
     operation CheckZero(qubit : Qubit) : Bool {
         body intrinsic;
     }
 
-    @Config(Adaptive)
     @Config(Unrestricted)
     operation CheckAllZero(qubits : Qubit[]) : Bool {
         for q in qubits {
@@ -122,7 +120,6 @@ namespace Microsoft.Quantum.Diagnostics {
     /// Operation defining the expected behavior for the operation under test.
     /// # Output
     /// True if operations are equal, false otherwise.
-    @Config(Adaptive)
     @Config(Unrestricted)
     operation CheckOperationsAreEqual(
         nQubits : Int,

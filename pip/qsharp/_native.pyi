@@ -2,22 +2,14 @@
 # Licensed under the MIT License.
 
 from enum import Enum
-from typing import Any, Callable, ClassVar, Tuple, Optional, Dict, List
+from typing import Any, Callable, ClassVar, Optional, Dict, List
 
 class TargetProfile:
     """
     A Q# target profile.
 
-    The target is the hardware or simulator which will be used to run the Q# program.
-    The target profile is a description of a target's capabilities.
-    """
-
-    Adaptive: ClassVar[Any]
-    """
-    Target supports the core set of adaptive.
-
-    This option maps to the Adaptive Profile as defined by the QIR specification
-    without any extensions.
+    A target profile describes the capabilities of the hardware or simulator
+    which will be used to run the Q# program.
     """
 
     Base: ClassVar[Any]
@@ -26,6 +18,15 @@ class TargetProfile:
     program.
 
     This option maps to the Base Profile as defined by the QIR specification.
+    """
+
+    Quantinuum: ClassVar[Any]
+    """
+    Target supports Quantinuum profile.
+
+    This profile includes all of the required Adaptive Profile
+    capabilities, as well as the optional integer computation and qubit
+    reset capabilities, as defined by the QIR specification.
     """
 
     Unrestricted: ClassVar[Any]

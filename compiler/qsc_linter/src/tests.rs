@@ -7,7 +7,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{self, CompileUnit, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_passes::PackageType;
 
 #[test]
@@ -162,14 +162,14 @@ fn hir_placeholder() {
 fn check(source: &str, expected: &Expect) {
     let source = wrap_in_namespace(source);
     let mut store = PackageStore::new(compile::core());
-    let std = store.insert(compile::std(&store, RuntimeCapabilityFlags::all()));
+    let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new([("source.qs".into(), source.clone().into())], None);
     let (package, _) = qsc::compile::compile(
         &store,
         &[std],
         sources,
         PackageType::Exe,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
 
