@@ -9,7 +9,7 @@ mod given_interpreter {
     use miette::Diagnostic;
     use qsc_data_structures::language_features::LanguageFeatures;
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+    use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
@@ -42,7 +42,7 @@ mod given_interpreter {
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::RuntimeCapabilityFlags;
+        use qsc_frontend::compile::TargetCapabilityFlags;
 
         use super::*;
 
@@ -58,7 +58,7 @@ mod given_interpreter {
                     false,
                     SourceMap::default(),
                     PackageType::Lib,
-                    RuntimeCapabilityFlags::all(),
+                    TargetCapabilityFlags::all(),
                     LanguageFeatures::default(),
                 )
                 .expect("interpreter should be created");
@@ -523,8 +523,7 @@ mod given_interpreter {
                 "#]],
                 );
             }
-            let mut interpreter =
-                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -555,8 +554,7 @@ mod given_interpreter {
                 "#]],
                 );
             }
-            let mut interpreter =
-                get_interpreter_with_capbilities(RuntimeCapabilityFlags::ForwardBranching);
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
             let (result, output) = line(
                 &mut interpreter,
                 indoc! {r#"
@@ -620,7 +618,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -651,7 +649,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -718,7 +716,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::ForwardBranching,
+                TargetCapabilityFlags::Adaptive,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -729,7 +727,7 @@ mod given_interpreter {
                     open Microsoft.Quantum.Math;
                     open QIR.Intrinsic;
                     @EntryPoint()
-                    operation Main() : Unit {
+                    operation Main() : Result {
                         use q = Qubit();
                         let pi_over_2 = 4.0 / 2.0;
                         __quantum__qis__rz__body(pi_over_2, q);
@@ -737,6 +735,7 @@ mod given_interpreter {
                         __quantum__qis__rz__body(some_angle, q);
                         set some_angle = ArcCos(-1.0) / PI();
                         __quantum__qis__rz__body(some_angle, q);
+                        __quantum__qis__mresetz__body(q)
                     }
                 }"#
                 },
@@ -752,12 +751,88 @@ mod given_interpreter {
                   call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
                   call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
                   ret void
                 }
 
                 declare void @__quantum__qis__rz__body(double, %Qubit*)
 
-                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="0" "required_num_results"="0" }
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]]
+            .assert_eq(&res);
+        }
+
+        #[test]
+        fn adaptive_qirgen_nested_output_types() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetCapabilityFlags::Adaptive,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                namespace Test {
+                    open QIR.Intrinsic;
+                    @EntryPoint()
+                    operation Main() : (Result, (Bool, Bool)) {
+                        use q = Qubit();
+                        let r = __quantum__qis__mresetz__body(q);
+                        (r, (r == One, r == Zero))
+                    }
+                }"#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Test.Main()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                block_0:
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  %var_0 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_1 = icmp eq i1 %var_0, true
+                  %var_2 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_3 = icmp eq i1 %var_2, false
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_1, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_3, i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare i1 @__quantum__qis__read_result__body(%Result*)
+
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+                declare void @__quantum__rt__bool_record_output(i1, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
                 attributes #1 = { "irreversible" }
 
                 ; module flags
@@ -778,7 +853,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::ForwardBranching,
+                TargetCapabilityFlags::Adaptive,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -809,7 +884,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -876,7 +951,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -958,7 +1033,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -985,7 +1060,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1072,7 +1147,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1136,7 +1211,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1241,7 +1316,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1255,13 +1330,13 @@ mod given_interpreter {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
         )
         .expect("interpreter should be created")
     }
 
-    fn get_interpreter_with_capbilities(capabilities: RuntimeCapabilityFlags) -> Interpreter {
+    fn get_interpreter_with_capbilities(capabilities: TargetCapabilityFlags) -> Interpreter {
         Interpreter::new(
             true,
             SourceMap::default(),
@@ -1356,7 +1431,7 @@ mod given_interpreter {
         use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+        use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
         use qsc_passes::PackageType;
 
         #[test]
@@ -1374,7 +1449,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1397,7 +1472,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1424,7 +1499,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1466,7 +1541,7 @@ mod given_interpreter {
             let sources = SourceMap::new(sources, None);
             let debugger = Debugger::new(
                 sources,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )
@@ -1497,7 +1572,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1528,7 +1603,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");

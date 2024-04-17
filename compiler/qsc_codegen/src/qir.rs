@@ -7,7 +7,7 @@ mod instruction_tests;
 #[cfg(test)]
 mod tests;
 
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_frontend::compile::TargetCapabilityFlags;
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::PackageStoreComputeProperties;
@@ -29,7 +29,7 @@ fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::
 /// converts the given sources to QIR using the given language features.
 pub fn hir_to_qir(
     package_store: &qsc_frontend::compile::PackageStore,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     compute_properties: Option<PackageStoreComputeProperties>,
     entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
@@ -39,7 +39,7 @@ pub fn hir_to_qir(
 
 pub fn fir_to_qir(
     fir_store: &qsc_fir::fir::PackageStore,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     compute_properties: Option<PackageStoreComputeProperties>,
     entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {

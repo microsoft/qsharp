@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use core::panic;
 use std::mem::take;
 
 use qsc_data_structures::span::Span;

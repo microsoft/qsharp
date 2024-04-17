@@ -5,21 +5,10 @@
 
 pub mod test_utils;
 
+use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{
-    BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty,
-};
+use qsc_rir::rir::{BlockId, CallableId};
 use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
-
-fn double_to_unit_intrinsic_op() -> Callable {
-    Callable {
-        name: "op".to_string(),
-        input_type: vec![Ty::Double],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Regular,
-    }
-}
 
 #[test]
 fn call_to_intrinsic_operation_using_double_literal() {
@@ -33,18 +22,26 @@ fn call_to_intrinsic_operation_using_double_literal() {
         }
     "#});
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, &double_to_unit_intrinsic_op());
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: op
+            call_type: Regular
+            input_type:
+                [0]: Double
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
-        &[
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Double(1.0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -63,28 +60,28 @@ fn calls_to_intrinsic_operation_using_inline_expressions() {
         }
     "#});
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, &double_to_unit_intrinsic_op());
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: op
+            call_type: Regular
+            input_type:
+                [0]: Double
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
-        &[
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Double(0.0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Double(1.0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Double(1.0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(0), )
+                Call id(1), args( Double(1), )
+                Call id(1), args( Double(1), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
@@ -106,27 +103,27 @@ fn calls_to_intrinsic_operation_using_variables() {
         }
     "#});
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, &double_to_unit_intrinsic_op());
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: op
+            call_type: Regular
+            input_type:
+                [0]: Double
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
-        &[
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Double(2.0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Double(4.0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Double(8.0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(2), )
+                Call id(1), args( Double(4), )
+                Call id(1), args( Double(8), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }

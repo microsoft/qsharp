@@ -42,6 +42,7 @@ import { getRandomGuid } from "../utils";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
 import { escapeHtml } from "markdown-it/lib/common/utils";
+import { isPanelOpen } from "../webviewPanel";
 
 const ErrorProgramHasErrors =
   "program contains compile errors(s): cannot run. See debug console for more details.";
@@ -316,9 +317,7 @@ export class QscDebugSession extends LoggingDebugSession {
       error = e;
     }
 
-    if (this.config.showCircuit) {
-      await this.showCircuit(error);
-    }
+    await this.updateCircuit(error);
 
     if (!result) {
       // Can be a runtime failure in the program
@@ -389,17 +388,15 @@ export class QscDebugSession extends LoggingDebugSession {
           bps,
           this.eventTarget,
         );
-        if (this.config.showCircuit) {
-          this.showCircuit();
-        }
+
+        await this.updateCircuit();
+
         if (result.id != StepResultId.Return) {
           await this.endSession(`execution didn't run to completion`, -1);
           return;
         }
       } catch (error) {
-        if (this.config.showCircuit) {
-          await this.showCircuit(error);
-        }
+        await this.updateCircuit(error);
         await this.endSession(`ending session due to error: ${error}`, 1);
         return;
       }
@@ -819,13 +816,14 @@ export class QscDebugSession extends LoggingDebugSession {
           // This will get invoked when the "Quantum Circuit" scope is expanded
           // in the Variables view, but instead of showing any values in the variables
           // view, we can pop open the circuit diagram panel.
-          this.showCircuit();
-
-          // Keep updating the circuit for the rest of this session, even if
-          // the Variables scope gets collapsed by the user. If we don't do this,
-          // the diagram won't get updated with each step even though the circuit
-          // panel is still being shown, which is misleading.
-          this.config.showCircuit = true;
+          if (!this.config.showCircuit) {
+            // Keep updating the circuit for the rest of this session, even if
+            // the Variables scope gets collapsed by the user. If we don't do this,
+            // the diagram won't get updated with each step even though the circuit
+            // panel is still being shown, which is misleading.
+            this.config.showCircuit = true;
+            await this.updateCircuit();
+          }
           response.body = {
             variables: [
               {
@@ -934,31 +932,34 @@ export class QscDebugSession extends LoggingDebugSession {
     }
   }
 
-  private async showCircuit(error?: any) {
-    // Error returned from the debugger has a message and a stack (which also includes the message).
-    // We would ideally retrieve the original runtime error, and format it to be consistent
-    // with the other runtime errors that can be shown in the circuit panel, but that will require
-    // a bit of refactoring.
-    const stack =
-      error && typeof error === "object" && typeof error.stack === "string"
-        ? escapeHtml(error.stack)
-        : undefined;
+  /* Updates the circuit panel if `showCircuit` is true or if panel is already open */
+  private async updateCircuit(error?: any) {
+    if (this.config.showCircuit || isPanelOpen("circuit")) {
+      // Error returned from the debugger has a message and a stack (which also includes the message).
+      // We would ideally retrieve the original runtime error, and format it to be consistent
+      // with the other runtime errors that can be shown in the circuit panel, but that will require
+      // a bit of refactoring.
+      const stack =
+        error && typeof error === "object" && typeof error.stack === "string"
+          ? escapeHtml(error.stack)
+          : undefined;
 
-    const circuit = await this.debugService.getCircuit();
+      const circuit = await this.debugService.getCircuit();
 
-    updateCircuitPanel(
-      this.targetProfile,
-      vscode.Uri.parse(this.sources[0][0]).path,
-      !this.revealedCircuit,
-      {
-        circuit,
-        errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
-        simulating: true,
-      },
-    );
+      updateCircuitPanel(
+        this.targetProfile,
+        vscode.Uri.parse(this.sources[0][0]).path,
+        !this.revealedCircuit,
+        {
+          circuit,
+          errorHtml: stack ? `<pre>${stack}</pre>` : undefined,
+          simulated: true,
+        },
+      );
 
-    // Only reveal the panel once per session, to keep it from
-    // moving around while stepping
-    this.revealedCircuit = true;
+      // Only reveal the panel once per session, to keep it from
+      // moving around while stepping
+      this.revealedCircuit = true;
+    }
   }
 }
