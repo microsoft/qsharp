@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#[cfg(test)]
+mod tests;
+
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::compile::{PackageStore, SourceMap, TargetCapabilityFlags};
