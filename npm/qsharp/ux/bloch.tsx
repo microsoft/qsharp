@@ -448,14 +448,12 @@ class BlochRenderer {
 }
 
 export function BlochSphere(props: {
-  gates?: string[];
   renderLaTeX: (nodes: HTMLElement[]) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<BlochRenderer | null>(null);
   const latexDiv = useRef<HTMLDivElement>(null);
 
-  const [gates, setGates] = useState<string[]>(props.gates || []);
   const [gateArray, setGateArray] = useState<string[]>([]);
   const [state, setState] = useState(Ket0);
 
@@ -476,7 +474,7 @@ export function BlochSphere(props: {
     gateMatrix: string,
     oldState: string,
     newState: string,
-  ) => `$$ ${gateName} | \\psi \\rangle =
+  ) => `$$ ${gateName} | \\psi \\rangle_${gateArray.length} =
   ${gateMatrix}
   \\cdot ${oldState}
   = ${newState}
@@ -552,12 +550,10 @@ export function BlochSphere(props: {
       }
     }
     setState(newState);
-    setGates([...gates, gate]);
     setGateArray([...gateArray, newLaTeX]);
   }
 
   function reset() {
-    setGates([]);
     setGateArray([]);
     setState(vec2(Ket0));
     if (renderer.current) {
@@ -578,7 +574,6 @@ export function BlochSphere(props: {
           </div>
         ))}
       </div>
-      <div>{"Applied: " + gates.join(", ")}</div>
       <div class="qs-gate-buttons">
         <button type="button" onClick={() => rotate("X")}>
           X

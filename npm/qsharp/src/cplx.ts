@@ -40,16 +40,18 @@ function numToLaTeX(n: number, forceSign = false): string {
   } else if (compare(n, 0.75)) {
     result += "3 \\over 4";
   } else if (compare(n, Math.SQRT1_2)) {
-    result += "1 \\over \\sqrt{2}";
     // result += "\\sqrt{2} \\over 2";
+    result += "1 \\over \\sqrt{2}";
   } else if (compare(n, 0.1464466094)) {
-    result += "{-1 + \\sqrt{2}} \\over 2 \\sqrt{2}";
+    result += "2 - \\sqrt{2} \\over 4";
+    // result += "{-1 + \\sqrt{2}} \\over 2 \\sqrt{2}";
     // result += "\\sin^2{\\pi \\over 8}";
   } else if (compare(n, 0.3535533905)) {
-    result += "1 \\over {2 \\sqrt{2}}";
-    // result += "\\sqrt{2} \\over 4";
+    // result += "1 \\over {2 \\sqrt{2}}";
+    result += "\\sqrt{2} \\over 4";
   } else if (compare(n, 0.8535533905)) {
-    result += "{1 + \\sqrt{2}} \\over {2 \\sqrt{2}}";
+    result += "{2 + \\sqrt{2}} \\over 4";
+    // result += "{1 + \\sqrt{2}} \\over {2 \\sqrt{2}}";
     // result += "\\cos^2{\\pi \\over 8}";
   } else if (compare(n, 0.8660254037844386)) {
     result += "\\sqrt{3} \\over 2";
