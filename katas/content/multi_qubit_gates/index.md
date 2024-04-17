@@ -70,7 +70,6 @@ $$
 This approach can be generalized to larger systems and gates that act on multiple qubits as well.
 It can be less straightforward when a multi-qubit gate is applied to a subset of qubits that are not "adjacent" to each other in the tensor product; we'll see an example later in this kata.
 
-
 @[exercise]({
     "id": "multi_qubit_gates__compound_gate",
     "title": "Compound Gate",
