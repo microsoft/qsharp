@@ -250,7 +250,6 @@ fn call_instr_no_return_type_no_output_var_passes_check() {
     );
 
     check_instr_types(&program, &Instruction::Call(CallableId(0), vec![opr], None));
-
 }
 
 #[test]
