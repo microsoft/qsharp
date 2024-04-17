@@ -783,7 +783,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::ForwardBranching,
+                TargetCapabilityFlags::Adaptive,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
