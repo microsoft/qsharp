@@ -29,7 +29,7 @@ the "actual state" reported (the state prepared by your solution) can come out w
 We have seen this before in the previous tasks: we can write the apparently anomalous state as $(-1)(\alpha|00\rangle + \beta |01\rangle + \gamma |10\rangle + \delta |11\rangle)$ and see that it differs from the goal state by a global phase of $\pi$ (remember that $e^{i\pi}=-1$). This doesn't mean that your implementation introduced this phase; sometimes the full state simulator used in the test harness produces a global phase in its calculations.
 Let's now  follow the hint in the question and try to express the solution using several (possibly controlled) Pauli gates.
 
-If we look at the available cotrolled gates, CR and its special case CZ produce rotations, and that's not really what we want. So perhaps we are being pointed towards CNOT? If we carefully compare the input with the goal state, we see that the bits in the two basis states of the two qubits are being flipped, which results in a swap. What we need to do is to turn $|01\rangle$ into $|10\rangle$ and $|10\rangle$ into $|01\rangle$ while leaving the other two basis states unchanged.
+If we look at the available controlled gates, CR and its special case CZ produce rotations, and that's not really what we want. So perhaps we are being pointed towards CNOT? If we carefully compare the input with the goal state, we see that the bits in the two basis states of the two qubits are being flipped, which results in a swap. What we need to do is to turn $|01\rangle$ into $|10\rangle$ and $|10\rangle$ into $|01\rangle$ while leaving the other two basis states unchanged.
 
 With some experimentation with sequences of CNOT gates we can arrive at the following sequence of transformations:
 
