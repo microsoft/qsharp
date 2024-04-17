@@ -730,7 +730,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn eval_expr_array(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
-        let mut values = Vec::<Value>::new();
+        let mut values = Vec::with_capacity(exprs.len());
         for expr_id in exprs {
             let maybe_value = self.try_eval_expr(*expr_id);
             let Ok(value) = maybe_value else {
@@ -743,7 +743,7 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
-        let mut values = Vec::<Value>::new();
+        let mut values = Vec::with_capacity(exprs.len());
         for expr_id in exprs {
             let maybe_value = self.try_eval_expr(*expr_id);
             let Ok(value) = maybe_value else {
@@ -995,91 +995,17 @@ impl<'a> PartialEvaluator<'a> {
         let mut instrs = Vec::new();
 
         match ret_val {
-            Value::Array(vals) => {
-                let Ty::Array(elem_ty) = ty else {
-                    panic!("expected array type for array value");
-                };
-                let array_record_callable_id = self.get_array_record_callable();
-                instrs.push(Instruction::Call(
-                    array_record_callable_id,
-                    vec![
-                        Operand::Literal(Literal::Integer(
-                            vals.len()
-                                .try_into()
-                                .expect("array length should fit into u32"),
-                        )),
-                        Operand::Literal(Literal::Pointer),
-                    ],
-                    None,
-                ));
-                for val in vals.iter() {
-                    instrs
-                        .extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
-                }
-            }
-            Value::Tuple(vals) => {
-                let Ty::Tuple(elem_tys) = ty else {
-                    panic!("expected tuple type for tuple value");
-                };
-                let tuple_record_callable_id = self.get_tuple_record_callable();
-                instrs.push(Instruction::Call(
-                    tuple_record_callable_id,
-                    vec![
-                        Operand::Literal(Literal::Integer(
-                            vals.len()
-                                .try_into()
-                                .expect("tuple length should fit into u32"),
-                        )),
-                        Operand::Literal(Literal::Pointer),
-                    ],
-                    None,
-                ));
-                for (val, elem_ty) in vals.iter().zip(elem_tys.iter()) {
-                    instrs
-                        .extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
-                }
-            }
-
-            Value::Result(res) => {
-                let result_record_callable_id = self.get_result_record_callable();
-                instrs.push(Instruction::Call(
-                    result_record_callable_id,
-                    vec![
-                        Operand::Literal(Literal::Result(
-                            res.unwrap_id()
-                                .try_into()
-                                .expect("result id should fit into u32"),
-                        )),
-                        Operand::Literal(Literal::Pointer),
-                    ],
-                    None,
-                ));
-            }
-            Value::Var(var) => {
-                let (record_callable_id, record_ty) = match ty {
-                    Ty::Prim(Prim::Bool) => (self.get_bool_record_callable(), rir::Ty::Boolean),
-                    Ty::Prim(Prim::Int) => (self.get_int_record_callable(), rir::Ty::Integer),
-                    _ => panic!("unsupported variable type in output recording"),
-                };
-                instrs.push(Instruction::Call(
-                    record_callable_id,
-                    vec![
-                        Operand::Variable(Variable {
-                            variable_id: var.0.into(),
-                            ty: record_ty,
-                        }),
-                        Operand::Literal(Literal::Pointer),
-                    ],
-                    None,
-                ));
-            }
+            Value::Array(vals) => self.record_array(ty, &mut instrs, &vals),
+            Value::Tuple(vals) => self.record_tuple(ty, &mut instrs, &vals),
+            Value::Result(res) => self.record_result(&mut instrs, res),
+            Value::Var(var) => self.record_variable(ty, &mut instrs, var),
+            Value::Bool(val) => self.record_bool(&mut instrs, val),
+            Value::Int(val) => self.record_int(&mut instrs, val),
 
             Value::BigInt(_)
-            | Value::Bool(_)
             | Value::Closure(_)
             | Value::Double(_)
             | Value::Global(_, _)
-            | Value::Int(_)
             | Value::Pauli(_)
             | Value::Qubit(_)
             | Value::Range(_)
@@ -1087,6 +1013,109 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         instrs
+    }
+
+    fn record_int(&mut self, instrs: &mut Vec<Instruction>, val: i64) {
+        let int_record_callable_id = self.get_int_record_callable();
+        instrs.push(Instruction::Call(
+            int_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Integer(val)),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_bool(&mut self, instrs: &mut Vec<Instruction>, val: bool) {
+        let bool_record_callable_id = self.get_bool_record_callable();
+        instrs.push(Instruction::Call(
+            bool_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Bool(val)),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_variable(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, var: Var) {
+        let (record_callable_id, record_ty) = match ty {
+            Ty::Prim(Prim::Bool) => (self.get_bool_record_callable(), rir::Ty::Boolean),
+            Ty::Prim(Prim::Int) => (self.get_int_record_callable(), rir::Ty::Integer),
+            _ => panic!("unsupported variable type in output recording"),
+        };
+        instrs.push(Instruction::Call(
+            record_callable_id,
+            vec![
+                Operand::Variable(Variable {
+                    variable_id: var.0.into(),
+                    ty: record_ty,
+                }),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_result(&mut self, instrs: &mut Vec<Instruction>, res: val::Result) {
+        let result_record_callable_id = self.get_result_record_callable();
+        instrs.push(Instruction::Call(
+            result_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Result(
+                    res.unwrap_id()
+                        .try_into()
+                        .expect("result id should fit into u32"),
+                )),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_tuple(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, vals: &Rc<[Value]>) {
+        let Ty::Tuple(elem_tys) = ty else {
+            panic!("expected tuple type for tuple value");
+        };
+        let tuple_record_callable_id = self.get_tuple_record_callable();
+        instrs.push(Instruction::Call(
+            tuple_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Integer(
+                    vals.len()
+                        .try_into()
+                        .expect("tuple length should fit into u32"),
+                )),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+        for (val, elem_ty) in vals.iter().zip(elem_tys.iter()) {
+            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+        }
+    }
+
+    fn record_array(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, vals: &Rc<Vec<Value>>) {
+        let Ty::Array(elem_ty) = ty else {
+            panic!("expected array type for array value");
+        };
+        let array_record_callable_id = self.get_array_record_callable();
+        instrs.push(Instruction::Call(
+            array_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Integer(
+                    vals.len()
+                        .try_into()
+                        .expect("array length should fit into u32"),
+                )),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+        for val in vals.iter() {
+            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+        }
     }
 
     fn get_array_record_callable(&mut self) -> CallableId {
