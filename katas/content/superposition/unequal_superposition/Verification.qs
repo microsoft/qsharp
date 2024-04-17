@@ -9,8 +9,9 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        for i in 0 .. 36 {
-            let alpha = 2.0 * PI() * IntAsDouble(i) / 36.0;
+        let limit = 36;
+        for i in 0 .. limit {
+            let alpha = 2.0 * PI() * IntAsDouble(i) / IntAsDouble(limit);
             let solution = Kata.UnequalSuperposition(_, alpha);
             let reference = UnequalSuperposition_Reference(_, alpha);
             Message($"Testing for alpha = {alpha}...");
