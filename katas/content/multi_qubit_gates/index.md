@@ -79,7 +79,6 @@ It can be less straightforward when a multi-qubit gate is applied to a subset of
     ]
 })
 
-
 @[section]({
     "id": "multi_qubit_gates__cnot_gate",
     "title": "CNOT Gate"
