@@ -1,6 +1,7 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Katas;
+    open Microsoft.Quantum.Math;
 
     operation FourBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[][]) : Unit is Adj {
         use anc = Qubit[2];
