@@ -197,12 +197,12 @@ Entangled states are notable for their quantum correlations, which stand in cont
 Over the next few exercises, we will delve into how to convert Bell states into each other, showcasing the adaptability of entangled states through single-qubit operations.
 
 @[exercise]({
-"id": "multi_qubit_systems__bell_state_change_1 ",
-"title": "Bell State Change 1",
-"path": "./bell_state_change_1/",
-"qsDependencies": [
-"../KatasLibrary.qs"
-]
+    "id": "multi_qubit_systems__bell_state_change_1 ",
+    "title": "Bell State Change 1",
+    "path": "./bell_state_change_1/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
 })
 
 @[exercise]({
