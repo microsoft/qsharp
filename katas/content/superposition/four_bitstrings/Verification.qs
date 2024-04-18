@@ -60,6 +60,7 @@ namespace Kata.Verification {
         }
 
         set bits = [[false, false, false, true], [false, false, true, false], [false, true, false, false], [true, false, false, false]];
+        Message($"Testing for bits = {bits}...");
         if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
             FourBitstringSuperposition(_, bits),
             WState_Arbitrary_Reference(_),
