@@ -24,3 +24,9 @@ As the last step, we must uncompute the auxiliary qubits, i.e., return them to t
 Same as we did in the previous task, we will use [`ApplyControlledOnBitString`](https://learn.microsoft.com/en-us/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonbitstring) with the corresponding bit string and the X operation as arguments, the quantum register as the control, and the auxiliary qubits as the target.
 
 We will uncompute each of them separately, so one of the auxiliary qubits will be uncomputed with the `bits[1]` and `bits[3]` bit strings as controls, and the other - with the `bits[2]` and `bits[3]`.
+
+@[solution]({
+    "id": "superposition__four_bitstrings_solution_a",
+    "codePath": "./SolutionA.qs"
+})
+
