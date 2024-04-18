@@ -513,9 +513,16 @@ impl<'a> PartialEvaluator<'a> {
             "__quantum__qis__mresetz__body" => {
                 self.measure_qubit(builder::mresetz_decl(), &args_value)
             }
-            // Resource estimation intrinsics have special handling.
+            // The following operations should be conditionally compiled out for all targets for which QIR generation is
+            // supported.
+            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" => panic!(
+                "`{}` is not a supported by partial evaluation",
+                callable_decl.name.name
+            ),
+            // The following intrinsic operations and functions are no-ops.
             "BeginEstimateCaching" => Value::Bool(true),
-            "AccountForEstimatesInternal"
+            "DumpRegister"
+            | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
             | "EndRepeatEstimatesInternal" => Value::unit(),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),

@@ -667,6 +667,48 @@ fn call_to_intrinsic_begin_estimate_caching_with_classical_values_does_not_gener
 }
 
 #[test]
+fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_does_not_generate_corresponding_call_instruction(
+) {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let i = __quantum__qis__m__body(q) == Zero ? 0 | 1;
+                let _ = BeginEstimateCaching("test", i);
+            }
+        }
+        "#,
+    });
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__tuple_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let return_block_id = BlockId(1);
+    assert_block_instructions(
+        &program,
+        return_block_id,
+        &expect![[r#"
+            Block:
+                Call id(3), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
 fn call_to_intrinsic_end_estimate_caching_does_not_generate_instructions() {
     let program = compile_and_partially_evaluate(indoc! {
         r#"
@@ -759,4 +801,100 @@ fn call_to_end_repeat_estimates_does_not_generate_instructions() {
             Call id(1), args( Integer(0), Pointer, )
             Return"#]],
     );
+}
+
+#[test]
+fn call_to_dump_machine_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Diagnostics;
+            @EntryPoint()
+            operation Main() : Unit {
+                DumpMachine();
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_dump_register_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Diagnostics;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                DumpRegister([q]);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+#[should_panic(expected = "`CheckZero` is not a supported by partial evaluation")]
+fn call_to_check_zero_panics() {
+    _ = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Diagnostics;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let _ = CheckZero(q);
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(expected = "`DrawRandomInt` is not a supported by partial evaluation")]
+fn call_to_draw_random_int_panics() {
+    _ = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Random;
+            @EntryPoint()
+            operation Main() : Unit {
+                let _ = DrawRandomInt(0, 1);
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(expected = "`DrawRandomDouble` is not a supported by partial evaluation")]
+fn call_to_draw_random_double_panics() {
+    _ = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Random;
+            @EntryPoint()
+            operation Main() : Unit {
+                let _ = DrawRandomDouble(0.0, 1.0);
+            }
+        }
+        "#,
+    });
 }
