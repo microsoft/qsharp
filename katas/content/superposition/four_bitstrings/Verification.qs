@@ -93,7 +93,7 @@ namespace Kata.Verification {
             }
 
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-                FourBitstringSuperposition(_, bits),
+                Kata.FourBitstringSuperposition(_, bits),
                 FourBitstringSuperposition_Reference(_, bits),
                 N
             ) {
