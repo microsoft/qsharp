@@ -6,7 +6,7 @@
 use expect_test::expect;
 
 use crate::{
-    builder::{bell_program, new_program},
+    builder::{bell_program, new_program, teleport_program},
     passes::check_and_transform,
     rir::{
         Block, BlockId, Callable, CallableId, CallableType, Instruction, Operand, Program, Ty,
@@ -23,6 +23,8 @@ fn transform_program(program: &mut Program) {
 #[test]
 fn ssa_transform_leaves_program_without_store_instruction_unchanged() {
     let mut program = bell_program();
+    program.config.defer_measurements = false;
+    program.config.remap_qubits_on_reuse = false;
     let program_string_orignal = program.to_string();
 
     transform_program(&mut program);
@@ -32,7 +34,7 @@ fn ssa_transform_leaves_program_without_store_instruction_unchanged() {
 
 #[test]
 fn ssa_transform_leaves_branching_program_without_store_instruction_unchanged() {
-    let mut program = bell_program();
+    let mut program = teleport_program();
     let program_string_orignal = program.to_string();
 
     transform_program(&mut program);
