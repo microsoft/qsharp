@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Math {
     /// matematical constant 𝝅 ≈ 3.14159265358979323846
     ///
     /// # Remarks
-    /// Matematical constant 𝝅 represents the ratio of the circumference
+    /// Mathematical constant 𝝅 represents the ratio of the circumference
     /// of a circle to its diameter. It is useful in many applications
     /// such as rotations and complex arithmetic.
     ///
@@ -29,10 +29,10 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns a double-precision approximation of the
-    /// matematical constant 𝒆 ≈ 2.7182818284590452354
+    /// mathematical constant 𝒆 ≈ 2.7182818284590452354
     ///
     /// # Remarks
-    /// Matematical constant 𝒆, is the base of the natural logarithm
+    /// Mathematical constant 𝒆 is the base of the natural logarithm
     /// also known as the Euler's number
     ///
     /// # References

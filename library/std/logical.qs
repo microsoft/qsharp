@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.Logical {
     /// A `Bool` which is `true` if and only if exactly one of `first` and `second` is `true`.
     ///
     /// # Remarks
-    /// In Q#, Xor(a, b) is equivalent to a != b.
+    /// In Q#, `Xor(a, b)` is equivalent to `a != b`.
     ///
     /// # Example
     /// ```qsharp
