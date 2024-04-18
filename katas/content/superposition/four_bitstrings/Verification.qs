@@ -50,6 +50,7 @@ namespace Kata.Verification {
 
         // cross-tests
         mutable bits = [[false, false], [false, true], [true, false], [true, true]];
+        Message($"Testing for bits = {bits}...");
         if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
             FourBitstringSuperposition(_, bits),
             ApplyToEachA(H, _),
