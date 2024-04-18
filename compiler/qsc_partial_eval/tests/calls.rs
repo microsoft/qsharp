@@ -372,7 +372,9 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    assert_blocks(&program, &expect![[r#"
+    assert_blocks(
+        &program,
+        &expect![[r#"
         Blocks:
         Block 0:Block:
             Call id(1), args( Qubit(0), Result(0), )
@@ -387,7 +389,8 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
             Jump(1)
         Block 3:Block:
             Call id(4), args( Qubit(1), )
-            Jump(1)"#]]);
+            Jump(1)"#]],
+    );
 }
 
 #[test]
