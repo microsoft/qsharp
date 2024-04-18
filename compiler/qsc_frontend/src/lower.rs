@@ -524,7 +524,7 @@ impl With<'_> {
                 fixup.as_ref().map(|f| self.lower_block(f)),
             ),
             ast::ExprKind::Return(expr) => hir::ExprKind::Return(Box::new(self.lower_expr(expr))),
-            ast::ExprKind::Struct(_) => hir::ExprKind::Err, // ToDo
+            ast::ExprKind::Struct(_, _, _) => hir::ExprKind::Err, // ToDo
             ast::ExprKind::Interpolate(components) => hir::ExprKind::String(
                 components
                     .iter()

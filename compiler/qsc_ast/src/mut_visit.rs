@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
-    Visibility,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FunctorExpr,
+    FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit,
+    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef,
+    TyDefKind, TyKind, Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -58,6 +58,10 @@ pub trait MutVisitor: Sized {
 
     fn visit_expr(&mut self, expr: &mut Expr) {
         walk_expr(self, expr);
+    }
+
+    fn visit_field_assign(&mut self, assign: &mut FieldAssign) {
+        walk_field_assign(self, assign);
     }
 
     fn visit_pat(&mut self, pat: &mut Pat) {
@@ -291,8 +295,10 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
             vis.visit_expr(until);
             fixup.iter_mut().for_each(|f| vis.visit_block(f));
         }
-        ExprKind::Struct(name) => {
-            vis.visit_expr(name);
+        ExprKind::Struct(name, copy, fields) => {
+            vis.visit_path(name);
+            copy.iter_mut().for_each(|c| vis.visit_expr(c));
+            fields.iter_mut().for_each(|f| vis.visit_field_assign(f));
         }
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);
@@ -306,6 +312,12 @@ pub fn walk_expr(vis: &mut impl MutVisitor, expr: &mut Expr) {
         }
         ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) => {}
     }
+}
+
+pub fn walk_field_assign(vis: &mut impl MutVisitor, assign: &mut FieldAssign) {
+    vis.visit_span(&mut assign.span);
+    vis.visit_ident(&mut assign.field);
+    vis.visit_expr(&mut assign.value);
 }
 
 pub fn walk_pat(vis: &mut impl MutVisitor, pat: &mut Pat) {

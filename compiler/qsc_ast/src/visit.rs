@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
-    Visibility,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FunctorExpr,
+    FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit,
+    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef,
+    TyDefKind, TyKind, Visibility,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -57,6 +57,10 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_expr(&mut self, expr: &'a Expr) {
         walk_expr(self, expr);
+    }
+
+    fn visit_field_assign(&mut self, assign: &'a FieldAssign) {
+        walk_field_assign(self, assign);
     }
 
     fn visit_pat(&mut self, pat: &'a Pat) {
@@ -263,8 +267,10 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
             vis.visit_expr(until);
             fixup.iter().for_each(|f| vis.visit_block(f));
         }
-        ExprKind::Struct(name) => {
-            vis.visit_expr(name);
+        ExprKind::Struct(name, copy, fields) => {
+            vis.visit_path(name);
+            copy.iter().for_each(|c| vis.visit_expr(c));
+            fields.iter().for_each(|f| vis.visit_field_assign(f));
         }
         ExprKind::TernOp(_, e1, e2, e3) => {
             vis.visit_expr(e1);
@@ -278,6 +284,11 @@ pub fn walk_expr<'a>(vis: &mut impl Visitor<'a>, expr: &'a Expr) {
         }
         ExprKind::Err | ExprKind::Hole | ExprKind::Lit(_) => {}
     }
+}
+
+pub fn walk_field_assign<'a>(vis: &mut impl Visitor<'a>, assign: &'a FieldAssign) {
+    vis.visit_ident(&assign.field);
+    vis.visit_expr(&assign.value);
 }
 
 pub fn walk_pat<'a>(vis: &mut impl Visitor<'a>, pat: &'a Pat) {

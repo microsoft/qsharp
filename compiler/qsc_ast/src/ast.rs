@@ -808,7 +808,7 @@ pub enum ExprKind {
     /// A return: `return a`.
     Return(Box<Expr>),
     /// A struct constructor.
-    Struct(Box<Expr>),
+    Struct(Box<Path>, Option<Box<Expr>>, Box<[Box<FieldAssign>]>),
     /// A ternary operator.
     TernOp(TernOp, Box<Expr>, Box<Expr>, Box<Expr>),
     /// A tuple: `(a, b, c)`.
@@ -849,7 +849,7 @@ impl Display for ExprKind {
             ExprKind::Range(start, step, end) => display_range(indent, start, step, end)?,
             ExprKind::Repeat(repeat, until, fixup) => display_repeat(indent, repeat, until, fixup)?,
             ExprKind::Return(e) => write!(indent, "Return: {e}")?,
-            ExprKind::Struct(name) => write!(indent, "Struct: {name}")?,
+            ExprKind::Struct(name, copy, fields) => display_struct(indent, name, copy, fields)?,
             ExprKind::TernOp(op, expr1, expr2, expr3) => {
                 display_tern_op(indent, *op, expr1, expr2, expr3)?;
             }
@@ -1061,6 +1061,27 @@ fn display_repeat(
     Ok(())
 }
 
+fn display_struct(
+    mut indent: Indented<Formatter>,
+    name: &Path,
+    copy: &Option<Box<Expr>>,
+    fields: &[Box<FieldAssign>],
+) -> fmt::Result {
+    write!(indent, "Struct ({name}):")?;
+    if copy.is_none() && fields.is_empty() {
+        write!(indent, " <empty>")?;
+        return Ok(());
+    }
+    indent = set_indentation(indent, 1);
+    if let Some(copy) = copy {
+        write!(indent, "\nCopy: {copy}")?;
+    }
+    for field in fields {
+        write!(indent, "\n{field}")?;
+    }
+    Ok(())
+}
+
 fn display_tern_op(
     mut indent: Indented<Formatter>,
     op: TernOp,
@@ -1102,6 +1123,30 @@ fn display_while(mut indent: Indented<Formatter>, cond: &Expr, block: &Block) ->
     write!(indent, "\n{cond}")?;
     write!(indent, "\n{block}")?;
     Ok(())
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FieldAssign {
+    pub id: NodeId,
+    pub span: Span,
+    pub field: Box<Ident>,
+    pub value: Box<Expr>,
+}
+
+impl WithSpan for FieldAssign {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+impl Display for FieldAssign {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldsAssign {} {}: ({}) {}",
+            self.id, self.span, self.field, self.value
+        )
+    }
 }
 
 /// An interpolated string component.

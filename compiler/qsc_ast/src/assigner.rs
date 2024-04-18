@@ -3,8 +3,8 @@
 
 use crate::{
     ast::{
-        Attr, Block, CallableDecl, Expr, FunctorExpr, Ident, Item, Namespace, NodeId, Package, Pat,
-        Path, QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
+        Attr, Block, CallableDecl, Expr, FieldAssign, FunctorExpr, Ident, Item, Namespace, NodeId,
+        Package, Pat, Path, QubitInit, SpecDecl, Stmt, Ty, TyDef, Visibility,
     },
     mut_visit::{self, MutVisitor},
 };
@@ -104,6 +104,11 @@ impl MutVisitor for Assigner {
     fn visit_expr(&mut self, expr: &mut Expr) {
         self.assign(&mut expr.id);
         mut_visit::walk_expr(self, expr);
+    }
+
+    fn visit_field_assign(&mut self, assign: &mut FieldAssign) {
+        self.assign(&mut assign.id);
+        mut_visit::walk_field_assign(self, assign);
     }
 
     fn visit_pat(&mut self, pat: &mut Pat) {

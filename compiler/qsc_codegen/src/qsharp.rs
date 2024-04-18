@@ -490,9 +490,26 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.write("return ");
                 self.visit_expr(expr);
             }
-            ExprKind::Struct(name) => {
-                self.visit_expr(name);
-                self.write(" {}");
+            ExprKind::Struct(name, copy, assigns) => {
+                self.write("new ");
+                self.visit_path(name);
+                self.writeln(" {");
+                if let Some(copy) = copy {
+                    self.write("...");
+                    self.visit_expr(copy);
+                    if !assigns.is_empty() {
+                        self.writeln(",");
+                    }
+                }
+                if let Some((last, most)) = assigns.split_last() {
+                    for assign in most {
+                        self.visit_field_assign(assign);
+                        self.writeln(",");
+                    }
+                    self.visit_field_assign(last);
+                    self.writeln("");
+                }
+                self.writeln("}");
             }
             ExprKind::UnOp(op, expr) => {
                 let op_str = unop_as_str(op);
@@ -641,6 +658,12 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 unreachable!();
             }
         }
+    }
+
+    fn visit_field_assign(&mut self, assign: &'_ ast::FieldAssign) {
+        self.visit_ident(&assign.field);
+        self.write(" = ");
+        self.visit_expr(&assign.value);
     }
 
     fn visit_pat(&mut self, pat: &'_ Pat) {
