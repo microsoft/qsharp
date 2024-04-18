@@ -5,8 +5,8 @@
 mod tests;
 
 use qsc_codegen::qir::fir_to_qir;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_frontend::compile::{PackageStore, SourceMap};
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 use qsc_rca::Analyzer;

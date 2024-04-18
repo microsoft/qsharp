@@ -40,12 +40,13 @@ use qsc_circuit::{
     operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
     Config as CircuitConfig,
 };
-use qsc_codegen::{qir::fir_to_qir, qir_base::BaseProfSim};
+use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::{
     functors::FunctorApp,
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
+    target::TargetCapabilityFlags,
 };
 use qsc_eval::{
     backend::{Backend, Chain as BackendChain, SparseSim},
@@ -58,7 +59,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
+    compile::{CompileUnit, PackageStore, Source, SourceMap},
     error::WithSource,
     incremental::Increment,
 };
@@ -408,56 +409,45 @@ impl Interpreter {
         if self.capabilities == TargetCapabilityFlags::all() {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
-        if self.capabilities == TargetCapabilityFlags::empty() {
-            let mut sim = BaseProfSim::new();
-            let mut stdout = std::io::sink();
-            let mut out = GenericReceiver::new(&mut stdout);
 
-            let val = self.run_with_sim(&mut sim, &mut out, expr)??;
+        // Compile the expression. This operation will set the expression as
+        // the entry-point in the FIR store.
+        let (graph, compute_properties) = self.compile_entry_expr(expr)?;
 
-            Ok(sim.finish(&val))
-        } else {
-            // Compile the expression. This operation will set the expression as
-            // the entry-point in the FIR store.
-            let (graph, compute_properties) = self.compile_entry_expr(expr)?;
-
-            let Some(compute_properties) = compute_properties else {
-                // This can only happen if capability analysis was not run. This would be a bug
-                // and we are in a bad state and can't proceed.
-                panic!(
-                    "internal error: compute properties not set after lowering entry expression"
-                );
-            };
-            let package = self.fir_store.get(self.package);
-            let entry = ProgramEntry {
-                exec_graph: graph.into(),
-                expr: (
-                    self.package,
-                    package
-                        .entry
-                        .expect("package must have an entry expression"),
-                )
-                    .into(),
-            };
-            // Generate QIR
-            fir_to_qir(
-                &self.fir_store,
-                self.capabilities,
-                Some(compute_properties),
-                &entry,
+        let Some(compute_properties) = compute_properties else {
+            // This can only happen if capability analysis was not run. This would be a bug
+            // and we are in a bad state and can't proceed.
+            panic!("internal error: compute properties not set after lowering entry expression");
+        };
+        let package = self.fir_store.get(self.package);
+        let entry = ProgramEntry {
+            exec_graph: graph.into(),
+            expr: (
+                self.package,
+                package
+                    .entry
+                    .expect("package must have an entry expression"),
             )
-            .map_err(|e| {
-                let source_package = self
-                    .compiler
-                    .package_store()
-                    .get(map_fir_package_to_hir(self.package))
-                    .expect("package should exist in the package store");
-                vec![Error::PartialEvaluation(WithSource::from_map(
-                    &source_package.sources,
-                    e,
-                ))]
-            })
-        }
+                .into(),
+        };
+        // Generate QIR
+        fir_to_qir(
+            &self.fir_store,
+            self.capabilities,
+            Some(compute_properties),
+            &entry,
+        )
+        .map_err(|e| {
+            let source_package = self
+                .compiler
+                .package_store()
+                .get(map_fir_package_to_hir(self.package))
+                .expect("package should exist in the package store");
+            vec![Error::PartialEvaluation(WithSource::from_map(
+                &source_package.sources,
+                e,
+            ))]
+        })
     }
 
     /// Generates a circuit representation for the program.

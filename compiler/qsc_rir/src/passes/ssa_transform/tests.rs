@@ -115,8 +115,7 @@ fn ssa_transform_removes_store_in_single_block_program() {
                     Variable(2, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -145,8 +144,7 @@ fn ssa_transform_removes_store_in_single_block_program() {
                     Variable(2, Boolean) = LogicalNot Variable(0, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -269,8 +267,7 @@ fn ssa_transform_removes_multiple_stores_in_single_block_program() {
                     Variable(4, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -301,8 +298,7 @@ fn ssa_transform_removes_multiple_stores_in_single_block_program() {
                     Variable(4, Boolean) = LogicalNot Variable(3, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -434,8 +430,7 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks() {
                     Variable(4, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -472,8 +467,7 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks() {
                     Variable(4, Boolean) = LogicalNot Variable(0, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -578,8 +572,7 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks_without_i
                     Variable(4, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -614,8 +607,7 @@ fn ssa_transform_store_dominating_usage_propagates_to_successor_blocks_without_i
                     Variable(4, Boolean) = LogicalNot Variable(0, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -769,8 +761,7 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage() {
                     Variable(4, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -808,8 +799,7 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage() {
                     Variable(4, Boolean) = LogicalNot Variable(5, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
@@ -937,8 +927,7 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage_in_one_branch() {
                     Variable(4, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -975,8 +964,7 @@ fn ssa_transform_inserts_phi_for_store_not_dominating_usage_in_one_branch() {
                     Variable(4, Boolean) = LogicalNot Variable(5, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
@@ -1188,8 +1176,7 @@ fn ssa_transform_inserts_phi_for_node_with_many_predecessors() {
                     Variable(5, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -1236,8 +1223,7 @@ fn ssa_transform_inserts_phi_for_node_with_many_predecessors() {
                     Variable(5, Boolean) = LogicalNot Variable(6, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
@@ -1412,8 +1398,7 @@ fn ssa_transform_inserts_phi_for_multiple_stored_values() {
                     Variable(6, Boolean) = LogicalNot Variable(2, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -1453,8 +1438,7 @@ fn ssa_transform_inserts_phi_for_multiple_stored_values() {
                     Variable(6, Boolean) = LogicalNot Variable(8, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
@@ -1734,8 +1718,7 @@ fn ssa_transform_inserts_phi_nodes_in_successive_blocks_for_chained_branches() {
                     Variable(8, Boolean) = LogicalNot Variable(1, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -1786,8 +1769,7 @@ fn ssa_transform_inserts_phi_nodes_in_successive_blocks_for_chained_branches() {
                     Variable(8, Boolean) = LogicalNot Variable(10, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
@@ -2026,8 +2008,7 @@ fn ssa_transform_inerts_phi_nodes_for_early_return_graph_pattern() {
                     Variable(7, Boolean) = LogicalNot Variable(1, Boolean)
                     Jump(3)
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -2075,8 +2056,7 @@ fn ssa_transform_inerts_phi_nodes_for_early_return_graph_pattern() {
                     Variable(4, Boolean) = LogicalNot Variable(9, Boolean)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]].assert_eq(&program.to_string());
 }
