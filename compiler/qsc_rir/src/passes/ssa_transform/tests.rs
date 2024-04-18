@@ -7,28 +7,17 @@ use expect_test::expect;
 
 use crate::{
     builder::{bell_program, new_program},
-    passes::{
-        build_dominator_graph, check_ssa_form, check_types, check_unreachable_code, remap_block_ids,
-    },
+    passes::check_and_transform,
     rir::{
         Block, BlockId, Callable, CallableId, CallableType, Instruction, Operand, Program, Ty,
         Variable, VariableId,
     },
-    utils::build_predecessors_map,
 };
-
-use super::transform_to_ssa;
-
 fn transform_program(program: &mut Program) {
-    check_unreachable_code(program);
-    check_types(program);
-    remap_block_ids(program);
-    let preds = build_predecessors_map(program);
-    transform_to_ssa(program, &preds);
-    let doms = build_dominator_graph(program, &preds);
-    check_ssa_form(program, &preds, &doms);
-    check_unreachable_code(program);
-    check_types(program);
+    // When this configuration is replaced by target capabilities, set them to "all" here.
+    program.config.defer_measurements = false;
+    program.config.remap_qubits_on_reuse = false;
+    check_and_transform(program);
 }
 
 #[test]
