@@ -7,10 +7,9 @@ mod instruction_tests;
 #[cfg(test)]
 mod tests;
 
-use qsc_frontend::compile::RuntimeCapabilityFlags;
-use qsc_hir::hir;
+use qsc_frontend::compile::TargetCapabilityFlags;
 use qsc_lowerer::map_hir_package_to_fir;
-use qsc_partial_eval::partially_evaluate;
+use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::PackageStoreComputeProperties;
 use qsc_rir::{
     passes::{check_and_transform, defer_quantum_measurements},
@@ -30,22 +29,21 @@ fn lower_store(package_store: &qsc_frontend::compile::PackageStore) -> qsc_fir::
 /// converts the given sources to QIR using the given language features.
 pub fn hir_to_qir(
     package_store: &qsc_frontend::compile::PackageStore,
-    package_id: hir::PackageId,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     compute_properties: Option<PackageStoreComputeProperties>,
+    entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
     let fir_store = lower_store(package_store);
-    let fir_package_id = map_hir_package_to_fir(package_id);
-    fir_to_qir(&fir_store, fir_package_id, capabilities, compute_properties)
+    fir_to_qir(&fir_store, capabilities, compute_properties, entry)
 }
 
 pub fn fir_to_qir(
     fir_store: &qsc_fir::fir::PackageStore,
-    fir_package_id: qsc_fir::fir::PackageId,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     compute_properties: Option<PackageStoreComputeProperties>,
+    entry: &ProgramEntry,
 ) -> Result<String, qsc_partial_eval::Error> {
-    let mut program = get_rir_from_compilation(fir_store, fir_package_id, compute_properties)?;
+    let mut program = get_rir_from_compilation(fir_store, compute_properties, entry)?;
     check_and_transform(&mut program);
     if capabilities.is_empty() {
         defer_quantum_measurements(&mut program);
@@ -55,15 +53,15 @@ pub fn fir_to_qir(
 
 fn get_rir_from_compilation(
     fir_store: &qsc_fir::fir::PackageStore,
-    fir_package_id: qsc_fir::fir::PackageId,
     compute_properties: Option<PackageStoreComputeProperties>,
+    entry: &ProgramEntry,
 ) -> Result<rir::Program, qsc_partial_eval::Error> {
     let compute_properties = compute_properties.unwrap_or_else(|| {
         let analyzer = qsc_rca::Analyzer::init(fir_store);
         analyzer.analyze_all()
     });
 
-    partially_evaluate(fir_package_id, fir_store, &compute_properties)
+    partially_evaluate(fir_store, &compute_properties, entry)
 }
 
 /// A trait for converting a type into QIR of type `T`.

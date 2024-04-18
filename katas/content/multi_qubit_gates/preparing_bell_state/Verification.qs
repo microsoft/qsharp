@@ -15,12 +15,10 @@ namespace Kata.Verification {
         if isCorrect {
             Message("Correct!");
         } else {
-            Message("Incorrect :(");
+            Message("Incorrect.");
             Message("Hint: examine the state prepared by your solution and compare it with the state it " +
                 "is expected to prepare.");
-            use initial = Qubit[2]; // |00〉
-            ShowQuantumStateComparison(initial, solution, reference);
-            ResetAll(initial);
+            ShowQuantumStateComparison(2, (qs => ()), solution, reference);
         }
 
         isCorrect

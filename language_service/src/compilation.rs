@@ -270,9 +270,10 @@ fn run_fir_passes(
         return;
     }
 
-    let cap_results =
-        PassContext::run_fir_passes_on_hir(package_store, package_id, target_profile.into());
-    if let Err(caps_errors) = cap_results {
+    let (fir_store, fir_package_id) = qsc::lower_hir_to_fir(package_store, package_id);
+    let caps_results =
+        PassContext::run_fir_passes_on_fir(&fir_store, fir_package_id, target_profile.into());
+    if let Err(caps_errors) = caps_results {
         for err in caps_errors {
             let err = WithSource::from_map(&unit.sources, compile::ErrorKind::Pass(err));
             errors.push(err);

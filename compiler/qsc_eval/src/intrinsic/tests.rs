@@ -18,7 +18,7 @@ use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir;
-use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
@@ -151,13 +151,13 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
     let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
-    let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
+    let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(
         store.core(),
         &mut std,
         PackageType::Lib,
-        RuntimeCapabilityFlags::all()
+        TargetCapabilityFlags::all()
     )
     .is_empty());
     let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
@@ -168,7 +168,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         &store,
         &[std_id],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty());
@@ -176,7 +176,7 @@ fn check_intrinsic(file: &str, expr: &str, out: &mut impl Receiver) -> Result<Va
         store.core(),
         &mut unit,
         PackageType::Lib,
-        RuntimeCapabilityFlags::all()
+        TargetCapabilityFlags::all()
     )
     .is_empty());
     let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);

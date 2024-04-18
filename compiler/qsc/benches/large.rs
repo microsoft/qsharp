@@ -6,7 +6,7 @@ allocator::assign_global!();
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::compile::{self, compile};
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_passes::PackageType;
 
 const INPUT: &str = include_str!("./large.qs");
@@ -14,7 +14,7 @@ const INPUT: &str = include_str!("./large.qs");
 pub fn large_file(c: &mut Criterion) {
     c.bench_function("Large input file compilation", |b| {
         let mut store = PackageStore::new(compile::core());
-        let std = store.insert(compile::std(&store, RuntimeCapabilityFlags::all()));
+        let std = store.insert(compile::std(&store, TargetCapabilityFlags::all()));
         b.iter(|| {
             let sources = SourceMap::new([("large.qs".into(), INPUT.into())], None);
             let (_, reports) = compile(
@@ -22,7 +22,7 @@ pub fn large_file(c: &mut Criterion) {
                 &[std],
                 sources,
                 PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             );
             assert!(reports.is_empty());
@@ -38,7 +38,7 @@ pub fn large_file_interpreter(c: &mut Criterion) {
                 true,
                 sources,
                 PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("code should compile");

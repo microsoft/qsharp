@@ -100,8 +100,8 @@ function registerTargetProfileCommand() {
 }
 
 const targetProfiles = [
-  { configName: "adaptive", uiText: "Q#: QIR adaptive" },
   { configName: "base", uiText: "Q#: QIR base" },
+  { configName: "quantinuum", uiText: "Q#: QIR Quantinuum" },
   { configName: "unrestricted", uiText: "Q#: unrestricted" },
 ];
 
@@ -109,22 +109,22 @@ function getTargetProfiles(): {
   configName: string;
   uiText: string;
 }[] {
-  const allow_adaptive = getEnableAdaptiveProfile();
-  if (allow_adaptive) {
+  const allow_quantinuum = getEnableAdaptiveProfile();
+  if (allow_quantinuum) {
     return targetProfiles;
   } else {
     return targetProfiles.filter(
-      (profile) => profile.configName !== "adaptive",
+      (profile) => profile.configName !== "quantinuum",
     );
   }
 }
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
-    case "Q#: QIR adaptive":
-      return "adaptive";
     case "Q#: QIR base":
       return "base";
+    case "Q#: QIR Quantinuum":
+      return "quantinuum";
     case "Q#: unrestricted":
       return "unrestricted";
     default:
