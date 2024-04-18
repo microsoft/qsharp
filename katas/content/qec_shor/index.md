@@ -127,11 +127,11 @@ Let's see what happens if an $X$ error happens on one of the qubits, and how we 
 </tr>
 </table>
 
-You can see that these two parity measurements give us different pairs of results depending on whether the error happened and on which qubit. This means that we can use them to detect the error, and then correct it by applying an $X$ gate to the qubit that was affected by it.
+You can see that these two parity measurements give us different pairs of results depending on whether the $X$ error happened and on which qubit. This means that we can use them to detect the error, and then correct it by applying an $X$ gate to the qubit that was affected by it.
 
 However, if a $Z$ error happens on any one of these qubits, we won't be able to detect it: it will convert the state $\alpha \ket{000} + \beta \ket{111}$ to the state $\alpha \ket{000} - \beta \ket{111}$ which is a valid code word in this code - it's an encoding of the quantum state $\alpha \ket{0} - \beta \ket{1}$. We'll need to come up with a different way to detect $Z$ errors.
 
-- exercise: bit flip code: encode
+- exercise: bit flip code: encode (use op from 1385 for testing once merged)
 - exercise: bit flip code: detect X error
 
 @[section]({
@@ -139,7 +139,55 @@ However, if a $Z$ error happens on any one of these qubits, we won't be able to 
     "title": "Phase Flip Code"
 })
 
-- exercise: phase flip code: encode
+What kind of code could detect and correct a $Z$ error? We detected an $X$ error using the fact that in the $\\{\ket{0}, \ket{1}\\}$ basis the error changed the basis state. Similarly, we can detect a $Z$ error using the $\\{\ket{+}, \ket{-}\\}$ basis, in which the $Z$ gate converts $\ket{+}$ to $\ket{-}$ and vice versa, acting as a basis change operation.
+
+Based on this idea, we can construct the **phase flip code** that uses the following encoding:
+
+$$\ket{0} \rightarrow \ket{+++}, \ket{1} \rightarrow \ket{---}$$
+
+$$\alpha \ket{0} + \beta \ket{1} \rightarrow \alpha \ket{+++} + \beta \ket{---}$$
+
+Let's see what happens if a $Z$ error happens on one of the qubits, and how we can detect it using two parity measurements. 
+This time we'll do the parity measurements in the $X$ basis to distinguish the cases of $\ket{++}$ and $\ket{--}$ (parity $0$) from $\ket{+-}$ and $\ket{-+}$ (parity $1$).
+
+<table>
+<tr>
+<th>Error</th>
+<th>State after the error</th>
+<th>$XX$ parity of qubits 0 and 1</th>
+<th>$XX$ parity of qubits 1 and 2</th>
+</tr>
+<tr>
+<td>No error</td>
+<td>$\alpha \ket{+++} + \beta \ket{---}$</td>
+<td>$0$</td>
+<td>$0$</td>
+</tr>
+<tr>
+<td>$Z_0$ (error on qubit $0$)</td>
+<td>$\alpha \ket{-++} + \beta \ket{+--}$</td>
+<td>$1$</td>
+<td>$0$</td>
+</tr>
+<tr>
+<td>$Z_1$ (error on qubit $1$)</td>
+<td>$\alpha \ket{+-+} + \beta \ket{-+-}$</td>
+<td>$1$</td>
+<td>$1$</td>
+</tr>
+<tr>
+<td>$Z_2$ (error on qubit $2$)</td>
+<td>$\alpha \ket{++-} + \beta \ket{--+}$</td>
+<td>$0$</td>
+<td>$1$</td>
+</tr>
+</table>
+
+You can see that these two parity measurements give us different pairs of results depending on whether the $Z$ error happened and on which qubit. This means that we can use them to detect the error, and then correct it by applying a $Z$ gate to the qubit that was affected by it.
+
+However, if an $X$ error happens on any one of these qubits, we won't be able to detect it: it will convert the state $\alpha \ket{+++} + \beta \ket{---}$ to the state $\alpha \ket{+++} - \beta \ket{---}$ which is a valid code word in this code - it's an encoding of the quantum state $\alpha \ket{0} - \beta \ket{1}$. We'll need to come up with a different way to detect both $X$ and $Z$ errors in the same encoding.
+
+- exercise: phase flip code: encode (use op from 1385 for testing once merged)
 - exercise: phase flip code: detect Z error
 
 
