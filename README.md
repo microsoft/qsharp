@@ -40,7 +40,7 @@ build of each project, including running tests and checks such as linting. Run w
 
 ### Playground
 
-`playground` module builds the following 3 things locally:
+`playground` module builds the following components locally:
 
 - katas
 - samples
