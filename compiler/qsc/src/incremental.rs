@@ -85,7 +85,7 @@ impl Compiler {
         include_std: bool,
         mut store: PackageStore,
         source_package_id: PackageId,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
         let mut dependencies = Vec::new();

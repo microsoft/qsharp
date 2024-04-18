@@ -41,7 +41,7 @@ pub fn compile_ast(
     ast_package: qsc_ast::ast::Package,
     sources: SourceMap,
     package_type: PackageType,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> (CompileUnit, Vec<Error>) {
     let unit = qsc_frontend::compile::compile_ast(
         store,
@@ -78,7 +78,7 @@ pub fn compile(
 fn process_compile_unit(
     store: &PackageStore,
     package_type: PackageType,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     mut unit: CompileUnit,
 ) -> (CompileUnit, Vec<Error>) {
     let mut errors = Vec::new();

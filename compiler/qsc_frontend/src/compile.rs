@@ -340,7 +340,7 @@ pub fn compile_ast(
     dependencies: &[PackageId],
     mut ast_package: ast::Package,
     sources: SourceMap,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     parse_errors: Vec<qsc_parse::Error>,
 ) -> CompileUnit {
     let mut cond_compile = preprocess::Conditional::new(capabilities);

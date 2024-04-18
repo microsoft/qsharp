@@ -223,7 +223,7 @@ impl Interpreter {
         include_std: bool,
         store: PackageStore,
         source_package_id: qsc_hir::hir::PackageId,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
         let compiler = Compiler::from(
@@ -254,19 +254,7 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new(),
             env: Env::default(),
-            sim: BackendChain::new(
-                SparseSim::new(),
-                CircuitBuilder::new(CircuitConfig {
-                    // When using in conjunction with the simulator,
-                    // the circuit builder should *not* perform base profile
-                    // decompositions, in order to match the simulator's behavior.
-                    //
-                    // Note that conditional compilation (e.g. @Config(Base) attributes)
-                    // will still respect the selected profile. This also
-                    // matches the behavior of the simulator.
-                    base_profile: false,
-                }),
-            ),
+            sim: sim_circuit_backend(),
             quantum_seed: None,
             classical_seed: None,
             package: map_hir_package_to_fir(package_id),
