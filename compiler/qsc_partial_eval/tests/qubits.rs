@@ -5,21 +5,10 @@
 
 pub mod test_utils;
 
+use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{
-    BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Ty,
-};
+use qsc_rir::rir::{BlockId, CallableId};
 use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
-
-fn single_qubit_intrinsic_op() -> Callable {
-    Callable {
-        name: "op".to_string(),
-        input_type: vec![Ty::Qubit],
-        output_type: None,
-        body: None,
-        call_type: CallableType::Regular,
-    }
-}
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
@@ -36,22 +25,31 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
         }
         "#,
     });
-    let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
-    assert_block_instructions(
-        &program,
-        BlockId(0),
-        &[
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
-    );
-    assert_eq!(program.num_qubits, 1);
-    assert_eq!(program.num_results, 0);
+    expect![[r#"
+        Callable:
+            name: op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]]
+    .assert_eq(&program.get_callable(CallableId(1)).to_string());
+    expect![[r#"
+        Callable:
+            name: __quantum__rt__tuple_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Integer
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]]
+    .assert_eq(&program.get_callable(CallableId(2)).to_string());
+    expect![[r#"
+        Block:
+            Call id(1), args( Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]]
+    .assert_eq(&program.get_block(BlockId(0)).to_string());
 }
 
 #[test]
@@ -76,28 +74,42 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let tuple_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        tuple_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__tuple_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Integer
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
-        &[
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(1))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(1), )
+                Call id(1), args( Qubit(2), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 3);
     assert_eq!(program.num_results, 0);
@@ -125,28 +137,42 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let tuple_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        tuple_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__tuple_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Integer
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
-        &[
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 1);
     assert_eq!(program.num_results, 0);
@@ -180,38 +206,44 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() 
         "#,
     });
     let op_callable_id = CallableId(1);
-    assert_callable(&program, op_callable_id, &single_qubit_intrinsic_op());
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let tuple_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        tuple_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__tuple_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Integer
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
-        &[
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(0))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(1))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(2))],
-                None,
-            ),
-            Instruction::Call(
-                op_callable_id,
-                vec![Operand::Literal(Literal::Qubit(3))],
-                None,
-            ),
-            Instruction::Return,
-        ],
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(1), )
+                Call id(1), args( Qubit(2), )
+                Call id(1), args( Qubit(2), )
+                Call id(1), args( Qubit(3), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
     assert_eq!(program.num_qubits, 4);
     assert_eq!(program.num_results, 0);
