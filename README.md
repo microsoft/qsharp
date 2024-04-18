@@ -46,7 +46,7 @@ build of each project, including running tests and checks such as linting. Run w
 - samples
 - documentation
 
-To see instructions about building playground , refer to [Building PlayGround Locally](./playground/README.md#building-playground-locally).
+To see instructions about building playground , refer to [Building Playground Locally](./playground/README.md#building-playground-locally).
 
 ### Python
 
