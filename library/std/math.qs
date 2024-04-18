@@ -33,8 +33,8 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Remarks
     /// Matematical constant 𝒆, is the base of the natural logarithm
-    /// also known as the Euler's number 
-    /// 
+    /// also known as the Euler's number
+    ///
     /// # References
     /// [Wikipedia article - e](https://en.wikipedia.org/wiki/E_(mathematical_constant))
     ///
