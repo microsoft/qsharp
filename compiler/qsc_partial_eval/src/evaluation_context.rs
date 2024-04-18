@@ -83,7 +83,7 @@ impl Scope {
         callable: Option<(LocalItemId, FunctorApp)>,
         args: Vec<Arg>,
     ) -> Self {
-        // Determine the runtimne kind (static or dynamic) of the arguments.
+        // Determine the runtime kind (static or dynamic) of the arguments.
         let args_value_kind: Vec<ValueKind> = args
             .iter()
             .map(|arg| {
