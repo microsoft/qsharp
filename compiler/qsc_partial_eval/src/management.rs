@@ -3,7 +3,7 @@
 
 use qsc_eval::{
     backend::Backend,
-    val::{Qubit, Result},
+    val::{Qubit, Result, Value},
 };
 use qsc_rir::rir::{BlockId, CallableId, VariableId};
 
@@ -79,5 +79,18 @@ impl Backend for QuantumIntrinsicsChecker {
         // Because `qubit_is_zero` is called on every qubit release, this must return
         // true to avoid a panic.
         true
+    }
+
+    // Only intrinsic functions are supported here since they're the only ones that will be classically evaluated.
+    fn custom_intrinsic(
+        &mut self,
+        name: &str,
+        _arg: Value,
+    ) -> Option<std::result::Result<Value, String>> {
+        match name {
+            "BeginEstimateCaching" => Some(Ok(Value::Bool(true))),
+            "EndEstimateCaching" => Some(Ok(Value::unit())),
+            _ => None,
+        }
     }
 }

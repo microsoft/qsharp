@@ -279,10 +279,7 @@ impl<'a> PartialEvaluator<'a> {
                 };
                 Ok(value)
             }
-            Err((error, _)) => {
-                println!("{error:?}");
-                Err(Error::EvaluationFailed(error))
-            }
+            Err((error, _)) => Err(Error::EvaluationFailed(error)),
         }
     }
 
@@ -507,15 +504,20 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
     ) -> Value {
-        // There are a few special cases regarding intrinsic callables: qubit allocation/release and measurements.
-        // Identify them and handle them properly.
+        // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
+            // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => self.allocate_qubit(),
             "__quantum__rt__qubit_release" => self.release_qubit(&args_value),
             "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), &args_value),
             "__quantum__qis__mresetz__body" => {
                 self.measure_qubit(builder::mresetz_decl(), &args_value)
             }
+            // Resource estimation intrinsics have special handling.
+            "BeginEstimateCaching" => Value::Bool(true),
+            "AccountForEstimatesInternal"
+            | "BeginRepeatEstimatesInternal"
+            | "EndRepeatEstimatesInternal" => Value::unit(),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
     }

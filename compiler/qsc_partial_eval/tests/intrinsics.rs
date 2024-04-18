@@ -642,3 +642,121 @@ fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
                 Return"#]],
     );
 }
+
+#[test]
+fn call_to_intrinsic_begin_estimate_caching_with_classical_values_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                let _ = BeginEstimateCaching("test", 0);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_intrinsic_end_estimate_caching_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                EndEstimateCaching();
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_account_for_estimates_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                // Calls to internal operation `AccountForEstimatesInternal`, which is intrinsic.
+                AccountForEstimates([], 0, []);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_begin_repeat_estimates_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                // Calls to internal operation `BeginRepeatEstimatesInternal`, which is intrinsic.
+                BeginRepeatEstimates(0);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_end_repeat_estimates_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                // Calls to internal operation `EndRepeatEstimatesInternal`, which is intrinsic.
+                EndRepeatEstimates();
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
