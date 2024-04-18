@@ -4,7 +4,7 @@
 use miette::{Diagnostic, Report};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceMap},
+    compile::{CompileUnit, PackageStore, SourceMap, TargetCapabilityFlags},
     error::WithSource,
 };
 use qsc_hir::hir::PackageId;
@@ -39,7 +39,7 @@ pub fn compile(
     dependencies: &[PackageId],
     sources: SourceMap,
     package_type: PackageType,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> (CompileUnit, Vec<Error>) {
     let mut unit = qsc_frontend::compile::compile(
@@ -90,7 +90,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
+pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let mut unit = qsc_frontend::compile::std(store, capabilities);
     let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, capabilities);
     if pass_errors.is_empty() {

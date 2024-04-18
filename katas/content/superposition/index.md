@@ -124,6 +124,26 @@ This kata is designed to get you familiar with the concept of superposition and 
 })
 
 @[exercise]({
+    "id": "superposition__zero_and_bitstring",
+    "title": "Zero and Bitstring",
+    "path": "./zero_and_bitstring/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superposition__two_bitstrings",
+    "title": "Two Bitstrings",
+    "path": "./two_bitstrings/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
     "id": "superposition__four_bitstrings",
     "title": "Four Bitstrings",
     "path": "./four_bitstrings/",
@@ -134,9 +154,20 @@ This kata is designed to get you familiar with the concept of superposition and 
 })
 
 @[section]({
-    "id": "superposition__uneven_superpositions",
-    "title": "Uneven superpositions"
+    "id": "superposition__arbitrary_rotations",
+    "title": "Arbitrary Rotations"
 })
+
+@[exercise]({
+    "id": "superposition__unequal_superposition",
+    "title": "Unequal Superposition",
+    "path": "./unequal_superposition/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 
 @[section]({
     "id": "superposition__conclusion",

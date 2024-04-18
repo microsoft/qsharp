@@ -5,7 +5,7 @@ use crate::replace_qubit_allocation::ReplaceQubitAllocation;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_hir::{mut_visit::MutVisitor, validate::Validator, visit::Visitor};
 
 fn check(file: &str, expect: &Expect) {
@@ -15,7 +15,7 @@ fn check(file: &str, expect: &Expect) {
         &store,
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);

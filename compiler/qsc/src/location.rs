@@ -63,7 +63,7 @@ mod tests {
     use qsc_data_structures::{
         language_features::LanguageFeatures, line_column::Encoding, span::Span,
     };
-    use qsc_frontend::compile::{PackageStore, RuntimeCapabilityFlags, SourceMap};
+    use qsc_frontend::compile::{PackageStore, SourceMap, TargetCapabilityFlags};
     use qsc_hir::hir::PackageId;
     use qsc_passes::PackageType;
 
@@ -236,7 +236,7 @@ mod tests {
         let mut store = PackageStore::new(compile::core());
         let mut dependencies = Vec::new();
 
-        let (package_type, capabilities) = (PackageType::Lib, RuntimeCapabilityFlags::all());
+        let (package_type, capabilities) = (PackageType::Lib, TargetCapabilityFlags::all());
 
         let std = compile::std(&store, capabilities);
         let std_package_id = store.insert(std);

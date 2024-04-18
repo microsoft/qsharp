@@ -58,7 +58,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, Source, SourceMap},
+    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
     error::WithSource,
 };
 use qsc_passes::{PackageType, PassContext};
@@ -108,8 +108,8 @@ pub enum Error {
 pub struct Interpreter {
     /// The incremental Q# compiler.
     compiler: Compiler,
-    /// The runtime capabilities used for compilation.
-    capabilities: RuntimeCapabilityFlags,
+    /// The target capabilities used for compilation.
+    capabilities: TargetCapabilityFlags,
     /// The number of lines that have so far been compiled.
     /// This field is used to generate a unique label
     /// for each line evaluated with `eval_fragments`.
@@ -147,7 +147,7 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
@@ -167,7 +167,7 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
         Self::new_internal(
@@ -185,7 +185,7 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
         let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
@@ -210,19 +210,7 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             env: Env::default(),
-            sim: BackendChain::new(
-                SparseSim::new(),
-                CircuitBuilder::new(CircuitConfig {
-                    // When using in conjunction with the simulator,
-                    // the circuit builder should *not* perform base profile
-                    // decompositions, in order to match the simulator's behavior.
-                    //
-                    // Note that conditional compilation (e.g. @Config(Base) attributes)
-                    // will still respect the selected profile. This also
-                    // matches the behavior of the simulator.
-                    base_profile: false,
-                }),
-            ),
+            sim: sim_circuit_backend(),
             quantum_seed: None,
             classical_seed: None,
             package: map_hir_package_to_fir(package_id),
@@ -350,10 +338,10 @@ impl Interpreter {
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> std::result::Result<String, Vec<Error>> {
-        if self.capabilities == RuntimeCapabilityFlags::all() {
+        if self.capabilities == TargetCapabilityFlags::all() {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
-        if self.capabilities == RuntimeCapabilityFlags::empty() {
+        if self.capabilities == TargetCapabilityFlags::empty() {
             let mut sim = BaseProfSim::new();
             let mut stdout = std::io::sink();
             let mut out = GenericReceiver::new(&mut stdout);
@@ -412,16 +400,16 @@ impl Interpreter {
     ///
     /// An operation can be specified by its name or a lambda expression that only takes qubits.
     /// e.g. `Sample.Main` , `qs => H(qs[0])`
+    ///
+    /// If `simulate` is specified, the program is simulated and the resulting
+    /// circuit is returned (a.k.a. trace mode). Otherwise, the circuit is generated without
+    /// simulation. In this case circuit generation may fail if the program contains dynamic
+    /// behavior (quantum operations that are dependent on measurement results).
     pub fn circuit(
         &mut self,
         entry: CircuitEntryPoint,
+        simulate: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
-        let mut sink = std::io::sink();
-        let mut out = GenericReceiver::new(&mut sink);
-        let mut sim = CircuitBuilder::new(CircuitConfig {
-            base_profile: self.capabilities.is_empty(),
-        });
-
         let entry_expr = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
                 let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
@@ -433,13 +421,23 @@ impl Interpreter {
             CircuitEntryPoint::EntryPoint => None,
         };
 
-        if let Some(entry_expr) = entry_expr {
-            self.run_with_sim(&mut sim, &mut out, &entry_expr)?
-        } else {
-            self.eval_entry_with_sim(&mut sim, &mut out)
-        }?;
+        let circuit = if simulate {
+            let mut sim = sim_circuit_backend();
 
-        Ok(sim.finish())
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.chained.finish()
+        } else {
+            let mut sim = CircuitBuilder::new(CircuitConfig {
+                base_profile: self.capabilities.is_empty(),
+            });
+
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.finish()
+        };
+
+        Ok(circuit)
     }
 
     /// Runs the given entry expression on the given simulator with a new instance of the environment
@@ -466,6 +464,38 @@ impl Interpreter {
             sim,
             receiver,
         ))
+    }
+
+    fn run_with_sim_no_output(
+        &mut self,
+        entry_expr: Option<String>,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    ) -> InterpretResult {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+
+        let (package_id, graph) = if let Some(entry_expr) = entry_expr {
+            // entry expression is provided
+            (self.package, self.compile_entry_expr(&entry_expr)?.0.into())
+        } else {
+            // no entry expression, use the entrypoint in the package
+            (self.source_package, self.get_entry_exec_graph()?)
+        };
+
+        if self.quantum_seed.is_some() {
+            sim.set_seed(self.quantum_seed);
+        }
+
+        eval(
+            package_id,
+            self.classical_seed,
+            graph,
+            self.compiler.package_store(),
+            &self.fir_store,
+            &mut Env::default(),
+            sim,
+            &mut out,
+        )
     }
 
     fn compile_entry_expr(
@@ -504,7 +534,7 @@ impl Interpreter {
         unit_addition: &qsc_frontend::incremental::Increment,
     ) -> core::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
     {
-        if self.capabilities != RuntimeCapabilityFlags::all() {
+        if self.capabilities != TargetCapabilityFlags::all() {
             return self.run_fir_passes(unit_addition);
         }
         let fir_package = self.fir_store.get_mut(self.package);
@@ -581,6 +611,22 @@ impl Interpreter {
     }
 }
 
+fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
+    BackendChain::new(
+        SparseSim::new(),
+        CircuitBuilder::new(CircuitConfig {
+            // When using in conjunction with the simulator,
+            // the circuit builder should *not* perform base profile
+            // decompositions, in order to match the simulator's behavior.
+            //
+            // Note that conditional compilation (e.g. @Config(Base) attributes)
+            // will still respect the selected profile. This also
+            // matches the behavior of the simulator.
+            base_profile: false,
+        }),
+    )
+}
+
 /// Describes the entry point for circuit generation.
 pub enum CircuitEntryPoint {
     /// An operation. This must be a callable name or a lambda
@@ -607,7 +653,7 @@ pub struct Debugger {
 impl Debugger {
     pub fn new(
         sources: SourceMap,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         position_encoding: Encoding,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
