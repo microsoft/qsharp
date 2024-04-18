@@ -168,7 +168,8 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
             }
         }
 
-        // We assume the size of all arrays is static.
+        // The runtime capabilities check pass disallows dynamically-sized arrays for all targets for which we generate
+        // QIR. Because of this, we assume that during partial evaluation all arrays are statically-sized.
         ValueKind::Array(content_runtime_kind, RuntimeKind::Static)
     }
 
