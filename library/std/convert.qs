@@ -6,13 +6,27 @@ namespace Microsoft.Quantum.Convert {
     open Microsoft.Quantum.Math;
 
     /// # Summary
-    /// Converts a given integer to an equivalent double-precision floating-point number.
+    /// Converts a given integer `number` to an equivalent
+    /// double-precision floating-point number.
+    ///
+    /// # Description
+    /// Converts a given integer to a double-precision floating point number.
+    /// Please note that the double-precision representation may have fewer
+    /// bits allocated to represent [significant digits](https://en.wikipedia.org/wiki/Significand)
+    /// so the conversion may be approximate for large numbers. For example,
+    /// the current simulator converts 4,611,686,018,427,387,919 = 2^64+15
+    /// to 4,611,686,018,427,387,904.0 = 2^64.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// Message($"{IntAsDouble(1)}"); // Prints 1.0 rather than 1
+    /// ```
     function IntAsDouble(number : Int) : Double {
         body intrinsic;
     }
 
     /// # Summary
-    /// Converts a given integer to an equivalent big integer.
+    /// Converts a given integer `number` to an equivalent big integer.
     function IntAsBigInt(number : Int) : BigInt {
         body intrinsic;
     }
@@ -50,7 +64,8 @@ namespace Microsoft.Quantum.Convert {
     }
 
     /// # Summary
-    /// Produces a non-negative integer from a string of bits in little endian format.
+    /// Produces a non-negative integer from a string of bits in little-endian format.
+    /// bits[0] represents the least significant bit.
     ///
     /// # Input
     /// ## bits

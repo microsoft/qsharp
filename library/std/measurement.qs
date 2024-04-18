@@ -13,32 +13,39 @@ namespace Microsoft.Quantum.Measurement {
     /// # Description
     /// Measures a register of qubits in the `Z ⊗ Z ⊗ ••• ⊗ Z`
     /// basis, representing the parity of the entire register.
+    /// This operation does not reset the measured qubits to the |0⟩ state,
+    /// leaving them in the state that corresponds to the measurement result.
     ///
     /// # Input
     /// ## register
-    /// The register to be measured.
+    /// The register to be jointly measured.
     ///
     /// # Output
-    /// The result of measuring `Z ⊗ Z ⊗ ••• ⊗ Z`.
+    /// The result of measuring in the `Z ⊗ Z ⊗ ••• ⊗ Z` basis.
     ///
-    /// # Remarks
-    /// This operation does not reset the measured qubits to the |0⟩ state,
-    /// leaving them in the state that corresponds to the measurement result.
+    /// # See also
+    /// - Microsoft.Quantum.Measurement.MeasureEachZ
     operation MeasureAllZ(register : Qubit[]) : Result {
         Measure(Repeated(PauliZ, Length(register)), register)
     }
 
     /// # Summary
     /// Measures each qubit in a given array in the standard basis.
+    ///
+    /// # Description
+    /// Measures each qubit in a register in the `Z` basis
+    /// and retuns the result of each measurement.
+    /// This operation does not reset the measured qubits to the |0⟩ state,
+    /// leaving them in the state that corresponds to the measurement results.
+    ///
     /// # Input
     /// ## targets
     /// An array of qubits to be measured.
     /// # Output
     /// An array of measurement results.
     ///
-    /// # Remarks
-    /// This operation does not reset the measured qubits to the |0⟩ state,
-    /// leaving them in the state that corresponds to the measurement results.
+    /// # See also
+    /// - Microsoft.Quantum.Measurement.MeasureAllZ
     operation MeasureEachZ(register : Qubit[]) : Result[] {
         mutable results = [];
         for qubit in register {
@@ -50,11 +57,16 @@ namespace Microsoft.Quantum.Measurement {
     /// # Summary
     /// Measures each qubit in a given array in the Z basis
     /// and resets them to a fixed initial state.
+    ///
     /// # Input
     /// ## targets
     /// An array of qubits to be measured.
+    ///
     /// # Output
     /// An array of measurement results.
+    ///
+    /// # See also
+    /// - Microsoft.Quantum.Measurement.MeasureEachZ
     operation MResetEachZ(register : Qubit[]) : Result[] {
         mutable results = [];
         for qubit in register {
