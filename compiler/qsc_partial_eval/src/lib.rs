@@ -549,7 +549,7 @@ impl<'a> PartialEvaluator<'a> {
         );
         let args_operands = args
             .into_iter()
-            .map(|arg| map_eval_value_to_rir_operand(&arg.as_value()))
+            .map(|arg| map_eval_value_to_rir_operand(&arg.into_value()))
             .collect();
 
         let instruction = Instruction::Call(callable_id, args_operands, None);
