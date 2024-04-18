@@ -8,7 +8,9 @@ pub mod test_utils;
 use expect_test::{expect, Expect};
 use indoc::{formatdoc, indoc};
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::{
+    assert_block_instructions, assert_blocks, assert_callable, compile_and_partially_evaluate,
+};
 
 fn check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
     intrinsic_name: &str,
@@ -641,4 +643,335 @@ fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
                 Call id(2), args( Integer(0), Pointer, )
                 Return"#]],
     );
+}
+
+#[test]
+fn calls_to_intrinsic_begin_estimate_caching_with_classical_values_always_yield_true() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            operation Op(q : Qubit) : Unit { body intrinsic; }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                if BeginEstimateCaching("test0", 0) {
+                    Op(q);
+                }
+                if BeginEstimateCaching("test1", 1) {
+                    Op(q);
+                }
+            }
+        }
+        "#,
+    });
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: Op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_yields_true() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            open QIR.Intrinsic;
+            operation Op(q : Qubit) : Unit { body intrinsic; }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let i = __quantum__qis__m__body(q) == Zero ? 0 | 1;
+                if BeginEstimateCaching("test0", i) {
+                    Op(q);
+                }
+            }
+        }
+        "#,
+    });
+    let measure_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measure_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let op_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: Op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__tuple_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(3), args( Qubit(0), )
+                Call id(4), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
+    );
+}
+
+#[test]
+fn call_to_intrinsic_end_estimate_caching_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                EndEstimateCaching();
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_account_for_estimates_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                // Calls to internal operation `AccountForEstimatesInternal`, which is intrinsic.
+                AccountForEstimates([], 0, []);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_begin_repeat_estimates_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                // Calls to internal operation `BeginRepeatEstimatesInternal`, which is intrinsic.
+                BeginRepeatEstimates(0);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_end_repeat_estimates_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.ResourceEstimation;
+            @EntryPoint()
+            operation Main() : Unit {
+                // Calls to internal operation `EndRepeatEstimatesInternal`, which is intrinsic.
+                EndRepeatEstimates();
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_dump_machine_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Diagnostics;
+            @EntryPoint()
+            operation Main() : Unit {
+                DumpMachine();
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_dump_register_does_not_generate_instructions() {
+    let program = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Diagnostics;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                DumpRegister([q]);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+#[should_panic(expected = "`CheckZero` is not a supported by partial evaluation")]
+fn call_to_check_zero_panics() {
+    _ = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Diagnostics;
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let _ = CheckZero(q);
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(expected = "`DrawRandomInt` is not a supported by partial evaluation")]
+fn call_to_draw_random_int_panics() {
+    _ = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Random;
+            @EntryPoint()
+            operation Main() : Unit {
+                let _ = DrawRandomInt(0, 1);
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(expected = "`DrawRandomDouble` is not a supported by partial evaluation")]
+fn call_to_draw_random_double_panics() {
+    _ = compile_and_partially_evaluate(indoc! {
+        r#"
+        namespace Test {
+            open Microsoft.Quantum.Random;
+            @EntryPoint()
+            operation Main() : Unit {
+                let _ = DrawRandomDouble(0.0, 1.0);
+            }
+        }
+        "#,
+    });
 }
