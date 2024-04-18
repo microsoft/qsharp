@@ -95,7 +95,8 @@ impl Scope {
             })
             .collect();
 
-        // Add the static values to the environment.
+        // Add the values to either the environment or the hybrid variables depending on whether the value is static or
+        // dynamic.
         let mut env = Env::default();
         let mut hybrid_vars = FxHashMap::default();
         let arg_runtime_kind_tuple = args.into_iter().zip(args_value_kind.iter());
@@ -186,9 +187,7 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
     match value {
         Value::Array(elements) => map_array_eval_value_to_value_kind(elements),
         Value::Tuple(elements) => map_tuple_eval_value_to_value_kind(elements),
-        Value::Qubit(_) | Value::Result(_) | Value::Var(_) => {
-            ValueKind::Element(RuntimeKind::Dynamic)
-        }
+        Value::Result(_) | Value::Var(_) => ValueKind::Element(RuntimeKind::Dynamic),
         Value::BigInt(_)
         | Value::Bool(_)
         | Value::Closure(_)
@@ -196,6 +195,7 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Global(_, _)
         | Value::Int(_)
         | Value::Pauli(_)
+        | Value::Qubit(_)
         | Value::Range(_)
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
     }

@@ -69,6 +69,10 @@ pub enum Error {
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCalleeExpression"))]
     FailedToEvaluateCalleeExpression(#[label] Span),
 
+    #[error("failed to evaluate call arguments expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallArgsExpression"))]
+    FailedToEvaluateCallArgsExpression(#[label] Span),
+
     #[error("failed to evaluate tuple element expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateTupleElementExpression"))]
     FailedToEvaluateTupleElementExpression(#[label] Span),
@@ -275,7 +279,10 @@ impl<'a> PartialEvaluator<'a> {
                 };
                 Ok(value)
             }
-            Err((error, _)) => Err(Error::EvaluationFailed(error)),
+            Err((error, _)) => {
+                println!("{error:?}");
+                Err(Error::EvaluationFailed(error))
+            }
         }
     }
 
@@ -459,7 +466,7 @@ impl<'a> PartialEvaluator<'a> {
         let maybe_args_value = self.try_eval_expr(args_expr_id);
         let Ok(args_value) = maybe_args_value else {
             let args_expr = self.get_expr(args_expr_id);
-            let error = Error::FailedToEvaluateCalleeExpression(args_expr.span);
+            let error = Error::FailedToEvaluateCallArgsExpression(args_expr.span);
             return Err(error);
         };
 
