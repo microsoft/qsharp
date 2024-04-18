@@ -46,9 +46,7 @@ build of each project, including running tests and checks such as linting. Run w
 - samples
 - documentation
 
-To run the "playground" locally, build the repository, then `cd` into the `playground` directory, and run `npm start`.
-This will launch a local web server and output the URL to the console; copy that URL and open it in a browser to use the playground.
-If you only want to build the functionality necessary to run the playground, you can use `python .\build.py --wasm --npm --play`.
+To see instructions about building playground , refer to [Building PlayGround Locally](./playground/README.md#building-playground-locally).
 
 ### Python
 

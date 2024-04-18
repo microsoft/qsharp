@@ -10,6 +10,10 @@ A Kata is a top-level container of educational items which are used to explain a
 
 Visit [Learn with Azure Quantum katas](https://quantum.microsoft.com/experience/quantum-katas) to try the new online Azure Quantum katas experience, with integrated assistance from Copilot in Azure Quantum.
 
+## Build Katas Locally
+
+We need to build the `playground` module to see the built katas locally. For the detailed instructions, refer to [Building PlayGround Locally](../playground/README.md#building-playground-locally).
+
 ## Rust crate
 
 The katas crate exposes an API to check solutions for exercises.
@@ -42,12 +46,6 @@ The following macros are available for katas composition:
 - @[section]: A kata is broken into multiple sections. This starts a new section. Exercises are their own sections.
     - id: Unique identifier for the section.
     - title: Title of the section.
-
-### Build Katas Locally
-
-1. `playground` module builds the katas, samples and the documentation. To to build the functionality necessary to run the playground, you can use `python .\build.py --wasm --npm --play`.
-2. Then make `./playground` your current directory and run `npm start` to start the web server.
-3. Copy the URL that will be printed to console and open it in a browser to use the playground.
 
 ## Acknowledgements
 
