@@ -468,9 +468,7 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Get the callable.
-        let Value::Global(store_item_id, functor_app) = callable_value else {
-            panic!("callee expression is expected to be a global");
-        };
+        let (store_item_id, functor_app) = callable_value.unwrap_global();
         let global = self
             .package_store
             .get_global(store_item_id)
@@ -508,10 +506,10 @@ impl<'a> PartialEvaluator<'a> {
         match callable_decl.name.name.as_ref() {
             // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => self.allocate_qubit(),
-            "__quantum__rt__qubit_release" => self.release_qubit(&args_value),
-            "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), &args_value),
+            "__quantum__rt__qubit_release" => self.release_qubit(args_value),
+            "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), args_value),
             "__quantum__qis__mresetz__body" => {
-                self.measure_qubit(builder::mresetz_decl(), &args_value)
+                self.measure_qubit(builder::mresetz_decl(), args_value)
             }
             // The following operations should be conditionally compiled out for all targets for which QIR generation is
             // supported.
@@ -676,15 +674,13 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Finally, we insert the branch instruction.
-        let condition_as_var = if let Value::Var(var) = condition_value {
-            rir::Variable {
-                variable_id: var.0.into(),
-                ty: rir::Ty::Boolean,
-            }
-        } else {
-            panic!("the condition of an if expression is expected to be a variable");
+        let condition_value_var = condition_value.unwrap_var();
+        let condition_rir_var = rir::Variable {
+            variable_id: condition_value_var.0.into(),
+            ty: rir::Ty::Boolean,
         };
-        let branch_ins = Instruction::Branch(condition_as_var, if_true_block_id, if_false_block_id);
+        let branch_ins =
+            Instruction::Branch(condition_rir_var, if_true_block_id, if_false_block_id);
         self.get_program_block_mut(current_block_node.id)
             .0
             .push(branch_ins);
@@ -837,10 +833,7 @@ impl<'a> PartialEvaluator<'a> {
     fn eval_expr_while_condition(&mut self, condition_expr_id: ExprId) -> Result<bool, Error> {
         let maybe_condition_expr_value = self.try_eval_expr(condition_expr_id);
         if let Ok(condition_expr_value) = maybe_condition_expr_value {
-            let Value::Bool(condition_bool) = condition_expr_value else {
-                panic!("loop condition must be a Boolean");
-            };
-            Ok(condition_bool)
+            Ok(condition_expr_value.unwrap_bool())
         } else {
             let condition_expr = self.get_expr(condition_expr_id);
             let error = Error::FailedToEvaluateLoopCondition(condition_expr.span);
@@ -965,12 +958,10 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn measure_qubit(&mut self, measure_callable: Callable, args_value: &Value) -> Value {
+    fn measure_qubit(&mut self, measure_callable: Callable, args_value: Value) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
-        let Value::Qubit(qubit) = args_value else {
-            panic!("argument to qubit measure is expected to be a qubit");
-        };
-        let qubit_value = Value::Qubit(*qubit);
+        let qubit = args_value.unwrap_qubit();
+        let qubit_value = Value::Qubit(qubit);
         let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
         let result_value = Value::Result(self.resource_manager.next_result());
         let result_operand = map_eval_value_to_rir_operand(&result_value);
@@ -986,11 +977,9 @@ impl<'a> PartialEvaluator<'a> {
         result_value
     }
 
-    fn release_qubit(&mut self, args_value: &Value) -> Value {
-        let Value::Qubit(qubit) = args_value else {
-            panic!("argument to qubit release is expected to be a qubit");
-        };
-        self.resource_manager.release_qubit(*qubit);
+    fn release_qubit(&mut self, args_value: Value) -> Value {
+        let qubit = args_value.unwrap_qubit();
+        self.resource_manager.release_qubit(qubit);
 
         // The value of a qubit release is unit.
         Value::unit()
@@ -1009,9 +998,7 @@ impl<'a> PartialEvaluator<'a> {
                 vec![Arg::Var(ident.id, variable)]
             }
             PatKind::Tuple(pats) => {
-                let Value::Tuple(values) = value else {
-                    panic!("value is expected to be a tuple");
-                };
+                let values = value.unwrap_tuple();
                 assert_eq!(
                     pats.len(),
                     values.len(),
