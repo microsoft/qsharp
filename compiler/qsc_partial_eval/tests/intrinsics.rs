@@ -8,7 +8,9 @@ pub mod test_utils;
 use expect_test::{expect, Expect};
 use indoc::{formatdoc, indoc};
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::{
+    assert_block_instructions, assert_blocks, assert_callable, compile_and_partially_evaluate,
+};
 
 fn check_call_to_single_qubit_instrinsic_adds_callable_and_generates_instruction(
     intrinsic_name: &str,
@@ -644,46 +646,110 @@ fn call_to_intrinsic_mresetz_adds_callable_and_generates_instruction() {
 }
 
 #[test]
-fn call_to_intrinsic_begin_estimate_caching_with_classical_values_does_not_generate_instructions() {
+fn calls_to_intrinsic_begin_estimate_caching_with_classical_values_always_yield_true() {
     let program = compile_and_partially_evaluate(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
+            operation Op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
-                let _ = BeginEstimateCaching("test", 0);
+                use q = Qubit();
+                if BeginEstimateCaching("test0", 0) {
+                    Op(q);
+                }
+                if BeginEstimateCaching("test1", 1) {
+                    Op(q);
+                }
             }
         }
         "#,
     });
+    let op_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: Op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
     assert_block_instructions(
         &program,
         BlockId(0),
         &expect![[r#"
-        Block:
-            Call id(1), args( Integer(0), Pointer, )
-            Return"#]],
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }
 
 #[test]
-fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_does_not_generate_corresponding_call_instruction(
-) {
+fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_yields_true() {
     let program = compile_and_partially_evaluate(indoc! {
         r#"
         namespace Test {
             open Microsoft.Quantum.ResourceEstimation;
             open QIR.Intrinsic;
+            operation Op(q : Qubit) : Unit { body intrinsic; }
             @EntryPoint()
             operation Main() : Unit {
                 use q = Qubit();
                 let i = __quantum__qis__m__body(q) == Zero ? 0 | 1;
-                let _ = BeginEstimateCaching("test", i);
+                if BeginEstimateCaching("test0", i) {
+                    Op(q);
+                }
             }
         }
         "#,
     });
-    let output_recording_callable_id = CallableId(3);
+    let measure_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measure_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    let op_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        op_callable_id,
+        &expect![[r#"
+        Callable:
+            name: Op
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(4);
     assert_callable(
         &program,
         output_recording_callable_id,
@@ -697,14 +763,25 @@ fn call_to_intrinsic_begin_estimate_caching_with_dynamic_values_does_not_generat
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    let return_block_id = BlockId(1);
-    assert_block_instructions(
+    assert_blocks(
         &program,
-        return_block_id,
         &expect![[r#"
-            Block:
-                Call id(3), args( Integer(0), Pointer, )
-                Return"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(3), args( Qubit(0), )
+                Call id(4), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(2, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
     );
 }
 

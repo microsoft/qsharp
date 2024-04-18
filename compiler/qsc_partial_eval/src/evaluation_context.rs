@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 use qsc_data_structures::functors::FunctorApp;
-use qsc_eval::{val::Value, Env, Variable};
+use qsc_eval::{
+    val::{Result, Value},
+    Env, Variable,
+};
 use qsc_fir::fir::{ExprId, LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
 use qsc_rir::rir::BlockId;
@@ -188,9 +191,7 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
     match value {
         Value::Array(elements) => map_array_eval_value_to_value_kind(elements),
         Value::Tuple(elements) => map_tuple_eval_value_to_value_kind(elements),
-        Value::Result(val::Result::Id(_)) | Value::Var(_) => {
-            ValueKind::Element(RuntimeKind::Dynamic)
-        }
+        Value::Result(Result::Id(_)) | Value::Var(_) => ValueKind::Element(RuntimeKind::Dynamic),
         Value::BigInt(_)
         | Value::Bool(_)
         | Value::Closure(_)
@@ -200,10 +201,9 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Pauli(_)
         | Value::Qubit(_)
         | Value::Range(_)
-        | Value::Result(val::Result::Val(_))
+        | Value::Result(Result::Val(_))
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
     }
-
 }
 
 pub enum Arg {
