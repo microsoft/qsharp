@@ -36,7 +36,8 @@ pub fn check_and_transform(program: &mut Program) {
 
 /// Run the RIR passes that are necessary for targets with no mid-program measurement.
 /// This requires that qubits are not reused after measurement or reset, so qubit ids must be reindexed.
-/// This also requires that the program is a single block and will panic otherwise.
+/// This also requires that the program has no loops and block ids form a topological ordering on a
+/// directed acyclic graph.
 pub fn defer_quantum_measurements(program: &mut Program) {
     reindex_qubits(program);
     defer_measurements(program);
