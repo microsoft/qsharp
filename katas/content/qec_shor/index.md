@@ -78,6 +78,59 @@ Quantum error correction is based on the use of a special kind of measurements -
     "title": "Bit Flip Code"
 })
 
+Can we reuse the ideas of a classical repetition code for a quantum error correction code? 
+
+The naive approach to it would be to try and encode a quantum state $\ket{\psi}$ as several copies of itself: 
+$\ket{\psi} \rightarrow \ket{\psi} \otimes \ket{\psi} \otimes \ket{\psi}$.
+Unfortunately, the no-cloning theorem and the inability to reconstruct a state accurately after measuring it prevent us from doing that.
+
+We can, however, take a slightly different approach: encode the *basis states* $\ket{0}$ and $\ket{1}$ in repetition code using a unitary transformation, and deduce the effects of this transformation on superposition states based on its linearity:
+
+$$\ket{0} \rightarrow \ket{000}, \ket{1} \rightarrow \ket{111}$$
+
+$$\alpha \ket{0} + \beta \ket{1} \rightarrow \alpha \ket{000} + \beta \ket{111}$$
+
+This encoding is called **bit flip code**, and the states $\ket{000}$, $\ket{111}$, and their linear combinations are called **code words** in this code. Bit flip code allows us to detect and correct some errors that can occur on qubits in the depolarizing channel, though not all of them.
+
+Let's see what happens if an $X$ error happens on one of the qubits, and how we can detect it using two parity measurements.
+
+<table>
+<tr>
+<th>Error</th>
+<th>State after the error</th>
+<th>Parity of qubits 0 and 1</th>
+<th>Parity of qubits 1 and 2</th>
+</tr>
+<tr>
+<td>No error</td>
+<td>$\alpha \ket{000} + \beta \ket{111}$</td>
+<td>$0$</td>
+<td>$0$</td>
+</tr>
+<tr>
+<td>$X_0$ (error on qubit $0$)</td>
+<td>$\alpha \ket{100} + \beta \ket{011}$</td>
+<td>$1$</td>
+<td>$0$</td>
+</tr>
+<tr>
+<td>$X_1$ (error on qubit $1$)</td>
+<td>$\alpha \ket{010} + \beta \ket{101}$</td>
+<td>$1$</td>
+<td>$1$</td>
+</tr>
+<tr>
+<td>$X_2$ (error on qubit $2$)</td>
+<td>$\alpha \ket{001} + \beta \ket{110}$</td>
+<td>$0$</td>
+<td>$1$</td>
+</tr>
+</table>
+
+You can see that these two parity measurements give us different pairs of results depending on whether the error happened and on which qubit. This means that we can use them to detect the error, and then correct it by applying an $X$ gate to the qubit that was affected by it.
+
+However, if a $Z$ error happens on any one of these qubits, we won't be able to detect it: it will convert the state $\alpha \ket{000} + \beta \ket{111}$ to the state $\alpha \ket{000} - \beta \ket{111}$ which is a valid code word in this code - it's an encoding of the quantum state $\alpha \ket{0} - \beta \ket{1}$. We'll need to come up with a different way to detect $Z$ errors.
+
 - exercise: bit flip code: encode
 - exercise: bit flip code: detect X error
 
