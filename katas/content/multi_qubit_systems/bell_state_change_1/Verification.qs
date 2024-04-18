@@ -50,6 +50,7 @@ namespace Kata.Verification {
         if isCorrect {
             Message("Correct!");
         } else {
+            Message("Incorrect");
             ShowQuantumStateComparison(2, PrepareBellState, Kata.BellStateChange1, BellStateChange1_Reference);
         }
 
