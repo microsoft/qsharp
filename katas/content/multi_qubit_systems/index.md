@@ -188,13 +188,7 @@ This property is used extensively in many quantum algorithms.
     "title": "Modifying Entangled States"
 })
 
-Sometimes, not only separable but also entangled quantum states can be manipulated using single-qubit gates. This section focuses on demonstrating this capability, particularly through the transformation of Bell states.
-
-Entangled states are notable for their quantum correlations, which stand in contrast to classical correlations. In these states, the state of the entire system is defined, not the states of individual qubits. Manipulating a single qubit in an entangled state affects the entire system, demonstrating a fundamental principle of quantum mechanics.
-
-> For example, each state in the Bell basis is entangled and can be transformed into another Bell state through the application of single-qubit gates.
-
-Over the next few exercises, we will delve into how to convert Bell states into each other, showcasing the adaptability of entangled states through single-qubit operations.
+Entangled quantum states can be manipulated using single-qubit gates. For example, each state in the Bell basis is entangled and can be transformed into another Bell state through the application of single-qubit gates. In this lesson, you'll learn how to do that. (And we will learn more about applying single-qubit gates to multi-qubit states in the next kata.)
 
 @[exercise]({
     "id": "multi_qubit_systems__bell_state_change_1 ",
