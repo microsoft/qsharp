@@ -210,19 +210,7 @@ impl Interpreter {
             fir_store,
             lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
             env: Env::default(),
-            sim: BackendChain::new(
-                SparseSim::new(),
-                CircuitBuilder::new(CircuitConfig {
-                    // When using in conjunction with the simulator,
-                    // the circuit builder should *not* perform base profile
-                    // decompositions, in order to match the simulator's behavior.
-                    //
-                    // Note that conditional compilation (e.g. @Config(Base) attributes)
-                    // will still respect the selected profile. This also
-                    // matches the behavior of the simulator.
-                    base_profile: false,
-                }),
-            ),
+            sim: sim_circuit_backend(),
             quantum_seed: None,
             classical_seed: None,
             package: map_hir_package_to_fir(package_id),
@@ -412,16 +400,16 @@ impl Interpreter {
     ///
     /// An operation can be specified by its name or a lambda expression that only takes qubits.
     /// e.g. `Sample.Main` , `qs => H(qs[0])`
+    ///
+    /// If `simulate` is specified, the program is simulated and the resulting
+    /// circuit is returned (a.k.a. trace mode). Otherwise, the circuit is generated without
+    /// simulation. In this case circuit generation may fail if the program contains dynamic
+    /// behavior (quantum operations that are dependent on measurement results).
     pub fn circuit(
         &mut self,
         entry: CircuitEntryPoint,
+        simulate: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
-        let mut sink = std::io::sink();
-        let mut out = GenericReceiver::new(&mut sink);
-        let mut sim = CircuitBuilder::new(CircuitConfig {
-            base_profile: self.capabilities.is_empty(),
-        });
-
         let entry_expr = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
                 let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
@@ -433,13 +421,23 @@ impl Interpreter {
             CircuitEntryPoint::EntryPoint => None,
         };
 
-        if let Some(entry_expr) = entry_expr {
-            self.run_with_sim(&mut sim, &mut out, &entry_expr)?
-        } else {
-            self.eval_entry_with_sim(&mut sim, &mut out)
-        }?;
+        let circuit = if simulate {
+            let mut sim = sim_circuit_backend();
 
-        Ok(sim.finish())
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.chained.finish()
+        } else {
+            let mut sim = CircuitBuilder::new(CircuitConfig {
+                base_profile: self.capabilities.is_empty(),
+            });
+
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.finish()
+        };
+
+        Ok(circuit)
     }
 
     /// Runs the given entry expression on the given simulator with a new instance of the environment
@@ -466,6 +464,38 @@ impl Interpreter {
             sim,
             receiver,
         ))
+    }
+
+    fn run_with_sim_no_output(
+        &mut self,
+        entry_expr: Option<String>,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    ) -> InterpretResult {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+
+        let (package_id, graph) = if let Some(entry_expr) = entry_expr {
+            // entry expression is provided
+            (self.package, self.compile_entry_expr(&entry_expr)?.0.into())
+        } else {
+            // no entry expression, use the entrypoint in the package
+            (self.source_package, self.get_entry_exec_graph()?)
+        };
+
+        if self.quantum_seed.is_some() {
+            sim.set_seed(self.quantum_seed);
+        }
+
+        eval(
+            package_id,
+            self.classical_seed,
+            graph,
+            self.compiler.package_store(),
+            &self.fir_store,
+            &mut Env::default(),
+            sim,
+            &mut out,
+        )
     }
 
     fn compile_entry_expr(
@@ -579,6 +609,22 @@ impl Interpreter {
             .expect("item should exist in the package");
         Ok((item, functor_app))
     }
+}
+
+fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
+    BackendChain::new(
+        SparseSim::new(),
+        CircuitBuilder::new(CircuitConfig {
+            // When using in conjunction with the simulator,
+            // the circuit builder should *not* perform base profile
+            // decompositions, in order to match the simulator's behavior.
+            //
+            // Note that conditional compilation (e.g. @Config(Base) attributes)
+            // will still respect the selected profile. This also
+            // matches the behavior of the simulator.
+            base_profile: false,
+        }),
+    )
 }
 
 /// Describes the entry point for circuit generation.
