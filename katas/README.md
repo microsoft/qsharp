@@ -8,7 +8,7 @@ A Kata is a top-level container of educational items which are used to explain a
 
 ## Run Katas Online
 
-Visit https://quantum.microsoft.com/experience/quantum-katas to try the new online Azure Quantum katas experience, with integrated assistance from Copilot in Azure Quantum.
+Visit [Learn with Azure Quantum katas](https://quantum.microsoft.com/experience/quantum-katas) to try the new online Azure Quantum katas experience, with integrated assistance from Copilot in Azure Quantum.
 
 ## Rust crate
 
