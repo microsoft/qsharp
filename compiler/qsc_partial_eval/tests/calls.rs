@@ -250,3 +250,125 @@ fn call_to_unitary_rotation_unitary_with_computation() {
             Return"#]],
     );
 }
+
+#[test]
+fn call_to_operation_that_returns_measurement_result() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
+        namespace Test {
+            operation Op(q : Qubit) : Result {
+                QIR.Intrinsic.__quantum__qis__m__body(q)
+            }
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                Op(q)
+            }
+        }
+    "#});
+    let measure_callable_id = CallableId(1);
+    let output_recording_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        measure_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__rt__result_record_output
+            call_type: OutputRecording
+            input_type:
+                [0]: Result
+                [1]: Pointer
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Call id(2), args( Result(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_operation_that_returns_dynamic_bool() {
+    let program = compile_and_partially_evaluate(indoc! {r#"
+        namespace Test {
+            operation Op(q : Qubit) : Bool {
+                let r = QIR.Intrinsic.__quantum__qis__m__body(q);
+                r == Zero
+            }
+            @EntryPoint()
+            operation Main() : Bool {
+                use q = Qubit();
+                Op(q)
+            }
+        }
+    "#});
+    let measure_callable_id = CallableId(1);
+    let read_result_callable_id = CallableId(2);
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        measure_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__mz__body
+            call_type: Measurement
+            input_type:
+                [0]: Qubit
+                [1]: Result
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__read_result__body
+            call_type: Readout
+            input_type:
+                [0]: Result
+            output_type: Boolean
+            body: <NONE>"#]],
+    );
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__bool_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Boolean
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+                Call id(3), args( Variable(1, Boolean), Pointer, )
+                Return"#]],
+    );
+}
