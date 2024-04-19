@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 use bitflags::bitflags;
-use std::fmt::Display;
 
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -13,25 +12,6 @@ bitflags! {
         const BackwardsBranching = 0b0000_1000;
         const HigherLevelConstructs = 0b0001_0000;
         const QubitReset = 0b0010_0000;
-    }
-}
-
-impl Display for TargetCapabilityFlags {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.is_empty() {
-            return write!(f, "Base");
-        }
-        let mut first = true;
-        for flag in TargetCapabilityFlags::all().iter() {
-            if self.contains(flag) {
-                if !first {
-                    write!(f, ", ")?;
-                }
-                write!(f, "{flag}")?;
-                first = false;
-            }
-        }
-        Ok(())
     }
 }
 

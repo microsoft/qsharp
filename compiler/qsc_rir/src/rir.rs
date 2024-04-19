@@ -68,7 +68,11 @@ impl Display for Config {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Config:",)?;
         indent = set_indentation(indent, 1);
-        write!(indent, "\ncapabilities: {}", self.capabilities)?;
+        if self.capabilities.is_empty() {
+            write!(indent, "\ncapabilities: Base")?;
+        } else {
+            write!(indent, "\ncapabilities: {:?}", self.capabilities)?;
+        }
         Ok(())
     }
 }
