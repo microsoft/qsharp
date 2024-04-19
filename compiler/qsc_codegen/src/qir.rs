@@ -553,6 +553,8 @@ impl ToQir<String> for rir::Program {
     }
 }
 
+/// Create the module metadata for the given program.
+/// creating the `llvm.module.flags` and its associated values.
 fn get_module_metadata(program: &rir::Program) -> String {
     let mut flags = String::new();
 

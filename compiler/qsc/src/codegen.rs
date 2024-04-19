@@ -36,7 +36,7 @@ pub fn get_qir(
     if !errors.is_empty() {
         // This should never happen, as the program should be checked for errors before trying to
         // generate code for it. But just in case, simply report the failure.
-        return Err("Failed to generate QIR".to_string());
+        return Err("Failed to generate QIR. Could not compile sources.".to_string());
     }
 
     let package_id = package_store.insert(unit);
@@ -64,7 +64,7 @@ pub fn get_qir(
     let Ok(compute_properties) = compute_properties else {
         // This should never happen, as the program should be checked for errors before trying to
         // generate code for it. But just in case, simply report the failure.
-        return Err("Failed to generate QIR".to_string());
+        return Err("Failed to generate QIR. Could not generate compute properties.".to_string());
     };
 
     fir_to_qir(&fir_store, capabilities, Some(compute_properties), &entry)
