@@ -12,11 +12,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::CallableId;
-use test_utils::{assert_blocks, assert_callable, compile_and_partially_evaluate};
+use test_utils::{assert_blocks, assert_callable, get_rir_program};
 
 #[test]
 fn if_expression_with_true_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -56,7 +56,7 @@ fn if_expression_with_true_condition() {
 
 #[test]
 fn if_expression_with_false_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -82,7 +82,7 @@ fn if_expression_with_false_condition() {
 
 #[test]
 fn if_else_expression_with_true_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -125,7 +125,7 @@ fn if_else_expression_with_true_condition() {
 
 #[test]
 fn if_else_expression_with_false_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -168,7 +168,7 @@ fn if_else_expression_with_false_condition() {
 
 #[test]
 fn if_elif_else_expression_with_true_elif_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -214,7 +214,7 @@ fn if_elif_else_expression_with_true_elif_condition() {
 
 #[test]
 fn if_expression_with_dynamic_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -292,7 +292,7 @@ fn if_expression_with_dynamic_condition() {
 
 #[test]
 fn if_else_expression_with_dynamic_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -389,7 +389,7 @@ fn if_else_expression_with_dynamic_condition() {
 
 #[test]
 fn if_elif_else_expression_with_dynamic_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -513,7 +513,7 @@ fn if_elif_else_expression_with_dynamic_condition() {
 
 #[test]
 fn if_expression_with_dynamic_condition_and_nested_if_expression_with_true_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -593,7 +593,7 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_true_condi
 
 #[test]
 fn if_expression_with_dynamic_condition_and_nested_if_expression_with_false_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -659,7 +659,7 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_false_cond
 
 #[test]
 fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_true_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -758,7 +758,7 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_true_
 
 #[test]
 fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_false_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -843,7 +843,7 @@ fn if_else_expression_with_dynamic_condition_and_nested_if_expression_with_false
 
 #[test]
 fn if_expression_with_dynamic_condition_and_nested_if_expression_with_dynamic_condition() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -932,7 +932,7 @@ fn if_expression_with_dynamic_condition_and_nested_if_expression_with_dynamic_co
 #[allow(clippy::too_many_lines)]
 #[test]
 fn doubly_nested_if_else_expressions_with_dynamic_conditions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -1085,7 +1085,7 @@ fn doubly_nested_if_else_expressions_with_dynamic_conditions() {
 
 #[test]
 fn if_expression_with_dynamic_condition_and_subsequent_call_to_operation() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }
@@ -1179,7 +1179,7 @@ fn if_expression_with_dynamic_condition_and_subsequent_call_to_operation() {
 
 #[test]
 fn if_else_expression_with_dynamic_condition_and_subsequent_call_to_operation() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation opA(q : Qubit) : Unit { body intrinsic; }

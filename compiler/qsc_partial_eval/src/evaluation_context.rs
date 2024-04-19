@@ -6,7 +6,7 @@ use qsc_eval::{
     val::{Result, Value},
     Env, Variable,
 };
-use qsc_fir::fir::{ExprId, LocalItemId, LocalVarId, PackageId};
+use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
 use qsc_rir::rir::BlockId;
 use rustc_hash::FxHashMap;
@@ -75,8 +75,6 @@ pub struct Scope {
     pub callable: Option<(LocalItemId, FunctorApp)>,
     pub args_value_kind: Vec<ValueKind>,
     pub env: Env,
-    last_expr: Option<ExprId>,
-    hybrid_exprs: FxHashMap<ExprId, Value>,
     hybrid_vars: FxHashMap<LocalVarId, Value>,
 }
 
@@ -98,9 +96,13 @@ impl Scope {
             })
             .collect();
 
+        // We need to push an additional scope to the environment to be able to detect expressions that evaluated to a
+        // classical return.
+        let mut env = Env::default();
+        env.push_scope(1);
+
         // Add the values to either the environment or the hybrid variables depending on whether the value is static or
         // dynamic.
-        let mut env = Env::default();
         let mut hybrid_vars = FxHashMap::default();
         let arg_runtime_kind_tuple = args.into_iter().zip(args_value_kind.iter());
         for (arg, value_kind) in arg_runtime_kind_tuple {
@@ -121,17 +123,8 @@ impl Scope {
             callable,
             args_value_kind,
             env,
-            last_expr: None,
-            hybrid_exprs: FxHashMap::default(),
             hybrid_vars,
         }
-    }
-
-    // Potential candidate for removal if only the last expression value is needed.
-    pub fn _get_expr_value(&self, expr_id: ExprId) -> &Value {
-        self.hybrid_exprs
-            .get(&expr_id)
-            .expect("expression value does not exist")
     }
 
     pub fn get_local_var_value(&self, local_var_id: LocalVarId) -> &Value {
@@ -140,24 +133,58 @@ impl Scope {
             .expect("local variable value does not exist")
     }
 
-    pub fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
-        self.last_expr = Some(expr_id);
-        self.hybrid_exprs.insert(expr_id, value);
+    pub fn has_returned(&self) -> bool {
+        self.env.len() == 1
     }
 
     pub fn insert_local_var_value(&mut self, local_var_id: LocalVarId, value: Value) {
         self.hybrid_vars.insert(local_var_id, value);
     }
+}
 
-    pub fn clear_last_expr(&mut self) {
-        self.last_expr = None;
+pub enum Arg {
+    Discard(Value),
+    Var(LocalVarId, Variable),
+}
+
+impl Arg {
+    pub fn into_value(self) -> Value {
+        match self {
+            Self::Discard(value) => value,
+            Self::Var(_, var) => var.value,
+        }
+    }
+}
+
+pub enum BranchControlFlow {
+    Block(BlockId),
+    Return(Value),
+}
+
+pub struct ValueControlFlow {
+    pub value: Value,
+    pub kind: ControlFlowKind,
+}
+
+impl ValueControlFlow {
+    pub fn new_continue(value: Value) -> Self {
+        Self {
+            kind: ControlFlowKind::Continue,
+            value,
+        }
     }
 
-    pub fn last_expr_value(&self) -> Value {
-        self.last_expr
-            .and_then(|expr_id| self.hybrid_exprs.get(&expr_id))
-            .map_or_else(Value::unit, Clone::clone)
+    pub fn new_return(value: Value) -> Self {
+        Self {
+            kind: ControlFlowKind::Return,
+            value,
+        }
     }
+}
+
+pub enum ControlFlowKind {
+    Continue,
+    Return,
 }
 
 fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
@@ -203,19 +230,5 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Range(_)
         | Value::Result(Result::Val(_))
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
-    }
-}
-
-pub enum Arg {
-    Discard(Value),
-    Var(LocalVarId, Variable),
-}
-
-impl Arg {
-    pub fn into_value(self) -> Value {
-        match self {
-            Self::Discard(value) => value,
-            Self::Var(_, var) => var.value,
-        }
     }
 }
