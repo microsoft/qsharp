@@ -441,7 +441,8 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # Description
     /// Applies a unitary operation `oracle` on the `target`, controlled
-    /// on a state specified by a given bit mask `bits`. Bit bits[i] corresponds to qubit controlRegister[i].
+/// on a state specified by a given bit mask `bits`.
+/// Bit at `bits[i]` corresponds to qubit at `controlRegister[i]`.
     /// The pattern given by `bits` may be shorter than `controlRegister`,
     /// in which case additional control qubits are ignored (that is, neither
     /// controlled on |0⟩ nor |1⟩).
