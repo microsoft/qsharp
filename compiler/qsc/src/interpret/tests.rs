@@ -779,9 +779,7 @@ mod given_interpreter {
 
                 ; module flags
 
-
                 !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
-
 
                 !0 = !{i32 1, !"qir_major_version", i32 1}
                 !1 = !{i32 7, !"qir_minor_version", i32 0}
@@ -858,9 +856,7 @@ mod given_interpreter {
 
                 ; module flags
 
-
                 !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
-
 
                 !0 = !{i32 1, !"qir_major_version", i32 1}
                 !1 = !{i32 7, !"qir_minor_version", i32 0}

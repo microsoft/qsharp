@@ -549,7 +549,7 @@ impl ToQir<String> for rir::Program {
             callables, profile, self.num_qubits, self.num_results
         );
         let flags = get_module_metadata(self);
-        body + "\n\n" + &flags
+        body + "\n" + &flags
     }
 }
 
@@ -628,6 +628,6 @@ fn get_module_metadata(program: &rir::Program) -> String {
     for i in 0..index - 1 {
         metadata_def.push_str(&format!("!{i}, "));
     }
-    metadata_def.push_str(&format!("!{}}}\n\n", index - 1));
+    metadata_def.push_str(&format!("!{}}}\n", index - 1));
     metadata_def + &flags
 }
