@@ -131,8 +131,15 @@ You can see that these two parity measurements give us different pairs of result
 
 However, if a $Z$ error happens on any one of these qubits, we won't be able to detect it: it will convert the state $\alpha \ket{000} + \beta \ket{111}$ to the state $\alpha \ket{000} - \beta \ket{111}$ which is a valid code word in this code - it's an encoding of the quantum state $\alpha \ket{0} - \beta \ket{1}$. We'll need to come up with a different way to detect $Z$ errors.
 
-- exercise: bit flip code: encode (use op from 1385 for testing once merged)
-- exercise: bit flip code: detect X error
+@[exercise]({
+    "id": "qec_shor__bitflip_encode",
+    "title": "Bit Flip Code: Encode Codewords",
+    "path": "./bitflip_encode/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 
 @[section]({
     "id": "qec_shor__phase_flip_code",
@@ -187,8 +194,14 @@ You can see that these two parity measurements give us different pairs of result
 
 However, if an $X$ error happens on any one of these qubits, we won't be able to detect it: it will convert the state $\alpha \ket{+++} + \beta \ket{---}$ to the state $\alpha \ket{+++} - \beta \ket{---}$ which is a valid code word in this code - it's an encoding of the quantum state $\alpha \ket{0} - \beta \ket{1}$. We'll need to come up with a different way to detect both $X$ and $Z$ errors in the same encoding.
 
-- exercise: phase flip code: encode (use op from 1385 for testing once merged)
-- exercise: phase flip code: detect Z error
+@[exercise]({
+    "id": "qec_shor__phaseflip_encode",
+    "title": "Phase Flip Code: Encode Codewords",
+    "path": "./phaseflip_encode/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 
 @[section]({
@@ -196,9 +209,17 @@ However, if an $X$ error happens on any one of these qubits, we won't be able to
     "title": "Shor Code"
 })
 
-- exercise: Shor code: encode
 - exercise: Shor code: detect all errors
 - demo: does Shor code indeed correct all errors?
+
+@[exercise]({
+    "id": "qec_shor__shor_encode",
+    "title": "Shor Code: Encode Codewords",
+    "path": "./shor_encode/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 
 @[section]({
