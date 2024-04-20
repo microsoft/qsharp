@@ -1,6 +1,4 @@
-Firstly we notice that we are dealing with an unentangled pair of qubits. In vector form this is:
-In vector form the transformation we need is
-
+Firstly we notice that we are dealing with an unentangled pair of qubits.
 In vector form the transformation we need is 
 $$
 \frac{1}{2}\begin{bmatrix}1\\\ 1\\\ 1\\\ 1\\\ \end{bmatrix} 
