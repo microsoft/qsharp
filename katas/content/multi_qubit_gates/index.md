@@ -135,7 +135,6 @@ The $CNOT$ gate is self-adjoint: applying it for the second time reverses its ef
     "title": "CZ Gate"
 })
 
-## CZ Gate (Controlled-Z Gate)
 
 The $CZ$ ("controlled-Z") gate is a two-qubit gate, with one qubit referred to as the **control** qubit, and the other as the **target** qubit. Typically, the first qubit is the control, and the second qubit is the target.
 
