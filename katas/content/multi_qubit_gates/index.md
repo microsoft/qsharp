@@ -140,9 +140,6 @@ The $CZ$ ("controlled-Z") gate is a two-qubit gate, with one qubit referred to a
 
 The $CZ$ gate acts as a conditional gate: if the control qubit is in state $|1\rangle$, it applies the $Z$ gate to the target qubit, otherwise it does nothing.
 
-> If the system is in a superposition of several basis states, the effects of the gate will be a linear combination of the effects of it acting separately on each of the basis states.
-> This is a common feature for all quantum gates you'll encounter that are specified in terms of basis states: since all unitary gates are linear, it is sufficient to define their effect on the basis states, and use linearity to figure out their effect on any state.
-
 <table>
     <tr>
         <th>Gate</th>
