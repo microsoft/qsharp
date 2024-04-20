@@ -171,7 +171,7 @@ The $CZ$ gate is particularly useful for creating and manipulating entangled sta
 
 $$\big(\alpha|0\rangle + \beta|1\rangle\big) \otimes \big(\gamma|0\rangle + \delta|1\rangle\big) = \alpha\gamma|00\rangle + \alpha\delta|01\rangle + \beta\gamma|10\rangle + \beta\delta|11\rangle$$
 
-If we apply the $CZ$ gate to it, with the first qubit as the control and the second as the target, we get the following state, which can no longer be easily separated:
+If we apply the $CZ$ gate to it, with the first qubit as the control and the second as the target (or vice versa), we get the following state, which can no longer be separated:
 
 $$\alpha\gamma|00\rangle + \alpha\delta|01\rangle + \beta\gamma|10\rangle - \beta\delta|11\rangle$$
 
