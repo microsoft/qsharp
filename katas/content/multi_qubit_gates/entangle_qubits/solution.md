@@ -6,6 +6,6 @@ However, if A is in the $|1\rangle$ state, we want to flip qubit B from $|0\rang
 This is exactly the effect of the $CNOT$ gate. Depending upon the state of the **control** qubit (A in our case), the value of the controlled or **target** qubit (B in our case) is inverted or unchanged. Thus, we get the goal state $\alpha |00\rangle + \beta |11\rangle$.  
 
 @[solution]({
-    "id": "multi_qubit_gates__two_qubit_gate_1_solution",
+    "id": "multi_qubit_gates__entangle_qubits_solution",
     "codePath": "./Solution.qs"
 })

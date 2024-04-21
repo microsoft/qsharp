@@ -123,13 +123,23 @@ The $CNOT$ gate is self-adjoint: applying it for the second time reverses its ef
 
 
 @[exercise]({
-    "id": "multi_qubit_gates__two_qubit_gate_1",
-    "title": "Two Qubit Gate 1",
-    "path": "./two_qubit_gate_1/",
+    "id": "multi_qubit_gates__entangle_qubits",
+    "title": "EntangleQubits",
+    "path": "./entangle_qubits/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
 })
+
+@[exercise]({
+    "id": "multi_qubit_gates__preparing_bell_state",
+    "title": "Preparing a Bell State",
+    "path": "./preparing_bell_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[section]({
     "id": "multi_qubit_gates__cz_gate",
     "title": "CZ Gate"
@@ -178,25 +188,9 @@ $$\alpha\gamma|00\rangle + \alpha\delta|01\rangle + \beta\gamma|10\rangle - \bet
 The $CZ$ gate is also self-adjoint: applying it a second time reverses its effect, similar to the $CNOT$ gate.
 
 @[exercise]({
-    "id": "multi_qubit_gates__two_qubit_gate_2",
-    "title": "Two Qubit Gate 2",
-    "path": "./two_qubit_gate_2/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
-@[exercise]({
-    "id": "multi_qubit_gates__two_qubit_gate_3",
-    "title": "Two Qubit Gate 3",
-    "path": "./two_qubit_gate_3/",
-    "qsDependencies": [
-        "../KatasLibrary.qs"
-    ]
-})
-@[exercise]({
-    "id": "multi_qubit_gates__preparing_bell_state",
-    "title": "Preparing a Bell State",
-    "path": "./preparing_bell_state/",
+    "id": "multi_qubit_gates__relative_phase_minusone",
+    "title": "Relative Phase -1",
+    "path": "./relative_phase_minusone/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]
