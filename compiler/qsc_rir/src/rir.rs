@@ -56,6 +56,11 @@ impl Program {
     pub fn get_block(&self, id: BlockId) -> &Block {
         self.blocks.get(id).expect("block should be present")
     }
+
+    #[must_use]
+    pub fn get_block_mut(&mut self, id: BlockId) -> &mut Block {
+        self.blocks.get_mut(id).expect("block should be present")
+    }
 }
 
 #[derive(Default)]
