@@ -1,9 +1,9 @@
 **Inputs:**
 
 1. $N$ qubits in the $|0 \dots 0\rangle$ state.
-2. Four bit string represented as `Bool[][]` `bits`.
+2. Four bit strings represented as `Bool[][]` `bits`.
 
-    `bits` is an array of size $4 * N$ which describes the bit strings as follows:
+    `bits` is an array of size $4 \times N$ which describes the bit strings as follows:
     - `bits[i]` describes the *i*th bit string and has $N$ elements.
     - All four bit strings will be distinct.
 

@@ -29,7 +29,7 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
 
-        mutable bits = [[false, false], [false, true], [true, false], [true, true]];
+        let bits = [[false, false], [false, true], [true, false], [true, true]];
         Message($"Testing for bits = {bits}...");
         if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.FourBitstringSuperposition(_, bits),
@@ -39,14 +39,13 @@ namespace Kata.Verification {
             return false;
         }
 
-        mutable bitstrings = [
+        let bitstrings = [
             [[false, true, false], [true, false, false], [false, false, true], [true, true, false]],
             [[true, false, false], [false, false, true], [false, true, false], [true, true, true]],
             [[false, false, false], [false, true, false], [true, true, false], [true, false, true]]
         ];
 
-        for i in 0 .. Length (bitstrings) - 1 {
-            let bitstring = bitstrings[i];
+        for bitstring in bitstrings {
             Message($"Testing for bits = {bitstring}...");
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                 Kata.FourBitstringSuperposition(_, bitstring),

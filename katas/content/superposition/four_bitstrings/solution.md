@@ -30,11 +30,11 @@ We will uncompute each of them separately, so one of the auxiliary qubits will b
     "codePath": "./SolutionA.qs"
 })
 
-We are going to leverage the recursion abilities of Q# to create a superposition of the four bit strings.  This solution also extends to an arbitrary number of bit strings with no code changes.
+Alternatively, we can leverage the recursion abilities of Q# to create a superposition of the four bit strings.  This solution also extends to an arbitrary number of bit strings with no code changes.
 
 For this process we will look at the first bits of each string and adjust the probability of measuring a $|0\rangle$ or $|1\rangle$ accordingly on the first qubit of our answer.  We will then recursively call (as needed) the process again to adjust the probabilities of measurement on the second bit depending on the first bit.  This process recurses until no more input bits are provided.
 
-Consider for example the following four bit strings on which to create a superposition: $|001\rangle, |101\rangle, |111\rangle, |110\rangle$.
+Consider, for example, the following four bit strings on which to create a superposition: $|001\rangle, |101\rangle, |111\rangle, |110\rangle$.
 
 We can rewrite the superposition state we need to prepare as
 
