@@ -44,8 +44,18 @@ namespace Microsoft.Quantum.Measurement {
     /// # Output
     /// An array of measurement results.
     ///
+    /// # Remarks
+    /// Please note the following differences:
+    /// - Operation `MeasureEachZ` performs one measurement for each qubit and retuns
+    ///   an array of results. The operation does not reset the qubits.
+    /// - Operation `MResetEachZ` performs one measurement for each qubit and retuns
+    ///   an array of results. The operation resets all qubits to |0⟩ state.
+    /// - Operation `MeasureAllZ` performs a joint measurement on all qubits
+    ///   and returns one result. The operation does not reset the qubits.
+    ///
     /// # See also
     /// - Microsoft.Quantum.Measurement.MeasureAllZ
+    /// - Microsoft.Quantum.Measurement.MResetEachZ
     operation MeasureEachZ(register : Qubit[]) : Result[] {
         mutable results = [];
         for qubit in register {
