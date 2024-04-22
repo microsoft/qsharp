@@ -6,7 +6,10 @@ mod tests;
 
 use qsc_codegen::qir::fir_to_qir;
 use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
-use qsc_frontend::compile::{PackageStore, SourceMap};
+use qsc_frontend::{
+    compile::{PackageStore, SourceMap},
+    error,
+};
 use qsc_partial_eval::ProgramEntry;
 use qsc_passes::{PackageType, PassContext};
 use qsc_rca::Analyzer;
@@ -34,9 +37,15 @@ pub fn get_qir(
 
     // Ensure it compiles before trying to add it to the store.
     if !errors.is_empty() {
-        // This should never happen, as the program should be checked for errors before trying to
-        // generate code for it. But just in case, simply report the failure.
-        return Err("Failed to generate QIR. Could not compile sources.".to_string());
+        // This will happen when QIR generation is attempted on a program that has errors.
+        // This can happen in the playground.
+        let mut error_message =
+            String::from("Failed to generate QIR. Could not compile sources.:\n");
+        for error in errors {
+            error_message.push_str(&format!("{error}\n"));
+        }
+
+        return Err(error_message);
     }
 
     let package_id = package_store.insert(unit);
