@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-//
+
 #[cfg(test)]
 mod spec_decls;
 
