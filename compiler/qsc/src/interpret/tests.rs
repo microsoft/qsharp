@@ -1676,7 +1676,7 @@ mod given_interpreter {
             let package_id = store.insert(unit);
 
             let mut interpreter =
-                Interpreter::from(true, store, package_id, capabilities, language_features)
+                Interpreter::from(store, package_id, capabilities, language_features)
                     .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);
             is_only_value(

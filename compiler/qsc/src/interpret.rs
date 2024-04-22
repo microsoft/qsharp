@@ -220,20 +220,13 @@ impl Interpreter {
     }
 
     pub fn from(
-        include_std: bool,
         store: PackageStore,
         source_package_id: qsc_hir::hir::PackageId,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let compiler = Compiler::from(
-            include_std,
-            store,
-            source_package_id,
-            capabilities,
-            language_features,
-        )
-        .map_err(into_errors)?;
+        let compiler = Compiler::from(store, source_package_id, capabilities, language_features)
+            .map_err(into_errors)?;
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {

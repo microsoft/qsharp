@@ -82,24 +82,13 @@ impl Compiler {
     }
 
     pub fn from(
-        include_std: bool,
-        mut store: PackageStore,
+        store: PackageStore,
         source_package_id: PackageId,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Result<Self, Errors> {
-        let mut dependencies = Vec::new();
-        if include_std {
-            let std = std(&store, capabilities);
-            let id = store.insert(std);
-            dependencies.push(id);
-        }
-        let frontend = qsc_frontend::incremental::Compiler::new(
-            &store,
-            dependencies,
-            capabilities,
-            language_features,
-        );
+        let frontend =
+            qsc_frontend::incremental::Compiler::new(&store, [], capabilities, language_features);
         let store = store.open();
 
         Ok(Self {
