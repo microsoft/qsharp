@@ -526,7 +526,9 @@ fn output_recording_for_mix_of_literal_and_variable() {
 }
 
 #[test]
-#[should_panic(expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })")]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
 fn output_recording_fails_with_result_literal_one() {
     let _ = compile_and_partially_evaluate(indoc! {
         r#"
@@ -541,7 +543,9 @@ fn output_recording_fails_with_result_literal_one() {
 }
 
 #[test]
-#[should_panic(expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })")]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
 fn output_recording_fails_with_result_literal_zero() {
     let _ = compile_and_partially_evaluate(indoc! {
         r#"
@@ -556,7 +560,9 @@ fn output_recording_fails_with_result_literal_zero() {
 }
 
 #[test]
-#[should_panic(expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })")]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
 fn output_recording_fails_with_result_literal_in_array() {
     let _ = compile_and_partially_evaluate(indoc! {
         r#"
@@ -572,7 +578,9 @@ fn output_recording_fails_with_result_literal_in_array() {
 }
 
 #[test]
-#[should_panic(expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })")]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
 fn output_recording_fails_with_result_literal_in_tuple() {
     let _ = compile_and_partially_evaluate(indoc! {
         r#"
