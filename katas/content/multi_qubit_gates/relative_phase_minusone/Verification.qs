@@ -3,7 +3,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
 
     operation PrepareState(qs : Qubit[]) : Unit is Adj + Ctl {
-        ApplyToEach(H, qs)
+        ApplyToEachCA(H, qs);
     }
     operation  RelativePhaseMinusOne (qs : Qubit[]) : Unit is Adj + Ctl {
         CZ(qs[0], qs[1]);
