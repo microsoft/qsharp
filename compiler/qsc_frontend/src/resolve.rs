@@ -165,6 +165,7 @@ pub struct Locals {
 }
 
 impl Locals {
+    #[inline(never)]
     fn get_scopes<'a>(&'a self, scope_chain: &'a [ScopeId]) -> impl Iterator<Item = &Scope> + 'a {
         // reverse to go from innermost -> outermost
         scope_chain.iter().rev().map(|id| {
@@ -429,6 +430,7 @@ impl Resolver {
         }
     }
 
+    #[inline(never)]
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) {
         let name = &path.name;
         let namespace = &path.namespace;
@@ -1173,6 +1175,7 @@ fn resolve<'a>(
 /// Checks all given scopes, in the correct order, for a resolution.
 /// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
 /// using the `vars` parameter.
+#[inline(never)]
 fn check_all_scopes(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1216,6 +1219,7 @@ fn check_all_scopes(
 /// * `provided_namespace_name` - The namespace of the symbol, if any.
 /// * `vars` - A mutable reference to a boolean indicating whether to allow local variables in closures in parent scopes.
 /// * `scope` - The scope to check for resolutions.
+#[inline(never)]
 fn check_scoped_resolutions(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1248,6 +1252,7 @@ fn check_scoped_resolutions(
         .iter()
         .flat_map(|(_, open)| open.clone())
         .collect::<Vec<_>>();
+
     let explicit_open_candidates = find_symbol_in_namespaces(
         kind,
         globals,

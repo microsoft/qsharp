@@ -68,11 +68,14 @@ impl NamespaceTreeRoot {
 
     /// Get the namespace tree field. This is the root of the namespace tree.
     #[must_use]
+    #[inline(never)]
     pub fn tree(&self) -> &NamespaceTreeNode {
         &self.tree
     }
 
     /// Insert a namespace into the tree. If the namespace already exists, return its ID.
+    #[inline(never)]
+
     pub fn insert_or_find_namespace(
         &mut self,
         ns: impl IntoIterator<Item = Rc<str>>,
@@ -92,15 +95,17 @@ impl NamespaceTreeRoot {
             children,
         }
     }
-
+    #[inline(never)]
     pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         self.tree.find_namespace(ns)
     }
+    #[inline(never)]
 
     #[must_use]
     pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, &NamespaceTreeNode) {
         return self.tree.find_id(*id, vec![]);
     }
+    #[inline(never)]
 
     #[must_use]
     pub fn root_id(&self) -> NamespaceId {

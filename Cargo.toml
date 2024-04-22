@@ -82,8 +82,7 @@ missing_panics_doc = "allow"
 module_name_repetitions = "allow"
 
 [profile.release]
-debug = 1
-strip = true
+debug = true
 lto = "fat"
 codegen-units = 1
 
