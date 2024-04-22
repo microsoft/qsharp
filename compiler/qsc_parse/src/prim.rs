@@ -10,7 +10,7 @@ use crate::{
     lex::{Delim, TokenKind},
     ErrorKind,
 };
-use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path};
+use qsc_ast::ast::{Ident, NodeId, Pat, PatKind, Path, VecIdent};
 use qsc_data_structures::span::{Span, WithSpan};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,17 +89,11 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
 
     let name = parts.pop().expect("path should have at least one part");
     let namespace = match (parts.first(), parts.last()) {
-        (Some(_), Some(_)) => Some(
-            parts
-                .iter()
-                .map(|part| Ident {
-                    id: NodeId::default(),
-                    span: part.span,
-                    name: part.name.clone(),
-                })
-                .collect::<Vec<_>>()
-                .into(),
-        ),
+        (Some(_), Some(_)) => Some(VecIdent::from_iter(parts.iter().map(|part| Ident {
+            id: NodeId::default(),
+            span: part.span,
+            name: part.name.clone(),
+        }))),
         _ => None,
     };
 

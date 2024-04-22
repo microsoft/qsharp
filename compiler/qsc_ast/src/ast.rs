@@ -8,6 +8,7 @@
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
+use smallvec::SmallVec;
 use std::{
     cmp::Ordering,
     fmt::{self, Display, Formatter, Write},
@@ -1310,29 +1311,27 @@ pub struct Ident {
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
-pub struct VecIdent(pub Vec<Ident>);
+pub struct VecIdent(pub SmallVec<[Ident; 3]>);
 
 impl From<VecIdent> for Vec<Rc<str>> {
     fn from(v: VecIdent) -> Self {
         v.0.iter().map(|i| i.name.clone()).collect()
     }
 }
-
+impl FromIterator<Ident> for VecIdent {
+    fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
+        VecIdent(iter.into_iter().collect())
+    }
+}
 impl From<&VecIdent> for Vec<Rc<str>> {
     fn from(v: &VecIdent) -> Self {
         v.0.iter().map(|i| i.name.clone()).collect()
     }
 }
 
-impl From<Vec<Ident>> for VecIdent {
-    fn from(v: Vec<Ident>) -> Self {
-        VecIdent(v)
-    }
-}
-
 impl From<VecIdent> for Vec<Ident> {
     fn from(v: VecIdent) -> Self {
-        v.0
+        v.0.into_iter().collect()
     }
 }
 

@@ -26,7 +26,7 @@ use crate::{
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
-    TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
+    TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -216,7 +216,10 @@ fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
         None
     };
     token(s, TokenKind::Semi)?;
-    Ok(Box::new(ItemKind::Open(name.into(), alias)))
+    Ok(Box::new(ItemKind::Open(
+        VecIdent::from_iter(name.into_iter()),
+        alias,
+    )))
 }
 
 fn parse_newtype(s: &mut ParserContext) -> Result<Box<ItemKind>> {

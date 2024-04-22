@@ -15,6 +15,7 @@ use qsc_data_structures::{
     index_map::{IndexMap, Iter},
     span::Span,
 };
+use smallvec::SmallVec;
 use std::{
     cmp::Ordering,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -1427,7 +1428,7 @@ impl Display for PatKind {
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
-pub struct VecIdent(pub Vec<Ident>);
+pub struct VecIdent(pub SmallVec<[Ident; 3]>);
 
 impl<'a> IntoIterator for &'a VecIdent {
     type IntoIter = std::slice::Iter<'a, Ident>;
@@ -1448,15 +1449,9 @@ impl From<&VecIdent> for Vec<Rc<str>> {
     }
 }
 
-impl From<Vec<Ident>> for VecIdent {
-    fn from(v: Vec<Ident>) -> Self {
-        VecIdent(v)
-    }
-}
-
 impl From<VecIdent> for Vec<Ident> {
     fn from(v: VecIdent) -> Self {
-        v.0
+        v.0.into_iter().collect()
     }
 }
 

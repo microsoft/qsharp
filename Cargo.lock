@@ -950,6 +950,7 @@ dependencies = [
  "miette",
  "num-bigint",
  "qsc_data_structures",
+ "smallvec",
 ]
 
 [[package]]
@@ -1052,6 +1053,7 @@ dependencies = [
  "num-bigint",
  "qsc_data_structures",
  "rustc-hash",
+ "smallvec",
 ]
 
 [[package]]
@@ -1090,6 +1092,7 @@ dependencies = [
  "num-bigint",
  "qsc_data_structures",
  "rustc-hash",
+ "smallvec",
 ]
 
 [[package]]
