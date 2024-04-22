@@ -29,9 +29,9 @@ class Config:
         language_features: Optional[List[str]],
         manifest: Optional[str],
     ):
-        if target_profile == TargetProfile.Adaptive:
-            self._config = {"targetProfile": "adaptive"}
-            warn("The adaptive target profile is a preview feature.")
+        if target_profile == TargetProfile.Quantinuum:
+            self._config = {"targetProfile": "quantinuum"}
+            warn("The Quantinuum target profile is a preview feature.")
             warn("Functionality may be incomplete or incorrect.")
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}

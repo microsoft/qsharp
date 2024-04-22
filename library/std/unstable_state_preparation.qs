@@ -46,9 +46,9 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// ```
     ///
     /// # References
-    /// - Synthesis of Quantum Logic Circuits
+    /// - [arXiv:quant-ph/0406176](https://arxiv.org/abs/quant-ph/0406176)
+    ///   "Synthesis of Quantum Logic Circuits",
     ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
-    ///   https://arxiv.org/abs/quant-ph/0406176
     ///
     /// # See Also
     /// - Microsoft.Quantum.Unstable.StatePreparation.ApproximatelyPreparePureStateCP
@@ -101,9 +101,9 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// specified.
     ///
     /// # References
-    /// - Synthesis of Quantum Logic Circuits
+    /// - [arXiv:quant-ph/0406176](https://arxiv.org/abs/quant-ph/0406176)
+    ///   "Synthesis of Quantum Logic Circuits",
     ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
-    ///   https://arxiv.org/abs/quant-ph/0406176
     operation ApproximatelyPreparePureStateCP(
         tolerance : Double,
         coefficients : ComplexPolar[],
@@ -314,9 +314,9 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     /// fewer than $2^n$ are specified.
     ///
     /// # References
-    /// - Synthesis of Quantum Logic Circuits
+    /// - [arXiv:quant-ph/0406176](https://arxiv.org/abs/quant-ph/0406176)
+    ///   "Synthesis of Quantum Logic Circuits",
     ///   Vivek V. Shende, Stephen S. Bullock, Igor L. Markov
-    ///   https://arxiv.org/abs/quant-ph/0406176
     internal operation ApproximatelyMultiplexZ(
         tolerance : Double,
         coefficients : Double[],
@@ -385,4 +385,3 @@ namespace Microsoft.Quantum.Unstable.StatePreparation {
     }
 
 }
-

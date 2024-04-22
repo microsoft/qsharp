@@ -6,13 +6,27 @@ namespace Microsoft.Quantum.Convert {
     open Microsoft.Quantum.Math;
 
     /// # Summary
-    /// Converts a given integer to an equivalent double-precision floating-point number.
+    /// Converts a given integer `number` to an equivalent
+    /// double-precision floating-point number.
+    ///
+    /// # Description
+    /// Converts a given integer to a double-precision floating point number.
+    /// Please note that the double-precision representation may have fewer
+    /// bits allocated to represent [significant digits](https://en.wikipedia.org/wiki/Significand)
+    /// so the conversion may be approximate for large numbers. For example,
+    /// the current simulator converts 4,611,686,018,427,387,919 = 2^64+15
+    /// to 4,611,686,018,427,387,904.0 = 2^64.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// Message($"{IntAsDouble(1)}"); // Prints 1.0 rather than 1
+    /// ```
     function IntAsDouble(number : Int) : Double {
         body intrinsic;
     }
 
     /// # Summary
-    /// Converts a given integer to an equivalent big integer.
+    /// Converts a given integer `number` to an equivalent big integer.
     function IntAsBigInt(number : Int) : BigInt {
         body intrinsic;
     }
@@ -28,7 +42,6 @@ namespace Microsoft.Quantum.Convert {
     /// # Output
     /// A `Bool` representing the `input`.
     @Config(Adaptive)
-    @Config(Unrestricted)
     function ResultAsBool(input : Result) : Bool {
         input == One
     }
@@ -44,13 +57,13 @@ namespace Microsoft.Quantum.Convert {
     /// # Output
     /// A `Result` representing the `input`.
     @Config(Adaptive)
-    @Config(Unrestricted)
     function BoolAsResult(input : Bool) : Result {
         if input { One } else { Zero }
     }
 
     /// # Summary
-    /// Produces a non-negative integer from a string of bits in little endian format.
+    /// Produces a non-negative integer from a string of bits in little-endian format.
+    /// `bits[0]` represents the least significant bit.
     ///
     /// # Input
     /// ## bits
@@ -171,7 +184,6 @@ namespace Microsoft.Quantum.Convert {
     /// let int1 = ResultArrayAsInt([One,Zero])
     /// ```
     @Config(Adaptive)
-    @Config(Unrestricted)
     function ResultArrayAsInt(results : Result[]) : Int {
         let nBits = Length(results);
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
@@ -197,7 +209,6 @@ namespace Microsoft.Quantum.Convert {
     /// # Output
     /// A `Bool[]` representing the `input`.
     @Config(Adaptive)
-    @Config(Unrestricted)
     function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
         mutable output = [];
         for r in input {
@@ -218,7 +229,6 @@ namespace Microsoft.Quantum.Convert {
     /// # Output
     /// A `Result[]` representing the `input`.
     @Config(Adaptive)
-    @Config(Unrestricted)
     function BoolArrayAsResultArray(input : Bool[]) : Result[] {
         mutable output = [];
         for b in input {

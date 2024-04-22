@@ -25,7 +25,7 @@ use qsc_fir::{
     ty::FunctorSetValue,
     visit::Visitor,
 };
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_frontend::compile::TargetCapabilityFlags;
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_rca::{
     Analyzer, ComputeKind, ItemComputeProperties, PackageComputeProperties,
@@ -188,7 +188,7 @@ pub fn lower_store(
 pub fn run_rca_pass(
     fir_store: &qsc_fir::fir::PackageStore,
     package_id: qsc_fir::fir::PackageId,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<PackageStoreComputeProperties, Vec<crate::Error>> {
     let analyzer = Analyzer::init(fir_store);
     let compute_properties = analyzer.analyze_all();
@@ -213,7 +213,7 @@ pub fn run_rca_pass(
 pub fn check_supported_capabilities(
     package: &Package,
     compute_properties: &PackageComputeProperties,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> Vec<Error> {
     let checker = Checker {
         package,
@@ -229,7 +229,7 @@ pub fn check_supported_capabilities(
 struct Checker<'a> {
     package: &'a Package,
     compute_properties: &'a PackageComputeProperties,
-    target_capabilities: RuntimeCapabilityFlags,
+    target_capabilities: TargetCapabilityFlags,
     current_callable: Option<LocalItemId>,
     missing_features_map: FxHashMap<Span, RuntimeFeatureFlags>,
 }
@@ -583,9 +583,9 @@ fn generate_errors_from_runtime_features(
 
 fn get_missing_runtime_features(
     runtime_features: RuntimeFeatureFlags,
-    target_capabilities: RuntimeCapabilityFlags,
+    target_capabilities: TargetCapabilityFlags,
 ) -> RuntimeFeatureFlags {
-    let missing_capabilities = !target_capabilities & runtime_features.runtime_capabilities();
+    let missing_capabilities = !target_capabilities & runtime_features.target_capabilities();
     runtime_features.contributing_features(missing_capabilities)
 }
 

@@ -12,7 +12,7 @@ pub mod target;
 pub use qsc_formatter::formatter;
 
 pub use qsc_frontend::compile::{
-    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
+    CompileUnit, PackageStore, SourceContents, SourceMap, SourceName, TargetCapabilityFlags,
 };
 
 pub mod resolve {
@@ -37,7 +37,7 @@ pub mod project {
 
 pub use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 
-pub use qsc_passes::{PackageType, PassContext};
+pub use qsc_passes::{lower_hir_to_fir, PackageType, PassContext};
 
 pub mod line_column {
     pub use qsc_data_structures::line_column::{Encoding, Position, Range};

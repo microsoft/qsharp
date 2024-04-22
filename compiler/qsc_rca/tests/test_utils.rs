@@ -5,7 +5,7 @@ use expect_test::Expect;
 use qsc::incremental::Compiler;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::{ItemKind, LocalItemId, Package, PackageStore, StoreItemId};
-use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, ComputePropertiesLookup, PackageStoreComputeProperties};
@@ -19,7 +19,7 @@ pub struct CompilationContext {
 
 impl CompilationContext {
     #[must_use]
-    pub fn new(runtime_capabilities: RuntimeCapabilityFlags) -> Self {
+    pub fn new(runtime_capabilities: TargetCapabilityFlags) -> Self {
         let compiler = Compiler::new(
             true,
             SourceMap::default(),
@@ -68,7 +68,7 @@ impl CompilationContext {
 
 impl Default for CompilationContext {
     fn default() -> Self {
-        Self::new(RuntimeCapabilityFlags::all())
+        Self::new(TargetCapabilityFlags::all())
     }
 }
 
