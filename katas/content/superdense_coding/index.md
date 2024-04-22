@@ -13,7 +13,6 @@ It covers the superdense coding protocol which allows us to transmit two bits of
 - A great interactive demonstration can be found [on the Wolfram Demonstrations Project](http:/demonstrations.wolfram.com/SuperdenseCoding/).
 - Superdense coding protocol is described in Nielsen & Chuang, section 2.3 (pp. 97-98).
 
-
 We split the superdense coding protocol into several steps, following the description in the [Wikipedia article](https://en.wikipedia.org/wiki/Superdense_coding):
 
 - Preparation (creating the entangled pair of qubits that are sent to Alice and Bob).
