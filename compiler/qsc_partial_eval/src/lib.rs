@@ -1,36 +1,53 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[cfg(test)]
-mod tests;
+mod evaluation_context;
+mod management;
 
+use evaluation_context::{Arg, BlockNode, EvaluationContext, Scope};
+use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::functors::FunctorApp;
+use qsc_data_structures::span::Span;
 use qsc_eval::{
-    self, backend::Backend, exec_graph_section, output::GenericReceiver, val::Value, Env, State,
-    StepAction, StepResult,
+    self, exec_graph_section,
+    output::GenericReceiver,
+    val::{self, Value, Var},
+    State, StepAction, StepResult, Variable,
 };
 use qsc_fir::{
     fir::{
-        Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId, ExprKind, Global,
-        LocalItemId, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, SpecDecl, SpecImpl,
-        Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
+        self, BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId,
+        ExprKind, Global, Ident, PackageId, PackageStore, PackageStoreLookup, Pat, PatId, PatKind,
+        Res, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StoreBlockId, StoreExprId, StoreItemId,
+        StorePatId, StoreStmtId,
     },
     ty::{Prim, Ty},
     visit::Visitor,
 };
-use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties, ValueKind};
-use qsc_rir::rir::{self, Callable, CallableId, CallableType, Instruction, Literal, Program};
+use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties};
+use qsc_rir::{
+    builder,
+    rir::{
+        self, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand,
+        Program,
+    },
+};
 use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
 use thiserror::Error;
 
+pub struct ProgramEntry {
+    pub exec_graph: Rc<[ExecGraphNode]>,
+    pub expr: fir::StoreExprId,
+}
+
 pub fn partially_evaluate(
-    package_id: PackageId,
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,
+    entry: &ProgramEntry,
 ) -> Result<Program, Error> {
-    let partial_evaluator = PartialEvaluator::new(package_id, package_store, compute_properties);
+    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties, entry);
     partial_evaluator.eval()
 }
 
@@ -39,32 +56,80 @@ pub enum Error {
     #[error("partial evaluation error: {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(qsc_eval::Error),
+
+    #[error("failed to evaluate array element expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateArrayElementExpression"))]
+    FailedToEvaluateArrayElementExpression(#[label] Span),
+
+    #[error("failed to evaluate {0}")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallable"))]
+    FailedToEvaluateCallable(String, #[label] Span),
+
+    #[error("failed to evaluate callee expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCalleeExpression"))]
+    FailedToEvaluateCalleeExpression(#[label] Span),
+
+    #[error("failed to evaluate call arguments expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallArgsExpression"))]
+    FailedToEvaluateCallArgsExpression(#[label] Span),
+
+    #[error("failed to evaluate tuple element expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateTupleElementExpression"))]
+    FailedToEvaluateTupleElementExpression(#[label] Span),
+
+    #[error("failed to evaluate binary expression operand")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBinaryExpressionOperand"))]
+    FailedToEvaluateBinaryExpressionOperand(#[label] Span),
+
+    #[error("failed to evaluate condition expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateConditionExpression"))]
+    FailedToEvaluateConditionExpression(#[label] Span),
+
+    #[error("failed to evaluate a branch block of an if expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateIfExpressionBranchBlock"))]
+    FailedToEvaluateIfExpressionBranchBlock(#[label] Span),
+
+    #[error("failed to evaluate block expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateBlockExpression"))]
+    FailedToEvaluateBlockExpression(#[label] Span),
+
+    #[error("failed to evaluate loop condition")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateLoopCondition"))]
+    FailedToEvaluateLoopCondition(#[label] Span),
+
+    #[error("failed to evaluate loop body")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateLoopBody"))]
+    FailedToEvaluateLoopBody(#[label] Span),
+
+    #[error("failed to evaluate: {0} not yet implemented")]
+    #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
+    Unimplemented(String, #[label] Span),
 }
 
 struct PartialEvaluator<'a> {
     package_store: &'a PackageStore,
     compute_properties: &'a PackageStoreComputeProperties,
-    assigner: Assigner,
-    backend: QubitsAndResultsAllocator,
+    resource_manager: ResourceManager,
+    backend: QuantumIntrinsicsChecker,
     callables_map: FxHashMap<Rc<str>, CallableId>,
     eval_context: EvaluationContext,
     program: Program,
-    error: Option<Error>,
+    entry: &'a ProgramEntry,
+    errors: Vec<Error>,
 }
 
 impl<'a> PartialEvaluator<'a> {
     fn new(
-        entry_package_id: PackageId,
         package_store: &'a PackageStore,
         compute_properties: &'a PackageStoreComputeProperties,
+        entry: &'a ProgramEntry,
     ) -> Self {
         // Create the entry-point callable.
-        let mut assigner = Assigner::default();
+        let mut resource_manager = ResourceManager::default();
         let mut program = Program::new();
-        let entry_block_id = assigner.next_block();
-        let entry_block = rir::Block(Vec::new());
-        program.blocks.insert(entry_block_id, entry_block);
-        let entry_point_id = assigner.next_callable();
+        let entry_block_id = resource_manager.next_block();
+        program.blocks.insert(entry_block_id, rir::Block::default());
+        let entry_point_id = resource_manager.next_callable();
         let entry_point = rir::Callable {
             name: "main".into(),
             input_type: Vec::new(),
@@ -76,17 +141,43 @@ impl<'a> PartialEvaluator<'a> {
         program.entry = entry_point_id;
 
         // Initialize the evaluation context and create a new partial evaluator.
-        let context = EvaluationContext::new(entry_package_id, entry_block_id);
+        let context = EvaluationContext::new(entry.expr.package, entry_block_id);
         Self {
             package_store,
             compute_properties,
             eval_context: context,
-            assigner,
-            backend: QubitsAndResultsAllocator::default(),
+            resource_manager,
+            backend: QuantumIntrinsicsChecker::default(),
             callables_map: FxHashMap::default(),
             program,
-            error: None,
+            entry,
+            errors: Vec::new(),
         }
+    }
+
+    fn bind_value_to_pat(&mut self, pat_id: PatId, value: Value) {
+        let pat = self.get_pat(pat_id);
+        match &pat.kind {
+            PatKind::Bind(ident) => {
+                self.bind_value_to_ident(ident, value);
+            }
+            PatKind::Tuple(pats) => {
+                let tup = value.unwrap_tuple();
+                assert!(pats.len() == tup.len());
+                for (pat_id, value) in pats.iter().zip(tup.iter()) {
+                    self.bind_value_to_pat(*pat_id, value.clone());
+                }
+            }
+            PatKind::Discard => {
+                // Nothing to bind to.
+            }
+        }
+    }
+
+    fn bind_value_to_ident(&mut self, ident: &Ident, value: Value) {
+        self.eval_context
+            .get_current_scope_mut()
+            .insert_local_var_value(ident.id, value);
     }
 
     fn create_intrinsic_callable(
@@ -121,86 +212,63 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
+    fn create_program_block(&mut self) -> rir::BlockId {
+        let block_id = self.resource_manager.next_block();
+        self.program.blocks.insert(block_id, rir::Block::default());
+        block_id
+    }
+
     fn eval(mut self) -> Result<Program, Error> {
-        let current_package = self.get_current_package_id();
-        let entry_package = self.package_store.get(current_package);
-        let Some(entry_expr_id) = entry_package.entry else {
-            panic!("package does not have an entry expression");
-        };
-
         // Visit the entry point expression.
-        self.visit_expr(entry_expr_id);
+        self.visit_expr(self.entry.expr.expr);
 
-        // If there was an error, return it.
-        if let Some(error) = self.error {
+        // Return the first error, if any.
+        // We should eventually return all the errors but since that is an interface change, we will do that as its own
+        // change.
+        if let Some(error) = self.errors.pop() {
             return Err(error);
         }
 
+        // Get the final value from the execution context.
+        let ret_val = self.eval_context.get_current_scope().last_expr_value();
+        let output_recording: Vec<Instruction> = self.generate_output_recording_instructions(
+            ret_val,
+            &self.get_expr(self.entry.expr.expr).ty,
+        );
+
         // Insert the return expression and return the generated program.
-        let current_block = self
-            .program
-            .blocks
-            .get_mut(self.eval_context.current_block)
-            .expect("block does not exist");
+        let current_block = self.get_current_block_mut();
+        current_block.0.extend(output_recording);
         current_block.0.push(Instruction::Return);
+
+        // Set the number of qubits and results used by the program.
+        self.program.num_qubits = self
+            .resource_manager
+            .qubit_count()
+            .try_into()
+            .expect("qubits count should fit into a u32");
+        self.program.num_results = self
+            .resource_manager
+            .results_count()
+            .try_into()
+            .expect("results count should fit into a u32");
+
         Ok(self.program)
     }
 
-    fn eval_callee_expr(
-        &mut self,
-        callee_expr_id: ExprId,
-    ) -> (StoreItemId, FunctorApp, CallableDecl) {
-        let current_package_id = self.get_current_package_id();
-        let store_callee_expr_id = StoreExprId::from((current_package_id, callee_expr_id));
-
-        // Verify that the callee expression is classical.
-        let callable_scope = self.eval_context.get_current_scope();
-        let callee_expr_generator_set = self.compute_properties.get_expr(store_callee_expr_id);
-        let callee_expr_compute_kind = callee_expr_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
-        assert!(
-            matches!(callee_expr_compute_kind, ComputeKind::Classical),
-            "callee expressions must be classical"
-        );
-
-        // Evaluate the callee expression to get the global to call.
-        self.eval_classical_expr(callee_expr_id);
-        let callable_scope = self.eval_context.get_current_scope();
-        let callee_value = callable_scope
-            .expression_value_map
-            .get(&callee_expr_id)
-            .expect("callee expression value not present");
-        let Value::Global(store_item_id, functor_app) = callee_value else {
-            panic!("callee expression value must be a global");
-        };
-
-        // Get the callable.
-        let global = self
-            .package_store
-            .get_global(*store_item_id)
-            .expect("global not present");
-        let Global::Callable(callable_decl) = global else {
-            // Instruction generation for UDTs is not supported.
-            panic!("global is not a callable");
-        };
-        (*store_item_id, *functor_app, callable_decl.clone())
-    }
-
-    fn eval_classical_expr(&mut self, expr_id: ExprId) {
+    fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<Value, Error> {
         let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
         let scope = self.eval_context.get_current_scope_mut();
         let exec_graph = exec_graph_section(&scope_exec_graph, expr.exec_graph_range.clone());
-        let mut out = Vec::new();
-        let mut receiver = GenericReceiver::new(&mut out);
         let mut state = State::new(current_package_id, exec_graph, None);
         let eval_result = state.eval(
             self.package_store,
             &mut scope.env,
             &mut self.backend,
-            &mut receiver,
+            &mut GenericReceiver::new(&mut std::io::sink()),
             &[],
             StepAction::Continue,
         );
@@ -209,12 +277,10 @@ impl<'a> PartialEvaluator<'a> {
                 let StepResult::Return(value) = step_result else {
                     panic!("evaluating a classical expression should always return a value");
                 };
-                self.eval_context
-                    .get_current_scope_mut()
-                    .insert_expr_value(expr_id, value);
+                Ok(value)
             }
-            Err((error, _)) => self.error = Some(Error::EvaluationFailed(error)),
-        };
+            Err((error, _)) => Err(Error::EvaluationFailed(error)),
+        }
     }
 
     fn eval_classical_stmt(&mut self, stmt_id: StmtId) {
@@ -224,147 +290,587 @@ impl<'a> PartialEvaluator<'a> {
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
         let scope = self.eval_context.get_current_scope_mut();
         let exec_graph = exec_graph_section(&scope_exec_graph, stmt.exec_graph_range.clone());
-        let mut out = Vec::new();
-        let mut receiver = GenericReceiver::new(&mut out);
         let mut state = State::new(current_package_id, exec_graph, None);
-        _ = state.eval(
+        let eval_result = state.eval(
             self.package_store,
             &mut scope.env,
             &mut self.backend,
-            &mut receiver,
+            &mut GenericReceiver::new(&mut std::io::sink()),
             &[],
             StepAction::Continue,
         );
+        if let Err((eval_error, _)) = eval_result {
+            self.errors.push(Error::EvaluationFailed(eval_error));
+        }
     }
 
-    fn generate_expr_call(&mut self, callee_expr_id: ExprId, args_expr_id: ExprId) {
-        let (store_item_id, functor_app, callable_decl) = self.eval_callee_expr(callee_expr_id);
+    fn eval_expr(&mut self, expr_id: ExprId) -> Result<Value, Error> {
+        let current_package_id = self.get_current_package_id();
+        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
+        let expr = self.package_store.get_expr(store_expr_id);
+        match &expr.kind {
+            ExprKind::Array(exprs) => self.eval_expr_array(exprs),
+            ExprKind::ArrayLit(_) => panic!("array of literal values should always be classical"),
+            ExprKind::ArrayRepeat(_, _) => {
+                Err(Error::Unimplemented("Array Repeat".to_string(), expr.span))
+            }
+            ExprKind::Assign(_, _) => Err(Error::Unimplemented(
+                "Assignment Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::AssignField(_, _, _) => Err(Error::Unimplemented(
+                "Field Assignment Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::AssignIndex(_, _, _) => Err(Error::Unimplemented(
+                "Assignment Index Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::AssignOp(_, _, _) => Err(Error::Unimplemented(
+                "Assignment Op Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
+                self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
+            }
+            ExprKind::Block(block_id) => self.eval_expr_block(*block_id),
+            ExprKind::Call(callee_expr_id, args_expr_id) => {
+                self.eval_expr_call(*callee_expr_id, *args_expr_id)
+            }
+            ExprKind::Closure(_, _) => {
+                panic!("instruction generation for closure expressions is unsupported")
+            }
+            ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
+            ExprKind::Field(_, _) => Err(Error::Unimplemented("Field Expr".to_string(), expr.span)),
+            ExprKind::Hole => panic!("instruction generation for hole expressions is invalid"),
+            ExprKind::If(condition_expr_id, body_expr_id, otherwise_expr_id) => self.eval_expr_if(
+                expr_id,
+                *condition_expr_id,
+                *body_expr_id,
+                *otherwise_expr_id,
+            ),
+            ExprKind::Index(_, _) => Err(Error::Unimplemented("Index Expr".to_string(), expr.span)),
+            ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
+            ExprKind::Range(_, _, _) => {
+                panic!("instruction generation for range expressions is invalid")
+            }
+            ExprKind::Return(_) => Err(Error::Unimplemented("Return Expr".to_string(), expr.span)),
+            ExprKind::String(_) => {
+                panic!("instruction generation for string expressions is invalid")
+            }
+            ExprKind::Tuple(exprs) => self.eval_expr_tuple(exprs),
+            ExprKind::UnOp(_, _) => Err(Error::Unimplemented("Unary Expr".to_string(), expr.span)),
+            ExprKind::UpdateField(_, _, _) => Err(Error::Unimplemented(
+                "Updated Field Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::UpdateIndex(_, _, _) => Err(Error::Unimplemented(
+                "Update Index Expr".to_string(),
+                expr.span,
+            )),
+            ExprKind::Var(res, _) => Ok(self.eval_expr_var(res)),
+            ExprKind::While(condition_expr_id, body_block_id) => {
+                self.eval_expr_while(*condition_expr_id, *body_block_id)
+            }
+        }
+    }
+
+    #[allow(clippy::similar_names)]
+    fn eval_expr_bin_op(
+        &mut self,
+        bin_op_expr_id: ExprId,
+        bin_op: BinOp,
+        lhs_expr_id: ExprId,
+        rhs_expr_id: ExprId,
+    ) -> Result<Value, Error> {
+        // Visit the both the LHS and RHS expressions to get their value.
+        let maybe_lhs_expr_value = self.try_eval_expr(lhs_expr_id);
+        let Ok(lhs_expr_value) = maybe_lhs_expr_value else {
+            let lhs_expr = self.get_expr(lhs_expr_id);
+            let error = Error::FailedToEvaluateBinaryExpressionOperand(lhs_expr.span);
+            return Err(error);
+        };
+
+        let maybe_rhs_expr_value = self.try_eval_expr(rhs_expr_id);
+        let Ok(rhs_expr_value) = maybe_rhs_expr_value else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            let error = Error::FailedToEvaluateBinaryExpressionOperand(rhs_expr.span);
+            return Err(error);
+        };
+
+        // Get the operands to use when generating the binary operation instruction depending on the type of the
+        // expression's value.
+        let lhs_operand = if let Value::Result(result) = lhs_expr_value {
+            self.eval_result_as_bool_operand(result)
+        } else {
+            map_eval_value_to_rir_operand(&lhs_expr_value)
+        };
+        let rhs_operand = if let Value::Result(result) = rhs_expr_value {
+            self.eval_result_as_bool_operand(result)
+        } else {
+            map_eval_value_to_rir_operand(&rhs_expr_value)
+        };
+
+        // Create a variable to store the result of the expression.
+        let bin_op_expr = self.get_expr(bin_op_expr_id);
+        let variable_id = self.resource_manager.next_var();
+        let variable_ty = map_fir_type_to_rir_type(&bin_op_expr.ty);
+        let variable = rir::Variable {
+            variable_id,
+            ty: variable_ty,
+        };
+
+        // Create the binary operation instruction and add it to the current block.
+        let instruction = match bin_op {
+            BinOp::Eq => Instruction::Icmp(ConditionCode::Eq, lhs_operand, rhs_operand, variable),
+            BinOp::Neq => Instruction::Icmp(ConditionCode::Ne, lhs_operand, rhs_operand, variable),
+            _ => {
+                return Err(Error::Unimplemented(
+                    format!("BinOp Expr ({bin_op:?})"),
+                    bin_op_expr.span,
+                ))
+            }
+        };
+        let current_block = self.get_current_block_mut();
+        current_block.0.push(instruction);
+
+        // Return the variable as a value.
+        let value = Value::Var(Var(variable_id.into()));
+        Ok(value)
+    }
+
+    fn eval_expr_block(&mut self, block_id: BlockId) -> Result<Value, Error> {
+        let maybe_block_value = self.try_eval_block(block_id);
+        maybe_block_value.map_err(|()| {
+            let block = self.get_block(block_id);
+            Error::FailedToEvaluateBlockExpression(block.span)
+        })
+    }
+
+    fn eval_expr_call(
+        &mut self,
+        callee_expr_id: ExprId,
+        args_expr_id: ExprId,
+    ) -> Result<Value, Error> {
+        // Visit the both the callee and arguments expressions to get their value.
+        let maybe_callable_value = self.try_eval_expr(callee_expr_id);
+        let Ok(callable_value) = maybe_callable_value else {
+            let callee_expr = self.get_expr(callee_expr_id);
+            let error = Error::FailedToEvaluateCalleeExpression(callee_expr.span);
+            return Err(error);
+        };
+
+        let maybe_args_value = self.try_eval_expr(args_expr_id);
+        let Ok(args_value) = maybe_args_value else {
+            let args_expr = self.get_expr(args_expr_id);
+            let error = Error::FailedToEvaluateCallArgsExpression(args_expr.span);
+            return Err(error);
+        };
+
+        // Get the callable.
+        let (store_item_id, functor_app) = callable_value.unwrap_global();
+        let global = self
+            .package_store
+            .get_global(store_item_id)
+            .expect("global not present");
+        let Global::Callable(callable_decl) = global else {
+            // Instruction generation for UDTs is not supported.
+            panic!("global is not a callable");
+        };
 
         // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
         // with an implementation.
         match &callable_decl.implementation {
             CallableImpl::Intrinsic => {
-                self.generate_expr_call_intrinsic(store_item_id, &callable_decl, args_expr_id);
+                let value =
+                    self.eval_expr_call_to_intrinsic(store_item_id, callable_decl, args_value);
+                Ok(value)
             }
-            CallableImpl::Spec(spec_impl) => {
-                self.generate_expr_call_spec(store_item_id, functor_app, spec_impl, args_expr_id);
-            }
-        };
+            CallableImpl::Spec(spec_impl) => self.eval_expr_call_to_spec(
+                store_item_id,
+                functor_app,
+                spec_impl,
+                callable_decl.input,
+                args_value,
+            ),
+        }
     }
 
-    fn generate_expr_call_intrinsic(
+    fn eval_expr_call_to_intrinsic(
         &mut self,
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
-        args_expr_id: ExprId,
-    ) {
-        // Check if the callable is already in the program, and if not add it.
-        if let Entry::Vacant(entry) = self.callables_map.entry(callable_decl.name.name.clone()) {
-            let callable_id = self.assigner.next_callable();
-            entry.insert(callable_id);
-            let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
-            self.program.callables.insert(callable_id, callable);
+        args_value: Value,
+    ) -> Value {
+        // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
+        match callable_decl.name.name.as_ref() {
+            // Qubit allocations and measurements have special handling.
+            "__quantum__rt__qubit_allocate" => self.allocate_qubit(),
+            "__quantum__rt__qubit_release" => self.release_qubit(args_value),
+            "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), args_value),
+            "__quantum__qis__mresetz__body" => {
+                self.measure_qubit(builder::mresetz_decl(), args_value)
+            }
+            // The following operations should be conditionally compiled out for all targets for which QIR generation is
+            // supported.
+            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" => panic!(
+                "`{}` is not a supported by partial evaluation",
+                callable_decl.name.name
+            ),
+            // The following intrinsic operations and functions are no-ops.
+            "BeginEstimateCaching" => Value::Bool(true),
+            "DumpRegister"
+            | "AccountForEstimatesInternal"
+            | "BeginRepeatEstimatesInternal"
+            | "EndRepeatEstimatesInternal" => Value::unit(),
+            _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
-
-        let callable_id = *self
-            .callables_map
-            .get(&callable_decl.name.name)
-            .expect("callable not present");
-
-        // Resove the call arguments, create the call instruction and insert it to the current block.
-        let args = self.resolve_call_args(args_expr_id);
-        // Note that we currently just support calls to unitary operations.
-        let instruction = Instruction::Call(callable_id, args, None);
-        let current_block = self.get_current_block_mut();
-        current_block.0.push(instruction);
     }
 
-    fn generate_expr_call_spec(
+    fn eval_expr_call_to_intrinsic_qis(
         &mut self,
-        global_callable: StoreItemId,
+        store_item_id: StoreItemId,
+        callable_decl: &CallableDecl,
+        args_value: Value,
+    ) -> Value {
+        // Intrinsic callables that make it to this point are expected to be unitary.
+        assert_eq!(callable_decl.output, Ty::UNIT);
+
+        // Check if the callable is already in the program, and if not add it.
+        let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
+        let callable_id = self.get_or_insert_callable(callable);
+
+        // Resove the call arguments, create the call instruction and insert it to the current block.
+        let args = self.resolve_args(
+            (store_item_id.package, callable_decl.input).into(),
+            args_value,
+        );
+        let args_operands = args
+            .into_iter()
+            .map(|arg| map_eval_value_to_rir_operand(&arg.into_value()))
+            .collect();
+
+        let instruction = Instruction::Call(callable_id, args_operands, None);
+        let current_block = self.get_current_block_mut();
+        current_block.0.push(instruction);
+        Value::unit()
+    }
+
+    fn eval_expr_call_to_spec(
+        &mut self,
+        global_callable_id: StoreItemId,
         functor_app: FunctorApp,
         spec_impl: &SpecImpl,
-        _args_expr_id: ExprId,
-    ) {
+        args_pat: PatId,
+        args_value: Value,
+    ) -> Result<Value, Error> {
         let spec_decl = get_spec_decl(spec_impl, functor_app);
 
-        // We are currently not setting the argument values in a way that supports arbitrary calls, but we'll add that
-        // support later.
-        let callable_scope = Scope {
-            package_id: global_callable.package,
-            callable: Some((global_callable.item, functor_app)),
-            args_runtime_properties: Vec::new(),
-            env: Env::default(),
-            expression_value_map: FxHashMap::default(),
-        };
-        self.eval_context.scopes.push(callable_scope);
+        // Create new call scope.
+        let args = self.resolve_args((global_callable_id.package, args_pat).into(), args_value);
+        let call_scope = Scope::new(
+            global_callable_id.package,
+            Some((global_callable_id.item, functor_app)),
+            args,
+        );
+        self.eval_context.push_scope(call_scope);
         self.visit_block(spec_decl.block);
-        let popped_scope = self
-            .eval_context
-            .scopes
-            .pop()
-            .expect("there are no callable scopes to pop");
+        let popped_scope = self.eval_context.pop_scope();
         assert!(
-            popped_scope.package_id == global_callable.package,
+            popped_scope.package_id == global_callable_id.package,
             "scope package ID mismatch"
         );
         let (popped_callable_id, popped_functor_app) = popped_scope
             .callable
             .expect("callable in scope is not specified");
         assert!(
-            popped_callable_id == global_callable.item,
+            popped_callable_id == global_callable_id.item,
             "scope callable ID mismatch"
         );
         assert!(popped_functor_app == functor_app, "scope functor mismatch");
+
+        // Check whether evaluating the block failed.
+        if self.errors.is_empty() {
+            Ok(popped_scope.last_expr_value())
+        } else {
+            // Evaluating the block failed, generate an error specific to the callable.
+            let global_callable = self
+                .package_store
+                .get_global(global_callable_id)
+                .expect("global does not exist");
+            let Global::Callable(callable_decl) = global_callable else {
+                panic!("global is not a callable");
+            };
+            Err(Error::FailedToEvaluateCallable(
+                callable_decl.name.name.to_string(),
+                callable_decl.name.span,
+            ))
+        }
     }
 
-    fn generate_instructions(&mut self, expr_id: ExprId) {
-        let current_package_id = self.get_current_package_id();
-        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
-        let expr = self.package_store.get_expr(store_expr_id);
-        match &expr.kind {
-            ExprKind::Array(_) => todo!(),
-            ExprKind::ArrayLit(_) => todo!(),
-            ExprKind::ArrayRepeat(_, _) => todo!(),
-            ExprKind::Assign(_, _) => todo!(),
-            ExprKind::AssignField(_, _, _) => todo!(),
-            ExprKind::AssignIndex(_, _, _) => todo!(),
-            ExprKind::AssignOp(_, _, _) => todo!(),
-            ExprKind::BinOp(_, _, _) => todo!(),
-            ExprKind::Block(_) => todo!(),
-            ExprKind::Call(callee_expr_id, args_expr_id) => {
-                self.generate_expr_call(*callee_expr_id, *args_expr_id);
-            }
-            ExprKind::Closure(_, _) => {
-                panic!("instruction generation for closure expressions is unsupported")
-            }
-            ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
-            ExprKind::Field(_, _) => todo!(),
-            ExprKind::Hole => panic!("instruction generation for hole expressions is invalid"),
-            ExprKind::If(_, _, _) => todo!(),
-            ExprKind::Index(_, _) => todo!(),
-            ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
-            ExprKind::Range(_, _, _) => {
-                panic!("instruction generation for range expressions is invalid")
-            }
-            ExprKind::Return(_) => todo!(),
-            ExprKind::String(_) => {
-                panic!("instruction generation for string expressions is invalid")
-            }
-            ExprKind::Tuple(_) => todo!(),
-            ExprKind::UnOp(_, _) => todo!(),
-            ExprKind::UpdateField(_, _, _) => todo!(),
-            ExprKind::UpdateIndex(_, _, _) => todo!(),
-            ExprKind::Var(_, _) => todo!(),
-            ExprKind::While(_, _) => todo!(),
+    fn eval_expr_if(
+        &mut self,
+        if_expr_id: ExprId,
+        condition_expr_id: ExprId,
+        body_expr_id: ExprId,
+        otherwise_expr_id: Option<ExprId>,
+    ) -> Result<Value, Error> {
+        // Visit the both the condition expression to get its value.
+        let maybe_condition_value = self.try_eval_expr(condition_expr_id);
+        let Ok(condition_value) = maybe_condition_value else {
+            let condition_expr = self.get_expr(condition_expr_id);
+            let error = Error::FailedToEvaluateConditionExpression(condition_expr.span);
+            return Err(error);
         };
+
+        // If the condition value is a Boolean literal, use the value to decide which branch to
+        // evaluate.
+        if let Value::Bool(condition_bool) = condition_value {
+            return self.eval_expr_if_with_classical_condition(
+                condition_bool,
+                body_expr_id,
+                otherwise_expr_id,
+            );
+        }
+
+        // At this point the condition value is not classical, so we need to generate a branching instruction.
+        // First, we pop the current block node and generate a new one which the new branches will jump to when their
+        // instructions end.
+        let current_block_node = self.eval_context.pop_block_node();
+        let continuation_block_node_id = self.create_program_block();
+        let continuation_block_node = BlockNode {
+            id: continuation_block_node_id,
+            next: current_block_node.next,
+        };
+        self.eval_context.push_block_node(continuation_block_node);
+
+        // Since the if expression can represent a dynamic value, create a variable to store it if the expression is
+        // non-unit.
+        let if_expr = self.get_expr(if_expr_id);
+        let maybe_if_expr_var = if if_expr.ty == Ty::UNIT {
+            None
+        } else {
+            let variable_id = self.resource_manager.next_var();
+            let variable_ty = map_fir_type_to_rir_type(&if_expr.ty);
+            Some(rir::Variable {
+                variable_id,
+                ty: variable_ty,
+            })
+        };
+
+        // Evaluate the body expression.
+        let if_true_block_id =
+            self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
+
+        // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
+        let if_false_block_id = if let Some(otherwise_expr_id) = otherwise_expr_id {
+            self.eval_expr_if_branch(
+                otherwise_expr_id,
+                continuation_block_node_id,
+                maybe_if_expr_var,
+            )?
+        } else {
+            continuation_block_node_id
+        };
+
+        // Finally, we insert the branch instruction.
+        let condition_value_var = condition_value.unwrap_var();
+        let condition_rir_var = rir::Variable {
+            variable_id: condition_value_var.0.into(),
+            ty: rir::Ty::Boolean,
+        };
+        let branch_ins =
+            Instruction::Branch(condition_rir_var, if_true_block_id, if_false_block_id);
+        self.get_program_block_mut(current_block_node.id)
+            .0
+            .push(branch_ins);
+
+        // Return the value of the if expression.
+        let if_expr_value = if let Some(if_expr_var) = maybe_if_expr_var {
+            Value::Var(Var(if_expr_var.variable_id.into()))
+        } else {
+            Value::unit()
+        };
+        Ok(if_expr_value)
+    }
+
+    fn eval_expr_if_branch(
+        &mut self,
+        branch_body_expr_id: ExprId,
+        continuation_block_id: rir::BlockId,
+        if_expr_var: Option<rir::Variable>,
+    ) -> Result<rir::BlockId, Error> {
+        // Create the block node that corresponds to the branch body and push it as the active one.
+        let block_node_id = self.create_program_block();
+        let block_node = BlockNode {
+            id: block_node_id,
+            next: Some(continuation_block_id),
+        };
+        self.eval_context.push_block_node(block_node);
+
+        // Evaluate the branch body expression.
+        let maybe_body_value = self.try_eval_expr(branch_body_expr_id);
+        let Ok(body_value) = maybe_body_value else {
+            let body_body_expr = self.get_expr(branch_body_expr_id);
+            let error = Error::FailedToEvaluateIfExpressionBranchBlock(body_body_expr.span);
+            return Err(error);
+        };
+
+        // If there is a variable to save the value of the if expression to, add a store instruction.
+        if let Some(if_expr_var) = if_expr_var {
+            let body_operand = map_eval_value_to_rir_operand(&body_value);
+            let store_ins = Instruction::Store(body_operand, if_expr_var);
+            self.get_current_block_mut().0.push(store_ins);
+        }
+
+        // Finally, jump to the continuation block and pop the current block node.
+        let jump_ins = Instruction::Jump(continuation_block_id);
+        self.get_current_block_mut().0.push(jump_ins);
+        let _ = self.eval_context.pop_block_node();
+        Ok(block_node_id)
+    }
+
+    fn eval_expr_if_with_classical_condition(
+        &mut self,
+        condition_bool: bool,
+        body_expr_id: ExprId,
+        otherwise_expr_id: Option<ExprId>,
+    ) -> Result<Value, Error> {
+        if condition_bool {
+            let maybe_body_value = self.try_eval_expr(body_expr_id);
+            maybe_body_value.map_err(|()| {
+                let body_expr = self.get_expr(body_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(body_expr.span)
+            })
+        } else if let Some(otherwise_expr_id) = otherwise_expr_id {
+            let maybe_otherwise_value = self.try_eval_expr(otherwise_expr_id);
+            maybe_otherwise_value.map_err(|()| {
+                let otherwise_expr = self.get_expr(otherwise_expr_id);
+                Error::FailedToEvaluateIfExpressionBranchBlock(otherwise_expr.span)
+            })
+        } else {
+            // A the classical condition evaluated to false, but there is not otherwise block so there is nothing to
+            // evaluate.
+            // Return unit since it is the only possibility for if expressions with no otherwise block.
+            Ok(Value::unit())
+        }
+    }
+
+    fn eval_expr_array(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
+        let mut values = Vec::with_capacity(exprs.len());
+        for expr_id in exprs {
+            let maybe_value = self.try_eval_expr(*expr_id);
+            let Ok(value) = maybe_value else {
+                let expr = self.get_expr(*expr_id);
+                return Err(Error::FailedToEvaluateArrayElementExpression(expr.span));
+            };
+            values.push(value);
+        }
+        Ok(Value::Array(values.into()))
+    }
+
+    fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<Value, Error> {
+        let mut values = Vec::with_capacity(exprs.len());
+        for expr_id in exprs {
+            let maybe_value = self.try_eval_expr(*expr_id);
+            let Ok(value) = maybe_value else {
+                let expr = self.get_expr(*expr_id);
+                return Err(Error::FailedToEvaluateTupleElementExpression(expr.span));
+            };
+            values.push(value);
+        }
+        Ok(Value::Tuple(values.into()))
+    }
+
+    fn eval_expr_var(&mut self, res: &Res) -> Value {
+        match res {
+            Res::Err => panic!("resolution error"),
+            Res::Item(item) => Value::Global(
+                StoreItemId {
+                    package: item.package.unwrap_or(self.get_current_package_id()),
+                    item: item.item,
+                },
+                FunctorApp::default(),
+            ),
+            Res::Local(local_var_id) => self
+                .eval_context
+                .get_current_scope()
+                .get_local_var_value(*local_var_id)
+                .clone(),
+        }
+    }
+
+    fn eval_expr_while(
+        &mut self,
+        condition_expr_id: ExprId,
+        body_block_id: BlockId,
+    ) -> Result<Value, Error> {
+        // Verify assumptions.
+        assert!(
+            self.is_classical_expr(condition_expr_id),
+            "loop conditions must be purely classical"
+        );
+        let body_block = self.get_block(body_block_id);
+        assert_eq!(
+            body_block.ty,
+            Ty::UNIT,
+            "the type of a loop block is expected to be Unit"
+        );
+
+        // Evaluate the block until the loop condition is false.
+        while self.eval_expr_while_condition(condition_expr_id)? {
+            let maybe_block_value = self.try_eval_block(body_block_id);
+            if maybe_block_value.is_err() {
+                let block = self.get_block(body_block_id);
+                let error = Error::FailedToEvaluateLoopBody(block.span);
+                return Err(error);
+            }
+        }
+
+        Ok(Value::unit())
+    }
+
+    fn eval_expr_while_condition(&mut self, condition_expr_id: ExprId) -> Result<bool, Error> {
+        let maybe_condition_expr_value = self.try_eval_expr(condition_expr_id);
+        if let Ok(condition_expr_value) = maybe_condition_expr_value {
+            Ok(condition_expr_value.unwrap_bool())
+        } else {
+            let condition_expr = self.get_expr(condition_expr_id);
+            let error = Error::FailedToEvaluateLoopCondition(condition_expr.span);
+            Err(error)
+        }
+    }
+
+    fn eval_result_as_bool_operand(&mut self, result: val::Result) -> Operand {
+        match result {
+            val::Result::Id(id) => {
+                // If this is a result ID, generate the instruction to read it.
+                let result_operand = Operand::Literal(Literal::Result(
+                    id.try_into().expect("could not convert result ID to u32"),
+                ));
+                let read_result_callable_id =
+                    self.get_or_insert_callable(builder::read_result_decl());
+                let variable_id = self.resource_manager.next_var();
+                let variable_ty = rir::Ty::Boolean;
+                let variable = rir::Variable {
+                    variable_id,
+                    ty: variable_ty,
+                };
+                let instruction = Instruction::Call(
+                    read_result_callable_id,
+                    vec![result_operand],
+                    Some(variable),
+                );
+                let current_block = self.get_current_block_mut();
+                current_block.0.push(instruction);
+                Operand::Variable(variable)
+            }
+            val::Result::Val(bool) => Operand::Literal(Literal::Bool(bool)),
+        }
     }
 
     fn get_current_block_mut(&mut self) -> &mut rir::Block {
-        self.program
-            .blocks
-            .get_mut(self.eval_context.current_block)
-            .expect("block does not exist")
+        self.get_program_block_mut(self.eval_context.get_current_block_id())
     }
 
     fn get_current_package_id(&self) -> PackageId {
@@ -375,9 +881,7 @@ impl<'a> PartialEvaluator<'a> {
         if let Some(spec_decl) = self.get_current_scope_spec_decl() {
             &spec_decl.exec_graph
         } else {
-            let package_id = self.get_current_package_id();
-            let package = self.package_store.get(package_id);
-            &package.entry_exec_graph
+            &self.entry.exec_graph
         }
     }
 
@@ -401,90 +905,334 @@ impl<'a> PartialEvaluator<'a> {
         Some(spec_decl)
     }
 
-    fn is_classical_stmt(&self, stmt_id: StmtId) -> bool {
+    fn get_expr_compute_kind(&self, expr_id: ExprId) -> ComputeKind {
+        let current_package_id = self.get_current_package_id();
+        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
+        let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
+        let callable_scope = self.eval_context.get_current_scope();
+        expr_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
+    }
+
+    fn get_stmt_compute_kind(&self, stmt_id: StmtId) -> ComputeKind {
         let current_package_id = self.get_current_package_id();
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
         let stmt_generator_set = self.compute_properties.get_stmt(store_stmt_id);
         let callable_scope = self.eval_context.get_current_scope();
-        let compute_kind = stmt_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
+        stmt_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
+    }
+
+    fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
+        // Check if the callable is already in the program, and if not add it.
+        let callable_name = callable.name.clone();
+        if let Entry::Vacant(entry) = self.callables_map.entry(callable_name.clone().into()) {
+            let callable_id = self.resource_manager.next_callable();
+            entry.insert(callable_id);
+            self.program.callables.insert(callable_id, callable);
+        }
+
+        *self
+            .callables_map
+            .get(callable_name.as_str())
+            .expect("callable not present")
+    }
+
+    fn get_program_block_mut(&mut self, id: rir::BlockId) -> &mut rir::Block {
+        self.program
+            .blocks
+            .get_mut(id)
+            .expect("program block does not exist")
+    }
+
+    fn is_classical_expr(&self, expr_id: ExprId) -> bool {
+        let compute_kind = self.get_expr_compute_kind(expr_id);
         matches!(compute_kind, ComputeKind::Classical)
     }
 
-    fn is_qubit_allocation_stmt(&mut self, stmt_id: StmtId) -> bool {
-        let current_package_id = self.get_current_package_id();
-        let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
-        let stmt = self.package_store.get_stmt(store_stmt_id);
-        if let StmtKind::Local(_, _, expr_id) = &stmt.kind {
-            self.is_qubit_allocation_expr(*expr_id)
-        } else {
-            false
-        }
+    fn is_classical_stmt(&self, stmt_id: StmtId) -> bool {
+        let compute_kind = self.get_stmt_compute_kind(stmt_id);
+        matches!(compute_kind, ComputeKind::Classical)
     }
 
-    fn is_qubit_release_stmt(&mut self, stmt_id: StmtId) -> bool {
-        let current_package_id = self.get_current_package_id();
-        let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
-        let stmt = self.package_store.get_stmt(store_stmt_id);
-        if let StmtKind::Semi(expr_id) = &stmt.kind {
-            self.is_qubit_release_expr(*expr_id)
-        } else {
-            false
-        }
+    fn allocate_qubit(&mut self) -> Value {
+        let qubit = self.resource_manager.allocate_qubit();
+        Value::Qubit(qubit)
     }
 
-    fn is_qubit_allocation_expr(&mut self, expr_id: ExprId) -> bool {
-        let current_package_id = self.get_current_package_id();
-        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
-        let expr = self.package_store.get_expr(store_expr_id);
-        if let ExprKind::Call(callee_expr_id, _) = &expr.kind {
-            let (_, _, callable_decl) = self.eval_callee_expr(*callee_expr_id);
-            callable_decl
-                .name
-                .name
-                .to_string()
-                .eq("__quantum__rt__qubit_allocate")
-        } else {
-            false
-        }
+    fn measure_qubit(&mut self, measure_callable: Callable, args_value: Value) -> Value {
+        // Get the qubit and result IDs to use in the qubit measure instruction.
+        let qubit = args_value.unwrap_qubit();
+        let qubit_value = Value::Qubit(qubit);
+        let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
+        let result_value = Value::Result(self.resource_manager.next_result());
+        let result_operand = map_eval_value_to_rir_operand(&result_value);
+
+        // Check if the callable has already been added to the program and if not do so now.
+        let measure_callable_id = self.get_or_insert_callable(measure_callable);
+        let args = vec![qubit_operand, result_operand];
+        let instruction = Instruction::Call(measure_callable_id, args, None);
+        let current_block = self.get_current_block_mut();
+        current_block.0.push(instruction);
+
+        // Return the result value.
+        result_value
     }
 
-    fn is_qubit_release_expr(&mut self, expr_id: ExprId) -> bool {
-        let current_package_id = self.get_current_package_id();
-        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
-        let expr = self.package_store.get_expr(store_expr_id);
-        if let ExprKind::Call(callee_expr_id, _) = &expr.kind {
-            let (_, _, callable_decl) = self.eval_callee_expr(*callee_expr_id);
-            callable_decl
-                .name
-                .name
-                .to_string()
-                .eq("__quantum__rt__qubit_release")
-        } else {
-            false
-        }
+    fn release_qubit(&mut self, args_value: Value) -> Value {
+        let qubit = args_value.unwrap_qubit();
+        self.resource_manager.release_qubit(qubit);
+
+        // The value of a qubit release is unit.
+        Value::unit()
     }
 
-    fn resolve_call_args(&mut self, args_expr_id: ExprId) -> Vec<rir::Operand> {
-        let store_args_expr_id = StoreExprId::from((self.get_current_package_id(), args_expr_id));
-        let args_expr = self.package_store.get_expr(store_args_expr_id);
-        if let ExprKind::Tuple(exprs) = &args_expr.kind {
-            let mut values = Vec::<rir::Operand>::new();
-            for expr_id in exprs {
-                self.eval_classical_expr(*expr_id);
-                let current_scope = self.eval_context.get_current_scope();
-                let expr_value = current_scope.get_expr_value(*expr_id);
-                let literal = map_eval_value_to_rir_literal(expr_value);
-                values.push(rir::Operand::Literal(literal));
+    fn resolve_args(&self, store_pat_id: StorePatId, value: Value) -> Vec<Arg> {
+        let pat = self.package_store.get_pat(store_pat_id);
+        match &pat.kind {
+            PatKind::Discard => vec![Arg::Discard(value)],
+            PatKind::Bind(ident) => {
+                let variable = Variable {
+                    name: ident.name.clone(),
+                    value,
+                    span: ident.span,
+                };
+                vec![Arg::Var(ident.id, variable)]
             }
-            values
-        } else {
-            self.eval_classical_expr(args_expr_id);
-            let current_scope = self.eval_context.get_current_scope();
-            let args_expr_value = current_scope.get_expr_value(args_expr_id);
-            let literal = map_eval_value_to_rir_literal(args_expr_value);
-            vec![rir::Operand::Literal(literal)]
+            PatKind::Tuple(pats) => {
+                let values = value.unwrap_tuple();
+                assert_eq!(
+                    pats.len(),
+                    values.len(),
+                    "pattern tuple and value tuple have different arity"
+                );
+                let mut args = Vec::new();
+                let pat_value_tuples = pats.iter().zip(values.to_vec());
+                for (pat_id, value) in pat_value_tuples {
+                    let mut element_args =
+                        self.resolve_args((store_pat_id.package, *pat_id).into(), value);
+                    args.append(&mut element_args);
+                }
+                args
+            }
         }
+    }
+
+    fn try_eval_block(&mut self, block_id: BlockId) -> Result<Value, ()> {
+        self.visit_block(block_id);
+        if self.errors.is_empty() {
+            Ok(self.eval_context.get_current_scope().last_expr_value())
+        } else {
+            Err(())
+        }
+    }
+
+    fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<Value, ()> {
+        // Visit the expression, which will either populate the expression entry in the scope's value map or add an
+        // error.
+        self.visit_expr(expr_id);
+        if self.errors.is_empty() {
+            Ok(self.eval_context.get_current_scope().last_expr_value())
+        } else {
+            Err(())
+        }
+    }
+
+    fn generate_output_recording_instructions(
+        &mut self,
+        ret_val: Value,
+        ty: &Ty,
+    ) -> Vec<Instruction> {
+        let mut instrs = Vec::new();
+
+        match ret_val {
+            Value::Array(vals) => self.record_array(ty, &mut instrs, &vals),
+            Value::Tuple(vals) => self.record_tuple(ty, &mut instrs, &vals),
+            Value::Result(res) => self.record_result(&mut instrs, res),
+            Value::Var(var) => self.record_variable(ty, &mut instrs, var),
+            Value::Bool(val) => self.record_bool(&mut instrs, val),
+            Value::Int(val) => self.record_int(&mut instrs, val),
+
+            Value::BigInt(_)
+            | Value::Closure(_)
+            | Value::Double(_)
+            | Value::Global(_, _)
+            | Value::Pauli(_)
+            | Value::Qubit(_)
+            | Value::Range(_)
+            | Value::String(_) => panic!("unsupported value type in output recording"),
+        }
+
+        instrs
+    }
+
+    fn record_int(&mut self, instrs: &mut Vec<Instruction>, val: i64) {
+        let int_record_callable_id = self.get_int_record_callable();
+        instrs.push(Instruction::Call(
+            int_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Integer(val)),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_bool(&mut self, instrs: &mut Vec<Instruction>, val: bool) {
+        let bool_record_callable_id = self.get_bool_record_callable();
+        instrs.push(Instruction::Call(
+            bool_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Bool(val)),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_variable(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, var: Var) {
+        let (record_callable_id, record_ty) = match ty {
+            Ty::Prim(Prim::Bool) => (self.get_bool_record_callable(), rir::Ty::Boolean),
+            Ty::Prim(Prim::Int) => (self.get_int_record_callable(), rir::Ty::Integer),
+            _ => panic!("unsupported variable type in output recording"),
+        };
+        instrs.push(Instruction::Call(
+            record_callable_id,
+            vec![
+                Operand::Variable(rir::Variable {
+                    variable_id: var.0.into(),
+                    ty: record_ty,
+                }),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_result(&mut self, instrs: &mut Vec<Instruction>, res: val::Result) {
+        let result_record_callable_id = self.get_result_record_callable();
+        instrs.push(Instruction::Call(
+            result_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Result(
+                    res.unwrap_id()
+                        .try_into()
+                        .expect("result id should fit into u32"),
+                )),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+    }
+
+    fn record_tuple(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, vals: &Rc<[Value]>) {
+        let Ty::Tuple(elem_tys) = ty else {
+            panic!("expected tuple type for tuple value");
+        };
+        let tuple_record_callable_id = self.get_tuple_record_callable();
+        instrs.push(Instruction::Call(
+            tuple_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Integer(
+                    vals.len()
+                        .try_into()
+                        .expect("tuple length should fit into u32"),
+                )),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+        for (val, elem_ty) in vals.iter().zip(elem_tys.iter()) {
+            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+        }
+    }
+
+    fn record_array(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, vals: &Rc<Vec<Value>>) {
+        let Ty::Array(elem_ty) = ty else {
+            panic!("expected array type for array value");
+        };
+        let array_record_callable_id = self.get_array_record_callable();
+        instrs.push(Instruction::Call(
+            array_record_callable_id,
+            vec![
+                Operand::Literal(Literal::Integer(
+                    vals.len()
+                        .try_into()
+                        .expect("array length should fit into u32"),
+                )),
+                Operand::Literal(Literal::Pointer),
+            ],
+            None,
+        ));
+        for val in vals.iter() {
+            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+        }
+    }
+
+    fn get_array_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__array_record_output") {
+            return *id;
+        }
+
+        let callable = builder::array_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__array_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_tuple_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__tuple_record_output") {
+            return *id;
+        }
+
+        let callable = builder::tuple_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__tuple_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_result_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self
+            .callables_map
+            .get("__quantum__rt__result_record_output")
+        {
+            return *id;
+        }
+
+        let callable = builder::result_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__result_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_bool_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__bool_record_output") {
+            return *id;
+        }
+
+        let callable = builder::bool_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__bool_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
+    }
+
+    fn get_int_record_callable(&mut self) -> CallableId {
+        if let Some(id) = self.callables_map.get("__quantum__rt__int_record_output") {
+            return *id;
+        }
+
+        let callable = builder::int_record_decl();
+        let callable_id = self.resource_manager.next_callable();
+        self.callables_map
+            .insert("__quantum__rt__int_record_output".into(), callable_id);
+        self.program.callables.insert(callable_id, callable);
+        callable_id
     }
 }
 
@@ -509,31 +1257,43 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         self.package_store.get_stmt(stmt_id)
     }
 
-    fn visit_expr(&mut self, expr_id: ExprId) {
-        if self.error.is_some() {
-            return;
+    fn visit_block(&mut self, block: BlockId) {
+        let block = self.get_block(block);
+        for stmt_id in &block.stmts {
+            self.visit_stmt(*stmt_id);
+            // Stop processing more statements if an error occurred.
+            if !self.errors.is_empty() {
+                return;
+            }
         }
+    }
 
-        // If the expression can be classically evaluated, do it. Otherwise, generate instructions for it.
-        let current_package_id = self.get_current_package_id();
-        let store_expr_id = StoreExprId::from((current_package_id, expr_id));
-        let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
-        let callable_scope = self.eval_context.get_current_scope();
-        let compute_kind = expr_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties);
-        if matches!(compute_kind, ComputeKind::Classical) {
-            self.eval_classical_expr(expr_id);
+    fn visit_expr(&mut self, expr_id: ExprId) {
+        assert!(
+            self.errors.is_empty(),
+            "visiting an expression when errors have already happened should never happen"
+        );
+
+        // We evaluate an expression differently depending on whether it is classical or not.
+        let expr_result = if self.is_classical_expr(expr_id) {
+            self.eval_classical_expr(expr_id)
         } else {
-            self.generate_instructions(expr_id);
-        }
+            self.eval_expr(expr_id)
+        };
+
+        // If the evaluation was successful, insert its value to the scope's expression map.
+        match expr_result {
+            Result::Ok(expr_value) => self
+                .eval_context
+                .get_current_scope_mut()
+                .insert_expr_value(expr_id, expr_value),
+            Result::Err(error) => self.errors.push(error),
+        };
     }
 
     fn visit_stmt(&mut self, stmt_id: StmtId) {
         // If the statement is classical, we can just evaluate it.
-        if self.is_classical_stmt(stmt_id)
-            || self.is_qubit_allocation_stmt(stmt_id)
-            || self.is_qubit_release_stmt(stmt_id)
-        {
+        if self.is_classical_stmt(stmt_id) {
             self.eval_classical_stmt(stmt_id);
             return;
         }
@@ -542,131 +1302,22 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
         let store_stmt_id = StoreStmtId::from((self.get_current_package_id(), stmt_id));
         let stmt = self.package_store.get_stmt(store_stmt_id);
         match stmt.kind {
-            StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
-                self.generate_instructions(expr_id);
+            StmtKind::Expr(expr_id) => {
+                self.visit_expr(expr_id);
             }
-            StmtKind::Local(_, _, _) => todo!(),
+            StmtKind::Semi(expr_id) => {
+                self.visit_expr(expr_id);
+                self.eval_context.get_current_scope_mut().clear_last_expr();
+            }
+            StmtKind::Local(_, pat_id, expr_id) => {
+                if let Ok(value) = self.try_eval_expr(expr_id) {
+                    self.bind_value_to_pat(pat_id, value);
+                }
+            }
             StmtKind::Item(_) => {
                 // Do nothing.
             }
         };
-    }
-}
-
-#[derive(Default)]
-struct Assigner {
-    next_callable: rir::CallableId,
-    next_block: rir::BlockId,
-}
-
-impl Assigner {
-    pub fn next_block(&mut self) -> rir::BlockId {
-        let id = self.next_block;
-        self.next_block = id.successor();
-        id
-    }
-
-    pub fn next_callable(&mut self) -> rir::CallableId {
-        let id = self.next_callable;
-        self.next_callable = id.successor();
-        id
-    }
-}
-
-#[derive(Default)]
-struct QubitsAndResultsAllocator {
-    qubit_id: usize,
-    result_id: usize,
-}
-
-impl Backend for QubitsAndResultsAllocator {
-    type ResultType = usize;
-
-    fn m(&mut self, _q: usize) -> Self::ResultType {
-        self.next_measurement()
-    }
-
-    fn mresetz(&mut self, _q: usize) -> Self::ResultType {
-        self.next_measurement()
-    }
-
-    fn qubit_allocate(&mut self) -> usize {
-        self.next_qubit()
-    }
-
-    fn qubit_release(&mut self, _q: usize) {
-        // Do nothing.
-    }
-
-    fn qubit_is_zero(&mut self, _q: usize) -> bool {
-        true
-    }
-}
-
-impl QubitsAndResultsAllocator {
-    fn next_measurement(&mut self) -> usize {
-        let result_id = self.result_id;
-        self.result_id += 1;
-        result_id
-    }
-
-    fn next_qubit(&mut self) -> usize {
-        let qubit_id = self.qubit_id;
-        self.qubit_id += 1;
-        qubit_id
-    }
-}
-
-struct EvaluationContext {
-    current_block: rir::BlockId,
-    scopes: Vec<Scope>,
-}
-
-impl EvaluationContext {
-    fn new(entry_package_id: PackageId, initial_block: rir::BlockId) -> Self {
-        let entry_callable_scope = Scope {
-            package_id: entry_package_id,
-            callable: None,
-            args_runtime_properties: Vec::new(),
-            env: Env::default(),
-            expression_value_map: FxHashMap::default(),
-        };
-        Self {
-            current_block: initial_block,
-            scopes: vec![entry_callable_scope],
-        }
-    }
-
-    fn get_current_scope(&self) -> &Scope {
-        self.scopes
-            .last()
-            .expect("the evaluation context does not have a current scope")
-    }
-
-    fn get_current_scope_mut(&mut self) -> &mut Scope {
-        self.scopes
-            .last_mut()
-            .expect("the evaluation context does not have a current scope")
-    }
-}
-
-struct Scope {
-    package_id: PackageId,
-    callable: Option<(LocalItemId, FunctorApp)>,
-    args_runtime_properties: Vec<ValueKind>,
-    env: Env,
-    expression_value_map: FxHashMap<ExprId, Value>,
-}
-
-impl Scope {
-    fn get_expr_value(&self, expr_id: ExprId) -> &Value {
-        self.expression_value_map
-            .get(&expr_id)
-            .expect("expression value does not exist")
-    }
-
-    fn insert_expr_value(&mut self, expr_id: ExprId, value: Value) {
-        self.expression_value_map.insert(expr_id, value);
     }
 }
 
@@ -691,13 +1342,23 @@ fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
     }
 }
 
-fn map_eval_value_to_rir_literal(value: &Value) -> Literal {
+fn map_eval_value_to_rir_operand(value: &Value) -> Operand {
     match value {
-        Value::Bool(b) => Literal::Bool(*b),
-        Value::Double(d) => Literal::Double(*d),
-        Value::Int(i) => Literal::Integer(*i),
-        Value::Qubit(q) => Literal::Qubit(q.0.try_into().expect("could not convert to u32")),
-        _ => panic!("{value} cannot be mapped to a RIR literal"),
+        Value::Bool(b) => Operand::Literal(Literal::Bool(*b)),
+        Value::Double(d) => Operand::Literal(Literal::Double(*d)),
+        Value::Int(i) => Operand::Literal(Literal::Integer(*i)),
+        Value::Qubit(q) => Operand::Literal(Literal::Qubit(
+            q.0.try_into().expect("could not convert qubit ID to u32"),
+        )),
+        Value::Result(r) => match r {
+            val::Result::Id(id) => Operand::Literal(Literal::Result(
+                (*id)
+                    .try_into()
+                    .expect("could not convert result ID to u32"),
+            )),
+            val::Result::Val(bool) => Operand::Literal(Literal::Bool(*bool)),
+        },
+        _ => panic!("{value} cannot be mapped to a RIR operand"),
     }
 }
 

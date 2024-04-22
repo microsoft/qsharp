@@ -230,10 +230,10 @@ Just like with single qubits, we can put arbitrary symbols within the kets the s
 Whether a ket represents a single qubit or an entire system depends on the context.
 Some ket symbols have a commonly accepted usage, such as the symbols for the Bell basis:
 
-$$|\phi^+\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle + |11\rangle\big)$$
-$$|\phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$$
-$$|\psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big)$$
-$$|\psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
+$$|\Phi^+\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle + |11\rangle\big)$$
+$$|\Phi^-\rangle = \frac{1}{\sqrt{2}}\big(|00\rangle - |11\rangle\big)$$
+$$|\Psi^+\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle + |10\rangle\big)$$
+$$|\Psi^-\rangle = \frac{1}{\sqrt{2}}\big(|01\rangle - |10\rangle\big)$$
 
 >## Endianness
 >
@@ -361,6 +361,40 @@ Array elements are indexed starting with 0, the first array element corresponds 
     "path": "./prepare_with_complex/",
     "qsDependencies": [
         "../KatasLibrary.qs"
+    ]
+})
+
+@[section]({
+    "id": "multi_qubit_systems__modifying_entangled_states",
+    "title": "Modifying Entangled States"
+})
+
+Entangled quantum states can be manipulated using single-qubit gates. For example, each state in the Bell basis is entangled and can be transformed into another Bell state through the application of single-qubit gates. In this lesson, you'll learn how to do that. (And we will learn more about applying single-qubit gates to multi-qubit states in the next kata.)
+
+@[exercise]({
+    "id": "multi_qubit_systems__bell_state_change_1 ",
+    "title": "Bell State Change 1",
+    "path": "./bell_state_change_1/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "multi_qubit_systems__bell_state_change_2 ",
+    "title": "Bell State Change 2",
+    "path": "./bell_state_change_2/",
+    "qsDependencies": [
+    "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "multi_qubit_systems__bell_state_change_3 ",
+    "title": "Bell State Change 3",
+    "path": "./bell_state_change_3/",
+    "qsDependencies": [
+    "../KatasLibrary.qs"
     ]
 })
 

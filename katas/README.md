@@ -1,9 +1,18 @@
 # Katas
 
 A Kata is a top-level container of educational items which are used to explain a particular quantum computing topic using Q#. They are organized in sections which can be of three types:
+
 - Lessons: text content that sometimes contains Q# code examples.
 - Exercises: problems that the user solves by writting Q# code.
 - Questions: analytical problems that have a text answer.
+
+## Run Katas Online
+
+Visit [Learn with Azure Quantum katas](https://quantum.microsoft.com/experience/quantum-katas) to try the new online Azure Quantum katas experience, with integrated assistance from Copilot in Azure Quantum.
+
+## Build Katas Locally
+
+We need to build the `playground` module to see the built katas locally. For the detailed instructions, refer to [Building Playground Locally](../playground/README.md#building-the-playground-locally).
 
 ## Rust crate
 

@@ -6,29 +6,25 @@
 use expect_test::expect;
 
 use crate::{
-    builder::{bell_program, new_program},
-    passes::{build_dominator_graph, check_ssa_form, check_unreachable_code, remap_block_ids},
+    builder::{bell_program, new_program, teleport_program},
+    passes::check_and_transform,
     rir::{
         Block, BlockId, Callable, CallableId, CallableType, Instruction, Operand, Program, Ty,
         Variable, VariableId,
     },
-    utils::build_predecessors_map,
 };
-
-use super::transform_to_ssa;
-
 fn transform_program(program: &mut Program) {
-    check_unreachable_code(program);
-    remap_block_ids(program);
-    let preds = build_predecessors_map(program);
-    transform_to_ssa(program, &preds);
-    let doms = build_dominator_graph(program, &preds);
-    check_ssa_form(program, &preds, &doms);
+    // When this configuration is replaced by target capabilities, set them to "all" here.
+    program.config.defer_measurements = false;
+    program.config.remap_qubits_on_reuse = false;
+    check_and_transform(program);
 }
 
 #[test]
 fn ssa_transform_leaves_program_without_store_instruction_unchanged() {
     let mut program = bell_program();
+    program.config.defer_measurements = false;
+    program.config.remap_qubits_on_reuse = false;
     let program_string_orignal = program.to_string();
 
     transform_program(&mut program);
@@ -38,7 +34,7 @@ fn ssa_transform_leaves_program_without_store_instruction_unchanged() {
 
 #[test]
 fn ssa_transform_leaves_branching_program_without_store_instruction_unchanged() {
-    let mut program = bell_program();
+    let mut program = teleport_program();
     let program_string_orignal = program.to_string();
 
     transform_program(&mut program);

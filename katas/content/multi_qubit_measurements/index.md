@@ -245,7 +245,6 @@ Full measurements can also be used to identify the state of the system, if it is
     "title":  "Distinguish Four Basis States",
     "path": "./full_measurements/",
     "qsDependencies": [
-        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -357,7 +356,6 @@ In certain situations, it is possible to distinguish between orthogonal states o
     "title": "Distinguish Orthogonal States Using Partial Measurements",
     "path": "./partial_measurements_for_system/",
     "qsDependencies": [
-        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -416,7 +414,6 @@ For certain multi-qubit systems prepared in a superposition state, it is possibl
     "title": "State Selection Using Partial Measurements",
     "path": "./state_modification/",
     "qsDependencies": [
-        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -435,7 +432,6 @@ You could prepare a simpler state involving additional qubits, which, when measu
     "title": "State Preparation Using Partial Measurements",
     "path": "./state_preparation/",
     "qsDependencies": [
-        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })
@@ -564,7 +560,6 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
     "title": "Two-Qubit Parity Measurement",
     "path": "./joint_measurements/",
     "qsDependencies": [
-        "./Common.qs",
         "../KatasLibrary.qs"
     ]
 })

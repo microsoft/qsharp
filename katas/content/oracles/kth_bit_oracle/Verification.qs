@@ -17,10 +17,7 @@ namespace Kata.Verification {
                     Message("Incorrect.");
                     Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                         $"transformation for the {N}-bit oracle for k = {k}");
-                    use initial = Qubit[N];
-                    PrepRandomState(initial);
-                    ShowQuantumStateComparison(initial, sol, ref);
-                    ResetAll(initial);
+                    ShowQuantumStateComparison(N, PrepRandomState, sol, ref);
                     return false;
                 }
             }

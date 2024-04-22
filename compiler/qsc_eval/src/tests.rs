@@ -3,7 +3,6 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use core::panic;
 use std::rc::Rc;
 
 use crate::{
@@ -18,7 +17,7 @@ use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_fir::fir::{self, ExecGraphNode, StmtId};
 use qsc_fir::fir::{PackageId, PackageStoreLookup};
-use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
@@ -50,13 +49,13 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
     let core_fir = fir_lowerer.lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
-    let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
+    let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(
         store.core(),
         &mut std,
         PackageType::Lib,
-        RuntimeCapabilityFlags::all()
+        TargetCapabilityFlags::all()
     )
     .is_empty());
     let std_fir = fir_lowerer.lower_package(&std.package);
@@ -67,7 +66,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         &store,
         &[std_id],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
@@ -75,7 +74,7 @@ fn check_expr(file: &str, expr: &str, expect: &Expect) {
         store.core(),
         &mut unit,
         PackageType::Lib,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
     );
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = fir_lowerer.lower_package(&unit.package);
@@ -116,13 +115,13 @@ fn check_partial_eval_stmt(
     let core_fir = qsc_lowerer::Lowerer::new().lower_package(&core.package);
     let mut store = PackageStore::new(core);
 
-    let mut std = compile::std(&store, RuntimeCapabilityFlags::all());
+    let mut std = compile::std(&store, TargetCapabilityFlags::all());
     assert!(std.errors.is_empty());
     assert!(run_default_passes(
         store.core(),
         &mut std,
         PackageType::Lib,
-        RuntimeCapabilityFlags::all()
+        TargetCapabilityFlags::all()
     )
     .is_empty());
     let std_fir = qsc_lowerer::Lowerer::new().lower_package(&std.package);
@@ -133,7 +132,7 @@ fn check_partial_eval_stmt(
         &store,
         &[std_id],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
@@ -141,7 +140,7 @@ fn check_partial_eval_stmt(
         store.core(),
         &mut unit,
         PackageType::Lib,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
     );
     assert!(pass_errors.is_empty(), "{pass_errors:?}");
     let unit_fir = qsc_lowerer::Lowerer::new().lower_package(&unit.package);
@@ -173,7 +172,7 @@ fn check_partial_eval_stmt(
             &mut GenericReceiver::new(&mut out),
         ) {
             Ok(_) => {}
-            Err(err) => panic!("Unexpected error: {:?}", err),
+            Err(err) => panic!("Unexpected error: {err:?}"),
         }
     }
 
