@@ -350,7 +350,7 @@ class StateDump:
         return self.__data._repr_html_()
 
     def check_eq(
-        self, state: Union[Dict[int, complex], List[float]], tolerance: float = 1e-10
+        self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
     ) -> bool:
         """
         Checks if the state dump is equal to the given state. This is not mathematical equality,
@@ -363,17 +363,18 @@ class StateDump:
         phase = None
         # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
         if isinstance(state, list):
-            state = {i: complex(state[i], 0) for i in range(len(state))}
-        # Filter out zero states
-        state = {k: v for k, v in state.items() if v != 0}
-        if len(state) != len(self):
+            state = {i: state[i] for i in range(len(state))}
+        # Filter out zero states from the state dump and the given state based on tolerance
+        state = {k: v for k, v in state.items() if abs(v) > tolerance}
+        inner_state = {k: v for k, v in self.__inner.items() if abs(v) > tolerance}
+        if len(state) != len(inner_state):
             return False
         for key in state:
-            if key not in self.__inner:
+            if key not in inner_state:
                 return False
             if phase is None:
-                phase = self.__inner[key] / state[key]
-            elif abs(phase - self.__inner[key] / state[key]) > tolerance:
+                phase = inner_state[key] / state[key]
+            elif abs(phase - inner_state[key] / state[key]) > tolerance:
                 return False
         return True
 
