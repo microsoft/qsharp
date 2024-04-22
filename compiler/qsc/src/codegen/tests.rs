@@ -57,7 +57,6 @@ mod base_profile {
 
         let qir =
             get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
-        println!("{qir}");
         expect![[r#"
             %Result = type opaque
             %Qubit = type opaque
@@ -95,13 +94,14 @@ mod base_profile {
 }
 
 mod adaptive_profile {
+    use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
     use crate::codegen::get_qir;
 
     #[test]
-    fn simple() -> Result<(), String> {
+    fn simple() {
         let source = "namespace Test {
             open Microsoft.Quantum.Math;
             open QIR.Intrinsic;
@@ -121,21 +121,60 @@ mod adaptive_profile {
         let language_features = LanguageFeatures::default();
         let capabilities = TargetCapabilityFlags::Adaptive;
 
-        let qir = get_qir(sources, language_features, capabilities)?;
-        println!("{qir}");
-        assert!(qir.contains("ENTRYPOINT"));
-        Ok(())
+        let qir =
+            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+            block_0:
+              call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+            declare void @__quantum__qis__mz__body(%Qubit*, %Result*) #1
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            !4 = !{i32 1, !"classical_ints", i1 false}
+            !5 = !{i32 1, !"classical_floats", i1 false}
+            !6 = !{i32 1, !"backwards_branching", i1 false}
+            !7 = !{i32 1, !"qubit_resetting", i1 false}
+            !8 = !{i32 1, !"classical_fixed_points", i1 false}
+            !9 = !{i32 1, !"user_functions", i1 false}
+            !10 = !{i32 1, !"multiple_target_branching", i1 false}
+        "#]]
+        .assert_eq(&qir);
     }
 }
 
 mod quantinuum_profile {
+    use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;
 
     use crate::codegen::get_qir;
 
     #[test]
-    fn simple() -> Result<(), String> {
+    fn simple() {
         let source = "namespace Test {
             open Microsoft.Quantum.Math;
             open QIR.Intrinsic;
@@ -157,9 +196,47 @@ mod quantinuum_profile {
             | TargetCapabilityFlags::QubitReset
             | TargetCapabilityFlags::IntegerComputations;
 
-        let qir = get_qir(sources, language_features, capabilities)?;
-        println!("{qir}");
-        assert!(qir.contains("ENTRYPOINT"));
-        Ok(())
+        let qir =
+            get_qir(sources, language_features, capabilities).expect("Failed to generate QIR");
+        expect![[r#"
+            %Result = type opaque
+            %Qubit = type opaque
+
+            define void @ENTRYPOINT__main() #0 {
+            block_0:
+              call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+              call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+              call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+              ret void
+            }
+
+            declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+            declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+            declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+            attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+            attributes #1 = { "irreversible" }
+
+            ; module flags
+
+            !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+
+            !0 = !{i32 1, !"qir_major_version", i32 1}
+            !1 = !{i32 7, !"qir_minor_version", i32 0}
+            !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+            !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            !4 = !{i32 1, !"classical_ints", i1 true}
+            !5 = !{i32 1, !"qubit_resetting", i1 true}
+            !6 = !{i32 1, !"classical_floats", i1 false}
+            !7 = !{i32 1, !"backwards_branching", i1 false}
+            !8 = !{i32 1, !"classical_fixed_points", i1 false}
+            !9 = !{i32 1, !"user_functions", i1 false}
+            !10 = !{i32 1, !"multiple_target_branching", i1 false}
+        "#]]
+        .assert_eq(&qir);
     }
 }
