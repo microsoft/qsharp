@@ -110,18 +110,70 @@ impl Compiler {
         unit: &mut CompileUnit,
         source_name: &str,
         source_contents: &str,
-        mut accumulate_errors: F,
+        accumulate_errors: F,
     ) -> Result<Increment, E>
     where
         F: FnMut(Vec<Error>) -> Result<(), E>,
     {
-        let (mut ast, parse_errors) = Self::parse_fragments(
+        let (ast, parse_errors) = Self::parse_fragments(
             &mut unit.sources,
             source_name,
             source_contents,
             self.language_features,
         );
 
+        self.compile_fragments_internal(unit, ast, parse_errors, accumulate_errors)
+    }
+
+    /// Compiles Q# AST fragments.
+    ///
+    /// Uses the assigners and other mutable state from the passed in
+    /// `CompileUnit` to guarantee uniqueness, however does not
+    /// update the `CompileUnit` with the resulting AST and HIR packages.
+    ///
+    /// The caller can use the returned packages to perform passes,
+    /// get information about the newly added items, or do other modifications.
+    /// It is then the caller's responsibility to merge
+    /// these packages into the current `CompileUnit`.
+    ///
+    /// This method calls an accumulator function with any errors returned
+    /// from each of the stages instead of failing.
+    /// If the accumulator succeeds, compilation continues.
+    /// If the accumulator returns an error, compilation stops and the
+    /// error is returned to the caller.
+    pub fn compile_ast_fragments<F, E>(
+        &mut self,
+        unit: &mut CompileUnit,
+        source_name: &str,
+        source_contents: &str,
+        package: ast::Package,
+        accumulate_errors: F,
+    ) -> Result<Increment, E>
+    where
+        F: FnMut(Vec<Error>) -> Result<(), E>,
+    {
+        // Update the AST with source information offset from the current source map.
+        let (ast, parse_errors) = Self::offset_ast_fragments(
+            &mut unit.sources,
+            source_name,
+            source_contents,
+            package,
+            vec![],
+        );
+
+        self.compile_fragments_internal(unit, ast, parse_errors, accumulate_errors)
+    }
+
+    fn compile_fragments_internal<F, E>(
+        &mut self,
+        unit: &mut CompileUnit,
+        mut ast: ast::Package,
+        parse_errors: Vec<Error>,
+        mut accumulate_errors: F,
+    ) -> Result<Increment, E>
+    where
+        F: FnMut(Vec<Error>) -> Result<(), E>,
+    {
         accumulate_errors(parse_errors)?;
 
         let (hir, errors) = self.resolve_check_lower(unit, &mut ast);
@@ -280,7 +332,6 @@ impl Compiler {
         features: LanguageFeatures,
     ) -> (ast::Package, Vec<Error>) {
         let offset = sources.push(source_name.into(), source_contents.into());
-
         let (mut top_level_nodes, errors) = qsc_parse::top_level_nodes(source_contents, features);
         let mut offsetter = Offsetter(offset);
         for node in &mut top_level_nodes {
@@ -289,12 +340,32 @@ impl Compiler {
                 ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),
             }
         }
-
         let package = ast::Package {
             id: ast::NodeId::default(),
             nodes: top_level_nodes.into_boxed_slice(),
             entry: None,
         };
+        (package, with_source(errors, sources, offset))
+    }
+
+    /// offset all top level nodes based on the source input
+    /// and return the updated package and errors
+    fn offset_ast_fragments(
+        sources: &mut SourceMap,
+        source_name: &str,
+        source_contents: &str,
+        mut package: ast::Package,
+        errors: Vec<qsc_parse::Error>,
+    ) -> (ast::Package, Vec<Error>) {
+        let offset = sources.push(source_name.into(), source_contents.into());
+
+        let mut offsetter = Offsetter(offset);
+        for node in package.nodes.iter_mut() {
+            match node {
+                ast::TopLevelNode::Namespace(ns) => offsetter.visit_namespace(ns),
+                ast::TopLevelNode::Stmt(stmt) => offsetter.visit_stmt(stmt),
+            }
+        }
 
         (package, with_source(errors, sources, offset))
     }

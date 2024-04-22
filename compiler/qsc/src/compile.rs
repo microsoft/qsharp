@@ -34,6 +34,27 @@ pub enum ErrorKind {
 }
 
 #[must_use]
+#[allow(clippy::module_name_repetitions)]
+pub fn compile_ast(
+    store: &PackageStore,
+    dependencies: &[PackageId],
+    ast_package: qsc_ast::ast::Package,
+    sources: SourceMap,
+    package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
+) -> (CompileUnit, Vec<Error>) {
+    let unit = qsc_frontend::compile::compile_ast(
+        store,
+        dependencies,
+        ast_package,
+        sources,
+        capabilities,
+        vec![],
+    );
+    process_compile_unit(store, package_type, capabilities, unit)
+}
+
+#[must_use]
 pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
@@ -42,13 +63,24 @@ pub fn compile(
     capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> (CompileUnit, Vec<Error>) {
-    let mut unit = qsc_frontend::compile::compile(
+    let unit = qsc_frontend::compile::compile(
         store,
         dependencies,
         sources,
         capabilities,
         language_features,
     );
+    process_compile_unit(store, package_type, capabilities, unit)
+}
+
+#[must_use]
+#[allow(clippy::module_name_repetitions)]
+fn process_compile_unit(
+    store: &PackageStore,
+    package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
+    mut unit: CompileUnit,
+) -> (CompileUnit, Vec<Error>) {
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
         errors.push(WithSource::from_map(&unit.sources, error.into()));
