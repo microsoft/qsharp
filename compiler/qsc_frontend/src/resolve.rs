@@ -165,7 +165,7 @@ pub struct Locals {
 }
 
 impl Locals {
-    #[inline(never)]
+    // #[inline(never)]
     fn get_scopes<'a>(&'a self, scope_chain: &'a [ScopeId]) -> impl Iterator<Item = &Scope> + 'a {
         // reverse to go from innermost -> outermost
         scope_chain.iter().rev().map(|id| {
@@ -430,7 +430,7 @@ impl Resolver {
         }
     }
 
-    #[inline(never)]
+    // #[inline(never)]
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) {
         let name = &path.name;
         let namespace = &path.namespace;
@@ -1097,14 +1097,14 @@ fn resolve<'a>(
     provided_symbol_name: &Ident,
     provided_namespace_name: &Option<VecIdent>,
 ) -> Result<Res, Error> {
-    let scopes = scopes.collect::<Vec<_>>();
+    // let scopes = scopes.collect::<Vec<_>>();
 
     if let Some(value) = check_all_scopes(
         kind,
         globals,
         provided_symbol_name,
         provided_namespace_name,
-        &scopes,
+        scopes,
     ) {
         return value;
     }
@@ -1175,13 +1175,13 @@ fn resolve<'a>(
 /// Checks all given scopes, in the correct order, for a resolution.
 /// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
 /// using the `vars` parameter.
-#[inline(never)]
-fn check_all_scopes(
+// #[inline(never)]
+fn check_all_scopes<'a>(
     kind: NameKind,
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
     provided_namespace_name: &Option<VecIdent>,
-    scopes: &Vec<&Scope>,
+    scopes: impl Iterator<Item = &'a Scope>,
 ) -> Option<Result<Res, Error>> {
     let mut vars = true;
 
@@ -1219,7 +1219,7 @@ fn check_all_scopes(
 /// * `provided_namespace_name` - The namespace of the symbol, if any.
 /// * `vars` - A mutable reference to a boolean indicating whether to allow local variables in closures in parent scopes.
 /// * `scope` - The scope to check for resolutions.
-#[inline(never)]
+// #[inline(never)]
 fn check_scoped_resolutions(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1242,25 +1242,21 @@ fn check_scoped_resolutions(
         .map(|(alias, opens)| {
             (
                 alias.clone(),
-                opens.iter().cloned().map(|x| (x.namespace, x)).collect(),
+                opens.iter().map(|x| (x.namespace, x)).collect(),
             )
         })
         .collect::<FxHashMap<_, _>>();
-
-    let scope_opens = scope
-        .opens
-        .iter()
-        .flat_map(|(_, open)| open.clone())
-        .collect::<Vec<_>>();
 
     let explicit_open_candidates = find_symbol_in_namespaces(
         kind,
         globals,
         provided_namespace_name,
         provided_symbol_name,
-        scope_opens
-            .into_iter()
-            .map(|open @ Open { namespace, .. }| (namespace, open.clone())),
+        scope
+            .opens
+            .iter()
+            .flat_map(|(_, open)| open)
+            .map(|open @ Open { namespace, .. }| (*namespace, open)),
         &aliases,
     );
     match explicit_open_candidates.len() {
@@ -1272,7 +1268,7 @@ fn check_scoped_resolutions(
             return Some(ambiguous_symbol_error(
                 globals,
                 provided_symbol_name,
-                explicit_open_candidates,
+                explicit_open_candidates.into_iter().map(|(a, b)| (a, b.clone())).collect(),
             ))
         }
         _ => (),
@@ -1327,16 +1323,15 @@ where
     // check aliases to see if the provided namespace is actually an alias
     if let Some(provided_namespace_name) = provided_namespace_name {
         if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
-            let candidates: Vec<_> = opens
+            let candidates: FxHashMap<_, _> = opens
                 .iter()
                 .filter_map(|(ns_id, open)| {
                     globals
                         .get(kind, *ns_id, &provided_symbol_name.name)
                         .map(|res| (*res, open.clone()))
-                })
-                .collect();
+                }).collect();
             if !candidates.is_empty() {
-                return candidates.into_iter().collect();
+                return candidates;
             }
         }
     }
@@ -1355,6 +1350,7 @@ where
         if provided_namespace_name.is_some() && namespace.is_none() {
             continue;
         }
+        
         // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
         let res = namespace
             .or(if namespace.is_none() {
@@ -1374,9 +1370,7 @@ where
         // If there are multiple candidates, remove unimplemented items. This allows resolution to
         // succeed in cases where both an older, unimplemented API and newer, implemented API with the
         // same name are both in scope without forcing the user to fully qualify the name.
-        if candidates.len() > 1 {
-            candidates.retain(|&res, _| !matches!(res, Res::Item(_, ItemStatus::Unimplemented)));
-        }
+        candidates.retain(|&res, _| !matches!(res, Res::Item(_, ItemStatus::Unimplemented)));
     }
     candidates
 }

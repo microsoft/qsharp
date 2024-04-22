@@ -68,13 +68,13 @@ impl NamespaceTreeRoot {
 
     /// Get the namespace tree field. This is the root of the namespace tree.
     #[must_use]
-    #[inline(never)]
+    // #[inline(never)]
     pub fn tree(&self) -> &NamespaceTreeNode {
         &self.tree
     }
 
     /// Insert a namespace into the tree. If the namespace already exists, return its ID.
-    #[inline(never)]
+    // #[inline(never)]
 
     pub fn insert_or_find_namespace(
         &mut self,
@@ -95,17 +95,17 @@ impl NamespaceTreeRoot {
             children,
         }
     }
-    #[inline(never)]
+    // #[inline(never)]
     pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         self.tree.find_namespace(ns)
     }
-    #[inline(never)]
+    // #[inline(never)]
 
     #[must_use]
     pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, &NamespaceTreeNode) {
-        return self.tree.find_id(*id, vec![]);
+        return self.tree.find_id(*id, &[]);
     }
-    #[inline(never)]
+    // #[inline(never)]
 
     #[must_use]
     pub fn root_id(&self) -> NamespaceId {
@@ -214,16 +214,16 @@ impl NamespaceTreeNode {
     fn find_id(
         &self,
         id: NamespaceId,
-        names_buf: Vec<Rc<str>>,
+        names_buf: &[Rc<str>],
     ) -> (Vec<Rc<str>>, &NamespaceTreeNode) {
         if self.id == id {
-            return (names_buf, &self);
+            return (names_buf.to_vec(), &self);
         }
         for (name, node) in &self.children {
-            let mut new_buf = names_buf.clone();
-            new_buf.push(name.clone());
-            let (names, node) = node.find_id(id, new_buf);
+            let (names, node) = node.find_id(id, names_buf);
             if !names.is_empty() {
+                let mut names = names_buf.to_vec();
+                names.push(name.clone());
                 return (names, node);
             }
         }
