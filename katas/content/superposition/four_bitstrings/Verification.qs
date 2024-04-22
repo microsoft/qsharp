@@ -4,7 +4,7 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;
 
-    operation FourBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[][]) : Unit {
+    operation FourBitstringSuperposition_Reference (qs : Qubit[], bits : Bool[][]) : Unit is Adj {
         use anc = Qubit[2];
         ApplyToEachA(H, anc);
 
@@ -26,31 +26,9 @@ namespace Kata.Verification {
         }
     }
 
-    operation WState_Arbitrary_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
-
-        let N = Length(qs);
-
-        if N ==1 {
-            // base case of recursion: |1⟩
-            X(qs[0]);
-        } else {
-            // |W_N⟩ = |0⟩|W_(N-1)⟩ + |1⟩|0...0⟩
-            // do a rotation on the first qubit to split it into |0⟩ and |1⟩ with proper weights
-            // |0⟩ -> sqrt((N-1)/N) |0⟩ + 1/sqrt(N) |1⟩
-            let theta = ArcSin(1.0 / Sqrt(IntAsDouble(N)));
-            Ry(2.0 * theta, qs[0]);
-
-            // do a zero-controlled W-state generation for qubits 1..N-1
-            X(qs[0]);
-            Controlled WState_Arbitrary_Reference(qs[0 .. 0], qs[1 .. N - 1]);
-            X(qs[0]);
-        }
-    }
-
     @EntryPoint()
     operation CheckSolution() : Bool {
 
-        // cross-tests
         mutable bits = [[false, false], [false, true], [true, false], [true, true]];
         Message($"Testing for bits = {bits}...");
         if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
@@ -61,14 +39,22 @@ namespace Kata.Verification {
             return false;
         }
 
-        set bits = [[false, false, false, true], [false, false, true, false], [false, true, false, false], [true, false, false, false]];
-        Message($"Testing for bits = {bits}...");
-        if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-            Kata.FourBitstringSuperposition(_, bits),
-            WState_Arbitrary_Reference(_),
-            4
-        ) {
-            return false;
+        mutable bitstrings = [
+            [[false, true, false], [true, false, false], [false, false, true], [true, true, false]],
+            [[true, false, false], [false, false, true], [false, true, false], [true, true, true]],
+            [[false, false, false], [false, true, false], [true, true, false], [true, false, true]]
+        ];
+
+        for i in 0 .. Length (bitstrings) - 1 {
+            let bitstring = bitstrings[i];
+            Message($"Testing for bits = {bitstring}...");
+            if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
+                Kata.FourBitstringSuperposition(_, bitstring),
+                FourBitstringSuperposition_Reference(_, bitstring),
+                3
+            ) {
+                return false;
+            }
         }
 
         return true;
