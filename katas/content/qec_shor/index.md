@@ -140,6 +140,16 @@ However, if a $Z$ error happens on any one of these qubits, we won't be able to 
     ]
 })
 
+@[exercise]({
+    "id": "qec_shor__bitflip_detect",
+    "title": "Bit Flip Code: Detect X Error",
+    "path": "./bitflip_detect/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 
 @[section]({
     "id": "qec_shor__phase_flip_code",
@@ -200,6 +210,16 @@ However, if an $X$ error happens on any one of these qubits, we won't be able to
     "path": "./phaseflip_encode/",
     "qsDependencies": [
         "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "qec_shor__phaseflip_detect",
+    "title": "Phase Flip Code: Detect Z Error",
+    "path": "./phaseflip_detect/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
 
