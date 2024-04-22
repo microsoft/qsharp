@@ -22,7 +22,7 @@ $$
 > $R1(\frac{\pi}{2}) = S$, which we used in the second solution to the task "Relative Phase i".
 
 @[solution]({
-    "id": "single_qubit_gates__phase_change_solution",
+    "id": "single_qubit_gates__complex_phase_solution",
     "codePath": "./Solution.qs"
 
 })

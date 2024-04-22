@@ -3,7 +3,7 @@
 
 use super::{Compiler, Increment};
 use crate::{
-    compile::{self, CompileUnit, PackageStore, RuntimeCapabilityFlags},
+    compile::{self, CompileUnit, PackageStore, TargetCapabilityFlags},
     incremental::Error,
 };
 use expect_test::{expect, Expect};
@@ -19,7 +19,7 @@ fn one_callable() {
     let mut compiler = Compiler::new(
         &store,
         vec![],
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let unit = compiler
@@ -143,7 +143,7 @@ fn one_statement() {
     let mut compiler = Compiler::new(
         &store,
         vec![],
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let unit = compiler
@@ -206,7 +206,7 @@ fn parse_error() {
     let mut compiler = Compiler::new(
         &store,
         vec![],
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let errors = compiler
@@ -251,7 +251,7 @@ fn conditional_compilation_not_available() {
     let mut compiler = Compiler::new(
         &store,
         vec![],
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let errors = compiler
@@ -276,12 +276,12 @@ fn conditional_compilation_not_available() {
 #[test]
 fn errors_across_multiple_lines() {
     let mut store = PackageStore::new(compile::core());
-    let std = compile::std(&store, RuntimeCapabilityFlags::all());
+    let std = compile::std(&store, TargetCapabilityFlags::all());
     let std_id = store.insert(std);
     let mut compiler = Compiler::new(
         &store,
         [std_id],
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let mut unit = CompileUnit::default();
@@ -350,7 +350,7 @@ fn continue_after_parse_error() {
     let mut compiler = Compiler::new(
         &store,
         vec![],
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let mut errors = Vec::new();
@@ -426,7 +426,7 @@ fn continue_after_lower_error() {
     let mut compiler = Compiler::new(
         &store,
         vec![],
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let mut unit = CompileUnit::default();

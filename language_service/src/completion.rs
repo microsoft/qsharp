@@ -157,16 +157,26 @@ pub(crate) fn get_completions(
 }
 
 fn get_first_non_whitespace_in_source(compilation: &Compilation, package_offset: u32) -> u32 {
+    const QSHARP_MAGIC: &str = "//qsharp";
     let source = compilation
         .user_unit()
         .sources
         .find_by_offset(package_offset)
         .expect("source should exist in the user source map");
 
-    let first = source
-        .contents
-        .find(|c: char| !c.is_whitespace())
-        .unwrap_or(source.contents.len());
+    // Skip the //qsharp magic if it exists (notebook cells)
+    let start = if let Some(qsharp_magic_start) = source.contents.find(QSHARP_MAGIC) {
+        qsharp_magic_start + QSHARP_MAGIC.len()
+    } else {
+        0
+    };
+
+    let source_after_magic = &source.contents[start..];
+
+    let first = start
+        + source_after_magic
+            .find(|c: char| !c.is_whitespace())
+            .unwrap_or(source_after_magic.len());
 
     let first = u32::try_from(first).expect("source length should fit into u32");
 

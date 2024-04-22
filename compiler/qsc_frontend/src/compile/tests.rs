@@ -3,9 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
+use crate::compile::TargetCapabilityFlags;
 use std::rc::Rc;
-
-use crate::compile::RuntimeCapabilityFlags;
 
 use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
 use expect_test::expect;
@@ -60,7 +59,7 @@ fn default_compile(sources: SourceMap) -> CompileUnit {
         &PackageStore::new(super::core()),
         &[],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     )
 }
@@ -446,7 +445,7 @@ fn package_dependency() {
         &store,
         &[],
         sources1,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
@@ -470,7 +469,7 @@ fn package_dependency() {
         &store,
         &[package1],
         sources2,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
@@ -519,7 +518,7 @@ fn package_dependency_internal_error() {
         &store,
         &[],
         sources1,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
@@ -543,7 +542,7 @@ fn package_dependency_internal_error() {
         &store,
         &[package1],
         sources2,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
 
@@ -599,7 +598,7 @@ fn package_dependency_udt() {
         &store,
         &[],
         sources1,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
@@ -623,7 +622,7 @@ fn package_dependency_udt() {
         &store,
         &[package1],
         sources2,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
@@ -674,7 +673,7 @@ fn package_dependency_nested_udt() {
         &store,
         &[],
         sources1,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit1.errors.is_empty(), "{:#?}", unit1.errors);
@@ -703,7 +702,7 @@ fn package_dependency_nested_udt() {
         &store,
         &[package1],
         sources2,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit2.errors.is_empty(), "{:#?}", unit2.errors);
@@ -760,7 +759,7 @@ fn package_dependency_nested_udt() {
 #[test]
 fn std_dependency() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::all()));
+    let std = store.insert(super::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -783,7 +782,7 @@ fn std_dependency() {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -792,7 +791,7 @@ fn std_dependency() {
 #[test]
 fn std_dependency_base_profile() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
+    let std = store.insert(super::std(&store, TargetCapabilityFlags::empty()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -815,7 +814,7 @@ fn std_dependency_base_profile() {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -824,7 +823,7 @@ fn std_dependency_base_profile() {
 #[test]
 fn introduce_prelude_ambiguity() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::all()));
+    let std = store.insert(super::std(&store, TargetCapabilityFlags::all()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -843,7 +842,7 @@ fn introduce_prelude_ambiguity() {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     let errors: Vec<Error> = unit.errors;
@@ -932,7 +931,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         &store,
         &[],
         lib_sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
@@ -957,7 +956,7 @@ fn unimplemented_call_from_dependency_produces_error() {
         &store,
         &[lib],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     expect![[r#"
@@ -1069,7 +1068,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         &store,
         &[],
         lib_sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
@@ -1098,7 +1097,7 @@ fn unimplemented_attribute_avoids_ambiguous_error_with_duplicate_names_in_scope(
         &store,
         &[lib],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     expect![[r#"
@@ -1127,7 +1126,7 @@ fn duplicate_intrinsic_from_dependency() {
         &store,
         &[],
         lib_sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
@@ -1150,7 +1149,7 @@ fn duplicate_intrinsic_from_dependency() {
         &store,
         &[lib],
         sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     expect![[r#"
@@ -1174,7 +1173,7 @@ fn duplicate_intrinsic_from_dependency() {
 #[test]
 fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
+    let std = store.insert(super::std(&store, TargetCapabilityFlags::empty()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -1201,7 +1200,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::V2PreviewSyntax,
     );
     expect![[r#"
@@ -1230,7 +1229,7 @@ fn reject_use_qubit_block_syntax_if_preview_feature_is_on() {
 #[test]
 fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
     let mut store = PackageStore::new(super::core());
-    let std = store.insert(super::std(&store, RuntimeCapabilityFlags::empty()));
+    let std = store.insert(super::std(&store, TargetCapabilityFlags::empty()));
     let sources = SourceMap::new(
         [(
             "test".into(),
@@ -1256,7 +1255,7 @@ fn accept_use_qubit_block_syntax_if_preview_feature_is_off() {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
@@ -1288,7 +1287,7 @@ fn hierarchical_namespace_basic() {
         &store,
         &[],
         lib_sources,
-        RuntimeCapabilityFlags::all(),
+        TargetCapabilityFlags::all(),
         LanguageFeatures::default(),
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);

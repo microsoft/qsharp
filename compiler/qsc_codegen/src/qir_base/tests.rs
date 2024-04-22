@@ -9,7 +9,7 @@ use std::sync::Arc;
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, compile, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 use crate::qir_base::generate_qir;
@@ -18,12 +18,12 @@ fn check(program: &str, expr: Option<&str>, expect: &Expect) {
     let mut core = compile::core();
     assert!(run_core_passes(&mut core).is_empty());
     let mut store = PackageStore::new(core);
-    let mut std = compile::std(&store, RuntimeCapabilityFlags::empty());
+    let mut std = compile::std(&store, TargetCapabilityFlags::empty());
     assert!(run_default_passes(
         store.core(),
         &mut std,
         PackageType::Lib,
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     )
     .is_empty());
     let std = store.insert(std);
@@ -35,7 +35,7 @@ fn check(program: &str, expr: Option<&str>, expect: &Expect) {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     assert!(unit.errors.is_empty(), "{:?}", unit.errors);
@@ -43,7 +43,7 @@ fn check(program: &str, expr: Option<&str>, expect: &Expect) {
         store.core(),
         &mut unit,
         PackageType::Exe,
-        RuntimeCapabilityFlags::empty()
+        TargetCapabilityFlags::empty()
     )
     .is_empty());
     let package = store.insert(unit);

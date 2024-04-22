@@ -326,6 +326,17 @@ impl Value {
         v
     }
 
+    /// Convert the [Value] into a var
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Var`].
+    #[must_use]
+    pub fn unwrap_var(self) -> Var {
+        let Value::Var(v) = self else {
+            panic!("value should be Var, got {}", self.type_name());
+        };
+        v
+    }
+
     #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self {

@@ -117,9 +117,42 @@ pub fn result_record_decl() -> Callable {
 }
 
 #[must_use]
+pub fn int_record_decl() -> Callable {
+    Callable {
+        name: "__quantum__rt__integer_record_output".to_string(),
+        input_type: vec![Ty::Integer, Ty::Pointer],
+        output_type: None,
+        body: None,
+        call_type: CallableType::OutputRecording,
+    }
+}
+
+#[must_use]
+pub fn bool_record_decl() -> Callable {
+    Callable {
+        name: "__quantum__rt__bool_record_output".to_string(),
+        input_type: vec![Ty::Boolean, Ty::Pointer],
+        output_type: None,
+        body: None,
+        call_type: CallableType::OutputRecording,
+    }
+}
+
+#[must_use]
 pub fn array_record_decl() -> Callable {
     Callable {
         name: "__quantum__rt__array_record_output".to_string(),
+        input_type: vec![Ty::Integer, Ty::Pointer],
+        output_type: None,
+        body: None,
+        call_type: CallableType::OutputRecording,
+    }
+}
+
+#[must_use]
+pub fn tuple_record_decl() -> Callable {
+    Callable {
+        name: "__quantum__rt__tuple_record_output".to_string(),
         input_type: vec![Ty::Integer, Ty::Pointer],
         output_type: None,
         body: None,

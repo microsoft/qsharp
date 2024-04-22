@@ -20,9 +20,7 @@ namespace Kata.Verification {
             Message("Look out for hints when your solution is incorrect.");
             Message("Hint: examine the effect your solution has on the |0〉 state and compare it with the effect it " +
                 "is expected to have.");
-            use target = Qubit[1]; // |0〉
-            ShowQuantumStateComparison(target, solution, reference);
-            ResetAll(target);
+            ShowQuantumStateComparison(1, (qs => ()), solution, reference);
         }
         isCorrect
     }

@@ -6,8 +6,8 @@ mod tests;
 
 use crate::{
     compile::{
-        self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, RuntimeCapabilityFlags,
-        SourceMap,
+        self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, SourceMap,
+        TargetCapabilityFlags,
     },
     error::WithSource,
     lower::Lowerer,
@@ -38,7 +38,7 @@ pub struct Compiler {
     resolver: Resolver,
     checker: Checker,
     lowerer: Lowerer,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 }
 
@@ -58,7 +58,7 @@ impl Compiler {
     pub fn new(
         store: &PackageStore,
         dependencies: impl IntoIterator<Item = PackageId>,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> Self {
         let mut resolve_globals = resolve::GlobalTable::new();

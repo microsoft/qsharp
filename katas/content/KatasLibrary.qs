@@ -89,48 +89,46 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
-    /// # Summary
-    /// Shows the effect a quantum operation has on the quantum state.
-    operation ShowEffectOnQuantumState(targetRegister : Qubit[], op : (Qubit[] => Unit is Adj + Ctl)) : Unit {
-        Message("Quantum state before applying the operation:");
-        DumpMachine();
-
-        // Apply the operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        Message("Quantum state after applying the operation:");
-        op(targetRegister);
-        DumpMachine();
-        Adjoint op(targetRegister);
-    }
 
     /// # Summary
     /// Shows the comparison of the quantum state between a specific operation and a reference operation.
     operation ShowQuantumStateComparison(
-        targetRegister : Qubit[],
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl))
+        registerSize : Int,
+        initialState : Qubit[] => Unit,
+        op : Qubit[] => Unit,
+        reference : Qubit[] => Unit)
     : Unit {
-        Message("Initial quantum state:");
-        DumpMachine();
+        {
+            use register = Qubit[registerSize];
+            initialState(register);
 
-        // Apply the reference operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        reference(targetRegister);
-        Message("Expected quantum state after applying the operation:");
-        DumpMachine();
-        Adjoint reference(targetRegister);
+            Message("Initial quantum state:");
+            DumpMachine();
 
-        // Apply the specific operation, dump the simulator state and "undo" the operation by applying the adjoint.
-        op(targetRegister);
-        Message("Actual quantum state after applying the operation:");
-        DumpMachine();
-        Adjoint op(targetRegister);
+            // Apply the reference operation and dump the simulator state
+            reference(register);
+            Message("Expected quantum state after applying the operation:");
+            DumpMachine();
+            ResetAll(register);
+        }
+
+        {
+            use register = Qubit[registerSize];
+            initialState(register);
+            // Apply the comparison operation and dump the simulator state
+            op(register);
+            Message("Actual quantum state after applying the operation:");
+            DumpMachine();
+            ResetAll(register);
+        }
     }
 
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits. If they don't, prints user feedback.
     operation CheckOperationsEquivalenceOnZeroStateWithFeedback(
-        testImpl : (Qubit[] => Unit is Adj + Ctl),
-        refImpl : (Qubit[] => Unit is Adj + Ctl),
+        testImpl : (Qubit[] => Unit),
+        refImpl : (Qubit[] => Unit is Adj),
         inputSize : Int
     ) : Bool {
 
@@ -141,9 +139,7 @@ namespace Microsoft.Quantum.Katas {
             Message("Correct!");
         } else {
             Message("Incorrect.");
-            use target = Qubit[inputSize];
-            ShowQuantumStateComparison(target, testImpl, refImpl);
-            ResetAll(target);
+            ShowQuantumStateComparison(inputSize, (qs => ()), testImpl, refImpl);
         }
         isCorrect
     }

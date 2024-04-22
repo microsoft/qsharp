@@ -12,7 +12,7 @@ pub mod target;
 pub use qsc_formatter::formatter;
 
 pub use qsc_frontend::compile::{
-    CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceContents, SourceMap, SourceName,
+    CompileUnit, PackageStore, SourceContents, SourceMap, SourceName, TargetCapabilityFlags,
 };
 
 pub mod resolve {

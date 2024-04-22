@@ -10,6 +10,8 @@ license.workspace = true
 
 [dependencies]
 miette = { workspace = true }
+num-bigint = { workspace = true }
+num-complex = { workspace = true }
 rustc-hash = { workspace = true }
 qsc_data_structures = { path = "../qsc_data_structures" }
 qsc_eval = { path = "../qsc_eval" }
