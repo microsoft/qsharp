@@ -124,7 +124,7 @@ The $CNOT$ gate is self-adjoint: applying it for the second time reverses its ef
 
 @[exercise]({
     "id": "multi_qubit_gates__entangle_qubits",
-    "title": "EntangleQubits",
+    "title": "Entangle Qubits",
     "path": "./entangle_qubits/",
     "qsDependencies": [
         "../KatasLibrary.qs"
