@@ -1,8 +1,19 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use std::borrow::Cow;
 
 use probability::{distribution::Inverse, prelude::Binomial};
 
 use super::Factory;
+
+/// Helper structs when dispatching multiple magic states to different factories
+mod dispatch;
+pub use dispatch::{BuilderDispatch2, FactoryDispatch2};
+
+/// Helper structs for when no factories are used
+mod empty;
+pub use empty::NoFactories;
 
 pub trait DistillationUnit<P> {
     fn num_output_states(&self) -> u64;

@@ -4,9 +4,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use qsc::incremental::Compiler;
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_eval::{debug::map_hir_package_to_fir, lower::Lowerer};
 use qsc_fir::fir::PackageStore;
-use qsc_frontend::compile::{PackageStore as HirPackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_passes::PackageType;
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 
@@ -130,30 +130,26 @@ impl Default for CompilationContext {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
             LanguageFeatures::default(),
         )
         .expect("should be able to create a new compiler");
-        let mut lowerer = Lowerer::new();
-        let fir_store = lower_hir_package_store(&mut lowerer, compiler.package_store());
+        let fir_store = lower_hir_package_store(compiler.package_store());
         Self {
             compiler,
-            lowerer,
+            lowerer: Lowerer::new(),
             fir_store,
             compute_properties: None,
         }
     }
 }
 
-fn lower_hir_package_store(
-    lowerer: &mut Lowerer,
-    hir_package_store: &HirPackageStore,
-) -> PackageStore {
+fn lower_hir_package_store(hir_package_store: &HirPackageStore) -> PackageStore {
     let mut fir_store = PackageStore::new();
     for (id, unit) in hir_package_store {
         fir_store.insert(
             map_hir_package_to_fir(id),
-            lowerer.lower_package(&unit.package),
+            Lowerer::new().lower_package(&unit.package),
         );
     }
     fir_store

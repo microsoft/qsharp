@@ -9,7 +9,8 @@ from ._native import (
     Output,
     Circuit,
 )
-from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
+from warnings import warn
+from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 
@@ -22,12 +23,23 @@ class Config:
     Configuration hints for the language service.
     """
 
-    def __init__(self, target_profile: TargetProfile, language_features: List[str]):
-        if target_profile == TargetProfile.Unrestricted:
-            self._config = {"targetProfile": "unrestricted"}
+    def __init__(
+        self,
+        target_profile: TargetProfile,
+        language_features: Optional[List[str]],
+        manifest: Optional[str],
+    ):
+        if target_profile == TargetProfile.Quantinuum:
+            self._config = {"targetProfile": "quantinuum"}
+            warn("The Quantinuum target profile is a preview feature.")
+            warn("Functionality may be incomplete or incorrect.")
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
+        elif target_profile == TargetProfile.Unrestricted:
+            self._config = {"targetProfile": "unrestricted"}
+
         self._config["languageFeatures"] = language_features
+        self._config["manifest"] = manifest
 
     def __repr__(self) -> str:
         return "Q# initialized with configuration: " + str(self._config)
@@ -49,7 +61,7 @@ def init(
     *,
     target_profile: TargetProfile = TargetProfile.Unrestricted,
     project_root: Optional[str] = None,
-    language_features: List[str] = [],
+    language_features: Optional[List[str]] = None,
 ) -> Config:
     """
     Initializes the Q# interpreter.
@@ -65,6 +77,7 @@ def init(
 
     global _interpreter
 
+    manifest_contents = None
     manifest_descriptor = None
     if project_root is not None:
         qsharp_json = join(project_root, "qsharp.json")
@@ -77,25 +90,12 @@ def init(
         manifest_descriptor["manifest_dir"] = project_root
 
         try:
-            (_, file_contents) = read_file(qsharp_json)
+            (_, manifest_contents) = read_file(qsharp_json)
+            manifest_descriptor["manifest"] = manifest_contents
         except Exception as e:
             raise QSharpError(
                 f"Error reading {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
             ) from e
-
-        try:
-            manifest_descriptor["manifest"] = json.loads(file_contents)
-        except Exception as e:
-            raise QSharpError(
-                f"Error parsing {qsharp_json}. qsharp.json should exist at the project root and be a valid JSON file."
-            ) from e
-
-    # if no features were passed in as an argument, use the features from the manifest.
-    # this way we prefer the features from the argument over those from the manifest.
-    if language_features == [] and manifest_descriptor != None:
-        language_features = (
-            manifest_descriptor["manifest"].get("languageFeatures") or []
-        )
 
     _interpreter = Interpreter(
         target_profile,
@@ -107,7 +107,7 @@ def init(
 
     # Return the configuration information to provide a hint to the
     # language service through the cell output.
-    return Config(target_profile, language_features)
+    return Config(target_profile, language_features, manifest_contents)
 
 
 def get_interpreter() -> Interpreter:
@@ -342,6 +342,39 @@ class StateDump:
 
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
+
+    def check_eq(
+        self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
+    ) -> bool:
+        """
+        Checks if the state dump is equal to the given state. This is not mathematical equality,
+        as the check ignores global phase.
+
+        :param state: The state to check against, provided either as a dictionary of state indices to complex amplitudes,
+            or as a list of real amplitudes.
+        :param tolerance: The tolerance for the check. Defaults to 1e-10.
+        """
+        phase = None
+        # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
+        if isinstance(state, list):
+            state = {i: state[i] for i in range(len(state))}
+        # Filter out zero states from the state dump and the given state based on tolerance
+        state = {k: v for k, v in state.items() if abs(v) > tolerance}
+        inner_state = {k: v for k, v in self.__inner.items() if abs(v) > tolerance}
+        if len(state) != len(inner_state):
+            return False
+        for key in state:
+            if key not in inner_state:
+                return False
+            if phase is None:
+                # Calculate the phase based on the first state pair encountered.
+                # Every pair of states after this must have the same phase for the states to be equivalent.
+                phase = inner_state[key] / state[key]
+            elif abs(phase - inner_state[key] / state[key]) > tolerance:
+                # This pair of states does not have the same phase,
+                # within tolerance, so the equivalence check fails.
+                return False
+        return True
 
 
 def dump_machine() -> StateDump:

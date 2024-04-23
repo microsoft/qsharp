@@ -9,7 +9,7 @@ mod given_interpreter {
     use miette::Diagnostic;
     use qsc_data_structures::language_features::LanguageFeatures;
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+    use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
@@ -39,10 +39,21 @@ mod given_interpreter {
         (interpreter.eval_entry(&mut receiver), receiver.dump())
     }
 
+    fn fragment(
+        interpreter: &mut Interpreter,
+        fragments: &str,
+        package: crate::ast::Package,
+    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        let result = interpreter.eval_ast_fragments(&mut receiver, fragments, package);
+        (result, receiver.dump())
+    }
+
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::RuntimeCapabilityFlags;
+        use qsc_frontend::compile::TargetCapabilityFlags;
 
         use super::*;
 
@@ -58,7 +69,7 @@ mod given_interpreter {
                     false,
                     SourceMap::default(),
                     PackageType::Lib,
-                    RuntimeCapabilityFlags::all(),
+                    TargetCapabilityFlags::all(),
                     LanguageFeatures::default(),
                 )
                 .expect("interpreter should be created");
@@ -507,6 +518,72 @@ mod given_interpreter {
         }
 
         #[test]
+        fn callables_failing_profile_validation_are_still_registered() {
+            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
+            where
+                E: Diagnostic,
+            {
+                is_only_error(
+                    result,
+                    output,
+                    &expect![[r#"
+                    cannot use a dynamic integer value
+                       [line_0] [set x = 2]
+                    cannot use a dynamic integer value
+                       [line_0] [x]
+                "#]],
+                );
+            }
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            verify_same_error(&result, &output);
+            // do something innocuous
+            let (result, output) = line(&mut interpreter, indoc! {r#"Foo()"#});
+            // if the callable wasn't registered, this would panic instead of returning an error.
+            verify_same_error(&result, &output);
+        }
+
+        #[test]
+        fn once_rca_validation_fails_following_calls_also_fail_by_design() {
+            fn verify_same_error<E>(result: &Result<Value, Vec<E>>, output: &str)
+            where
+                E: Diagnostic,
+            {
+                is_only_error(
+                    result,
+                    output,
+                    &expect![[r#"
+                    cannot use a dynamic integer value
+                       [line_0] [set x = 2]
+                    cannot use a dynamic integer value
+                       [line_0] [x]
+                "#]],
+                );
+            }
+            let mut interpreter = get_interpreter_with_capbilities(TargetCapabilityFlags::Adaptive);
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    operation Foo() : Int { use q = Qubit(); mutable x = 1; if MResetZ(q) == One { set x = 2; } x }
+                "#},
+            );
+            verify_same_error(&result, &output);
+            // do something innocuous
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                    let y = 7;
+                "#},
+            );
+            verify_same_error(&result, &output);
+        }
+
+        #[test]
         fn namespace_usable_before_definition() {
             let mut interpreter = get_interpreter();
             let (result, output) = line(
@@ -552,7 +629,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -583,7 +660,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -645,12 +722,180 @@ mod given_interpreter {
         }
 
         #[test]
+        fn adaptive_qirgen() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetCapabilityFlags::Adaptive,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                namespace Test {
+                    open Microsoft.Quantum.Math;
+                    open QIR.Intrinsic;
+                    @EntryPoint()
+                    operation Main() : Result {
+                        use q = Qubit();
+                        let pi_over_2 = 4.0 / 2.0;
+                        __quantum__qis__rz__body(pi_over_2, q);
+                        mutable some_angle = ArcSin(0.0);
+                        __quantum__qis__rz__body(some_angle, q);
+                        set some_angle = ArcCos(-1.0) / PI();
+                        __quantum__qis__rz__body(some_angle, q);
+                        __quantum__qis__mresetz__body(q)
+                    }
+                }"#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Test.Main()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                block_0:
+                  call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]]
+            .assert_eq(&res);
+        }
+
+        #[test]
+        fn adaptive_qirgen_nested_output_types() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetCapabilityFlags::Adaptive,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                namespace Test {
+                    open QIR.Intrinsic;
+                    @EntryPoint()
+                    operation Main() : (Result, (Bool, Bool)) {
+                        use q = Qubit();
+                        let r = __quantum__qis__mresetz__body(q);
+                        (r, (r == One, r == Zero))
+                    }
+                }"#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter.qirgen("Test.Main()").expect("expected success");
+            expect![[r#"
+                %Result = type opaque
+                %Qubit = type opaque
+
+                define void @ENTRYPOINT__main() #0 {
+                block_0:
+                  call void @__quantum__qis__mresetz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*))
+                  %var_0 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_1 = icmp eq i1 %var_0, true
+                  %var_2 = call i1 @__quantum__qis__read_result__body(%Result* inttoptr (i64 0 to %Result*))
+                  %var_3 = icmp eq i1 %var_2, false
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+                  call void @__quantum__rt__tuple_record_output(i64 2, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_1, i8* null)
+                  call void @__quantum__rt__bool_record_output(i1 %var_3, i8* null)
+                  ret void
+                }
+
+                declare void @__quantum__qis__mresetz__body(%Qubit*, %Result*) #1
+
+                declare i1 @__quantum__qis__read_result__body(%Result*)
+
+                declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+                declare void @__quantum__rt__result_record_output(%Result*, i8*)
+
+                declare void @__quantum__rt__bool_record_output(i1, i8*)
+
+                attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+                attributes #1 = { "irreversible" }
+
+                ; module flags
+
+                !llvm.module.flags = !{!0, !1, !2, !3}
+
+                !0 = !{i32 1, !"qir_major_version", i32 1}
+                !1 = !{i32 7, !"qir_minor_version", i32 0}
+                !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+                !3 = !{i32 1, !"dynamic_result_management", i1 false}
+            "#]]
+            .assert_eq(&res);
+        }
+
+        #[test]
+        fn adaptive_qirgen_fails_when_entry_expr_does_not_match_profile() {
+            let mut interpreter = Interpreter::new(
+                true,
+                SourceMap::default(),
+                PackageType::Lib,
+                TargetCapabilityFlags::Adaptive,
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let (result, output) = line(
+                &mut interpreter,
+                indoc! {r#"
+                use q = Qubit();
+                mutable x = 1;
+                "#
+                },
+            );
+            is_only_value(&result, &output, &Value::unit());
+            let res = interpreter
+                .qirgen("if M(q) == One { set x = 2; }")
+                .expect_err("expected error");
+            is_error(
+                &res,
+                &expect![[r#"
+                    cannot use a dynamic integer value
+                       [<entry>] [set x = 2]
+                "#]],
+            );
+        }
+
+        #[test]
         fn qirgen_entry_expr_in_block() {
             let mut interpreter = Interpreter::new(
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -717,7 +962,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -799,7 +1044,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -826,7 +1071,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -913,7 +1158,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -977,7 +1222,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1082,7 +1327,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                RuntimeCapabilityFlags::empty(),
+                TargetCapabilityFlags::empty(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1096,7 +1341,18 @@ mod given_interpreter {
             true,
             SourceMap::default(),
             PackageType::Lib,
-            RuntimeCapabilityFlags::all(),
+            TargetCapabilityFlags::all(),
+            LanguageFeatures::default(),
+        )
+        .expect("interpreter should be created")
+    }
+
+    fn get_interpreter_with_capbilities(capabilities: TargetCapabilityFlags) -> Interpreter {
+        Interpreter::new(
+            true,
+            SourceMap::default(),
+            PackageType::Lib,
+            capabilities,
             LanguageFeatures::default(),
         )
         .expect("interpreter should be created")
@@ -1179,14 +1435,16 @@ mod given_interpreter {
 
     #[cfg(test)]
     mod with_sources {
-        use std::sync::Arc;
+        use std::{sync::Arc, vec};
 
         use super::*;
         use crate::interpret::Debugger;
         use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::{RuntimeCapabilityFlags, SourceMap};
+        use qsc_ast::ast::{Expr, ExprKind, NodeId, Package, Path, Stmt, StmtKind, TopLevelNode};
+        use qsc_data_structures::span::Span;
+        use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
         use qsc_passes::PackageType;
 
         #[test]
@@ -1204,7 +1462,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Exe,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1227,7 +1485,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1254,7 +1512,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1296,7 +1554,7 @@ mod given_interpreter {
             let sources = SourceMap::new(sources, None);
             let debugger = Debugger::new(
                 sources,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 Encoding::Utf8,
                 LanguageFeatures::default(),
             )
@@ -1327,7 +1585,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1358,7 +1616,7 @@ mod given_interpreter {
                 true,
                 sources,
                 PackageType::Lib,
-                RuntimeCapabilityFlags::all(),
+                TargetCapabilityFlags::all(),
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -1371,6 +1629,178 @@ mod given_interpreter {
                       explicit fail [core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
                 "#]],
             );
+        }
+
+        #[test]
+        fn interpreter_can_be_created_from_ast() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Result {
+                            use qs = Qubit[2];
+                            X(qs[0]);
+                            CNOT(qs[0], qs[1]);
+                            let res = Measure([PauliZ, PauliZ], qs[...1]);
+                            ResetAll(qs);
+                            res
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                Some("A.B()".into()),
+            );
+
+            let (package_type, capabilities, language_features) = (
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+
+            let mut store = crate::PackageStore::new(crate::compile::core());
+            let dependencies = vec![store.insert(crate::compile::std(&store, capabilities))];
+
+            let (unit, errors) = crate::compile::compile(
+                &store,
+                &dependencies,
+                sources,
+                package_type,
+                capabilities,
+                language_features,
+            );
+            for e in &errors {
+                eprintln!("{e:?}");
+            }
+            assert!(errors.is_empty(), "compilation failed: {}", errors[0]);
+            let package_id = store.insert(unit);
+
+            let mut interpreter =
+                Interpreter::from(store, package_id, capabilities, language_features)
+                    .expect("interpreter should be created");
+            let (result, output) = entry(&mut interpreter);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Result(qsc_eval::val::Result::Val(false)),
+            );
+        }
+
+        #[test]
+        fn ast_fragments_can_be_evaluated() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Result {
+                            use qs = Qubit[2];
+                            X(qs[0]);
+                            CNOT(qs[0], qs[1]);
+                            let res = Measure([PauliZ, PauliZ], qs[...1]);
+                            ResetAll(qs);
+                            res
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                None,
+            );
+
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let package = get_package_for_call("A", "B");
+            let (result, output) = fragment(&mut interpreter, "A.B()", package);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Result(qsc_eval::val::Result::Val(false)),
+            );
+        }
+
+        #[test]
+        fn ast_fragments_evaluation_returns_runtime_errors() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Int {
+                            42 / 0
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                None,
+            );
+
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let package = get_package_for_call("A", "B");
+            let (result, output) = fragment(&mut interpreter, "A.B()", package);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: division by zero
+                      cannot divide by zero [test] [0]
+                "#]],
+            );
+        }
+
+        fn get_package_for_call(ns: &str, name: &str) -> crate::ast::Package {
+            let args = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Tuple(Box::new([]))),
+            };
+            let path = Path {
+                id: NodeId::default(),
+                span: Span::default(),
+                namespace: Some(Box::new(qsc_ast::ast::Ident {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    name: ns.into(),
+                })),
+                name: Box::new(qsc_ast::ast::Ident {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    name: name.into(),
+                }),
+            };
+            let path_expr = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Path(Box::new(path))),
+            };
+            let expr = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Call(Box::new(path_expr), Box::new(args))),
+            };
+            let stmt = Stmt {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(StmtKind::Expr(Box::new(expr))),
+            };
+            let top_level = TopLevelNode::Stmt(Box::new(stmt));
+            Package {
+                id: NodeId::default(),
+                nodes: vec![top_level].into_boxed_slice(),
+                entry: None,
+            }
         }
     }
 }

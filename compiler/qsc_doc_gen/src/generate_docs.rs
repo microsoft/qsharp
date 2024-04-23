@@ -7,7 +7,7 @@ mod tests;
 use crate::display::{increase_header_level, parse_doc_for_summary};
 use crate::display::{CodeDisplay, Lookup};
 use qsc_ast::ast;
-use qsc_frontend::compile::{self, PackageStore, RuntimeCapabilityFlags};
+use qsc_frontend::compile::{self, PackageStore, TargetCapabilityFlags};
 use qsc_frontend::resolve;
 use qsc_hir::hir::{CallableKind, Item, ItemKind, Package, PackageId, Visibility};
 use qsc_hir::{hir, ty};
@@ -29,7 +29,7 @@ impl Compilation {
     /// Creates a new `Compilation` by compiling sources.
     pub(crate) fn new() -> Self {
         let mut package_store = PackageStore::new(compile::core());
-        package_store.insert(compile::std(&package_store, RuntimeCapabilityFlags::all()));
+        package_store.insert(compile::std(&package_store, TargetCapabilityFlags::all()));
 
         Self { package_store }
     }

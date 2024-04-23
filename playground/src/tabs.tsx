@@ -8,8 +8,17 @@ import { ActiveTab } from "./main.js";
 const tabArray: Array<[ActiveTab, string]> = [
   ["results-tab", "RESULTS"],
   ["hir-tab", "HIR"],
+  ["ast-tab", "AST"],
   ["logs-tab", "LOGS"],
 ];
+
+function AstTab(props: { ast: string; activeTab: ActiveTab }) {
+  return props.activeTab === "ast-tab" ? (
+    <textarea readonly class="ast-output">
+      {props.ast}
+    </textarea>
+  ) : null;
+}
 
 function HirTab(props: { hir: string; activeTab: ActiveTab }) {
   return props.activeTab === "hir-tab" ? (
@@ -24,6 +33,7 @@ export function OutputTabs(props: {
   showPanel: boolean;
   onShotError?: (err?: VSDiagnostic) => void;
   kataMode?: boolean;
+  ast: string;
   hir: string;
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
@@ -44,6 +54,7 @@ export function OutputTabs(props: {
       ) : null}
       <ResultsTab {...props} />
       <HirTab {...props} />
+      <AstTab {...props} />
     </div>
   );
 }

@@ -4,7 +4,12 @@
 import { log, TargetProfile } from "qsharp-lang";
 import * as vscode from "vscode";
 import { isQsharpDocument } from "./common";
-import { getTarget, getTargetFriendlyName, setTarget } from "./config";
+import {
+  getEnableAdaptiveProfile,
+  getTarget,
+  getTargetFriendlyName,
+  setTarget,
+} from "./config";
 
 export function activateTargetProfileStatusBarItem(): vscode.Disposable[] {
   const disposables = [];
@@ -81,7 +86,7 @@ function registerTargetProfileCommand() {
     "qsharp-vscode.setTargetProfile",
     async () => {
       const target = await vscode.window.showQuickPick(
-        targetProfiles.map((profile) => ({
+        getTargetProfiles().map((profile) => ({
           label: profile.uiText,
         })),
         { placeHolder: "Select the QIR target profile" },
@@ -96,13 +101,30 @@ function registerTargetProfileCommand() {
 
 const targetProfiles = [
   { configName: "base", uiText: "Q#: QIR base" },
+  { configName: "quantinuum", uiText: "Q#: QIR Quantinuum" },
   { configName: "unrestricted", uiText: "Q#: unrestricted" },
 ];
+
+function getTargetProfiles(): {
+  configName: string;
+  uiText: string;
+}[] {
+  const allow_quantinuum = getEnableAdaptiveProfile();
+  if (allow_quantinuum) {
+    return targetProfiles;
+  } else {
+    return targetProfiles.filter(
+      (profile) => profile.configName !== "quantinuum",
+    );
+  }
+}
 
 function getTargetProfileSetting(uiText: string): TargetProfile {
   switch (uiText) {
     case "Q#: QIR base":
       return "base";
+    case "Q#: QIR Quantinuum":
+      return "quantinuum";
     case "Q#: unrestricted":
       return "unrestricted";
     default:

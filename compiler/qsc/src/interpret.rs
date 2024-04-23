@@ -23,6 +23,9 @@ pub use qsc_eval::{
     val::Value,
     StepAction, StepResult,
 };
+use qsc_lowerer::{map_fir_package_to_hir, map_hir_package_to_fir};
+use qsc_partial_eval::ProgramEntry;
+use qsc_rca::PackageStoreComputeProperties;
 
 use crate::{
     error::{self, WithStack},
@@ -37,15 +40,15 @@ use qsc_circuit::{
     operations::entry_expr_for_qubit_operation, Builder as CircuitBuilder, Circuit,
     Config as CircuitConfig,
 };
-use qsc_codegen::qir_base::BaseProfSim;
+use qsc_codegen::{qir::fir_to_qir, qir_base::BaseProfSim};
 use qsc_data_structures::{
+    functors::FunctorApp,
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
 };
 use qsc_eval::{
     backend::{Backend, Chain as BackendChain, SparseSim},
-    debug::{map_fir_package_to_hir, map_hir_package_to_fir},
     output::Receiver,
     val, Env, State, VariableInfo,
 };
@@ -55,10 +58,11 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, Source, SourceMap},
+    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
     error::WithSource,
+    incremental::Increment,
 };
-use qsc_passes::PackageType;
+use qsc_passes::{PackageType, PassContext};
 use rustc_hash::FxHashSet;
 use thiserror::Error;
 
@@ -83,26 +87,30 @@ pub enum Error {
     #[error("runtime error")]
     #[diagnostic(transparent)]
     Eval(#[from] WithStack<WithSource<qsc_eval::Error>>),
+    #[error("circuit error")]
+    #[diagnostic(transparent)]
+    Circuit(#[from] qsc_circuit::Error),
     #[error("entry point not found")]
     #[diagnostic(code("Qsc.Interpret.NoEntryPoint"))]
     NoEntryPoint,
     #[error("unsupported runtime capabilities for code generation")]
     #[diagnostic(code("Qsc.Interpret.UnsupportedRuntimeCapabilities"))]
     UnsupportedRuntimeCapabilities,
-    #[error("expression does not evaluate to an operation that takes qubit parameters")]
-    #[diagnostic(code("Qsc.Interpret.NoCircuitForOperation"))]
-    #[diagnostic(help(
-        "provide the name of a callable or a lambda expression that only takes qubits as parameters"
-    ))]
-    NoCircuitForOperation,
+    #[error("expression does not evaluate to an operation")]
+    #[diagnostic(code("Qsc.Interpret.NotAnOperation"))]
+    #[diagnostic(help("provide the name of a callable or a lambda expression"))]
+    NotAnOperation,
+    #[error("partial evaluation error")]
+    #[diagnostic(transparent)]
+    PartialEvaluation(#[from] WithSource<qsc_partial_eval::Error>),
 }
 
 /// A Q# interpreter.
 pub struct Interpreter {
     /// The incremental Q# compiler.
     compiler: Compiler,
-    /// The runtime capabilities used for compilation.
-    capabilities: RuntimeCapabilityFlags,
+    /// The target capabilities used for compilation.
+    capabilities: TargetCapabilityFlags,
     /// The number of lines that have so far been compiled.
     /// This field is used to generate a unique label
     /// for each line evaluated with `eval_fragments`.
@@ -110,7 +118,7 @@ pub struct Interpreter {
     // The FIR store
     fir_store: fir::PackageStore,
     /// FIR lowerer
-    lowerer: qsc_eval::lower::Lowerer,
+    lowerer: qsc_lowerer::Lowerer,
     /// The ID of the current package.
     /// This ID is valid both for the FIR store and the `PackageStore`.
     package: PackageId,
@@ -140,16 +148,89 @@ impl Interpreter {
         std: bool,
         sources: SourceMap,
         package_type: PackageType,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let mut lowerer = qsc_eval::lower::Lowerer::new();
-        let mut fir_store = fir::PackageStore::new();
+        Self::new_internal(
+            false,
+            std,
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+        )
+    }
 
+    /// Creates a new incremental compiler with debugging stmts enabled, compiling the passed in sources.
+    /// # Errors
+    /// If compiling the sources fails, compiler errors are returned.
+    pub fn new_with_debug(
+        std: bool,
+        sources: SourceMap,
+        package_type: PackageType,
+        capabilities: TargetCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
+        Self::new_internal(
+            true,
+            std,
+            sources,
+            package_type,
+            capabilities,
+            language_features,
+        )
+    }
+
+    fn new_internal(
+        dbg: bool,
+        std: bool,
+        sources: SourceMap,
+        package_type: PackageType,
+        capabilities: TargetCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
         let compiler = Compiler::new(std, sources, package_type, capabilities, language_features)
             .map_err(into_errors)?;
 
+        let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
+            fir_store.insert(
+                map_hir_package_to_fir(id),
+                qsc_lowerer::Lowerer::new()
+                    .with_debug(dbg)
+                    .lower_package(&unit.package),
+            );
+        }
+
+        let source_package_id = compiler.source_package_id();
+        let package_id = compiler.package_id();
+        Ok(Self {
+            compiler,
+            lines: 0,
+            capabilities,
+            fir_store,
+            lowerer: qsc_lowerer::Lowerer::new().with_debug(dbg),
+            env: Env::default(),
+            sim: sim_circuit_backend(),
+            quantum_seed: None,
+            classical_seed: None,
+            package: map_hir_package_to_fir(package_id),
+            source_package: map_hir_package_to_fir(source_package_id),
+        })
+    }
+
+    pub fn from(
+        store: PackageStore,
+        source_package_id: qsc_hir::hir::PackageId,
+        capabilities: TargetCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
+        let compiler = Compiler::from(store, source_package_id, capabilities, language_features)
+            .map_err(into_errors)?;
+
+        let mut fir_store = fir::PackageStore::new();
+        for (id, unit) in compiler.package_store() {
+            let mut lowerer = qsc_lowerer::Lowerer::new();
             fir_store.insert(
                 map_hir_package_to_fir(id),
                 lowerer.lower_package(&unit.package),
@@ -164,21 +245,9 @@ impl Interpreter {
             lines: 0,
             capabilities,
             fir_store,
-            lowerer,
+            lowerer: qsc_lowerer::Lowerer::new(),
             env: Env::default(),
-            sim: BackendChain::new(
-                SparseSim::new(),
-                CircuitBuilder::new(CircuitConfig {
-                    // When using in conjunction with the simulator,
-                    // the circuit builder should *not* perform base profile
-                    // decompositions, in order to match the simulator's behavior.
-                    //
-                    // Note that conditional compilation (e.g. @Config(Base) attributes)
-                    // will still respect the selected profile. This also
-                    // matches the behavior of the simulator.
-                    base_profile: false,
-                }),
-            ),
+            sim: sim_circuit_backend(),
             quantum_seed: None,
             classical_seed: None,
             package: map_hir_package_to_fir(package_id),
@@ -261,7 +330,37 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
-        let (_, graph) = self.lower(&increment);
+        self.eval_increment(receiver, increment)
+    }
+
+    /// It is assumed that if there were any parse errors on the fragments, the caller would have
+    /// already handled them. This function is intended to be used in cases where the caller wants
+    /// to handle the parse errors themselves.
+    ///  # Errors
+    /// If the compilation of the fragments fails, an error is returned.
+    /// If there is a runtime error when interpreting the fragments, an error is returned.
+    pub fn eval_ast_fragments(
+        &mut self,
+        receiver: &mut impl Receiver,
+        fragments: &str,
+        package: qsc_ast::ast::Package,
+    ) -> InterpretResult {
+        let label = self.next_line_label();
+
+        let increment = self
+            .compiler
+            .compile_ast_fragments_fail_fast(&label, fragments, package)
+            .map_err(into_errors)?;
+
+        self.eval_increment(receiver, increment)
+    }
+
+    fn eval_increment(
+        &mut self,
+        receiver: &mut impl Receiver,
+        increment: Increment,
+    ) -> InterpretResult {
+        let (graph, _) = self.lower(&increment)?;
 
         // Updating the compiler state with the new AST/HIR nodes
         // is not necessary for the interpreter to function, as all
@@ -306,17 +405,59 @@ impl Interpreter {
     /// Performs QIR codegen using the given entry expression on a new instance of the environment
     /// and simulator but using the current compilation.
     pub fn qirgen(&mut self, expr: &str) -> std::result::Result<String, Vec<Error>> {
-        if self.capabilities != RuntimeCapabilityFlags::empty() {
+        if self.capabilities == TargetCapabilityFlags::all() {
             return Err(vec![Error::UnsupportedRuntimeCapabilities]);
         }
+        if self.capabilities == TargetCapabilityFlags::empty() {
+            let mut sim = BaseProfSim::new();
+            let mut stdout = std::io::sink();
+            let mut out = GenericReceiver::new(&mut stdout);
 
-        let mut sim = BaseProfSim::new();
-        let mut stdout = std::io::sink();
-        let mut out = GenericReceiver::new(&mut stdout);
+            let val = self.run_with_sim(&mut sim, &mut out, expr)??;
 
-        let val = self.run_with_sim(&mut sim, &mut out, expr)??;
+            Ok(sim.finish(&val))
+        } else {
+            // Compile the expression. This operation will set the expression as
+            // the entry-point in the FIR store.
+            let (graph, compute_properties) = self.compile_entry_expr(expr)?;
 
-        Ok(sim.finish(&val))
+            let Some(compute_properties) = compute_properties else {
+                // This can only happen if capability analysis was not run. This would be a bug
+                // and we are in a bad state and can't proceed.
+                panic!(
+                    "internal error: compute properties not set after lowering entry expression"
+                );
+            };
+            let package = self.fir_store.get(self.package);
+            let entry = ProgramEntry {
+                exec_graph: graph.into(),
+                expr: (
+                    self.package,
+                    package
+                        .entry
+                        .expect("package must have an entry expression"),
+                )
+                    .into(),
+            };
+            // Generate QIR
+            fir_to_qir(
+                &self.fir_store,
+                self.capabilities,
+                Some(compute_properties),
+                &entry,
+            )
+            .map_err(|e| {
+                let source_package = self
+                    .compiler
+                    .package_store()
+                    .get(map_fir_package_to_hir(self.package))
+                    .expect("package should exist in the package store");
+                vec![Error::PartialEvaluation(WithSource::from_map(
+                    &source_package.sources,
+                    e,
+                ))]
+            })
+        }
     }
 
     /// Generates a circuit representation for the program.
@@ -326,64 +467,44 @@ impl Interpreter {
     ///
     /// An operation can be specified by its name or a lambda expression that only takes qubits.
     /// e.g. `Sample.Main` , `qs => H(qs[0])`
+    ///
+    /// If `simulate` is specified, the program is simulated and the resulting
+    /// circuit is returned (a.k.a. trace mode). Otherwise, the circuit is generated without
+    /// simulation. In this case circuit generation may fail if the program contains dynamic
+    /// behavior (quantum operations that are dependent on measurement results).
     pub fn circuit(
         &mut self,
         entry: CircuitEntryPoint,
+        simulate: bool,
     ) -> std::result::Result<Circuit, Vec<Error>> {
-        let mut sink = std::io::sink();
-        let mut out = GenericReceiver::new(&mut sink);
-        let mut sim = CircuitBuilder::new(CircuitConfig {
-            base_profile: self.capabilities.is_empty(),
-        });
-
         let entry_expr = match entry {
             CircuitEntryPoint::Operation(operation_expr) => {
-                // To determine whether the passed in expression is a valid callable name
-                // or lambda, we evaluate it and inspect the runtime value.
-                let maybe_operation = match self.eval_fragments(&mut out, &operation_expr)? {
-                    Value::Closure(b) => Some((b.id, b.functor)),
-                    Value::Global(item_id, functor_app) => Some((item_id, functor_app)),
-                    _ => None,
-                };
-
-                let maybe_invoke_expr = if let Some((item_id, functor_app)) = maybe_operation {
-                    // Controlled operations are not supported at the moment.
-                    if functor_app.controlled > 0 {
-                        return Err(vec![Error::NoCircuitForOperation]);
-                    }
-
-                    // Find the item in the HIR
-                    let package = map_fir_package_to_hir(item_id.package);
-                    let local_item_id = crate::hir::LocalItemId::from(usize::from(item_id.item));
-                    let package_store = self.compiler.package_store();
-
-                    let item = package_store
-                        .get(package)
-                        .and_then(|unit| unit.package.items.get(local_item_id));
-
-                    // Generate the entry expression to invoke the operation.
-                    // Will return `None` if item is not a valid callable that takes qubits.
-                    item.and_then(|item| entry_expr_for_qubit_operation(item, &operation_expr))
-                } else {
-                    return Err(vec![Error::NoCircuitForOperation]);
-                };
-
-                if maybe_invoke_expr.is_none() {
-                    return Err(vec![Error::NoCircuitForOperation]);
-                }
-                maybe_invoke_expr
+                let (item, functor_app) = self.eval_to_operation(&operation_expr)?;
+                let expr = entry_expr_for_qubit_operation(item, functor_app, &operation_expr)
+                    .map_err(|e| vec![e.into()])?;
+                Some(expr)
             }
             CircuitEntryPoint::EntryExpr(expr) => Some(expr),
             CircuitEntryPoint::EntryPoint => None,
         };
 
-        let val = if let Some(entry_expr) = entry_expr {
-            self.run_with_sim(&mut sim, &mut out, &entry_expr)?
-        } else {
-            self.eval_entry_with_sim(&mut sim, &mut out)
-        }?;
+        let circuit = if simulate {
+            let mut sim = sim_circuit_backend();
 
-        Ok(sim.finish(&val))
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.chained.finish()
+        } else {
+            let mut sim = CircuitBuilder::new(CircuitConfig {
+                base_profile: self.capabilities.is_empty(),
+            });
+
+            self.run_with_sim_no_output(entry_expr, &mut sim)?;
+
+            sim.finish()
+        };
+
+        Ok(circuit)
     }
 
     /// Runs the given entry expression on the given simulator with a new instance of the environment
@@ -394,7 +515,7 @@ impl Interpreter {
         receiver: &mut impl Receiver,
         expr: &str,
     ) -> std::result::Result<InterpretResult, Vec<Error>> {
-        let graph = self.compile_entry_expr(expr)?;
+        let (graph, _) = self.compile_entry_expr(expr)?;
 
         if self.quantum_seed.is_some() {
             sim.set_seed(self.quantum_seed);
@@ -412,10 +533,43 @@ impl Interpreter {
         ))
     }
 
+    fn run_with_sim_no_output(
+        &mut self,
+        entry_expr: Option<String>,
+        sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
+    ) -> InterpretResult {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+
+        let (package_id, graph) = if let Some(entry_expr) = entry_expr {
+            // entry expression is provided
+            (self.package, self.compile_entry_expr(&entry_expr)?.0.into())
+        } else {
+            // no entry expression, use the entrypoint in the package
+            (self.source_package, self.get_entry_exec_graph()?)
+        };
+
+        if self.quantum_seed.is_some() {
+            sim.set_seed(self.quantum_seed);
+        }
+
+        eval(
+            package_id,
+            self.classical_seed,
+            graph,
+            self.compiler.package_store(),
+            &self.fir_store,
+            &mut Env::default(),
+            sim,
+            &mut out,
+        )
+    }
+
     fn compile_entry_expr(
         &mut self,
         expr: &str,
-    ) -> std::result::Result<Vec<ExecGraphNode>, Vec<Error>> {
+    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
+    {
         let increment = self
             .compiler
             .compile_entry_expr(expr)
@@ -423,7 +577,7 @@ impl Interpreter {
 
         // `lower` will update the entry expression in the FIR store,
         // and it will always return an empty list of statements.
-        let (_, graph) = self.lower(&increment);
+        let (graph, compute_properties) = self.lower(&increment)?;
 
         // The AST and HIR packages in `increment` only contain an entry
         // expression and no statements. The HIR *can* contain items if the entry
@@ -439,19 +593,52 @@ impl Interpreter {
         // here to keep the package stores consistent.
         self.compiler.update(increment);
 
-        Ok(graph)
+        Ok((graph, compute_properties))
     }
 
     fn lower(
         &mut self,
         unit_addition: &qsc_frontend::incremental::Increment,
-    ) -> (Vec<StmtId>, Vec<ExecGraphNode>) {
+    ) -> core::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
+    {
+        if self.capabilities != TargetCapabilityFlags::all() {
+            return self.run_fir_passes(unit_addition);
+        }
         let fir_package = self.fir_store.get_mut(self.package);
-        (
-            self.lowerer
-                .lower_and_update_package(fir_package, &unit_addition.hir),
-            self.lowerer.take_exec_graph(),
-        )
+        self.lowerer
+            .lower_and_update_package(fir_package, &unit_addition.hir);
+        Ok((self.lowerer.take_exec_graph(), None))
+    }
+
+    fn run_fir_passes(
+        &mut self,
+        unit: &qsc_frontend::incremental::Increment,
+    ) -> std::result::Result<(Vec<ExecGraphNode>, Option<PackageStoreComputeProperties>), Vec<Error>>
+    {
+        let fir_package = self.fir_store.get_mut(self.package);
+        self.lowerer
+            .lower_and_update_package(fir_package, &unit.hir);
+
+        let cap_results =
+            PassContext::run_fir_passes_on_fir(&self.fir_store, self.package, self.capabilities);
+
+        let compute_properties = cap_results.map_err(|caps_errors| {
+            // if there are errors, convert them to interpreter errors
+            // and don't update the lowerer or FIR store.
+            let source_package = self
+                .compiler
+                .package_store()
+                .get(map_fir_package_to_hir(self.package))
+                .expect("package should exist in the package store");
+
+            caps_errors
+                .into_iter()
+                .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
+                .collect::<Vec<_>>()
+        })?;
+
+        let graph = self.lowerer.take_exec_graph();
+        Ok((graph, Some(compute_properties)))
     }
 
     fn next_line_label(&mut self) -> String {
@@ -459,6 +646,52 @@ impl Interpreter {
         self.lines += 1;
         label
     }
+
+    /// Evaluate the name of an operation, or any expression that evaluates to a callable,
+    /// and return the Item ID and function application for the callable.
+    /// Examples: "Microsoft.Quantum.Diagnostics.DumpMachine", "(qs: Qubit[]) => H(qs[0])",
+    /// "Controlled SWAP"
+    fn eval_to_operation(
+        &mut self,
+        operation_expr: &str,
+    ) -> std::result::Result<(&qsc_hir::hir::Item, FunctorApp), Vec<Error>> {
+        let mut sink = std::io::sink();
+        let mut out = GenericReceiver::new(&mut sink);
+        let (store_item_id, functor_app) = match self.eval_fragments(&mut out, operation_expr)? {
+            Value::Closure(b) => (b.id, b.functor),
+            Value::Global(item_id, functor_app) => (item_id, functor_app),
+            _ => return Err(vec![Error::NotAnOperation]),
+        };
+        let package = map_fir_package_to_hir(store_item_id.package);
+        let local_item_id = crate::hir::LocalItemId::from(usize::from(store_item_id.item));
+        let unit = self
+            .compiler
+            .package_store()
+            .get(package)
+            .expect("package should exist in the package store");
+        let item = unit
+            .package
+            .items
+            .get(local_item_id)
+            .expect("item should exist in the package");
+        Ok((item, functor_app))
+    }
+}
+
+fn sim_circuit_backend() -> BackendChain<SparseSim, CircuitBuilder> {
+    BackendChain::new(
+        SparseSim::new(),
+        CircuitBuilder::new(CircuitConfig {
+            // When using in conjunction with the simulator,
+            // the circuit builder should *not* perform base profile
+            // decompositions, in order to match the simulator's behavior.
+            //
+            // Note that conditional compilation (e.g. @Config(Base) attributes)
+            // will still respect the selected profile. This also
+            // matches the behavior of the simulator.
+            base_profile: false,
+        }),
+    )
 }
 
 /// Describes the entry point for circuit generation.
@@ -487,11 +720,11 @@ pub struct Debugger {
 impl Debugger {
     pub fn new(
         sources: SourceMap,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
         position_encoding: Encoding,
         language_features: LanguageFeatures,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let interpreter = Interpreter::new(
+        let interpreter = Interpreter::new_with_debug(
             true,
             sources,
             PackageType::Exe,

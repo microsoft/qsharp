@@ -1,5 +1,6 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Katas;
 
     // Distinguish specific orthogonal states
     // |ψ₊⟩ =   0.6 * |0⟩ + 0.8 * |1⟩,
@@ -16,7 +17,7 @@ namespace Kata.Verification {
     }
 
     operation CheckSolution() : Bool {
-        let isCorrect = DistinguishTwoStates(
+        let isCorrect = DistinguishTwoStates_SingleQubit(
             StatePrep_IsQubitPsiPlus,
             Kata.IsQubitPsiPlus,
             ["|ψ₋⟩", "|ψ₊⟩"],

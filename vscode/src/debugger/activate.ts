@@ -55,13 +55,17 @@ function registerCommands(context: vscode.ExtensionContext) {
         startDebugging(resource, { name: "Debug Q# File", stopOnEntry: true }),
     ),
     vscode.commands.registerCommand(
-      `${qsharpExtensionId}.debugEditorContentsWithCircuit`,
+      `${qsharpExtensionId}.runEditorContentsWithCircuit`,
       (resource: vscode.Uri) =>
-        startDebugging(resource, {
-          name: "Debug Q# File",
-          stopOnEntry: true,
-          showCircuit: true,
-        }),
+        startDebugging(
+          resource,
+          {
+            name: "Run file and show circuit diagram",
+            stopOnEntry: false,
+            showCircuit: true,
+          },
+          { noDebug: true },
+        ),
     ),
   );
 
@@ -70,18 +74,19 @@ function registerCommands(context: vscode.ExtensionContext) {
     config: { name: string; [key: string]: any },
     options?: vscode.DebugSessionOptions,
   ) {
+    if (vscode.debug.activeDebugSession?.type === "qsharp") {
+      // Multiple debug sessions disallowed, to reduce confusion
+      return;
+    }
+
     let targetResource = resource;
     if (!targetResource && vscode.window.activeTextEditor) {
       targetResource = vscode.window.activeTextEditor.document.uri;
     }
 
     if (targetResource) {
-      // We'll omit config.program and let the configuration
-      // resolver fill it in with the currently open editor's URI.
-      // This will also let us correctly handle untitled files
-      // where the save prompt pops up before the debugger is launched,
-      // potentially causing the active editor URI to change if
-      // the file is saved with a different name.
+      config.programUri = targetResource.toString();
+
       vscode.debug.startDebugging(
         undefined,
         {
@@ -90,7 +95,11 @@ function registerCommands(context: vscode.ExtensionContext) {
           shots: 1,
           ...config,
         },
-        options,
+        {
+          // no need to save the file, in fact better not to, since it may cause the document uri to change
+          suppressSaveBeforeStart: true,
+          ...options,
+        },
       );
     }
   }
@@ -137,7 +146,11 @@ class QsDebugConfigProvider implements vscode.DebugConfigurationProvider {
           path: fileUri.path,
         })
         .toString();
-    } else {
+    } else if (!config.programUri) {
+      // We shouldn't hit this in practice
+      log.warn(
+        "Cannot find a Q# program to debug, defaulting to active editor",
+      );
       // Use the active editor if no program is specified.
       const editor = vscode.window.activeTextEditor;
       if (editor && isQsharpDocument(editor.document)) {

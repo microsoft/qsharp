@@ -12,6 +12,7 @@ use crate::{
     serializable_type,
 };
 use qsc::{self, line_column::Encoding, target::Profile, LanguageFeatures, PackageType};
+use qsc_project::Manifest;
 use qsls::protocol::DiagnosticUpdate;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -118,15 +119,26 @@ impl LanguageService {
     ) {
         let cells: Vec<Cell> = cells.into_iter().map(std::convert::Into::into).collect();
         let notebook_metadata: NotebookMetadata = notebook_metadata.into();
+        let manifest: Option<Manifest> = notebook_metadata
+            .manifest
+            .and_then(|manifest| serde_json::from_str(&manifest).ok());
+
+        // If no features were passed in as an argument, use the features from the manifest.
+        // this way we prefer the features from the argument over those from the manifest.
+        let language_features: Vec<String> = match (notebook_metadata.languageFeatures, &manifest) {
+            (Some(language_features), _) => language_features,
+            (_, Some(manifest)) => manifest.language_features.clone(),
+            (None, None) => vec![],
+        };
+
         self.0.update_notebook_document(
             notebook_uri,
             qsls::protocol::NotebookMetadata {
                 target_profile: notebook_metadata
                     .targetProfile
                     .map(|s| Profile::from_str(&s).expect("invalid target profile")),
-                language_features: LanguageFeatures::from_iter(
-                    notebook_metadata.languageFeatures.unwrap_or_default(),
-                ),
+                language_features: LanguageFeatures::from_iter(language_features),
+                manifest,
             },
             cells
                 .iter()
@@ -486,11 +498,13 @@ serializable_type! {
     NotebookMetadata,
     {
         pub targetProfile: Option<String>,
-        pub languageFeatures: Option<Vec<String>>
+        pub languageFeatures: Option<Vec<String>>,
+        pub manifest: Option<String>,
     },
     r#"export interface INotebookMetadata {
-        targetProfile?: "unrestricted" | "base";
+        targetProfile?: "base" | "quantinuum" | "unrestricted";
         languageFeatures?: "v2-preview-syntax"[];
+        manifest?: string;
     }"#,
     INotebookMetadata
 }

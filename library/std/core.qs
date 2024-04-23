@@ -16,14 +16,18 @@ namespace Microsoft.Quantum.Core {
     /// A range expression's first element is `start`,
     /// its second element is `start+step`, third element is `start+step+step`, etc.,
     /// until `end` is passed.
-    /// 
+    ///
     /// Note that the defined start value of a range is the same as the first element of the sequence,
     /// unless the range specifies an empty sequence (for example, 2 .. 1).
+    ///
+    /// # Example
+    /// ```qsharp
+    /// Message($"{ RangeStart(7..-1..3) }"); // Prints 7
+    /// ```
     function RangeStart(r : Range) : Int {
         r::Start
     }
-    
-    
+
     /// # Summary
     /// Returns the defined end value of the given range,
     /// which is not necessarily the last element in the sequence.
@@ -39,14 +43,14 @@ namespace Microsoft.Quantum.Core {
     /// A range expression's first element is `start`,
     /// its second element is `start+step`, third element is `start+step+step`, etc.,
     /// until `end` is passed.
-    /// 
+    ///
     /// Note that the defined end value of a range can differ from the last element in the sequence specified by the range;
     /// for example, in a range 0 .. 2 .. 5 the last element is 4 but the end value is 5.
     function RangeEnd(r : Range) : Int {
         r::End
     }
-    
-    
+
+
     /// # Summary
     /// Returns the integer that specifies how the next value of a range is calculated.
     ///

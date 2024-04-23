@@ -29,7 +29,7 @@ To build this repository there are dependencies that need to be installed. These
 - Rust (<https://www.rust-lang.org/tools/install>)
 - Node.js (<https://nodejs.org/>)
 - wasm-pack (<https://rustwasm.github.io/wasm-pack/installer/>)
-- cmake (<https://cmake.org/>) and a C compiler
+- A [C compiler](https://docs.rs/cc/latest/cc/#compile-time-requirements)
 
 The build script will check these dependencies and their versions and fail if not met. (Or run
 `python ./prereqs.py` directly to check if the minimum required versions are installed).
@@ -40,9 +40,9 @@ build of each project, including running tests and checks such as linting. Run w
 
 ### Playground
 
-To run the "playground" locally, build the repository, then `cd` into the `playground` directory, and run `npm start`.
-This will launch a local web server and output the URL to the console; copy that URL and open it in a browser to use the playground.
-If you only want to build the functionality necessary to run the playground, you can use `python .\build.py --wasm --npm --play`.
+The `playground` is a small website that loads the Q# editor, compiler, samples, katas, and documentation for the standard library. It's a way to manually validate any changes you make to these components.
+
+To see instructions for building the playground, refer to [Building the Playground Locally](./playground/README.md#building-the-playground-locally).
 
 ### Python
 

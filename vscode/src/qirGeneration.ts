@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 import * as vscode from "vscode";
-import { getCompilerWorker, log } from "qsharp-lang";
+import { getCompilerWorker, log, ProgramConfig } from "qsharp-lang";
 import { isQsharpDocument } from "./common";
 import { EventType, sendTelemetryEvent } from "./telemetry";
 import { getRandomGuid } from "./utils";
-import { getTarget, setTarget } from "./config";
+import { getTarget, getEnablePreviewQirGen, setTarget } from "./config";
 import { loadProject } from "./projectSystem";
 
 const generateQirTimeoutMs = 30000;
@@ -32,20 +32,24 @@ export async function getQirForActiveWindow(): Promise<string> {
 
   // Check that the current target is base profile, and current doc has no errors.
   const targetProfile = getTarget();
+  const enablePreviewQirGen = getEnablePreviewQirGen();
   if (targetProfile !== "base") {
-    const result = await vscode.window.showWarningMessage(
-      "Submitting to Azure is only supported when targeting the QIR base profile.",
-      { modal: true },
-      { title: "Change the QIR target profile and continue", action: "set" },
-      { title: "Cancel", action: "cancel", isCloseAffordance: true },
-    );
-    if (result?.action !== "set") {
-      throw new QirGenerationError(
-        "Submitting to Azure is only supported when targeting the QIR base profile. " +
-          "Please update the QIR target via the status bar selector or extension settings.",
+    const allowed = targetProfile === "quantinuum" && enablePreviewQirGen;
+    if (!allowed) {
+      const result = await vscode.window.showWarningMessage(
+        "Submitting to Azure is only supported when targeting the QIR base profile.",
+        { modal: true },
+        { title: "Change the QIR target profile and continue", action: "set" },
+        { title: "Cancel", action: "cancel", isCloseAffordance: true },
       );
-    } else {
-      setTarget("base");
+      if (result?.action !== "set") {
+        throw new QirGenerationError(
+          "Submitting to Azure is only supported when targeting the QIR base profile. " +
+            "Please update the QIR target via the status bar selector or extension settings.",
+        );
+      } else {
+        setTarget("base");
+      }
     }
   }
   let sources: [string, string][] = [];
@@ -77,7 +81,16 @@ export async function getQirForActiveWindow(): Promise<string> {
     const associationId = getRandomGuid();
     const start = performance.now();
     sendTelemetryEvent(EventType.GenerateQirStart, { associationId }, {});
-    result = await worker.getQir(sources, languageFeatures);
+    if (enablePreviewQirGen) {
+      languageFeatures.push("preview-qir-gen");
+    }
+    const config = {
+      sources,
+      languageFeatures,
+      profile: getTarget(),
+    } as ProgramConfig;
+    result = await worker.getQir(config);
+
     sendTelemetryEvent(
       EventType.GenerateQirEnd,
       { associationId },

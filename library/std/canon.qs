@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Canon {
     /// use register = Qubit[3];
     /// ApplyToEach(H, register);
     /// ```
-    operation ApplyToEach<'T> (singleElementOperation : ('T => Unit), register : 'T[]) : Unit {
+    operation ApplyToEach<'T>(singleElementOperation : ('T => Unit), register : 'T[]) : Unit {
         for item in register {
             singleElementOperation(item);
         }
@@ -55,8 +55,7 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # See Also
     /// - Microsoft.Quantum.Canon.ApplyToEach
-    operation ApplyToEachA<'T> (singleElementOperation : ('T => Unit is Adj), register : 'T[])
-    : Unit is Adj {
+    operation ApplyToEachA<'T>(singleElementOperation : ('T => Unit is Adj), register : 'T[]) : Unit is Adj {
         for item in register {
             singleElementOperation(item);
         }
@@ -85,8 +84,7 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # See Also
     /// - Microsoft.Quantum.Canon.ApplyToEach
-    operation ApplyToEachC<'T> (singleElementOperation : ('T => Unit is Ctl), register : 'T[])
-    : Unit is Ctl {
+    operation ApplyToEachC<'T>(singleElementOperation : ('T => Unit is Ctl), register : 'T[]) : Unit is Ctl {
         for item in register {
             singleElementOperation(item);
         }
@@ -115,8 +113,7 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # See Also
     /// - Microsoft.Quantum.Canon.ApplyToEach
-    operation ApplyToEachCA<'T> (singleElementOperation : ('T => Unit is Adj + Ctl), register : 'T[])
-    : Unit is Adj + Ctl {
+    operation ApplyToEachCA<'T>(singleElementOperation : ('T => Unit is Adj + Ctl), register : 'T[]) : Unit is Adj + Ctl {
         for item in register {
             singleElementOperation(item);
         }
@@ -153,7 +150,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```qsharp
     /// CNOT(control, target);
     /// ```
-    operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl{
+    operation CX(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__cx__body(control, target);
         }
@@ -176,10 +173,12 @@ namespace Microsoft.Quantum.Canon {
     /// This operation can be simulated by the unitary matrix
     /// $$
     /// \begin{align}
-    ///     1 & 0 & 0 & 0 \\\\
-    ///     0 & 1 & 0 & 0 \\\\
-    ///     0 & 0 & 0 & -i \\\\
-    ///     0 & 0 & i & 0
+    ///     \left(\begin{matrix}
+    ///         1 & 0 & 0 & 0 \\\\
+    ///         0 & 1 & 0 & 0 \\\\
+    ///         0 & 0 & 0 & -i \\\\
+    ///         0 & 0 & i & 0
+    ///      \end{matrix}\right)
     /// \end{align},
     /// $$
     /// where rows and columns are organized as in the quantum concepts guide.
@@ -188,7 +187,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```qsharp
     /// Controlled Y([control], target);
     /// ```
-    operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl{
+    operation CY(control : Qubit, target : Qubit) : Unit is Adj + Ctl {
         body ... {
             __quantum__qis__cy__body(control, target);
         }
@@ -211,10 +210,12 @@ namespace Microsoft.Quantum.Canon {
     /// This operation can be simulated by the unitary matrix
     /// $$
     /// \begin{align}
-    ///     1 & 0 & 0 & 0 \\\\
-    ///     0 & 1 & 0 & 0 \\\\
-    ///     0 & 0 & 1 & 0 \\\\
-    ///     0 & 0 & 0 & -1
+    ///     \left(\begin{matrix}
+    ///         1 & 0 & 0 & 0 \\\\
+    ///         0 & 1 & 0 & 0 \\\\
+    ///         0 & 0 & 1 & 0 \\\\
+    ///         0 & 0 & 0 & -1
+    ///     \end{matrix}\right)
     /// \end{align},
     /// $$
     /// where rows and columns are organized as in the quantum concepts guide.
@@ -234,13 +235,13 @@ namespace Microsoft.Quantum.Canon {
     }
 
     /// Given a pair, returns its first element.
-    function Fst<'T, 'U> (pair : ('T, 'U)) : 'T {
+    function Fst<'T, 'U>(pair : ('T, 'U)) : 'T {
         let (fst, _) = pair;
         return fst;
     }
 
     /// Given a pair, returns its second element.
-    function Snd<'T, 'U> (pair : ('T, 'U)) : 'U {
+    function Snd<'T, 'U>(pair : ('T, 'U)) : 'U {
         let (_, snd) = pair;
         return snd;
     }
@@ -262,8 +263,8 @@ namespace Microsoft.Quantum.Canon {
     /// \end{align}
     /// $$
     operation ApplyCNOTChain(qubits : Qubit[]) : Unit is Adj + Ctl {
-        for i in 0..Length(qubits)-2 {
-            CNOT(qubits[i], qubits[i+1]);
+        for i in 0..Length(qubits) - 2 {
+            CNOT(qubits[i], qubits[i + 1]);
         }
     }
 
@@ -287,9 +288,7 @@ namespace Microsoft.Quantum.Canon {
     /// X(q);
     /// ```
     operation ApplyP(pauli : Pauli, target : Qubit) : Unit is Adj + Ctl {
-        if   pauli == PauliX { X(target); }
-        elif pauli == PauliY { Y(target); }
-        elif pauli == PauliZ { Z(target); }
+        if pauli == PauliX { X(target); } elif pauli == PauliY { Y(target); } elif pauli == PauliZ { Z(target); }
     }
 
     /// # Summary
@@ -315,7 +314,7 @@ namespace Microsoft.Quantum.Canon {
     /// ```
     operation ApplyPauli(pauli : Pauli[], target : Qubit[]) : Unit is Adj + Ctl {
         Fact(Length(pauli) == Length(target), "`pauli` and `target` must be of the same length.");
-        for i in 0..Length(pauli)-1 {
+        for i in 0..Length(pauli) - 1 {
             ApplyP(pauli[i], target[i]);
         }
     }
@@ -347,11 +346,10 @@ namespace Microsoft.Quantum.Canon {
     /// // Apply when index in `bits` is `false`.
     /// ApplyPauliFromBitString(PauliZ, false, bits, qubits);
     /// ```
-    operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[])
-    : Unit is Adj + Ctl {
+    operation ApplyPauliFromBitString(pauli : Pauli, bitApply : Bool, bits : Bool[], qubits : Qubit[]) : Unit is Adj + Ctl {
         let nBits = Length(bits);
         Fact(nBits == Length(qubits), "Number of control bits must be equal to number of control qubits.");
-        for i in 0..nBits-1 {
+        for i in 0..nBits - 1 {
             if bits[i] == bitApply {
                 ApplyP(pauli, qubits[i]);
             }
@@ -387,13 +385,14 @@ namespace Microsoft.Quantum.Canon {
         pauli : Pauli,
         bitApply : Bool,
         numberState : Int,
-        qubits : Qubit[]) : Unit is Adj + Ctl {
+        qubits : Qubit[]
+    ) : Unit is Adj + Ctl {
 
         let length = Length(qubits);
         Fact(numberState >= 0, "number must be non-negative");
         Fact(BitSizeI(numberState) <= length, "Bit size of numberState must not exceed qubits length");
 
-        for i in 0..length-1 {
+        for i in 0..length - 1 {
             // If we assume loop unrolling, 2^i will be optimized to a constant.
             if ((numberState &&& (1 <<< i)) != 0) == bitApply {
                 ApplyP(pauli, qubits[i]);
@@ -426,7 +425,8 @@ namespace Microsoft.Quantum.Canon {
         numberState : Int,
         oracle : ('T => Unit is Adj + Ctl),
         controlRegister : Qubit[],
-        target : 'T) : Unit is Adj + Ctl {
+        target : 'T
+    ) : Unit is Adj + Ctl {
 
         within {
             ApplyPauliFromInt(PauliX, false, numberState, controlRegister);
@@ -436,8 +436,17 @@ namespace Microsoft.Quantum.Canon {
     }
 
     /// # Summary
-    /// Applies a unitary operation on the target,
-    /// controlled on a state specified by a given bit mask.
+    /// Applies `oracle` on `target` when `controlRegister`
+    /// is in the state specified by `bits`.
+    ///
+    /// # Description
+    /// Applies a unitary operation `oracle` on the `target`, controlled
+    /// on a state specified by a given bit mask `bits`.
+    /// The bit at `bits[i]` corresponds to qubit at `controlRegister[i]`.
+    /// The pattern given by `bits` may be shorter than `controlRegister`,
+    /// in which case additional control qubits are ignored (that is, neither
+    /// controlled on |0⟩ nor |1⟩).
+    /// If `bits` is longer than `controlRegister`, an error is raised.
     ///
     /// # Input
     /// ## bits
@@ -449,19 +458,22 @@ namespace Microsoft.Quantum.Canon {
     /// ## controlRegister
     /// A quantum register that controls application of `oracle`.
     ///
-    /// # Remarks
-    /// The pattern given by `bits` may be shorter than `controlRegister`,
-    /// in which case additional control qubits are ignored (that is, neither
-    /// controlled on $\ket{0}$ nor $\ket{1}$).
-    /// If `bits` is longer than `controlRegister`, an error is raised.
-    ///
-    /// For example, `bits = [0,1,0,0,1]` means that `oracle` is applied if and only if `controlRegister`
-    /// is in the state $\ket{0}\ket{1}\ket{0}\ket{0}\ket{1}$.
+    /// # Example
+    /// ```qsharp
+    /// // When bits = [1,0,0] oracle is applied if and only if controlRegister
+    /// // is in the state |100⟩.
+    /// use t = Qubit();
+    /// use c = Qubit[3];
+    /// X(c[0]);
+    /// ApplyControlledOnBitString([true, false, false], X, c, t);
+    /// Message($"{M(t)}"); // Prints `One` since oracle `X` was applied.
+    /// ```
     operation ApplyControlledOnBitString<'T>(
         bits : Bool[],
         oracle : ('T => Unit is Adj + Ctl),
         controlRegister : Qubit[],
-        target : 'T) : Unit is Adj + Ctl {
+        target : 'T
+    ) : Unit is Adj + Ctl {
 
         // The control register must have enough bits to implement the requested control.
         Fact(Length(bits) <= Length(controlRegister), "Control register shorter than control pattern.");
@@ -491,13 +503,13 @@ namespace Microsoft.Quantum.Canon {
     ///
     /// # Reference
     ///  - [Quantum Fourier transform](https://en.wikipedia.org/wiki/Quantum_Fourier_transform)
-    operation ApplyQFT (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation ApplyQFT(qs : Qubit[]) : Unit is Adj + Ctl {
         let length = Length(qs);
         Fact(length >= 1, "ApplyQFT: Length(qs) must be at least 1.");
-        for i in length-1..-1..0 {
+        for i in length - 1..-1..0 {
             H(qs[i]);
-            for j in 0..i-1 {
-                Controlled R1Frac([qs[i]], (1, j+1, qs[i-j-1]));
+            for j in 0..i - 1 {
+                Controlled R1Frac([qs[i]], (1, j + 1, qs[i - j - 1]));
             }
         }
     }
@@ -508,9 +520,9 @@ namespace Microsoft.Quantum.Canon {
     /// # Input
     /// ## register
     /// The qubits order of which should be reversed using SWAP gates
-    operation SwapReverseRegister (register : Qubit[]) : Unit is Adj + Ctl {
+    operation SwapReverseRegister(register : Qubit[]) : Unit is Adj + Ctl {
         let length = Length(register);
-        for i in 0 .. length/2 - 1 {
+        for i in 0..length / 2 - 1 {
             SWAP(register[i], register[(length - i) - 1]);
         }
     }

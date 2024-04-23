@@ -13,7 +13,9 @@ members = [
     "compiler/qsc_frontend",
     "compiler/qsc_hir",
     "compiler/qsc_linter",
+    "compiler/qsc_lowerer",
     "compiler/qsc_parse",
+    "compiler/qsc_partial_eval",
     "compiler/qsc_passes",
     "compiler/qsc_project",
     "compiler/qsc_rir",
@@ -39,6 +41,7 @@ version = "0.0.0"
 bitflags = "2.4.2"
 clap = "4.4"
 criterion = { version = "0.5", default-features = false }
+difference = "2.0.0"
 enum-iterator = "1.5"
 env_logger = "0.10"
 expect-test = "1.4"

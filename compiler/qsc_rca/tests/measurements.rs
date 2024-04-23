@@ -49,7 +49,7 @@ fn check_rca_for_dynamic_single_measurement() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(ForwardBranchingOnDynamicValue | DynamicResultAllocation)
+                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],
@@ -99,7 +99,7 @@ fn check_rca_for_dynamic_single_measurement_and_reset() {
             r#"
             ApplicationsGeneratorSet:
                 inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(ForwardBranchingOnDynamicValue | DynamicResultAllocation)
+                    runtime_features: RuntimeFeatureFlags(MeasurementWithinDynamicScope)
                     value_kind: Element(Dynamic)
                 dynamic_param_applications: <empty>"#
         ],

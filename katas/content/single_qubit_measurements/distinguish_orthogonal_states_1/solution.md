@@ -13,6 +13,5 @@ Hence, if we apply $R_y(-\theta)$ to the qubit, its state will be transformed to
 
 @[solution]({
     "id": "single_qubit_measurements__distinguish_orthogonal_states_1_solution",
-    "exerciseId": "distinguish_orthogonal_states_1",
     "codePath": "Solution.qs"
 })

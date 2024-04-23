@@ -367,7 +367,7 @@ impl<'a> CompilationStateUpdater<'a> {
                 target_profile: notebook_metadata.target_profile,
                 package_type: None,
                 language_features: Some(notebook_metadata.language_features),
-                lints_config: None,
+                lints_config: notebook_metadata.manifest.map(|manifest| manifest.lints),
             };
             let configuration = merge_configurations(&notebook_configuration, &configuration);
 

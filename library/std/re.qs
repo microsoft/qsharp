@@ -33,8 +33,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// needs to be executed in order to collect and cache estimates.
     /// `false` indicates if cached estimates have been incorporated into the overall costs
     /// and the code fragment should be skipped.
-    @Config(Unrestricted)
-    function BeginEstimateCaching(name: String, variant: Int): Bool {
+    function BeginEstimateCaching(name : String, variant : Int) : Bool {
         body intrinsic;
     }
 
@@ -42,7 +41,7 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// Instructs the resource estimator to stop estimates caching
     /// because the code fragment in consideration is over. This function
     /// is only available when using resource estimator execution target.
-    function EndEstimateCaching(): Unit {
+    function EndEstimateCaching() : Unit {
         body intrinsic;
     }
 
@@ -116,19 +115,18 @@ namespace Microsoft.Quantum.ResourceEstimation {
     /// to physical resource estimates. Only PSSPCLayout() is supported at this time.
     /// ## arguments
     /// Operation takes these qubits as its arguments.
-    operation AccountForEstimates(estimates: (Int, Int)[], layout: Int, arguments: Qubit[]): Unit is Adj {
+    operation AccountForEstimates(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit is Adj {
         body ... {
             AccountForEstimatesInternal(estimates, layout, arguments);
         }
         adjoint self;
     }
 
-    internal operation AccountForEstimatesInternal(estimates: (Int, Int)[], layout: Int, arguments: Qubit[]): Unit {
+    internal operation AccountForEstimatesInternal(estimates : (Int, Int)[], layout : Int, arguments : Qubit[]) : Unit {
         body intrinsic;
     }
 
     /// # Summary
-    ///
     /// Instructs the resource estimator to assume that the resources from the
     /// call of this operation until a call to `EndRepeatEstimates` are
     /// accounted for `count` times, without the need to execute the code that many
@@ -151,7 +149,6 @@ namespace Microsoft.Quantum.ResourceEstimation {
     }
 
     /// # Summary
-    ///
     /// Companion operation to `BeginRepeatEstimates`.
     operation EndRepeatEstimates() : Unit {
         body ... {
@@ -165,7 +162,6 @@ namespace Microsoft.Quantum.ResourceEstimation {
     }
 
     /// # Summary
-    ///
     /// Instructs the resource estimator to assume that the resources from the
     /// call of this operation until a call to `Adjoint RepeatEstimates` are
     /// accounted for `count` times, without the need to execute the code that many

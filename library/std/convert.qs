@@ -6,13 +6,27 @@ namespace Microsoft.Quantum.Convert {
     open Microsoft.Quantum.Math;
 
     /// # Summary
-    /// Converts a given integer to an equivalent double-precision floating-point number.
+    /// Converts a given integer `number` to an equivalent
+    /// double-precision floating-point number.
+    ///
+    /// # Description
+    /// Converts a given integer to a double-precision floating point number.
+    /// Please note that the double-precision representation may have fewer
+    /// bits allocated to represent [significant digits](https://en.wikipedia.org/wiki/Significand)
+    /// so the conversion may be approximate for large numbers. For example,
+    /// the current simulator converts 4,611,686,018,427,387,919 = 2^64+15
+    /// to 4,611,686,018,427,387,904.0 = 2^64.
+    ///
+    /// # Example
+    /// ```qsharp
+    /// Message($"{IntAsDouble(1)}"); // Prints 1.0 rather than 1
+    /// ```
     function IntAsDouble(number : Int) : Double {
         body intrinsic;
     }
 
     /// # Summary
-    /// Converts a given integer to an equivalent big integer.
+    /// Converts a given integer `number` to an equivalent big integer.
     function IntAsBigInt(number : Int) : BigInt {
         body intrinsic;
     }
@@ -27,7 +41,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool` representing the `input`.
-    @Config(Unrestricted)
+    @Config(Adaptive)
     function ResultAsBool(input : Result) : Bool {
         input == One
     }
@@ -42,13 +56,14 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result` representing the `input`.
-    @Config(Unrestricted)
+    @Config(Adaptive)
     function BoolAsResult(input : Bool) : Result {
-        if input {One} else {Zero}
+        if input { One } else { Zero }
     }
 
     /// # Summary
-    /// Produces a non-negative integer from a string of bits in little endian format.
+    /// Produces a non-negative integer from a string of bits in little-endian format.
+    /// `bits[0]` represents the least significant bit.
     ///
     /// # Input
     /// ## bits
@@ -58,7 +73,7 @@ namespace Microsoft.Quantum.Convert {
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
 
         mutable number = 0;
-        for i in 0 .. nBits - 1 {
+        for i in 0..nBits - 1 {
             if (bits[i]) {
                 set number |||= 1 <<< i;
             }
@@ -89,7 +104,7 @@ namespace Microsoft.Quantum.Convert {
         mutable runningValue = number;
         mutable result = [];
         for _ in 1..bits {
-            set result += [ (runningValue &&& 1) != 0 ];
+            set result += [(runningValue &&& 1) != 0];
             set runningValue >>>= 1;
         }
         Fact(runningValue == 0, $"`number`={number} is too large to fit into {bits} bits.");
@@ -119,7 +134,7 @@ namespace Microsoft.Quantum.Convert {
                 set result += 1L <<< i;
             }
         }
-        
+
         result
     }
 
@@ -145,7 +160,7 @@ namespace Microsoft.Quantum.Convert {
         mutable runningValue = number;
         mutable result = [];
         for _ in 1..bits {
-            set result += [ (runningValue &&& 1L) != 0L ];
+            set result += [(runningValue &&& 1L) != 0L];
             set runningValue >>>= 1;
         }
         Fact(runningValue == 0L, $"`number`={number} is too large to fit into {bits} bits.");
@@ -168,13 +183,13 @@ namespace Microsoft.Quantum.Convert {
     /// // The following returns 1
     /// let int1 = ResultArrayAsInt([One,Zero])
     /// ```
-    @Config(Unrestricted)
+    @Config(Adaptive)
     function ResultArrayAsInt(results : Result[]) : Int {
         let nBits = Length(results);
         Fact(nBits < 64, $"`Length(bits)` must be less than 64, but was {nBits}.");
 
         mutable number = 0;
-        for idxBit in 0 .. nBits - 1 {
+        for idxBit in 0..nBits - 1 {
             if (results[idxBit] == One) {
                 set number |||= 1 <<< idxBit;
             }
@@ -193,7 +208,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Bool[]` representing the `input`.
-    @Config(Unrestricted)
+    @Config(Adaptive)
     function ResultArrayAsBoolArray(input : Result[]) : Bool[] {
         mutable output = [];
         for r in input {
@@ -213,11 +228,11 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// A `Result[]` representing the `input`.
-    @Config(Unrestricted)
+    @Config(Adaptive)
     function BoolArrayAsResultArray(input : Bool[]) : Result[] {
         mutable output = [];
         for b in input {
-            set output += [if b {One} else {Zero}];
+            set output += [if b { One } else { Zero }];
         }
 
         output
@@ -233,7 +248,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// Complex number c = r⋅e^(t𝑖).
-    function ComplexAsComplexPolar (input : Complex) : ComplexPolar {
+    function ComplexAsComplexPolar(input : Complex) : ComplexPolar {
         return ComplexPolar(AbsComplex(input), ArgComplex(input));
     }
 
@@ -247,7 +262,7 @@ namespace Microsoft.Quantum.Convert {
     ///
     /// # Output
     /// Complex number c = x + y𝑖.
-    function ComplexPolarAsComplex (input : ComplexPolar) : Complex {
+    function ComplexPolarAsComplex(input : ComplexPolar) : Complex {
         return Complex(
             input::Magnitude * Cos(input::Argument),
             input::Magnitude * Sin(input::Argument)

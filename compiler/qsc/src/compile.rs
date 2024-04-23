@@ -4,7 +4,7 @@
 use miette::{Diagnostic, Report};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, RuntimeCapabilityFlags, SourceMap},
+    compile::{CompileUnit, PackageStore, SourceMap, TargetCapabilityFlags},
     error::WithSource,
 };
 use qsc_hir::hir::PackageId;
@@ -34,21 +34,53 @@ pub enum ErrorKind {
 }
 
 #[must_use]
+#[allow(clippy::module_name_repetitions)]
+pub fn compile_ast(
+    store: &PackageStore,
+    dependencies: &[PackageId],
+    ast_package: qsc_ast::ast::Package,
+    sources: SourceMap,
+    package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
+) -> (CompileUnit, Vec<Error>) {
+    let unit = qsc_frontend::compile::compile_ast(
+        store,
+        dependencies,
+        ast_package,
+        sources,
+        capabilities,
+        vec![],
+    );
+    process_compile_unit(store, package_type, capabilities, unit)
+}
+
+#[must_use]
 pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
     sources: SourceMap,
     package_type: PackageType,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> (CompileUnit, Vec<Error>) {
-    let mut unit = qsc_frontend::compile::compile(
+    let unit = qsc_frontend::compile::compile(
         store,
         dependencies,
         sources,
         capabilities,
         language_features,
     );
+    process_compile_unit(store, package_type, capabilities, unit)
+}
+
+#[must_use]
+#[allow(clippy::module_name_repetitions)]
+fn process_compile_unit(
+    store: &PackageStore,
+    package_type: PackageType,
+    capabilities: TargetCapabilityFlags,
+    mut unit: CompileUnit,
+) -> (CompileUnit, Vec<Error>) {
     let mut errors = Vec::new();
     for error in unit.errors.drain(..) {
         errors.push(WithSource::from_map(&unit.sources, error.into()));
@@ -90,7 +122,7 @@ pub fn core() -> CompileUnit {
 ///
 /// Panics if the standard library does not compile without errors.
 #[must_use]
-pub fn std(store: &PackageStore, capabilities: RuntimeCapabilityFlags) -> CompileUnit {
+pub fn std(store: &PackageStore, capabilities: TargetCapabilityFlags) -> CompileUnit {
     let mut unit = qsc_frontend::compile::std(store, capabilities);
     let pass_errors = run_default_passes(store.core(), &mut unit, PackageType::Lib, capabilities);
     if pass_errors.is_empty() {

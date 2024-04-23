@@ -44,6 +44,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
+// This ordering must match the _native.pyi file.
 #[derive(Clone, Copy)]
 #[pyclass(unsendable)]
 /// A Q# target profile.
@@ -51,14 +52,20 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
 /// A target profile describes the capabilities of the hardware or simulator
 /// which will be used to run the Q# program.
 pub(crate) enum TargetProfile {
-    /// Target supports the full set of capabilities required to run any Q# program.
-    ///
-    /// This option maps to the Full Profile as defined by the QIR specification.
-    Unrestricted,
     /// Target supports the minimal set of capabilities required to run a quantum program.
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
+    /// Target supports Quantinuum profile.
+    ///
+    /// This profile includes all of the required Adaptive Profile
+    /// capabilities, as well as the optional integer computation and qubit
+    /// reset capabilities, as defined by the QIR specification.
+    Quantinuum,
+    /// Target supports the full set of capabilities required to run any Q# program.
+    ///
+    /// This option maps to the Full Profile as defined by the QIR specification.
+    Unrestricted,
 }
 
 #[pyclass(unsendable)]
@@ -74,22 +81,19 @@ impl FromPyObject<'_> for PyManifestDescriptor {
         let manifest_dir = get_dict_opt_string(dict, "manifest_dir")?.ok_or(
             PyException::new_err("missing key `manifest_dir` in manifest descriptor"),
         )?;
-        let manifest = dict
-            .get_item("manifest")?
-            .ok_or(PyException::new_err(
-                "missing key `manifest` in manifest descriptor",
-            ))?
-            .downcast::<PyDict>()?;
 
-        let language_features = get_dict_opt_list_string(manifest, "features")?;
+        let manifest = get_dict_opt_string(dict, "manifest")?.ok_or(PyException::new_err(
+            "missing key `manifest` in manifest descriptor",
+        ))?;
+
+        let manifest = serde_json::from_str::<Manifest>(&manifest).map_err(|_| {
+            PyErr::new::<PyException, _>(format!(
+                "Error parsing {manifest_dir}/qsharp.json . Manifest should be a valid JSON file."
+            ))
+        })?;
 
         Ok(Self(ManifestDescriptor {
-            manifest: Manifest {
-                author: get_dict_opt_string(manifest, "author")?,
-                license: get_dict_opt_string(manifest, "license")?,
-                language_features,
-                lints: vec![],
-            },
+            manifest,
             manifest_dir: manifest_dir.into(),
         }))
     }
@@ -110,10 +114,19 @@ impl Interpreter {
         list_directory: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
-            TargetProfile::Unrestricted => Profile::Unrestricted,
+            TargetProfile::Quantinuum => Profile::Quantinuum,
             TargetProfile::Base => Profile::Base,
+            TargetProfile::Unrestricted => Profile::Unrestricted,
         };
-        let language_features = language_features.unwrap_or_default();
+        // If no features were passed in as an argument, use the features from the manifest.
+        // this way we prefer the features from the argument over those from the manifest.
+        let language_features: Vec<String> = match (language_features, &manifest_descriptor) {
+            (Some(language_features), _) => language_features,
+            (_, Some(manifest_descriptor)) => {
+                manifest_descriptor.0.manifest.language_features.clone()
+            }
+            (None, None) => vec![],
+        };
 
         let sources = if let Some(manifest_descriptor) = manifest_descriptor {
             let project = file_system(
@@ -242,7 +255,7 @@ impl Interpreter {
             }
         };
 
-        match self.interpreter.circuit(entrypoint) {
+        match self.interpreter.circuit(entrypoint, false) {
             Ok(circuit) => Ok(Circuit(circuit).into_py(py)),
             Err(errors) => Err(QSharpError::new_err(format_errors(errors))),
         }
@@ -598,22 +611,4 @@ fn get_dict_opt_string(dict: &PyDict, key: &str) -> PyResult<Option<String>> {
         Some(item) => Some(item.downcast::<PyString>()?.to_string_lossy().into()),
         None => None,
     })
-}
-fn get_dict_opt_list_string(dict: &PyDict, key: &str) -> PyResult<Vec<String>> {
-    let value = dict.get_item(key)?;
-    let list: &PyList = match value {
-        Some(item) => item.downcast::<PyList>()?,
-        None => return Ok(vec![]),
-    };
-    match list
-        .iter()
-        .map(|item| {
-            item.downcast::<PyString>()
-                .map(|s| s.to_string_lossy().into())
-        })
-        .collect::<std::result::Result<Vec<String>, _>>()
-    {
-        Ok(list) => Ok(list),
-        Err(e) => Err(e.into()),
-    }
 }

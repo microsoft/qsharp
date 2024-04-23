@@ -3,14 +3,14 @@
 
 use super::*;
 use expect_test::expect;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{compile, core, std, PackageStore, RuntimeCapabilityFlags, SourceMap};
+use qsc_data_structures::{functors::FunctorApp, language_features::LanguageFeatures};
+use qsc_frontend::compile::{compile, core, std, PackageStore, SourceMap, TargetCapabilityFlags};
 use qsc_hir::hir::{Item, ItemKind};
 
 fn compile_one_operation(code: &str) -> (Item, String) {
     let core_pkg = core();
     let mut store = PackageStore::new(core_pkg);
-    let std = std(&store, RuntimeCapabilityFlags::empty());
+    let std = std(&store, TargetCapabilityFlags::empty());
     let std = store.insert(std);
 
     let sources = SourceMap::new([("test".into(), code.into())], None);
@@ -18,7 +18,7 @@ fn compile_one_operation(code: &str) -> (Item, String) {
         &store,
         &[std],
         sources,
-        RuntimeCapabilityFlags::empty(),
+        TargetCapabilityFlags::empty(),
         LanguageFeatures::default(),
     );
     let mut callables = unit.package.items.values().filter_map(|i| {
@@ -58,10 +58,12 @@ fn no_params() {
         }
     ",
     );
-    let expr = entry_expr_for_qubit_operation(&item, &operation);
-    expect![[r"
-        None
-    "]]
+    let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation);
+    expect![[r#"
+        Err(
+            NoQubitParameters,
+        )
+    "#]]
     .assert_debug_eq(&expr);
 }
 
@@ -75,10 +77,12 @@ fn non_qubit_params() {
         }
     ",
     );
-    let expr = entry_expr_for_qubit_operation(&item, &operation);
-    expect![[r"
-        None
-    "]]
+    let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation);
+    expect![[r#"
+        Err(
+            NoQubitParameters,
+        )
+    "#]]
     .assert_debug_eq(&expr);
 }
 
@@ -92,10 +96,12 @@ fn non_qubit_array_param() {
         }
     ",
     );
-    let expr = entry_expr_for_qubit_operation(&item, &operation);
-    expect![[r"
-        None
-    "]]
+    let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation);
+    expect![[r#"
+        Err(
+            NoQubitParameters,
+        )
+    "#]]
     .assert_debug_eq(&expr);
 }
 
@@ -110,7 +116,8 @@ fn qubit_params() {
     ",
     );
 
-    let expr = entry_expr_for_qubit_operation(&item, &operation).expect("expression expected");
+    let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation)
+        .expect("expression expected");
 
     expect![[r"
         {
@@ -133,7 +140,8 @@ fn qubit_array_params() {
     ",
     );
 
-    let expr = entry_expr_for_qubit_operation(&item, &operation).expect("expression expected");
+    let expr = entry_expr_for_qubit_operation(&item, FunctorApp::default(), &operation)
+        .expect("expression expected");
 
     expect![[r"
         {

@@ -10,11 +10,16 @@ namespace Microsoft.Quantum.Math {
     //
 
     /// # Summary
-    /// Represents the ratio of the circumference of a circle to its diameter.
+    /// Returns a double-precision approximation of the
+    /// matematical constant 𝝅 ≈ 3.14159265358979323846
     ///
-    /// # Output
-    /// A double-precision approximation of the circumference of a circle
-    /// to its diameter, π ≈ 3.14159265358979323846.
+    /// # Remarks
+    /// Mathematical constant 𝝅 represents the ratio of the circumference
+    /// of a circle to its diameter. It is useful in many applications
+    /// such as rotations and complex arithmetic.
+    ///
+    /// # References
+    /// [Wikipedia article - Pi](https://en.wikipedia.org/wiki/Pi)
     ///
     /// # See Also
     /// - Microsoft.Quantum.Math.E
@@ -23,11 +28,15 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the natural logarithmic base to double-precision.
+    /// Returns a double-precision approximation of the
+    /// mathematical constant 𝒆 ≈ 2.7182818284590452354
     ///
-    /// # Output
-    /// A double-precision approximation of the natural logarithmic base,
-    /// e ≈ 2.7182818284590452354.
+    /// # Remarks
+    /// Mathematical constant 𝒆 is the base of the natural logarithm
+    /// also known as the Euler's number
+    ///
+    /// # References
+    /// [Wikipedia article - e](https://en.wikipedia.org/wiki/E_(mathematical_constant))
     ///
     /// # See Also
     /// - Microsoft.Quantum.Math.PI
@@ -36,12 +45,15 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the natural logarithm of 2.
+    /// Returns a double-precision approximation of the constant
+    /// ㏑2 ≈ 0.6931471805599453
     ///
-    /// # Output
-    /// Returns a `Double` equal to 0.6931471805599453.
-    function LogOf2 () : Double
-    {
+    /// # Remarks
+    /// ㏑2 is the natural logarithm of 2, or the logarithm of 2 base 𝒆.
+    ///
+    /// # References
+    /// [Wikipedia article - Natural logarithm](https://en.wikipedia.org/wiki/Natural_logarithm)
+    function LogOf2() : Double {
         0.6931471805599453
     }
 
@@ -102,42 +114,54 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
-    function SignI (a : Int) : Int {
-        if   (a < 0) { -1 }
-        elif (a > 0) { +1 }
-        else         { 0 }
+    function SignI(a : Int) : Int {
+        if (a < 0) {
+            -1
+        } elif (a > 0) {
+            + 1
+        } else {
+            0
+        }
     }
 
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
-    function SignD (a : Double) : Int {
-        if   (a < 0.0) { -1 }
-        elif (a > 0.0) { +1 }
-        else           {  0 }
+    function SignD(a : Double) : Int {
+        if (a < 0.0) {
+            -1
+        } elif (a > 0.0) {
+            + 1
+        } else {
+            0
+        }
     }
 
     /// # Summary
     /// Returns -1, 0 or +1 that indicates the sign of a number.
-    function SignL (a : BigInt) : Int {
-        if   (a < 0L) { -1 }
-        elif (a > 0L) { +1 }
-        else          {  0 }
+    function SignL(a : BigInt) : Int {
+        if (a < 0L) { 
+            -1
+        } elif (a > 0L) {
+            + 1
+        } else {
+            0
+        }
     }
 
     /// # Summary
     /// Returns the absolute value of an integer.
-    function AbsI (a : Int) : Int {
+    function AbsI(a : Int) : Int {
         a < 0 ? -a | a
     }
 
     /// # Summary
     /// Returns the absolute value of a double-precision floating-point number.
-    function AbsD (a : Double) : Double {
+    function AbsD(a : Double) : Double {
         a < 0.0 ? -a | a
     }
 
     /// # Summary
-    function AbsL (a : BigInt) : BigInt {
+    function AbsL(a : BigInt) : BigInt {
         a < 0L ? -a | a
     }
 
@@ -155,19 +179,19 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns the larger of two specified numbers.
-    function MaxL (a : BigInt, b : BigInt) : BigInt {
+    function MaxL(a : BigInt, b : BigInt) : BigInt {
         a > b ? a | b
     }
 
     /// # Summary
     /// Returns the smaller of two specified numbers.
-    function MinI (a : Int, b : Int) : Int {
+    function MinI(a : Int, b : Int) : Int {
         a < b ? a | b
     }
 
     /// # Summary
     /// Returns the smaller of two specified numbers.
-    function MinD (a : Double, b : Double) : Double {
+    function MinD(a : Double, b : Double) : Double {
         a < b ? a | b
     }
 
@@ -186,7 +210,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Output
     /// The largest element of `values`.
-    function Max (values : Int[]) : Int {
+    function Max(values : Int[]) : Int {
         Fact(Length(values) > 0, "Array must contain at least one element.");
         mutable max = values[0];
         for element in values[1...] {
@@ -207,7 +231,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Output
     /// The smallest element of `values`.
-    function Min (values : Int[]) : Int {
+    function Min(values : Int[]) : Int {
         Fact(Length(values) > 0, "Array must contain at least one element.");
         mutable min = values[0];
         for element in values[1...] {
@@ -225,80 +249,80 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns the angle whose cosine is the specified number.
-    function ArcCos (x : Double) : Double {
+    function ArcCos(x : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the angle whose sine is the specified number.
-    function ArcSin (y : Double) : Double {
+    function ArcSin(y : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the angle whose tangent is the specified number.
-    function ArcTan (d : Double) : Double {
+    function ArcTan(d : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the angle whose tangent is the quotient of two specified numbers.
-    function ArcTan2 (y : Double, x : Double) : Double {
+    function ArcTan2(y : Double, x : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the cosine of the specified angle.
-    function Cos (theta : Double) : Double {
+    function Cos(theta : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the hyperbolic cosine of the specified angle.
-    function Cosh (d : Double) : Double {
+    function Cosh(d : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the sine of the specified angle.
-    function Sin (theta : Double) : Double {
+    function Sin(theta : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the hyperbolic sine of the specified angle.
-    function Sinh (d : Double) : Double {
+    function Sinh(d : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the tangent of the specified angle.
-    function Tan (d : Double) : Double {
+    function Tan(d : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Returns the hyperbolic tangent of the specified angle.
-    function Tanh (d : Double) : Double {
+    function Tanh(d : Double) : Double {
         body intrinsic;
     }
 
     /// # Summary
     /// Computes the inverse hyperbolic cosine of a number.
-    function ArcCosh (x : Double) : Double {
+    function ArcCosh(x : Double) : Double {
         Log(x + Sqrt(x * x - 1.0))
     }
 
     /// # Summary
     /// Computes the inverse hyperbolic sine of a number.
-    function ArcSinh (x : Double) : Double {
+    function ArcSinh(x : Double) : Double {
         Log(x + Sqrt(x * x + 1.0))
     }
 
 
     /// # Summary
     /// Computes the inverse hyperbolic tangent of a number.
-    function ArcTanh (x : Double) : Double {
+    function ArcTanh(x : Double) : Double {
         Log((1.0 + x) / (1.0 - x)) * 0.5
     }
 
@@ -372,7 +396,7 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns the nearest integer to the specified number.
-    /// For example: Floor(3.7) = 4; Floor(-3.7) = -4
+    /// For example: Round(3.7) = 4; Round(-3.7) = -4
     function Round(value : Double) : Int {
         let (truncated, remainder, isPositive) = ExtendedTruncation(value);
         if AbsD(remainder) <= 1e-15 {
@@ -621,7 +645,8 @@ namespace Microsoft.Quantum.Math {
     /// Using process similar to this: https://nrich.maths.org/1397
     function ContinuedFractionConvergentI(
         fraction : (Int, Int),
-        denominatorBound : Int) : (Int, Int) {
+        denominatorBound : Int
+    ) : (Int, Int) {
         Fact(denominatorBound > 0, "Denominator bound must be positive");
 
         let (a, b) = fraction;
@@ -651,7 +676,8 @@ namespace Microsoft.Quantum.Math {
     /// Using process similar to this: https://nrich.maths.org/1397
     function ContinuedFractionConvergentL(
         fraction : (BigInt, BigInt),
-        denominatorBound : BigInt) : (BigInt, BigInt) {
+        denominatorBound : BigInt
+    ) : (BigInt, BigInt) {
         Fact(denominatorBound > 0L, "Denominator bound must be positive");
 
         let (a, b) = fraction;
@@ -694,8 +720,7 @@ namespace Microsoft.Quantum.Math {
     ///     // which is a multiple of 2.4.
     ///     let z = RealMod(3.6, 2.4, -1.2);
     /// ```
-    function RealMod(value : Double, modulo : Double, minValue : Double) : Double
-    {
+    function RealMod(value : Double, modulo : Double, minValue : Double) : Double {
         let timesModuloInSegment = (value - minValue) / modulo;
         let fractionalPart = timesModuloInSegment - IntAsDouble(Truncate(timesModuloInSegment));
         modulo * fractionalPart + minValue
@@ -738,7 +763,7 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// For a non-zero integer `a`, returns the number of trailing zero bits
     /// in the binary representation of `a`.
-    function TrailingZeroCountI (a : Int) : Int {
+    function TrailingZeroCountI(a : Int) : Int {
         Fact(a != 0, "TrailingZeroCountI: `a` cannot be 0.");
 
         mutable count = 0;
@@ -754,7 +779,7 @@ namespace Microsoft.Quantum.Math {
     /// # Summary
     /// For a non-zero integer `a`, returns the number of trailing zero bits
     /// in the binary representation of `a`.
-    function TrailingZeroCountL (a : BigInt) : Int {
+    function TrailingZeroCountL(a : BigInt) : Int {
         Fact(a != 0L, "TrailingZeroCountL: `a` cannot be 0.");
 
         mutable count = 0;
@@ -769,7 +794,7 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns the number of 1 bits in the binary representation of integer `n`.
-    function HammingWeightI (n : Int) : Int {
+    function HammingWeightI(n : Int) : Int {
         let i1 = n - ((n >>> 1) &&& 0x5555555555555555);
         let i2 = (i1 &&& 0x3333333333333333) + ((i1 >>> 2) &&& 0x3333333333333333);
         // Multiplication may overflow. See https://github.com/microsoft/qsharp/issues/828
@@ -803,10 +828,29 @@ namespace Microsoft.Quantum.Math {
         Fact(n >= 0, "The factorial is not defined for negative inputs.");
         Fact(n <= 20, "The largest factorial that can be stored as an Int is 20!. Use FactorialL or ApproximateFactorial.");
 
-        [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800,
-        39916800, 479001600, 6227020800, 87178291200, 1307674368000,
-        20922789888000, 355687428096000, 6402373705728000,
-        121645100408832000, 2432902008176640000][n]
+        [
+            1,
+            1,
+            2,
+            6,
+            24,
+            120,
+            720,
+            5040,
+            40320,
+            362880,
+            3628800,
+            39916800,
+            479001600,
+            6227020800,
+            87178291200,
+            1307674368000,
+            20922789888000,
+            355687428096000,
+            6402373705728000,
+            121645100408832000,
+            2432902008176640000
+        ][n]
     }
 
     /// # Summary
@@ -826,7 +870,7 @@ namespace Microsoft.Quantum.Math {
         Fact(n >= 0, "The factorial is not defined for negative inputs.");
 
         mutable result = 1L;
-        for i in 1 .. n {
+        for i in 1..n {
             set result *= IntAsBigInt(i);
         }
         result
@@ -864,8 +908,8 @@ namespace Microsoft.Quantum.Math {
 
         let absN = IntAsDouble(n);
         let a = Sqrt(2.0 * PI() * absN);
-        let b = (absN / E()) ^ absN;
-        let c = E() ^ (1.0 / (12.0 * absN) - (1.0 / (360.0 * (absN ^ 3.0))));
+        let b = (absN / E())^absN;
+        let c = E()^(1.0 / (12.0 * absN) - (1.0 / (360.0 * (absN^3.0))));
 
         a * b * c
     }
@@ -892,11 +936,20 @@ namespace Microsoft.Quantum.Math {
     function LogGammaD(x : Double) : Double {
         // Here, we use the approximation described in Numerical Recipes in C.
         let coefficients = [
-            57.1562356658629235, -59.5979603554754912,
-            14.1360979747417471, -0.491913816097620199, 0.339946499848118887e-4,
-            0.465236289270485756e-4, -0.983744753048795646e-4, 0.158088703224912494e-3,
-            -0.210264441724104883e-3, 0.217439618115212643e-3, -0.164318106536763890e-3,
-            0.844182239838527433e-4, -0.261908384015814087e-4, 0.368991826595316234e-5
+            57.1562356658629235,
+            -59.5979603554754912,
+            14.1360979747417471,
+            -0.491913816097620199,
+            0.339946499848118887e-4,
+            0.465236289270485756e-4,
+            -0.983744753048795646e-4,
+            0.158088703224912494e-3,
+            -0.210264441724104883e-3,
+            0.217439618115212643e-3,
+            -0.164318106536763890e-3,
+            0.844182239838527433e-4,
+            -0.261908384015814087e-4,
+            0.368991826595316234e-5
         ];
 
         Fact(x > 0.0, "Γ(x) not defined for x <= 0.");
@@ -973,7 +1026,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Output
     /// The squared 2-norm of `array`.
-    function SquaredNorm (array : Double[]) : Double {
+    function SquaredNorm(array : Double[]) : Double {
         mutable sum = 0.0;
         for element in array {
             set sum += element * element;
@@ -994,7 +1047,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # Output
     /// The p-norm |x̄|ₚ.
-    function PNorm (p : Double, array : Double[]) : Double {
+    function PNorm(p : Double, array : Double[]) : Double {
         if p < 1.0 {
             fail "p must be >= 1.0";
         }
@@ -1023,7 +1076,7 @@ namespace Microsoft.Quantum.Math {
     ///
     /// # See Also
     /// - PNorm
-    function PNormalized (p : Double, array : Double[]) : Double[] {
+    function PNormalized(p : Double, array : Double[]) : Double[] {
         let norm = PNorm(p, array);
         if (norm == 0.0) {
             return array;
@@ -1051,7 +1104,7 @@ namespace Microsoft.Quantum.Math {
     /// ```qsharp
     /// let imagUnit = Complex(0.0, 1.0);
     /// ```
-    newtype Complex = (Real: Double, Imag: Double);
+    newtype Complex = (Real : Double, Imag : Double);
 
     /// # Summary
     /// Represents a complex number in polar form.
@@ -1062,7 +1115,7 @@ namespace Microsoft.Quantum.Math {
     /// The absolute value r>0 of c.
     /// ## Argument
     /// The phase t ∈ ℝ of c.
-    newtype ComplexPolar = (Magnitude: Double, Argument: Double);
+    newtype ComplexPolar = (Magnitude : Double, Argument : Double);
 
     /// # Summary
     /// Returns the squared absolute value of a complex number of type
@@ -1281,7 +1334,7 @@ namespace Microsoft.Quantum.Math {
     /// Note that this is a multi-valued function, but only one value is returned.
     internal function PowCAsCP(base : Complex, power : Complex) : ComplexPolar {
         let ((a, b), (c, d)) = (base!, power!);
-        let baseSqNorm = a*a + b*b;
+        let baseSqNorm = a * a + b * b;
         let baseNorm = Sqrt(baseSqNorm);
         let baseArg = ArgComplex(base);
 

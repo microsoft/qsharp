@@ -4,7 +4,7 @@
 //@ts-check
 
 import { copyFileSync, mkdirSync, cpSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { build, context } from "esbuild";
@@ -15,6 +15,17 @@ const libsDir = join(thisDir, "..", "node_modules");
 // Use minified libraries
 const isRelease = process.argv.includes("--release");
 const outdir = join(thisDir, "public/libs");
+
+function getTimeStr() {
+  const now = new Date();
+
+  const hh = now.getHours().toString().padStart(2, "0");
+  const mm = now.getMinutes().toString().padStart(2, "0");
+  const ss = now.getSeconds().toString().padStart(2, "0");
+  const mil = now.getMilliseconds().toString().padStart(3, "0");
+
+  return `${hh}:${mm}:${ss}.${mil}`;
+}
 
 /** @type {import("esbuild").BuildOptions} */
 const buildOptions = {
@@ -57,10 +68,14 @@ function copyLibs() {
   let githubMarkdownDest = join(thisDir, "public/libs/github-markdown.css");
   copyFileSync(githubMarkdown, githubMarkdownDest);
 
-  let qsharpWasm = join(thisDir, "..", "npm/lib/web/qsc_wasm_bg.wasm");
+  copyWasmToPlayground();
+}
+
+export function copyWasmToPlayground() {
+  let qsharpWasm = join(thisDir, "..", "npm/qsharp/lib/web/qsc_wasm_bg.wasm");
   let qsharpDest = join(thisDir, `public/libs/qsharp`);
 
-  console.log("Copying the qsharp wasm file over from: " + qsharpWasm);
+  console.log("Copying the wasm file to playground from: " + qsharpWasm);
   mkdirSync(qsharpDest, { recursive: true });
   copyFileSync(qsharpWasm, join(qsharpDest, "qsc_wasm_bg.wasm"));
 }
@@ -71,34 +86,49 @@ function buildBundle() {
   build(buildOptions).then(() => console.log(`Built bundles to ${outdir}`));
 }
 
-// Serve the site or build it?
-if (process.argv.includes("--serve")) {
-  // Plugin to log start/end of build events (mostly to help VS Code problem matcher)
-  /** @type {import("esbuild").Plugin} */
-  const buildPlugin = {
-    name: "Build Events",
-    setup(build) {
-      build.onStart(() => console.log("esbuild build started"));
-      build.onEnd(() => console.log("esbuild build complete"));
-    },
-  };
+/**
+ * @param {boolean} serve
+ */
+export async function buildPlayground(serve) {
+  // Serve the site or build it?
+  if (serve) {
+    // Plugin to log start/end of build events (mostly to help VS Code problem matcher)
+    /** @type {import("esbuild").Plugin} */
+    const buildPlugin = {
+      name: "Build Events",
+      setup(build) {
+        build.onStart(() =>
+          console.log("Playground build started @ " + getTimeStr()),
+        );
+        build.onEnd(() =>
+          console.log("Playground build complete @ " + getTimeStr()),
+        );
+      },
+    };
 
-  let ctx = await context({
-    ...buildOptions,
-    plugins: [buildPlugin],
-    color: false,
-  });
-  const servedir = join(thisDir, "public");
+    let ctx = await context({
+      ...buildOptions,
+      plugins: [buildPlugin],
+      color: false,
+    });
+    const servedir = join(thisDir, "public");
 
-  // See https://esbuild.github.io/api/#serve
-  console.log(
-    "Starting the playground on http://localhost:5555 (copy this URL to a browser to use the playground)",
-  );
-  await ctx.serve({
-    port: 5555,
-    servedir,
-  });
-} else {
-  copyLibs();
-  buildBundle();
+    // See https://esbuild.github.io/api/#serve
+    console.log(
+      "Starting the playground on http://localhost:5555 (copy this URL to a browser to use the playground)",
+    );
+    await ctx.serve({
+      port: 5555,
+      servedir,
+    });
+  } else {
+    copyLibs();
+    buildBundle();
+  }
+}
+
+const thisFilePath = resolve(fileURLToPath(import.meta.url));
+if (thisFilePath === resolve(process.argv[1])) {
+  const serve = process.argv.includes("--serve");
+  buildPlayground(serve);
 }

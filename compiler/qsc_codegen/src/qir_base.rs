@@ -8,16 +8,12 @@ use crate::remapper::{HardwareId, Remapper};
 use num_bigint::BigUint;
 use num_complex::Complex;
 use qsc_eval::{
-    backend::Backend,
-    debug::{map_hir_package_to_fir, Frame},
-    eval,
-    output::GenericReceiver,
-    val::Value,
-    Env, Error,
+    backend::Backend, debug::Frame, eval, output::GenericReceiver, val::Value, Env, Error,
 };
 use qsc_fir::fir;
 use qsc_frontend::compile::PackageStore;
 use qsc_hir::hir::{self};
+use qsc_lowerer::map_hir_package_to_fir;
 use rustc_hash::FxHashSet;
 use std::fmt::{Display, Write};
 
@@ -31,12 +27,11 @@ pub fn generate_qir(
     store: &PackageStore,
     package: hir::PackageId,
 ) -> std::result::Result<String, (Error, Vec<Frame>)> {
-    let mut fir_lowerer = qsc_eval::lower::Lowerer::new();
     let mut fir_store = fir::PackageStore::new();
     for (id, unit) in store {
         fir_store.insert(
             map_hir_package_to_fir(id),
-            fir_lowerer.lower_package(&unit.package),
+            qsc_lowerer::Lowerer::new().lower_package(&unit.package),
         );
     }
 

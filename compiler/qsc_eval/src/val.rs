@@ -26,6 +26,7 @@ pub enum Value {
     Result(Result),
     String(Rc<str>),
     Tuple(Rc<[Value]>),
+    Var(Var),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -87,6 +88,9 @@ impl From<usize> for Result {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Qubit(pub usize);
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Var(pub usize);
+
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
@@ -143,6 +147,7 @@ impl Display for Value {
                 }
                 write!(f, ")")
             }
+            Value::Var(var) => write!(f, "Var{}", (var.0)),
         }
     }
 }
@@ -321,6 +326,17 @@ impl Value {
         v
     }
 
+    /// Convert the [Value] into a var
+    /// # Panics
+    /// This will panic if the [Value] is not a [`Value::Var`].
+    #[must_use]
+    pub fn unwrap_var(self) -> Var {
+        let Value::Var(v) = self else {
+            panic!("value should be Var, got {}", self.type_name());
+        };
+        v
+    }
+
     #[must_use]
     pub fn type_name(&self) -> &'static str {
         match self {
@@ -337,6 +353,7 @@ impl Value {
             Value::Result(_) => "Result",
             Value::String(_) => "String",
             Value::Tuple(_) => "Tuple",
+            Value::Var(_) => "Var",
         }
     }
 }

@@ -6,7 +6,7 @@
 pub mod test_utils;
 
 use expect_test::expect;
-use qsc::RuntimeCapabilityFlags;
+use qsc::TargetCapabilityFlags;
 use test_utils::{
     check_callable_compute_properties, check_last_statement_compute_properties, CompilationContext,
 };
@@ -142,7 +142,7 @@ fn check_rca_for_operation_with_one_classical_return_and_one_dynamic_return() {
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue | ReturnWithinDynamicScope)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ReturnWithinDynamicScope)
                         value_kind: Element(Dynamic)
                     dynamic_param_applications: <empty>
                 adj: <none>
@@ -180,19 +180,19 @@ fn check_rca_for_unrestricted_h() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -200,7 +200,7 @@ fn check_rca_for_unrestricted_h() {
 
 #[test]
 fn check_rca_for_base_h() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -278,25 +278,25 @@ fn check_rca_for_unrestricted_r1() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -304,7 +304,7 @@ fn check_rca_for_unrestricted_r1() {
 
 #[test]
 fn check_rca_for_base_r1() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -394,25 +394,25 @@ fn check_rca_for_unrestricted_rx() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -420,7 +420,7 @@ fn check_rca_for_unrestricted_rx() {
 
 #[test]
 fn check_rca_for_base_rx() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -516,31 +516,31 @@ fn check_rca_for_unrestricted_rxx() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                         [2]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                         [2]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -548,7 +548,7 @@ fn check_rca_for_unrestricted_rxx() {
 
 #[test]
 fn check_rca_for_base_rxx() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -650,25 +650,25 @@ fn check_rca_for_unrestricted_ry() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -676,7 +676,7 @@ fn check_rca_for_unrestricted_ry() {
 
 #[test]
 fn check_rca_for_base_ry() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -772,31 +772,31 @@ fn check_rca_for_unrestricted_ryy() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                         [2]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                         [2]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -804,7 +804,7 @@ fn check_rca_for_unrestricted_ryy() {
 
 #[test]
 fn check_rca_for_base_ryy() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -906,25 +906,25 @@ fn check_rca_for_unrestricted_rz() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -932,7 +932,7 @@ fn check_rca_for_unrestricted_rz() {
 
 #[test]
 fn check_rca_for_base_rz() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1028,31 +1028,31 @@ fn check_rca_for_unrestricted_rzz() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                         [2]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicDouble)
                             value_kind: Element(Static)
                         [1]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                         [2]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -1060,7 +1060,7 @@ fn check_rca_for_unrestricted_rzz() {
 
 #[test]
 fn check_rca_for_base_rzz() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1156,19 +1156,19 @@ fn check_rca_for_unrestricted_s() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -1176,7 +1176,7 @@ fn check_rca_for_unrestricted_s() {
 
 #[test]
 fn check_rca_for_base_s() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1248,19 +1248,19 @@ fn check_rca_for_unrestricted_t() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -1268,7 +1268,7 @@ fn check_rca_for_unrestricted_t() {
 
 #[test]
 fn check_rca_for_base_t() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1340,19 +1340,19 @@ fn check_rca_for_unrestricted_x() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -1360,7 +1360,7 @@ fn check_rca_for_unrestricted_x() {
 
 #[test]
 fn check_rca_for_base_x() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1432,19 +1432,19 @@ fn check_rca_for_unrestricted_y() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -1452,7 +1452,7 @@ fn check_rca_for_unrestricted_y() {
 
 #[test]
 fn check_rca_for_base_y() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
@@ -1524,19 +1524,19 @@ fn check_rca_for_unrestricted_z() {
                             value_kind: Element(Static)
                 ctl: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)
                 ctl-adj: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
-                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | ForwardBranchingOnDynamicValue)
+                        runtime_features: RuntimeFeatureFlags(UseOfDynamicBool)
                         value_kind: Element(Static)
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
-                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit | ForwardBranchingOnDynamicValue)
+                            runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicQubit)
                             value_kind: Element(Static)"#
         ],
     );
@@ -1544,7 +1544,7 @@ fn check_rca_for_unrestricted_z() {
 
 #[test]
 fn check_rca_for_base_z() {
-    let compilation_context = CompilationContext::new(RuntimeCapabilityFlags::empty());
+    let compilation_context = CompilationContext::new(TargetCapabilityFlags::empty());
     check_callable_compute_properties(
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),

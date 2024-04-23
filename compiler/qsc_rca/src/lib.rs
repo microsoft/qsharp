@@ -26,7 +26,7 @@ use qsc_fir::{
     },
     ty::Ty,
 };
-use qsc_frontend::compile::RuntimeCapabilityFlags;
+use qsc_frontend::compile::TargetCapabilityFlags;
 use std::{
     cmp::Ord,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -635,7 +635,8 @@ impl ValueKind {
         }
     }
 
-    pub(crate) fn is_dynamic(self) -> bool {
+    #[must_use]
+    pub fn is_dynamic(self) -> bool {
         match self {
             Self::Array(content_runtime_kind, size_runtime_kind) => {
                 matches!(content_runtime_kind, RuntimeKind::Dynamic)
@@ -738,31 +739,26 @@ bitflags! {
         const CallToDynamicCallee = 1 << 15;
         /// A callee expression could not be resolved to a specific callable.
         const CallToUnresolvedCallee = 1 << 16;
-        /// Forward branching on dynamic value.
-        const ForwardBranchingOnDynamicValue = 1 << 17;
-        /// Result allocation that happens within a dynamic scope.
-        const DynamicResultAllocation = 1 << 18;
+        /// Performing a measurement within a dynamic scope.
+        const MeasurementWithinDynamicScope = 1 << 17;
         /// Use of a dynamic index to access or update an array.
-        const UseOfDynamicIndex = 1 << 19;
+        const UseOfDynamicIndex = 1 << 18;
         /// A return expression withing a dynamic scope.
-        const ReturnWithinDynamicScope = 1 << 20;
+        const ReturnWithinDynamicScope = 1 << 19;
         /// A loop with a dynamic condition.
-        const LoopWithDynamicCondition = 1 << 21;
+        const LoopWithDynamicCondition = 1 << 20;
         /// Use of a closure.
-        const UseOfClosure = 1 << 22;
+        const UseOfClosure = 1 << 21;
     }
 }
 
 impl RuntimeFeatureFlags {
-    /// Determines the runtime features that contribute to the provided runtime capabilities.
+    /// Determines the runtime features that contribute to the provided target capabilities.
     #[must_use]
-    pub fn contributing_features(&self, runtime_capabilities: RuntimeCapabilityFlags) -> Self {
+    pub fn contributing_features(&self, capabilities: TargetCapabilityFlags) -> Self {
         let mut contributing_features = Self::empty();
         for feature in self.iter() {
-            if feature
-                .runtime_capabilities()
-                .intersects(runtime_capabilities)
-            {
+            if feature.target_capabilities().intersects(capabilities) {
                 contributing_features |= feature;
             }
         }
@@ -770,79 +766,76 @@ impl RuntimeFeatureFlags {
         contributing_features
     }
 
-    /// Maps program contructs to runtime capabilities.
+    /// Maps program constructs to target capabilities.
     #[must_use]
-    pub fn runtime_capabilities(&self) -> RuntimeCapabilityFlags {
-        let mut runtume_capabilities = RuntimeCapabilityFlags::empty();
+    pub fn target_capabilities(&self) -> TargetCapabilityFlags {
+        let mut capabilities = TargetCapabilityFlags::empty();
         if self.contains(RuntimeFeatureFlags::UseOfDynamicBool) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            capabilities |= TargetCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicInt) {
-            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicPauli) {
-            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicRange) {
-            runtume_capabilities |= RuntimeCapabilityFlags::IntegerComputations;
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicDouble) {
-            runtume_capabilities |= RuntimeCapabilityFlags::FloatingPointComputations;
+            capabilities |= TargetCapabilityFlags::FloatingPointComputations;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicQubit) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicBigInt) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicString) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicUdt) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowFunction) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicArrowOperation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToCyclicFunctionWithDynamicArg) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CyclicOperationSpec) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToCyclicOperation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToDynamicCallee) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::CallToUnresolvedCallee) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
-        if self.contains(RuntimeFeatureFlags::ForwardBranchingOnDynamicValue) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
-        }
-        if self.contains(RuntimeFeatureFlags::DynamicResultAllocation) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+        if self.contains(RuntimeFeatureFlags::MeasurementWithinDynamicScope) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::UseOfDynamicIndex) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::ReturnWithinDynamicScope) {
-            runtume_capabilities |= RuntimeCapabilityFlags::ForwardBranching;
+            capabilities |= TargetCapabilityFlags::Adaptive;
         }
         if self.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
-            runtume_capabilities |= RuntimeCapabilityFlags::BackwardsBranching;
+            capabilities |= TargetCapabilityFlags::BackwardsBranching;
         }
         if self.contains(RuntimeFeatureFlags::UseOfClosure) {
-            runtume_capabilities |= RuntimeCapabilityFlags::HigherLevelConstructs;
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
-        runtume_capabilities
+        capabilities
     }
 }
