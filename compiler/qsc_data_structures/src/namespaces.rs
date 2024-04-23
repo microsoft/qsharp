@@ -104,7 +104,6 @@ impl NamespaceTreeRoot {
 
     #[must_use]
     pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>) {
-        let memo = format!("memo: {:?}", self.memo.borrow());
         if let Some(res) = self.memo.borrow().get(id) {
             return res.clone();
         }

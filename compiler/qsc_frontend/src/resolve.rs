@@ -1294,7 +1294,6 @@ fn ambiguous_symbol_error(
     opens.sort_unstable_by_key(|open| open.span);
     let (first_open_ns, _) = globals.namespaces.find_id(&opens[0].namespace);
     let (second_open_ns, _) = globals.namespaces.find_id(&opens[1].namespace);
-    let debug_str = format!("second_open_ns: {:?}", second_open_ns);
     Err(Error::Ambiguous {
         name: provided_symbol_name.name.to_string(),
         first_open: first_open_ns.join("."),
