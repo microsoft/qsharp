@@ -56,7 +56,7 @@ impl Display for NamespaceId {
 #[derive(Debug, Clone)]
 pub struct NamespaceTreeRoot {
     assigner: usize,
-    tree: NamespaceTreeNode,
+    tree: Rc<RefCell<NamespaceTreeNode>>,
     memo: RefCell<FxHashMap<NamespaceId, (Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>)>>,
 }
 
@@ -66,15 +66,15 @@ impl NamespaceTreeRoot {
     pub fn new_from_parts(assigner: usize, tree: NamespaceTreeNode) -> Self {
         Self {
             assigner,
-            tree,
+            tree: Rc::new(RefCell::new(tree)),
             memo: RefCell::new(FxHashMap::default()),
         }
     }
 
     /// Get the namespace tree field. This is the root of the namespace tree.
     #[must_use]
-    pub fn tree(&self) -> &NamespaceTreeNode {
-        &self.tree
+    pub fn tree(&self) -> Rc<RefCell<NamespaceTreeNode>> {
+        self.tree.clone()
     }
 
     /// Insert a namespace into the tree. If the namespace already exists, return its ID.
@@ -82,7 +82,7 @@ impl NamespaceTreeRoot {
         &mut self,
         ns: impl IntoIterator<Item = Rc<str>>,
     ) -> NamespaceId {
-        self.tree
+        self.tree.borrow_mut()
             .insert_or_find_namespace(ns.into_iter().peekable(), &mut self.assigner)
             .expect("namespace creation should not fail")
     }
@@ -99,15 +99,16 @@ impl NamespaceTreeRoot {
     }
 
     pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
-        self.tree.find_namespace(ns)
+        self.tree.borrow().find_namespace(ns)
     }
 
     #[must_use]
     pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>) {
+        let memo = format!("memo: {:?}", self.memo.borrow());
         if let Some(res) = self.memo.borrow().get(id) {
             return res.clone();
         }
-        let (names, node) = self.tree.find_id(*id, &[]);
+        let Some((names, node)) = self.tree.borrow().find_id(*id, &[]) else { return (vec![], self.tree.clone()) } ;
 
         self.memo.borrow_mut().insert(*id, (names.clone(), node.clone()));
         (names, node.clone())
@@ -115,7 +116,7 @@ impl NamespaceTreeRoot {
 
     #[must_use]
     pub fn root_id(&self) -> NamespaceId {
-        self.tree.id
+        self.tree.borrow().id
     }
 }
 
@@ -123,10 +124,10 @@ impl Default for NamespaceTreeRoot {
     fn default() -> Self {
         let mut tree = Self {
             assigner: 0,
-            tree: NamespaceTreeNode {
+            tree: Rc::new(RefCell::new(NamespaceTreeNode {
                 children: FxHashMap::default(),
                 id: NamespaceId::new(0),
-            },
+            })),
             memo: RefCell::new(FxHashMap::default()),
         };
         // insert the prelude namespaces using the `NamespaceTreeRoot` API
@@ -227,29 +228,27 @@ impl NamespaceTreeNode {
         &self,
         id: NamespaceId,
         names_buf: &[Rc<str>],
-    ) -> (Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>) {
+    ) -> Option<(Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>)> {
         // first, check if any children are the one we are looking for
         for (name, node) in &self.children {
             if node.borrow().id == id {
                 let mut names = names_buf.to_vec();
                 names.push(name.clone());
-                return (names, node.clone());
+                return Some((names, node.clone()));
             }
         }
 
         // if it wasn't found, recurse into children
         for (name, node) in &self.children {
-
-            let (names, node) = node.borrow().find_id(id, names_buf);
+            let mut names = names_buf.to_vec();
+            names.push(name.clone());
+            let Some((names, node)) = node.borrow().find_id(id, &names) else { continue; };
             if !names.is_empty() {
-                let mut names = names_buf.to_vec();
-                names.push(name.clone());
-                return (names, node);
+                return Some((names, node));
             }
-            
         }
 
-        unreachable!("All namespace IDs should exist in the tree")
+        None
 
     }
 }
