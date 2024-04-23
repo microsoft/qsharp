@@ -165,7 +165,6 @@ pub struct Locals {
 }
 
 impl Locals {
-    // #[inline(never)]
     fn get_scopes<'a>(&'a self, scope_chain: &'a [ScopeId]) -> impl Iterator<Item = &Scope> + 'a {
         // reverse to go from innermost -> outermost
         scope_chain.iter().rev().map(|id| {
@@ -430,7 +429,6 @@ impl Resolver {
         }
     }
 
-    // #[inline(never)]
     fn resolve_path(&mut self, kind: NameKind, path: &ast::Path) {
         let name = &path.name;
         let namespace = &path.namespace;
@@ -1156,7 +1154,7 @@ fn resolve<'a>(
         globals,
         provided_namespace_name,
         provided_symbol_name,
-        vec![(globals.namespaces.root_id(), ())].into_iter(),
+        std::iter::once((globals.namespaces.root_id(), ())),
         // there are no aliases in globals
         &FxHashMap::default(),
     );
@@ -1175,7 +1173,6 @@ fn resolve<'a>(
 /// Checks all given scopes, in the correct order, for a resolution.
 /// Calls `check_scoped_resolutions` on each scope, and tracks if we should allow local variables in closures in parent scopes
 /// using the `vars` parameter.
-// #[inline(never)]
 fn check_all_scopes<'a>(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1219,7 +1216,6 @@ fn check_all_scopes<'a>(
 /// * `provided_namespace_name` - The namespace of the symbol, if any.
 /// * `vars` - A mutable reference to a boolean indicating whether to allow local variables in closures in parent scopes.
 /// * `scope` - The scope to check for resolutions.
-// #[inline(never)]
 fn check_scoped_resolutions(
     kind: NameKind,
     globals: &GlobalScope,
@@ -1344,7 +1340,7 @@ where
         // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
         let namespace = provided_namespace_name
             .as_ref()
-            .and_then(|name| candidate_namespace.find_namespace(name));
+            .and_then(|name| candidate_namespace.borrow().find_namespace(name));
 
         // if a namespace was provided, but not found, then this is not the correct namespace.
         if provided_namespace_name.is_some() && namespace.is_none() {

@@ -2,7 +2,7 @@
 mod tests;
 
 use rustc_hash::FxHashMap;
-use std::{fmt::Display, iter::Peekable, ops::Deref, rc::Rc};
+use std::{fmt::Display, cell::RefCell, iter::Peekable, ops::Deref, rc::Rc};
 
 pub const PRELUDE: [[&str; 3]; 4] = [
     ["Microsoft", "Quantum", "Canon"],
@@ -57,25 +57,27 @@ impl Display for NamespaceId {
 pub struct NamespaceTreeRoot {
     assigner: usize,
     tree: NamespaceTreeNode,
+    memo: RefCell<FxHashMap<NamespaceId, (Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>)>>,
 }
 
 impl NamespaceTreeRoot {
     /// Create a new namespace tree root. The assigner is used to assign new namespace IDs.
     #[must_use]
     pub fn new_from_parts(assigner: usize, tree: NamespaceTreeNode) -> Self {
-        Self { assigner, tree }
+        Self {
+            assigner,
+            tree,
+            memo: RefCell::new(FxHashMap::default()),
+        }
     }
 
     /// Get the namespace tree field. This is the root of the namespace tree.
     #[must_use]
-    // #[inline(never)]
     pub fn tree(&self) -> &NamespaceTreeNode {
         &self.tree
     }
 
     /// Insert a namespace into the tree. If the namespace already exists, return its ID.
-    // #[inline(never)]
-
     pub fn insert_or_find_namespace(
         &mut self,
         ns: impl IntoIterator<Item = Rc<str>>,
@@ -87,7 +89,7 @@ impl NamespaceTreeRoot {
 
     pub fn new_namespace_node(
         &mut self,
-        children: FxHashMap<Rc<str>, NamespaceTreeNode>,
+        children: FxHashMap<Rc<str>, Rc<RefCell<NamespaceTreeNode>>>,
     ) -> NamespaceTreeNode {
         self.assigner += 1;
         NamespaceTreeNode {
@@ -95,17 +97,21 @@ impl NamespaceTreeRoot {
             children,
         }
     }
-    // #[inline(never)]
+
     pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         self.tree.find_namespace(ns)
     }
-    // #[inline(never)]
 
     #[must_use]
-    pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, &NamespaceTreeNode) {
-        return self.tree.find_id(*id, &[]);
+    pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>) {
+        if let Some(res) = self.memo.borrow().get(id) {
+            return res.clone();
+        }
+        let (names, node) = self.tree.find_id(*id, &[]);
+
+        self.memo.borrow_mut().insert(*id, (names.clone(), node.clone()));
+        (names, node.clone())
     }
-    // #[inline(never)]
 
     #[must_use]
     pub fn root_id(&self) -> NamespaceId {
@@ -121,6 +127,7 @@ impl Default for NamespaceTreeRoot {
                 children: FxHashMap::default(),
                 id: NamespaceId::new(0),
             },
+            memo: RefCell::new(FxHashMap::default()),
         };
         // insert the prelude namespaces using the `NamespaceTreeRoot` API
         for ns in &PRELUDE {
@@ -133,22 +140,22 @@ impl Default for NamespaceTreeRoot {
 
 #[derive(Debug, Clone)]
 pub struct NamespaceTreeNode {
-    pub children: FxHashMap<Rc<str>, NamespaceTreeNode>,
+    pub children: FxHashMap<Rc<str>, Rc<RefCell<NamespaceTreeNode>>>,
     pub id: NamespaceId,
 }
 impl NamespaceTreeNode {
     #[must_use]
-    pub fn new(id: NamespaceId, children: FxHashMap<Rc<str>, NamespaceTreeNode>) -> Self {
+    pub fn new(id: NamespaceId, children: FxHashMap<Rc<str>, Rc<RefCell<NamespaceTreeNode>>>) -> Self {
         Self { children, id }
     }
 
     #[must_use]
-    pub fn children(&self) -> &FxHashMap<Rc<str>, NamespaceTreeNode> {
+    pub fn children(&self) -> &FxHashMap<Rc<str>, Rc<RefCell<NamespaceTreeNode>>> {
         &self.children
     }
 
-    fn get(&self, component: &Rc<str>) -> Option<&NamespaceTreeNode> {
-        self.children.get(component)
+    fn get(&self, component: &Rc<str>) -> Option<Rc<RefCell<NamespaceTreeNode>>> {
+        self.children.get(component).cloned()
     }
 
     #[must_use]
@@ -165,15 +172,19 @@ impl NamespaceTreeNode {
         // look up a namespace in the tree and return the id
         // do a breadth-first search through NamespaceTree for the namespace
         // if it's not found, return None
-        let mut buf = Rc::new(self);
+
+        let mut buf: Option<Rc<RefCell<NamespaceTreeNode>>> =  None;
         for component in &ns.into() {
-            if let Some(next_ns) = buf.get(component) {
-                buf = Rc::new(next_ns);
+            if let Some(next_ns) = match buf {
+                None => self.get(component),
+                Some(buf) => buf.borrow().get(component)
+            } {
+                buf = Some(next_ns);
             } else {
                 return None;
             }
         }
-        Some(buf.id)
+        Some(buf.map_or_else(|| self.id, |x| x.borrow().id))
     }
 
     /// If the namespace already exists, it will not be inserted.
@@ -190,10 +201,10 @@ impl NamespaceTreeNode {
         let next_node = self.children.get_mut(&next_item);
         match (next_node, iter.peek()) {
             (Some(next_node), Some(_)) => {
-                return next_node.insert_or_find_namespace(iter, assigner);
+                return next_node.borrow_mut().insert_or_find_namespace(iter, assigner);
             }
             (Some(next_node), None) => {
-                return Some(next_node.id);
+                return Some(next_node.borrow().id);
             }
             _ => {}
         }
@@ -202,31 +213,43 @@ impl NamespaceTreeNode {
             NamespaceTreeNode::new(NamespaceId::new(*assigner), FxHashMap::default());
         if iter.peek().is_none() {
             let new_node_id = new_node.id;
-            self.children.insert(next_item, new_node);
+            self.children.insert(next_item, Rc::new(RefCell::new(new_node)));
             Some(new_node_id)
         } else {
             let id = new_node.insert_or_find_namespace(iter, assigner);
-            self.children.insert(next_item, new_node);
+            self.children.insert(next_item, Rc::new(RefCell::new(new_node)));
             id
         }
     }
 
+    /// given a namespace id, find its name and node
     fn find_id(
         &self,
         id: NamespaceId,
         names_buf: &[Rc<str>],
-    ) -> (Vec<Rc<str>>, &NamespaceTreeNode) {
-        if self.id == id {
-            return (names_buf.to_vec(), &self);
-        }
+    ) -> (Vec<Rc<str>>, Rc<RefCell<NamespaceTreeNode>>) {
+        // first, check if any children are the one we are looking for
         for (name, node) in &self.children {
-            let (names, node) = node.find_id(id, names_buf);
+            if node.borrow().id == id {
+                let mut names = names_buf.to_vec();
+                names.push(name.clone());
+                return (names, node.clone());
+            }
+        }
+
+        // if it wasn't found, recurse into children
+        for (name, node) in &self.children {
+
+            let (names, node) = node.borrow().find_id(id, names_buf);
             if !names.is_empty() {
                 let mut names = names_buf.to_vec();
                 names.push(name.clone());
                 return (names, node);
             }
+            
         }
-        (vec![], &self)
+
+        unreachable!("All namespace IDs should exist in the tree")
+
     }
 }
