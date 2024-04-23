@@ -127,7 +127,6 @@ namespace Microsoft.Quantum.ResourceEstimation {
     }
 
     /// # Summary
-    ///
     /// Instructs the resource estimator to assume that the resources from the
     /// call of this operation until a call to `EndRepeatEstimates` are
     /// accounted for `count` times, without the need to execute the code that many
@@ -150,7 +149,6 @@ namespace Microsoft.Quantum.ResourceEstimation {
     }
 
     /// # Summary
-    ///
     /// Companion operation to `BeginRepeatEstimates`.
     operation EndRepeatEstimates() : Unit {
         body ... {
@@ -164,7 +162,6 @@ namespace Microsoft.Quantum.ResourceEstimation {
     }
 
     /// # Summary
-    ///
     /// Instructs the resource estimator to assume that the resources from the
     /// call of this operation until a call to `Adjoint RepeatEstimates` are
     /// accounted for `count` times, without the need to execute the code that many
