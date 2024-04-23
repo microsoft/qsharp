@@ -1005,7 +1005,11 @@ fn bind_global_item(
                 .entry(Rc::clone(&decl.name.name))
             {
                 Entry::Occupied(_) => {
-                    let namespace_name = scope.namespaces.find_id(&namespace).0.join(".");
+                    let namespace_name = scope
+                        .namespaces
+                        .find_namespace_by_id(&namespace)
+                        .0
+                        .join(".");
                     errors.push(Error::Duplicate(
                         decl.name.name.to_string(),
                         namespace_name.to_string(),
@@ -1048,7 +1052,11 @@ fn bind_global_item(
                     .entry(Rc::clone(&name.name)),
             ) {
                 (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
-                    let namespace_name = scope.namespaces.find_id(&namespace).0.join(".");
+                    let namespace_name = scope
+                        .namespaces
+                        .find_namespace_by_id(&namespace)
+                        .0
+                        .join(".");
                     Err(vec![Error::Duplicate(
                         name.name.to_string(),
                         namespace_name,
@@ -1295,8 +1303,8 @@ fn ambiguous_symbol_error(
 ) -> Result<Res, Error> {
     let mut opens: Vec<_> = candidates.into_values().collect();
     opens.sort_unstable_by_key(|open| open.span);
-    let (first_open_ns, _) = globals.namespaces.find_id(&opens[0].namespace);
-    let (second_open_ns, _) = globals.namespaces.find_id(&opens[1].namespace);
+    let (first_open_ns, _) = globals.namespaces.find_namespace_by_id(&opens[0].namespace);
+    let (second_open_ns, _) = globals.namespaces.find_namespace_by_id(&opens[1].namespace);
     Err(Error::Ambiguous {
         name: provided_symbol_name.name.to_string(),
         first_open: first_open_ns.join("."),
@@ -1339,12 +1347,15 @@ where
     let mut candidates = FxHashMap::default();
     for (candidate_namespace_id, open) in namespaces_to_search {
         // Retrieve the namespace associated with the candidate_namespace_id from the global namespaces
-        let candidate_namespace = globals.namespaces.find_id(&candidate_namespace_id).1;
+        let candidate_namespace = globals
+            .namespaces
+            .find_namespace_by_id(&candidate_namespace_id)
+            .1;
 
         // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
         let namespace = provided_namespace_name
             .as_ref()
-            .and_then(|name| candidate_namespace.borrow().find_namespace(name));
+            .and_then(|name| candidate_namespace.borrow().get_namespace_id(name));
 
         // if a namespace was provided, but not found, then this is not the correct namespace.
         if provided_namespace_name.is_some() && namespace.is_none() {

@@ -155,7 +155,7 @@ fn test_find_id() {
     }
     let mut result_buf = vec![];
     for id in id_buf {
-        result_buf.push(root.find_id(&id));
+        result_buf.push(root.find_namespace_by_id(&id));
     }
     expect![[r#"
         [

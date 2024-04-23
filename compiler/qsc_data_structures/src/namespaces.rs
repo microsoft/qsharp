@@ -60,6 +60,19 @@ type NamespaceTreeCell = Rc<RefCell<NamespaceTreeNode>>;
 /// An entry in the memoization table for namespace ID lookups.
 type MemoEntry = (Vec<Rc<str>>, NamespaceTreeCell);
 
+/// The root of the data structure that represents the namespaces in a program.
+/// The tree is a trie (prefix tree) where each node is a namespace and the children are the sub-namespaces.
+/// For example, the namespace `Microsoft.Quantum.Canon` would be represented as a traversal from the root node:
+/// ```
+/// root
+/// └ Microsoft
+///   └ Quantum
+///     └ Canon
+/// ```
+/// This data structure is optimized for looking up namespace IDs by a given name. Looking up a namespace name by ID is
+/// less efficient, as it performs a breadth-first search. Because of this inefficiency, the results of this lookup are memoized.
+/// [NamespaceTreeNode]s are all stored in [NamespaceTreeCell]s, which are reference counted and support interior mutability for namespace
+/// insertions and clone-free lookups.
 #[derive(Debug, Clone)]
 pub struct NamespaceTreeRoot {
     assigner: usize,
@@ -107,15 +120,15 @@ impl NamespaceTreeRoot {
     }
 
     pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
-        self.tree.borrow().find_namespace(ns)
+        self.tree.borrow().get_namespace_id(ns)
     }
 
     #[must_use]
-    pub fn find_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, NamespaceTreeCell) {
+    pub fn find_namespace_by_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, NamespaceTreeCell) {
         if let Some(res) = self.memo.borrow().get(id) {
             return res.clone();
         }
-        let Some((names, node)) = self.tree.borrow().find_id(*id, &[]) else {
+        let Some((names, node)) = self.tree.borrow().find_namespace_by_id(*id, &[]) else {
             return (vec![], self.tree.clone());
         };
 
@@ -177,14 +190,11 @@ impl NamespaceTreeNode {
 
     #[must_use]
     pub fn contains(&self, ns: impl Into<Vec<Rc<str>>>) -> bool {
-        self.find_namespace(ns).is_some()
+        self.get_namespace_id(ns).is_some()
     }
 
-    pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
-        // look up a namespace in the tree and return the id
-        // do a breadth-first search through NamespaceTree for the namespace
-        // if it's not found, return None
-
+    /// Performs a breadth-first search to find the ID for a given namespace.
+    pub fn get_namespace_id(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         let mut buf: Option<NamespaceTreeCell> = None;
         for component in &ns.into() {
             if let Some(next_ns) = match buf {
@@ -239,7 +249,7 @@ impl NamespaceTreeNode {
     }
 
     /// given a namespace id, find its name and node
-    fn find_id(
+    fn find_namespace_by_id(
         &self,
         id: NamespaceId,
         names_buf: &[Rc<str>],
@@ -257,7 +267,7 @@ impl NamespaceTreeNode {
         for (name, node) in &self.children {
             let mut names = names_buf.to_vec();
             names.push(name.clone());
-            let Some((names, node)) = node.borrow().find_id(id, &names) else {
+            let Some((names, node)) = node.borrow().find_namespace_by_id(id, &names) else {
                 continue;
             };
             if !names.is_empty() {
