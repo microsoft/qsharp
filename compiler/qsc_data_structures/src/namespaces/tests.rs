@@ -16,125 +16,166 @@ fn test_tree_construction() {
     expect![[r#"
         NamespaceTreeRoot {
             assigner: 18,
-            tree: NamespaceTreeNode {
-                children: {
-                    "ns1": NamespaceTreeNode {
-                        children: {
-                            "nsc": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    14,
-                                ),
-                            },
-                            "nsb": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    13,
-                                ),
-                            },
-                            "nsa": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    12,
-                                ),
-                            },
-                        },
-                        id: NamespaceId(
-                            11,
-                        ),
-                    },
-                    "ns0": NamespaceTreeNode {
-                        children: {
-                            "nsc": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    10,
-                                ),
-                            },
-                            "nsb": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    9,
-                                ),
-                            },
-                            "nsa": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    8,
-                                ),
-                            },
-                        },
-                        id: NamespaceId(
-                            7,
-                        ),
-                    },
-                    "Microsoft": NamespaceTreeNode {
-                        children: {
-                            "Quantum": NamespaceTreeNode {
+            tree: RefCell {
+                value: NamespaceTreeNode {
+                    children: {
+                        "ns1": RefCell {
+                            value: NamespaceTreeNode {
                                 children: {
-                                    "Canon": NamespaceTreeNode {
-                                        children: {},
-                                        id: NamespaceId(
-                                            3,
-                                        ),
+                                    "nsc": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                14,
+                                            ),
+                                        },
                                     },
-                                    "Measurement": NamespaceTreeNode {
-                                        children: {},
-                                        id: NamespaceId(
-                                            6,
-                                        ),
+                                    "nsb": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                13,
+                                            ),
+                                        },
                                     },
-                                    "Core": NamespaceTreeNode {
-                                        children: {},
-                                        id: NamespaceId(
-                                            4,
-                                        ),
-                                    },
-                                    "Intrinsic": NamespaceTreeNode {
-                                        children: {},
-                                        id: NamespaceId(
-                                            5,
-                                        ),
+                                    "nsa": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                12,
+                                            ),
+                                        },
                                     },
                                 },
                                 id: NamespaceId(
-                                    2,
+                                    11,
                                 ),
                             },
                         },
-                        id: NamespaceId(
-                            1,
-                        ),
-                    },
-                    "ns2": NamespaceTreeNode {
-                        children: {
-                            "nsc": NamespaceTreeNode {
-                                children: {},
+                        "ns0": RefCell {
+                            value: NamespaceTreeNode {
+                                children: {
+                                    "nsc": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                10,
+                                            ),
+                                        },
+                                    },
+                                    "nsb": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                9,
+                                            ),
+                                        },
+                                    },
+                                    "nsa": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                8,
+                                            ),
+                                        },
+                                    },
+                                },
                                 id: NamespaceId(
-                                    18,
-                                ),
-                            },
-                            "nsb": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    17,
-                                ),
-                            },
-                            "nsa": NamespaceTreeNode {
-                                children: {},
-                                id: NamespaceId(
-                                    16,
+                                    7,
                                 ),
                             },
                         },
-                        id: NamespaceId(
-                            15,
-                        ),
+                        "Microsoft": RefCell {
+                            value: NamespaceTreeNode {
+                                children: {
+                                    "Quantum": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {
+                                                "Canon": RefCell {
+                                                    value: NamespaceTreeNode {
+                                                        children: {},
+                                                        id: NamespaceId(
+                                                            3,
+                                                        ),
+                                                    },
+                                                },
+                                                "Measurement": RefCell {
+                                                    value: NamespaceTreeNode {
+                                                        children: {},
+                                                        id: NamespaceId(
+                                                            6,
+                                                        ),
+                                                    },
+                                                },
+                                                "Core": RefCell {
+                                                    value: NamespaceTreeNode {
+                                                        children: {},
+                                                        id: NamespaceId(
+                                                            4,
+                                                        ),
+                                                    },
+                                                },
+                                                "Intrinsic": RefCell {
+                                                    value: NamespaceTreeNode {
+                                                        children: {},
+                                                        id: NamespaceId(
+                                                            5,
+                                                        ),
+                                                    },
+                                                },
+                                            },
+                                            id: NamespaceId(
+                                                2,
+                                            ),
+                                        },
+                                    },
+                                },
+                                id: NamespaceId(
+                                    1,
+                                ),
+                            },
+                        },
+                        "ns2": RefCell {
+                            value: NamespaceTreeNode {
+                                children: {
+                                    "nsc": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                18,
+                                            ),
+                                        },
+                                    },
+                                    "nsb": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                17,
+                                            ),
+                                        },
+                                    },
+                                    "nsa": RefCell {
+                                        value: NamespaceTreeNode {
+                                            children: {},
+                                            id: NamespaceId(
+                                                16,
+                                            ),
+                                        },
+                                    },
+                                },
+                                id: NamespaceId(
+                                    15,
+                                ),
+                            },
+                        },
                     },
+                    id: NamespaceId(
+                        0,
+                    ),
                 },
-                id: NamespaceId(
-                    0,
-                ),
+            },
+            memo: RefCell {
+                value: {},
             },
         }
     "#]]
@@ -164,11 +205,13 @@ fn test_find_id() {
                     "ns0",
                     "nsa",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        8,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            8,
+                        ),
+                    },
                 },
             ),
             (
@@ -176,11 +219,13 @@ fn test_find_id() {
                     "ns0",
                     "nsb",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        9,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            9,
+                        ),
+                    },
                 },
             ),
             (
@@ -188,11 +233,13 @@ fn test_find_id() {
                     "ns0",
                     "nsc",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        10,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            10,
+                        ),
+                    },
                 },
             ),
             (
@@ -200,11 +247,13 @@ fn test_find_id() {
                     "ns1",
                     "nsa",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        12,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            12,
+                        ),
+                    },
                 },
             ),
             (
@@ -212,11 +261,13 @@ fn test_find_id() {
                     "ns1",
                     "nsb",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        13,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            13,
+                        ),
+                    },
                 },
             ),
             (
@@ -224,11 +275,13 @@ fn test_find_id() {
                     "ns1",
                     "nsc",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        14,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            14,
+                        ),
+                    },
                 },
             ),
             (
@@ -236,11 +289,13 @@ fn test_find_id() {
                     "ns2",
                     "nsa",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        16,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            16,
+                        ),
+                    },
                 },
             ),
             (
@@ -248,11 +303,13 @@ fn test_find_id() {
                     "ns2",
                     "nsb",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        17,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            17,
+                        ),
+                    },
                 },
             ),
             (
@@ -260,11 +317,13 @@ fn test_find_id() {
                     "ns2",
                     "nsc",
                 ],
-                NamespaceTreeNode {
-                    children: {},
-                    id: NamespaceId(
-                        18,
-                    ),
+                RefCell {
+                    value: NamespaceTreeNode {
+                        children: {},
+                        id: NamespaceId(
+                            18,
+                        ),
+                    },
                 },
             ),
         ]
