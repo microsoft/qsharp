@@ -373,6 +373,8 @@ class StateDump:
             if key not in inner_state:
                 return False
             if phase is None:
+                # Calculate the phase based on the first state pair encountered.
+                # Every pair of states after this must have the same phase for the states to be equivalent.
                 phase = inner_state[key] / state[key]
             elif abs(phase - inner_state[key] / state[key]) > tolerance:
                 return False
