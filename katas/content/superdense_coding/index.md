@@ -1,7 +1,7 @@
 # Superdense Coding Kata
 
 @[section]({
-    "id": "./superdense_coding.ipynb__overview",
+    "id": "./superdense_coding__overview",
     "title": "Overview"
 })
 
