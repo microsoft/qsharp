@@ -27,7 +27,9 @@ pub fn simplify_control_flow(program: &mut Program) {
         {
             merge_map.insert(block_id, preds[0]);
 
-            // The block to merge into may itself have been merged into another block. Find the ultimate target block.
+            // The block to merge into may itself have been merged into another block.
+            // Find the ultimate target block by iterating through the merge map until we find a predecessor
+            // block that is missing from the map indicating it hasn't been merged.
             let mut target_block_id = preds[0];
             while let Some(mapped_block) = merge_map.get(&target_block_id) {
                 target_block_id = *mapped_block;
