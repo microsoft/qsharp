@@ -229,13 +229,23 @@ However, if an $X$ error happens on any one of these qubits, we won't be able to
     "title": "Shor Code"
 })
 
-- exercise: Shor code: detect all errors
+TODO
+
 - demo: does Shor code indeed correct all errors?
 
 @[exercise]({
     "id": "qec_shor__shor_encode",
     "title": "Shor Code: Encode Codewords",
     "path": "./shor_encode/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "qec_shor__shor_detect",
+    "title": "Shor Code: Detect X, Y, and Z Errors",
+    "path": "./shor_detect/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]

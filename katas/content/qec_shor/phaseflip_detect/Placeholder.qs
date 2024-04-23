@@ -1,5 +1,5 @@
 namespace Kata {
-    operation PhaseflipDetectError (register : Qubit[]) : Int {
+    operation PhaseflipDetectError (qs : Qubit[]) : Int {
         // Implement your solution here...
 
         return -2;
