@@ -377,6 +377,8 @@ class StateDump:
                 # Every pair of states after this must have the same phase for the states to be equivalent.
                 phase = inner_state[key] / state[key]
             elif abs(phase - inner_state[key] / state[key]) > tolerance:
+                # This pair of states does not have the same phase,
+                # within tolerance, so the the equivalence check fails.
                 return False
         return True
 
