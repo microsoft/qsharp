@@ -1140,6 +1140,8 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc",
  "qsc_data_structures",
  "qsc_eval",

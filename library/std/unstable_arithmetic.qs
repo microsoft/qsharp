@@ -36,16 +36,14 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// where each |i⟩ is a basis state representing an integer i,
     /// reflects the state of the register about the basis state |j⟩
     /// for a given integer j: ∑ᵢ(-1)^(δᵢⱼ)(αᵢ|i⟩)
+    /// This operation is implemented in-place, without explicit allocation of
+    /// additional auxiliary qubits.
     ///
     /// # Input
     /// ## index
     /// The classical integer j indexing the basis state about which to reflect.
     /// ## reg
     /// Little-endian quantum register to reflect.
-    ///
-    /// # Remarks
-    /// This operation is implemented in-place, without explicit allocation of
-    /// additional auxiliary qubits.
     operation ReflectAboutInteger(index : Int, reg : Qubit[]) : Unit is Adj + Ctl {
         within {
             // Evaluation optimization for case index == 0
@@ -147,10 +145,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// qubits otherwise.
     ///
     /// # References
-    ///     - [arXiv:0910.2530](https://arxiv.org/abs/0910.2530)
-    ///       "Quantum Addition Circuits and Unbounded Fan-Out"
-    ///       by Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro
-    ///
+    /// - [arXiv:0910.2530](https://arxiv.org/abs/0910.2530)
+    ///   "Quantum Addition Circuits and Unbounded Fan-Out",
+    ///   Yasuhiro Takahashi, Seiichiro Tani, Noboru Kunihiro
     operation RippleCarryTTKIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
@@ -198,8 +195,8 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// This operation uses the ripple-carry algorithm.
     ///
     /// # Reference
-    ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
-    ///       "Halving the cost of quantum addition" by Craig Gidney.
+    /// - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
+    ///   "Halving the cost of quantum addition", Craig Gidney.
     operation RippleCarryCGIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         let xsLen = Length(xs);
         let ysLen = Length(ys);
@@ -255,8 +252,8 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// NOTE: `zs[Length(xs)]` can be used as carry-out, if `zs` is longer than `xs`.
     ///
     /// # Reference
-    ///     - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
-    ///       "Halving the cost of quantum addition" by Craig Gidney.
+    /// - [arXiv:1709.06648](https://arxiv.org/pdf/1709.06648.pdf)
+    ///   "Halving the cost of quantum addition", Craig Gidney.
     operation RippleCarryCGAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
@@ -289,9 +286,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// This operation uses the carry-lookahead algorithm.
     ///
     /// # Reference
-    ///     - [arXiv:quant-ph/0406142](https://arxiv.org/abs/quant-ph/0406142)
-    ///      "A logarithmic-depth quantum carry-lookahead adder" by
-    ///      Thomas G. Draper, Samuel A. Kutin, Eric M. Rains, Krysta M. Svore
+    /// - [arXiv:quant-ph/0406142](https://arxiv.org/abs/quant-ph/0406142)
+    ///   "A logarithmic-depth quantum carry-lookahead adder",
+    ///   Thomas G. Draper, Samuel A. Kutin, Eric M. Rains, Krysta M. Svore
     operation LookAheadDKRSAddLE(xs : Qubit[], ys : Qubit[], zs : Qubit[]) : Unit is Adj {
         let xsLen = Length(xs);
         let zsLen = Length(zs);
@@ -338,8 +335,8 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// This operation uses Quantum Fourier Transform.
     ///
     /// # Reference
-    ///     - [arXiv:quant-ph/0008033](https://arxiv.org/abs/quant-ph/0008033)
-    ///      "Addition on a Quantum Computer" by Thomas G. Draper
+    /// - [arXiv:quant-ph/0008033](https://arxiv.org/abs/quant-ph/0008033)
+    ///   "Addition on a Quantum Computer", Thomas G. Draper
     operation FourierTDIncByLE(xs : Qubit[], ys : Qubit[]) : Unit is Adj + Ctl {
         within {
             ApplyQFT(ys);
@@ -430,9 +427,9 @@ namespace Microsoft.Quantum.Unstable.Arithmetic {
     /// the adders is controlled,
     ///
     /// # Reference
-    ///     - [arXiv:2012.01624](https://arxiv.org/abs/2012.01624)
-    ///       "Quantum block lookahead adders and the wait for magic states"
-    ///       by Craig Gidney.
+    /// - [arXiv:2012.01624](https://arxiv.org/abs/2012.01624)
+    ///   "Quantum block lookahead adders and the wait for magic states",
+    ///   Craig Gidney.
     operation IncByLEUsingAddLE(
         forwardAdder : (Qubit[], Qubit[], Qubit[]) => Unit is Adj,
         backwardAdder : (Qubit[], Qubit[], Qubit[]) => Unit is Adj,

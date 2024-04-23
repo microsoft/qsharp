@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.Arrays {
     ///
     /// # Example
     /// ```qsharp
-    ///  let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]);
+    /// let evensCount = Count(x -> x % 2 == 0, [1, 3, 6, 7, 9]);
     /// // evensCount is 1.
     /// ```
     function Count<'T>(predicate : ('T -> Bool), array : 'T[]) : Int {

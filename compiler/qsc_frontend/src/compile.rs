@@ -314,6 +314,7 @@ impl MutVisitor for Offsetter {
     }
 }
 
+#[must_use]
 pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
@@ -321,8 +322,27 @@ pub fn compile(
     capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> CompileUnit {
-    let (mut ast_package, parse_errors) = parse_all(&sources, language_features);
+    let (ast_package, parse_errors) = parse_all(&sources, language_features);
 
+    compile_ast(
+        store,
+        dependencies,
+        ast_package,
+        sources,
+        capabilities,
+        parse_errors,
+    )
+}
+
+#[allow(clippy::module_name_repetitions)]
+pub fn compile_ast(
+    store: &PackageStore,
+    dependencies: &[PackageId],
+    mut ast_package: ast::Package,
+    sources: SourceMap,
+    capabilities: TargetCapabilityFlags,
+    parse_errors: Vec<qsc_parse::Error>,
+) -> CompileUnit {
     let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
     let dropped_names = cond_compile.into_names();
