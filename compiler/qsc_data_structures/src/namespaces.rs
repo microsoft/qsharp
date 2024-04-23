@@ -108,6 +108,7 @@ impl NamespaceTreeRoot {
             .expect("namespace creation should not fail")
     }
 
+    /// Create a new namespace node with the given children.
     pub fn new_namespace_node(
         &mut self,
         children: FxHashMap<Rc<str>, NamespaceTreeCell>,
@@ -123,14 +124,19 @@ impl NamespaceTreeRoot {
         self.tree.borrow().get_namespace_id(ns)
     }
 
+    /// Given a [`NamespaceId`], find the namespace in the tree. Note that this function is not
+    /// particularly efficient, as it performs a breadth-first search. The results of this search
+    /// are memoized to avoid repeated lookups, reducing the impact of the BFS.
     #[must_use]
     pub fn find_namespace_by_id(&self, id: &NamespaceId) -> (Vec<Rc<str>>, NamespaceTreeCell) {
         if let Some(res) = self.memo.borrow().get(id) {
             return res.clone();
         }
-        let Some((names, node)) = self.tree.borrow().find_namespace_by_id(*id, &[]) else {
-            return (vec![], self.tree.clone());
-        };
+        let (names, node) = self
+            .tree
+            .borrow()
+            .find_namespace_by_id(*id, &[])
+            .unwrap_or_else(|| (vec![], self.tree.clone()));
 
         self.memo
             .borrow_mut()
@@ -163,37 +169,46 @@ impl Default for NamespaceTreeRoot {
     }
 }
 
+/// A node in the namespace tree. Each node has a unique ID and a map of children.
+/// Supports interior mutability of children for inserting new nodes.
 #[derive(Debug, Clone)]
 pub struct NamespaceTreeNode {
     pub children: FxHashMap<Rc<str>, NamespaceTreeCell>,
     pub id: NamespaceId,
 }
 impl NamespaceTreeNode {
+    /// Create a new namespace tree node with the given ID and children. The `id` should come from the `NamespaceTreeRoot` assigner.
     #[must_use]
-    pub fn new(id: NamespaceId, children: FxHashMap<Rc<str>, NamespaceTreeCell>) -> Self {
+    fn new(id: NamespaceId, children: FxHashMap<Rc<str>, NamespaceTreeCell>) -> Self {
         Self { children, id }
     }
 
+    /// Get a reference to the children of the namespace tree node.
     #[must_use]
     pub fn children(&self) -> &FxHashMap<Rc<str>, NamespaceTreeCell> {
         &self.children
     }
 
+    /// See [`FxHashMap::get`] for more information.
     fn get(&self, component: &Rc<str>) -> Option<NamespaceTreeCell> {
         self.children.get(component).cloned()
     }
 
+    /// Get the ID of this namespace tree node.
     #[must_use]
     pub fn id(&self) -> NamespaceId {
         self.id
     }
 
+    /// Check if this namespace tree node contains a given namespace as a child.
     #[must_use]
     pub fn contains(&self, ns: impl Into<Vec<Rc<str>>>) -> bool {
         self.get_namespace_id(ns).is_some()
     }
 
-    /// Performs a breadth-first search to find the ID for a given namespace.
+    /// Finds the ID of a namespace given its string name. This function is generally more efficient
+    /// than [`NamespaceTreeNode::find_namespace_by_id`], as it utilizes the prefix tree structure to
+    /// find the ID in `O(n)` time, where `n` is the number of components in the namespace name.
     pub fn get_namespace_id(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
         let mut buf: Option<NamespaceTreeCell> = None;
         for component in &ns.into() {
@@ -209,7 +224,7 @@ impl NamespaceTreeNode {
         Some(buf.map_or_else(|| self.id, |x| x.borrow().id))
     }
 
-    /// If the namespace already exists, it will not be inserted.
+    /// Inserts a new namespace into the tree, if it does not yet exist.
     /// Returns the ID of the namespace.
     pub fn insert_or_find_namespace<I>(
         &mut self,
@@ -248,7 +263,6 @@ impl NamespaceTreeNode {
         }
     }
 
-    /// given a namespace id, find its name and node
     fn find_namespace_by_id(
         &self,
         id: NamespaceId,
