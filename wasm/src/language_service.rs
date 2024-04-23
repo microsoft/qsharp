@@ -489,7 +489,7 @@ serializable_type! {
         pub languageFeatures: Option<Vec<String>>
     },
     r#"export interface INotebookMetadata {
-        targetProfile?: "adaptive" | "base" | "unrestricted";
+        targetProfile?: "base" | "quantinuum" | "unrestricted";
         languageFeatures?: "v2-preview-syntax"[];
     }"#,
     INotebookMetadata

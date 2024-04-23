@@ -21,7 +21,7 @@ use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
 use qsc_fir::fir;
-use qsc_frontend::compile::{CompileUnit, RuntimeCapabilityFlags};
+use qsc_frontend::compile::{CompileUnit, TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
     global::{self, Table},
@@ -65,13 +65,13 @@ pub fn lower_hir_to_fir(
 }
 
 pub struct PassContext {
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
     borrow_check: borrowck::Checker,
 }
 
 impl PassContext {
     #[must_use]
-    pub fn new(capabilities: RuntimeCapabilityFlags) -> Self {
+    pub fn new(capabilities: TargetCapabilityFlags) -> Self {
         Self {
             capabilities,
             borrow_check: borrowck::Checker::default(),
@@ -113,7 +113,7 @@ impl PassContext {
         ReplaceQubitAllocation::new(core, assigner).visit_package(package);
         Validator::default().visit_package(package);
 
-        let base_prof_errors = if self.capabilities == RuntimeCapabilityFlags::empty() {
+        let base_prof_errors = if self.capabilities == TargetCapabilityFlags::empty() {
             baseprofck::check_base_profile_compliance(package)
         } else {
             Vec::new()
@@ -133,7 +133,7 @@ impl PassContext {
     pub fn run_fir_passes_on_fir(
         fir_store: &qsc_fir::fir::PackageStore,
         package_id: qsc_fir::fir::PackageId,
-        capabilities: RuntimeCapabilityFlags,
+        capabilities: TargetCapabilityFlags,
     ) -> Result<PackageStoreComputeProperties, Vec<Error>> {
         run_rca_pass(fir_store, package_id, capabilities)
     }
@@ -144,7 +144,7 @@ pub fn run_default_passes(
     core: &Table,
     unit: &mut CompileUnit,
     package_type: PackageType,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> Vec<Error> {
     PassContext::new(capabilities).run_default_passes(
         &mut unit.package,
@@ -182,7 +182,7 @@ pub fn run_core_passes(core: &mut CompileUnit) -> Vec<Error> {
 pub fn run_fir_passes(
     package: &fir::Package,
     compute_properties: &PackageComputeProperties,
-    capabilities: RuntimeCapabilityFlags,
+    capabilities: TargetCapabilityFlags,
 ) -> Vec<Error> {
     let capabilities_errors =
         check_supported_capabilities(package, compute_properties, capabilities);

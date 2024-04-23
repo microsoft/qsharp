@@ -274,10 +274,10 @@ impl AsIndex for i64 {
 }
 
 #[derive(Debug, Clone)]
-struct Variable {
-    name: Rc<str>,
-    value: Value,
-    span: Span,
+pub struct Variable {
+    pub name: Rc<str>,
+    pub value: Value,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone)]
@@ -357,6 +357,14 @@ impl Env {
                 .pop()
                 .expect("scope should have more than one entry.");
         }
+    }
+
+    pub fn bind_variable_in_top_frame(&mut self, local_var_id: LocalVarId, var: Variable) {
+        let Some(scope) = self.0.last_mut() else {
+            panic!("no frames in scope");
+        };
+
+        scope.bindings.insert(local_var_id, var);
     }
 
     #[must_use]

@@ -288,6 +288,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
+name = "difference"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "524cbf6897b527295dff137cec09ecf3a05f4fddffd7dfcd1585403449e74198"
+
+[[package]]
 name = "dissimilar"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -973,13 +979,16 @@ dependencies = [
 name = "qsc_codegen"
 version = "0.0.0"
 dependencies = [
+ "difference",
  "expect-test",
  "indoc",
  "num-bigint",
  "num-complex",
+ "qsc_ast",
  "qsc_data_structures",
  "qsc_eval",
  "qsc_fir",
+ "qsc_formatter",
  "qsc_frontend",
  "qsc_hir",
  "qsc_lowerer",
@@ -1131,6 +1140,8 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc",
  "qsc_data_structures",
  "qsc_eval",

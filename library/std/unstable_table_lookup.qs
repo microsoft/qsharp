@@ -36,15 +36,14 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     /// is not optimized using this technique.
     ///
     /// # References
-    /// [1] [arXiv:1805.03662](https://arxiv.org/abs/1805.03662)
-    ///     "Encoding Electronic Spectra in Quantum Circuits with Linear T
-    ///      Complexity"
-    /// [2] [arXiv:1905.07682](https://arxiv.org/abs/1905.07682)
-    ///     "Windowed arithmetic"
-    /// [3] [arXiv:2211.01133](https://arxiv.org/abs/2211.01133)
-    ///     "Space-time optimized table lookup"
+    /// 1. [arXiv:1805.03662](https://arxiv.org/abs/1805.03662)
+    ///    "Encoding Electronic Spectra in Quantum Circuits with Linear T
+    ///    Complexity"
+    /// 2. [arXiv:1905.07682](https://arxiv.org/abs/1905.07682)
+    ///    "Windowed arithmetic"
+    /// 3. [arXiv:2211.01133](https://arxiv.org/abs/2211.01133)
+    ///    "Space-time optimized table lookup"
     @Config(Adaptive)
-    @Config(Unrestricted)
     operation Select(
         data : Bool[][],
         address : Qubit[],
@@ -98,8 +97,6 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
         }
     }
 
-    @Config(Adaptive)
-    @Config(Unrestricted)
     internal operation SinglyControlledSelect(
         ctl : Qubit,
         data : Bool[][],
@@ -169,7 +166,6 @@ namespace Microsoft.Quantum.Unstable.TableLookup {
     /// - [arXiv:1905.07682](https://arxiv.org/abs/1905.07682)
     ///   "Windowed arithmetic"
     @Config(Adaptive)
-    @Config(Unrestricted)
     internal operation Unlookup(
         lookup : (Bool[][], Qubit[], Qubit[]) => Unit,
         data : Bool[][],
