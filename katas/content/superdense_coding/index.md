@@ -5,9 +5,7 @@
     "title": "Overview"
 })
 
-**Superdense Coding** quantum kata is a series of exercises designed to get you familiar with programming in Q#.
-
-It covers the superdense coding protocol which allows us to transmit two bits of classical information by sending just one qubit using previously shared quantum entanglement.
+Superdense coding protocol allows us to transmit two bits of classical information by sending just one qubit using previously shared quantum entanglement.
 
 - A good description can be found in [the Wikipedia article](https://en.wikipedia.org/wiki/Superdense_coding).
 - A great interactive demonstration can be found [on the Wolfram Demonstrations Project](http:/demonstrations.wolfram.com/SuperdenseCoding/).
