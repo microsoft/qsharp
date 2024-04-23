@@ -647,9 +647,9 @@ fn check_get_latex_for_real() {
     );
     assert_latex_for_real(
         &expect!([r#"
-            "0.0025"
+            "0.0003"
         "#]),
-        1.0 / 400.0,
+        1.0 / 4000.0,
         false,
     );
 }
