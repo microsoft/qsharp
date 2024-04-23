@@ -46,6 +46,7 @@ use qsc_data_structures::{
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
+    target::TargetCapabilityFlags,
 };
 use qsc_eval::{
     backend::{Backend, Chain as BackendChain, SparseSim},
@@ -58,7 +59,7 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
+    compile::{CompileUnit, PackageStore, Source, SourceMap},
     error::WithSource,
     incremental::Increment,
 };

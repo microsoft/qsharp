@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
 use crate::qir_base::generate_qir;

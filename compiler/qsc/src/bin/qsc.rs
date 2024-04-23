@@ -8,9 +8,9 @@ use log::info;
 use miette::{Context, IntoDiagnostic, Report};
 use qsc::compile::compile;
 use qsc_codegen::qir_base;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::{
-    compile::{PackageStore, SourceContents, SourceMap, SourceName, TargetCapabilityFlags},
+    compile::{PackageStore, SourceContents, SourceMap, SourceName},
     error::WithSource,
 };
 use qsc_hir::hir::{Package, PackageId};
