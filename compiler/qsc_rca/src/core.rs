@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use core::panic;
+
 use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
     common::{try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId, Local, LocalKind, TyExt},
@@ -1001,6 +1003,24 @@ impl<'a> Analyzer<'a> {
         // Analyze the entry expression.
         if let Some(entry_expr_id) = package.entry {
             self.visit_expr(entry_expr_id);
+
+            // An entry expression includes runtime flags for each primitive type in its return type
+            // that must be used in output recording.
+            let entry_ty = self.get_expr(entry_expr_id).ty.clone();
+            let ty_flags = ty_to_runtime_runtime_output_flags(&entry_ty);
+            let mut entry_compute_kind = *self
+                .get_current_application_instance()
+                .get_expr_compute_kind(entry_expr_id);
+            if let ComputeKind::Quantum(quantum_properties) = &mut entry_compute_kind {
+                quantum_properties.runtime_features |= ty_flags;
+            } else {
+                entry_compute_kind = ComputeKind::Quantum(QuantumProperties {
+                    runtime_features: ty_flags,
+                    value_kind: ValueKind::new_static_from_type(&entry_ty),
+                });
+            }
+            self.get_current_application_instance_mut()
+                .insert_expr_compute_kind(entry_expr_id, entry_compute_kind);
         }
         let top_level_context = self.pop_top_level_context();
         assert!(top_level_context.package_id == package_id);
@@ -1965,6 +1985,42 @@ fn derive_instrinsic_operation_application_generator_set(
     ApplicationGeneratorSet {
         inherent: inherent_compute_kind,
         dynamic_param_applications,
+    }
+}
+
+fn ty_to_runtime_runtime_output_flags(ty: &Ty) -> RuntimeFeatureFlags {
+    match ty {
+        Ty::Array(content_type) => ty_to_runtime_runtime_output_flags(content_type),
+        Ty::Prim(prim) => ty_prim_to_runtime_output_flag(*prim),
+        Ty::Tuple(element_types) => {
+            let mut runtime_features = RuntimeFeatureFlags::empty();
+            for element_type in element_types {
+                let element_runtime_features = ty_to_runtime_runtime_output_flags(element_type);
+                runtime_features |= element_runtime_features;
+            }
+            runtime_features
+        }
+        Ty::Arrow(_) | Ty::Udt(_) => RuntimeFeatureFlags::UseOfAdvancedOutput,
+        Ty::Infer(_) => panic!("cannot derive runtime features for `Infer` type"),
+        Ty::Param(_) => panic!("cannot derive runtime features for `Param` type"),
+        Ty::Err => panic!("cannot derive runtime features for `Err` type"),
+    }
+}
+
+fn ty_prim_to_runtime_output_flag(prim: Prim) -> RuntimeFeatureFlags {
+    match prim {
+        Prim::Bool => RuntimeFeatureFlags::UseOfBoolOutput,
+        Prim::Double => RuntimeFeatureFlags::UseOfDoubleOutput,
+        Prim::Int => RuntimeFeatureFlags::UseOfIntOutput,
+        Prim::Result => RuntimeFeatureFlags::empty(),
+        Prim::BigInt
+        | Prim::Pauli
+        | Prim::Qubit
+        | Prim::Range
+        | Prim::RangeFrom
+        | Prim::RangeTo
+        | Prim::RangeFull
+        | Prim::String => RuntimeFeatureFlags::UseOfAdvancedOutput,
     }
 }
 
