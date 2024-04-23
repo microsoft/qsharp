@@ -6,6 +6,7 @@ namespace Kata.Verification {
         CNOT(qs[0], qs[1]);
     }
 
+    @EntryPoint()
     operation CheckSolution() : Bool {
 
         return CheckOperationsEquivalenceOnZeroStateWithFeedback(
