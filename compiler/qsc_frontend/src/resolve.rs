@@ -1264,7 +1264,10 @@ fn check_scoped_resolutions(
             return Some(ambiguous_symbol_error(
                 globals,
                 provided_symbol_name,
-                explicit_open_candidates.into_iter().map(|(a, b)| (a, b.clone())).collect(),
+                explicit_open_candidates
+                    .into_iter()
+                    .map(|(a, b)| (a, b.clone()))
+                    .collect(),
             ))
         }
         _ => (),
@@ -1325,7 +1328,8 @@ where
                     globals
                         .get(kind, *ns_id, &provided_symbol_name.name)
                         .map(|res| (*res, open.clone()))
-                }).collect();
+                })
+                .collect();
             if !candidates.is_empty() {
                 return candidates;
             }
@@ -1346,7 +1350,7 @@ where
         if provided_namespace_name.is_some() && namespace.is_none() {
             continue;
         }
-        
+
         // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
         let res = namespace
             .or(if namespace.is_none() {
