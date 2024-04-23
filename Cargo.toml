@@ -83,6 +83,7 @@ module_name_repetitions = "allow"
 
 [profile.release]
 debug = true
+strip = true
 lto = "fat"
 codegen-units = 1
 
