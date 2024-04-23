@@ -10,7 +10,7 @@ from ._native import (
     Circuit,
 )
 from warnings import warn
-from typing import Any, Callable, Dict, Optional, TypedDict, Union, List
+from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 
@@ -348,6 +348,39 @@ class StateDump:
 
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
+
+    def check_eq(
+        self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10
+    ) -> bool:
+        """
+        Checks if the state dump is equal to the given state. This is not mathematical equality,
+        as the check ignores global phase.
+
+        :param state: The state to check against, provided either as a dictionary of state indices to complex amplitudes,
+            or as a list of real amplitudes.
+        :param tolerance: The tolerance for the check. Defaults to 1e-10.
+        """
+        phase = None
+        # Convert a dense list of real amplitudes to a dictionary of state indices to complex amplitudes
+        if isinstance(state, list):
+            state = {i: state[i] for i in range(len(state))}
+        # Filter out zero states from the state dump and the given state based on tolerance
+        state = {k: v for k, v in state.items() if abs(v) > tolerance}
+        inner_state = {k: v for k, v in self.__inner.items() if abs(v) > tolerance}
+        if len(state) != len(inner_state):
+            return False
+        for key in state:
+            if key not in inner_state:
+                return False
+            if phase is None:
+                # Calculate the phase based on the first state pair encountered.
+                # Every pair of states after this must have the same phase for the states to be equivalent.
+                phase = inner_state[key] / state[key]
+            elif abs(phase - inner_state[key] / state[key]) > tolerance:
+                # This pair of states does not have the same phase,
+                # within tolerance, so the equivalence check fails.
+                return False
+        return True
 
 
 def dump_machine() -> StateDump:

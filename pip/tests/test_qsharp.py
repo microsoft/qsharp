@@ -98,6 +98,34 @@ def test_dump_machine() -> None:
     # Check that the state dump correctly supports iteration and membership checks
     for idx in state_dump:
         assert idx in state_dump
+    # Check that the state dump is correct and equivalence check ignores global phase, allowing passing
+    # in of different, potentially unnormalized states. The state should be
+    # |01⟩: 0.7071+0.0000𝑖, |11⟩: −0.7071+0.0000𝑖
+    assert state_dump.check_eq({1: complex(0.7071, 0.0), 3: complex(-0.7071, 0.0)})
+    assert state_dump.check_eq({1: complex(0.0, 0.7071), 3: complex(0.0, -0.7071)})
+    assert state_dump.check_eq({1: complex(0.5, 0.0), 3: complex(-0.5, 0.0)})
+    assert state_dump.check_eq(
+        {1: complex(0.7071, 0.0), 3: complex(-0.7071, 0.0), 0: complex(0.0, 0.0)}
+    )
+    assert state_dump.check_eq([0.0, 0.5, 0.0, -0.5])
+    assert state_dump.check_eq([0.0, 0.5001, 0.00001, -0.5], tolerance=1e-3)
+    assert state_dump.check_eq(
+        [complex(0.0, 0.0), complex(0.0, -0.5), complex(0.0, 0.0), complex(0.0, 0.5)]
+    )
+    assert not state_dump.check_eq({1: complex(0.7071, 0.0), 3: complex(0.7071, 0.0)})
+    assert not state_dump.check_eq({1: complex(0.5, 0.0), 3: complex(0.0, 0.5)})
+    assert not state_dump.check_eq({2: complex(0.5, 0.0), 3: complex(-0.5, 0.0)})
+    assert not state_dump.check_eq([0.0, 0.5001, 0.0, -0.5], tolerance=1e-6)
+    # Reset the qubits and apply a small rotation to q1, to confirm that tolerance applies to the dump
+    # itself and not just the state.
+    qsharp.eval("ResetAll([q1, q2]);")
+    qsharp.eval("Ry(0.0001, q1);")
+    state_dump = qsharp.dump_machine()
+    assert state_dump.qubit_count == 2
+    assert len(state_dump) == 2
+    assert not state_dump.check_eq([1.0])
+    assert state_dump.check_eq([0.99999999875, 0.0, 4.999999997916667e-05])
+    assert state_dump.check_eq([1.0], tolerance=1e-4)
 
 
 def test_dump_operation() -> None:
