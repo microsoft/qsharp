@@ -566,14 +566,14 @@ fn assert_latex_for_decimal(expected: &Expect, number: f64, render_one: bool) {
 fn check_get_latex_for_decimal() {
     assert_latex_for_decimal(
         &expect!([r#"
-            "0.2500"
+            "0.25"
         "#]),
         0.25,
         false,
     );
     assert_latex_for_decimal(
         &expect!([r#"
-            "0.2500"
+            "0.25"
         "#]),
         -0.25,
         false,
@@ -594,7 +594,7 @@ fn check_get_latex_for_decimal() {
     );
     assert_latex_for_decimal(
         &expect!([r#"
-            "1.0000"
+            "1"
         "#]),
         1.0,
         true,
