@@ -48,6 +48,9 @@ fn compile_mimalloc() {
     // turning on optimizations doesn't seem to make a difference
     //build.opt_level(3);
 
+    // turn off warnings from the mimalloc code
+    build.cargo_warnings(false);
+
     build.compile("mimalloc");
 }
 
