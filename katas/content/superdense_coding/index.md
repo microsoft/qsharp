@@ -9,7 +9,7 @@
 
 It covers the superdense coding protocol which allows us to transmit two bits of classical information by sending just one qubit using previously shared quantum entanglement.
 
-- A good description can be found in [the Wikipedia article](https://en.wikipedia.org/wikiSuperdense_coding).
+- A good description can be found in [the Wikipedia article](https://en.wikipedia.org/wiki/Superdense_coding).
 - A great interactive demonstration can be found [on the Wolfram Demonstrations Project](http:/demonstrations.wolfram.com/SuperdenseCoding/).
 - Superdense coding protocol is described in Nielsen & Chuang, section 2.3 (pp. 97-98).
 
