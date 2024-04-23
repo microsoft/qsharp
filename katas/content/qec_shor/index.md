@@ -44,7 +44,7 @@ $$111, 011, 101, 110 \rightarrow 1$$
 What is the probability of this scheme failure, that is, the value of the message bit changing after it was sent through the channel? 
 Majority vote allows for one error on any bit to happen without affecting the decoding outcome, so it would take two or three errors happening on individual bits for decoding to produce an incorrect result. The probability of this happening is $3p^2(1-p) + p^3 = 3p^2 - 2p^3$. If we compare this with the probability of an individual bit transmission failing $p$, we can see that using repetition code yields higher success probability, as long as $p < \frac12$. We can improve success probability further by increasing the number of repetitions we use to encode each bit: $5$ repetitions allow us to detect and correct $2$ errors, $7$ repetitions - $3$ errors, and so on.
 
-> This noise model is useful not only for describing noisy communication channels, but also for memory - any classical system that introduces errors in information when it is left on its own, as opposed to systems that introduce errors during information manipulation. Indeed, we assume that no errors are inroduced as we copy the bits during encoding or read and compare their values during decoding.
+> This noise model is useful not only for describing noisy communication channels, but also for memory - any classical system that introduces errors in information when it is left on its own, as opposed to systems that introduce errors during information manipulation. Indeed, we assume that no errors are introduced as we copy the bits during encoding or read and compare their values during decoding.
 
 The main idea of quantum error correction is the same as that for classical error correction: encode information with enough redundancy that we can recover the message even from the noisy transmission results.
 Dealing with the noise in quantum systems is more challenging than in classical systems, though, due to the limitations imposed by their nature:
@@ -229,9 +229,44 @@ However, if an $X$ error happens on any one of these qubits, we won't be able to
     "title": "Shor Code"
 })
 
-TODO
+Can we combine the lessons learned from the bit flip and phase flip error correction codes to be able to detect and correct both $X$ and $Z$ errors? In that case, we'd also be able to handle $Y$ errors as a combination of $X$ and $Z$ errors happening at the same time, and, as a result, we'll be able to detect and correct an arbitrary single-qubit error.
 
-- demo: does Shor code indeed correct all errors?
+Shor code, published in 1995, is the code that combines the approaches of the bit flip and phase flip codes to do just that.
+It uses the following 9-qubit encoding for logical states:
+
+$$\ket{0} \rightarrow \ket{0_L} = \frac1{2\sqrt2} (\ket{000} + \ket{111}) \otimes (\ket{000} + \ket{111}) \otimes (\ket{000} + \ket{111})$$
+$$\ket{1} \rightarrow \ket{1_L} = \frac1{2\sqrt2} (\ket{000} - \ket{111}) \otimes (\ket{000} - \ket{111}) \otimes (\ket{000} - \ket{111})$$
+$$\alpha \ket{0} + \beta \ket{1} \rightarrow \alpha \ket{0_L} + \beta \ket{1_L}$$
+
+How can we detect and correct errors using this encoding?
+
+### Detect and Correct X Errors
+
+$X$ errors happening on any qubit manifest very similarly to the way they do in the bit flip code. 
+Let's consider the first triplet of qubits and an error that happens on any of the first three qubits.
+Same as in the bit flip code, measuring the parity of pairs of qubits always returns $0$ if there is no error (since all bits in each basis state of the code words are the same), so getting parity measurement return $1$ on one or two pairs indicates an error, and the measurements which return $1$ allow us to track down the qubit on which it happened.
+
+To correct an $X$ error, we simply apply an $X$ gate to the affected qubit.
+
+### Detect and Correct Z Errors
+
+$Z$ errors in Shor code behave similarly to the way they do in the phase flip code, but the error detection and correction procedure has to be modified.
+
+A $Z$ error happening on any qubit of a triplet flips the relative sign between the basis states $\ket{000}$ and $\ket{111}$ on those qubits. This means that we need a measurement that would compare relative signs of whole triplets, rather than individual qubits, allowing us to distinguish $(\ket{000} + \ket{111}) \otimes (\ket{000} + \ket{111})$ and $(\ket{000} - \ket{111}) \otimes (\ket{000} - \ket{111})$ (parts of valid code words) from $(\ket{000} + \ket{111}) \otimes (\ket{000} - \ket{111})$ and $(\ket{000} - \ket{111}) \otimes (\ket{000} + \ket{111})$ (parts of code words with a $Z$ error applied).
+
+The measurement that allows us to do this is a 6-qubit measurement in the $X$ basis.
+
+> How can you check this? Remember that doing a measurement in the $X$ basis is the same as applying Hadamard gates to each qubit and then doing a measurement in the $Z$ basis (and then applying Hadamard gates again). 
+> 
+> - If we apply Hadamard gates to each qubit of the state $\frac1{\sqrt2}(\ket{000} + \ket{111})$, we get the state 
+> $\frac12(\ket{000} + \ket{011} + \ket{101} + \ket{110})$. The parity of each basis state in it is $0$.
+> - If we apply Hadamard gates to each qubit of the state $\frac1{\sqrt2}(\ket{000} - \ket{111})$, we get the state 
+> $\frac12(\ket{001} + \ket{010} + \ket{100} + \ket{111})$. The parity of each basis state in it is $1$.
+>
+> Thus, a 6-qubit measurement in the $X$ basis of two triplets, each either in the state $\frac1{\sqrt2}(\ket{000} + \ket{111})$ or $\frac1{\sqrt2}(\ket{000} - \ket{111})$, would produce parity $0$ if both triplets have the same relative sign between the basis states and $1$ if the relative sign is different.
+
+To correct a $Z$ error, we can no longer simply apply a $Z$ gate to the affected qubit, since we can only figure out the triplet of qubits where the error happened, not the exact qubit. To work around this, we correct a $Z$ error by applying a $Z$ gate to each qubit of the affected triplet - and $Z$ gates applied to unaffected qubits just cancel each other out.
+
 
 @[exercise]({
     "id": "qec_shor__shor_encode",
@@ -253,6 +288,19 @@ TODO
 
 
 @[section]({
+    "id": "qec_shor__error_discretization",
+    "title": "Discretization of Quantum Errors"
+})
+
+Does Shor code indeed correct all errors, and not just the set of Pauli errors $X$, $Y$, and $Z$? 
+Let's try it out!
+
+The following demo puts together the steps of error correction using Shor code: it encodes a given logical state into multiple qubits, introduces an arbitrary error, runs the error detection code and applies error correction if necessary, and checks that the result is an accurate encoding of the starting logical state. Experiment with applying different errors to different qubits of the code - and not just the Pauli errors but any single-qubit rotations too. You can even use a measurement!
+
+@[example]({"id": "qec_shor__shor_code_demo", "codePath": "./examples/ShorCodeDemo.qs"})
+
+
+@[section]({
     "id": "qec_shor__conclusion",
     "title": "Conclusion"
 })
@@ -260,4 +308,6 @@ TODO
 Congratulations! In this kata you learned the basics of quantum error correction and several simple error-correction codes.
 Here are a few key concepts to keep in mind:
 
-- TODO
+- Quantum error correction is more challenging compared to classical error correction, since quantum information cannot be copied, the act of observing the system damages information stored in it, and there is a much broader variety of errors in quantum systems compared to only bit flip errors in the classical systems.
+- Discretization of quantum errors is the phenomenon that allows us to correct arbitrary errors on quantum systems by correcting only a limited discrete subset of errors. For single-qubit errors, this subset is Pauli $X$, $Y$, and $Z$ errors.
+- Bit flip quantum error correction code allows us to detect and correct only $X$ errors, phase flip - only $Z$ errors, and Shor code allows us to detect and correct one arbitrary single-qubit error.
