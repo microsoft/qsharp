@@ -1359,6 +1359,13 @@ impl<'a> IntoIterator for &'a VecIdent {
         self.iter()
     }
 }
+
+impl FromIterator<Ident> for VecIdent {
+    fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
+        VecIdent(iter.into_iter().collect())
+    }
+}
+
 impl VecIdent {
     /// constructs an iter over the [Ident]s that this contains.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
