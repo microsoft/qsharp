@@ -71,7 +71,7 @@ type MemoEntry = (Vec<Rc<str>>, NamespaceTreeCell);
 /// ```
 /// This data structure is optimized for looking up namespace IDs by a given name. Looking up a namespace name by ID is
 /// less efficient, as it performs a breadth-first search. Because of this inefficiency, the results of this lookup are memoized.
-/// [NamespaceTreeNode]s are all stored in [NamespaceTreeCell]s, which are reference counted and support interior mutability for namespace
+/// [`NamespaceTreeNode`]s are all stored in [`NamespaceTreeCell`]s, which are reference counted and support interior mutability for namespace
 /// insertions and clone-free lookups.
 #[derive(Debug, Clone)]
 pub struct NamespaceTreeRoot {
