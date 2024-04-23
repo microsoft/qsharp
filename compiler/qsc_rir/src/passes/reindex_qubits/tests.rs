@@ -230,7 +230,7 @@ fn multiple_qubit_reindex() {
 }
 
 #[test]
-fn qubit_reindexed_multiple_times() {
+fn qubit_reindexed_multiple_times_with_mz_inserts_multiple_cx() {
     const X: CallableId = CallableId(0);
     const MZ: CallableId = CallableId(1);
     let mut program = Program::new();

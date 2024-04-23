@@ -109,15 +109,10 @@ pub fn reindex_qubits(program: &mut Program) {
                 .next_qubit_id
                 .max(pred_qubit_map.next_qubit_id);
         }
-        block_maps.insert(*block_id, new_block_map);
 
-        pass.reindex_qubits_in_block(
-            program,
-            block,
-            block_maps
-                .get_mut(*block_id)
-                .expect("block should be in block_maps"),
-        );
+        pass.reindex_qubits_in_block(program, block, &mut new_block_map);
+
+        block_maps.insert(*block_id, new_block_map);
     }
 
     program.blocks = all_blocks.into_iter().collect();
@@ -249,17 +244,13 @@ fn validate_assumptions(program: &Program) {
                 .all(|&succ_id| succ_id > block_id),
             "blocks must form a topologically ordered DAG"
         );
-    }
-
-    // Ensure that no dynamic qubits are used.
-    let Some((_, block)) = program.blocks.iter().next() else {
-        panic!("No blocks found in the program");
-    };
-    for instr in &block.0 {
-        assert!(
-            !matches!(instr, Instruction::Store(_, var) if var.ty == Ty::Qubit),
-            "Dynamic qubits are not supported"
-        );
+        // Ensure that no dynamic qubits are used.
+        for instr in &block.0 {
+            assert!(
+                !matches!(instr, Instruction::Store(_, var) if var.ty == Ty::Qubit),
+                "Dynamic qubits are not supported"
+            );
+        }
     }
 }
 
