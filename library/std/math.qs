@@ -10,11 +10,16 @@ namespace Microsoft.Quantum.Math {
     //
 
     /// # Summary
-    /// Represents the ratio of the circumference of a circle to its diameter.
+    /// Returns a double-precision approximation of the
+    /// matematical constant 𝝅 ≈ 3.14159265358979323846
     ///
-    /// # Output
-    /// A double-precision approximation of the circumference of a circle
-    /// to its diameter, π ≈ 3.14159265358979323846.
+    /// # Remarks
+    /// Mathematical constant 𝝅 represents the ratio of the circumference
+    /// of a circle to its diameter. It is useful in many applications
+    /// such as rotations and complex arithmetic.
+    ///
+    /// # References
+    /// [Wikipedia article - Pi](https://en.wikipedia.org/wiki/Pi)
     ///
     /// # See Also
     /// - Microsoft.Quantum.Math.E
@@ -23,11 +28,15 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the natural logarithmic base to double-precision.
+    /// Returns a double-precision approximation of the
+    /// mathematical constant 𝒆 ≈ 2.7182818284590452354
     ///
-    /// # Output
-    /// A double-precision approximation of the natural logarithmic base,
-    /// e ≈ 2.7182818284590452354.
+    /// # Remarks
+    /// Mathematical constant 𝒆 is the base of the natural logarithm
+    /// also known as the Euler's number
+    ///
+    /// # References
+    /// [Wikipedia article - e](https://en.wikipedia.org/wiki/E_(mathematical_constant))
     ///
     /// # See Also
     /// - Microsoft.Quantum.Math.PI
@@ -36,10 +45,14 @@ namespace Microsoft.Quantum.Math {
     }
 
     /// # Summary
-    /// Returns the natural logarithm of 2.
+    /// Returns a double-precision approximation of the constant
+    /// ㏑2 ≈ 0.6931471805599453
     ///
-    /// # Output
-    /// Returns a `Double` equal to 0.6931471805599453.
+    /// # Remarks
+    /// ㏑2 is the natural logarithm of 2, or the logarithm of 2 base 𝒆.
+    ///
+    /// # References
+    /// [Wikipedia article - Natural logarithm](https://en.wikipedia.org/wiki/Natural_logarithm)
     function LogOf2() : Double {
         0.6931471805599453
     }
@@ -383,7 +396,7 @@ namespace Microsoft.Quantum.Math {
 
     /// # Summary
     /// Returns the nearest integer to the specified number.
-    /// For example: Floor(3.7) = 4; Floor(-3.7) = -4
+    /// For example: Round(3.7) = 4; Round(-3.7) = -4
     function Round(value : Double) : Int {
         let (truncated, remainder, isPositive) = ExtendedTruncation(value);
         if AbsD(remainder) <= 1e-15 {
