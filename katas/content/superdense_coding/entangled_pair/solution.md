@@ -1,4 +1,4 @@
-Recall that this is $|\phi^{+}\rangle$ bell state. We have already prepared the Bell Superposition kata
+Recall that this state is $|\Phi^{+}\rangle$ Bell state that we have already seen in Multi-Qubit Gates and Superposition katas.
 
 The solution takes two steps:
 
