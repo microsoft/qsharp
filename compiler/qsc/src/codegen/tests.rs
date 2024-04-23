@@ -22,7 +22,7 @@ fn code_with_errors_returns_errors() {
 
     expect![[r#"
         Err(
-            "Failed to generate QIR. Could not compile sources.",
+            "Failed to generate QIR. Could not compile sources.:\nsyntax error\n",
         )
     "#]]
     .assert_debug_eq(&get_qir(sources, language_features, capabilities));
