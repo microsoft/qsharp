@@ -642,6 +642,10 @@ fn mixfix_op(name: OpName) -> Option<MixfixOp> {
             kind: OpKind::Rich(field_op),
             precedence: 15,
         }),
+        OpName::Token(TokenKind::Dot) => Some(MixfixOp {
+            kind: OpKind::Rich(struct_field_op),
+            precedence: 15,
+        }),
         OpName::Token(TokenKind::Open(Delim::Bracket)) => Some(MixfixOp {
             kind: OpKind::Rich(index_op),
             precedence: 15,
@@ -676,6 +680,10 @@ fn lambda_op(s: &mut ParserContext, input: Expr, kind: CallableKind) -> Result<B
 
 fn field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
     Ok(Box::new(ExprKind::Field(lhs, ident(s)?)))
+}
+
+fn struct_field_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {
+    Ok(Box::new(ExprKind::StructField(lhs, ident(s)?)))
 }
 
 fn index_op(s: &mut ParserContext, lhs: Box<Expr>) -> Result<Box<ExprKind>> {

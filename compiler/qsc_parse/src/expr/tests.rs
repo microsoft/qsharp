@@ -1682,7 +1682,21 @@ fn struct_op_unit() {
     check(
         expr,
         "Foo {}",
-        &expect![[r#"Expr _id_ [0-6]: Struct: Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Foo")"#]],
+        &expect![[
+            r#"Expr _id_ [0-6]: Struct: Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "Foo")"#
+        ]],
+    );
+}
+
+#[test]
+fn struct_field() {
+    check(
+        expr,
+        "foo.bar",
+        &expect![[r#"
+            Expr _id_ [0-7]: StructField:
+                Expr _id_ [0-3]: Path: Path _id_ [0-3] (Ident _id_ [0-3] "foo")
+                Ident _id_ [4-7] "bar""#]],
     );
 }
 
