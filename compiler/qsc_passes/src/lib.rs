@@ -35,6 +35,9 @@ use qsc_rca::{PackageComputeProperties, PackageStoreComputeProperties};
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
 
+pub(crate) static CORE_NAMESPACE: &[&str] = &["Microsoft", "Quantum", "Core"];
+pub(crate) static QIR_RUNTIME_NAMESPACE: &[&str] = &["QIR", "Runtime"];
+
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]
 #[error(transparent)]

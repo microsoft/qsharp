@@ -16,7 +16,7 @@ use qsc::{
     Span,
 };
 use qsc_linter::LintConfig;
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 /// Represents an immutable compilation state that can be used
 /// to implement language service features.
@@ -250,7 +250,7 @@ impl Compilation {
             .expect("user package should exist")
             .ast
             .namespaces
-            .find_namespace(ns.into_iter().map(Rc::from).collect::<Vec<_>>())
+            .find_namespace(ns)
             .expect("namespace should exist")
     }
 }

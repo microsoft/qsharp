@@ -17,6 +17,7 @@ use qsc_hir::{
 use std::mem::take;
 
 use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
+use crate::QIR_RUNTIME_NAMESPACE;
 
 #[derive(Debug, Clone)]
 struct QubitIdent {
@@ -240,7 +241,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     fn create_alloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
         let ns = self
             .core
-            .find_namespace(vec!["QIR".into(), "Runtime".into()])
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
             .expect("prelude namespaces should exist");
         let mut call_expr = create_gen_core_ref(
             self.core,
@@ -256,7 +257,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     fn create_array_alloc_stmt(&mut self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
         let ns = self
             .core
-            .find_namespace(vec!["QIR".into(), "Runtime".into()])
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
             .expect("prelude namespaces should exist");
         let mut call_expr =
             create_gen_core_ref(self.core, ns, "AllocateQubitArray", Vec::new(), ident.span);
@@ -267,7 +268,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     fn create_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
         let ns = self
             .core
-            .find_namespace(vec!["QIR".into(), "Runtime".into()])
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
             .expect("prelude namespaces should exist");
         let mut call_expr = create_gen_core_ref(
             self.core,
@@ -283,7 +284,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     fn create_array_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
         let ns = self
             .core
-            .find_namespace(vec!["QIR".into(), "Runtime".into()])
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
             .expect("prelude namespaces should exist");
         let mut call_expr =
             create_gen_core_ref(self.core, ns, "ReleaseQubitArray", Vec::new(), ident.span);
@@ -419,7 +420,7 @@ fn create_qubit_global_alloc(
 ) -> StmtKind {
     fn qubit_alloc_expr(assigner: &mut Assigner, core: &Table, qubit_init: QubitInit) -> Expr {
         let ns = core
-            .find_namespace(vec!["QIR".into(), "Runtime".into()])
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
             .expect("prelude namespaces should exist");
         match qubit_init.kind {
             QubitInitKind::Array(mut expr) => {

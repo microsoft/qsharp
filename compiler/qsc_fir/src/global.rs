@@ -52,7 +52,10 @@ impl Table {
         self.terms.get(&namespace).and_then(|terms| terms.get(name))
     }
 
-    pub fn find_namespace(&self, vec: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
+    pub fn find_namespace<'a>(
+        &self,
+        vec: impl IntoIterator<Item = &'a str>,
+    ) -> Option<NamespaceId> {
         // find a namespace if it exists and return its id
         self.namespaces.find_namespace(vec)
     }

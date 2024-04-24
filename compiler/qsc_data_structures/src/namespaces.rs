@@ -120,7 +120,7 @@ impl NamespaceTreeRoot {
         }
     }
 
-    pub fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
+    pub fn find_namespace<'a>(&self, ns: impl IntoIterator<Item = &'a str>) -> Option<NamespaceId> {
         self.tree.borrow().get_namespace_id(ns)
     }
 
@@ -202,19 +202,22 @@ impl NamespaceTreeNode {
 
     /// Check if this namespace tree node contains a given namespace as a child.
     #[must_use]
-    pub fn contains(&self, ns: impl Into<Vec<Rc<str>>>) -> bool {
+    pub fn contains<'a>(&self, ns: impl IntoIterator<Item = &'a str>) -> bool {
         self.get_namespace_id(ns).is_some()
     }
 
     /// Finds the ID of a namespace given its string name. This function is generally more efficient
     /// than [`NamespaceTreeNode::find_namespace_by_id`], as it utilizes the prefix tree structure to
     /// find the ID in `O(n)` time, where `n` is the number of components in the namespace name.
-    pub fn get_namespace_id(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
+    pub fn get_namespace_id<'a>(
+        &self,
+        ns: impl IntoIterator<Item = &'a str>,
+    ) -> Option<NamespaceId> {
         let mut buf: Option<NamespaceTreeCell> = None;
-        for component in &ns.into() {
+        for component in ns {
             if let Some(next_ns) = match buf {
-                None => self.get(component),
-                Some(buf) => buf.borrow().get(component),
+                None => self.get(&Rc::from(component)),
+                Some(buf) => buf.borrow().get(&Rc::from(component)),
             } {
                 buf = Some(next_ns);
             } else {

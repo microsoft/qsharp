@@ -1360,6 +1360,24 @@ impl<'a> IntoIterator for &'a VecIdent {
     }
 }
 
+impl<'a> From<&'a VecIdent> for VecIdentStrIter<'a> {
+    fn from(v: &'a VecIdent) -> Self {
+        VecIdentStrIter(v)
+    }
+}
+
+/// An iterator which yields string slices of the names of the idents in a [`VecIdent`].
+/// Note that [`VecIdent`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
+pub struct VecIdentStrIter<'a>(pub &'a VecIdent);
+
+impl<'a> IntoIterator for VecIdentStrIter<'a> {
+    type IntoIter = std::iter::Map<std::slice::Iter<'a, Ident>, fn(&'a Ident) -> &'a str>;
+    type Item = &'a str;
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().map(|i| i.name.as_ref())
+    }
+}
+
 impl FromIterator<Ident> for VecIdent {
     fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
         VecIdent(iter.into_iter().collect())
@@ -1367,9 +1385,17 @@ impl FromIterator<Ident> for VecIdent {
 }
 
 impl VecIdent {
-    /// constructs an iter over the [Ident]s that this contains.
+    /// constructs an iterator over the [Ident]s that this contains.
+    /// see [`Self::str_iter`] for an iterator over the string slices of the [Ident]s.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
         self.0.iter()
+    }
+
+    /// constructs an iterator over the elements of `self` as string slices.
+    /// see [`Self::iter`] for an iterator over the [Ident]s.
+    #[must_use]
+    pub fn str_iter(&self) -> VecIdentStrIter {
+        self.into()
     }
 
     /// the conjoined span of all idents in the `VecIdent`
