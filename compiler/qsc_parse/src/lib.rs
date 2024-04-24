@@ -119,7 +119,9 @@ pub fn namespaces(
     let doc = Rc::from(doc.unwrap_or_default());
     #[allow(clippy::unnecessary_unwrap)]
     let result: Result<_> = (|| {
-        if file_name.is_some() && scanner.peek().kind != TokenKind::Keyword(Keyword::Namespace) {
+        if file_name.is_some_and(|x| !x.is_empty())
+            && scanner.peek().kind != TokenKind::Keyword(Keyword::Namespace)
+        {
             let mut ns = item::parse_implicit_namespace(
                 file_name.expect("invariant checked above via `.is_some()`"),
                 &mut scanner,
@@ -127,14 +129,14 @@ pub fn namespaces(
             .map(|x| vec![x])?;
             if let Some(ref mut ns) = ns.get_mut(0) {
                 if let Some(x) = ns.items.get_mut(0) {
-                    x.doc = doc
+                    x.doc = doc;
                 };
             }
             Ok(ns)
         } else {
             let mut ns = item::parse_namespaces(&mut scanner)?;
             if let Some(x) = ns.get_mut(0) {
-                x.doc = doc
+                x.doc = doc;
             };
             Ok(ns)
         }

@@ -28,6 +28,7 @@ use qsc_ast::ast::{
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
     TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind,
 };
+use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
@@ -154,26 +155,44 @@ fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<VecIdent> 
     for component in path.components() {
         match component {
             std::path::Component::Normal(name) => {
-                let name = name
+                // strip the extension off], if there is one
+                let mut name = name
                     .to_str()
                     .ok_or(Error(ErrorKind::InvalidFileName(error_span)))?;
+
+                if let Some(dot) = name.rfind('.') {
+                    name = name[..dot].into();
+                }
+                // verify that the component only contains alphanumeric characters, and doesn't start with a number
+
+                validate_namespace_name(error_span, name)?;
+
                 namespace.push(Ident {
                     id: NodeId::default(),
                     span: error_span,
-                    name: name.to_string().into(),
+                    name: name.into(),
                 });
             }
             _ => return Err(Error(ErrorKind::InvalidFileName(error_span))),
         }
     }
-    // strip the extension off of the last item, if there is one
-    if let Some(last) = namespace.last_mut() {
-        if let Some(dot) = last.name.rfind('.') {
-            last.name = last.name[..dot].into();
-        }
-    }
+
     Ok(namespace.into())
 }
+
+/// Validates that a string could be a valid namespace name component
+fn validate_namespace_name(error_span: Span, name: &str) -> Result<()> {
+    let mut s = ParserContext::new(name, LanguageFeatures::default());
+    // if it could be a valid identifier, then it is a valid namespace name
+    // we just directly use the ident parser here instead of trying to recreate
+    // validation rules
+    let _ = ident(&mut s).map_err(|_| Error(ErrorKind::InvalidFileName(error_span)))?;
+    if s.peek().kind != TokenKind::Eof {
+        return Err(Error(ErrorKind::InvalidFileName(error_span)));
+    }
+    Ok(())
+}
+
 // unit tests for file_name_to_namespace_name
 #[test]
 fn test_file_name_to_namespace_name() {
