@@ -62,15 +62,73 @@ At first glance, this model seems to be limited, and not representative of the f
 > *Fault-tolerant quantum computation* handles the more general scenario of performing computations on encoded states in a way that tolerates errors introduced by noisy gates and measurements.
 
 @[section]({
-    "id": "qec_shor__parity_measurements",
-    "title": "Parity Measurements"
+    "id": "qec_shor__joint_measurements",
+    "title": "Joint Measurements"
 })
 
-Quantum error correction is based on the use of a special kind of measurements - parity measurements.
+Quantum error correction is based on the use of a special kind of measurements - joint measurements in Pauli bases.
+We introduced the single-qubit measurements in different Pauli bases in the Measurements in Single-Qubit Systems kata,
+and then the general case of joint measurements in the Measurements in Multi-Qubit Systems kata.
+Let's take a closer look at the kinds of joint measurements we'll be using in this kata.
 
+A multi-qubit Pauli measurement on $n$ qubits corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_j$ being from the set of gates $\\{X,Y,Z,I\\}$, and at least one of the $M_j$ is not the identity matrix. (If $M_j = I$, you can think of it as qubit $j$ not being involved in the measurement.) The measurement can produce one of the two outcomes: `Zero` corresponding to eigenvalue $+1$ of this operator, or `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces. The operator $M_1 \otimes \dotsc \otimes M_n$ is referred to as the _measurement basis_.
 
-- exercise: parity measurement in Z basis
-- exercise: parity measurement in X basis
+For example, the first two joint measurements we'll encounter later in this kata are two-qubit measurements in $ZZ$ and $XX$ bases. They can be described as follows:
+
+<table>
+    <tr>
+        <th>Pauli Operator</th>
+        <th>Eigenvalue</th>
+        <th>Eigenvectors</th>
+        <th>Measurement Projector</th>
+        <th>Measurement Result in Q#</th>
+    </tr>
+    <tr>
+        <td rowspan="2">$ZZ$</td>
+        <td>$+1$</td>
+        <td>$\ket{00}$, $\ket{11}$</td>
+        <td>$\ket{00}\bra{00} + \ket{11}\bra{11}$</td>
+        <td>Zero</td>
+    </tr><tr>
+        <td>$-1$</td>
+        <td>$\ket{01}$, $\ket{10}$</td>
+        <td>$\ket{01}\bra{01} + \ket{10}\bra{10}$</td>
+        <td>One</td>
+    </tr>
+    <tr>
+        <td rowspan="2">$XX$</td>
+        <td>$+1$</td>
+        <td>$\ket{++}$, $\ket{--}$</td>
+        <td>$\ket{++}\bra{++} + \ket{--}\bra{--}$</td>
+        <td>Zero</td>
+    </tr><tr>
+        <td>$-1$</td>
+        <td>$\ket{+-}$, $\ket{-+}$</td>
+        <td>$\ket{+-}\bra{+-} + \ket{-+}\bra{-+}$</td>
+        <td>One</td>
+    </tr>
+</table>
+
+In Q#, joint measurements in Pauli bases are implemented using the `Measure` operation.
+It takes two parameters: the array of `Pauli` constants (`PauliI`, `PauliX`, `PauliY`, or `PauliZ`) that define the basis for measurement, and the array of qubits to be measured.
+
+@[exercise]({
+    "id": "qec_shor__zz_measurement",
+    "title": "Measurement in ZZ basis",
+    "path": "./zz_measurement/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "qec_shor__xx_measurement",
+    "title": "Measurement in XX basis",
+    "path": "./xx_measurement/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 
 @[section]({
@@ -92,7 +150,7 @@ $$\alpha \ket{0} + \beta \ket{1} \rightarrow \alpha \ket{000} + \beta \ket{111}$
 
 This encoding is called **bit flip code**, and the states $\ket{000}$, $\ket{111}$, and their linear combinations are called **code words** in this code. Bit flip code allows us to detect and correct some errors that can occur on qubits in the depolarizing channel, though not all of them.
 
-Let's see what happens if an $X$ error happens on one of the qubits, and how we can detect it using two parity measurements.
+Let's see what happens if an $X$ error happens on one of the qubits, and how we can detect it using two parity measurements (measurements in $ZZ$ basis).
 
 <table>
 <tr>
