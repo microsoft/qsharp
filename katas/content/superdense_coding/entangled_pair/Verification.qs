@@ -12,6 +12,7 @@ namespace Kata.Verification {
         return CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.CreateEntangledPair,
             CreateEntangledPair,
-            2);
+            2
+        );
     }
 }
