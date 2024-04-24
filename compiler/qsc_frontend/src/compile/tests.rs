@@ -4,9 +4,8 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use crate::compile::TargetCapabilityFlags;
-use std::rc::Rc;
-
 use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
+
 use expect_test::expect;
 use indoc::indoc;
 use miette::Diagnostic;
@@ -342,7 +341,7 @@ fn insert_core_call() {
         fn visit_block(&mut self, block: &mut Block) {
             let ns = self
                 .core
-                .find_namespace(vec![Rc::from("QIR"), Rc::from("Runtime")])
+                .find_namespace(["QIR", "RUNTIME"].iter().copied())
                 .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core

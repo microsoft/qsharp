@@ -96,7 +96,7 @@ impl Visitor<'_> for Renamer<'_> {
 
     fn visit_item(&mut self, item: &'_ Item) {
         if let ItemKind::Open(namespace, Some(alias)) = &*item.kind {
-            let Some(ns_id) = self.namespaces.find_namespace(namespace) else {
+            let Some(ns_id) = self.namespaces.find_namespace(namespace.str_iter()) else {
                 return;
             };
             self.aliases.insert(vec![alias.name.clone()], ns_id);
@@ -105,7 +105,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_vec_ident(&mut self, vec_ident: &VecIdent) {
-        let ns_id = match self.namespaces.find_namespace(vec_ident) {
+        let ns_id = match self.namespaces.find_namespace(vec_ident.str_iter()) {
             Some(x) => x,
             None => match self
                 .aliases

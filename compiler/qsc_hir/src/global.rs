@@ -68,10 +68,10 @@ impl Table {
 
     pub fn find_namespace<'a>(
         &self,
-        vec: impl IntoIterator<Item = &'a str>,
+        query: impl IntoIterator<Item = &'a str>,
     ) -> Option<NamespaceId> {
         // find a namespace if it exists and return its id
-        self.namespaces.find_namespace(vec)
+        self.namespaces.find_namespace(query)
     }
 }
 
