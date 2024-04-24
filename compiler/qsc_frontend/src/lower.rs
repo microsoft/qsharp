@@ -738,7 +738,7 @@ impl With<'_> {
     }
 
     fn lower_vec_ident(&mut self, name: &ast::VecIdent) -> hir::VecIdent {
-        name.iter().cloned().map(|i| self.lower_ident(&i)).collect()
+        name.iter().map(|i| self.lower_ident(i)).collect()
     }
 }
 
