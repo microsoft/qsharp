@@ -196,6 +196,18 @@ The $CZ$ gate is also self-adjoint: applying it a second time reverses its effec
     ]
 })
 
+
+@[exercise]({
+    "id": "multi_qubit_gates__toffoli_gate",
+    "title": "Toffoli Gate",
+    "path": "./toffoli_gate/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+
+
 @[section]({
     "id": "multi_qubit_gates__ket_bra_representation",
     "title": "Ket-Bra Representation"
