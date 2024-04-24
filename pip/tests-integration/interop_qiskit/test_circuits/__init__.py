@@ -1,0 +1,40 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+from .random import *
+from .test_circuits import *
+
+core_tests = [] + random_fixtures
+core_tests_small = [] + random_fixtures_small
+
+
+def generate_repro_information(
+    circuit: "QuantumCircuit", target_profile: "TargetProfile"
+):
+    name = circuit.name
+    profile_name = str(target_profile)
+    message = f"Error with Qiskit circuit '{name}'."
+    message += "\n"
+    message += f"Profile: {profile_name}"
+    message += "\n"
+    from qsharp.interop.qiskit.utils import _convert_qiskit_to_qasm3
+    from qsharp.interop import QSharpSimulator
+
+    try:
+        backend = QSharpSimulator(target_profile=target_profile)
+        qasm3_source = _convert_qiskit_to_qasm3(circuit, backend)
+    except Exception:
+        # if the conversion fails, print the circuit as a string
+        # as a fallback since we won't have the qasm3 source
+        message = "Failed converting QuantumCircuit to QASM3"
+        message += "\n"
+        message += "QuantumCircuit rendered:"
+        message += "\n"
+        circuit_str = circuit.draw(output="text")
+        message += circuit_str
+        return message
+
+    message += "QASM3 source:"
+    message += "\n"
+    message += str(qasm3_source)
+    return message

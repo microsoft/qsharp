@@ -1707,6 +1707,16 @@ pub enum Result {
     One,
 }
 
+impl From<bool> for Result {
+    fn from(b: bool) -> Self {
+        if b {
+            Result::One
+        } else {
+            Result::Zero
+        }
+    }
+}
+
 /// A Pauli operator.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Pauli {

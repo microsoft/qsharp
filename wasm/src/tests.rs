@@ -52,7 +52,7 @@ fn test_compile() {
 
     let (std_id, store) = crate::compile::package_store_with_stdlib(TargetCapabilityFlags::empty());
 
-    let result = qsc::codegen::get_qir(
+    let result = qsc::codegen::qir::get_qir(
         SourceMap::new([("test.qs".into(), code.into())], None),
         LanguageFeatures::default(),
         TargetCapabilityFlags::empty(),

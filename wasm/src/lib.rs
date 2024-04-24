@@ -76,7 +76,7 @@ pub(crate) fn _get_qir(
     store: PackageStore,
     deps: &qsc::compile::Dependencies,
 ) -> Result<String, String> {
-    qsc::codegen::get_qir(sources, language_features, capabilities, store, deps)
+    qsc::codegen::qir::get_qir(sources, language_features, capabilities, store, deps)
         .map_err(interpret_errors_into_qsharp_errors_json)
 }
 

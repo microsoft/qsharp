@@ -85,9 +85,18 @@ impl Compiler {
         source_package_id: PackageId,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        dependencies: &Dependencies,
     ) -> Result<Self, Errors> {
-        let frontend =
-            qsc_frontend::incremental::Compiler::new(&store, &[], capabilities, language_features);
+        let mut dependencies = dependencies.iter().map(Clone::clone).collect::<Vec<_>>();
+
+        dependencies.push((source_package_id, None));
+
+        let frontend = qsc_frontend::incremental::Compiler::new(
+            &store,
+            &dependencies[..],
+            capabilities,
+            language_features,
+        );
         let store = store.open();
 
         Ok(Self {

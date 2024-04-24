@@ -1,0 +1,140 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+from concurrent.futures import ThreadPoolExecutor
+import pytest
+from qsharp import TargetProfile
+
+from interop_qiskit import QISKIT_AVAILABLE, SKIP_REASON
+
+if QISKIT_AVAILABLE:
+    from qiskit import QuantumCircuit
+    from qiskit_aer import AerSimulator
+    from qiskit.qasm3 import loads as from_qasm3
+    from qiskit import ClassicalRegister
+    from qsharp.interop import QSharpSimulator
+    from qsharp.interop.qiskit.utils import _convert_qiskit_to_qasm3
+    from .test_circuits import (
+        core_tests_small,
+        generate_repro_information,
+    )
+else:
+    core_tests_small = []
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_run_smoke() -> None:
+    circuit = QuantumCircuit(2, 2)
+    circuit.x(0)
+    circuit.cx(0, 1)
+    circuit.measure_all(add_bits=False)
+    backend = QSharpSimulator()
+    res = backend.run(circuit, shots=1).result()
+    assert res is not None
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_run_state_prep_smoke() -> None:
+    circuit = QuantumCircuit(1)
+    circuit.initialize([0.6, 0.8])
+    circuit.measure_all()
+    backend = QSharpSimulator()
+    res = backend.run(circuit, shots=1).result()
+    assert res is not None
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+@pytest.mark.parametrize("circuit_name", core_tests_small)
+def test_random(circuit_name: str, request):
+    circuit = request.getfixturevalue(circuit_name)
+    if str.endswith(circuit_name.lower(), "base"):
+        target_profile = TargetProfile.Base
+    else:
+        target_profile = TargetProfile.Adaptive_RI
+
+    try:
+        backend = QSharpSimulator()
+        _ = backend.run(circuit, target_profile=target_profile, shots=1).result()
+    except Exception as ex:
+        additional_info = generate_repro_information(circuit, target_profile)
+        raise RuntimeError(additional_info) from ex
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_get_counts_matches_qiskit_simulator():
+    target_profile = TargetProfile.Base
+    circuit = create_deterministic_test_circuit()
+
+    try:
+        qssim = QSharpSimulator(target_profile=target_profile)
+        qasm3 = _convert_qiskit_to_qasm3(circuit, qssim)
+        circuit = from_qasm3(qasm3)
+
+        aersim = AerSimulator()
+        job = aersim.run(circuit, shots=5)
+        qsjob = qssim.run(circuit, shots=5)
+        qscounts = qsjob.result().get_counts()
+        assert qscounts == job.result().get_counts()
+    except AssertionError:
+        raise
+    except Exception as ex:
+        additional_info = generate_repro_information(circuit, target_profile)
+        raise RuntimeError(additional_info) from ex
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def create_deterministic_test_circuit():
+    cr0 = ClassicalRegister(2, "first")
+    cr1 = ClassicalRegister(3, "second")
+    circuit = QuantumCircuit(5)
+    circuit.add_register(cr0)
+    circuit.add_register(cr1)
+    circuit.x(0)
+    circuit.id(1)
+    circuit.id(2)
+    circuit.x(3)
+    circuit.x(4)
+    circuit.measure_all(add_bits=False)
+    return circuit
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_execution_works_with_threadpool_set_on_backend():
+    target_profile = TargetProfile.Base
+    circuit = create_deterministic_test_circuit()
+
+    try:
+        executor = ThreadPoolExecutor(max_workers=1)
+        backend = QSharpSimulator(
+            target_profile=target_profile, executor=executor, shots=5
+        )
+
+        job = backend.run(circuit)
+        qscounts = job.result().get_counts()
+        assert str(qscounts) == "{'110 01': 5}"
+        assert not job.is_sync()
+    except AssertionError:
+        raise
+    except Exception as ex:
+        additional_info = generate_repro_information(circuit, target_profile)
+        raise RuntimeError(additional_info) from ex
+
+
+@pytest.mark.skipif(not QISKIT_AVAILABLE, reason=SKIP_REASON)
+def test_execution_works_with_threadpool_set_on_run():
+    target_profile = TargetProfile.Base
+    circuit = create_deterministic_test_circuit()
+
+    try:
+        backend = QSharpSimulator(target_profile=target_profile, shots=5)
+
+        executor = ThreadPoolExecutor(max_workers=1)
+        job = backend.run(circuit, executor=executor)
+        qscounts = job.result().get_counts()
+        assert str(qscounts) == "{'110 01': 5}"
+        assert not job.is_sync()
+    except AssertionError:
+        raise
+    except Exception as ex:
+        additional_info = generate_repro_information(circuit, target_profile)
+        raise RuntimeError(additional_info) from ex

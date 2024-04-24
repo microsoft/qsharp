@@ -4,6 +4,7 @@
 use crate::{
     displayable_output::{DisplayableOutput, DisplayableState},
     fs::file_system,
+    interop::{compile_qasm3_to_qir, resource_estimate_qasm3, run_qasm3},
     noisy_simulator::register_noisy_simulator_submodule,
 };
 use miette::{Diagnostic, Report};
@@ -31,8 +32,29 @@ use qsc::{
 use resource_estimator::{self as re, estimate_expr};
 use std::{cell::RefCell, fmt::Write, path::PathBuf, rc::Rc};
 
+/// If the classes are not Send, the Python interpreter
+/// will not be able to use them in a separate thread.
+///
+/// This function is used to verify that the classes are Send.
+/// The code will fail to compile if the classes are not Send.
+fn verify_classes_are_sendable() {
+    fn is_send<T: Send>() {}
+    is_send::<TargetProfile>();
+    is_send::<Result>();
+    is_send::<Pauli>();
+    is_send::<Output>();
+    is_send::<StateDumpData>();
+    is_send::<Circuit>();
+
+    // QSharpError, and QasmError are not Send, but we don't raise
+    // them. Instead, we raise PyErr from them which is Send. On
+    // the Python side, they PyErr is converted into the
+    // corresponding exception.
+}
+
 #[pymodule]
 fn _native(py: Python, m: &PyModule) -> PyResult<()> {
+    verify_classes_are_sendable();
     m.add_class::<TargetProfile>()?;
     m.add_class::<Interpreter>()?;
     m.add_class::<Result>()?;
@@ -43,12 +65,17 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(physical_estimates, m)?)?;
     m.add("QSharpError", py.get_type::<QSharpError>())?;
     register_noisy_simulator_submodule(py, m)?;
+    // QASM3 interop
+    m.add("QasmError", py.get_type::<QasmError>())?;
+    m.add_function(wrap_pyfunction!(resource_estimate_qasm3, m)?)?;
+    m.add_function(wrap_pyfunction!(run_qasm3, m)?)?;
+    m.add_function(wrap_pyfunction!(compile_qasm3_to_qir, m)?)?;
     Ok(())
 }
 
 // This ordering must match the _native.pyi file.
-#[derive(Clone, Copy)]
-#[pyclass(unsendable)]
+#[derive(Clone, Copy, PartialEq)]
+#[pyclass]
 #[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
@@ -69,6 +96,16 @@ pub(crate) enum TargetProfile {
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
     Unrestricted,
+}
+
+impl From<TargetProfile> for Profile {
+    fn from(profile: TargetProfile) -> Self {
+        match profile {
+            TargetProfile::Base => Profile::Base,
+            TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
+            TargetProfile::Unrestricted => Profile::Unrestricted,
+        }
+    }
 }
 
 #[pyclass(unsendable)]
@@ -95,11 +132,7 @@ impl Interpreter {
         resolve_path: Option<PyObject>,
         fetch_github: Option<PyObject>,
     ) -> PyResult<Self> {
-        let target = match target {
-            TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
-            TargetProfile::Base => Profile::Base,
-            TargetProfile::Unrestricted => Profile::Unrestricted,
-        };
+        let target = Into::<Profile>::into(target).into();
 
         let language_features = LanguageFeatures::from_iter(language_features.unwrap_or_default());
 
@@ -118,7 +151,7 @@ impl Interpreter {
                     return Err(project.errors.into_py_err());
                 }
 
-                BuildableProgram::new(target.into(), project.package_graph_sources)
+                BuildableProgram::new(target, project.package_graph_sources)
             } else {
                 panic!("file system hooks should have been passed in with a manifest descriptor")
             }
@@ -128,13 +161,13 @@ impl Interpreter {
                 LanguageFeatures::from_iter(language_features),
                 None,
             );
-            BuildableProgram::new(target.into(), graph)
+            BuildableProgram::new(target, graph)
         };
 
         match interpret::Interpreter::new(
             SourceMap::new(buildable_program.user_code.sources, None),
             PackageType::Lib,
-            target.into(),
+            target,
             buildable_program.user_code.language_features,
             buildable_program.store,
             &buildable_program.user_code_dependencies,
@@ -289,7 +322,14 @@ create_exception!(
     "An error returned from the Q# interpreter."
 );
 
-fn format_errors(errors: Vec<interpret::Error>) -> String {
+create_exception!(
+    module,
+    QasmError,
+    pyo3::exceptions::PyException,
+    "An error returned from the OpenQASM parser."
+);
+
+pub(crate) fn format_errors(errors: Vec<interpret::Error>) -> String {
     errors
         .into_iter()
         .map(|e| {
@@ -318,7 +358,7 @@ fn python_help(error: &interpret::Error) -> Option<String> {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 pub(crate) struct Output(DisplayableOutput);
 
 #[pymethods]
@@ -358,7 +398,7 @@ impl Output {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 /// Captured simlation state dump.
 pub(crate) struct StateDumpData(pub(crate) DisplayableState);
 
@@ -414,8 +454,8 @@ impl StateDumpData {
     }
 }
 
-#[pyclass(unsendable)]
-#[derive(PartialEq)]
+#[pyclass]
+#[derive(Clone, Copy, PartialEq)]
 /// A Q# measurement result.
 pub(crate) enum Result {
     Zero,
@@ -424,6 +464,7 @@ pub(crate) enum Result {
 
 #[pymethods]
 impl Result {
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __repr__(&self) -> String {
         match self {
             Result::Zero => "Zero".to_owned(),
@@ -431,10 +472,12 @@ impl Result {
         }
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __str__(&self) -> String {
         self.__repr__()
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __hash__(&self) -> u32 {
         match self {
             Result::Zero => 0,
@@ -442,6 +485,7 @@ impl Result {
         }
     }
 
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn __richcmp__(&self, other: &Self, op: CompareOp) -> bool {
         let this = i32::from(*self == Result::One);
         let other = i32::from(*other == Result::One);
@@ -456,7 +500,7 @@ impl Result {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 /// A Q# Pauli operator.
 pub(crate) enum Pauli {
     I,
@@ -466,7 +510,7 @@ pub(crate) enum Pauli {
 }
 
 // Mapping of Q# value types to Python value types.
-struct ValueWrapper(Value);
+pub(crate) struct ValueWrapper(pub(crate) Value);
 
 impl IntoPy<PyObject> for ValueWrapper {
     fn into_py(self, py: Python) -> PyObject {
@@ -505,9 +549,9 @@ impl IntoPy<PyObject> for ValueWrapper {
     }
 }
 
-struct OptionalCallbackReceiver<'a> {
-    callback: Option<PyObject>,
-    py: Python<'a>,
+pub(crate) struct OptionalCallbackReceiver<'a> {
+    pub(crate) callback: Option<PyObject>,
+    pub(crate) py: Python<'a>,
 }
 
 impl Receiver for OptionalCallbackReceiver<'_> {
@@ -548,7 +592,7 @@ impl Receiver for OptionalCallbackReceiver<'_> {
     }
 }
 
-#[pyclass(unsendable)]
+#[pyclass]
 struct Circuit(pub qsc::circuit::Circuit);
 
 #[pymethods]

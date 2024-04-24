@@ -1745,7 +1745,7 @@ mod given_interpreter {
                 None,
             )];
 
-            let (unit, errors) = crate::compile::compile(
+            let (mut unit, errors) = crate::compile::compile(
                 &store,
                 &dependencies,
                 sources,
@@ -1753,15 +1753,21 @@ mod given_interpreter {
                 capabilities,
                 language_features,
             );
+            unit.expose();
             for e in &errors {
                 eprintln!("{e:?}");
             }
             assert!(errors.is_empty(), "compilation failed: {}", errors[0]);
             let package_id = store.insert(unit);
 
-            let mut interpreter =
-                Interpreter::from(store, package_id, capabilities, language_features)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::from(
+                store,
+                package_id,
+                capabilities,
+                language_features,
+                &dependencies,
+            )
+            .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);
             is_only_value(
                 &result,

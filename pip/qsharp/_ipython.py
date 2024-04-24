@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+"""
+_ipython.py
+
+This module provides IPython magic functions for integrating Q# code
+execution within Jupyter notebooks.
+"""
+
 from IPython.display import display, Javascript, clear_output
 from IPython.core.magic import register_cell_magic
 from ._native import QSharpError
@@ -26,6 +33,7 @@ def register_magic():
         try:
             return get_interpreter().interpret(cell, callback)
         except QSharpError as e:
+            # pylint: disable=raise-missing-from
             raise QSharpCellError(str(e))
 
 
