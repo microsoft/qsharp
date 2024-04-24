@@ -7,8 +7,8 @@ import { ActiveTab } from "./main.js";
 
 const tabArray: Array<[ActiveTab, string]> = [
   ["results-tab", "RESULTS"],
-  ["hir-tab", "HIR"],
   ["ast-tab", "AST"],
+  ["hir-tab", "HIR"],
   ["qir-tab", "QIR"],
   ["logs-tab", "LOGS"],
 ];
@@ -63,8 +63,8 @@ export function OutputTabs(props: {
         </div>
       ) : null}
       <ResultsTab {...props} />
-      <HirTab {...props} />
       <AstTab {...props} />
+      <HirTab {...props} />
       <QirTab {...props} />
     </div>
   );

@@ -39,8 +39,8 @@ import {
 
 export type ActiveTab =
   | "results-tab"
-  | "hir-tab"
   | "ast-tab"
+  | "hir-tab"
   | "qir-tab"
   | "logs-tab";
 
