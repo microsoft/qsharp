@@ -3,10 +3,12 @@
 
 use crate::compile::{self, compile, core, std};
 use miette::Diagnostic;
+
 use qsc_ast::ast;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
+
 use qsc_frontend::{
-    compile::{OpenPackageStore, PackageStore, SourceMap, TargetCapabilityFlags},
+    compile::{OpenPackageStore, PackageStore, SourceMap},
     error::WithSource,
     incremental::Increment,
 };

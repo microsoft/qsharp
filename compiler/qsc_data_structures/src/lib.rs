@@ -8,3 +8,4 @@ pub mod language_features;
 pub mod line_column;
 pub mod namespaces;
 pub mod span;
+pub mod target;

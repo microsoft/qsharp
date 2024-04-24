@@ -20,8 +20,9 @@ use capabilitiesck::{check_supported_capabilities, lower_store, run_rca_pass};
 use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_fir::fir;
-use qsc_frontend::compile::{CompileUnit, TargetCapabilityFlags};
+use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     global::{self, Table},

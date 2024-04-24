@@ -6,7 +6,6 @@
 use super::{Error, Locals, Names, Res};
 use crate::{
     compile,
-    compile::TargetCapabilityFlags,
     resolve::{LocalKind, Resolver},
 };
 use expect_test::{expect, Expect};
@@ -18,8 +17,13 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::namespaces::{NamespaceId, NamespaceTreeRoot};
-use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+
+use qsc_data_structures::{
+    language_features::LanguageFeatures,
+    namespaces::{NamespaceId, NamespaceTreeRoot},
+    span::Span,
+    target::TargetCapabilityFlags,
+};
 use qsc_hir::assigner::Assigner as HirAssigner;
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
