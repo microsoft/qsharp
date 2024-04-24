@@ -119,9 +119,9 @@ macro_rules! declare_hir_lints {
 
     // Declare the `HirLint` enum.
     (@CONFIG_ENUM $($lint_name:ident),*) => {
-        use serde::Deserialize;
+        use serde::{Deserialize, Serialize};
 
-        #[derive(Debug, Clone, Copy, Deserialize)]
+        #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
         #[serde(rename_all = "camelCase")]
         pub enum HirLint {
             $($lint_name),*

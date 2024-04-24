@@ -645,6 +645,68 @@ fn notebook_document_errors() {
 }
 
 #[test]
+fn notebook_document_lints() {
+    let errors = RefCell::new(Vec::new());
+    let mut updater = new_updater(&errors);
+
+    updater.update_notebook_document(
+        "notebook.ipynb",
+        &NotebookMetadata::default(),
+        [
+            ("cell1", 1, "operation Foo() : Unit { let x = 4;;;; }"),
+            ("cell2", 1, "operation Bar() : Unit { let y = 5 / 0; }"),
+        ]
+        .into_iter(),
+    );
+
+    expect_errors(
+        &errors,
+        &expect![[r#"
+            [
+                (
+                    "cell1",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Lint(
+                            Lint {
+                                span: Span {
+                                    lo: 35,
+                                    hi: 38,
+                                },
+                                level: Warn,
+                                message: "redundant semicolons",
+                                help: "remove the redundant semicolons",
+                            },
+                        ),
+                    ],
+                ),
+                (
+                    "cell2",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Lint(
+                            Lint {
+                                span: Span {
+                                    lo: 74,
+                                    hi: 79,
+                                },
+                                level: Warn,
+                                message: "attempt to divide by zero",
+                                help: "division by zero is not allowed",
+                            },
+                        ),
+                    ],
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
 fn notebook_update_remove_cell_clears_errors() {
     let errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&errors);

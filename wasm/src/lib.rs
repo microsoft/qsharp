@@ -81,6 +81,9 @@ pub fn get_qir(
     let sources = get_source_map(sources, &None);
     let profile =
         Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
+    if profile == Profile::Unrestricted {
+        return Err("Invalid target profile for QIR generation".to_string());
+    }
     if language_features.contains(LanguageFeatures::PreviewQirGen) {
         qsc::codegen::get_qir(sources, language_features, profile.into())
     } else {
@@ -203,35 +206,46 @@ pub fn get_library_source_content(name: &str) -> Option<String> {
 }
 
 #[wasm_bindgen]
-#[must_use]
-pub fn get_ast(code: &str, language_features: Vec<String>) -> String {
+pub fn get_ast(
+    code: &str,
+    language_features: Vec<String>,
+    profile: &str,
+) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
+    let profile =
+        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
             &[*std],
             sources,
             PackageType::Exe,
-            Profile::Unrestricted.into(),
+            profile.into(),
             language_features,
         );
         unit.ast.package
     });
-    format!("{package}")
+    Ok(format!("{package}"))
 }
 
 #[wasm_bindgen]
-pub fn get_hir(code: &str, language_features: Vec<String>) -> Result<String, String> {
+pub fn get_hir(
+    code: &str,
+    language_features: Vec<String>,
+    profile: &str,
+) -> Result<String, String> {
     let language_features = LanguageFeatures::from_iter(language_features);
     let sources = SourceMap::new([("code".into(), code.into())], None);
+    let profile =
+        Profile::from_str(profile).map_err(|()| format!("Invalid target profile {profile}"))?;
     let package = STORE_CORE_STD.with(|(store, std)| {
         let (unit, _) = compile::compile(
             store,
             &[*std],
             sources,
             PackageType::Exe,
-            Profile::Unrestricted.into(),
+            profile.into(),
             language_features,
         );
         unit.package

@@ -13,6 +13,7 @@ mod unreachable_code_check;
 
 use build_dominator_graph::build_dominator_graph;
 use defer_meas::defer_measurements;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use reindex_qubits::reindex_qubits;
 use remap_block_ids::remap_block_ids;
 use simplify_control_flow::simplify_control_flow;
@@ -40,12 +41,18 @@ pub fn check_and_transform(program: &mut Program) {
     check_ssa_form(program, &preds, &doms);
     check_unreachable_code(program);
     check_types(program);
-}
 
-/// Run the RIR passes that are necessary for targets with no mid-program measurement.
-/// This requires that qubits are not reused after measurement or reset, so qubit ids must be reindexed.
-/// This also requires that the program is a single block and will panic otherwise.
-pub fn defer_quantum_measurements(program: &mut Program) {
-    reindex_qubits(program);
-    defer_measurements(program);
+    // Run the RIR passes that are necessary for targets with no mid-program measurement.
+    // This requires that qubits are not reused after measurement or reset, so qubit ids must be reindexed.
+    // This also requires that the program is a single block and will panic otherwise.
+    if !program
+        .config
+        .capabilities
+        .contains(TargetCapabilityFlags::QubitReset)
+    {
+        reindex_qubits(program);
+    }
+    if program.config.capabilities == TargetCapabilityFlags::empty() {
+        defer_measurements(program);
+    }
 }

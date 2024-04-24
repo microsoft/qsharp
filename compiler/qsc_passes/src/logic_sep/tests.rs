@@ -5,8 +5,10 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 use expect_test::{expect, Expect};
-use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{
+    language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
+};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::{
     hir::{ExprKind, NodeId, Stmt},
     visit::{walk_stmt, Visitor},
