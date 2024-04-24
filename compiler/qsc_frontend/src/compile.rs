@@ -12,7 +12,7 @@ use crate::{
     resolve::{self, Locals, Names, Resolver},
     typeck::{self, Checker, Table},
 };
-use bitflags::bitflags;
+
 use miette::{Diagnostic, Report};
 use preprocess::TrackedName;
 use qsc_ast::{
@@ -26,6 +26,7 @@ use qsc_data_structures::{
     index_map::{self, IndexMap},
     language_features::LanguageFeatures,
     span::Span,
+    target::TargetCapabilityFlags,
 };
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
@@ -34,38 +35,8 @@ use qsc_hir::{
     validate::Validator as HirValidator,
     visit::Visitor as _,
 };
-use std::{fmt::Debug, str::FromStr, sync::Arc};
+use std::{fmt::Debug, sync::Arc};
 use thiserror::Error;
-
-bitflags! {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub struct TargetCapabilityFlags: u32 {
-        const Adaptive = 0b0000_0001;
-        const IntegerComputations = 0b0000_0010;
-        const FloatingPointComputations = 0b0000_0100;
-        const BackwardsBranching = 0b0000_1000;
-        const HigherLevelConstructs = 0b0001_0000;
-        const QubitReset = 0b0010_0000;
-    }
-}
-
-impl FromStr for TargetCapabilityFlags {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Base" => Ok(TargetCapabilityFlags::empty()),
-            "Adaptive" => Ok(TargetCapabilityFlags::Adaptive),
-            "IntegerComputations" => Ok(TargetCapabilityFlags::IntegerComputations),
-            "FloatingPointComputations" => Ok(TargetCapabilityFlags::FloatingPointComputations),
-            "BackwardsBranching" => Ok(TargetCapabilityFlags::BackwardsBranching),
-            "HigherLevelConstructs" => Ok(TargetCapabilityFlags::HigherLevelConstructs),
-            "QubitReset" => Ok(TargetCapabilityFlags::QubitReset),
-            "Unrestricted" => Ok(TargetCapabilityFlags::all()),
-            _ => Err(()),
-        }
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct CompileUnit {
@@ -314,6 +285,7 @@ impl MutVisitor for Offsetter {
     }
 }
 
+#[must_use]
 pub fn compile(
     store: &PackageStore,
     dependencies: &[PackageId],
@@ -321,8 +293,27 @@ pub fn compile(
     capabilities: TargetCapabilityFlags,
     language_features: LanguageFeatures,
 ) -> CompileUnit {
-    let (mut ast_package, parse_errors) = parse_all(&sources, language_features);
+    let (ast_package, parse_errors) = parse_all(&sources, language_features);
 
+    compile_ast(
+        store,
+        dependencies,
+        ast_package,
+        sources,
+        capabilities,
+        parse_errors,
+    )
+}
+
+#[allow(clippy::module_name_repetitions)]
+pub fn compile_ast(
+    store: &PackageStore,
+    dependencies: &[PackageId],
+    mut ast_package: ast::Package,
+    sources: SourceMap,
+    capabilities: TargetCapabilityFlags,
+    parse_errors: Vec<qsc_parse::Error>,
+) -> CompileUnit {
     let mut cond_compile = preprocess::Conditional::new(capabilities);
     cond_compile.visit_package(&mut ast_package);
     let dropped_names = cond_compile.into_names();

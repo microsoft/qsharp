@@ -72,6 +72,21 @@ impl Compilation {
             language_features,
         );
 
+        // Compute new lints and append them to the errors Vec.
+        // Lints are only computed if the erros vector is empty. For performance
+        // reasons we don't want to waste time running lints every few keystrokes,
+        // if the user is in the middle of typing a statement, for example.
+        if errors.is_empty() {
+            let lints = qsc::linter::run_lints(&unit, Some(lints_config));
+            let lints: Vec<_> = lints
+                .into_iter()
+                .map(|lint| {
+                    WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint))
+                })
+                .collect();
+            errors.extend(lints);
+        }
+
         let package_id = package_store.insert(unit);
         let unit = package_store
             .get(package_id)
@@ -106,6 +121,7 @@ impl Compilation {
         cells: I,
         target_profile: Profile,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
@@ -137,6 +153,21 @@ impl Compilation {
         let unit = package_store
             .get(package_id)
             .expect("expected to find user package");
+
+        // Compute new lints and append them to the errors Vec.
+        // Lints are only computed if the erros vector is empty. For performance
+        // reasons we don't want to waste time running lints every few keystrokes,
+        // if the user is in the middle of typing a statement, for example.
+        if errors.is_empty() {
+            let lints = qsc::linter::run_lints(unit, Some(lints_config));
+            let lints: Vec<_> = lints
+                .into_iter()
+                .map(|lint| {
+                    WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint))
+                })
+                .collect();
+            errors.extend(lints);
+        }
 
         run_fir_passes(
             &mut errors,
@@ -234,7 +265,7 @@ impl Compilation {
                 lints_config,
             ),
             CompilationKind::Notebook => {
-                Self::new_notebook(sources, target_profile, language_features)
+                Self::new_notebook(sources, target_profile, language_features, lints_config)
             }
         };
         self.package_store = new.package_store;

@@ -7,8 +7,8 @@ mod management;
 use evaluation_context::{Arg, BlockNode, EvaluationContext, Scope};
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
-use qsc_data_structures::functors::FunctorApp;
 use qsc_data_structures::span::Span;
+use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
@@ -46,8 +46,10 @@ pub fn partially_evaluate(
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,
     entry: &ProgramEntry,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<Program, Error> {
-    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties, entry);
+    let partial_evaluator =
+        PartialEvaluator::new(package_store, compute_properties, entry, capabilities);
     partial_evaluator.eval()
 }
 
@@ -130,10 +132,12 @@ impl<'a> PartialEvaluator<'a> {
         package_store: &'a PackageStore,
         compute_properties: &'a PackageStoreComputeProperties,
         entry: &'a ProgramEntry,
+        capabilities: TargetCapabilityFlags,
     ) -> Self {
         // Create the entry-point callable.
         let mut resource_manager = ResourceManager::default();
         let mut program = Program::new();
+        program.config.capabilities = capabilities;
         let entry_block_id = resource_manager.next_block();
         program.blocks.insert(entry_block_id, rir::Block::default());
         let entry_point_id = resource_manager.next_callable();

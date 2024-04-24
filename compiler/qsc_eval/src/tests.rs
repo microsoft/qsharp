@@ -14,10 +14,10 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::{self, ExecGraphNode, StmtId};
 use qsc_fir::fir::{PackageId, PackageStoreLookup};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
@@ -439,16 +439,16 @@ fn block_qubit_use_array_invalid_count_expr() {
                             0,
                         ),
                         span: Span {
-                            lo: 1566,
-                            hi: 1623,
+                            lo: 2034,
+                            hi: 2091,
                         },
                     },
                 ),
                 [
                     Frame {
                         span: Span {
-                            lo: 1566,
-                            hi: 1623,
+                            lo: 2034,
+                            hi: 2091,
                         },
                         id: StoreItemId {
                             package: PackageId(

@@ -9,6 +9,7 @@ const tabArray: Array<[ActiveTab, string]> = [
   ["results-tab", "RESULTS"],
   ["hir-tab", "HIR"],
   ["ast-tab", "AST"],
+  ["qir-tab", "QIR"],
   ["logs-tab", "LOGS"],
 ];
 
@@ -28,6 +29,14 @@ function HirTab(props: { hir: string; activeTab: ActiveTab }) {
   ) : null;
 }
 
+function QirTab(props: { qir: string; activeTab: ActiveTab }) {
+  return props.activeTab === "qir-tab" ? (
+    <textarea readonly class="qir-output">
+      {props.qir}
+    </textarea>
+  ) : null;
+}
+
 export function OutputTabs(props: {
   evtTarget: QscEventTarget;
   showPanel: boolean;
@@ -35,6 +44,7 @@ export function OutputTabs(props: {
   kataMode?: boolean;
   ast: string;
   hir: string;
+  qir: string;
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
 }) {
@@ -55,6 +65,7 @@ export function OutputTabs(props: {
       <ResultsTab {...props} />
       <HirTab {...props} />
       <AstTab {...props} />
+      <QirTab {...props} />
     </div>
   );
 }

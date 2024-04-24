@@ -46,6 +46,7 @@ use qsc_data_structures::{
     language_features::LanguageFeatures,
     line_column::{Encoding, Range},
     span::Span,
+    target::TargetCapabilityFlags,
 };
 use qsc_eval::{
     backend::{Backend, Chain as BackendChain, SparseSim},
@@ -58,8 +59,9 @@ use qsc_fir::{
     visit::{self, Visitor},
 };
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, Source, SourceMap, TargetCapabilityFlags},
+    compile::{CompileUnit, PackageStore, Source, SourceMap},
     error::WithSource,
+    incremental::Increment,
 };
 use qsc_passes::{PackageType, PassContext};
 use rustc_hash::FxHashSet;
@@ -218,6 +220,42 @@ impl Interpreter {
         })
     }
 
+    pub fn from(
+        store: PackageStore,
+        source_package_id: qsc_hir::hir::PackageId,
+        capabilities: TargetCapabilityFlags,
+        language_features: LanguageFeatures,
+    ) -> std::result::Result<Self, Vec<Error>> {
+        let compiler = Compiler::from(store, source_package_id, capabilities, language_features)
+            .map_err(into_errors)?;
+
+        let mut fir_store = fir::PackageStore::new();
+        for (id, unit) in compiler.package_store() {
+            let mut lowerer = qsc_lowerer::Lowerer::new();
+            fir_store.insert(
+                map_hir_package_to_fir(id),
+                lowerer.lower_package(&unit.package),
+            );
+        }
+
+        let source_package_id = compiler.source_package_id();
+        let package_id = compiler.package_id();
+
+        Ok(Self {
+            compiler,
+            lines: 0,
+            capabilities,
+            fir_store,
+            lowerer: qsc_lowerer::Lowerer::new(),
+            env: Env::default(),
+            sim: sim_circuit_backend(),
+            quantum_seed: None,
+            classical_seed: None,
+            package: map_hir_package_to_fir(package_id),
+            source_package: map_hir_package_to_fir(source_package_id),
+        })
+    }
+
     pub fn set_quantum_seed(&mut self, seed: Option<u64>) {
         self.quantum_seed = seed;
         self.sim.set_seed(seed);
@@ -293,6 +331,36 @@ impl Interpreter {
             .compile_fragments_fail_fast(&label, fragments)
             .map_err(into_errors)?;
 
+        self.eval_increment(receiver, increment)
+    }
+
+    /// It is assumed that if there were any parse errors on the fragments, the caller would have
+    /// already handled them. This function is intended to be used in cases where the caller wants
+    /// to handle the parse errors themselves.
+    ///  # Errors
+    /// If the compilation of the fragments fails, an error is returned.
+    /// If there is a runtime error when interpreting the fragments, an error is returned.
+    pub fn eval_ast_fragments(
+        &mut self,
+        receiver: &mut impl Receiver,
+        fragments: &str,
+        package: qsc_ast::ast::Package,
+    ) -> InterpretResult {
+        let label = self.next_line_label();
+
+        let increment = self
+            .compiler
+            .compile_ast_fragments_fail_fast(&label, fragments, package)
+            .map_err(into_errors)?;
+
+        self.eval_increment(receiver, increment)
+    }
+
+    fn eval_increment(
+        &mut self,
+        receiver: &mut impl Receiver,
+        increment: Increment,
+    ) -> InterpretResult {
         let (graph, _) = self.lower(&increment)?;
 
         // Updating the compiler state with the new AST/HIR nodes
