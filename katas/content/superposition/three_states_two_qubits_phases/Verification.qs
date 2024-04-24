@@ -26,14 +26,10 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
 
         Message($"Testing qubit states...");
-        if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
+        return CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.ThreeStates_TwoQubits_Phases(_),
             ThreeStates_TwoQubits_Phases_Reference(_),
             2
-        ) {
-            return false;
-        }
-
-        return true;
+        );
     }
 }

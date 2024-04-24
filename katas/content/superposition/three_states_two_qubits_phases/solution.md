@@ -12,7 +12,6 @@ When we apply the $R_1$ gate to the second qubit, this will only affect the $|01
 
 We use the same approach to change $|10\rangle$ term to $\omega^2 |10\rangle$. By applying the $R_1$ gate to the first qubit we will only change the $|10\rangle$ term. In this case the right $\theta$ will be $\frac{4\pi}{3}$.
 
-> If you get the `No identifier with the name \"ThreeStates_TwoQubits\" exists` error, you need to run the code cell with the solution to task 2.3 first to make sure the `ThreeStates_TwoQubits` operation is defined.
 
 @[solution]({
     "id": "superposition__three_states_two_qubits_phases_solution",
