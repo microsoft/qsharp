@@ -5,6 +5,7 @@ mod build_dominator_graph;
 mod defer_meas;
 mod reindex_qubits;
 mod remap_block_ids;
+mod simplify_control_flow;
 mod ssa_check;
 mod ssa_transform;
 mod type_check;
@@ -15,6 +16,7 @@ use defer_meas::defer_measurements;
 use qsc_data_structures::target::TargetCapabilityFlags;
 use reindex_qubits::reindex_qubits;
 use remap_block_ids::remap_block_ids;
+use simplify_control_flow::simplify_control_flow;
 use ssa_check::check_ssa_form;
 use ssa_transform::transform_to_ssa;
 pub use type_check::check_types;
@@ -29,6 +31,7 @@ use crate::{rir::Program, utils::build_predecessors_map};
 /// - Transforming the program to SSA form
 /// - Checking that the program is in SSA form
 pub fn check_and_transform(program: &mut Program) {
+    simplify_control_flow(program);
     check_unreachable_code(program);
     check_types(program);
     remap_block_ids(program);

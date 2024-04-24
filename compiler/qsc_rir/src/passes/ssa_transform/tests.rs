@@ -1747,22 +1747,20 @@ fn ssa_transform_inserts_phi_nodes_in_successive_blocks_for_chained_branches() {
                     Branch Variable(2, Boolean), 3, 4
                 Block 2: Block:
                     Variable(3, Boolean) = LogicalNot Variable(0, Boolean)
-                    Jump(5)
+                    Variable(6, Boolean) = LogicalNot Variable(3, Boolean)
+                    Jump(6)
                 Block 3: Block:
                     Variable(4, Boolean) = LogicalNot Variable(2, Boolean)
-                    Jump(6)
+                    Jump(5)
                 Block 4: Block:
                     Variable(5, Boolean) = LogicalNot Variable(2, Boolean)
-                    Jump(6)
+                    Jump(5)
                 Block 5: Block:
-                    Variable(6, Boolean) = LogicalNot Variable(3, Boolean)
-                    Jump(7)
-                Block 6: Block:
                     Variable(9, Boolean) = Phi ( [Variable(4, Boolean), 3], [Variable(5, Boolean), 4], )
                     Variable(7, Boolean) = LogicalNot Variable(9, Boolean)
-                    Jump(7)
-                Block 7: Block:
-                    Variable(10, Boolean) = Phi ( [Variable(6, Boolean), 5], [Variable(7, Boolean), 6], )
+                    Jump(6)
+                Block 6: Block:
+                    Variable(10, Boolean) = Phi ( [Variable(6, Boolean), 2], [Variable(7, Boolean), 5], )
                     Variable(8, Boolean) = LogicalNot Variable(10, Boolean)
                     Return
             config: Config:
