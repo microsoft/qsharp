@@ -56,9 +56,9 @@ impl MutVisitor for Conditional {
                                 name: callable.name.name.clone(),
                                 namespace: namespace
                                     .name
-                                    .clone()
-                                    .iter()
-                                    .map(|x| Rc::from(x.to_string()))
+                                    .str_iter()
+                                    .into_iter()
+                                    .map(Rc::from)
                                     .collect(),
                             });
                         }
@@ -66,9 +66,9 @@ impl MutVisitor for Conditional {
                             name: ident.name.clone(),
                             namespace: namespace
                                 .name
-                                .clone()
-                                .iter()
-                                .map(|x| Rc::from(x.to_string()))
+                                .str_iter()
+                                .into_iter()
+                                .map(Rc::from)
                                 .collect(),
                         }),
                         _ => {}
@@ -86,9 +86,9 @@ impl MutVisitor for Conditional {
                             name: ident.name.clone(),
                             namespace: namespace
                                 .name
-                                .clone()
-                                .iter()
-                                .map(|x| Rc::from(x.to_string()))
+                                .str_iter()
+                                .into_iter()
+                                .map(Rc::from)
                                 .collect(),
                         }),
                         _ => {}
