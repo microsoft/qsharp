@@ -438,8 +438,7 @@ fn qubit_reindexed_across_branches() {
                     Call id(0), args( Qubit(0), )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 1
             num_results: 3"#]]
     .assert_eq(&program.to_string());
@@ -500,8 +499,7 @@ fn qubit_reindexed_across_branches() {
                     Call id(0), args( Qubit(2), )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 3
             num_results: 3"#]]
     .assert_eq(&program.to_string());
