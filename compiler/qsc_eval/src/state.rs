@@ -483,8 +483,8 @@ fn write_latex_for_real_number(latex: &mut String, number: &RealNumber, render_o
 /// 1 is only rendered if ``render_one`` is true.
 fn write_latex_for_decimal_number(latex: &mut String, number: &DecimalNumber, render_one: bool) {
     if render_one || is_significant(number.value - 1.0) {
-        /// Using round() instead of neater string formatting({:.4})
-        /// because we do not want trailing zeros (we need 0.5 and not 0.5000)
+        // Using round() instead of neater string formatting({:.4})
+        // because we do not want trailing zeros (we need 0.5 and not 0.5000)
         write!(latex, "{}", (number.value * 10000.0).round() / 10000.0)
             .expect("Expected to write decimal value.");
     }
