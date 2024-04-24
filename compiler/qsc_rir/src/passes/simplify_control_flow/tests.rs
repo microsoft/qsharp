@@ -71,8 +71,7 @@ fn simplify_control_flow_removes_single_redundant_block() {
                     Variable(1, Boolean) = Store Bool(true)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -89,8 +88,7 @@ fn simplify_control_flow_removes_single_redundant_block() {
                     Variable(1, Boolean) = Store Bool(true)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -155,8 +153,7 @@ fn simplify_control_flow_removes_multiple_redundant_blocks() {
                     Variable(2, Boolean) = Store Bool(true)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -174,8 +171,7 @@ fn simplify_control_flow_removes_multiple_redundant_blocks() {
                     Variable(2, Boolean) = Store Bool(true)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -295,8 +291,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
                     Variable(5, Boolean) = Store Bool(true)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -321,8 +316,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
                     Variable(5, Boolean) = Store Bool(true)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -448,8 +442,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
                     Variable(5, Boolean) = Store Bool(true)
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -474,8 +467,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
                     Variable(0, Boolean) = Store Bool(true)
                     Branch Variable(0, Boolean), 0, 2
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
