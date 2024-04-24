@@ -454,7 +454,8 @@ fn parse_all(
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
     for source in &sources.sources {
-        let (source_namespaces, source_errors) = qsc_parse::namespaces(&source.contents, features);
+        let (source_namespaces, source_errors) =
+            qsc_parse::namespaces(&source.contents, Some(&source.name), features);
         for mut namespace in source_namespaces {
             Offsetter(source.offset).visit_namespace(&mut namespace);
             namespaces.push(TopLevelNode::Namespace(namespace));

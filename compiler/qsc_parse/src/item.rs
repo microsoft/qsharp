@@ -26,7 +26,7 @@ use crate::{
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
-    TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
+    TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind,
 };
 use qsc_data_structures::span::Span;
 
@@ -131,6 +131,59 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
         Ok(TopLevelNode::Stmt(stmt))
     }
 }
+pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Result<Namespace> {
+    let lo = s.peek().span.lo;
+    let items = parse_namespace_block_contents(s)?;
+    let span = s.span(lo);
+    let namespace_name = file_name_to_namespace_name(file_name, span)?;
+
+    Ok(Namespace {
+        id: NodeId::default(),
+        span,
+        doc: "".into(),
+        name: namespace_name,
+        items: items.into_boxed_slice(),
+    })
+}
+
+/// Given a file name, convert it to a namespace name.
+/// For example, `foo/bar.qs` becomes `foo.bar`.
+fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<VecIdent> {
+    let path = std::path::Path::new(raw);
+    let mut namespace = Vec::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::Normal(name) => {
+                let name = name
+                    .to_str()
+                    .ok_or(Error(ErrorKind::InvalidFileName(error_span)))?;
+                namespace.push(Ident {
+                    id: NodeId::default(),
+                    span: error_span,
+                    name: name.to_string().into(),
+                });
+            }
+            _ => return Err(Error(ErrorKind::InvalidFileName(error_span))),
+        }
+    }
+    // strip the extension off of the last item, if there is one
+    if let Some(last) = namespace.last_mut() {
+        if let Some(dot) = last.name.rfind('.') {
+            last.name = last.name[..dot].into();
+        }
+    }
+    Ok(namespace.into())
+}
+// unit tests for file_name_to_namespace_name
+#[test]
+fn test_file_name_to_namespace_name() {
+    let raw = "foo/bar.qs";
+    let error_span = Span::default();
+    let namespace = file_name_to_namespace_name(raw, error_span).unwrap();
+    assert_eq!(namespace.0.len(), 2);
+    assert_eq!(&*namespace.0[0].name, "foo");
+    assert_eq!(&*namespace.0[1].name, "bar");
+}
 
 fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
@@ -138,7 +191,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     token(s, TokenKind::Keyword(Keyword::Namespace))?;
     let name = path(s)?;
     token(s, TokenKind::Open(Delim::Brace))?;
-    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
+    let items = parse_namespace_block_contents(s)?;
     recovering_token(s, TokenKind::Close(Delim::Brace));
     Ok(Namespace {
         id: NodeId::default(),
@@ -153,6 +206,14 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
     })
 }
 
+/// Parses the contents of a namespace block, what is in between the open and close braces in an
+/// explicit namespace, and any top level items in an implicit namespace.
+#[allow(clippy::vec_box)]
+fn parse_namespace_block_contents(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
+    let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
+    Ok(items)
+}
+
 /// See [GH Issue 941](https://github.com/microsoft/qsharp/issues/941) for context.
 /// We want to anticipate docstrings in places people might
 /// put them, but throw them away. This is to maintain
@@ -165,7 +226,7 @@ pub(super) fn throw_away_doc(s: &mut ParserContext) {
     let _ = parse_doc(s);
 }
 
-fn parse_doc(s: &mut ParserContext) -> Option<String> {
+pub(crate) fn parse_doc(s: &mut ParserContext) -> Option<String> {
     let mut content = String::new();
     while s.peek().kind == TokenKind::DocComment {
         if !content.is_empty() {

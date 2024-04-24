@@ -1292,3 +1292,113 @@ fn hierarchical_namespace_basic() {
     );
     assert!(lib.errors.is_empty(), "{:#?}", lib.errors);
 }
+
+#[test]
+fn implicit_namespace_basic() {
+    let sources = SourceMap::new(
+        [
+            (
+                "Test.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+            (
+                "Main.qs".into(),
+                indoc! {"
+                    @EntryPoint()
+                    operation Bar() : Unit {
+                        Test.Bar();
+                        open Foo.Bar;
+                        Baz.Quux();
+                    }
+            "}
+                .into(),
+            ),
+            (
+                "Foo/Bar/Baz.qs".into(),
+                indoc! {"
+                    operation Quux() : Unit {}
+            "}
+                .into(),
+            ),
+        ],
+        None,
+    );
+    let unit = default_compile(sources);
+    assert!(unit.errors.is_empty(), "{:#?}", unit.errors);
+}
+
+#[test]
+fn reject_bad_filename_implicit_namespace() {
+    let sources = SourceMap::new(
+        [
+            (
+                "123Test.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+            (
+                "Test-File.qs".into(),
+                indoc! {"
+                    operation Bar() : Unit {
+                    }
+            "}
+                .into(),
+            ),
+            (
+                "".into(),
+                indoc! {"
+                    operation Bar() : Unit {}
+            "}
+                .into(),
+            ),
+        ],
+        None,
+    );
+    let unit = default_compile(sources);
+    expect![[r#"
+        [
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 0,
+                                hi: 25,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 27,
+                                hi: 53,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+            Error(
+                Parse(
+                    Error(
+                        InvalidFileName(
+                            Span {
+                                lo: 55,
+                                hi: 80,
+                            },
+                        ),
+                    ),
+                ),
+            ),
+        ]
+    "#]]
+    .assert_debug_eq(&unit.errors);
+}
