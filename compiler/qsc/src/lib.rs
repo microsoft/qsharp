@@ -61,3 +61,11 @@ pub use qsc_doc_gen::{display, generate_docs};
 pub mod circuit {
     pub use qsc_circuit::{operations::*, Circuit, Operation};
 }
+
+pub mod parse {
+    pub use qsc_parse::top_level_nodes;
+}
+
+pub mod partial_eval {
+    pub use qsc_partial_eval::Error;
+}

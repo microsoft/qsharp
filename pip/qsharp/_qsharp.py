@@ -9,8 +9,16 @@ from ._native import (
     Output,
     Circuit,
 )
-from warnings import warn
-from typing import Any, Callable, Dict, Optional, Tuple, TypedDict, Union, List
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    TypedDict,
+    Union,
+    List,
+    overload,
+)
 from .estimator._estimator import EstimatorResult, EstimatorParams
 import json
 import os
@@ -304,8 +312,10 @@ def circuit(
     return get_interpreter().circuit(entry_expr, operation)
 
 
+@overload
 def estimate(
-    entry_expr, params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
+    entry_expr: str,
+    params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = ...,
 ) -> EstimatorResult:
     """
     Estimates resources for Q# source code.
@@ -313,10 +323,37 @@ def estimate(
     :param entry_expr: The entry expression.
     :param params: The parameters to configure physical estimation.
 
-    :returns resources: The estimated resources.
+    :returns `EstimatorResult`: The estimated resources.
     """
-    ipython_helper()
+    ...
 
+
+@overload
+def estimate(
+    circuit: "QuantumCircuit",
+    params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None,
+    **options,
+) -> EstimatorResult:
+    """
+    Estimates resources for Qiskit QuantumCircuit.
+
+    :param circuit: The input Qiskit QuantumCircuit object.
+    :param params: The parameters to configure physical estimation.
+    :**options: Additional options for the execution.
+        - Any options for the transpiler, exporter, or Qiskit passes
+            configuration. Defaults to backend config values. Common
+            values include: 'optimization_level', 'basis_gates',
+            'includes', 'search_path'.
+    :raises QasmError: If there is an error generating or parsing QASM.
+
+    :returns `EstimatorResult`: The estimated resources.
+    """
+    ...
+
+
+def _coerce_estimator_params(
+    params: Optional[Union[Dict[str, Any], List, EstimatorParams]] = None
+) -> List[Dict[str, Any]]:
     if params is None:
         params = [{}]
     elif isinstance(params, EstimatorParams):
@@ -326,9 +363,60 @@ def estimate(
             params = [params.as_dict()]
     elif isinstance(params, dict):
         params = [params]
-    return EstimatorResult(
-        json.loads(get_interpreter().estimate(entry_expr, json.dumps(params)))
-    )
+    return params
+
+
+def estimate(
+    estimate_input: Union[str, "QuantumCircuit"],
+    params: Optional[
+        Union[Dict[str, Any], List[Dict[str, Any]], EstimatorParams]
+    ] = None,
+    **options,
+) -> EstimatorResult:
+    """
+    Estimates resources for the quantum algorithm.
+
+    :param estimate_input: The Q# entry expression or `QuantumCircuit`.
+    :param params: The parameters to configure physical estimation.
+    :**options: Additional options for the `QiskitCircuit` input.
+            - Any options for the transpiler, exporter, or Qiskit passes
+                configuration. Defaults to backend config values. Common
+                values include: 'optimization_level', 'basis_gates',
+                'includes', 'search_path'.
+    :raises `QasmError`: If there is an error generating or parsing QASM.
+    :returns `EstimatorResult`: The estimated resources.
+    """
+
+    ipython_helper()
+    params = _coerce_estimator_params(params)
+    param_str = json.dumps(params)
+    if isinstance(estimate_input, str):
+        res_str = get_interpreter().estimate(estimate_input, param_str)
+        res = json.loads(res_str)
+        return EstimatorResult(res)
+    else:
+        try:
+            # We delay import Qisit to avoid the user needing to install it
+            # if they are not using the `estimate` function with a `QuantumCircuit`.
+            from qiskit import QuantumCircuit
+
+            if isinstance(estimate_input, QuantumCircuit):
+                from qsharp.interop.qiskit.backends import ResourceEstimatorBackend
+
+                backend = ResourceEstimatorBackend(
+                    target_profile=TargetProfile.Unrestricted
+                )
+                job = backend.run(estimate_input, params=params, **options)
+                return job.result()
+            else:
+                raise ValueError("Unsupported input type")
+        except ImportError as ex:
+            # We can't really diffentiate between invalid input and missing Qiskit
+            # as we can't check the input type without importing Qiskit.
+            message = (
+                "Could not load Qiskit. Please install Qiskit to use this function."
+            )
+            raise ValueError(message) from ex
 
 
 def set_quantum_seed(seed: Optional[int]) -> None:

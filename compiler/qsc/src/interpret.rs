@@ -257,9 +257,16 @@ impl Interpreter {
         source_package_id: qsc_hir::hir::PackageId,
         capabilities: TargetCapabilityFlags,
         language_features: LanguageFeatures,
+        dependencies: &Dependencies,
     ) -> std::result::Result<Self, Vec<Error>> {
-        let compiler = Compiler::from(store, source_package_id, capabilities, language_features)
-            .map_err(into_errors)?;
+        let compiler = Compiler::from(
+            store,
+            source_package_id,
+            capabilities,
+            language_features,
+            dependencies,
+        )
+        .map_err(into_errors)?;
 
         let mut fir_store = fir::PackageStore::new();
         for (id, unit) in compiler.package_store() {
@@ -270,6 +277,26 @@ impl Interpreter {
 
         let source_package_id = compiler.source_package_id();
         let package_id = compiler.package_id();
+
+        let package = map_hir_package_to_fir(package_id);
+        if capabilities != TargetCapabilityFlags::all() {
+            let _ = PassContext::run_fir_passes_on_fir(
+                &fir_store,
+                map_hir_package_to_fir(source_package_id),
+                capabilities,
+            )
+            .map_err(|caps_errors| {
+                let source_package = compiler
+                    .package_store()
+                    .get(source_package_id)
+                    .expect("package should exist in the package store");
+
+                caps_errors
+                    .into_iter()
+                    .map(|error| Error::Pass(WithSource::from_map(&source_package.sources, error)))
+                    .collect::<Vec<_>>()
+            })?;
+        }
 
         Ok(Self {
             compiler,
@@ -282,7 +309,7 @@ impl Interpreter {
             sim: sim_circuit_backend(),
             quantum_seed: None,
             classical_seed: None,
-            package: map_hir_package_to_fir(package_id),
+            package,
             source_package: map_hir_package_to_fir(source_package_id),
         })
     }
@@ -320,10 +347,7 @@ impl Interpreter {
     /// Executes the entry expression until the end of execution.
     /// # Errors
     /// Returns a vector of errors if evaluating the entry point fails.
-    pub fn eval_entry(
-        &mut self,
-        receiver: &mut impl Receiver,
-    ) -> std::result::Result<Value, Vec<Error>> {
+    pub fn eval_entry(&mut self, receiver: &mut impl Receiver) -> InterpretResult {
         let graph = self.get_entry_exec_graph()?;
         self.expr_graph = Some(graph.clone());
         eval(
@@ -344,7 +368,7 @@ impl Interpreter {
         &mut self,
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
-    ) -> std::result::Result<Value, Vec<Error>> {
+    ) -> InterpretResult {
         let graph = self.get_entry_exec_graph()?;
         self.expr_graph = Some(graph.clone());
         if self.quantum_seed.is_some() {
@@ -444,11 +468,7 @@ impl Interpreter {
 
     /// Runs the given entry expression on a new instance of the environment and simulator,
     /// but using the current compilation.
-    pub fn run(
-        &mut self,
-        receiver: &mut impl Receiver,
-        expr: Option<&str>,
-    ) -> std::result::Result<InterpretResult, Vec<Error>> {
+    pub fn run(&mut self, receiver: &mut impl Receiver, expr: Option<&str>) -> InterpretResult {
         self.run_with_sim(&mut SparseSim::new(), receiver, expr)
     }
 
@@ -560,6 +580,13 @@ impl Interpreter {
         Ok(circuit)
     }
 
+    /// Sets the entry expression for the interpreter.
+    pub fn set_entry_expr(&mut self, entry_expr: &str) -> std::result::Result<(), Vec<Error>> {
+        let (graph, _) = self.compile_entry_expr(entry_expr)?;
+        self.expr_graph = Some(graph);
+        Ok(())
+    }
+
     /// Runs the given entry expression on the given simulator with a new instance of the environment
     /// but using the current compilation.
     pub fn run_with_sim(
@@ -567,7 +594,7 @@ impl Interpreter {
         sim: &mut impl Backend<ResultType = impl Into<val::Result>>,
         receiver: &mut impl Receiver,
         expr: Option<&str>,
-    ) -> std::result::Result<InterpretResult, Vec<Error>> {
+    ) -> InterpretResult {
         let graph = if let Some(expr) = expr {
             let (graph, _) = self.compile_entry_expr(expr)?;
             self.expr_graph = Some(graph.clone());
@@ -580,7 +607,7 @@ impl Interpreter {
             sim.set_seed(self.quantum_seed);
         }
 
-        Ok(eval(
+        eval(
             self.package,
             self.classical_seed,
             graph,
@@ -589,7 +616,7 @@ impl Interpreter {
             &mut Env::default(),
             sim,
             receiver,
-        ))
+        )
     }
 
     fn run_with_sim_no_output(
@@ -1071,7 +1098,8 @@ fn eval_error(
     vec![error::from_eval(error, package_store, stack_trace).into()]
 }
 
-fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
+#[must_use]
+pub fn into_errors(errors: Vec<crate::compile::Error>) -> Vec<Error> {
     errors
         .into_iter()
         .map(|error| Error::Compile(error.into_with_source()))
