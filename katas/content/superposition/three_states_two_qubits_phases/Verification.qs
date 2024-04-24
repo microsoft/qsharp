@@ -14,7 +14,7 @@ namespace Kata.Verification {
 
         // Follow Niel's answer at https://quantumcomputing.stackexchange.com/a/2313/
 
-        // Rotate first qubit to (sqrt(2) |0⟩ + |1⟩) / sqrt(3) (task 1.4 from BasicGates kata)
+        // Rotate first qubit to (sqrt(2) |0⟩ + |1⟩) / sqrt(3)
         let theta = ArcSin(1.0 / Sqrt(3.0));
         Ry(2.0 * theta, qs[0]);
 

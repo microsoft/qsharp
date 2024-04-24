@@ -1,7 +1,7 @@
 To start, we will prepare the $\frac{1}{\sqrt{3}} \big( |00\rangle +  |01\rangle + |10\rangle \big)$ state using the solution to task 2.3. To get to the final state, we need to add the relative phases to both $|01\rangle$ and $|10\rangle$ basis states without changing the $|00\rangle$ state.
 
 First, we want to transform the $|01\rangle$ state to the $\omega |01\rangle = e^{2\pi i/3} |01\rangle$ state, while not changing the other states.
-Using the [$R_1$](../tutorials/SingleQubitGates/SingleQubitGates.ipynb#Rotation-Gates) gate, we can change a qubit state from $|1\rangle$ to $e^{i\theta}|1\rangle$ without changing the $|0\rangle$ state.
+Using the [$R_1$](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.intrinsic/r1) gate, we can change a qubit state from $|1\rangle$ to $e^{i\theta}|1\rangle$ without changing the $|0\rangle$ state.
 Indeed, here is the effect of the $R_1$ gate on the $|0\rangle$ and the $|1\rangle$ states:
 
 $$ R_1 |0\rangle = \begin{bmatrix} 1 & 0 \\ 0 & e^{i\theta} \end{bmatrix} \cdot \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix} = |0\rangle $$
