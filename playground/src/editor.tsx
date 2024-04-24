@@ -61,9 +61,8 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
 // get the language service profile from the URL
 // default to unrestricted if not specified
 export function getProfile(): TargetProfile {
-  return (
-    new URLSearchParams(window.location.search).get("profile") ?? "unrestricted"
-  );
+  return (new URLSearchParams(window.location.search).get("profile") ??
+    "unrestricted") as TargetProfile;
 }
 
 export function Editor(props: {
