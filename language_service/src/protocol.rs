@@ -3,6 +3,7 @@
 
 use qsc::line_column::Range;
 use qsc::{compile::Error, target::Profile, LanguageFeatures, PackageType};
+use qsc_project::Manifest;
 
 /// A change to the workspace configuration
 #[derive(Clone, Debug, Default, Copy)]
@@ -122,6 +123,7 @@ pub struct ParameterInformation {
 pub struct NotebookMetadata {
     pub target_profile: Option<Profile>,
     pub language_features: LanguageFeatures,
+    pub manifest: Option<Manifest>,
 }
 
 #[derive(Debug)]

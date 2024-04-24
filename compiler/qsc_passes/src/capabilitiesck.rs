@@ -14,7 +14,7 @@ mod tests_adaptive_plus_integers;
 pub mod tests_common;
 
 use miette::Diagnostic;
-use qsc_data_structures::span::Span;
+use qsc_data_structures::{span::Span, target::TargetCapabilityFlags};
 
 use qsc_fir::{
     fir::{
@@ -25,7 +25,7 @@ use qsc_fir::{
     ty::FunctorSetValue,
     visit::Visitor,
 };
-use qsc_frontend::compile::TargetCapabilityFlags;
+
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_rca::{
     Analyzer, ComputeKind, ItemComputeProperties, PackageComputeProperties,

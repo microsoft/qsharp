@@ -17,8 +17,9 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_fir::fir;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 

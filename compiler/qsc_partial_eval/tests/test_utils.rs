@@ -3,9 +3,9 @@
 
 use expect_test::Expect;
 use qsc::{incremental::Compiler, PackageType};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_fir::fir::PackageStore;
-use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
 use qsc_partial_eval::{partially_evaluate, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
@@ -38,6 +38,7 @@ pub fn compile_and_partially_evaluate(source: &str) -> Program {
         &compilation_context.fir_store,
         &compilation_context.compute_properties,
         &compilation_context.entry,
+        TargetCapabilityFlags::empty(),
     );
     match maybe_program {
         Ok(program) => program,

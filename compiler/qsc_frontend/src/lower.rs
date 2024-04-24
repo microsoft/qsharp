@@ -6,13 +6,12 @@ mod tests;
 
 use crate::{
     closure::{self, Lambda, PartialApp},
-    compile::TargetCapabilityFlags,
     resolve::{self, Names},
     typeck::{self, convert},
 };
 use miette::Diagnostic;
 use qsc_ast::ast;
-use qsc_data_structures::{index_map::IndexMap, span::Span};
+use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},
