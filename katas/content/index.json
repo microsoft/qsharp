@@ -11,6 +11,5 @@
   "random_numbers",
   "oracles",
   "deutsch_algo",
-  "deutsch_jozsa",
-  "superposition"
+  "deutsch_jozsa"
 ]
