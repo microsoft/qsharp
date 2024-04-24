@@ -61,7 +61,9 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
 // get the language service profile from the URL
 // default to unrestricted if not specified
 export function getProfile(): TargetProfile {
-  return new URLSearchParams(window.location.search).get("profile") ?? "unrestricted";
+  return (
+    new URLSearchParams(window.location.search).get("profile") ?? "unrestricted"
+  );
 }
 
 export function Editor(props: {
@@ -95,7 +97,7 @@ export function Editor(props: {
   const [shotCount, setShotCount] = useState(props.defaultShots);
   const [runExpr, setRunExpr] = useState("");
   const [errors, setErrors] = useState<{ location: string; msg: string[] }[]>(
-    [],
+    []
   );
   const [hasCheckErrors, setHasCheckErrors] = useState(false);
 
@@ -138,8 +140,8 @@ export function Editor(props: {
         await props.compiler.getAst(
           code,
           config.languageFeatures ?? [],
-          config.profile,
-        ),
+          config.profile
+        )
       );
     }
     if (props.activeTab === "hir-tab") {
@@ -147,8 +149,8 @@ export function Editor(props: {
         await props.compiler.getHir(
           code,
           config.languageFeatures ?? [],
-          config.profile,
-        ),
+          config.profile
+        )
       );
     }
     const codeGenTimeout = 1000; // ms
@@ -195,14 +197,14 @@ export function Editor(props: {
         await props.compiler.checkExerciseSolution(
           code,
           sources,
-          props.evtTarget,
+          props.evtTarget
         );
       } else {
         performance.mark("compiler-run-start");
         await props.compiler.run(config, runExpr, shotCount, props.evtTarget);
         const runTimer = performance.measure(
           "compiler-run",
-          "compiler-run-start",
+          "compiler-run-start"
         );
         log.logTelemetry({
           id: "compiler-run",
@@ -249,11 +251,11 @@ export function Editor(props: {
       await props.languageService.updateDocument(
         srcModel.uri.toString(),
         srcModel.getVersionId(),
-        srcModel.getValue(),
+        srcModel.getValue()
       );
       const measure = performance.measure(
         "update-document",
-        "update-document-start",
+        "update-document-start"
       );
       log.info(`updateDocument took ${measure.duration}ms`);
     });
@@ -340,7 +342,9 @@ export function Editor(props: {
       const encodedCode = await codeToCompressedBase64(code);
       const escapedCode = encodeURIComponent(encodedCode);
       // Get current URL without query parameters to use as the base URL
-      const newUrl = `${window.location.href.split("?")[0]}?code=${escapedCode}&profile=${profile}`;
+      const newUrl = `${
+        window.location.href.split("?")[0]
+      }?code=${escapedCode}&profile=${profile}`;
 
       // Copy link to clipboard and update url without reloading the page
       navigator.clipboard.writeText(newUrl);
