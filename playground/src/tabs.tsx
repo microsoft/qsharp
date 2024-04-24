@@ -10,7 +10,6 @@ const tabArray: Array<[ActiveTab, string]> = [
   ["ast-tab", "AST"],
   ["hir-tab", "HIR"],
   ["qir-tab", "QIR"],
-  ["logs-tab", "LOGS"],
 ];
 
 function AstTab(props: { ast: string; activeTab: ActiveTab }) {
