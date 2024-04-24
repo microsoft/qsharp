@@ -341,7 +341,7 @@ fn insert_core_call() {
         fn visit_block(&mut self, block: &mut Block) {
             let ns = self
                 .core
-                .find_namespace(["QIR", "RUNTIME"].iter().copied())
+                .find_namespace(["QIR", "Runtime"].iter().copied())
                 .expect("QIR runtime should be inserted at instantiation of core Table");
             let allocate = self
                 .core
