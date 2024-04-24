@@ -19,7 +19,7 @@ We split the superdense coding protocol into several steps:
 
 @[exercise]({
     "id": "./superdense_coding__entangled_pair",
-    "title": "Entangled pair",
+    "title": "Entangled Pair",
     "path": "entangled_pair",
     "qsDependencies": [
         "../KatasLibrary.qs"
