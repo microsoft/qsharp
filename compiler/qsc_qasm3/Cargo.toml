@@ -1,0 +1,35 @@
+[package]
+name = "qsc_qasm3"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+bitflags = { workspace = true }
+num-bigint = { workspace = true }
+miette = { workspace = true }
+qsc = { path = "../qsc" }
+rustc-hash = { workspace = true }
+thiserror = { workspace = true }
+
+oq3_source_file = "0.6.0"
+oq3_syntax = "0.6.0"
+oq3_parser = "0.6.0"
+oq3_lexer = "0.6.0"
+oq3_semantics = "0.6.0"
+
+[dev-dependencies]
+difference = { workspace = true }
+expect-test = { workspace = true }
+indoc = { workspace = true }
+miette = { workspace = true, features = ["fancy"] }
+qsc_qasm3 = { path = ".", features = ["fs"] }
+
+[features]
+fs = []
+
+[lints]
+workspace = true

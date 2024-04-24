@@ -4,7 +4,7 @@
 #![allow(clippy::needless_raw_string_hashes)]
 
 mod given_interpreter {
-    use crate::interpret::{Error, InterpretResult, Interpreter};
+    use crate::interpret::{InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
@@ -22,18 +22,13 @@ mod given_interpreter {
         )
     }
 
-    fn run(
-        interpreter: &mut Interpreter,
-        expr: &str,
-    ) -> (Result<InterpretResult, Vec<Error>>, String) {
+    fn run(interpreter: &mut Interpreter, expr: &str) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.run(&mut receiver, Some(expr)), receiver.dump())
     }
 
-    fn entry(
-        interpreter: &mut Interpreter,
-    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
+    fn entry(interpreter: &mut Interpreter) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         (interpreter.eval_entry(&mut receiver), receiver.dump())
@@ -43,7 +38,7 @@ mod given_interpreter {
         interpreter: &mut Interpreter,
         fragments: &str,
         package: crate::ast::Package,
-    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
+    ) -> (InterpretResult, String) {
         let mut cursor = Cursor::new(Vec::<u8>::new());
         let mut receiver = CursorReceiver::new(&mut cursor);
         let result = interpreter.eval_ast_fragments(&mut receiver, fragments, package);
@@ -1165,11 +1160,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             for _ in 0..4 {
                 let (results, output) = run(&mut interpreter, "{use qs = Qubit[2]; Foo(qs)}");
-                is_unit_with_output(
-                    &results.expect("compilation should succeed"),
-                    &output,
-                    "STATE:\n|00⟩: 1+0i",
-                );
+                is_unit_with_output(&results, &output, "STATE:\n|00⟩: 1+0i");
             }
         }
 
@@ -1195,11 +1186,7 @@ mod given_interpreter {
             let (result, output) = line(&mut interpreter, "operation Bar() : Int { 2 }");
             is_only_value(&result, &output, &Value::unit());
             let (result, output) = run(&mut interpreter, "{ Foo(); Bar() }");
-            is_only_value(
-                &result.expect("compilation should succeed"),
-                &output,
-                &Value::Int(2),
-            );
+            is_only_value(&result, &output, &Value::Int(2));
         }
 
         #[test]
@@ -1213,7 +1200,7 @@ mod given_interpreter {
             for _ in 0..1 {
                 let (result, output) = run(&mut interpreter, "Foo()");
                 is_only_error(
-                    &result.expect("compilation should succeed"),
+                    &result,
                     &output,
                     &expect![[r#"
                         runtime error: program failed: failed
@@ -1233,11 +1220,7 @@ mod given_interpreter {
             is_only_value(&result, &output, &Value::unit());
             for _ in 0..4 {
                 let (result, output) = run(&mut interpreter, "Foo()");
-                is_unit_with_output(
-                    &result.expect("compilation should succeed"),
-                    &output,
-                    "hello!",
-                );
+                is_unit_with_output(&result, &output, "hello!");
             }
         }
 
@@ -1288,7 +1271,7 @@ mod given_interpreter {
     }
 
     fn is_unit_with_output_eval_entry(
-        result: &Result<Value, Vec<crate::interpret::Error>>,
+        result: &InterpretResult,
         output: &str,
         expected_output: &str,
     ) {
@@ -1745,7 +1728,7 @@ mod given_interpreter {
                 None,
             )];
 
-            let (unit, errors) = crate::compile::compile(
+            let (mut unit, errors) = crate::compile::compile(
                 &store,
                 &dependencies,
                 sources,
@@ -1753,15 +1736,21 @@ mod given_interpreter {
                 capabilities,
                 language_features,
             );
+            unit.expose();
             for e in &errors {
                 eprintln!("{e:?}");
             }
             assert!(errors.is_empty(), "compilation failed: {}", errors[0]);
             let package_id = store.insert(unit);
 
-            let mut interpreter =
-                Interpreter::from(store, package_id, capabilities, language_features)
-                    .expect("interpreter should be created");
+            let mut interpreter = Interpreter::from(
+                store,
+                package_id,
+                capabilities,
+                language_features,
+                &dependencies,
+            )
+            .expect("interpreter should be created");
             let (result, output) = entry(&mut interpreter);
             is_only_value(
                 &result,
