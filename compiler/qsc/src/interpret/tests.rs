@@ -7,9 +7,9 @@ mod given_interpreter {
     use crate::interpret::{Error, InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
-    use qsc_data_structures::language_features::LanguageFeatures;
+    use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
+    use qsc_frontend::compile::SourceMap;
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
@@ -53,7 +53,6 @@ mod given_interpreter {
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::TargetCapabilityFlags;
 
         use super::*;
 
@@ -727,7 +726,9 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetCapabilityFlags::Adaptive,
+                TargetCapabilityFlags::Adaptive
+                    | TargetCapabilityFlags::QubitReset
+                    | TargetCapabilityFlags::IntegerComputations,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -778,12 +779,19 @@ mod given_interpreter {
 
                 ; module flags
 
-                !llvm.module.flags = !{!0, !1, !2, !3}
+                !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
 
                 !0 = !{i32 1, !"qir_major_version", i32 1}
                 !1 = !{i32 7, !"qir_minor_version", i32 0}
                 !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
+                !4 = !{i32 1, !"classical_ints", i1 true}
+                !5 = !{i32 1, !"qubit_resetting", i1 true}
+                !6 = !{i32 1, !"classical_floats", i1 false}
+                !7 = !{i32 1, !"backwards_branching", i1 false}
+                !8 = !{i32 1, !"classical_fixed_points", i1 false}
+                !9 = !{i32 1, !"user_functions", i1 false}
+                !10 = !{i32 1, !"multiple_target_branching", i1 false}
             "#]]
             .assert_eq(&res);
         }
@@ -794,7 +802,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetCapabilityFlags::Adaptive,
+                TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::QubitReset,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -848,12 +856,19 @@ mod given_interpreter {
 
                 ; module flags
 
-                !llvm.module.flags = !{!0, !1, !2, !3}
+                !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
 
                 !0 = !{i32 1, !"qir_major_version", i32 1}
                 !1 = !{i32 7, !"qir_minor_version", i32 0}
                 !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
+                !4 = !{i32 1, !"qubit_resetting", i1 true}
+                !5 = !{i32 1, !"classical_ints", i1 false}
+                !6 = !{i32 1, !"classical_floats", i1 false}
+                !7 = !{i32 1, !"backwards_branching", i1 false}
+                !8 = !{i32 1, !"classical_fixed_points", i1 false}
+                !9 = !{i32 1, !"user_functions", i1 false}
+                !10 = !{i32 1, !"multiple_target_branching", i1 false}
             "#]]
             .assert_eq(&res);
         }
@@ -1442,9 +1457,10 @@ mod given_interpreter {
         use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
+
         use qsc_ast::ast::{Expr, ExprKind, NodeId, Package, Path, Stmt, StmtKind, TopLevelNode};
         use qsc_data_structures::span::Span;
-        use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
+        use qsc_frontend::compile::SourceMap;
         use qsc_passes::PackageType;
 
         #[test]

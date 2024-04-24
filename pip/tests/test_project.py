@@ -33,7 +33,7 @@ def test_project_compile_error(qsharp) -> None:
 def test_project_bad_qsharp_json(qsharp) -> None:
     with pytest.raises(Exception) as excinfo:
         qsharp.init(project_root="/bad_qsharp_json")
-    assert str(excinfo.value).startswith("Error parsing /bad_qsharp_json/qsharp.json.")
+    assert str(excinfo.value).startswith("Error parsing /bad_qsharp_json/qsharp.json")
 
 
 def test_project_unreadable_qsharp_json(qsharp) -> None:

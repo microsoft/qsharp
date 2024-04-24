@@ -6,7 +6,6 @@
 use super::{Error, Locals, Names, Res};
 use crate::{
     compile,
-    compile::TargetCapabilityFlags,
     resolve::{LocalKind, Resolver},
 };
 use expect_test::{expect, Expect};
@@ -18,8 +17,13 @@ use qsc_ast::{
     mut_visit::MutVisitor,
     visit::{self, Visitor},
 };
-use qsc_data_structures::namespaces::{NamespaceId, NamespaceTreeRoot};
-use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+
+use qsc_data_structures::{
+    language_features::LanguageFeatures,
+    namespaces::{NamespaceId, NamespaceTreeRoot},
+    span::Span,
+    target::TargetCapabilityFlags,
+};
 use qsc_hir::assigner::Assigner as HirAssigner;
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
@@ -96,7 +100,7 @@ impl Visitor<'_> for Renamer<'_> {
 
     fn visit_item(&mut self, item: &'_ Item) {
         if let ItemKind::Open(namespace, Some(alias)) = &*item.kind {
-            let Some(ns_id) = self.namespaces.find_namespace(namespace) else {
+            let Some(ns_id) = self.namespaces.get_namespace_id(namespace.str_iter()) else {
                 return;
             };
             self.aliases.insert(vec![alias.name.clone()], ns_id);
@@ -105,7 +109,7 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_vec_ident(&mut self, vec_ident: &VecIdent) {
-        let ns_id = match self.namespaces.find_namespace(vec_ident) {
+        let ns_id = match self.namespaces.get_namespace_id(vec_ident.str_iter()) {
             Some(x) => x,
             None => match self
                 .aliases

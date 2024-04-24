@@ -13,6 +13,7 @@ use qsc_hir::{
 };
 
 use crate::common::{create_gen_core_ref, generated_name, IdentTemplate};
+use crate::CORE_NAMESPACE;
 
 #[cfg(test)]
 mod tests;
@@ -134,7 +135,7 @@ impl LoopUni<'_> {
         };
         let ns = self
             .core
-            .find_namespace(vec!["Microsoft".into(), "Quantum".into(), "Core".into()])
+            .find_namespace(CORE_NAMESPACE.iter().copied())
             .expect("prelude namespaces should exist");
         let mut len_callee = create_gen_core_ref(
             self.core,

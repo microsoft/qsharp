@@ -3,13 +3,13 @@
 
 use super::{Compiler, Increment};
 use crate::{
-    compile::{self, CompileUnit, PackageStore, TargetCapabilityFlags},
+    compile::{self, CompileUnit, PackageStore},
     incremental::Error,
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
 use miette::Diagnostic;
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use std::fmt::Write;
 
 #[allow(clippy::too_many_lines)]

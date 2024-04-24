@@ -20,8 +20,9 @@ use capabilitiesck::{check_supported_capabilities, lower_store, run_rca_pass};
 use entry_point::generate_entry_expr;
 use loop_unification::LoopUni;
 use miette::Diagnostic;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_fir::fir;
-use qsc_frontend::compile::{CompileUnit, TargetCapabilityFlags};
+use qsc_frontend::compile::CompileUnit;
 use qsc_hir::{
     assigner::Assigner,
     global::{self, Table},
@@ -34,6 +35,9 @@ use qsc_lowerer::map_hir_package_to_fir;
 use qsc_rca::{PackageComputeProperties, PackageStoreComputeProperties};
 use replace_qubit_allocation::ReplaceQubitAllocation;
 use thiserror::Error;
+
+pub(crate) static CORE_NAMESPACE: &[&str] = &["Microsoft", "Quantum", "Core"];
+pub(crate) static QIR_RUNTIME_NAMESPACE: &[&str] = &["QIR", "Runtime"];
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 #[diagnostic(transparent)]

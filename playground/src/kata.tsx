@@ -13,7 +13,7 @@ import {
   Question,
   VSDiagnostic,
 } from "qsharp-lang";
-import { Editor } from "./editor.js";
+import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 
 function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
@@ -76,6 +76,7 @@ function QuestionAsHtml(question: Question): string {
 export function Kata(props: {
   kata: Kata;
   compiler: ICompilerWorker;
+  compiler_worker_factory: () => ICompilerWorker;
   compilerState: CompilerState;
   onRestartCompiler: () => void;
   languageService: ILanguageServiceWorker;
@@ -166,12 +167,15 @@ export function Kata(props: {
                   evtTarget={itemEvtHandlers[idx]}
                   compiler={props.compiler}
                   compilerState={props.compilerState}
+                  compiler_worker_factory={props.compiler_worker_factory}
                   onRestartCompiler={props.onRestartCompiler}
                   code={section.placeholderCode}
                   kataExercise={section}
                   key={section.id}
+                  profile={getProfile()}
                   setAst={() => ({})}
                   setHir={() => ({})}
+                  setQir={() => ({})}
                   activeTab="results-tab"
                   languageService={props.languageService}
                 ></Editor>
@@ -183,6 +187,7 @@ export function Kata(props: {
                   onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
                   ast=""
                   hir=""
+                  qir=""
                   activeTab="results-tab"
                   setActiveTab={() => undefined}
                 ></OutputTabs>

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 use indenter::{indented, Indented};
-use qsc_data_structures::index_map::IndexMap;
+use qsc_data_structures::{index_map::IndexMap, target::TargetCapabilityFlags};
 use std::fmt::{self, Display, Formatter, Write};
 
 /// The root of the RIR.
@@ -56,12 +56,16 @@ impl Program {
     pub fn get_block(&self, id: BlockId) -> &Block {
         self.blocks.get(id).expect("block should be present")
     }
+
+    #[must_use]
+    pub fn get_block_mut(&mut self, id: BlockId) -> &mut Block {
+        self.blocks.get_mut(id).expect("block should be present")
+    }
 }
 
 #[derive(Default)]
 pub struct Config {
-    pub remap_qubits_on_reuse: bool,
-    pub defer_measurements: bool,
+    pub capabilities: TargetCapabilityFlags,
 }
 
 impl Display for Config {
@@ -69,12 +73,11 @@ impl Display for Config {
         let mut indent = set_indentation(indented(f), 0);
         write!(indent, "Config:",)?;
         indent = set_indentation(indent, 1);
-        write!(
-            indent,
-            "\nremap_qubits_on_reuse: {}",
-            self.remap_qubits_on_reuse
-        )?;
-        write!(indent, "\ndefer_measurements: {}", self.defer_measurements)?;
+        if self.capabilities.is_empty() {
+            write!(indent, "\ncapabilities: Base")?;
+        } else {
+            write!(indent, "\ncapabilities: {:?}", self.capabilities)?;
+        }
         Ok(())
     }
 }
@@ -82,7 +85,7 @@ impl Display for Config {
 impl Config {
     #[must_use]
     pub fn is_base(&self) -> bool {
-        self.remap_qubits_on_reuse || self.defer_measurements
+        self.capabilities == TargetCapabilityFlags::empty()
     }
 }
 

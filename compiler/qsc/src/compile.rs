@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use miette::{Diagnostic, Report};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_frontend::{
-    compile::{CompileUnit, PackageStore, SourceMap, TargetCapabilityFlags},
+    compile::{CompileUnit, PackageStore, SourceMap},
     error::WithSource,
 };
 use qsc_hir::hir::PackageId;

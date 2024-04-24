@@ -246,8 +246,8 @@ pub struct GlobalScope {
 }
 
 impl GlobalScope {
-    fn find_namespace(&self, ns: impl Into<Vec<Rc<str>>>) -> Option<NamespaceId> {
-        self.namespaces.find_namespace(ns)
+    fn find_namespace<'a>(&self, ns: impl IntoIterator<Item = &'a str>) -> Option<NamespaceId> {
+        self.namespaces.get_namespace_id(ns)
     }
 
     fn get(&self, kind: NameKind, namespace: NamespaceId, name: &str) -> Option<&Res> {
@@ -511,7 +511,7 @@ impl Resolver {
     }
 
     fn bind_open(&mut self, name: &VecIdent, alias: &Option<Box<Ident>>) {
-        let Some(id) = self.globals.find_namespace(name) else {
+        let Some(id) = self.globals.find_namespace(name.str_iter()) else {
             self.errors.push(Error::NotFound(
                 name.iter()
                     .map(|x| x.name.to_string())
@@ -524,7 +524,12 @@ impl Resolver {
         let alias = alias
             .as_ref()
             .map_or(name.into(), |a| vec![Rc::clone(&a.name)]);
-        if self.globals.namespaces.find_namespace(name).is_some() {
+        if self
+            .globals
+            .namespaces
+            .get_namespace_id(name.str_iter())
+            .is_some()
+        {
             self.current_scope_mut()
                 .opens
                 .entry(alias)
@@ -659,7 +664,7 @@ impl AstVisitor<'_> for With<'_> {
         let ns = self
             .resolver
             .globals
-            .find_namespace(Into::<Vec<_>>::into(namespace.name.clone()))
+            .find_namespace(namespace.name.str_iter())
             .expect("namespace should exist by this point");
 
         let kind = ScopeKind::Namespace(ns);
@@ -1353,9 +1358,11 @@ where
             .1;
 
         // Attempt to find a namespace within the candidate_namespace that matches the provided_namespace_name
-        let namespace = provided_namespace_name
-            .as_ref()
-            .and_then(|name| candidate_namespace.borrow().get_namespace_id(name));
+        let namespace = provided_namespace_name.as_ref().and_then(|name| {
+            candidate_namespace
+                .borrow()
+                .get_namespace_id(name.str_iter())
+        });
 
         // if a namespace was provided, but not found, then this is not the correct namespace.
         if provided_namespace_name.is_some() && namespace.is_none() {
@@ -1388,19 +1395,15 @@ where
 
 /// Fetch the name and namespace ID of all prelude namespaces.
 fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
-    let mut prelude = vec![];
+    let mut prelude = Vec::with_capacity(PRELUDE.len());
 
     // add prelude to the list of candidate namespaces last, as they are the final fallback for a symbol
     for prelude_namespace in PRELUDE {
-        let prelude_name = prelude_namespace
-            .iter()
-            .map(|s| Rc::from(*s))
-            .collect::<Vec<_>>();
         prelude.push((
-            prelude_name.join("."),
+            prelude_namespace.join("."),
             globals
                 .namespaces
-                .find_namespace(prelude_name)
+                .get_namespace_id(prelude_namespace)
                 .expect("prelude should always exist in the namespace map"),
         ));
     }
