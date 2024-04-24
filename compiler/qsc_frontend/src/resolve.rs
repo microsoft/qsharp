@@ -509,6 +509,19 @@ impl Resolver {
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
+            ast::ItemKind::Struct(decl) => {
+                let id = intrapackage(assigner.next_item());
+                self.names.insert(
+                    decl.name.id,
+                    Res::Item(
+                        id,
+                        ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(&item.attrs)),
+                    ),
+                );
+                let scope = self.current_scope_mut();
+                scope.tys.insert(Rc::clone(&decl.name.name), id);
+                scope.terms.insert(Rc::clone(&decl.name.name), id);
+            }
             ast::ItemKind::Err => {}
         }
     }
@@ -962,6 +975,35 @@ fn bind_global_item(
                     name.name.to_string(),
                     namespace.to_string(),
                     name.span,
+                )]),
+                (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
+                    term_entry.insert(res);
+                    ty_entry.insert(res);
+                    Ok(())
+                }
+            }
+        }
+        ast::ItemKind::Struct(decl) => {
+            let item_id = next_id();
+            let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+            let res = Res::Item(item_id, status);
+            names.insert(decl.name.id, res);
+            match (
+                scope
+                    .terms
+                    .entry(Rc::clone(namespace))
+                    .or_default()
+                    .entry(Rc::clone(&decl.name.name)),
+                scope
+                    .tys
+                    .entry(Rc::clone(namespace))
+                    .or_default()
+                    .entry(Rc::clone(&decl.name.name)),
+            ) {
+                (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => Err(vec![Error::Duplicate(
+                    decl.name.name.to_string(),
+                    namespace.to_string(),
+                    decl.name.span,
                 )]),
                 (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
                     term_entry.insert(res);

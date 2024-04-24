@@ -76,6 +76,16 @@ impl MutVisitor for Assigner {
         mut_visit::walk_callable_decl(self, decl);
     }
 
+    fn visit_struct_decl(&mut self, decl: &mut crate::ast::StructDecl) {
+        self.assign(&mut decl.id);
+        mut_visit::walk_struct_decl(self, decl);
+    }
+
+    fn visit_field_def(&mut self, def: &mut crate::ast::FieldDef) {
+        self.assign(&mut def.id);
+        mut_visit::walk_field_def(self, def);
+    }
+
     fn visit_spec_decl(&mut self, decl: &mut SpecDecl) {
         self.assign(&mut decl.id);
         mut_visit::walk_spec_decl(self, decl);

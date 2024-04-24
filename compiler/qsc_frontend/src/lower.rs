@@ -191,6 +191,7 @@ impl With<'_> {
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
+            ast::ItemKind::Struct(decl) => return None, // ToDo
         };
 
         self.lowerer.items.push(hir::Item {

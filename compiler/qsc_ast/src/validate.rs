@@ -63,6 +63,16 @@ impl Visitor<'_> for Validator {
         visit::walk_callable_decl(self, decl);
     }
 
+    fn visit_struct_decl(&mut self, decl: &'_ crate::ast::StructDecl) {
+        self.check(decl.id, decl);
+        visit::walk_struct_decl(self, decl);
+    }
+
+    fn visit_field_def(&mut self, def: &'_ crate::ast::FieldDef) {
+        self.check(def.id, def);
+        visit::walk_field_def(self, def);
+    }
+
     fn visit_spec_decl(&mut self, decl: &SpecDecl) {
         self.check(decl.id, decl);
         visit::walk_spec_decl(self, decl);

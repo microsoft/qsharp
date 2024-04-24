@@ -138,6 +138,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_ty_def(def);
                 self.writeln(";");
             }
+            ItemKind::Struct(decl) => self.visit_struct_decl(decl),
         }
     }
 
@@ -218,6 +219,26 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.writeln("}");
             }
         }
+    }
+
+    fn visit_struct_decl(&mut self, decl: &'_ ast::StructDecl) {
+        self.write("struct ");
+        self.visit_ident(&decl.name);
+        self.writeln(" {");
+        if let Some((last, most)) = decl.fields.split_last() {
+            for i in most {
+                self.visit_field_def(i);
+                self.write(", ");
+            }
+            self.visit_field_def(last);
+        }
+        self.writeln("}");
+    }
+
+    fn visit_field_def(&mut self, def: &'_ ast::FieldDef) {
+        self.visit_ident(&def.name);
+        self.write(" : ");
+        self.visit_ty(&def.ty);
     }
 
     fn visit_spec_decl(&mut self, decl: &'_ SpecDecl) {

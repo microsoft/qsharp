@@ -262,6 +262,8 @@ pub enum ItemKind {
     Open(Box<Ident>, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
+    /// A `struct` declaration.
+    Struct(Box<StructDecl>),
 }
 
 impl Display for ItemKind {
@@ -274,6 +276,7 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+            ItemKind::Struct(s) => write!(f, "{s}")?,
         }
         Ok(())
     }
@@ -387,6 +390,66 @@ impl Display for TyDefKind {
             TyDefKind::Err => write!(indent, "Err")?,
         }
         Ok(())
+    }
+}
+
+/// A struct definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct StructDecl {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the struct.
+    pub name: Box<Ident>,
+    /// The type definition kind.
+    pub fields: Box<[Box<FieldDef>]>,
+}
+
+impl Display for StructDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut indent = set_indentation(indented(f), 0);
+        write!(indent, "Struct {} {}: {}", self.id, self.span, self.name)?;
+        indent = set_indentation(indent, 1);
+        for field in &*self.fields {
+            write!(indent, "\n{field}")?;
+        }
+        Ok(())
+    }
+}
+
+impl WithSpan for StructDecl {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
+    }
+}
+
+/// A struct field definition.
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct FieldDef {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The name of the field.
+    pub name: Box<Ident>,
+    /// The type of the field.
+    pub ty: Box<Ty>,
+}
+
+impl Display for FieldDef {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "FieldDef {} {}: {}, {}",
+            self.id, self.span, self.name, self.ty
+        )
+    }
+}
+
+impl WithSpan for FieldDef {
+    fn with_span(self, span: Span) -> Self {
+        Self { span, ..self }
     }
 }
 

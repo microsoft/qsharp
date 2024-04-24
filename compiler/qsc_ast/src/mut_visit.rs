@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 use crate::ast::{
-    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FunctorExpr,
+    Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FieldAssign, FieldDef, FunctorExpr,
     FunctorExprKind, Ident, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit,
-    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef,
-    TyDefKind, TyKind, Visibility,
+    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, StructDecl, TopLevelNode,
+    Ty, TyDef, TyDefKind, TyKind, Visibility,
 };
 use qsc_data_structures::span::Span;
 
@@ -34,6 +34,14 @@ pub trait MutVisitor: Sized {
 
     fn visit_callable_decl(&mut self, decl: &mut CallableDecl) {
         walk_callable_decl(self, decl);
+    }
+
+    fn visit_struct_decl(&mut self, decl: &mut StructDecl) {
+        walk_struct_decl(self, decl);
+    }
+
+    fn visit_field_def(&mut self, def: &mut FieldDef) {
+        walk_field_def(self, def);
     }
 
     fn visit_spec_decl(&mut self, decl: &mut SpecDecl) {
@@ -115,6 +123,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
+        ItemKind::Struct(decl) => vis.visit_struct_decl(decl),
     }
 }
 
@@ -152,6 +161,18 @@ pub fn walk_callable_decl(vis: &mut impl MutVisitor, decl: &mut CallableDecl) {
         CallableBody::Block(block) => vis.visit_block(block),
         CallableBody::Specs(specs) => specs.iter_mut().for_each(|s| vis.visit_spec_decl(s)),
     }
+}
+
+pub fn walk_struct_decl(vis: &mut impl MutVisitor, decl: &mut StructDecl) {
+    vis.visit_span(&mut decl.span);
+    vis.visit_ident(&mut decl.name);
+    decl.fields.iter_mut().for_each(|f| vis.visit_field_def(f));
+}
+
+pub fn walk_field_def(vis: &mut impl MutVisitor, def: &mut FieldDef) {
+    vis.visit_span(&mut def.span);
+    vis.visit_ident(&mut def.name);
+    vis.visit_ty(&mut def.ty);
 }
 
 pub fn walk_spec_decl(vis: &mut impl MutVisitor, decl: &mut SpecDecl) {

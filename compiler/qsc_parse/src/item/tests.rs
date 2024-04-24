@@ -135,6 +135,18 @@ fn open_alias_dot() {
 }
 
 #[test]
+fn struct_decl() {
+    check(
+        parse,
+        "struct Foo { field : Int }",
+        &expect![[r#"
+            Item _id_ [0-26]:
+                Struct _id_ [0-26]: Ident _id_ [7-10] "Foo"
+                    FieldDef _id_ [13-24]: Ident _id_ [13-18] "field", Type _id_ [21-24]: Path: Path _id_ [21-24] (Ident _id_ [21-24] "Int")"#]],
+    );
+}
+
+#[test]
 fn ty_decl() {
     check(
         parse,
