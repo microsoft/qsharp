@@ -247,7 +247,7 @@ pub struct GlobalScope {
 
 impl GlobalScope {
     fn find_namespace<'a>(&self, ns: impl IntoIterator<Item = &'a str>) -> Option<NamespaceId> {
-        self.namespaces.find_namespace(ns)
+        self.namespaces.get_namespace_id(ns)
     }
 
     fn get(&self, kind: NameKind, namespace: NamespaceId, name: &str) -> Option<&Res> {
@@ -527,7 +527,7 @@ impl Resolver {
         if self
             .globals
             .namespaces
-            .find_namespace(name.str_iter())
+            .get_namespace_id(name.str_iter())
             .is_some()
         {
             self.current_scope_mut()
@@ -1403,7 +1403,7 @@ fn prelude_namespaces(globals: &GlobalScope) -> Vec<(String, NamespaceId)> {
             prelude_namespace.join("."),
             globals
                 .namespaces
-                .find_namespace(prelude_namespace)
+                .get_namespace_id(prelude_namespace)
                 .expect("prelude should always exist in the namespace map"),
         ));
     }

@@ -120,7 +120,11 @@ impl NamespaceTreeRoot {
         }
     }
 
-    pub fn find_namespace<'a>(&self, ns: impl IntoIterator<Item = &'a str>) -> Option<NamespaceId> {
+    /// Get the ID of a namespace given its name.
+    pub fn get_namespace_id<'a>(
+        &self,
+        ns: impl IntoIterator<Item = &'a str>,
+    ) -> Option<NamespaceId> {
         self.tree.borrow().get_namespace_id(ns)
     }
 

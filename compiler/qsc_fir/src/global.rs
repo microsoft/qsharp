@@ -57,7 +57,7 @@ impl Table {
         vec: impl IntoIterator<Item = &'a str>,
     ) -> Option<NamespaceId> {
         // find a namespace if it exists and return its id
-        self.namespaces.find_namespace(vec)
+        self.namespaces.get_namespace_id(vec)
     }
 }
 

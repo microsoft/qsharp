@@ -281,7 +281,7 @@ impl Compilation {
             .expect("user package should exist")
             .ast
             .namespaces
-            .find_namespace(ns)
+            .get_namespace_id(ns)
             .expect("namespace should exist")
     }
 }
