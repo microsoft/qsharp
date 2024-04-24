@@ -3,8 +3,8 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use crate::compile::TargetCapabilityFlags;
 use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
+use crate::compile::TargetCapabilityFlags;
 
 use expect_test::expect;
 use indoc::indoc;
