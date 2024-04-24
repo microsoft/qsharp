@@ -13,7 +13,7 @@ import {
   Question,
   VSDiagnostic,
 } from "qsharp-lang";
-import { Editor, get_profile } from "./editor.js";
+import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 
 function ExplainedSolutionAsHtml(solution: ExplainedSolution): string {
@@ -172,7 +172,7 @@ export function Kata(props: {
                   code={section.placeholderCode}
                   kataExercise={section}
                   key={section.id}
-                  profile={get_profile()}
+                  profile={getProfile()}
                   setAst={() => ({})}
                   setHir={() => ({})}
                   setQir={() => ({})}

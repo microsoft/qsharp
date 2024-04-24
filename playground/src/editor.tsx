@@ -60,7 +60,7 @@ function VSDiagsToMarkers(errors: VSDiagnostic[]): monaco.editor.IMarkerData[] {
 
 // get the language service profile from the URL
 // default to unrestricted if not specified
-export function get_profile(): TargetProfile {
+export function getProfile(): TargetProfile {
   const params = new URLSearchParams(window.location.search);
   if (params.has("profile")) {
     const profile = params.get("profile");
@@ -162,6 +162,7 @@ export function Editor(props: {
         ),
       );
     }
+    const codeGenTimeout = 1000; // ms
     if (props.activeTab === "qir-tab") {
       let timedOut = false;
       const compiler = props.compiler_worker_factory();
@@ -169,13 +170,12 @@ export function Editor(props: {
         log.info("Compiler timeout. Terminating worker.");
         timedOut = true;
         compiler.terminate();
-      }, 2000);
+      }, codeGenTimeout);
       try {
         const qir = await compiler.getQir(config);
         clearTimeout(compilerTimeout);
         props.setQir(qir);
       } catch (e: any) {
-        // Stop the 'calculating' animation
         if (timedOut) {
           props.setQir("timed out");
         } else {

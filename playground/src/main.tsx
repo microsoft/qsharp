@@ -22,7 +22,7 @@ import {
 } from "qsharp-lang";
 
 import { Nav } from "./nav.js";
-import { Editor, get_profile } from "./editor.js";
+import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
@@ -167,7 +167,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showShots={true}
             showExpr={true}
             shotError={shotError}
-            profile={get_profile()}
+            profile={getProfile()}
             setAst={setAst}
             setHir={setHir}
             setQir={setQir}
