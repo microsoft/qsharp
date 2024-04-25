@@ -37,7 +37,7 @@ $$
 U
 $$
 
-> Note that the order in which the gates $I \otimes X$ and $\text{CNOT}$ are applied doesn't matter in this case.
+> Note that the order in which the gates $I \otimes X$ and $CNOT$ are applied doesn't matter in this case.
 
 @[solution]({
     "id": "multi_qubit_gates__amplitudes_swap_solution_a",
