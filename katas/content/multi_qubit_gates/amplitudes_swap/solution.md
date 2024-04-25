@@ -50,7 +50,7 @@ Alternatively, we can express this gate using the intrinsic gate Z and its contr
 
 We observe that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $|0\rangle$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) library function.
 
-Notice that the `ApplyControlledOnInt` function creates a gate controlled by a register - not by a single qubit. A similar function `ControlledOnBitString` is introduced in the [Multi-Qubit Gates tutorial]([../tutorials/MultiQubitGates/MultiQubitGates.ipynb#Other-Types-of-Controlled-Gates](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.controlledonbitstring)).
+Notice that the `ApplyControlledOnInt` function creates a gate controlled by a register - not by a single qubit. 
 
 @[solution]({
     "id": "multi_qubit_gates__amplitudes_swap_solution_b",
