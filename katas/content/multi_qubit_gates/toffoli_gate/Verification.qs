@@ -1,6 +1,5 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Intrinsic;
 
     operation ToffoliGate (qs : Qubit[]) : Unit is Adj + Ctl {
         CCNOT(qs[0], qs[1], qs[2]);
