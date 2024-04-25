@@ -17,7 +17,7 @@ namespace Kata.Verification {
             Message("Incorrect.");
             Message("Hint: examine the state prepared by your solution and compare it with the state it " +
                 "is expected to prepare.");
-            ShowQuantumStateComparison(3, (qs => ()), solution, reference);
+            ShowQuantumStateComparison(3, PrepRandomState, solution, reference);
         }
 
         isCorrect
