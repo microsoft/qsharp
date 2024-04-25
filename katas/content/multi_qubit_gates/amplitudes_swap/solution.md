@@ -12,7 +12,7 @@ $$
 U = \begin{bmatrix}0 & 1 & 0 & 0\\\ 1 & 0 & 0 & 0\\\ 0 & 0 & 1 & 0\\\ 0 & 0 & 0 & 1\\\ \end{bmatrix}
 $$
 
-We remember a two-qubit gate with a similar matrix representation - the CNOT gate:
+We remember a two-qubit gate with a similar matrix representation - the $CNOT$ gate:
 
 $$
 \text{CNOT} = 
