@@ -37,12 +37,7 @@ import {
   monacoPositionToLsPosition,
 } from "./utils.js";
 
-export type ActiveTab =
-  | "results-tab"
-  | "hir-tab"
-  | "ast-tab"
-  | "qir-tab"
-  | "logs-tab";
+export type ActiveTab = "results-tab" | "ast-tab" | "hir-tab" | "qir-tab";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
