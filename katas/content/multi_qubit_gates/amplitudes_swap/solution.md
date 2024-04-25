@@ -1,4 +1,3 @@
-### Solution 1 - using intrinsic gates
 
 In vector form the transformation we need is:
 
