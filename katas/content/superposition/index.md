@@ -169,16 +169,6 @@ This kata is designed to get you familiar with the concept of superposition and 
 })
 
 @[exercise]({
-    "id": "superposition__three_states_two_qubits_phases",
-    "title": "Three States Two Qubits Phases",
-    "path": "./three_states_two_qubits_phases/",
-    "qsDependencies": [
-        "../KatasLibrary.qs",
-        "./Common.qs"
-    ]
-})
-
-@[exercise]({
     "id": "superposition__controlled_rotation",
     "title": "Controlled Rotation",
     "path": "./controlled_rotation/",
