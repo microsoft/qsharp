@@ -215,6 +215,13 @@ fn parse_open(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     } else {
         None
     };
+
+    // Peek to see if the next token is a dot -- this means it is likely a dot ident alias, and
+    // we want to provide a more helpful error message
+    if s.peek().kind == TokenKind::Dot {
+        return Err(Error(ErrorKind::DotIdentAlias(s.peek().span)));
+    }
+
     token(s, TokenKind::Semi)?;
     Ok(Box::new(ItemKind::Open(name.into(), alias)))
 }

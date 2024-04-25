@@ -1682,3 +1682,37 @@ fn namespace_with_conflicting_names() {
                         Type _id_ [87-90]: Path: Path _id_ [87-90] (Ident _id_ [87-90] "Int")"#]],
     );
 }
+
+// We technically broke this syntax. Although we don't think anybody was using it,
+// we want to make sure we provide a helpful error message.
+#[test]
+fn helpful_error_on_dotted_alias() {
+    check_vec(
+        parse_namespaces,
+        "namespace A {
+            open Microsoft.Quantum.Math as Foo.Bar.Baz;
+            operation Main() : Unit {}
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-118] (Ident _id_ [10-11] "A"):
+                Item _id_ [26-69]:
+                    Err
+                Item _id_ [82-108]:
+                    Callable _id_ [82-108] (Operation):
+                        name: Ident _id_ [92-96] "Main"
+                        input: Pat _id_ [96-98]: Unit
+                        output: Type _id_ [101-105]: Path: Path _id_ [101-105] (Ident _id_ [101-105] "Unit")
+                        body: Block: Block _id_ [106-108]: <empty>
+
+            [
+                Error(
+                    DotIdentAlias(
+                        Span {
+                            lo: 60,
+                            hi: 61,
+                        },
+                    ),
+                ),
+            ]"#]],
+    );
+}
