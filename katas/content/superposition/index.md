@@ -182,9 +182,6 @@ This kata is designed to get you familiar with the concept of superposition and 
     "id": "superposition__hardy_state",
     "title": "Hardy State",
     "path": "./hardy_state/",
-    "id": "superposition__controlled_rotation",
-    "title": "Controlled Rotation",
-    "path": "./controlled_rotation/",
     "qsDependencies": [
         "../KatasLibrary.qs",
         "./Common.qs"
