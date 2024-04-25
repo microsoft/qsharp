@@ -1,6 +1,5 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Canon;
 
     operation  AmplitudesSwap (qs : Qubit[]) : Unit is Adj + Ctl {
         X(qs[1]);
