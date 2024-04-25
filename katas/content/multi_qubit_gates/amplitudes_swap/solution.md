@@ -22,7 +22,7 @@ $$
 We need a way to transform the $CNOT$ gate into the unitary transformation represented by $U$.   
 We remember that the Pauli X gate flips the state in the single-qubit case. Here we need to use a 2-qubit version of this gate, which would affect only the second qubit. We conclude, that the idenity gate needs to be used on the first qubit. In the end, the required gate is a tensor product: $I \otimes X$.
 
-We validate that composition of $I \otimes X$ and the $\text{CNOT}$ gate produces the required unitary transformation represented by $U$. 
+We validate that composition of $I \otimes X$ and the $CNOT$ gate produces the required unitary transformation represented by $U$. 
 
 $$
  (I \otimes X)\cdot CNOT =  
