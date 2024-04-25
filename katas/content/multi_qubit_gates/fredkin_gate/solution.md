@@ -1,4 +1,4 @@
-Again this is essentially bookwork, because there is only one gate that performs this state change (and the task title already gave it away!)  
+This is essentially bookwork, because there is only one gate that performs this state change (and the task title already gave it away!)  
 The Fredkin gate is also known as the controlled swap gate (Controlled SWAP):
 $$
 \begin{bmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\\ \end{bmatrix}
