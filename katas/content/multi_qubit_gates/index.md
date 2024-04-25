@@ -205,7 +205,6 @@ The $CZ$ gate is also self-adjoint: applying it a second time reverses its effec
     ]
 })
 
-
 @[section]({
     "id": "multi_qubit_gates__ket_bra_representation",
     "title": "Ket-Bra Representation"
