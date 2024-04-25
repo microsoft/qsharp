@@ -2,7 +2,6 @@ namespace Kata {
     open Microsoft.Quantum.Math;
 
     operation Hardy_State (qs : Qubit[]) : Unit is Adj {
-        // Follow Mariia's answer at https://quantumcomputing.stackexchange.com/questions/6836/how-to-create-quantum-circuits-from-scratch
 
         // Rotate first qubit to (Sqrt(10.0/12.0) |0⟩ + Sqrt(2.0/12.0) |1⟩)
         let theta = ArcCos(Sqrt(10.0/12.0));
