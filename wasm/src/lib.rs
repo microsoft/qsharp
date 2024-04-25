@@ -156,22 +156,22 @@ pub fn get_circuit(
     let sources = get_source_map(sources, &None);
     let target_profile = Profile::from_str(targetProfile).expect("invalid target profile");
 
+    let (package_type, entry_point) = match operation {
+        Some(p) => {
+            let o: language_service::OperationInfo = p.into();
+            (PackageType::Lib, CircuitEntryPoint::Operation(o.operation))
+        }
+        None => (PackageType::Exe, CircuitEntryPoint::EntryPoint),
+    };
+
     let mut interpreter = interpret::Interpreter::new(
         true,
         sources,
-        PackageType::Exe,
+        package_type,
         target_profile.into(),
         LanguageFeatures::from_iter(language_features),
     )
     .map_err(interpret_errors_into_vs_diagnostics_json)?;
-
-    let entry_point = match operation {
-        Some(p) => {
-            let o: language_service::OperationInfo = p.into();
-            CircuitEntryPoint::Operation(o.operation)
-        }
-        None => CircuitEntryPoint::EntryPoint,
-    };
 
     let circuit = interpreter
         .circuit(entry_point, simulate)
