@@ -1,14 +1,14 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
 
-    operation  AmplitudesSwap (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation  AntiControlledGate (qs : Qubit[]) : Unit is Adj + Ctl {
         X(qs[1]);
         CNOT(qs[0], qs[1]);
     }
 
     operation CheckSolution() : Bool {
-        let solution = Kata. AmplitudesSwap;
-        let reference =  AmplitudesSwap;
+        let solution = Kata. AntiControlledGate;
+        let reference =  AntiControlledGate;
         let isCorrect = CheckOperationsEquivalence(solution, reference, 2);
 
         // Output different feedback to the user depending on whether the solution was correct.

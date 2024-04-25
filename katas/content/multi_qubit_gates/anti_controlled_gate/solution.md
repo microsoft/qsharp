@@ -40,7 +40,7 @@ $$
 > Note that the order in which the gates $I \otimes X$ and $CNOT$ are applied doesn't matter in this case.
 
 @[solution]({
-    "id": "multi_qubit_gates__amplitudes_swap_solution_a",
+    "id": "multi_qubit_gates__anti_controlled_gate_a",
     "codePath": "./SolutionA.qs"
 })
 Alternatively, we can notice that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $|0\rangle$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/en-us/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonint) library operation.
@@ -48,6 +48,6 @@ Alternatively, we can notice that the task requires application of a Pauli X gat
 Notice that the `ApplyControlledOnInt` operation uses an array of qubits as control, not by a single qubit. 
 
 @[solution]({
-    "id": "multi_qubit_gates__amplitudes_swap_solution_b",
+    "id": "multi_qubit_gates__anti_controlled_gate_b",
     "codePath": "./SolutionB.qs"
 })
