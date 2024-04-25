@@ -9,7 +9,7 @@ $$ H \otimes I = \frac{1}{\sqrt{2}} \begin{bmatrix}1 & 0 & 1 & 0 \\\ 0 & 1 & 0 &
 
 Now the first term of the state $\frac{1}{\sqrt2}|00\rangle$ matches that of the goal state, and we need to convert the second term $\frac{1}{\sqrt2}|10\rangle$ to $|1\rangle \otimes \frac{1}{\sqrt2}(|0\rangle+|1\rangle)$.
 
-To do this, we use the controlled $H$ gate. The matrix representation of the controlled H gate is similar to the $CNOT$ gate, however the bottom right quarter of the matrix is not an $X$ gate but the $H$ gate:
+To do this, we use the controlled $H$ gate. The matrix representation of the controlled $H$ gate is similar to the $CNOT$ gate, however the bottom right block of the matrix is not an $X$ gate but the $H$ gate:
 
 $$\text{Controlled } H = \begin{bmatrix}1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\\ 0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix}$$
 
