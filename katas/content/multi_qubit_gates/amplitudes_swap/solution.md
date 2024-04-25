@@ -48,7 +48,7 @@ Alternatively, we can express this gate using the intrinsic gate Z and its contr
 
 ### Solution 2 - using a library function
 
-We observe that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $|0\rangle$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/en-us/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) library function.
+We observe that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $|0\rangle$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) library function.
 
 Notice that the `ApplyControlledOnInt` function creates a gate controlled by a register - not by a single qubit. 
 
