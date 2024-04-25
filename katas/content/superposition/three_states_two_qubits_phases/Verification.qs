@@ -19,8 +19,8 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         return CheckOperationsEquivalenceOnZeroStateWithFeedback(
-            Kata.ThreeStates_TwoQubits_Phases(_),
-            ThreeStates_TwoQubits_Phases_Reference(_),
+            Kata.ThreeStates_TwoQubits_Phases,
+            ThreeStates_TwoQubits_Phases_Reference,
             2
         );
     }
