@@ -1485,12 +1485,16 @@ impl VecIdent {
     /// E.g. `a.b.c`
     #[must_use]
     pub fn name(&self) -> String {
-        self.0
-            .iter()
-            .map(|i| i.name.to_string())
-            .collect::<Vec<String>>()
-            .join(".")
+        let mut buf = String::new();
+        for ident in &self.0 {
+            if !buf.is_empty() {
+                buf.push('.');
+            }
+            buf.push_str(&ident.name);
+        }
+        buf
     }
+
     /// constructs an iter over the [Ident]s that this contains.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
         self.0.iter()
