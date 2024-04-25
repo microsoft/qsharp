@@ -15,7 +15,7 @@ $$
 We remember a two-qubit gate with a similar matrix representation - the $CNOT$ gate:
 
 $$
-\text{CNOT} = 
+CNOT = 
  \begin{bmatrix}1 & 0 & 0 & 0\\\ 0 & 1 & 0 & 0\\\ 0 & 0 & 0 & 1\\\ 0 & 0 & 1 & 0\\\ \end{bmatrix}
 $$
 
