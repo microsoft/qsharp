@@ -18,7 +18,10 @@ mod scaffolding;
 use crate::common::set_indentation;
 use bitflags::bitflags;
 use indenter::indented;
-use qsc_data_structures::index_map::{IndexMap, Iter};
+use qsc_data_structures::{
+    index_map::{IndexMap, Iter},
+    target::TargetCapabilityFlags,
+};
 use qsc_fir::{
     fir::{
         BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
@@ -26,7 +29,7 @@ use qsc_fir::{
     },
     ty::Ty,
 };
-use qsc_frontend::compile::TargetCapabilityFlags;
+
 use std::{
     cmp::Ord,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -635,7 +638,8 @@ impl ValueKind {
         }
     }
 
-    pub(crate) fn is_dynamic(self) -> bool {
+    #[must_use]
+    pub fn is_dynamic(self) -> bool {
         match self {
             Self::Array(content_runtime_kind, size_runtime_kind) => {
                 matches!(content_runtime_kind, RuntimeKind::Dynamic)

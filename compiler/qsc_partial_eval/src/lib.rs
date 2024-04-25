@@ -4,16 +4,16 @@
 mod evaluation_context;
 mod management;
 
-use evaluation_context::{BlockNode, EvaluationContext, Scope};
+use evaluation_context::{Arg, BlockNode, EvaluationContext, Scope};
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
-use qsc_data_structures::functors::FunctorApp;
 use qsc_data_structures::span::Span;
+use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
     val::{self, Value, Var},
-    State, StepAction, StepResult,
+    State, StepAction, StepResult, Variable,
 };
 use qsc_fir::{
     fir::{
@@ -30,7 +30,7 @@ use qsc_rir::{
     builder,
     rir::{
         self, Callable, CallableId, CallableType, ConditionCode, Instruction, Literal, Operand,
-        Program, Variable,
+        Program,
     },
 };
 use rustc_hash::FxHashMap;
@@ -46,8 +46,10 @@ pub fn partially_evaluate(
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,
     entry: &ProgramEntry,
+    capabilities: TargetCapabilityFlags,
 ) -> Result<Program, Error> {
-    let partial_evaluator = PartialEvaluator::new(package_store, compute_properties, entry);
+    let partial_evaluator =
+        PartialEvaluator::new(package_store, compute_properties, entry, capabilities);
     partial_evaluator.eval()
 }
 
@@ -68,6 +70,10 @@ pub enum Error {
     #[error("failed to evaluate callee expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCalleeExpression"))]
     FailedToEvaluateCalleeExpression(#[label] Span),
+
+    #[error("failed to evaluate call arguments expression")]
+    #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateCallArgsExpression"))]
+    FailedToEvaluateCallArgsExpression(#[label] Span),
 
     #[error("failed to evaluate tuple element expression")]
     #[diagnostic(code("Qsc.PartialEval.FailedToEvaluateTupleElementExpression"))]
@@ -119,10 +125,12 @@ impl<'a> PartialEvaluator<'a> {
         package_store: &'a PackageStore,
         compute_properties: &'a PackageStoreComputeProperties,
         entry: &'a ProgramEntry,
+        capabilities: TargetCapabilityFlags,
     ) -> Self {
         // Create the entry-point callable.
         let mut resource_manager = ResourceManager::default();
         let mut program = Program::new();
+        program.config.capabilities = capabilities;
         let entry_block_id = resource_manager.next_block();
         program.blocks.insert(entry_block_id, rir::Block::default());
         let entry_point_id = resource_manager.next_callable();
@@ -411,7 +419,7 @@ impl<'a> PartialEvaluator<'a> {
         let bin_op_expr = self.get_expr(bin_op_expr_id);
         let variable_id = self.resource_manager.next_var();
         let variable_ty = map_fir_type_to_rir_type(&bin_op_expr.ty);
-        let variable = Variable {
+        let variable = rir::Variable {
             variable_id,
             ty: variable_ty,
         };
@@ -459,14 +467,12 @@ impl<'a> PartialEvaluator<'a> {
         let maybe_args_value = self.try_eval_expr(args_expr_id);
         let Ok(args_value) = maybe_args_value else {
             let args_expr = self.get_expr(args_expr_id);
-            let error = Error::FailedToEvaluateCalleeExpression(args_expr.span);
+            let error = Error::FailedToEvaluateCallArgsExpression(args_expr.span);
             return Err(error);
         };
 
         // Get the callable.
-        let Value::Global(store_item_id, functor_app) = callable_value else {
-            panic!("callee expression is expected to be a global");
-        };
+        let (store_item_id, functor_app) = callable_value.unwrap_global();
         let global = self
             .package_store
             .get_global(store_item_id)
@@ -484,9 +490,13 @@ impl<'a> PartialEvaluator<'a> {
                     self.eval_expr_call_to_intrinsic(store_item_id, callable_decl, args_value);
                 Ok(value)
             }
-            CallableImpl::Spec(spec_impl) => {
-                self.eval_expr_call_to_spec(store_item_id, functor_app, spec_impl, args_expr_id)
-            }
+            CallableImpl::Spec(spec_impl) => self.eval_expr_call_to_spec(
+                store_item_id,
+                functor_app,
+                spec_impl,
+                callable_decl.input,
+                args_value,
+            ),
         }
     }
 
@@ -496,15 +506,27 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
     ) -> Value {
-        // There are a few special cases regarding intrinsic callables: qubit allocation/release and measurements.
-        // Identify them and handle them properly.
+        // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
+            // Qubit allocations and measurements have special handling.
             "__quantum__rt__qubit_allocate" => self.allocate_qubit(),
-            "__quantum__rt__qubit_release" => self.release_qubit(&args_value),
-            "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), &args_value),
+            "__quantum__rt__qubit_release" => self.release_qubit(args_value),
+            "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), args_value),
             "__quantum__qis__mresetz__body" => {
-                self.measure_qubit(builder::mresetz_decl(), &args_value)
+                self.measure_qubit(builder::mresetz_decl(), args_value)
             }
+            // The following operations should be conditionally compiled out for all targets for which QIR generation is
+            // supported.
+            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" => panic!(
+                "`{}` is not a supported by partial evaluation",
+                callable_decl.name.name
+            ),
+            // The following intrinsic operations and functions are no-ops.
+            "BeginEstimateCaching" => Value::Bool(true),
+            "DumpRegister"
+            | "AccountForEstimatesInternal"
+            | "BeginRepeatEstimatesInternal"
+            | "EndRepeatEstimatesInternal" => Value::unit(),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
     }
@@ -515,14 +537,24 @@ impl<'a> PartialEvaluator<'a> {
         callable_decl: &CallableDecl,
         args_value: Value,
     ) -> Value {
+        // Intrinsic callables that make it to this point are expected to be unitary.
+        assert_eq!(callable_decl.output, Ty::UNIT);
+
         // Check if the callable is already in the program, and if not add it.
         let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
-        let args = resolve_call_arg_operands(args_value);
-        // Note that we currently just support calls to unitary operations.
-        let instruction = Instruction::Call(callable_id, args, None);
+        let args = self.resolve_args(
+            (store_item_id.package, callable_decl.input).into(),
+            args_value,
+        );
+        let args_operands = args
+            .into_iter()
+            .map(|arg| map_eval_value_to_rir_operand(&arg.into_value()))
+            .collect();
+
+        let instruction = Instruction::Call(callable_id, args_operands, None);
         let current_block = self.get_current_block_mut();
         current_block.0.push(instruction);
         Value::unit()
@@ -533,18 +565,19 @@ impl<'a> PartialEvaluator<'a> {
         global_callable_id: StoreItemId,
         functor_app: FunctorApp,
         spec_impl: &SpecImpl,
-        _args_expr_id: ExprId,
+        args_pat: PatId,
+        args_value: Value,
     ) -> Result<Value, Error> {
         let spec_decl = get_spec_decl(spec_impl, functor_app);
 
-        // We are currently not setting the argument values in a way that supports arbitrary calls, but we'll add that
-        // support later.
-        let callable_scope = Scope::new(
+        // Create new call scope.
+        let args = self.resolve_args((global_callable_id.package, args_pat).into(), args_value);
+        let call_scope = Scope::new(
             global_callable_id.package,
             Some((global_callable_id.item, functor_app)),
-            Vec::new(),
+            args,
         );
-        self.eval_context.push_scope(callable_scope);
+        self.eval_context.push_scope(call_scope);
         self.visit_block(spec_decl.block);
         let popped_scope = self.eval_context.pop_scope();
         assert!(
@@ -623,7 +656,7 @@ impl<'a> PartialEvaluator<'a> {
         } else {
             let variable_id = self.resource_manager.next_var();
             let variable_ty = map_fir_type_to_rir_type(&if_expr.ty);
-            Some(Variable {
+            Some(rir::Variable {
                 variable_id,
                 ty: variable_ty,
             })
@@ -645,15 +678,13 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Finally, we insert the branch instruction.
-        let condition_as_var = if let Value::Var(var) = condition_value {
-            Variable {
-                variable_id: var.0.into(),
-                ty: rir::Ty::Boolean,
-            }
-        } else {
-            panic!("the condition of an if expression is expected to be a variable");
+        let condition_value_var = condition_value.unwrap_var();
+        let condition_rir_var = rir::Variable {
+            variable_id: condition_value_var.0.into(),
+            ty: rir::Ty::Boolean,
         };
-        let branch_ins = Instruction::Branch(condition_as_var, if_true_block_id, if_false_block_id);
+        let branch_ins =
+            Instruction::Branch(condition_rir_var, if_true_block_id, if_false_block_id);
         self.get_program_block_mut(current_block_node.id)
             .0
             .push(branch_ins);
@@ -671,7 +702,7 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         branch_body_expr_id: ExprId,
         continuation_block_id: rir::BlockId,
-        if_expr_var: Option<Variable>,
+        if_expr_var: Option<rir::Variable>,
     ) -> Result<rir::BlockId, Error> {
         // Create the block node that corresponds to the branch body and push it as the active one.
         let block_node_id = self.create_program_block();
@@ -806,10 +837,7 @@ impl<'a> PartialEvaluator<'a> {
     fn eval_expr_while_condition(&mut self, condition_expr_id: ExprId) -> Result<bool, Error> {
         let maybe_condition_expr_value = self.try_eval_expr(condition_expr_id);
         if let Ok(condition_expr_value) = maybe_condition_expr_value {
-            let Value::Bool(condition_bool) = condition_expr_value else {
-                panic!("loop condition must be a Boolean");
-            };
-            Ok(condition_bool)
+            Ok(condition_expr_value.unwrap_bool())
         } else {
             let condition_expr = self.get_expr(condition_expr_id);
             let error = Error::FailedToEvaluateLoopCondition(condition_expr.span);
@@ -828,7 +856,7 @@ impl<'a> PartialEvaluator<'a> {
                     self.get_or_insert_callable(builder::read_result_decl());
                 let variable_id = self.resource_manager.next_var();
                 let variable_ty = rir::Ty::Boolean;
-                let variable = Variable {
+                let variable = rir::Variable {
                     variable_id,
                     ty: variable_ty,
                 };
@@ -886,8 +914,7 @@ impl<'a> PartialEvaluator<'a> {
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
         let callable_scope = self.eval_context.get_current_scope();
-        expr_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties)
+        expr_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
     }
 
     fn get_stmt_compute_kind(&self, stmt_id: StmtId) -> ComputeKind {
@@ -895,8 +922,7 @@ impl<'a> PartialEvaluator<'a> {
         let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
         let stmt_generator_set = self.compute_properties.get_stmt(store_stmt_id);
         let callable_scope = self.eval_context.get_current_scope();
-        stmt_generator_set
-            .generate_application_compute_kind(&callable_scope.args_runtime_properties)
+        stmt_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
     }
 
     fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
@@ -936,12 +962,10 @@ impl<'a> PartialEvaluator<'a> {
         Value::Qubit(qubit)
     }
 
-    fn measure_qubit(&mut self, measure_callable: Callable, args_value: &Value) -> Value {
+    fn measure_qubit(&mut self, measure_callable: Callable, args_value: Value) -> Value {
         // Get the qubit and result IDs to use in the qubit measure instruction.
-        let Value::Qubit(qubit) = args_value else {
-            panic!("argument to qubit measure is expected to be a qubit");
-        };
-        let qubit_value = Value::Qubit(*qubit);
+        let qubit = args_value.unwrap_qubit();
+        let qubit_value = Value::Qubit(qubit);
         let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
         let result_value = Value::Result(self.resource_manager.next_result());
         let result_operand = map_eval_value_to_rir_operand(&result_value);
@@ -957,14 +981,43 @@ impl<'a> PartialEvaluator<'a> {
         result_value
     }
 
-    fn release_qubit(&mut self, args_value: &Value) -> Value {
-        let Value::Qubit(qubit) = args_value else {
-            panic!("argument to qubit release is expected to be a qubit");
-        };
-        self.resource_manager.release_qubit(*qubit);
+    fn release_qubit(&mut self, args_value: Value) -> Value {
+        let qubit = args_value.unwrap_qubit();
+        self.resource_manager.release_qubit(qubit);
 
         // The value of a qubit release is unit.
         Value::unit()
+    }
+
+    fn resolve_args(&self, store_pat_id: StorePatId, value: Value) -> Vec<Arg> {
+        let pat = self.package_store.get_pat(store_pat_id);
+        match &pat.kind {
+            PatKind::Discard => vec![Arg::Discard(value)],
+            PatKind::Bind(ident) => {
+                let variable = Variable {
+                    name: ident.name.clone(),
+                    value,
+                    span: ident.span,
+                };
+                vec![Arg::Var(ident.id, variable)]
+            }
+            PatKind::Tuple(pats) => {
+                let values = value.unwrap_tuple();
+                assert_eq!(
+                    pats.len(),
+                    values.len(),
+                    "pattern tuple and value tuple have different arity"
+                );
+                let mut args = Vec::new();
+                let pat_value_tuples = pats.iter().zip(values.to_vec());
+                for (pat_id, value) in pat_value_tuples {
+                    let mut element_args =
+                        self.resolve_args((store_pat_id.package, *pat_id).into(), value);
+                    args.append(&mut element_args);
+                }
+                args
+            }
+        }
     }
 
     fn try_eval_block(&mut self, block_id: BlockId) -> Result<Value, ()> {
@@ -1048,7 +1101,7 @@ impl<'a> PartialEvaluator<'a> {
         instrs.push(Instruction::Call(
             record_callable_id,
             vec![
-                Operand::Variable(Variable {
+                Operand::Variable(rir::Variable {
                     variable_id: var.0.into(),
                     ty: record_ty,
                 }),
@@ -1332,19 +1385,4 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
     }
-}
-
-fn resolve_call_arg_operands(args_value: Value) -> Vec<rir::Operand> {
-    let mut operands = Vec::<rir::Operand>::new();
-    if let Value::Tuple(elements) = args_value {
-        for value in elements.iter() {
-            let operand = map_eval_value_to_rir_operand(value);
-            operands.push(operand);
-        }
-    } else {
-        let operand = map_eval_value_to_rir_operand(&args_value);
-        operands.push(operand);
-    }
-
-    operands
 }

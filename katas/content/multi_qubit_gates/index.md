@@ -121,10 +121,76 @@ $$\alpha|00\rangle + \beta|11\rangle$$
 
 The $CNOT$ gate is self-adjoint: applying it for the second time reverses its effect.
 
+
+@[exercise]({
+    "id": "multi_qubit_gates__entangle_qubits",
+    "title": "Entangle Qubits",
+    "path": "./entangle_qubits/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
 @[exercise]({
     "id": "multi_qubit_gates__preparing_bell_state",
     "title": "Preparing a Bell State",
     "path": "./preparing_bell_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[section]({
+    "id": "multi_qubit_gates__cz_gate",
+    "title": "CZ Gate"
+})
+
+
+The $CZ$ ("controlled-Z") gate is a two-qubit gate, with one qubit referred to as the **control** qubit, and the other as the **target** qubit. Interestingly, for the $CZ$ gate it doesn't matter which qubit is control and which is target - the effect of the gate is the same either way!
+
+The $CZ$ gate acts as a conditional gate: if the control qubit is in state $|1\rangle$, it applies the $Z$ gate to the target qubit, otherwise it does nothing.
+
+<table>
+    <tr>
+        <th>Gate</th>
+        <th>Matrix</th>
+        <th>Applying to $|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \gamma|10\rangle + \delta|11\rangle$</th>
+        <th>Applying to basis states</th>
+    </tr>
+    <tr>
+        <td>$CZ$</td>
+        <td>
+            $$\begin{bmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & -1
+            \end{bmatrix}$$
+        </td>
+        <td>$CZ|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \gamma|10\rangle - \delta|11\rangle$</td>
+        <td>
+            $$CZ|00\rangle = |00\rangle$$
+            $$CZ|01\rangle = |01\rangle$$
+            $$CZ|10\rangle = |10\rangle$$
+            $$CZ|11\rangle = -|11\rangle$$
+        </td>
+    </tr>
+</table>
+
+The $CZ$ gate is particularly useful for creating and manipulating entangled states where the phase of the quantum state is crucial. Consider the following separable state:
+
+$$\big(\alpha|0\rangle + \beta|1\rangle\big) \otimes \big(\gamma|0\rangle + \delta|1\rangle\big) = \alpha\gamma|00\rangle + \alpha\delta|01\rangle + \beta\gamma|10\rangle + \beta\delta|11\rangle$$
+
+If we apply the $CZ$ gate to it, with the first qubit as the control and the second as the target (or vice versa), we get the following state, which can no longer be separated:
+
+$$\alpha\gamma|00\rangle + \alpha\delta|01\rangle + \beta\gamma|10\rangle - \beta\delta|11\rangle$$
+
+The $CZ$ gate is also self-adjoint: applying it a second time reverses its effect, similar to the $CNOT$ gate.
+
+@[exercise]({
+    "id": "multi_qubit_gates__relative_phase_minusone",
+    "title": "Relative Phase -1",
+    "path": "./relative_phase_minusone/",
     "qsDependencies": [
         "../KatasLibrary.qs"
     ]

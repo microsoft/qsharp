@@ -8,13 +8,13 @@ use miette::{Context, IntoDiagnostic, Report, Result};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use qsc::interpret::{self, InterpretResult, Interpreter};
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_eval::{
     output::{self, Receiver},
     state::format_state_id,
     val::Value,
 };
-use qsc_frontend::compile::{SourceContents, SourceMap, SourceName, TargetCapabilityFlags};
+use qsc_frontend::compile::{SourceContents, SourceMap, SourceName};
 use qsc_passes::PackageType;
 use qsc_project::{FileSystem, Manifest, StdFs};
 use std::{

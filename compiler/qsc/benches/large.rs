@@ -4,9 +4,12 @@
 allocator::assign_global!();
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use qsc::compile::{self, compile};
+use qsc::{
+    compile::{self, compile},
+    TargetCapabilityFlags,
+};
 use qsc_data_structures::language_features::LanguageFeatures;
-use qsc_frontend::compile::{PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::{PackageStore, SourceMap};
 use qsc_passes::PackageType;
 
 const INPUT: &str = include_str!("./large.qs");

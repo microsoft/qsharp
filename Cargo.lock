@@ -1015,6 +1015,7 @@ version = "0.0.0"
 dependencies = [
  "expect-test",
  "qsc_ast",
+ "qsc_data_structures",
  "qsc_frontend",
  "qsc_hir",
  "regex-lite",
@@ -1068,7 +1069,6 @@ dependencies = [
 name = "qsc_frontend"
 version = "0.0.0"
 dependencies = [
- "bitflags 2.4.2",
  "expect-test",
  "indoc",
  "library",
@@ -1140,6 +1140,8 @@ dependencies = [
  "expect-test",
  "indoc",
  "miette",
+ "num-bigint",
+ "num-complex",
  "qsc",
  "qsc_data_structures",
  "qsc_eval",

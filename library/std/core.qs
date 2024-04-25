@@ -19,10 +19,14 @@ namespace Microsoft.Quantum.Core {
     ///
     /// Note that the defined start value of a range is the same as the first element of the sequence,
     /// unless the range specifies an empty sequence (for example, 2 .. 1).
+    ///
+    /// # Example
+    /// ```qsharp
+    /// Message($"{ RangeStart(7..-1..3) }"); // Prints 7
+    /// ```
     function RangeStart(r : Range) : Int {
         r::Start
     }
-
 
     /// # Summary
     /// Returns the defined end value of the given range,

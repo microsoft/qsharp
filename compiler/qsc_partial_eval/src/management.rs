@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use num_bigint::BigUint;
+use num_complex::Complex;
 use qsc_eval::{
     backend::Backend,
-    val::{Qubit, Result},
+    val::{Qubit, Result, Value},
 };
 use qsc_rir::rir::{BlockId, CallableId, VariableId};
 
@@ -79,5 +81,23 @@ impl Backend for QuantumIntrinsicsChecker {
         // Because `qubit_is_zero` is called on every qubit release, this must return
         // true to avoid a panic.
         true
+    }
+
+    // Needed for calls to `DumpMachine` and `DumpRegister`.
+    fn capture_quantum_state(&mut self) -> (Vec<(BigUint, Complex<f64>)>, usize) {
+        (Vec::new(), 0)
+    }
+
+    // Only intrinsic functions are supported here since they're the only ones that will be classically evaluated.
+    fn custom_intrinsic(
+        &mut self,
+        name: &str,
+        _arg: Value,
+    ) -> Option<std::result::Result<Value, String>> {
+        match name {
+            "BeginEstimateCaching" => Some(Ok(Value::Bool(true))),
+            "EndEstimateCaching" => Some(Ok(Value::unit())),
+            _ => None,
+        }
     }
 }

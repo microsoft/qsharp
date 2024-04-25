@@ -9,7 +9,7 @@ use crate::lints::{ast::AstLint, hir::HirLint};
 use miette::{Diagnostic, LabeledSpan};
 use qsc_data_structures::span::Span;
 use qsc_frontend::compile::CompileUnit;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// The entry point to the linter. It takes a [`qsc_frontend::compile::CompileUnit`]
@@ -73,7 +73,7 @@ impl Diagnostic for Lint {
 
 /// A lint level. This defines if a lint will be treated as a warning or an error,
 /// and if the lint level can be overriden by the user.
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LintLevel {
     /// The lint is effectively disabled.
@@ -101,7 +101,7 @@ impl Display for LintLevel {
 }
 
 /// End-user configuration for each lint level.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LintConfig {
     #[serde(rename = "lint")]
     /// Represents the lint name.
@@ -111,7 +111,7 @@ pub struct LintConfig {
 }
 
 /// Represents a lint name.
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum LintKind {
     /// AST lint name.

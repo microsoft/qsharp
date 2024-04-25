@@ -17,7 +17,7 @@ use super::tests_common::{
     USE_DYNAMIC_QUBIT, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
 };
 use expect_test::{expect, Expect};
-use qsc_frontend::compile::TargetCapabilityFlags;
+use qsc_data_structures::target::TargetCapabilityFlags;
 
 fn check_profile(source: &str, expect: &Expect) {
     check(

@@ -7,9 +7,9 @@ mod given_interpreter {
     use crate::interpret::{Error, InterpretResult, Interpreter};
     use expect_test::Expect;
     use miette::Diagnostic;
-    use qsc_data_structures::language_features::LanguageFeatures;
+    use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_eval::{output::CursorReceiver, val::Value};
-    use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
+    use qsc_frontend::compile::SourceMap;
     use qsc_passes::PackageType;
     use std::{fmt::Write, io::Cursor, iter, str::from_utf8};
 
@@ -39,10 +39,20 @@ mod given_interpreter {
         (interpreter.eval_entry(&mut receiver), receiver.dump())
     }
 
+    fn fragment(
+        interpreter: &mut Interpreter,
+        fragments: &str,
+        package: crate::ast::Package,
+    ) -> (Result<Value, Vec<crate::interpret::Error>>, String) {
+        let mut cursor = Cursor::new(Vec::<u8>::new());
+        let mut receiver = CursorReceiver::new(&mut cursor);
+        let result = interpreter.eval_ast_fragments(&mut receiver, fragments, package);
+        (result, receiver.dump())
+    }
+
     mod without_sources {
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::TargetCapabilityFlags;
 
         use super::*;
 
@@ -716,7 +726,9 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetCapabilityFlags::Adaptive,
+                TargetCapabilityFlags::Adaptive
+                    | TargetCapabilityFlags::QubitReset
+                    | TargetCapabilityFlags::IntegerComputations,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -767,12 +779,19 @@ mod given_interpreter {
 
                 ; module flags
 
-                !llvm.module.flags = !{!0, !1, !2, !3}
+                !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
 
                 !0 = !{i32 1, !"qir_major_version", i32 1}
                 !1 = !{i32 7, !"qir_minor_version", i32 0}
                 !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
+                !4 = !{i32 1, !"classical_ints", i1 true}
+                !5 = !{i32 1, !"qubit_resetting", i1 true}
+                !6 = !{i32 1, !"classical_floats", i1 false}
+                !7 = !{i32 1, !"backwards_branching", i1 false}
+                !8 = !{i32 1, !"classical_fixed_points", i1 false}
+                !9 = !{i32 1, !"user_functions", i1 false}
+                !10 = !{i32 1, !"multiple_target_branching", i1 false}
             "#]]
             .assert_eq(&res);
         }
@@ -783,7 +802,7 @@ mod given_interpreter {
                 true,
                 SourceMap::default(),
                 PackageType::Lib,
-                TargetCapabilityFlags::Adaptive,
+                TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::QubitReset,
                 LanguageFeatures::default(),
             )
             .expect("interpreter should be created");
@@ -837,12 +856,19 @@ mod given_interpreter {
 
                 ; module flags
 
-                !llvm.module.flags = !{!0, !1, !2, !3}
+                !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
 
                 !0 = !{i32 1, !"qir_major_version", i32 1}
                 !1 = !{i32 7, !"qir_minor_version", i32 0}
                 !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
                 !3 = !{i32 1, !"dynamic_result_management", i1 false}
+                !4 = !{i32 1, !"qubit_resetting", i1 true}
+                !5 = !{i32 1, !"classical_ints", i1 false}
+                !6 = !{i32 1, !"classical_floats", i1 false}
+                !7 = !{i32 1, !"backwards_branching", i1 false}
+                !8 = !{i32 1, !"classical_fixed_points", i1 false}
+                !9 = !{i32 1, !"user_functions", i1 false}
+                !10 = !{i32 1, !"multiple_target_branching", i1 false}
             "#]]
             .assert_eq(&res);
         }
@@ -1424,14 +1450,17 @@ mod given_interpreter {
 
     #[cfg(test)]
     mod with_sources {
-        use std::sync::Arc;
+        use std::{sync::Arc, vec};
 
         use super::*;
         use crate::interpret::Debugger;
         use crate::line_column::Encoding;
         use expect_test::expect;
         use indoc::indoc;
-        use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
+
+        use qsc_ast::ast::{Expr, ExprKind, NodeId, Package, Path, Stmt, StmtKind, TopLevelNode};
+        use qsc_data_structures::span::Span;
+        use qsc_frontend::compile::SourceMap;
         use qsc_passes::PackageType;
 
         #[test]
@@ -1616,6 +1645,178 @@ mod given_interpreter {
                       explicit fail [core/qir.qs] [fail "Cannot allocate qubit array with a negative length"]
                 "#]],
             );
+        }
+
+        #[test]
+        fn interpreter_can_be_created_from_ast() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Result {
+                            use qs = Qubit[2];
+                            X(qs[0]);
+                            CNOT(qs[0], qs[1]);
+                            let res = Measure([PauliZ, PauliZ], qs[...1]);
+                            ResetAll(qs);
+                            res
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                Some("A.B()".into()),
+            );
+
+            let (package_type, capabilities, language_features) = (
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            );
+
+            let mut store = crate::PackageStore::new(crate::compile::core());
+            let dependencies = vec![store.insert(crate::compile::std(&store, capabilities))];
+
+            let (unit, errors) = crate::compile::compile(
+                &store,
+                &dependencies,
+                sources,
+                package_type,
+                capabilities,
+                language_features,
+            );
+            for e in &errors {
+                eprintln!("{e:?}");
+            }
+            assert!(errors.is_empty(), "compilation failed: {}", errors[0]);
+            let package_id = store.insert(unit);
+
+            let mut interpreter =
+                Interpreter::from(store, package_id, capabilities, language_features)
+                    .expect("interpreter should be created");
+            let (result, output) = entry(&mut interpreter);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Result(qsc_eval::val::Result::Val(false)),
+            );
+        }
+
+        #[test]
+        fn ast_fragments_can_be_evaluated() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Result {
+                            use qs = Qubit[2];
+                            X(qs[0]);
+                            CNOT(qs[0], qs[1]);
+                            let res = Measure([PauliZ, PauliZ], qs[...1]);
+                            ResetAll(qs);
+                            res
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                None,
+            );
+
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let package = get_package_for_call("A", "B");
+            let (result, output) = fragment(&mut interpreter, "A.B()", package);
+            is_only_value(
+                &result,
+                &output,
+                &Value::Result(qsc_eval::val::Result::Val(false)),
+            );
+        }
+
+        #[test]
+        fn ast_fragments_evaluation_returns_runtime_errors() {
+            let sources = SourceMap::new(
+                [(
+                    "test".into(),
+                    "namespace A {
+                        operation B(): Int {
+                            42 / 0
+                        }
+                    }
+                    "
+                    .into(),
+                )],
+                None,
+            );
+
+            let mut interpreter = Interpreter::new(
+                true,
+                sources,
+                PackageType::Lib,
+                TargetCapabilityFlags::all(),
+                LanguageFeatures::default(),
+            )
+            .expect("interpreter should be created");
+            let package = get_package_for_call("A", "B");
+            let (result, output) = fragment(&mut interpreter, "A.B()", package);
+            is_only_error(
+                &result,
+                &output,
+                &expect![[r#"
+                    runtime error: division by zero
+                      cannot divide by zero [test] [0]
+                "#]],
+            );
+        }
+
+        fn get_package_for_call(ns: &str, name: &str) -> crate::ast::Package {
+            let args = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Tuple(Box::new([]))),
+            };
+            let path = Path {
+                id: NodeId::default(),
+                span: Span::default(),
+                namespace: Some(Box::new(qsc_ast::ast::Ident {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    name: ns.into(),
+                })),
+                name: Box::new(qsc_ast::ast::Ident {
+                    id: NodeId::default(),
+                    span: Span::default(),
+                    name: name.into(),
+                }),
+            };
+            let path_expr = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Path(Box::new(path))),
+            };
+            let expr = Expr {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(ExprKind::Call(Box::new(path_expr), Box::new(args))),
+            };
+            let stmt = Stmt {
+                id: NodeId::default(),
+                span: Span::default(),
+                kind: Box::new(StmtKind::Expr(Box::new(expr))),
+            };
+            let top_level = TopLevelNode::Stmt(Box::new(stmt));
+            Package {
+                id: NodeId::default(),
+                nodes: vec![top_level].into_boxed_slice(),
+                entry: None,
+            }
         }
     }
 }
