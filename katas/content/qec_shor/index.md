@@ -9,11 +9,11 @@ This kata introduces you to the basic concepts of quantum error correction using
 
 **This kata covers the following topics:**
 
-- simple models of noise in quantum systems,
-- parity measurements in Z and X bases,
-- bit flip code - the simplest code that protects qubits from the effects of bit flip noise,
-- phase flip code - the simplest code that protects qubits from the effects of phase flip noise,
-- Shor code - the simplest code that can protect from an arbitrary error on a single qubit.
+- Simple models of noise in quantum systems
+- Parity measurements in Z and X bases
+- Bit flip code - the simplest code that protects qubits from the effects of bit flip noise
+- Phase flip code - the simplest code that protects qubits from the effects of phase flip noise
+- Shor code - the simplest code that can protect from an arbitrary error on a single qubit
 
 **What you should know to start working on this kata:**
 
@@ -25,7 +25,7 @@ This kata introduces you to the basic concepts of quantum error correction using
     "title": "Noise in Classical and Quantum Systems"
 })
 
-Any quantum systems we can use to carry out quantum computation are inherently noisy. 
+Any quantum system we can use to carry out quantum computation is inherently noisy. 
 Quantum noise can be caused by different physical processes, depending on the type of a particle or device used as a qubit.
 From the computation point of view, the presence of noise in the quantum system means that its state can suffer from random errors, and thus end up different from the state we're relying on to do our computations. 
 This makes computations unreliable very fast, since the effects of noise accumulate quickly to make computation results effectively random.
@@ -33,7 +33,7 @@ This makes computations unreliable very fast, since the effects of noise accumul
 Before we dive into dealing with noise in quantum systems, let's take a quick look at how we do that for classical systems.
 
 The model used for analyzing classical noise is called *binary symmetric channel*, in which classical bits sent through the channel are transmitted correctly with probability $1-p$ and flipped with probability $p$.
-In this scenario, the information sent through the channel can be protected against the effects of the noise using *repetition code*:
+In this scenario, the information sent through the channel can be protected against the effects of the noise using the *repetition code*:
 
 - On the sender side, we replace each bit we want to send with three copies of itself:
 $$0 \rightarrow 000, 1 \rightarrow 111$$
@@ -42,19 +42,19 @@ $$000, 100, 010, 001 \rightarrow 0$$
 $$111, 011, 101, 110 \rightarrow 1$$
 
 What is the probability of this scheme failure, that is, the value of the message bit changing after it was sent through the channel? 
-Majority vote allows for one error on any bit to happen without affecting the decoding outcome, so it would take two or three errors happening on individual bits for decoding to produce an incorrect result. The probability of this happening is $3p^2(1-p) + p^3 = 3p^2 - 2p^3$. If we compare this with the probability of an individual bit transmission failing $p$, we can see that using repetition code yields higher success probability, as long as $p < \frac12$. We can improve success probability further by increasing the number of repetitions we use to encode each bit: $5$ repetitions allow us to detect and correct $2$ errors, $7$ repetitions - $3$ errors, and so on.
+Majority vote allows for one error on any bit to happen without affecting the decoding outcome, so it would take two or three errors happening on individual bits for decoding to produce an incorrect result. The probability of this happening is $3p^2(1-p) + p^3 = 3p^2 - 2p^3$. If we compare this with the probability of an individual bit transmission failing $p$, we can see that using the repetition code yields higher success probability, as long as $p < \frac12$. We can improve success probability further by increasing the number of repetitions we use to encode each bit: $5$ repetitions allow us to detect and correct $2$ errors, $7$ repetitions - $3$ errors, and so on.
 
 > This noise model is useful not only for describing noisy communication channels, but also for memory - any classical system that introduces errors in information when it is left on its own, as opposed to systems that introduce errors during information manipulation. Indeed, we assume that no errors are introduced as we copy the bits during encoding or read and compare their values during decoding.
 
 The main idea of quantum error correction is the same as that for classical error correction: encode information with enough redundancy that we can recover the message even from the noisy transmission results.
 Dealing with the noise in quantum systems is more challenging than in classical systems, though, due to the limitations imposed by their nature:
 
-- **No cloning**: We cannot replicate repetition code for quantum systems in a straightforward manner, by duplicating the quantum state several times, since the no-cloning theorem prohibits that.
+- **No cloning**: We cannot replicate the repetition code for quantum systems in a straightforward manner, by duplicating the quantum state several times, since the no-cloning theorem prohibits that.
 - **Observing the system damages information**: Even if we could produce several copies of a quantum state we want to transmit, we would not be able to compare them afterwards without damaging their state.
-- **Errors are continuous**: We need to recover from arbitrary errors that are much more complicated than bit flip we have in classical systems.
+- **Errors are continuous**: We need to recover from arbitrary errors that are much more complicated than the bit flip error we have in classical systems.
 
 The simplest model used to analyze quantum noise is *quantum depolarizing channel*. 
-In this model, we assume that we send qubits through a channel that transmits the qubit unchanged with probability $1-p$, and applies one of the Pauli gates $X$, $Y$, and $Z$ with probability $\frac{p}{3}$ each. (The effects of the noise on each qubit transmitted are independent.)
+In this model, we assume that we send qubits through a channel that transmits the qubit unchanged with probability $1-p$, and applies one of the Pauli gates $X$, $Y$, and $Z$ with probability $\frac{p}{3}$ each. The effects of the noise on each qubit transmitted are independent.
 
 At first glance, this model seems to be limited, and not representative of the full spectrum of errors that can occur in a quantum system. Fortunately, it turns out that any errors on encoded states can be corrected by correcting only a discrete subset of errors - exactly the Pauli $X$, $Y$, and $Z$ errors! This is called *discretization of quantum errors*, and we'll see how it works later in this kata.
 
@@ -148,9 +148,9 @@ $$\ket{0} \rightarrow \ket{000}, \ket{1} \rightarrow \ket{111}$$
 
 $$\alpha \ket{0} + \beta \ket{1} \rightarrow \alpha \ket{000} + \beta \ket{111}$$
 
-This encoding is called **bit flip code**, and the states $\ket{000}$, $\ket{111}$, and their linear combinations are called **code words** in this code. Bit flip code allows us to detect and correct some errors that can occur on qubits in the depolarizing channel, though not all of them.
+This encoding is called **bit flip code**, and the states $\ket{000}$, $\ket{111}$, and their linear combinations are called **code words** in this code. The bit flip code allows us to detect and correct some errors that can occur on qubits in the depolarizing channel, though not all of them.
 
-Let's see what happens if an $X$ error happens on one of the qubits, and how we can detect it using two parity measurements (measurements in $ZZ$ basis).
+Let's see what happens if an $X$ error happens on one of the qubits, and how we can detect it using two parity measurements (measurements in the $ZZ$ basis).
 
 <table>
 <tr>
@@ -302,7 +302,7 @@ How can we detect and correct errors using this encoding?
 
 $X$ errors happening on any qubit manifest very similarly to the way they do in the bit flip code. 
 Let's consider the first triplet of qubits and an error that happens on any of the first three qubits.
-Same as in the bit flip code, measuring the parity of pairs of qubits always returns $0$ if there is no error (since all bits in each basis state of the code words are the same), so getting parity measurement return $1$ on one or two pairs indicates an error, and the measurements which return $1$ allow us to track down the qubit on which it happened.
+Same as in the bit flip code, measuring the parity of pairs of qubits always returns $0$ if there is no error (since all bits in each basis state of the code words are the same), so a parity measurement returning $1$ on one or two pairs indicates an error, and the measurements which returned $1$ allow us to track down the qubit on which it happened.
 
 To correct an $X$ error, we simply apply an $X$ gate to the affected qubit.
 
@@ -368,4 +368,4 @@ Here are a few key concepts to keep in mind:
 
 - Quantum error correction is more challenging compared to classical error correction, since quantum information cannot be copied, the act of observing the system damages information stored in it, and there is a much broader variety of errors in quantum systems compared to only bit flip errors in the classical systems.
 - Discretization of quantum errors is the phenomenon that allows us to correct arbitrary errors on quantum systems by correcting only a limited discrete subset of errors. For single-qubit errors, this subset is Pauli $X$, $Y$, and $Z$ errors.
-- Bit flip quantum error correction code allows us to detect and correct only $X$ errors, phase flip - only $Z$ errors, and Shor code allows us to detect and correct one arbitrary single-qubit error.
+- The bit flip quantum error correction code allows us to detect and correct only $X$ errors, the phase flip code only $Z$ errors, and the Shor code allows us to detect and correct one arbitrary single-qubit error.
