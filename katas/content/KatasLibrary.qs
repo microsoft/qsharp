@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.Katas {
 
     /// # Summary
     /// Given two operations, checks whether they act identically on the given initial state composed of `inputSize` qubits.
-    /// The initial state is prepared by applying initialState operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
+    /// The initial state is prepared by applying the `initialState` operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
     /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect it.
     operation CheckOperationsEquivalenceOnInitialStateStrict(
         initialState : Qubit[] => Unit is Adj,
