@@ -2081,8 +2081,8 @@ fn multiple_definition_dropped_is_not_found() {
                 }
             }
 
-            // NotAvailable("B", "A.B", Span { lo: 257, hi: 258 })
-            // NotAvailable("C", "A.C", Span { lo: 270, hi: 271 })
+            // NotFound("B", Span { lo: 257, hi: 258 })
+            // NotFound("C", Span { lo: 270, hi: 271 })
         "#]],
     );
 }

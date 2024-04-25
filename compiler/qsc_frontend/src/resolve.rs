@@ -607,8 +607,8 @@ impl Resolver {
         self.locals.get_scope_mut(scope_id)
     }
 
-    pub(crate) fn namespaces(&self) -> NamespaceTreeRoot {
-        self.globals.namespaces.clone()
+    pub(crate) fn namespaces(&self) -> &NamespaceTreeRoot {
+        &self.globals.namespaces
     }
 }
 
