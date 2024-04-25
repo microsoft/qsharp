@@ -159,9 +159,13 @@ pub fn get_circuit(
     let (package_type, entry_point) = match operation {
         Some(p) => {
             let o: language_service::OperationInfo = p.into();
+            // lib package - no need to enforce an entry point since the operation is provided.
             (PackageType::Lib, CircuitEntryPoint::Operation(o.operation))
         }
-        None => (PackageType::Exe, CircuitEntryPoint::EntryPoint),
+        None => {
+            // exe package - the @EntryPoint attribute will be used.
+            (PackageType::Exe, CircuitEntryPoint::EntryPoint)
+        }
     };
 
     let mut interpreter = interpret::Interpreter::new(
