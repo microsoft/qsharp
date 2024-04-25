@@ -25,7 +25,7 @@ We remember that the Pauli X gate flips the state in the single-qubit case. Here
 We validate that composition of $I \otimes X$ and the $\text{CNOT}$ gate produces the required unitary transformation represented by $U$. 
 
 $$
- (I \otimes X)\cdot \text{CNOT} =  
+ (I \otimes X)\cdot CNOT =  
  \left(
 \begin{bmatrix}1 & 0 \\\  0 & 1 \\\ \end{bmatrix}\otimes
 \begin{bmatrix} 0 & 1 \\\ 1 & 0 \\\ \end{bmatrix}
