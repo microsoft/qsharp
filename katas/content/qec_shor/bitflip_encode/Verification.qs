@@ -1,12 +1,14 @@
 namespace Kata.Verification {
-    open Microsoft.Quantum.Katas;
-    open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Katas;
+    open Microsoft.Quantum.Math;
 
-    operation  EntangleQubits (qs : Qubit[]) : Unit is Adj + Ctl {
+    operation BitflipEncode_Reference (qs : Qubit[]) : Unit is Adj + Ctl {
         CNOT(qs[0], qs[1]);
+        CNOT(qs[0], qs[2]);
     }
+
 
     @EntryPoint()
     operation CheckSolution() : Bool {
@@ -16,13 +18,13 @@ namespace Kata.Verification {
             let initialState = qs => Ry(2.0 * angle, qs[0]);
             let isCorrect = CheckOperationsEquivalenceOnInitialStateStrict(
                 initialState,
-                Kata.EntangleQubits, 
-                EntangleQubits, 
-                2);
+                Kata.BitflipEncode, 
+                BitflipEncode_Reference, 
+                3);
             if not isCorrect {
                 Message("Incorrect");
                 Message($"Test fails for alpha = {Cos(angle)}, beta = {Sin(angle)}.");
-                ShowQuantumStateComparison(2, initialState, Kata.EntangleQubits, EntangleQubits);
+                ShowQuantumStateComparison(3, initialState, Kata.BitflipEncode, BitflipEncode_Reference);
                 return false;
             }
         }

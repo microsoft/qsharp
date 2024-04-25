@@ -63,6 +63,33 @@ namespace Microsoft.Quantum.Katas {
         isCorrect
     }
 
+
+    /// # Summary
+    /// Given two operations, checks whether they act identically on the given initial state composed of `inputSize` qubits.
+    /// The initial state is prepared by applying the `initialState` operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
+    /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect it.
+    operation CheckOperationsEquivalenceOnInitialStateStrict(
+        initialState : Qubit[] => Unit is Adj,
+        op : (Qubit[] => Unit is Adj + Ctl),
+        reference : (Qubit[] => Unit is Adj + Ctl),
+        inputSize : Int
+    ) : Bool {
+        use (control, target) = (Qubit(), Qubit[inputSize]);
+        within {
+            H(control);
+            initialState(target);
+        }
+        apply {
+            Controlled op([control], target);
+            Adjoint Controlled reference([control], target);
+        }
+
+        let isCorrect = CheckAllZero([control] + target);
+        ResetAll([control] + target);
+        isCorrect
+    }
+
+
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits.
@@ -74,19 +101,7 @@ namespace Microsoft.Quantum.Katas {
         inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
-        use control = Qubit();
-        use target = Qubit[inputSize];
-        within {
-            H(control);
-        }
-        apply {
-            Controlled op([control], target);
-            Adjoint Controlled reference([control], target);
-        }
-
-        let isCorrect = CheckAllZero([control] + target);
-        ResetAll([control] + target);
-        isCorrect
+        CheckOperationsEquivalenceOnInitialStateStrict(qs => (), op, reference, inputSize)
     }
 
 
