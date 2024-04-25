@@ -31,9 +31,17 @@ type Wasm = typeof import("../../lib/web/qsc_wasm.js");
 export interface ICompiler {
   checkCode(code: string): Promise<VSDiagnostic[]>;
 
-  getAst(code: string, languageFeatures?: string[]): Promise<string>;
+  getAst(
+    code: string,
+    languageFeatures?: string[],
+    profile?: TargetProfile,
+  ): Promise<string>;
 
-  getHir(code: string, languageFeatures?: string[]): Promise<string>;
+  getHir(
+    code: string,
+    languageFeatures?: string[],
+    profile?: TargetProfile,
+  ): Promise<string>;
 
   /** @deprecated -- switch to using `ProgramConfig`-based overload. Instead of passing
    * sources and language features separately, pass an object with named properties. This change was made
@@ -197,12 +205,28 @@ export class Compiler implements ICompiler {
     return this.wasm.get_estimates(sources, params, languageFeatures);
   }
 
-  async getAst(code: string, languageFeatures: string[]): Promise<string> {
-    return this.wasm.get_ast(code, languageFeatures);
+  async getAst(
+    code: string,
+    languageFeatures?: string[],
+    profile?: TargetProfile,
+  ): Promise<string> {
+    return this.wasm.get_ast(
+      code,
+      languageFeatures ?? [],
+      profile ?? "quantinuum",
+    );
   }
 
-  async getHir(code: string, languageFeatures: string[]): Promise<string> {
-    return this.wasm.get_hir(code, languageFeatures);
+  async getHir(
+    code: string,
+    languageFeatures: string[],
+    profile: TargetProfile,
+  ): Promise<string> {
+    return this.wasm.get_hir(
+      code,
+      languageFeatures ?? [],
+      profile ?? "quantinuum",
+    );
   }
 
   async run(

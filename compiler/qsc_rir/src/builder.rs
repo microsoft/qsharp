@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use qsc_data_structures::target::TargetCapabilityFlags;
+
 use crate::rir::{
     Block, BlockId, Callable, CallableId, CallableType, Instruction, Literal, Operand, Program, Ty,
     Variable, VariableId,
@@ -260,8 +262,6 @@ pub fn bell_program() -> Program {
     );
     program.num_qubits = 2;
     program.num_results = 2;
-    program.config.defer_measurements = true;
-    program.config.remap_qubits_on_reuse = true;
     program
 }
 
@@ -269,6 +269,7 @@ pub fn bell_program() -> Program {
 #[must_use]
 pub fn teleport_program() -> Program {
     let mut program = Program::default();
+    program.config.capabilities = TargetCapabilityFlags::Adaptive;
     program.callables.insert(CallableId(0), h_decl());
     program.callables.insert(CallableId(1), z_decl());
     program.callables.insert(CallableId(2), x_decl());

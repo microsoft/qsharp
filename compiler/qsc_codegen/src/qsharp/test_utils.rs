@@ -8,8 +8,10 @@ use std::sync::Arc;
 
 use expect_test::Expect;
 use qsc_ast::{ast::Package, mut_visit::MutVisitor};
-use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_data_structures::{
+    language_features::LanguageFeatures, span::Span, target::TargetCapabilityFlags,
+};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_hir::hir::PackageId;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 

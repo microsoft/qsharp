@@ -3,7 +3,7 @@
 
 use std::str::FromStr;
 
-use qsc_frontend::compile::TargetCapabilityFlags;
+use qsc_data_structures::target::TargetCapabilityFlags;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Profile {

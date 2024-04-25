@@ -22,7 +22,7 @@ import {
 } from "qsharp-lang";
 
 import { Nav } from "./nav.js";
-import { Editor } from "./editor.js";
+import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
 import { useEffect, useState } from "preact/hooks";
 import { Kata as Katas } from "./kata.js";
@@ -37,7 +37,7 @@ import {
   monacoPositionToLsPosition,
 } from "./utils.js";
 
-export type ActiveTab = "results-tab" | "hir-tab" | "ast-tab" | "logs-tab";
+export type ActiveTab = "results-tab" | "ast-tab" | "hir-tab" | "qir-tab";
 
 const basePath = (window as any).qscBasePath || "";
 const monacoPath = basePath + "libs/monaco/vs";
@@ -70,6 +70,12 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   const [compiler, setCompiler] = useState(() =>
     createCompiler(setCompilerState),
   );
+
+  const [compiler_worker_factory] = useState(() => {
+    const compiler_worker_factory = () => getCompilerWorker(compilerWorkerPath);
+    return compiler_worker_factory;
+  });
+
   const [evtTarget] = useState(() => new QscEventTarget(true));
 
   const [languageService] = useState(() => {
@@ -87,6 +93,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
 
   const [ast, setAst] = useState<string>("");
   const [hir, setHir] = useState<string>("");
+  const [qir, setQir] = useState<string>("");
   const [activeTab, setActiveTab] = useState<ActiveTab>("results-tab");
 
   const onRestartCompiler = () => {
@@ -147,6 +154,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           <Editor
             code={sampleCode}
             compiler={compiler}
+            compiler_worker_factory={compiler_worker_factory}
             compilerState={compilerState}
             onRestartCompiler={onRestartCompiler}
             evtTarget={evtTarget}
@@ -154,8 +162,10 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             showShots={true}
             showExpr={true}
             shotError={shotError}
+            profile={getProfile()}
             setAst={setAst}
             setHir={setHir}
+            setQir={setQir}
             activeTab={activeTab}
             languageService={languageService}
           ></Editor>
@@ -165,6 +175,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
             onShotError={(diag?: VSDiagnostic) => setShotError(diag)}
             ast={ast}
             hir={hir}
+            qir={qir}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
           ></OutputTabs>
@@ -174,6 +185,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           kata={activeKata!}
           compiler={compiler}
+          compiler_worker_factory={compiler_worker_factory}
           compilerState={compilerState}
           onRestartCompiler={onRestartCompiler}
           languageService={languageService}

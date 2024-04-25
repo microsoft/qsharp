@@ -275,6 +275,14 @@ html {
   white-space: pre;
 }
 
+.qir-output {
+  height: 40vh;
+  min-height: 400px;
+  width: 100%;
+  resize: none;
+  white-space: pre;
+}
+
 /* Results output */
 
 .output-header {
