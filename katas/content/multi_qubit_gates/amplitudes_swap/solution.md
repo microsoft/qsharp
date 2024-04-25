@@ -43,10 +43,7 @@ $$
     "id": "multi_qubit_gates__amplitudes_swap_solution_a",
     "codePath": "./SolutionA.qs"
 })
-Alternatively, we can express this gate using the intrinsic gate Z and its controlled variant using the Controlled functor:
-
-
-We observe that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $|0\rangle$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/qsharp/api/qsharp/microsoft.quantum.canon.applycontrolledonbitstring) library function.
+Alternatively, we can notice that the task requires application of a Pauli X gate on the second qubit when the first qubit is in the $|0\rangle$ state. This can be achieved with [`ApplyControlledOnInt`](https://learn.microsoft.com/en-us/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonint) library operation.
 
 Notice that the `ApplyControlledOnInt` operation uses an array of qubits as control, not by a single qubit. 
 
