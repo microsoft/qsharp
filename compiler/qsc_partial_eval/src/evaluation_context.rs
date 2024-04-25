@@ -3,7 +3,7 @@
 
 use qsc_data_structures::functors::FunctorApp;
 use qsc_eval::{
-    val::{Result, Value},
+    val::{Result, Value, Var},
     Env, Variable,
 };
 use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
@@ -98,7 +98,7 @@ pub struct Scope {
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
     /// Map that holds the values of local variables.
-    hybrid_vars: FxHashMap<LocalVarId, Value>,
+    pub hybrid_vars: FxHashMap<LocalVarId, Value>,
 }
 
 impl Scope {
@@ -156,10 +156,18 @@ impl Scope {
     }
 
     /// Gets the value of a (hybrid) local variable.
-    pub fn get_local_var_value(&self, local_var_id: LocalVarId) -> &Value {
+    pub fn get_local_value(&self, local_var_id: LocalVarId) -> &Value {
         self.hybrid_vars
             .get(&local_var_id)
             .expect("local variable value does not exist")
+    }
+
+    pub fn _get_local_var(&self, local_var_id: LocalVarId) -> Var {
+        let local_value = self.get_local_value(local_var_id);
+        let Value::Var(var) = local_value else {
+            panic!("local value is not a variable");
+        };
+        *var
     }
 
     /// Determines whether we are currently evaluating a branch within the scope.
@@ -172,11 +180,6 @@ impl Scope {
     /// happens the number of scopes in the environment will be exactly one.
     pub fn has_classical_evaluator_returned(&self) -> bool {
         self.env.len() == 1
-    }
-
-    /// Inserts the value of a local variable into the hybrid variables map.
-    pub fn insert_local_var_value(&mut self, local_var_id: LocalVarId, value: Value) {
-        self.hybrid_vars.insert(local_var_id, value);
     }
 }
 

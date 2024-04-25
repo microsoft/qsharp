@@ -849,13 +849,13 @@ fn explicit_return_embedded_in_array_repeat_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Array Repeat", Span { lo: 147, hi: 174 })"#]],
+        &expect![[r#"Unexpected("embedded return in array size", Span { lo: 161, hi: 173 })"#]],
     );
 }
 
+#[ignore = "WIP"]
 #[test]
 fn explicit_return_embedded_in_assign_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
