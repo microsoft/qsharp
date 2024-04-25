@@ -9,7 +9,7 @@ namespace Kata {
         R1(2.0 * PI() / 3.0, qs[1]);
     }
 
-    operation ThreeStates_TwoQubits_Reference (qs : Qubit[]) : Unit is Adj {
+    operation ThreeStates_TwoQubits (qs : Qubit[]) : Unit is Adj {
 
         // Follow Niel's answer at https://quantumcomputing.stackexchange.com/a/2313/
 
