@@ -19,7 +19,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { marked } from "marked";
+import mdit from "markdown-it";
+const md = mdit("commonmark");
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
@@ -249,7 +250,7 @@ function createExample(baseFolderPath, properties) {
 }
 
 function createTextContent(markdown) {
-  const html = marked(markdown);
+  const html = md.render(markdown);
   return { type: "text-content", asHtml: html, asMarkdown: markdown };
 }
 
