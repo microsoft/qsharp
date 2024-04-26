@@ -61,6 +61,8 @@ pub struct AstPackage {
 #[derive(Debug, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
+    /// if the sources are from a project, then this is the project root directory.
+    project_root_dir: Option<Arc<str>>,
     entry: Option<Source>,
 }
 
@@ -88,8 +90,18 @@ impl SourceMap {
             offset_sources.push(source);
         }
 
+        // Each source has a name, which is a string. The project root dir is calculated as the
+        // common prefix of all of the sources.
+        // Calculate the common prefix.
+        let project_root_dir: String = longest_common_prefix(&offset_sources
+            .iter()
+            .map(|source| source.name.as_ref()).collect::<Vec<_>>()).to_string();
+
+        let project_root_dir: Arc<str> = Arc::from(project_root_dir);
+
         Self {
             sources: offset_sources,
+            project_root_dir: if project_root_dir.is_empty() { None } else { Some(project_root_dir.into())},
             entry: entry_source,
         }
     }
@@ -122,6 +134,26 @@ impl SourceMap {
 
     pub fn iter(&self) -> impl Iterator<Item = &Source> {
         self.sources.iter()
+    }
+
+    /// Returns the sources as an iter, but with the project root directory subtracted
+    /// from the individual source names.
+    pub(crate) fn localized_project_sources(&self) -> impl Iterator<Item = Source> + '_ {
+        self.sources.iter().map(move |source| {
+            let name = source.name.as_ref();
+            let localized_name = if let Some(project_root_dir) = &self.project_root_dir {
+                let localized_name = name.strip_prefix(&*project_root_dir.clone()).unwrap_or(name);
+                localized_name.into()
+            } else {
+                name
+            };
+
+            Source {
+                name: localized_name.into(),
+                contents: source.contents.clone(),
+                offset: source.offset,
+            }
+        })
     }
 }
 
@@ -424,7 +456,7 @@ fn parse_all(
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
-    for source in &sources.sources {
+    for source in sources.localized_project_sources() {
         let (source_namespaces, source_errors) =
             qsc_parse::namespaces(&source.contents, Some(&source.name), features);
         for mut namespace in source_namespaces {
@@ -533,4 +565,18 @@ fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
 
         panic!("could not compile package");
     }
+}
+
+pub fn longest_common_prefix<'a>(strs: &'a[&'a str]) -> &'a str {
+    let Some(common_prefix_so_far) = strs.get(0) else { return "" };
+
+    for (i, character) in common_prefix_so_far.chars().enumerate() {
+        for string in strs {
+            if string.chars().nth(i) != Some(character) {
+                return &common_prefix_so_far[0..i];
+            }
+        }
+    }
+
+    common_prefix_so_far
 }
