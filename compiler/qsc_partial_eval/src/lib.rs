@@ -1,6 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+//! The Q# partial evaluator residualizes a Q# program, producing RIR from FIR.
+//! It does this by evaluating all purely classical expressions and generating RIR instructions for expressions that are
+//! not purely classical.
+
 mod evaluation_context;
 mod management;
 
@@ -38,11 +42,7 @@ use rustc_hash::FxHashMap;
 use std::{collections::hash_map::Entry, rc::Rc, result::Result};
 use thiserror::Error;
 
-pub struct ProgramEntry {
-    pub exec_graph: Rc<[ExecGraphNode]>,
-    pub expr: fir::StoreExprId,
-}
-
+/// Partially evaluates a program with the specified entry expression.
 pub fn partially_evaluate(
     package_store: &PackageStore,
     compute_properties: &PackageStoreComputeProperties,
@@ -54,11 +54,19 @@ pub fn partially_evaluate(
     partial_evaluator.eval()
 }
 
+/// A partial evaluation error.
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
     #[error("partial evaluation failed with error {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(String, #[label] Span),
+
+    #[error("unsupported Result literal in output")]
+    #[diagnostic(help(
+        "Result literals `One` and `Zero` cannot be included in generated QIR output recording."
+    ))]
+    #[diagnostic(code("Qsc.PartialEval.OutputResultLiteral"))]
+    OutputResultLiteral(#[label] Span),
 
     #[error("an unexpected error occurred related to: {0}")]
     #[diagnostic(code("Qsc.PartialEval.Unexpected"))]
@@ -70,13 +78,14 @@ pub enum Error {
     #[error("failed to evaluate: {0} not yet implemented")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] Span),
+}
 
-    #[error("unsupported Result literal in output")]
-    #[diagnostic(help(
-        "Result literals `One` and `Zero` cannot be included in generated QIR output recording."
-    ))]
-    #[diagnostic(code("Qsc.PartialEval.OutputResultLiteral"))]
-    OutputResultLiteral(#[label] Span),
+/// An entry to the program to be partially evaluated.
+pub struct ProgramEntry {
+    /// The execution graph that corresponds to the entry expression.
+    pub exec_graph: Rc<[ExecGraphNode]>,
+    /// The entry expression unique identifier within a package store.
+    pub expr: fir::StoreExprId,
 }
 
 struct PartialEvaluator<'a> {
@@ -214,7 +223,7 @@ impl<'a> PartialEvaluator<'a> {
             .expect("qubits count should fit into a u32");
         self.program.num_results = self
             .resource_manager
-            .results_count()
+            .result_register_count()
             .try_into()
             .expect("results count should fit into a u32");
 
@@ -245,7 +254,7 @@ impl<'a> PartialEvaluator<'a> {
 
                 // Figure out the control flow kind.
                 let scope = self.eval_context.get_current_scope();
-                let kind = if scope.has_returned() {
+                let kind = if scope.has_classical_evaluator_returned() {
                     ControlFlowKind::Return
                 } else {
                     ControlFlowKind::Continue
@@ -279,7 +288,7 @@ impl<'a> PartialEvaluator<'a> {
 
                 // Figure out the control flow kind.
                 let scope = self.eval_context.get_current_scope();
-                let kind = if scope.has_returned() {
+                let kind = if scope.has_classical_evaluator_returned() {
                     ControlFlowKind::Return
                 } else {
                     ControlFlowKind::Continue
@@ -640,7 +649,7 @@ impl<'a> PartialEvaluator<'a> {
         let continuation_block_node_id = self.create_program_block();
         let continuation_block_node = BlockNode {
             id: continuation_block_node_id,
-            next: current_block_node.next,
+            successor: current_block_node.successor,
         };
         self.eval_context.push_block_node(continuation_block_node);
 
@@ -712,7 +721,7 @@ impl<'a> PartialEvaluator<'a> {
         let block_node_id = self.create_program_block();
         let block_node = BlockNode {
             id: block_node_id,
-            next: Some(continuation_block_id),
+            successor: Some(continuation_block_id),
         };
         self.eval_context.push_block_node(block_node);
 
@@ -1040,7 +1049,7 @@ impl<'a> PartialEvaluator<'a> {
         let qubit = args_value.unwrap_qubit();
         let qubit_value = Value::Qubit(qubit);
         let qubit_operand = map_eval_value_to_rir_operand(&qubit_value);
-        let result_value = Value::Result(self.resource_manager.next_result());
+        let result_value = Value::Result(self.resource_manager.next_result_register());
         let result_operand = map_eval_value_to_rir_operand(&result_value);
 
         // Check if the callable has already been added to the program and if not do so now.
