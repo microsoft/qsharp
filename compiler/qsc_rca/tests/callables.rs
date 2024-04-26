@@ -153,6 +153,33 @@ fn check_rca_for_operation_with_one_classical_return_and_one_dynamic_return() {
 }
 
 #[test]
+fn check_rca_for_callable_block_with_unreachable_binding() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        operation Foo() : Int {
+            return 0;
+            let x = 1;
+        }"#,
+    );
+    check_callable_compute_properties(
+        &compilation_context.fir_store,
+        compilation_context.get_compute_properties(),
+        "Foo",
+        &expect![
+            r#"
+            Callable: CallableComputeProperties:
+                body: ApplicationsGeneratorSet:
+                    inherent: Classical
+                    dynamic_param_applications: <empty>
+                adj: <none>
+                ctl: <none>
+                ctl-adj: <none>"#
+        ],
+    );
+}
+
+#[test]
 fn check_rca_for_unrestricted_h() {
     let compilation_context = CompilationContext::default();
     check_callable_compute_properties(
