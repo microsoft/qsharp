@@ -77,6 +77,9 @@ enum ErrorKind {
     #[error("missing entry in sequence")]
     #[diagnostic(code("Qsc.Parse.MissingSeqEntry"))]
     MissingSeqEntry(#[label] Span),
+    #[error("dotted namespace aliases are no longer allowed")]
+    #[diagnostic(code("Qsc.Parse.DotIdentAlias"))]
+    DotIdentAlias(#[label] Span),
     #[error("file name could not be converted into valid namespace name")]
     #[diagnostic(code("Qsc.Parse.InvalidFileName"))]
     InvalidFileName(#[label] Span),
@@ -97,7 +100,11 @@ impl ErrorKind {
             Self::FloatingAttr(span) => Self::FloatingAttr(span + offset),
             Self::FloatingVisibility(span) => Self::FloatingVisibility(span + offset),
             Self::MissingSeqEntry(span) => Self::MissingSeqEntry(span + offset),
+<<<<<<< HEAD
             Self::InvalidFileName(span) => Self::InvalidFileName(span + offset),
+=======
+            Self::DotIdentAlias(span) => Self::DotIdentAlias(span + offset),
+>>>>>>> e7523a6b21556da5df1cde8b68194c492cf437a0
         }
     }
 }
