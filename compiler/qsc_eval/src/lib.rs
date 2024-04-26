@@ -401,11 +401,7 @@ impl Env {
         variables_by_scope.into_iter().flatten().collect::<Vec<_>>()
     }
 
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
+    #[allow(clippy::len_without_is_empty)]
     #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
