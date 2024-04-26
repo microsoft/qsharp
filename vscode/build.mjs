@@ -62,8 +62,8 @@ export function copyWasmToVsCode() {
 }
 
 /**
- * 
- * @param {string} [destDir] 
+ *
+ * @param {string} [destDir]
  * @param {boolean} [useLightTheme]
  */
 export function copyKatex(destDir, useLightTheme) {
@@ -78,7 +78,9 @@ export function copyKatex(destDir, useLightTheme) {
   );
 
   // Also copy the GitHub markdown CSS
-  const cssFileName = useLightTheme ? "github-markdown-light.css" : "github-markdown.css";
+  const cssFileName = useLightTheme
+    ? "github-markdown-light.css"
+    : "github-markdown.css";
   copyFileSync(
     join(libsDir, `github-markdown-css/${cssFileName}`),
     join(katexDest, "github-markdown.css"),

@@ -50,5 +50,5 @@ export function DocumentationDisplay(props: {
 }) {
   const docsMd = props.documentation?.get(props.currentNamespace) ?? "";
 
-  return <RenderDiv input={docsMd} />
+  return <RenderDiv input={docsMd} />;
 }

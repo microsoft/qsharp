@@ -42,10 +42,10 @@ import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
 import { setRenderer } from "qsharp-lang/ux";
 
-const md = markdownIt('commonmark');
+const md = markdownIt("commonmark");
 md.use((mk as any).default, {
   enableMathBlockInHtml: true,
-  enableMathInlineInHtml: true
+  enableMathInlineInHtml: true,
 }); // Not sure why it's not using the default export automatically :-/
 setRenderer((input: string) => md.render(input));
 
