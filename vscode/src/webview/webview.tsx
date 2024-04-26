@@ -11,6 +11,7 @@ import {
   CircuitProps,
   EstimatesPanel,
   Histogram,
+  setRenderer,
   type ReData,
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
@@ -21,11 +22,7 @@ import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
 const md = markdownIt();
 md.use(mk);
-
-function markdownRenderer(input: string) {
-  // For some reason all the escape characters are doubled in the estimate data sample input
-  return md.render(input.replace(/\\\\/g, "\\"));
-}
+setRenderer((input: string) => md.render(input));
 
 window.addEventListener("message", onMessage);
 window.addEventListener("load", main);
@@ -169,7 +166,6 @@ function App({ state }: { state: State }) {
         <EstimatesPanel
           calculating={state.estimatesData.calculating}
           estimatesData={state.estimatesData.estimates}
-          renderer={markdownRenderer}
           onRowDeleted={onRowDeleted}
           colors={[]}
           runNames={[]}
