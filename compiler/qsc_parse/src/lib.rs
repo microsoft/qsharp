@@ -74,7 +74,7 @@ enum ErrorKind {
     #[error("missing entry in sequence")]
     #[diagnostic(code("Qsc.Parse.MissingSeqEntry"))]
     MissingSeqEntry(#[label] Span),
-    #[error("dotted namespace aliases no longer allowed")]
+    #[error("dotted namespace aliases are no longer allowed")]
     #[diagnostic(code("Qsc.Parse.DotIdentAlias"))]
     DotIdentAlias(#[label] Span),
 }
