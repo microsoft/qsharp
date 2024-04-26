@@ -403,7 +403,7 @@ impl Env {
 
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.0.is_empty()
     }
 
     #[must_use]
