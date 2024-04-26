@@ -1,5 +1,3 @@
-> This solution is a detailed explanation of [this StackExchange answer](https://quantumcomputing.stackexchange.com/a/6844/2879).
-
 We start with the state $|\psi_0\rangle=|00\rangle$.
 
 **Step 1:** Start by putting the first qubit in the state $\alpha|0\rangle + \beta|1\rangle$, where $\alpha$ and $\beta$ are the square roots of relative weights of all basis states which start with 0 and with 1, respectively.
