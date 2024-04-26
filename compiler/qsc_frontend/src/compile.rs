@@ -93,15 +93,23 @@ impl SourceMap {
         // Each source has a name, which is a string. The project root dir is calculated as the
         // common prefix of all of the sources.
         // Calculate the common prefix.
-        let project_root_dir: String = longest_common_prefix(&offset_sources
-            .iter()
-            .map(|source| source.name.as_ref()).collect::<Vec<_>>()).to_string();
+        let project_root_dir: String = longest_common_prefix(
+            &offset_sources
+                .iter()
+                .map(|source| source.name.as_ref())
+                .collect::<Vec<_>>(),
+        )
+        .to_string();
 
         let project_root_dir: Arc<str> = Arc::from(project_root_dir);
 
         Self {
             sources: offset_sources,
-            project_root_dir: if project_root_dir.is_empty() { None } else { Some(project_root_dir.into())},
+            project_root_dir: if project_root_dir.is_empty() {
+                None
+            } else {
+                Some(project_root_dir)
+            },
             entry: entry_source,
         }
     }
@@ -142,8 +150,10 @@ impl SourceMap {
         self.sources.iter().map(move |source| {
             let name = source.name.as_ref();
             let localized_name = if let Some(project_root_dir) = &self.project_root_dir {
-                let localized_name = name.strip_prefix(&*project_root_dir.clone()).unwrap_or(name);
-                localized_name.into()
+                let localized_name = name
+                    .strip_prefix(&*project_root_dir.clone())
+                    .unwrap_or(name);
+                localized_name
             } else {
                 name
             };
@@ -567,8 +577,11 @@ fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
     }
 }
 
-pub fn longest_common_prefix<'a>(strs: &'a[&'a str]) -> &'a str {
-    let Some(common_prefix_so_far) = strs.get(0) else { return "" };
+#[must_use]
+pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
+    let Some(common_prefix_so_far) = strs.first() else {
+        return "";
+    };
 
     for (i, character) in common_prefix_so_far.chars().enumerate() {
         for string in strs {
