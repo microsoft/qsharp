@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// <reference lib="es2022"/>
+// @ts-check
+
 /**
  * Katas Taxonomy
  *
@@ -11,8 +14,6 @@
  *
  * Each Kata is organized in a directory where an index.md file provides a description on how the kata must be composed.
  */
-
-// @ts-check
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, sep } from "node:path";
@@ -185,7 +186,7 @@ function preProcessSegments(segments, baseFolderPath) {
 
 function parseMarkdown(markdown) {
   const segments = [];
-  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)\r?\n/gs;
+  const macroRegex = /@\[(?<type>\w+)\]\((?<json>\{.*?\})\)((\r?\n)|$)/gs;
   let latestProcessedIndex = 0;
   while (latestProcessedIndex < markdown.length) {
     const match = macroRegex.exec(markdown);

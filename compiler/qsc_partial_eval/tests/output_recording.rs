@@ -517,3 +517,73 @@ fn output_recording_for_mix_of_literal_and_variable() {
             num_results: 1"#]]
     .assert_eq(&program.to_string());
 }
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_one() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result {
+                One
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_zero() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result {
+                Zero
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_in_array() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use q = Qubit();
+                [QIR.Intrinsic.__quantum__qis__mresetz__body(q), Zero]
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_in_tuple() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                use q = Qubit();
+                (QIR.Intrinsic.__quantum__qis__mresetz__body(q), Zero)
+            }
+        }
+        "#,
+    });
+}

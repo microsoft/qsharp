@@ -5,30 +5,13 @@ namespace Kata.Verification {
     operation PrepareState(qs : Qubit[]) : Unit is Adj + Ctl {
         ApplyToEachCA(H, qs);
     }
-    operation  RelativePhaseMinusOne (qs : Qubit[]) : Unit is Adj + Ctl {
+
+    operation RelativePhaseMinusOne (qs : Qubit[]) : Unit is Adj + Ctl {
         CZ(qs[0], qs[1]);
     }
 
-    operation CheckOperationsEquivalenceOnInitialStateStrict(
-        initialState : Qubit[] => Unit is Adj,
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int
-    ) : Bool {
-        use (control, target) = (Qubit(), Qubit[inputSize]);
-        within {
-            H(control);
-            initialState(target);
-        }
-        apply {
-            Controlled op([control], target);
-            Adjoint Controlled reference([control], target);
-        }
-        let isCorrect = CheckAllZero([control] + target);
-        ResetAll([control] + target);
-        isCorrect
-    }
-
+    
+    @EntryPoint()
     operation CheckSolution() : Bool {
         let isCorrect = CheckOperationsEquivalenceOnInitialStateStrict(
             PrepareState,
