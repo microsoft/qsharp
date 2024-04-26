@@ -1,9 +1,9 @@
 Firstly we notice that we are dealing with an unentangled pair of qubits.
-In vector form the transformation we need is 
+In vector form the transformation we need is
 $$
-\frac{1}{2}\begin{bmatrix}1\\\ 1\\\ 1\\\ 1\\\ \end{bmatrix} 
-\rightarrow 
-\frac{1}{2}\begin{bmatrix}1\\\ 1\\\ 1\\\ -1\\\ \end{bmatrix}
+\frac{1}{2}\begin{bmatrix}1 \\ 1 \\ 1 \\ 1 \end{bmatrix}
+\rightarrow
+\frac{1}{2}\begin{bmatrix}1 \\ 1 \\ 1 \\ -1 \end{bmatrix}
 $$
 
 All that needs to happen to change the input into the goal is that the $|11\rangle$ basis state needs to have its sign flipped.

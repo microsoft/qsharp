@@ -20,8 +20,11 @@ import { HelpPage } from "./help";
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
-const md = markdownIt();
-md.use(mk);
+const md = markdownIt('commonmark', { html: true, breaks: true });
+md.use(mk, {
+  enableMathBlockInHtml: true,
+  enableMathInlineInHtml: true
+});
 setRenderer((input: string) => md.render(input));
 
 window.addEventListener("message", onMessage);
