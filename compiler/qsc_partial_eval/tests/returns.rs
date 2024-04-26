@@ -199,7 +199,7 @@ fn non_classical_entry_point_with_classical_inline_early_return_yields_error() {
             }
         }
     "#});
-    assert_error(&error, &expect!["EarlyReturn(Span { lo: 139, hi: 152 })"]);
+    assert_error(&error, &expect![[r#"Unexpected("early return", Span { lo: 139, hi: 152 })"#]]);
 }
 
 #[test]
@@ -214,7 +214,7 @@ fn non_classical_entry_point_with_non_classical_inline_early_return_yields_error
             }
         }
     "#});
-    assert_error(&error, &expect!["EarlyReturn(Span { lo: 101, hi: 155 })"]);
+    assert_error(&error, &expect![[r#"Unexpected("early return", Span { lo: 101, hi: 155 })"#]]);
 }
 
 #[test]
@@ -231,7 +231,7 @@ fn non_classical_entry_point_with_classical_early_return_within_classical_branch
             }
         }
     "#});
-    assert_error(&error, &expect!["EarlyReturn(Span { lo: 99, hi: 144 })"]);
+    assert_error(&error, &expect![[r#"Unexpected("early return", Span { lo: 99, hi: 144 })"#]]);
 }
 
 #[test]
@@ -250,7 +250,7 @@ fn non_classical_entry_point_with_classical_early_return_within_non_classical_br
             }
         }
     "#});
-    assert_error(&error, &expect!["EarlyReturn(Span { lo: 163, hi: 213 })"]);
+    assert_error(&error, &expect![[r#"Unexpected("early return", Span { lo: 163, hi: 213 })"#]]);
 }
 
 #[test]
@@ -269,7 +269,7 @@ fn non_classical_entry_point_with_non_classical_early_return_within_non_classica
             }
         }
     "#});
-    assert_error(&error, &expect!["EarlyReturn(Span { lo: 185, hi: 278 })"]);
+    assert_error(&error, &expect![[r#"Unexpected("early return", Span { lo: 185, hi: 278 })"#]]);
 }
 
 #[test]
@@ -286,7 +286,7 @@ fn explicit_return_embedded_in_array_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect!["EmbeddedReturn(Span { lo: 148, hi: 160 })"],
+        &expect![[r#"Unexpected("embedded return in array", Span { lo: 148, hi: 160 })"#]],
     );
 }
 
@@ -404,7 +404,7 @@ fn explicit_return_embedded_in_bin_op_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect!["EmbeddedReturn(Span { lo: 151, hi: 163 })"],
+        &expect![[r#"Unexpected("embedded return in binary operation", Span { lo: 151, hi: 163 })"#]],
     );
 }
 
@@ -423,7 +423,7 @@ fn explicit_return_embedded_in_call_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect!["EmbeddedReturn(Span { lo: 174, hi: 186 })"],
+        &expect![[r#"Unexpected("embedded return in call arguments", Span { lo: 174, hi: 186 })"#]],
     );
 }
 
@@ -444,7 +444,7 @@ fn explicit_return_embedded_in_if_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect!["EmbeddedReturn(Span { lo: 175, hi: 187 })"],
+        &expect![[r#"Unexpected("embedded return in if condition", Span { lo: 175, hi: 187 })"#]],
     );
 }
 
@@ -482,7 +482,7 @@ fn explicit_return_embedded_in_tuple_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect!["EmbeddedReturn(Span { lo: 151, hi: 163 })"],
+        &expect![[r#"Unexpected("embedded return in tuple", Span { lo: 151, hi: 163 })"#]],
     );
 }
 

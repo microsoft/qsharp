@@ -60,13 +60,12 @@ pub enum Error {
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(String, #[label] Span),
 
-    #[error("partial evaluation does not support early returns")]
-    #[diagnostic(code("Qsc.PartialEval.EarlyReturn"))]
-    EarlyReturn(#[label] Span),
-
-    #[error("partial evaluation does not support returns embedded within other expressions")]
-    #[diagnostic(code("Qsc.PartialEval.EmbeddedReturn"))]
-    EmbeddedReturn(#[label] Span),
+    #[error("an unexpected error occurred related to: {0}")]
+    #[diagnostic(code("Qsc.PartialEval.Unexpected"))]
+    #[diagnostic(help(
+        "this is probably a bug. please consider reporting this as an issue to the development team"
+    ))]
+    Unexpected(String, #[label] Span),
 
     #[error("failed to evaluate: {0} not yet implemented")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
@@ -394,12 +393,18 @@ impl<'a> PartialEvaluator<'a> {
         let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
         if matches!(lhs_control_flow.kind, ControlFlowKind::Return) {
             let lhs_expr = self.get_expr(lhs_expr_id);
-            return Err(Error::EmbeddedReturn(lhs_expr.span));
+            return Err(Error::Unexpected(
+                "embedded return in binary operation".to_string(),
+                lhs_expr.span,
+            ));
         }
         let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
         if matches!(rhs_control_flow.kind, ControlFlowKind::Return) {
             let rhs_expr = self.get_expr(rhs_expr_id);
-            return Err(Error::EmbeddedReturn(rhs_expr.span));
+            return Err(Error::Unexpected(
+                "embedded return in binary operation".to_string(),
+                rhs_expr.span,
+            ));
         }
 
         // Get the operands to use when generating the binary operation instruction depending on the type of the
@@ -452,13 +457,19 @@ impl<'a> PartialEvaluator<'a> {
         let callee_control_flow = self.try_eval_expr(callee_expr_id)?;
         if matches!(callee_control_flow.kind, ControlFlowKind::Return) {
             let callee_expr = self.get_expr(callee_expr_id);
-            return Err(Error::EmbeddedReturn(callee_expr.span));
+            return Err(Error::Unexpected(
+                "embedded return in callee".to_string(),
+                callee_expr.span,
+            ));
         }
 
         let args_control_flow = self.try_eval_expr(args_expr_id)?;
         if matches!(args_control_flow.kind, ControlFlowKind::Return) {
             let args_expr = self.get_expr(args_expr_id);
-            return Err(Error::EmbeddedReturn(args_expr.span));
+            return Err(Error::Unexpected(
+                "embedded return in call arguments".to_string(),
+                args_expr.span,
+            ));
         }
 
         // Get the callable.
@@ -597,7 +608,10 @@ impl<'a> PartialEvaluator<'a> {
         let condition_control_flow = self.try_eval_expr(condition_expr_id)?;
         if matches!(condition_control_flow.kind, ControlFlowKind::Return) {
             let condition_expr = self.get_expr(condition_expr_id);
-            return Err(Error::EmbeddedReturn(condition_expr.span));
+            return Err(Error::Unexpected(
+                "embedded return in if condition".to_string(),
+                condition_expr.span,
+            ));
         }
 
         // If the condition value is a Boolean literal, use the value to decide which branch to
@@ -742,7 +756,10 @@ impl<'a> PartialEvaluator<'a> {
             let control_flow = self.try_eval_expr(*expr_id)?;
             if matches!(control_flow.kind, ControlFlowKind::Return) {
                 let expr = self.get_expr(*expr_id);
-                return Err(Error::EmbeddedReturn(expr.span));
+                return Err(Error::Unexpected(
+                    "embedded return in array".to_string(),
+                    expr.span,
+                ));
             }
             values.push(control_flow.value);
         }
@@ -755,7 +772,10 @@ impl<'a> PartialEvaluator<'a> {
             let control_flow = self.try_eval_expr(*expr_id)?;
             if matches!(control_flow.kind, ControlFlowKind::Return) {
                 let expr = self.get_expr(*expr_id);
-                return Err(Error::EmbeddedReturn(expr.span));
+                return Err(Error::Unexpected(
+                    "embedded return in tuple".to_string(),
+                    expr.span,
+                ));
             }
             values.push(control_flow.value);
         }
@@ -801,7 +821,10 @@ impl<'a> PartialEvaluator<'a> {
         let mut condition_control_flow = self.try_eval_expr(condition_expr_id)?;
         if matches!(condition_control_flow.kind, ControlFlowKind::Return) {
             let condition_expr = self.get_expr(condition_expr_id);
-            return Err(Error::EmbeddedReturn(condition_expr.span));
+            return Err(Error::Unexpected(
+                "embedded return in loop condition".to_string(),
+                condition_expr.span,
+            ));
         }
         let mut condition_boolean = condition_control_flow.value.unwrap_bool();
         while condition_boolean {
@@ -815,7 +838,10 @@ impl<'a> PartialEvaluator<'a> {
             condition_control_flow = self.try_eval_expr(condition_expr_id)?;
             if matches!(condition_control_flow.kind, ControlFlowKind::Return) {
                 let condition_expr = self.get_expr(condition_expr_id);
-                return Err(Error::EmbeddedReturn(condition_expr.span));
+                return Err(Error::Unexpected(
+                    "embedded return in loop condition".to_string(),
+                    condition_expr.span,
+                ));
             }
             condition_boolean = condition_control_flow.value.unwrap_bool();
         }
@@ -1080,7 +1106,10 @@ impl<'a> PartialEvaluator<'a> {
         if non_qubit_relase_stmts_remain {
             let return_stmt =
                 self.get_stmt(return_stmt_id.expect("a return statement ID must have been set"));
-            Err(Error::EarlyReturn(return_stmt.span))
+            Err(Error::Unexpected(
+                "early return".to_string(),
+                return_stmt.span,
+            ))
         } else {
             Ok(last_control_flow)
         }
