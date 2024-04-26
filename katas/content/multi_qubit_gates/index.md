@@ -525,6 +525,14 @@ The Q# compiler will often be able to generate a controlled version of the opera
 In other cases, you'll need to define the controlled version of an operation manually.
 
 @[exercise]({
+    "id": "multi_qubit_gates__fredkin_gate",
+    "title": "Fredkin Gate",
+    "path": "./fredkin_gate/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+@[exercise]({
     "id": "multi_qubit_gates__controlled_rotation",
     "title": "Controlled Rotation",
     "path": "./controlled_rotation/",
@@ -557,6 +565,15 @@ $$
 $$
 
 To construct a multi-controlled version of an operation in Q#, you can use the Controlled functor as well, passing all control qubits as an array that is the first parameter.
+
+@[exercise]({
+    "id": "multi_qubit_gates__toffoli_gate",
+    "title": "Toffoli Gate",
+    "path": "./toffoli_gate/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 @[section]({
     "id": "multi_qubit_gates__other_controlled_gates",
@@ -626,6 +643,15 @@ The sequence of steps that implement this variant are:
 1. Apply the $X$ gate to each control qubit that corresponds to a `false` element of the bit mask (in the example, that's just the second qubit). After this, if the control qubits started in the $|10\rangle$ state, they'll end up in the $|11\rangle$ state, and if they started in any other state, they'll end up in any state but $|11\rangle$.
 2. Apply the regular controlled version of the gate.
 3. Apply the $X$ gate to the same qubits to return them to their original state.
+
+@[exercise]({
+    "id": "multi_qubit_gates__anti_controlled_gate",
+    "title": "Anti-Controlled Gate",
+    "path": "./anti_controlled_gate/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
 
 @[exercise]({
     "id": "multi_qubit_gates__arbitrary_controls",

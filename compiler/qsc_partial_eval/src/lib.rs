@@ -106,6 +106,13 @@ pub enum Error {
     #[error("failed to evaluate: {0} not yet implemented")]
     #[diagnostic(code("Qsc.PartialEval.Unimplemented"))]
     Unimplemented(String, #[label] Span),
+
+    #[error("unsupported Result literal in output")]
+    #[diagnostic(help(
+        "Result literals `One` and `Zero` cannot be included in generated QIR output recording."
+    ))]
+    #[diagnostic(code("Qsc.PartialEval.OutputResultLiteral"))]
+    OutputResultLiteral(#[label] Span),
 }
 
 struct PartialEvaluator<'a> {
@@ -235,10 +242,12 @@ impl<'a> PartialEvaluator<'a> {
 
         // Get the final value from the execution context.
         let ret_val = self.eval_context.get_current_scope().last_expr_value();
-        let output_recording: Vec<Instruction> = self.generate_output_recording_instructions(
-            ret_val,
-            &self.get_expr(self.entry.expr.expr).ty,
-        );
+        let output_recording: Vec<Instruction> = self
+            .generate_output_recording_instructions(
+                ret_val,
+                &self.get_expr(self.entry.expr.expr).ty,
+            )
+            .map_err(|()| Error::OutputResultLiteral(self.get_expr(self.entry.expr.expr).span))?;
 
         // Insert the return expression and return the generated program.
         let current_block = self.get_current_block_mut();
@@ -1044,12 +1053,14 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         ret_val: Value,
         ty: &Ty,
-    ) -> Vec<Instruction> {
+    ) -> Result<Vec<Instruction>, ()> {
         let mut instrs = Vec::new();
 
         match ret_val {
-            Value::Array(vals) => self.record_array(ty, &mut instrs, &vals),
-            Value::Tuple(vals) => self.record_tuple(ty, &mut instrs, &vals),
+            Value::Result(val::Result::Val(_)) => return Err(()),
+
+            Value::Array(vals) => self.record_array(ty, &mut instrs, &vals)?,
+            Value::Tuple(vals) => self.record_tuple(ty, &mut instrs, &vals)?,
             Value::Result(res) => self.record_result(&mut instrs, res),
             Value::Var(var) => self.record_variable(ty, &mut instrs, var),
             Value::Bool(val) => self.record_bool(&mut instrs, val),
@@ -1065,7 +1076,7 @@ impl<'a> PartialEvaluator<'a> {
             | Value::String(_) => panic!("unsupported value type in output recording"),
         }
 
-        instrs
+        Ok(instrs)
     }
 
     fn record_int(&mut self, instrs: &mut Vec<Instruction>, val: i64) {
@@ -1127,7 +1138,12 @@ impl<'a> PartialEvaluator<'a> {
         ));
     }
 
-    fn record_tuple(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, vals: &Rc<[Value]>) {
+    fn record_tuple(
+        &mut self,
+        ty: &Ty,
+        instrs: &mut Vec<Instruction>,
+        vals: &Rc<[Value]>,
+    ) -> Result<(), ()> {
         let Ty::Tuple(elem_tys) = ty else {
             panic!("expected tuple type for tuple value");
         };
@@ -1145,11 +1161,18 @@ impl<'a> PartialEvaluator<'a> {
             None,
         ));
         for (val, elem_ty) in vals.iter().zip(elem_tys.iter()) {
-            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty)?);
         }
+
+        Ok(())
     }
 
-    fn record_array(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, vals: &Rc<Vec<Value>>) {
+    fn record_array(
+        &mut self,
+        ty: &Ty,
+        instrs: &mut Vec<Instruction>,
+        vals: &Rc<Vec<Value>>,
+    ) -> Result<(), ()> {
         let Ty::Array(elem_ty) = ty else {
             panic!("expected array type for array value");
         };
@@ -1167,8 +1190,10 @@ impl<'a> PartialEvaluator<'a> {
             None,
         ));
         for val in vals.iter() {
-            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty));
+            instrs.extend(self.generate_output_recording_instructions(val.clone(), elem_ty)?);
         }
+
+        Ok(())
     }
 
     fn get_array_record_callable(&mut self) -> CallableId {
