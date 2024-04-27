@@ -9,7 +9,7 @@ mod evaluation_context;
 mod management;
 
 use evaluation_context::{
-    Arg, BlockNode, BranchControlFlow, ControlFlowKind, EvaluationContext, Scope, ValueControlFlow,
+    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, Scope,
 };
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
@@ -202,7 +202,7 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval(mut self) -> Result<Program, Error> {
         // Evaluate the entry-point expression.
-        let ret_val = self.try_eval_expr(self.entry.expr.expr)?.value;
+        let ret_val = self.try_eval_expr(self.entry.expr.expr)?.into_value();
         let output_recording: Vec<Instruction> = self
             .generate_output_recording_instructions(
                 ret_val,
@@ -230,7 +230,7 @@ impl<'a> PartialEvaluator<'a> {
         Ok(self.program)
     }
 
-    fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<ValueControlFlow, Error> {
+    fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
         let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
@@ -254,18 +254,18 @@ impl<'a> PartialEvaluator<'a> {
 
                 // Figure out the control flow kind.
                 let scope = self.eval_context.get_current_scope();
-                let kind = if scope.has_classical_evaluator_returned() {
-                    ControlFlowKind::Return
+                let eval_control_flow = if scope.has_classical_evaluator_returned() {
+                    EvalControlFlow::Return(value)
                 } else {
-                    ControlFlowKind::Continue
+                    EvalControlFlow::Continue(value)
                 };
-                Ok(ValueControlFlow { value, kind })
+                Ok(eval_control_flow)
             }
             Err((error, _)) => Err(Error::EvaluationFailed(error.to_string(), expr.span)),
         }
     }
 
-    fn eval_classical_stmt(&mut self, stmt_id: StmtId) -> Result<ValueControlFlow, Error> {
+    fn eval_classical_stmt(&mut self, stmt_id: StmtId) -> Result<EvalControlFlow, Error> {
         let current_package_id = self.get_current_package_id();
         let stmt = self.get_stmt(stmt_id);
         let scope_exec_graph = self.get_current_scope_exec_graph().clone();
@@ -288,18 +288,18 @@ impl<'a> PartialEvaluator<'a> {
 
                 // Figure out the control flow kind.
                 let scope = self.eval_context.get_current_scope();
-                let kind = if scope.has_classical_evaluator_returned() {
-                    ControlFlowKind::Return
+                let eval_control_flow = if scope.has_classical_evaluator_returned() {
+                    EvalControlFlow::Return(value)
                 } else {
-                    ControlFlowKind::Continue
+                    EvalControlFlow::Continue(value)
                 };
-                Ok(ValueControlFlow { value, kind })
+                Ok(eval_control_flow)
             }
             Err((error, _)) => Err(Error::EvaluationFailed(error.to_string(), stmt.span)),
         }
     }
 
-    fn eval_hybrid_expr(&mut self, expr_id: ExprId) -> Result<ValueControlFlow, Error> {
+    fn eval_hybrid_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
         let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
@@ -363,37 +363,37 @@ impl<'a> PartialEvaluator<'a> {
                 "Update Index Expr".to_string(),
                 expr.span,
             )),
-            ExprKind::Var(res, _) => Ok(ValueControlFlow::new_continue(self.eval_expr_var(res))),
+            ExprKind::Var(res, _) => Ok(EvalControlFlow::Continue(self.eval_expr_var(res))),
             ExprKind::While(condition_expr_id, body_block_id) => {
                 self.eval_expr_while(*condition_expr_id, *body_block_id)
             }
         }
     }
 
-    fn eval_hybrid_stmt(&mut self, stmt_id: StmtId) -> Result<ValueControlFlow, Error> {
+    fn eval_hybrid_stmt(&mut self, stmt_id: StmtId) -> Result<EvalControlFlow, Error> {
         let stmt = self.get_stmt(stmt_id);
         match stmt.kind {
             StmtKind::Expr(expr_id) => self.try_eval_expr(expr_id),
             StmtKind::Semi(expr_id) => {
                 let control_flow = self.try_eval_expr(expr_id)?;
-                match control_flow.kind {
-                    ControlFlowKind::Continue => Ok(ValueControlFlow::new_continue(Value::unit())),
-                    ControlFlowKind::Return => Ok(control_flow),
+                match control_flow {
+                    EvalControlFlow::Continue(_) => Ok(EvalControlFlow::Continue(Value::unit())),
+                    EvalControlFlow::Return(_) => Ok(control_flow),
                 }
             }
             StmtKind::Local(_, pat_id, expr_id) => {
                 let control_flow = self.try_eval_expr(expr_id)?;
-                match control_flow.kind {
-                    ControlFlowKind::Continue => {
-                        self.bind_value_to_pat(pat_id, control_flow.value);
-                        Ok(ValueControlFlow::new_continue(Value::unit()))
+                match control_flow {
+                    EvalControlFlow::Continue(value) => {
+                        self.bind_value_to_pat(pat_id, value);
+                        Ok(EvalControlFlow::Continue(Value::unit()))
                     }
-                    ControlFlowKind::Return => Ok(control_flow),
+                    EvalControlFlow::Return(_) => Ok(control_flow),
                 }
             }
             StmtKind::Item(_) => {
                 // Do nothing and return a continue unit value.
-                Ok(ValueControlFlow::new_continue(Value::unit()))
+                Ok(EvalControlFlow::Continue(Value::unit()))
             }
         }
     }
@@ -405,11 +405,11 @@ impl<'a> PartialEvaluator<'a> {
         bin_op: BinOp,
         lhs_expr_id: ExprId,
         rhs_expr_id: ExprId,
-    ) -> Result<ValueControlFlow, Error> {
+    ) -> Result<EvalControlFlow, Error> {
         // Try to evaluate both the LHS and RHS expressions to get their value, short-circuiting execution if any of the
         // expressions is a return.
         let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
-        if matches!(lhs_control_flow.kind, ControlFlowKind::Return) {
+        if lhs_control_flow.is_return() {
             let lhs_expr = self.get_expr(lhs_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in binary operation".to_string(),
@@ -417,7 +417,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         }
         let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-        if matches!(rhs_control_flow.kind, ControlFlowKind::Return) {
+        if rhs_control_flow.is_return() {
             let rhs_expr = self.get_expr(rhs_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in binary operation".to_string(),
@@ -427,15 +427,17 @@ impl<'a> PartialEvaluator<'a> {
 
         // Get the operands to use when generating the binary operation instruction depending on the type of the
         // expression's value.
-        let lhs_operand = if let Value::Result(result) = lhs_control_flow.value {
+        let lhs_value = lhs_control_flow.into_value();
+        let lhs_operand = if let Value::Result(result) = lhs_value {
             self.eval_result_as_bool_operand(result)
         } else {
-            map_eval_value_to_rir_operand(&lhs_control_flow.value)
+            map_eval_value_to_rir_operand(&lhs_value)
         };
-        let rhs_operand = if let Value::Result(result) = rhs_control_flow.value {
+        let rhs_value = rhs_control_flow.into_value();
+        let rhs_operand = if let Value::Result(result) = rhs_value {
             self.eval_result_as_bool_operand(result)
         } else {
-            map_eval_value_to_rir_operand(&rhs_control_flow.value)
+            map_eval_value_to_rir_operand(&rhs_value)
         };
 
         // Create a variable to store the result of the expression.
@@ -463,17 +465,17 @@ impl<'a> PartialEvaluator<'a> {
 
         // Return the variable as a value.
         let value = Value::Var(Var(variable_id.into()));
-        Ok(ValueControlFlow::new_continue(value))
+        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_expr_call(
         &mut self,
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
-    ) -> Result<ValueControlFlow, Error> {
+    ) -> Result<EvalControlFlow, Error> {
         // Visit the both the callee and arguments expressions to get their values.
         let callee_control_flow = self.try_eval_expr(callee_expr_id)?;
-        if matches!(callee_control_flow.kind, ControlFlowKind::Return) {
+        if callee_control_flow.is_return() {
             let callee_expr = self.get_expr(callee_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in callee".to_string(),
@@ -482,7 +484,7 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         let args_control_flow = self.try_eval_expr(args_expr_id)?;
-        if matches!(args_control_flow.kind, ControlFlowKind::Return) {
+        if args_control_flow.is_return() {
             let args_expr = self.get_expr(args_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in call arguments".to_string(),
@@ -491,7 +493,7 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Get the callable.
-        let (store_item_id, functor_app) = callee_control_flow.value.unwrap_global();
+        let (store_item_id, functor_app) = callee_control_flow.into_value().unwrap_global();
         let global = self
             .package_store
             .get_global(store_item_id)
@@ -507,17 +509,17 @@ impl<'a> PartialEvaluator<'a> {
             CallableImpl::Intrinsic => self.eval_expr_call_to_intrinsic(
                 store_item_id,
                 callable_decl,
-                args_control_flow.value,
+                args_control_flow.into_value(),
             ),
             CallableImpl::Spec(spec_impl) => self.eval_expr_call_to_spec(
                 store_item_id,
                 functor_app,
                 spec_impl,
                 callable_decl.input,
-                args_control_flow.value,
+                args_control_flow.into_value(),
             )?,
         };
-        Ok(ValueControlFlow::new_continue(value))
+        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_expr_call_to_intrinsic(
@@ -598,7 +600,7 @@ impl<'a> PartialEvaluator<'a> {
             args,
         );
         self.eval_context.push_scope(call_scope);
-        let block_value = self.try_eval_block(spec_decl.block)?.value;
+        let block_value = self.try_eval_block(spec_decl.block)?.into_value();
         let popped_scope = self.eval_context.pop_scope();
         assert!(
             popped_scope.package_id == global_callable_id.package,
@@ -621,10 +623,10 @@ impl<'a> PartialEvaluator<'a> {
         condition_expr_id: ExprId,
         body_expr_id: ExprId,
         otherwise_expr_id: Option<ExprId>,
-    ) -> Result<ValueControlFlow, Error> {
+    ) -> Result<EvalControlFlow, Error> {
         // Visit the the condition expression to get its value.
         let condition_control_flow = self.try_eval_expr(condition_expr_id)?;
-        if matches!(condition_control_flow.kind, ControlFlowKind::Return) {
+        if condition_control_flow.is_return() {
             let condition_expr = self.get_expr(condition_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in if condition".to_string(),
@@ -634,7 +636,8 @@ impl<'a> PartialEvaluator<'a> {
 
         // If the condition value is a Boolean literal, use the value to decide which branch to
         // evaluate.
-        if let Value::Bool(condition_bool) = condition_control_flow.value {
+        let condition_value = condition_control_flow.into_value();
+        if let Value::Bool(condition_bool) = condition_value {
             return self.eval_expr_if_with_classical_condition(
                 condition_bool,
                 body_expr_id,
@@ -672,7 +675,7 @@ impl<'a> PartialEvaluator<'a> {
             self.eval_expr_if_branch(body_expr_id, continuation_block_node_id, maybe_if_expr_var)?;
         let if_true_block_id = match if_true_branch_control_flow {
             BranchControlFlow::Block(block_id) => block_id,
-            BranchControlFlow::Return(value) => return Ok(ValueControlFlow::new_return(value)),
+            BranchControlFlow::Return(value) => return Ok(EvalControlFlow::Return(value)),
         };
 
         // Evaluate the otherwise expression (if any), and determine the block to branch to if the condition is false.
@@ -684,14 +687,14 @@ impl<'a> PartialEvaluator<'a> {
             )?;
             match if_false_branch_control_flow {
                 BranchControlFlow::Block(block_id) => block_id,
-                BranchControlFlow::Return(value) => return Ok(ValueControlFlow::new_return(value)),
+                BranchControlFlow::Return(value) => return Ok(EvalControlFlow::Return(value)),
             }
         } else {
             continuation_block_node_id
         };
 
         // Finally, we insert the branch instruction.
-        let condition_value_var = condition_control_flow.value.unwrap_var();
+        let condition_value_var = condition_value.unwrap_var();
         let condition_rir_var = rir::Variable {
             variable_id: condition_value_var.0.into(),
             ty: rir::Ty::Boolean,
@@ -708,7 +711,7 @@ impl<'a> PartialEvaluator<'a> {
         } else {
             Value::unit()
         };
-        Ok(ValueControlFlow::new_continue(if_expr_value))
+        Ok(EvalControlFlow::Continue(if_expr_value))
     }
 
     fn eval_expr_if_branch(
@@ -727,13 +730,13 @@ impl<'a> PartialEvaluator<'a> {
 
         // Evaluate the branch body expression.
         let body_control = self.try_eval_expr(branch_body_expr_id)?;
-        if matches!(body_control.kind, ControlFlowKind::Return) {
-            return Ok(BranchControlFlow::Return(body_control.value));
+        if body_control.is_return() {
+            return Ok(BranchControlFlow::Return(body_control.into_value()));
         }
 
         // If there is a variable to save the value of the if expression to, add a store instruction.
         if let Some(if_expr_var) = if_expr_var {
-            let body_operand = map_eval_value_to_rir_operand(&body_control.value);
+            let body_operand = map_eval_value_to_rir_operand(&body_control.into_value());
             let store_ins = Instruction::Store(body_operand, if_expr_var);
             self.get_current_rir_block_mut().0.push(store_ins);
         }
@@ -750,7 +753,7 @@ impl<'a> PartialEvaluator<'a> {
         condition_bool: bool,
         body_expr_id: ExprId,
         otherwise_expr_id: Option<ExprId>,
-    ) -> Result<ValueControlFlow, Error> {
+    ) -> Result<EvalControlFlow, Error> {
         if condition_bool {
             self.try_eval_expr(body_expr_id)
         } else if let Some(otherwise_expr_id) = otherwise_expr_id {
@@ -759,45 +762,45 @@ impl<'a> PartialEvaluator<'a> {
             // The classical condition evaluated to false, but there is not otherwise block so there is nothing to
             // evaluate.
             // Return unit since it is the only possibility for if expressions with no otherwise block.
-            Ok(ValueControlFlow::new_continue(Value::unit()))
+            Ok(EvalControlFlow::Continue(Value::unit()))
         }
     }
 
-    fn eval_expr_return(&mut self, expr_id: ExprId) -> Result<ValueControlFlow, Error> {
+    fn eval_expr_return(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
         let control_flow = self.try_eval_expr(expr_id)?;
-        Ok(ValueControlFlow::new_return(control_flow.value))
+        Ok(EvalControlFlow::Return(control_flow.into_value()))
     }
 
-    fn eval_expr_array(&mut self, exprs: &Vec<ExprId>) -> Result<ValueControlFlow, Error> {
+    fn eval_expr_array(&mut self, exprs: &Vec<ExprId>) -> Result<EvalControlFlow, Error> {
         let mut values = Vec::with_capacity(exprs.len());
         for expr_id in exprs {
             let control_flow = self.try_eval_expr(*expr_id)?;
-            if matches!(control_flow.kind, ControlFlowKind::Return) {
+            if control_flow.is_return() {
                 let expr = self.get_expr(*expr_id);
                 return Err(Error::Unexpected(
                     "embedded return in array".to_string(),
                     expr.span,
                 ));
             }
-            values.push(control_flow.value);
+            values.push(control_flow.into_value());
         }
-        Ok(ValueControlFlow::new_continue(Value::Array(values.into())))
+        Ok(EvalControlFlow::Continue(Value::Array(values.into())))
     }
 
-    fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<ValueControlFlow, Error> {
+    fn eval_expr_tuple(&mut self, exprs: &Vec<ExprId>) -> Result<EvalControlFlow, Error> {
         let mut values = Vec::with_capacity(exprs.len());
         for expr_id in exprs {
             let control_flow = self.try_eval_expr(*expr_id)?;
-            if matches!(control_flow.kind, ControlFlowKind::Return) {
+            if control_flow.is_return() {
                 let expr = self.get_expr(*expr_id);
                 return Err(Error::Unexpected(
                     "embedded return in tuple".to_string(),
                     expr.span,
                 ));
             }
-            values.push(control_flow.value);
+            values.push(control_flow.into_value());
         }
-        Ok(ValueControlFlow::new_continue(Value::Tuple(values.into())))
+        Ok(EvalControlFlow::Continue(Value::Tuple(values.into())))
     }
 
     fn eval_expr_var(&mut self, res: &Res) -> Value {
@@ -822,7 +825,7 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         condition_expr_id: ExprId,
         body_block_id: BlockId,
-    ) -> Result<ValueControlFlow, Error> {
+    ) -> Result<EvalControlFlow, Error> {
         // Verify assumptions.
         assert!(
             self.is_classical_expr(condition_expr_id),
@@ -837,35 +840,35 @@ impl<'a> PartialEvaluator<'a> {
 
         // Evaluate the block until the loop condition is false.
         let mut condition_control_flow = self.try_eval_expr(condition_expr_id)?;
-        if matches!(condition_control_flow.kind, ControlFlowKind::Return) {
+        if condition_control_flow.is_return() {
             let condition_expr = self.get_expr(condition_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in loop condition".to_string(),
                 condition_expr.span,
             ));
         }
-        let mut condition_boolean = condition_control_flow.value.unwrap_bool();
+        let mut condition_boolean = condition_control_flow.into_value().unwrap_bool();
         while condition_boolean {
             // Evaluate the loop block.
             let block_control_flow = self.try_eval_block(body_block_id)?;
-            if matches!(block_control_flow.kind, ControlFlowKind::Return) {
+            if block_control_flow.is_return() {
                 return Ok(block_control_flow);
             }
 
             // Re-evaluate the condition now that the block evaluation is done
             condition_control_flow = self.try_eval_expr(condition_expr_id)?;
-            if matches!(condition_control_flow.kind, ControlFlowKind::Return) {
+            if condition_control_flow.is_return() {
                 let condition_expr = self.get_expr(condition_expr_id);
                 return Err(Error::Unexpected(
                     "embedded return in loop condition".to_string(),
                     condition_expr.span,
                 ));
             }
-            condition_boolean = condition_control_flow.value.unwrap_bool();
+            condition_boolean = condition_control_flow.into_value().unwrap_bool();
         }
 
         // We have evaluated the loop so just return unit as the value of this loop expression.
-        Ok(ValueControlFlow::new_continue(Value::unit()))
+        Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
     fn eval_result_as_bool_operand(&mut self, result: val::Result) -> Operand {
@@ -1102,16 +1105,16 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn try_eval_block(&mut self, block_id: BlockId) -> Result<ValueControlFlow, Error> {
+    fn try_eval_block(&mut self, block_id: BlockId) -> Result<EvalControlFlow, Error> {
         let block = self.get_block(block_id);
         let mut return_stmt_id = None;
-        let mut last_control_flow = ValueControlFlow::new_continue(Value::unit());
+        let mut last_control_flow = EvalControlFlow::Continue(Value::unit());
 
         // Iterate through the statements until we hit a return or reach the last statement.
         let mut stmts_iter = block.stmts.iter();
         for stmt_id in stmts_iter.by_ref() {
             last_control_flow = self.try_eval_stmt(*stmt_id)?;
-            if matches!(last_control_flow.kind, ControlFlowKind::Return) {
+            if last_control_flow.is_return() {
                 return_stmt_id = Some(*stmt_id);
                 break;
             }
@@ -1133,7 +1136,7 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<ValueControlFlow, Error> {
+    fn try_eval_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
         // An expression is evaluated differently depending on whether it is purely classical or hybrid.
         if self.is_classical_expr(expr_id) {
             self.eval_classical_expr(expr_id)
@@ -1142,7 +1145,7 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn try_eval_stmt(&mut self, stmt_id: StmtId) -> Result<ValueControlFlow, Error> {
+    fn try_eval_stmt(&mut self, stmt_id: StmtId) -> Result<EvalControlFlow, Error> {
         // If the statement is classical, we can just evaluate it.
         if self.is_classical_stmt(stmt_id) {
             self.eval_classical_stmt(stmt_id)

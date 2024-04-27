@@ -194,36 +194,27 @@ pub enum BranchControlFlow {
     Return(Value),
 }
 
-/// An association between a value and a control flow option.
-pub struct ValueControlFlow {
-    /// The value associated to a control flow option.
-    pub value: Value,
-    /// The control flow option.
-    pub kind: ControlFlowKind,
+/// Represents the possible control flow options that an evaluation can have.
+pub enum EvalControlFlow {
+    Continue(Value),
+    Return(Value),
 }
 
-impl ValueControlFlow {
-    pub fn new_continue(value: Value) -> Self {
-        Self {
-            kind: ControlFlowKind::Continue,
-            value,
+impl EvalControlFlow {
+    /// Consumes the evaluation control flow and returns its value.
+    pub fn into_value(self) -> Value {
+        match self {
+            EvalControlFlow::Continue(value) | EvalControlFlow::Return(value) => value,
         }
     }
 
-    pub fn new_return(value: Value) -> Self {
-        Self {
-            kind: ControlFlowKind::Return,
-            value,
+    /// Whether this evaluation control flow is a return.
+    pub fn is_return(&self) -> bool {
+        match self {
+            Self::Continue(_) => false,
+            Self::Return(_) => true,
         }
     }
-}
-
-/// Represents control flow options.
-pub enum ControlFlowKind {
-    /// Continue normal evaluation.
-    Continue,
-    /// Return from current call scope.
-    Return,
 }
 
 fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
