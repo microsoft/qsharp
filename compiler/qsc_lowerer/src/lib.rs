@@ -274,6 +274,9 @@ impl Lowerer {
 
     fn lower_block(&mut self, block: &hir::Block) -> BlockId {
         let id = self.assigner.next_block();
+        if self.enable_debug {
+            self.exec_graph.push(ExecGraphNode::PushScope);
+        }
         let set_unit = block.stmts.is_empty()
             || !matches!(
                 block.stmts.last().expect("block should be non-empty").kind,
@@ -287,6 +290,9 @@ impl Lowerer {
         };
         if set_unit {
             self.exec_graph.push(ExecGraphNode::Unit);
+        }
+        if self.enable_debug {
+            self.exec_graph.push(ExecGraphNode::PopScope);
         }
         self.blocks.insert(id, block);
         id
