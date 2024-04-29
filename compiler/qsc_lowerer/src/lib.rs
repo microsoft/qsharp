@@ -274,6 +274,15 @@ impl Lowerer {
 
     fn lower_block(&mut self, block: &hir::Block) -> BlockId {
         let id = self.assigner.next_block();
+        // When lowering for debugging, we need to be more strict about scoping for variables
+        // otherwise variables that are not in scope will be visible in the locals view.
+        // We push a scope entry marker, `PushScope`, here and then a `PopScope` marker at the
+        // end of the block, which will cause the evaluation logic to track local variables
+        // for this block in the innermost scope matching their actual accessibility.
+        // When not in debug mode, variables may persist across block boundaries, but all access
+        // is performed via their lowered local variable ID, so they cannot be accessed outside of
+        // their scope. Associated memory is still cleaned up at callable exit rather than block
+        // exit.
         if self.enable_debug {
             self.exec_graph.push(ExecGraphNode::PushScope);
         }
