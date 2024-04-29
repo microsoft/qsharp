@@ -10,7 +10,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::{Item, ItemKind, VecIdent};
+use qsc_ast::ast::{Item, ItemKind, Namespace, VecIdent};
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path, TopLevelNode},
@@ -28,7 +28,9 @@ use qsc_hir::assigner::Assigner as HirAssigner;
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
 use std::rc::Rc;
+use qsc_ast::visit::walk_namespace;
 
+#[derive(Debug)]
 enum Change {
     Res(Res),
     NamespaceId(NamespaceId),
@@ -50,7 +52,7 @@ struct Renamer<'a> {
     names: &'a Names,
     changes: Vec<(Span, Change)>,
     namespaces: NamespaceTreeRoot,
-    aliases: FxHashMap<Vec<std::rc::Rc<str>>, NamespaceId>,
+    aliases: FxHashMap<Vec<Rc<str>>, NamespaceId>,
 }
 
 impl<'a> Renamer<'a> {
@@ -78,7 +80,12 @@ impl<'a> Renamer<'a> {
                 },
                 Change::NamespaceId(ns_id) => format!("namespace{}", Into::<usize>::into(ns_id)),
             };
+            println!("before replace range");
+            dbg!(&change);
+            dbg!(&input);
+            dbg!(&input[span.lo as usize..span.hi as usize]);
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
+            println!("after replace range");
         }
     }
 }
@@ -99,11 +106,23 @@ impl Visitor<'_> for Renamer<'_> {
     }
 
     fn visit_item(&mut self, item: &'_ Item) {
-        if let ItemKind::Open(namespace, Some(alias)) = &*item.kind {
-            let Some(ns_id) = self.namespaces.get_namespace_id(namespace.str_iter()) else {
-                return;
-            };
-            self.aliases.insert(vec![alias.name.clone()], ns_id);
+        match &*item.kind {
+            ItemKind::Open(namespace, Some(alias)) => {
+                let Some(ns_id) = self.namespaces.get_namespace_id(namespace.str_iter()) else {
+                    return;
+                };
+                self.aliases.insert(vec![alias.name.clone()], ns_id);
+            }
+            ItemKind::Export(export) => {
+                println!("there are {} exports", export.items().count());
+                for item in export.items() {
+
+                    if let Some(resolved_id) = self.names.get(item.id) {
+                        self.changes.push((item.span, (*resolved_id).into()));
+                    }
+                }
+            }
+            _ => ()
         }
         visit::walk_item(self, item);
     }
@@ -2827,12 +2846,39 @@ namespace Kata.Verification {
 #[test]
 fn test_export_statement() {
     check(
-        indoc! {"namespace Kata {
+        indoc! {"namespace Foo {
     operation ApplyX() : Unit {
     }
     export { ApplyX };
 }
 " },
-        &expect![[r#" "#]],
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                }
+                export { item1};
+            }
+        "#]],
     );
+}
+
+#[test]
+fn test_complicated_nested_export_statement() {
+        check(
+            indoc! {
+"namespace Foo {
+    export { Foo.Bar.FooBarBazQuux };
+}
+namespace Foo.Bar.Baz.Quux {
+    function FooBarBazQuux() : Unit {}
+}
+
+namespace Foo.Bar {
+   open Foo.Bar.Baz;
+    export { Quux.FooBarBazQuux };
+}
+
+namespace Main {}" },
+            &expect![[r#""#]],
+        );
 }

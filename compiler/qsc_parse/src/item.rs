@@ -139,7 +139,6 @@ pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Resul
     let items = parse_namespace_block_contents(s)?;
     let span = s.span(lo);
     let namespace_name = file_name_to_namespace_name(file_name, span)?;
-    todo!("Assign exports here, pull them from the items, resolve them, then filter them out in lowering");
     Ok(Namespace {
         id: NodeId::default(),
         span,
@@ -227,13 +226,9 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
         items: items.into_boxed_slice(),
     })
 }
-pub(super) struct NamespaceBlockContents {
-    exports: Option<ExportDecl>,
-    items: Vec<Box<Item>>,
-}
+
 /// Parses the contents of a namespace block, what is in between the open and close braces in an
 /// explicit namespace, and any top level items in an implicit namespace.
-
 fn parse_namespace_block_contents(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     Ok(items)

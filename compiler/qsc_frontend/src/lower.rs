@@ -137,6 +137,17 @@ impl With<'_> {
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
             .collect();
 
+        // for each exported item, convert it into a regular item in this namespace
+        let exports = namespace.exports();
+        for export in exports {
+
+            // get the item this export is referring to
+            let item = match self.names.get(export.id) {
+                Some(&resolve::Res::Item(item, _)) => item,
+                _ => panic!("export should have item ID"),
+            };
+        }
+
         let name = self.lower_vec_ident(&namespace.name);
         self.lowerer.items.push(hir::Item {
             id,

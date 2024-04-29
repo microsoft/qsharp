@@ -14,6 +14,7 @@ use std::{
     hash::{Hash, Hasher},
     rc::Rc,
 };
+use crate::ast;
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
@@ -167,6 +168,15 @@ pub struct Namespace {
     pub name: VecIdent,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
+}
+
+impl Namespace {
+    pub fn exports(&self) -> impl Iterator<Item = &Path> {
+        self.items.iter().filter_map(|i| match *i.kind {
+          ItemKind::Export(ref export) => Some(&*export.items),
+           _ => None,
+        }).flatten()
+    }
 }
 
 impl Display for Namespace {
@@ -1696,7 +1706,7 @@ pub struct ExportDecl {
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
-    pub items: Vec<VecIdent>,
+    pub items: Vec<Path>,
 }
 
 impl Display for ExportDecl {
@@ -1704,9 +1714,15 @@ impl Display for ExportDecl {
         let items_str = self
             .items
             .iter()
-            .map(|i| i.name())
+            .map(|i| i.to_string())
             .collect::<Vec<_>>()
             .join(", ");
         write!(f, "ExportDecl {}: [{items_str}]", self.span)
+    }
+}
+
+impl ExportDecl {
+    pub fn items(&self) -> impl Iterator<Item = &Path> {
+        self.items.iter()
     }
 }

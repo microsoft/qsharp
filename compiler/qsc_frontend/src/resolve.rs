@@ -573,8 +573,26 @@ impl Resolver {
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
-            ast::ItemKind::Export(_) => {
-                // do nothing, because this is resolved in the namespace resolution stage
+            ast::ItemKind::Export(export) => {
+                // resolve the exported item and insert the vec ident into the names table, so we can access it in
+                // lowering
+                for item in export.items() {
+                    println!("Line 580, doing: {} ", item.name);
+                    let resolved_item = match resolve(
+                        NameKind::Term,
+                        &self.globals,
+                        self.locals.get_scopes(&self.curr_scope_chain),
+                        &*item.name,
+                        &item.namespace,
+                    ) {
+                        Ok(res) => res,
+                        Err(err) => {
+                            self.errors.push(err);
+                            continue;
+                        }
+                    };
+                    self.names.insert(dbg!(item.id), resolved_item);
+                }
             }
             ast::ItemKind::Err => {}
         }
@@ -677,8 +695,14 @@ impl AstVisitor<'_> for With<'_> {
             // a re-opened namespace would only have knowledge of its scopes.
             visitor.resolver.bind_open(&namespace.name, &None);
             for item in &*namespace.items {
-                if let ast::ItemKind::Open(name, alias) = &*item.kind {
-                    visitor.resolver.bind_open(name, alias);
+                match &*item.kind {
+                    ast::ItemKind::Open(name, alias) => {
+                        visitor.resolver.bind_open(name, alias);
+                    }
+                    ast::ItemKind::Export(_) => {
+                        visitor.resolver.bind_local_item(visitor.assigner, item);
+                    }
+                    _ => {}
                 }
             }
             ast_visit::walk_namespace(visitor, namespace);
