@@ -259,9 +259,9 @@ Sometimes $\theta$ will be referred to as the number's **argument** or **phase**
 > In Q#, complex numbers in polar form are represented as user-defined type `ComplexPolar` from the `Microsoft.Quantum.Math` namespace. 
 > 
 > You can convert a complex number $x = r \cdot e^{i\theta}$ into a tuple of two `Double` numbers using unwrap operator and tuple deconstruction: `let (r, theta) = x!;`, 
-> or access its real and imaginary parts using their names: `let (r, theta) = (x::Magnitude, x::Argument);`.
+> or access its magnitude and phase using their names: `let (r, theta) = (x::Magnitude, x::Argument);`.
 > 
-> You can construct a complex number from its real and imaginary parts as follows: `let x = ComplexPolar(r, theta);`.
+> You can construct a complex number from its magnitude and phase as follows: `let x = ComplexPolar(r, theta);`.
 
 @[exercise]({ 
     "id": "complex_arithmetic__cartesian_to_polar", 
