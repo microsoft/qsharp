@@ -1673,3 +1673,12 @@ pub enum SetOp {
     /// The set intersection.
     Intersect,
 }
+
+pub struct ExportDecl {
+    /// The node ID.
+    pub id: NodeId,
+    /// The span.
+    pub span: Span,
+    /// The items being exported from this namespace.
+    pub items: Vec<VecIdent>
+}

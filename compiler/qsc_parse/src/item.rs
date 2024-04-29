@@ -26,7 +26,7 @@ use crate::{
 use qsc_ast::ast::{
     Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
     NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
-    TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind,
+    TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind, ExportDecl,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -42,6 +42,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
+    } else if let Some(export) = opt(s, parse_export)? {
+        todo!()
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
         s.push_error(Error(ErrorKind::FloatingVisibility(err_item.span)));
@@ -383,6 +385,32 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
         Err(Error(ErrorKind::Convert("identifier", "type", ty.span)))
     }
 }
+
+/// Parses an export statement. Exports start with the `export` keyword, followed by a curly brace
+/// and a list of items.
+///
+/// ```qsharp
+/// export {
+///     Foo,
+///     Bar.Baz,
+/// };
+/// ```
+fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
+    let lo = s.peek().span.lo;
+    let _doc = parse_doc(s);
+    let _export_keyword = token(s, TokenKind::Keyword(Keyword::Export))?;
+    let _open_brace = token(s, TokenKind::Open(Delim::Brace))?;
+    let items = seq(s, path)?;
+    let _close_brace = token(s, TokenKind::Close(Delim::Brace))?;
+    let _semi = token(s, TokenKind::Semi)?;
+
+    Ok(ExportDecl {
+        id: NodeId::default(),
+        span: s.span(lo),
+        items: items.0.into_iter().map(Into::into).collect::<Vec<_>>(),
+    })
+}
+
 
 fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
