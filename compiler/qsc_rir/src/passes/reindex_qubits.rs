@@ -148,7 +148,7 @@ impl ReindexQubitPass {
         block: &mut Block,
         qubit_map: &mut BlockQubitMap,
     ) {
-        let instrs = block.0.drain(..).collect::<Vec<_>>();
+        let instrs = std::mem::take(&mut block.0);
         for instr in instrs {
             // Assume qubits only appear in void call instructions.
             match instr {
