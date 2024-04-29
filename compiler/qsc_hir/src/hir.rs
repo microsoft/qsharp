@@ -549,6 +549,8 @@ pub enum StmtKind {
     Qubit(QubitSource, Pat, QubitInit, Option<Block>),
     /// An expression with a trailing semicolon.
     Semi(Expr),
+    /// An export statement.
+    Export(ExportDecl),
 }
 
 impl Display for StmtKind {
@@ -573,6 +575,7 @@ impl Display for StmtKind {
                 }
             }
             StmtKind::Semi(e) => write!(indent, "Semi: {e}")?,
+            StmtKind::Export(export) => write!(indent, "Export: {export}")?,
         }
         Ok(())
     }
@@ -1535,4 +1538,20 @@ pub enum BinOp {
     Sub,
     /// Bitwise XOR: `^^^`.
     XorB,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Represents an export declaration.
+pub struct ExportDecl {
+    /// The span.
+    pub span: Span,
+    /// The items being exported from this namespace.
+    pub items: Vec<VecIdent>
+}
+
+impl Display for ExportDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let items_str = self.items.iter().map(|i| i.name()).collect::<Vec<_>>().join(", ");
+        write!(f, "ExportDecl {}: [{items_str}]", self.span)
+    }
 }

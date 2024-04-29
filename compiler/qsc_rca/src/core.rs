@@ -1711,6 +1711,10 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 // An item statement does not have any inherent quantum properties, so we just treat it as classical compute.
                 ComputeKind::Classical
             }
+            StmtKind::Export(_) => {
+                // An export statement does not have any inherent quantum properties, so we just treat it as classical compute.
+                ComputeKind::Classical
+            }
         };
 
         // Insert the statements's compute kind into the application instance.

@@ -121,6 +121,9 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
             vis.visit_pat(pat);
             vis.visit_qubit_init(init);
             block.iter_mut().for_each(|b| vis.visit_block(b));
+        },
+        StmtKind::Export(export) => {
+            export.items.iter_mut().for_each(|i| vis.visit_vec_ident(i));
         }
     }
 }

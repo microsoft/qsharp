@@ -17,10 +17,10 @@ use crate::{
     prim::{barrier, recovering, recovering_semi, recovering_token},
     ErrorKind,
 };
-use qsc_ast::ast::{
-    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
-};
+use qsc_ast::ast::{Block, ExportDecl, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind};
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
+use crate::item::parse_doc;
+use crate::prim::path;
 
 pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
     let lo = s.peek().span.lo;
@@ -32,6 +32,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Stmt>> {
         local
     } else if let Some(qubit) = opt(s, parse_qubit)? {
         qubit
+    } else if let Some(export) = opt(s, parse_export)? {
+        todo!()
     } else {
         let e = expr_stmt(s)?;
         if token(s, TokenKind::Semi).is_ok() {
@@ -180,4 +182,28 @@ pub(super) fn check_semis(s: &mut ParserContext, stmts: &[Box<Stmt>]) {
             s.push_error(Error(ErrorKind::MissingSemi(span)));
         }
     }
+}
+
+/// Parses an export statement. Exports start with the `export` keyword, followed by a curly brace
+/// and a list of items.
+///
+/// ```qsharp
+/// export {
+///     Foo,
+///     Bar.Baz,
+/// };
+/// ```
+fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
+    let lo = s.peek().span.lo;
+    let _doc = parse_doc(s);
+    let _export_keyword = token(s, TokenKind::Keyword(Keyword::Export))?;
+    let _open_brace = token(s, TokenKind::Open(Delim::Brace))?;
+    let items = seq(s, path)?;
+    let _close_brace = token(s, TokenKind::Close(Delim::Brace))?;
+    let _semi = token(s, TokenKind::Semi)?;
+
+    Ok(ExportDecl {
+        span: s.span(lo),
+        items: items.0.into_iter().map(|x| (*x).into()).collect::<Vec<_>>(),
+    })
 }

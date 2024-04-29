@@ -3,7 +3,7 @@
 
 use qsc_data_structures::index_map::IndexMap;
 use qsc_fir::assigner::Assigner;
-use qsc_fir::fir::{Block, CallableImpl, ExecGraphNode, Expr, Pat, SpecImpl, Stmt};
+use qsc_fir::fir::{Block, CallableImpl, ExecGraphNode, ExportDecl, Expr, Pat, SpecImpl, Stmt};
 use qsc_fir::{
     fir::{self, BlockId, ExprId, LocalItemId, PatId, StmtId},
     ty::{Arrow, InferFunctorId, ParamId, Ty},
@@ -313,6 +313,12 @@ impl Lowerer {
             hir::StmtKind::Semi(expr) => {
                 let expr = self.lower_expr(expr);
                 fir::StmtKind::Semi(expr)
+            },
+            hir::StmtKind::Export(export) => {
+                fir::StmtKind::Export (ExportDecl{
+                    span: export.span,
+                    items: export.items.iter().map(|i| self.lower_vec_ident(i)).collect(),
+                })
             }
         };
         let stmt = fir::Stmt {

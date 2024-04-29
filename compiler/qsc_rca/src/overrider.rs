@@ -246,7 +246,7 @@ impl<'a> Visitor<'a> for Overrider<'a> {
         let stmt = self.get_stmt(id);
         let stmt_type = match stmt.kind {
             StmtKind::Expr(expr_id) => self.get_expr(expr_id).ty.clone(),
-            StmtKind::Item(_) | StmtKind::Local(_, _, _) | StmtKind::Semi(_) => Ty::UNIT,
+            StmtKind::Item(_) | StmtKind::Local(_, _, _) | StmtKind::Semi(_) | StmtKind::Export(_) => Ty::UNIT,
         };
         let application_generator_set = adapt_application_generator_set_to_type(
             self.get_current_application_generator_set(),

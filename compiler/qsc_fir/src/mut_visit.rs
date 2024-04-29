@@ -120,6 +120,9 @@ pub fn walk_stmt<'a>(vis: &mut impl MutVisitor<'a>, id: StmtId) {
         StmtKind::Local(_, pat, value) => {
             vis.visit_pat(*pat);
             vis.visit_expr(*value);
+        },
+        StmtKind::Export(export) => {
+            export.items.iter_mut().for_each(|i| vis.visit_vec_ident(i));
         }
     }
 }

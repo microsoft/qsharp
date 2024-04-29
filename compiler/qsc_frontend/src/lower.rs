@@ -20,6 +20,7 @@ use qsc_hir::{
 };
 use std::{clone::Clone, rc::Rc, str::FromStr, vec};
 use thiserror::Error;
+use qsc_hir::hir::ExportDecl;
 
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub(super) enum Error {
@@ -189,7 +190,7 @@ impl With<'_> {
                     .expect("type item should have lowered UDT");
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
-            }
+            },
         };
 
         self.lowerer.items.push(hir::Item {
@@ -392,6 +393,12 @@ impl With<'_> {
                 block.as_ref().map(|b| self.lower_block(b)),
             ),
             ast::StmtKind::Semi(expr) => hir::StmtKind::Semi(self.lower_expr(expr)),
+            ast::StmtKind::Export(export) => {
+                hir::StmtKind::Export(ExportDecl {
+                    span: export.span,
+                    items: export.items.iter().map(|x| self.lower_vec_ident(x)).collect()
+                })
+            }
         };
 
         Some(hir::Stmt {
@@ -835,3 +842,4 @@ fn is_partial_app(arg: &ast::Expr) -> bool {
         _ => false,
     }
 }
+

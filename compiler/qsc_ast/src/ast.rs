@@ -694,6 +694,8 @@ pub enum StmtKind {
     Qubit(QubitSource, Box<Pat>, Box<QubitInit>, Option<Box<Block>>),
     /// An expression with a trailing semicolon.
     Semi(Box<Expr>),
+    /// An `export` declaration
+    Export(ExportDecl),
     /// An invalid statement.
     #[default]
     Err,
@@ -723,6 +725,8 @@ impl Display for StmtKind {
             }
             StmtKind::Semi(e) => write!(indent, "Semi: {e}")?,
             StmtKind::Err => indent.write_str("Err")?,
+            StmtKind::Export(decl) => write!(f, "Export ({decl})")?,
+
         }
         Ok(())
     }
@@ -1384,6 +1388,16 @@ impl FromIterator<Ident> for VecIdent {
     }
 }
 
+impl From<Path> for VecIdent {
+    fn from(p: Path) -> Self {
+        let mut buf = p.namespace.unwrap_or_default();
+        buf.0.push(*p.name);
+        buf
+
+    }
+
+}
+
 impl VecIdent {
     /// constructs an iterator over the [Ident]s that this contains.
     /// see [`Self::str_iter`] for an iterator over the string slices of the [Ident]s.
@@ -1419,6 +1433,11 @@ impl VecIdent {
             buf.push_str(&ident.name);
         }
         buf
+    }
+
+    /// The number of idents in this [`VecIdent`].
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
@@ -1674,11 +1693,18 @@ pub enum SetOp {
     Intersect,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// Represents an export declaration.
 pub struct ExportDecl {
-    /// The node ID.
-    pub id: NodeId,
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
     pub items: Vec<VecIdent>
+}
+
+impl Display for ExportDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let items_str = self.items.iter().map(|i| i.name()).collect::<Vec<_>>().join(", ");
+        write!(f, "ExportDecl {}: [{items_str}]", self.span)
+    }
 }

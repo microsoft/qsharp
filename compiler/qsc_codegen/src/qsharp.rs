@@ -320,7 +320,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_stmt(&mut self, stmt: &'_ Stmt) {
         match &*stmt.kind {
-            StmtKind::Empty | StmtKind::Err => {}
+            StmtKind::Empty | StmtKind::Err | StmtKind::Export(_) => {}
             StmtKind::Semi(expr) => {
                 self.visit_expr(expr);
                 self.writeln(";");

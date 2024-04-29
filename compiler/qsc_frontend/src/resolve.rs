@@ -768,6 +768,10 @@ impl AstVisitor<'_> for With<'_> {
                     self.resolver.bind_pat(pat, stmt.span.hi);
                 }
             }
+            ast::StmtKind::Export(export) => {
+                // copilot suggestion: self.resolver.resolve_path(NameKind::Term, &export.path);
+                todo!()
+            }
             ast::StmtKind::Empty
             | ast::StmtKind::Expr(_)
             | ast::StmtKind::Semi(_)

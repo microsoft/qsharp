@@ -1318,7 +1318,7 @@ impl<'a> Visitor<'a> for PartialEvaluator<'a> {
                     self.bind_value_to_pat(pat_id, value);
                 }
             }
-            StmtKind::Item(_) => {
+            StmtKind::Item(_) | StmtKind::Export(_) => {
                 // Do nothing.
             }
         };
