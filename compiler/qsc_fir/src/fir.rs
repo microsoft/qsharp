@@ -900,6 +900,10 @@ pub enum ExecGraphNode {
     Unit,
     /// The end of the control flow graph.
     Ret,
+    /// A push of a new scope, used when tracking variables for debugging.
+    PushScope,
+    /// A pop of the current scope, used when tracking variables for debugging.
+    PopScope,
 }
 
 /// A sequenced block of statements.
