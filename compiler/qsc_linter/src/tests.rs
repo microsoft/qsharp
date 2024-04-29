@@ -24,7 +24,7 @@ fn multiple_lints() {
                 },
                 SrcLint {
                     source: "((1 + 2)) / 0",
-                    level: Warn,
+                    level: Error,
                     message: "attempt to divide by zero",
                     help: "division by zero is not allowed",
                 },
@@ -64,7 +64,7 @@ fn division_by_zero() {
             [
                 SrcLint {
                     source: "2 / 0",
-                    level: Warn,
+                    level: Error,
                     message: "attempt to divide by zero",
                     help: "division by zero is not allowed",
                 },
