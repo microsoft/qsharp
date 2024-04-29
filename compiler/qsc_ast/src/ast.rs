@@ -5,6 +5,7 @@
 
 #![warn(missing_docs)]
 
+use crate::ast;
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
@@ -14,7 +15,6 @@ use std::{
     hash::{Hash, Hasher},
     rc::Rc,
 };
-use crate::ast;
 
 fn set_indentation<'a, 'b>(
     indent: Indented<'a, Formatter<'b>>,
@@ -172,10 +172,13 @@ pub struct Namespace {
 
 impl Namespace {
     pub fn exports(&self) -> impl Iterator<Item = &Path> {
-        self.items.iter().filter_map(|i| match *i.kind {
-          ItemKind::Export(ref export) => Some(&*export.items),
-           _ => None,
-        }).flatten()
+        self.items
+            .iter()
+            .filter_map(|i| match *i.kind {
+                ItemKind::Export(ref export) => Some(&*export.items),
+                _ => None,
+            })
+            .flatten()
     }
 }
 

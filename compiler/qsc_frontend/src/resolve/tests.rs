@@ -18,6 +18,7 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 
+use qsc_ast::visit::walk_namespace;
 use qsc_data_structures::{
     language_features::LanguageFeatures,
     namespaces::{NamespaceId, NamespaceTreeRoot},
@@ -28,7 +29,6 @@ use qsc_hir::assigner::Assigner as HirAssigner;
 use rustc_hash::FxHashMap;
 use std::fmt::Write;
 use std::rc::Rc;
-use qsc_ast::visit::walk_namespace;
 
 #[derive(Debug)]
 enum Change {
@@ -80,12 +80,7 @@ impl<'a> Renamer<'a> {
                 },
                 Change::NamespaceId(ns_id) => format!("namespace{}", Into::<usize>::into(ns_id)),
             };
-            println!("before replace range");
-            dbg!(&change);
-            dbg!(&input);
-            dbg!(&input[span.lo as usize..span.hi as usize]);
             input.replace_range((span.lo as usize)..(span.hi as usize), &name);
-            println!("after replace range");
         }
     }
 }
@@ -114,15 +109,14 @@ impl Visitor<'_> for Renamer<'_> {
                 self.aliases.insert(vec![alias.name.clone()], ns_id);
             }
             ItemKind::Export(export) => {
-                println!("there are {} exports", export.items().count());
                 for item in export.items() {
-
                     if let Some(resolved_id) = self.names.get(item.id) {
                         self.changes.push((item.span, (*resolved_id).into()));
                     }
                 }
+                return;
             }
-            _ => ()
+            _ => (),
         }
         visit::walk_item(self, item);
     }
@@ -2864,10 +2858,12 @@ fn test_export_statement() {
 
 #[test]
 fn test_complicated_nested_export_statement() {
-        check(
-            indoc! {
-"namespace Foo {
-    export { Foo.Bar.FooBarBazQuux };
+    check(
+        indoc! {
+"
+
+namespace Foo {
+    export { Foo.Bar.Baz.Quux.FooBarBazQuux };
 }
 namespace Foo.Bar.Baz.Quux {
     function FooBarBazQuux() : Unit {}
@@ -2879,6 +2875,6 @@ namespace Foo.Bar {
 }
 
 namespace Main {}" },
-            &expect![[r#""#]],
-        );
+        &expect![[r#""#]],
+    );
 }

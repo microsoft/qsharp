@@ -140,7 +140,6 @@ impl With<'_> {
         // for each exported item, convert it into a regular item in this namespace
         let exports = namespace.exports();
         for export in exports {
-
             // get the item this export is referring to
             let item = match self.names.get(export.id) {
                 Some(&resolve::Res::Item(item, _)) => item,

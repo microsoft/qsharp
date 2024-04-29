@@ -577,7 +577,6 @@ impl Resolver {
                 // resolve the exported item and insert the vec ident into the names table, so we can access it in
                 // lowering
                 for item in export.items() {
-                    println!("Line 580, doing: {} ", item.name);
                     let resolved_item = match resolve(
                         NameKind::Term,
                         &self.globals,
@@ -591,7 +590,7 @@ impl Resolver {
                             continue;
                         }
                     };
-                    self.names.insert(dbg!(item.id), resolved_item);
+                    self.names.insert(item.id, resolved_item);
                 }
             }
             ast::ItemKind::Err => {}
