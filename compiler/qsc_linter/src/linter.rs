@@ -43,7 +43,7 @@ pub struct Lint {
 
 impl std::fmt::Display for Lint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.level)
+        write!(f, "{}", self.message)
     }
 }
 
@@ -58,7 +58,7 @@ impl Diagnostic for Lint {
 
     fn labels(&self) -> Option<Box<dyn Iterator<Item = miette::LabeledSpan> + '_>> {
         let source_span = miette::SourceSpan::from(self.span);
-        let labeled_span = LabeledSpan::new_with_span(Some(self.message.to_string()), source_span);
+        let labeled_span = LabeledSpan::new_with_span(None, source_span);
         Some(Box::new(vec![labeled_span].into_iter()))
     }
 
