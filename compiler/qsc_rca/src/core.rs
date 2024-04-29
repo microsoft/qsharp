@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use core::panic;
-
 use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
     common::{try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId, Local, LocalKind, TyExt},
@@ -1008,19 +1006,21 @@ impl<'a> Analyzer<'a> {
             // that must be used in output recording.
             let entry_ty = self.get_expr(entry_expr_id).ty.clone();
             let ty_flags = ty_to_runtime_runtime_output_flags(&entry_ty);
-            let mut entry_compute_kind = *self
-                .get_current_application_instance()
-                .get_expr_compute_kind(entry_expr_id);
-            if let ComputeKind::Quantum(quantum_properties) = &mut entry_compute_kind {
-                quantum_properties.runtime_features |= ty_flags;
-            } else {
-                entry_compute_kind = ComputeKind::Quantum(QuantumProperties {
-                    runtime_features: ty_flags,
-                    value_kind: ValueKind::new_static_from_type(&entry_ty),
-                });
+            if !ty_flags.is_empty() {
+                let mut entry_compute_kind = *self
+                    .get_current_application_instance()
+                    .get_expr_compute_kind(entry_expr_id);
+                if let ComputeKind::Quantum(quantum_properties) = &mut entry_compute_kind {
+                    quantum_properties.runtime_features |= ty_flags;
+                } else {
+                    entry_compute_kind = ComputeKind::Quantum(QuantumProperties {
+                        runtime_features: ty_flags,
+                        value_kind: ValueKind::new_static_from_type(&entry_ty),
+                    });
+                }
+                self.get_current_application_instance_mut()
+                    .insert_expr_compute_kind(entry_expr_id, entry_compute_kind);
             }
-            self.get_current_application_instance_mut()
-                .insert_expr_compute_kind(entry_expr_id, entry_compute_kind);
         }
         let top_level_context = self.pop_top_level_context();
         assert!(top_level_context.package_id == package_id);
