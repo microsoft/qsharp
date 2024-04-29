@@ -68,6 +68,7 @@ namespace Microsoft.Quantum.Katas {
     /// Given two operations, checks whether they act identically on the given initial state composed of `inputSize` qubits.
     /// The initial state is prepared by applying the `initialState` operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
     /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect it.
+    /// `initialState` operation should be deterministic.
     operation CheckOperationsEquivalenceOnInitialStateStrict(
         initialState : Qubit[] => Unit is Adj,
         op : (Qubit[] => Unit is Adj + Ctl),
@@ -106,7 +107,8 @@ namespace Microsoft.Quantum.Katas {
 
 
     /// # Summary
-    /// Shows the comparison of the quantum state between a specific operation and a reference operation.
+    /// Shows the comparison of the quantum states produced by a specific operation and a reference operation
+    /// when applied to the state prepared using deterministic operation `initialState`.
     operation ShowQuantumStateComparison(
         registerSize : Int,
         initialState : Qubit[] => Unit,
@@ -176,9 +178,11 @@ namespace Microsoft.Quantum.Katas {
 
     /// # Summary
     /// Prepare a random uneven superposition state on the given qubit array.
-    operation PrepRandomState(qs : Qubit[]) : Unit {
-        for q in qs {
-            Ry(DrawRandomDouble(0.01, 0.99) * 2.0, q);
+    operation PrepDemoState(qs : Qubit[]) : Unit {
+        Fact(Length(qs) <= 4, "States with 5 qubits or more are not supported.");
+        let probs = [0.36, 0.25, 1. / 3., 1. / 5.][... Length(qs) - 1];
+        for (q, prob) in Zipped(qs, probs) {
+            Ry(ArcCos(Sqrt(prob)) * 2.0, q);
         }
     }
 

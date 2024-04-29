@@ -10,7 +10,7 @@ This kata continues the introduction to quantum gates, focusing on applying quan
 **This kata covers the following topics:**
 
 - Applying quantum gates to a part of the system
-- $CNOT$, $CCNOT$, and $SWAP$ gates
+- $CNOT$, $CZ$, $CCNOT$, and $SWAP$ gates
 - Controlled gates
 
 **What you should know to start working on this kata:**
@@ -251,9 +251,9 @@ $$
 will have the following ket-bra representation:
 $$A =$$
 $$=a_{00} |00\rangle\langle00| + a_{01} |00\rangle\langle01| + a_{02} |00\rangle\langle10| + a_{03} |00\rangle\langle11| +$$
-$$=a_{10} |01\rangle\langle00| + a_{11} |01\rangle\langle01| + a_{12} |01\rangle\langle10| + a_{13} |01\rangle\langle11| +$$
-$$=a_{20} |10\rangle\langle00| + a_{21} |10\rangle\langle01| + a_{22} |10\rangle\langle10| + a_{23} |10\rangle\langle11| +$$
-$$=a_{30} |11\rangle\langle00| + a_{31} |11\rangle\langle01| + a_{32} |11\rangle\langle10| + a_{33} |11\rangle\langle11|$$
+$$+a_{10} |01\rangle\langle00| + a_{11} |01\rangle\langle01| + a_{12} |01\rangle\langle10| + a_{13} |01\rangle\langle11| +$$
+$$+a_{20} |10\rangle\langle00| + a_{21} |10\rangle\langle01| + a_{22} |10\rangle\langle10| + a_{23} |10\rangle\langle11| +$$
+$$+a_{30} |11\rangle\langle00| + a_{31} |11\rangle\langle01| + a_{32} |11\rangle\langle10| + a_{33} |11\rangle\langle11|$$
 
 A similar expression can be extended for matrices that describe $N$-qubit gates, where $N > 2$:
 
