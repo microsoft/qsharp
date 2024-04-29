@@ -1475,18 +1475,17 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 .last()
                 .expect("block should have at least one statement");
             let last_stmt = self.get_stmt(*last_stmt_id);
-            let (StmtKind::Expr(last_expr_id) | StmtKind::Semi(last_expr_id)) = last_stmt.kind
-            else {
-                panic!("expected Expr or Semi statement")
-            };
-            let application_instance = self.get_current_application_instance();
-            let last_expr_compute_kind = application_instance.get_expr_compute_kind(last_expr_id);
-            if let ComputeKind::Quantum(last_expr_quantum_properties) = last_expr_compute_kind {
-                let mut block_value_kind = ValueKind::new_static_from_type(&block.ty);
-                last_expr_quantum_properties
-                    .value_kind
-                    .project_onto_variant(&mut block_value_kind);
-                block_compute_kind.aggregate_value_kind(block_value_kind);
+            if let StmtKind::Expr(last_expr_id) = last_stmt.kind {
+                let application_instance = self.get_current_application_instance();
+                let last_expr_compute_kind =
+                    application_instance.get_expr_compute_kind(last_expr_id);
+                if let ComputeKind::Quantum(last_expr_quantum_properties) = last_expr_compute_kind {
+                    let mut block_value_kind = ValueKind::new_static_from_type(&block.ty);
+                    last_expr_quantum_properties
+                        .value_kind
+                        .project_onto_variant(&mut block_value_kind);
+                    block_compute_kind.aggregate_value_kind(block_value_kind);
+                }
             }
         }
 
