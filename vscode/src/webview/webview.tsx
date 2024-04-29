@@ -14,11 +14,13 @@ import {
   type ReData,
 } from "qsharp-lang/ux";
 import { HelpPage } from "./help";
+import { DocumentationView } from "./docview";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
+import { log } from "console";
 const md = markdownIt();
 md.use(mk);
 
@@ -49,12 +51,18 @@ type CircuitState = {
   props: CircuitProps;
 };
 
+type DocumentationState = {
+  viewType: "documentationView";
+  contentToRender: string;
+}
+
 type State =
   | { viewType: "loading" }
   | { viewType: "help" }
   | HistogramState
   | EstimatesState
-  | CircuitState;
+  | CircuitState
+  | DocumentationState;
 const loadingState: State = { viewType: "loading" };
 const helpState: State = { viewType: "help" };
 let state: State = loadingState;
@@ -121,6 +129,14 @@ function onMessage(event: any) {
         };
       }
       break;
+    case "showDocumentationCommand":
+      {
+        state = {
+          viewType: "documentationView",
+          contentToRender: message.contentToRender,
+        }
+      }
+      break;
     default:
       console.error("Unknown command: ", message.command);
       return;
@@ -179,6 +195,13 @@ function App({ state }: { state: State }) {
       return <CircuitPanel {...state.props}></CircuitPanel>;
     case "help":
       return <HelpPage />;
+    case "documentationView":
+      return (
+        <DocumentationView
+          renderer={markdownRenderer}
+          contentToRender={state.contentToRender}
+        />
+      );
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;

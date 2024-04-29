@@ -200,6 +200,10 @@
           "when": "resourceLangId == qsharp"
         },
         {
+          "command": "qsharp-vscode.showDocumentation",
+          "when": "resourceLangId == qsharp"
+        },
+        {
           "command": "qsharp-vscode.setTargetProfile",
           "when": "resourceLangId == qsharp"
         },
@@ -314,6 +318,11 @@
       {
         "command": "qsharp-vscode.showCircuit",
         "title": "Show circuit",
+        "category": "Q#"
+      },
+      {
+        "command": "qsharp-vscode.showDocumentation",
+        "title": "Show documentation",
         "category": "Q#"
       },
       {
