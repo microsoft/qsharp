@@ -341,7 +341,7 @@ impl Env {
             .find_map(|scope| scope.bindings.get_mut(id))
     }
 
-    fn push_scope(&mut self, frame_id: usize) {
+    pub fn push_scope(&mut self, frame_id: usize) {
         let scope = Scope {
             frame_id,
             ..Default::default()
@@ -349,7 +349,7 @@ impl Env {
         self.0.push(scope);
     }
 
-    fn leave_scope(&mut self) {
+    pub fn leave_scope(&mut self) {
         // Only pop the scope if there is more than one scope in the stack,
         // because the global/top-level scope cannot be exited.
         if self.0.len() > 1 {
@@ -399,6 +399,12 @@ impl Env {
             })
             .collect();
         variables_by_scope.into_iter().flatten().collect::<Vec<_>>()
+    }
+
+    #[allow(clippy::len_without_is_empty)]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
