@@ -694,7 +694,7 @@ fn notebook_document_lints() {
                                     lo: 74,
                                     hi: 79,
                                 },
-                                level: Warn,
+                                level: Error,
                                 message: "attempt to divide by zero",
                                 help: "division by zero is not allowed",
                             },
