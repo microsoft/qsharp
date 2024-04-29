@@ -187,7 +187,7 @@ Similarly, for either qubit, if $b_i$ is the measurement outcome, the post-measu
 
 ## Measurements as Projection Operations
 
-Just as qubits are represented by vectors and quantum gates are represented by matrices, quantum measurements are represented by orthogonal projection operators. An orthogonal projection operator is a matrix $P$ which satisfies the following property:
+Just as qubits are represented by vectors and quantum gates are represented by matrices, quantum measurements are represented by _orthogonal projection operators_. An orthogonal projection operator (sometimes referred to as _projector_) is a matrix $P$ which satisfies the following property:
 $$
 P^2 = P^\dagger = P.
 $$
@@ -202,7 +202,7 @@ $$
 A measurement in an orthogonal basis $\\{ \ket{b_0}, \ket{b_1}\\}$ is described by a pair of projectors $P_0 = \ket{b_0}\bra{b_0}$ and $P_1 = \ket{b_1}\bra{b_1}$. Since $\ket{b_0}$ and $\ket{b_1}$ are orthogonal, their projectors are also orthogonal, i.e., $P_0 P_1 = P_1 P_0 = 0$. The rules for measurements in this basis can then be summarized as follows:
 
 - Measuring a qubit in a state $\ket \psi$ is done by picking one of these projection operators at random.
-- Projection $P_0$ is chosen with probability $|P_0 \ket{\psi}|^2$, and the projector $P_1$ is chosen with probability $|P_1\ket{\psi}|^2.$
+- Projector $P_0$ is chosen with probability $|P_0 \ket{\psi}|^2$, and the projector $P_1$ is chosen with probability $|P_1\ket{\psi}|^2.$
 - If projector $P_0$ is chosen, the post-measurement state of the qubit is given by
     $$
     \frac1{|P_0 \ket{\psi}|}P_0 \ket\psi,
