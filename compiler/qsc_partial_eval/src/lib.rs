@@ -1003,45 +1003,6 @@ impl<'a> PartialEvaluator<'a> {
         matches!(compute_kind, ComputeKind::Classical)
     }
 
-    fn is_qubit_release_expr(&self, expr_id: ExprId) -> bool {
-        let expr = self.get_expr(expr_id);
-        let ExprKind::Call(callee_expr_id, _) = expr.kind else {
-            return false;
-        };
-
-        let callee_expr = self.get_expr(callee_expr_id);
-        let ExprKind::Var(Res::Item(callee), _) = &callee_expr.kind else {
-            return false;
-        };
-
-        let Some(package_id) = callee.package else {
-            return false;
-        };
-
-        let global = self
-            .package_store
-            .get_global((package_id, callee.item).into())
-            .expect("callee not present in package store");
-        let Global::Callable(callable_decl) = global else {
-            return false;
-        };
-
-        matches!(
-            callable_decl.name.name.as_ref(),
-            "__quantum__rt__qubit_release" | "ReleaseQubitArray"
-        )
-    }
-
-    fn is_qubit_release_stmt(&self, stmt_id: StmtId) -> bool {
-        let stmt = self.get_stmt(stmt_id);
-        match stmt.kind {
-            StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) => {
-                self.is_qubit_release_expr(expr_id)
-            }
-            _ => false,
-        }
-    }
-
     fn allocate_qubit(&mut self) -> Value {
         let qubit = self.resource_manager.allocate_qubit();
         Value::Qubit(qubit)
@@ -1120,11 +1081,11 @@ impl<'a> PartialEvaluator<'a> {
             }
         }
 
-        // While we support multiple returns within a callable, disallow situations in which non qubit release
-        // statements are left unprocessed.
-        let non_qubit_relase_stmts_remain =
-            stmts_iter.any(|stmt_id| !self.is_qubit_release_stmt(*stmt_id));
-        if non_qubit_relase_stmts_remain {
+        // While we support multiple returns within a callable, disallow situations in which statements are left
+        // unprocessed when we are evaluating a branch within a callable scope.
+        let remaining_stmt_count = stmts_iter.count();
+        let current_scope = self.eval_context.get_current_scope();
+        if remaining_stmt_count > 0 && current_scope.is_currently_evaluating_branch() {
             let return_stmt =
                 self.get_stmt(return_stmt_id.expect("a return statement ID must have been set"));
             Err(Error::Unexpected(

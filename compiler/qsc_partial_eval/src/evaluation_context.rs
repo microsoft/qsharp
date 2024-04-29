@@ -52,6 +52,7 @@ impl EvaluationContext {
 
     /// Pops the currently active block.
     pub fn pop_block_node(&mut self) -> BlockNode {
+        self.get_current_scope_mut().active_block_count -= 1;
         self.active_blocks
             .pop()
             .expect("there are no active blocks in the evaluation context")
@@ -67,6 +68,7 @@ impl EvaluationContext {
     /// Pushes a new active block.
     pub fn push_block_node(&mut self, b: BlockNode) {
         self.active_blocks.push(b);
+        self.get_current_scope_mut().active_block_count += 1;
     }
 
     /// Pushes a new (call) scope.
@@ -93,6 +95,8 @@ pub struct Scope {
     pub args_value_kind: Vec<ValueKind>,
     /// The classical environment of the callable, which holds values corresponding to local variables.
     pub env: Env,
+    /// Number of currently active blocks (starting from where this scope was created).
+    active_block_count: usize,
     /// Map that holds the values of local variables.
     hybrid_vars: FxHashMap<LocalVarId, Value>,
 }
@@ -146,6 +150,7 @@ impl Scope {
             callable,
             args_value_kind,
             env,
+            active_block_count: 1,
             hybrid_vars,
         }
     }
@@ -155,6 +160,11 @@ impl Scope {
         self.hybrid_vars
             .get(&local_var_id)
             .expect("local variable value does not exist")
+    }
+
+    /// Determines whether we are currently evaluating a branch within the scope.
+    pub fn is_currently_evaluating_branch(&self) -> bool {
+        self.active_block_count > 1
     }
 
     /// Determines whether the classical evaluator has returned from the call scope.
