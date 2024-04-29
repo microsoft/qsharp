@@ -1782,12 +1782,17 @@ pub struct ExportDecl {
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
-    pub items: Vec<VecIdent>
+    pub items: Vec<VecIdent>,
 }
 
 impl Display for ExportDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let items_str = self.items.iter().map(|i| i.name()).collect::<Vec<_>>().join(", ");
+        let items_str = self
+            .items
+            .iter()
+            .map(|i| i.name())
+            .collect::<Vec<_>>()
+            .join(", ");
         write!(f, "ExportDecl {}: [{items_str}]", self.span)
     }
 }

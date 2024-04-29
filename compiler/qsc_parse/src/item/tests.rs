@@ -1716,3 +1716,45 @@ fn helpful_error_on_dotted_alias() {
             ]"#]],
     );
 }
+
+#[test]
+fn parse_export_basic() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export { Bar };
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-97] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-87]:
+                    Export (ExportDecl [72-87]: [Bar])"#]],
+    );
+}
+
+#[test]
+fn parse_export_list() {
+    check_vec(
+        parse_namespaces,
+        "namespace Foo {
+               operation Bar() : Unit {}
+               export { Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested };
+        }",
+        &expect![[r#"
+            Namespace _id_ [0-165] (Ident _id_ [10-13] "Foo"):
+                Item _id_ [31-56]:
+                    Callable _id_ [31-56] (Operation):
+                        name: Ident _id_ [41-44] "Bar"
+                        input: Pat _id_ [44-46]: Unit
+                        output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
+                        body: Block: Block _id_ [54-56]: <empty>
+                Item _id_ [72-155]:
+                    Export (ExportDecl [72-155]: [Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested])"#]],
+    );
+}

@@ -185,6 +185,7 @@ impl FromStr for Keyword {
             // in the standard library for priority order.
             "PauliY" => Ok(Self::PauliY),
             "borrow" => Ok(Self::Borrow),
+            "export" => Ok(Self::Export),
             "_" => Ok(Self::Underscore),
             _ => Err(()),
         }

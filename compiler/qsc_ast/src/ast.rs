@@ -262,6 +262,8 @@ pub enum ItemKind {
     Open(VecIdent, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
+    /// An export declaration
+    Export(ExportDecl),
 }
 
 impl Display for ItemKind {
@@ -274,6 +276,7 @@ impl Display for ItemKind {
                 None => write!(f, "Open ({name})")?,
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
+            ItemKind::Export(export) => write!(f, "Export ({export})")?,
         }
         Ok(())
     }
@@ -694,8 +697,6 @@ pub enum StmtKind {
     Qubit(QubitSource, Box<Pat>, Box<QubitInit>, Option<Box<Block>>),
     /// An expression with a trailing semicolon.
     Semi(Box<Expr>),
-    /// An `export` declaration
-    Export(ExportDecl),
     /// An invalid statement.
     #[default]
     Err,
@@ -725,8 +726,6 @@ impl Display for StmtKind {
             }
             StmtKind::Semi(e) => write!(indent, "Semi: {e}")?,
             StmtKind::Err => indent.write_str("Err")?,
-            StmtKind::Export(decl) => write!(f, "Export ({decl})")?,
-
         }
         Ok(())
     }
@@ -1393,9 +1392,7 @@ impl From<Path> for VecIdent {
         let mut buf = p.namespace.unwrap_or_default();
         buf.0.push(*p.name);
         buf
-
     }
-
 }
 
 impl VecIdent {
@@ -1699,12 +1696,17 @@ pub struct ExportDecl {
     /// The span.
     pub span: Span,
     /// The items being exported from this namespace.
-    pub items: Vec<VecIdent>
+    pub items: Vec<VecIdent>,
 }
 
 impl Display for ExportDecl {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let items_str = self.items.iter().map(|i| i.name()).collect::<Vec<_>>().join(", ");
+        let items_str = self
+            .items
+            .iter()
+            .map(|i| i.name())
+            .collect::<Vec<_>>()
+            .join(", ");
         write!(f, "ExportDecl {}: [{items_str}]", self.span)
     }
 }

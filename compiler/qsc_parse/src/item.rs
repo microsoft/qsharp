@@ -24,9 +24,9 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, Ident, Item, ItemKind, Namespace,
-    NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty,
-    TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Item, ItemKind,
+    Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -42,6 +42,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
+    } else if let Some(export) = opt(s, parse_export)? {
+        Box::new(ItemKind::Export(export))
     } else if visibility.is_some() {
         let err_item = default(s.span(lo));
         s.push_error(Error(ErrorKind::FloatingVisibility(err_item.span)));
@@ -137,7 +139,7 @@ pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Resul
     let items = parse_namespace_block_contents(s)?;
     let span = s.span(lo);
     let namespace_name = file_name_to_namespace_name(file_name, span)?;
-
+    todo!("Assign exports here, pull them from the items, resolve them, then filter them out in lowering");
     Ok(Namespace {
         id: NodeId::default(),
         span,
@@ -198,7 +200,8 @@ fn validate_namespace_name(error_span: Span, name: &str) -> Result<()> {
 fn test_file_name_to_namespace_name() {
     let raw = "foo/bar.qs";
     let error_span = Span::default();
-    let namespace = file_name_to_namespace_name(raw, error_span).expect("test should not fail here");
+    let namespace =
+        file_name_to_namespace_name(raw, error_span).expect("test should not fail here");
     assert_eq!(namespace.0.len(), 2);
     assert_eq!(&*namespace.0[0].name, "foo");
     assert_eq!(&*namespace.0[1].name, "bar");
@@ -224,10 +227,13 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
         items: items.into_boxed_slice(),
     })
 }
-
+pub(super) struct NamespaceBlockContents {
+    exports: Option<ExportDecl>,
+    items: Vec<Box<Item>>,
+}
 /// Parses the contents of a namespace block, what is in between the open and close braces in an
 /// explicit namespace, and any top level items in an implicit namespace.
-#[allow(clippy::vec_box)]
+
 fn parse_namespace_block_contents(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     Ok(items)
@@ -384,7 +390,6 @@ fn ty_as_ident(ty: Ty) -> Result<Box<Ident>> {
     }
 }
 
-
 fn parse_callable_decl(s: &mut ParserContext) -> Result<Box<CallableDecl>> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
@@ -519,4 +524,28 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
     } else {
         Err(Error(ErrorKind::MissingParens(inputs.span)))
     }
+}
+
+/// Parses an export statement. Exports start with the `export` keyword, followed by a curly brace
+/// and a list of items.
+///
+/// ```qsharp
+/// export {
+///     Foo,
+///     Bar.Baz,
+/// };
+/// ```
+fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
+    let lo = s.peek().span.lo;
+    let _doc = parse_doc(s);
+    let _export_keyword = token(s, TokenKind::Keyword(Keyword::Export))?;
+    let _open_brace = token(s, TokenKind::Open(Delim::Brace))?;
+    let items = seq(s, path)?;
+    let _close_brace = token(s, TokenKind::Close(Delim::Brace))?;
+    let _semi = token(s, TokenKind::Semi)?;
+
+    Ok(ExportDecl {
+        span: s.span(lo),
+        items: items.0.into_iter().map(|x| (*x).into()).collect::<Vec<_>>(),
+    })
 }

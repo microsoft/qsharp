@@ -115,6 +115,10 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
             vis.visit_ident(ident);
             vis.visit_ty_def(def);
         }
+        ItemKind::Export(export) => {
+            vis.visit_span(&mut export.span);
+            export.items.iter_mut().for_each(|i| vis.visit_vec_ident(i));
+        }
     }
 }
 
@@ -217,9 +221,6 @@ pub fn walk_stmt(vis: &mut impl MutVisitor, stmt: &mut Stmt) {
             vis.visit_pat(pat);
             vis.visit_qubit_init(init);
             block.iter_mut().for_each(|b| vis.visit_block(b));
-        },
-        StmtKind::Export(export) => {
-            export.items.iter_mut().for_each(|i| vis.visit_vec_ident(i));
         }
     }
 }

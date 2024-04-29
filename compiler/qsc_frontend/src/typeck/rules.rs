@@ -150,7 +150,7 @@ impl<'a> Context<'a> {
 
     fn infer_stmt(&mut self, stmt: &Stmt) -> Partial<Ty> {
         let ty = match &*stmt.kind {
-            StmtKind::Empty | StmtKind::Item(_) | StmtKind::Export(_) => converge(Ty::UNIT),
+            StmtKind::Empty | StmtKind::Item(_) => converge(Ty::UNIT),
             StmtKind::Expr(expr) => self.infer_expr(expr),
             StmtKind::Local(_, pat, expr) => {
                 let pat_ty = self.infer_pat(pat);

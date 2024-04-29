@@ -2823,3 +2823,16 @@ namespace Kata.Verification {
         "#]],
     );
 }
+
+#[test]
+fn test_export_statement() {
+    check(
+        indoc! {"namespace Kata {
+    operation ApplyX() : Unit {
+    }
+    export { ApplyX };
+}
+" },
+        &expect![[r#" "#]],
+    );
+}

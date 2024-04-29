@@ -313,13 +313,15 @@ impl Lowerer {
             hir::StmtKind::Semi(expr) => {
                 let expr = self.lower_expr(expr);
                 fir::StmtKind::Semi(expr)
-            },
-            hir::StmtKind::Export(export) => {
-                fir::StmtKind::Export (ExportDecl{
-                    span: export.span,
-                    items: export.items.iter().map(|i| self.lower_vec_ident(i)).collect(),
-                })
             }
+            hir::StmtKind::Export(export) => fir::StmtKind::Export(ExportDecl {
+                span: export.span,
+                items: export
+                    .items
+                    .iter()
+                    .map(|i| self.lower_vec_ident(i))
+                    .collect(),
+            }),
         };
         let stmt = fir::Stmt {
             id,

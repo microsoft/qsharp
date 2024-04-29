@@ -138,6 +138,8 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.visit_ty_def(def);
                 self.writeln(";");
             }
+            // TODO verify that we actually don't want to do anything here
+            ItemKind::Export(_) => (),
         }
     }
 
@@ -320,7 +322,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_stmt(&mut self, stmt: &'_ Stmt) {
         match &*stmt.kind {
-            StmtKind::Empty | StmtKind::Err | StmtKind::Export(_) => {}
+            StmtKind::Empty | StmtKind::Err => {}
             StmtKind::Semi(expr) => {
                 self.visit_expr(expr);
                 self.writeln(";");

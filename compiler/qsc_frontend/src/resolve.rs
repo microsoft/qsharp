@@ -573,6 +573,9 @@ impl Resolver {
                 scope.tys.insert(Rc::clone(&name.name), id);
                 scope.terms.insert(Rc::clone(&name.name), id);
             }
+            ast::ItemKind::Export(_) => {
+                // do nothing, because this is resolved in the namespace resolution stage
+            }
             ast::ItemKind::Err => {}
         }
     }
@@ -767,10 +770,6 @@ impl AstVisitor<'_> for With<'_> {
                     // The binding is valid after end of the statement.
                     self.resolver.bind_pat(pat, stmt.span.hi);
                 }
-            }
-            ast::StmtKind::Export(export) => {
-                // copilot suggestion: self.resolver.resolve_path(NameKind::Term, &export.path);
-                todo!()
             }
             ast::StmtKind::Empty
             | ast::StmtKind::Expr(_)
@@ -1079,7 +1078,7 @@ fn bind_global_item(
                 }
             }
         }
-        ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
+        ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::Export(..) => Ok(()),
     }
 }
 
