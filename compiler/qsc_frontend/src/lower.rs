@@ -131,7 +131,7 @@ impl With<'_> {
         };
 
         self.lowerer.parent = Some(id);
-        let items = namespace
+        let mut items: Vec<LocalItemId> = namespace
             .items
             .iter()
             .filter_map(|i| self.lower_item(ItemScope::Global, i))
@@ -145,6 +145,9 @@ impl With<'_> {
                 Some(&resolve::Res::Item(item, _)) => item,
                 _ => panic!("export should have item ID"),
             };
+            // TODO figure out how to map the above itemid into a local item id
+            if item.package.is_some() { todo!("handle external package re-exports -- or don't?")}
+            items.push(item.item);
         }
 
         let name = self.lower_vec_ident(&namespace.name);

@@ -2875,6 +2875,20 @@ namespace Foo.Bar {
 }
 
 namespace Main {}" },
-        &expect![[r#""#]],
+        &expect![[r#"
+
+            namespace namespace7 {
+                export { item2 };
+            }
+            namespace namespace10 {
+                function item2() : Unit {}
+            }
+
+            namespace namespace8 {
+               open namespace9;
+                export { item2 };
+            }
+
+            namespace namespace11 {}"#]],
     );
 }
