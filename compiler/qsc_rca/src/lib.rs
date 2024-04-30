@@ -599,7 +599,7 @@ impl ValueKind {
             Self::Element(RuntimeKind::Static)
         } else {
             match ty {
-                // For a dynamic array, the contents dynamic and size is static.
+                // For a dynamic array, the content is dynamic and the size is static.
                 // We assume this because the source of the array produces something with dynamic length,
                 // that source should have already added the runtime feature flag for dynamic arrays.
                 Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Static),
