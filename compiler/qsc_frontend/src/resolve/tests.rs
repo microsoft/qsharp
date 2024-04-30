@@ -2928,3 +2928,164 @@ namespace Main {
             }"#]],
     );
 }
+#[test]
+fn multiple_exports() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+                operation ApplyY() : Unit {}
+                export { ApplyX, ApplyY };
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    ApplyX();
+                    ApplyY();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+                export { item1, item2 };
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item4() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn no_exports() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation ApplyX() : Unit {}
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    ApplyX();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                open namespace7;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn export_non_existent_symbol() {
+    check(
+        indoc! {"
+            namespace Foo {
+                export { NonExistent };
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                export { NonExistent };
+            }
+
+            // NotFound("NonExistent", Span { lo: 29, hi: 40 })
+        "#]],
+    );
+}
+
+#[test]
+fn export_symbol_from_nested_namespace() {
+    check(
+        indoc! {"
+            namespace Foo.Bar  {
+                operation ApplyX() : Unit {}
+            }
+            namespace Foo {
+                export { Bar.ApplyX };
+            }
+            namespace Main {
+                open Foo;
+                operation Main() : Unit {
+                    Bar.ApplyX();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8  {
+                operation item1() : Unit {}
+            }
+            namespace namespace7 {
+                export { item1 };
+            }
+            namespace namespace9 {
+                open namespace7;
+                operation item4() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn disallow_exporting_local_vars() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Main() : Unit {
+                    let x = 5;
+                    export { x };
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                    let local13 = 5;
+                    export { x };
+                }
+            }
+
+            // NotFound("x", Span { lo: 82, hi: 83 })
+        "#]],
+    );
+}
+
+#[test]
+fn export_non_item() {
+    check(
+        indoc! {"
+            namespace Bar {}
+            namespace Foo {
+                operation Main() : Unit {
+                    export { Unit };
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {}
+            namespace namespace8 {
+                operation item2() : Unit {
+                    export { Unit };
+                }
+            }
+
+            // ExportedNonItem(Span { lo: 80, hi: 84 })
+        "#]],
+    );
+}

@@ -42,6 +42,12 @@ pub(super) enum Error {
     #[error("invalid pattern for specialization declaration")]
     #[diagnostic(code("Qsc.LowerAst.InvalidSpecPat"))]
     InvalidSpecPat(#[label] Span),
+    #[error("this is not a callable or type")]
+    #[diagnostic(code("Qsc.LowerAst.ExportedNonItem"))]
+    ExportedNonItem(#[label] Span),
+    #[error("exporting items from external packages is not yet supported")]
+    #[diagnostic(code("Qsc.LowerAst.ExportedExternalItem"))]
+    ExportedExternalItem(#[label] Span),
 }
 
 #[derive(Clone, Copy)]
@@ -141,10 +147,17 @@ impl With<'_> {
         for export in exports {
             // get the item this export is referring to
             let Some(&resolve::Res::Item(item, _)) = self.names.get(export.id) else {
-                todo!("err that export was not an item")
+                self.lowerer
+                    .errors
+                    .push(Error::ExportedNonItem(export.span));
+                return;
             };
             if item.package.is_some() {
-                todo!("handle external package re-exports -- or don't?")
+                // when we support external packages, we will want to handle this case.
+                self.lowerer
+                    .errors
+                    .push(Error::ExportedExternalItem(export.span));
+                continue;
             }
             items.push(item.item);
         }

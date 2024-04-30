@@ -108,6 +108,14 @@ pub(super) enum Error {
     #[diagnostic(help("this item is not implemented and cannot be used"))]
     #[diagnostic(code("Qsc.Resolve.Unimplemented"))]
     Unimplemented(String, #[label] Span),
+
+    #[error("this export is not a callable or type")]
+    #[diagnostic(code("Qsc.Resolve.ExportedNonItem"))]
+    ExportedNonItem(#[label] Span),
+
+    #[error("exporting external items is not yet supported")]
+    #[diagnostic(code("Qsc.Resolve.ExportedExternalItem"))]
+    ExportedExternalItem(#[label] Span),
 }
 
 #[derive(Debug, Clone)]
@@ -590,13 +598,23 @@ impl Resolver {
                         &item.namespace,
                     ) {
                         Ok(res) => res,
-                        Err(err) => {
-                            self.errors.push(err);
-                            continue;
+                        Err(_) => {
+                            // try to see if it is a type
+                            match resolve(
+                                NameKind::Ty,
+                                &self.globals,
+                                self.locals.get_scopes(&self.curr_scope_chain),
+                                &item.name,
+                                &item.namespace,
+                            ) {
+                                Ok(res) => res,
+                                Err(err) => {
+                                    self.errors.push(err);
+                                    continue;
+                                }
+                            }
                         }
                     };
-
-                    // get the actual ast item this refers to
 
                     let scope = self.current_scope_mut();
 
@@ -606,9 +624,15 @@ impl Resolver {
                                 package: Some(_), ..
                             },
                             _,
-                        ) => todo!("tried to export external package item"),
+                        ) => {
+                            self.errors.push(Error::ExportedExternalItem(item.span));
+                            continue;
+                        }
                         Res::Item(id, _) => id,
-                        _ => todo!("err: tried to export a non-item"),
+                        _ => {
+                            self.errors.push(Error::ExportedNonItem(item.span));
+                            continue;
+                        }
                     };
 
                     scope
