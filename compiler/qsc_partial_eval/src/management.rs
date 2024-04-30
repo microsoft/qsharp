@@ -9,24 +9,28 @@ use qsc_eval::{
 };
 use qsc_rir::rir::{BlockId, CallableId, VariableId};
 
+/// Manages IDs for resources needed while performing partial evaluation.
 #[derive(Default)]
 pub struct ResourceManager {
     qubits_in_use: Vec<bool>,
     next_callable: CallableId,
     next_block: BlockId,
-    next_result: usize,
+    next_result_register: usize,
     next_var: usize,
 }
 
 impl ResourceManager {
+    /// Count of qubits used.
     pub fn qubit_count(&self) -> usize {
         self.qubits_in_use.len()
     }
 
-    pub fn results_count(&self) -> usize {
-        self.next_result
+    /// Count of results registers used.
+    pub fn result_register_count(&self) -> usize {
+        self.next_result_register
     }
 
+    /// Allocates a qubit by favoring available qubit IDs before using new ones.
     pub fn allocate_qubit(&mut self) -> Qubit {
         if let Some(qubit_id) = self.qubits_in_use.iter().position(|in_use| !in_use) {
             self.qubits_in_use[qubit_id] = true;
@@ -38,28 +42,33 @@ impl ResourceManager {
         }
     }
 
+    /// Releases a qubit ID for future use.
     pub fn release_qubit(&mut self, q: Qubit) {
         self.qubits_in_use[q.0] = false;
     }
 
+    /// Gets the next block ID.
     pub fn next_block(&mut self) -> BlockId {
         let id = self.next_block;
         self.next_block = id.successor();
         id
     }
 
+    /// Gets the next callable ID.
     pub fn next_callable(&mut self) -> CallableId {
         let id = self.next_callable;
         self.next_callable = id.successor();
         id
     }
 
-    pub fn next_result(&mut self) -> Result {
-        let result_id = self.next_result;
-        self.next_result += 1;
+    /// Gets the next result register ID.
+    pub fn next_result_register(&mut self) -> Result {
+        let result_id = self.next_result_register;
+        self.next_result_register += 1;
         Result::Id(result_id)
     }
 
+    /// Gets the next variable ID.
     pub fn next_var(&mut self) -> VariableId {
         let var_id = self.next_var;
         self.next_var += 1;

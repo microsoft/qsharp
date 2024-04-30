@@ -5,13 +5,13 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use test_utils::compile_and_partially_evaluate;
+use test_utils::get_rir_program;
 
 pub mod test_utils;
 
 #[test]
 fn output_recording_for_tuple_of_different_types() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -91,7 +91,7 @@ fn output_recording_for_tuple_of_different_types() {
 
 #[test]
 fn output_recording_for_nested_tuples() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -179,7 +179,7 @@ fn output_recording_for_nested_tuples() {
 fn output_recording_for_tuple_of_arrays() {
     // This program would not actually pass RCA checks as it shows up as using a dynamically sized array.
     // However, the output recording should still be correct if/when we support this kind of return in the future.
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -271,7 +271,7 @@ fn output_recording_for_tuple_of_arrays() {
 
 #[test]
 fn output_recording_for_array_of_tuples() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -365,7 +365,7 @@ fn output_recording_for_array_of_tuples() {
 
 #[test]
 fn output_recording_for_literal_bool() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -407,7 +407,7 @@ fn output_recording_for_literal_bool() {
 
 #[test]
 fn output_recording_for_literal_int() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -449,7 +449,7 @@ fn output_recording_for_literal_int() {
 
 #[test]
 fn output_recording_for_mix_of_literal_and_variable() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -523,7 +523,7 @@ fn output_recording_for_mix_of_literal_and_variable() {
     expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
 )]
 fn output_recording_fails_with_result_literal_one() {
-    let _ = compile_and_partially_evaluate(indoc! {
+    let _ = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -540,7 +540,7 @@ fn output_recording_fails_with_result_literal_one() {
     expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
 )]
 fn output_recording_fails_with_result_literal_zero() {
-    let _ = compile_and_partially_evaluate(indoc! {
+    let _ = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -557,7 +557,7 @@ fn output_recording_fails_with_result_literal_zero() {
     expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
 )]
 fn output_recording_fails_with_result_literal_in_array() {
-    let _ = compile_and_partially_evaluate(indoc! {
+    let _ = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -575,7 +575,7 @@ fn output_recording_fails_with_result_literal_in_array() {
     expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
 )]
 fn output_recording_fails_with_result_literal_in_tuple() {
-    let _ = compile_and_partially_evaluate(indoc! {
+    let _ = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()

@@ -752,6 +752,14 @@ bitflags! {
         const LoopWithDynamicCondition = 1 << 20;
         /// Use of a closure.
         const UseOfClosure = 1 << 21;
+        /// Use of an advanced type as output of a computation.
+        const UseOfAdvancedOutput = 1 << 22;
+        // Use of a `Bool` as output of a computation.
+        const UseOfBoolOutput = 1 << 23;
+        // Use of a `Double` as output of a computation.
+        const UseOfDoubleOutput = 1 << 24;
+        // Use of an `Int` as output of a computation.
+        const UseOfIntOutput = 1 << 25;
     }
 }
 
@@ -837,6 +845,18 @@ impl RuntimeFeatureFlags {
             capabilities |= TargetCapabilityFlags::BackwardsBranching;
         }
         if self.contains(RuntimeFeatureFlags::UseOfClosure) {
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfBoolOutput) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDoubleOutput) {
+            capabilities |= TargetCapabilityFlags::FloatingPointComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfIntOutput) {
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         capabilities
