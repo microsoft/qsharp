@@ -198,6 +198,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__hardy_state",
+    "title": "Hardy State",
+    "path": "./hardy_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__conclusion",
     "title": "Conclusion"
