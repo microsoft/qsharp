@@ -613,7 +613,7 @@ impl Resolver {
 
                     scope
                         .terms
-                        .insert(Rc::clone(dbg!(&item.name.name)), resolved_item_id);
+                        .insert(Rc::clone(&item.name.name), resolved_item_id);
                     // just insert the id for the name ident
                     self.names.insert(item.id, resolved_item);
                     if let Some(namespace) = namespace {
@@ -1394,7 +1394,6 @@ where
     T: Iterator<Item = (NamespaceId, O)>,
     O: Clone + std::fmt::Debug,
 {
-    println!("FSIN {provided_namespace_name:?}--{provided_symbol_name:?}");
     // check aliases to see if the provided namespace is actually an alias
     if let Some(provided_namespace_name) = provided_namespace_name {
         if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
@@ -1402,7 +1401,7 @@ where
                 .iter()
                 .filter_map(|(ns_id, open)| {
                     globals
-                        .get(kind, *ns_id, dbg!(&provided_symbol_name.name))
+                        .get(kind, *ns_id, &provided_symbol_name.name)
                         .map(|res| (*res, open.clone()))
                 })
                 .collect();

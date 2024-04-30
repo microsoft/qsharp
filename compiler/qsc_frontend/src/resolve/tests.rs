@@ -2849,7 +2849,7 @@ fn test_export_statement() {
             namespace namespace7 {
                 operation item1() : Unit {
                 }
-                export { item1};
+                export { item1 };
             }
         "#]],
     );
@@ -2885,7 +2885,7 @@ namespace Main {}" },
 
             namespace namespace8 {
                open namespace9;
-                export { item2 };
+               export { item2 };
             }
 
             namespace namespace11 {}"#]],
