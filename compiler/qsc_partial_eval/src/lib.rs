@@ -1510,6 +1510,7 @@ fn try_get_eval_var_type(value: &Value) -> Option<VarTy> {
         Value::Bool(_) => Some(VarTy::Boolean),
         Value::Int(_) => Some(VarTy::Integer),
         Value::Double(_) => Some(VarTy::Double),
+        Value::Var(var) => Some(var.ty),
         _ => None,
     }
 }

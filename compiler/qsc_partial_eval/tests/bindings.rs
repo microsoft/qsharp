@@ -115,3 +115,136 @@ fn mutable_result_binding_does_not_generate_store_instruction() {
                 Return"#]],
     );
 }
+
+#[test]
+fn immutable_bool_binding_does_not_generate_store_instruction() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Bool {
+                use q = Qubit();
+                let b = MResetZ(q) == One;
+                b
+            }
+        }
+    "#});
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__read_result__body
+                call_type: Readout
+                input_type:
+                    [0]: Result
+                output_type: Boolean
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__bool_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Boolean
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Call id(3), args( Variable(1, Boolean), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn mutable_bool_binding_generates_store_instruction() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Bool {
+                use q = Qubit();
+                mutable b = MResetZ(q) == One;
+                b
+            }
+        }
+    "#});
+    let measurement_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        measurement_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__mresetz__body
+                call_type: Measurement
+                input_type:
+                    [0]: Qubit
+                    [1]: Result
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let read_result_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        read_result_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__read_result__body
+                call_type: Readout
+                input_type:
+                    [0]: Result
+                output_type: Boolean
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__bool_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Boolean
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
+                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Return"#]],
+    );
+}
