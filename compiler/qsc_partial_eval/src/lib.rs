@@ -397,7 +397,10 @@ impl<'a> PartialEvaluator<'a> {
                 };
                 Ok(eval_control_flow)
             }
-            Err((error, _)) => Err(Error::EvaluationFailed(error.to_string(), expr.span)),
+            Err((error, _)) => Err(Error::EvaluationFailed(
+                error.to_string(),
+                error.span().span,
+            )),
         };
 
         // If this was an assign expression, update the bindings in the hybrid side to keep them in sync and to insert
@@ -733,11 +736,15 @@ impl<'a> PartialEvaluator<'a> {
         // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
         // with an implementation.
         let value = match &callable_decl.implementation {
-            CallableImpl::Intrinsic => self.eval_expr_call_to_intrinsic(
-                store_item_id,
-                callable_decl,
-                args_control_flow.into_value(),
-            ),
+            CallableImpl::Intrinsic => {
+                let callee_expr = self.get_expr(callee_expr_id);
+                self.eval_expr_call_to_intrinsic(
+                    store_item_id,
+                    callable_decl,
+                    args_control_flow.into_value(),
+                    callee_expr.span,
+                )?
+            }
             CallableImpl::Spec(spec_impl) => self.eval_expr_call_to_spec(
                 store_item_id,
                 functor_app,
@@ -754,29 +761,35 @@ impl<'a> PartialEvaluator<'a> {
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
         args_value: Value,
-    ) -> Value {
+        callee_expr_span: Span, // For diagnostic puprposes only.
+    ) -> Result<Value, Error> {
         // There are a few special cases regarding intrinsic callables. Identify them and handle them properly.
         match callable_decl.name.name.as_ref() {
             // Qubit allocations and measurements have special handling.
-            "__quantum__rt__qubit_allocate" => self.allocate_qubit(),
-            "__quantum__rt__qubit_release" => self.release_qubit(args_value),
-            "__quantum__qis__m__body" => self.measure_qubit(builder::mz_decl(), args_value),
+            "__quantum__rt__qubit_allocate" => Ok(self.allocate_qubit()),
+            "__quantum__rt__qubit_release" => Ok(self.release_qubit(args_value)),
+            "__quantum__qis__m__body" => Ok(self.measure_qubit(builder::mz_decl(), args_value)),
             "__quantum__qis__mresetz__body" => {
-                self.measure_qubit(builder::mresetz_decl(), args_value)
+                Ok(self.measure_qubit(builder::mresetz_decl(), args_value))
             }
-            // The following operations should be conditionally compiled out for all targets for which QIR generation is
-            // supported.
-            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" => panic!(
-                "`{}` is not a supported by partial evaluation",
-                callable_decl.name.name
-            ),
             // The following intrinsic operations and functions are no-ops.
-            "BeginEstimateCaching" => Value::Bool(true),
+            "BeginEstimateCaching" => Ok(Value::Bool(true)),
             "DumpRegister"
             | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
-            | "EndRepeatEstimatesInternal" => Value::unit(),
-            _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
+            | "EndRepeatEstimatesInternal" => Ok(Value::unit()),
+            // The following intrinsic functions and operations should never make it past conditional compilation and
+            // the capabilities check pass.
+            "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" | "Length" => {
+                Err(Error::Unexpected(
+                    format!(
+                        "`{}` is not a supported by partial evaluation",
+                        callable_decl.name.name
+                    ),
+                    callee_expr_span,
+                ))
+            }
+            _ => Ok(self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value)),
         }
     }
 
@@ -794,9 +807,14 @@ impl<'a> PartialEvaluator<'a> {
         let callable_id = self.get_or_insert_callable(callable);
 
         // Resove the call arguments, create the call instruction and insert it to the current block.
-        let args = self.resolve_args(
+        let (args, ctls_arg) = self.resolve_args(
             (store_item_id.package, callable_decl.input).into(),
             args_value,
+            None,
+        );
+        assert!(
+            ctls_arg.is_none(),
+            "intrinsic operations cannot have controls"
         );
         let args_operands = args
             .into_iter()
@@ -820,11 +838,32 @@ impl<'a> PartialEvaluator<'a> {
         let spec_decl = get_spec_decl(spec_impl, functor_app);
 
         // Create new call scope.
-        let args = self.resolve_args((global_callable_id.package, args_pat).into(), args_value);
+        let ctls = if let Some(ctls_pat_id) = spec_decl.input {
+            assert!(
+                functor_app.controlled > 0,
+                "control qubits count was expected to be greater than zero"
+            );
+            Some((
+                StorePatId::from((global_callable_id.package, ctls_pat_id)),
+                functor_app.controlled,
+            ))
+        } else {
+            assert!(
+                functor_app.controlled == 0,
+                "control qubits count was expected to be zero"
+            );
+            None
+        };
+        let (args, ctls_arg) = self.resolve_args(
+            (global_callable_id.package, args_pat).into(),
+            args_value,
+            ctls,
+        );
         let call_scope = Scope::new(
             global_callable_id.package,
             Some((global_callable_id.item, functor_app)),
             args,
+            ctls_arg,
         );
         self.eval_context.push_scope(call_scope);
         let block_value = self.try_eval_block(spec_decl.block)?.into_value();
@@ -1300,9 +1339,43 @@ impl<'a> PartialEvaluator<'a> {
         Value::unit()
     }
 
-    fn resolve_args(&self, store_pat_id: StorePatId, value: Value) -> Vec<Arg> {
+    fn resolve_args(
+        &self,
+        store_pat_id: StorePatId,
+        value: Value,
+        ctls: Option<(StorePatId, u8)>,
+    ) -> (Vec<Arg>, Option<Arg>) {
+        let mut value = value;
+        let ctls_arg = if let Some((ctls_pat_id, ctls_count)) = ctls {
+            let mut ctls = vec![];
+            for _ in 0..ctls_count {
+                let [c, rest] = &*value.unwrap_tuple() else {
+                    panic!("controls + arguments tuple should be arity 2");
+                };
+                ctls.extend_from_slice(&c.clone().unwrap_array());
+                value = rest.clone();
+            }
+            let ctls_pat = self.package_store.get_pat(ctls_pat_id);
+            let ctls_value = Value::Array(ctls.into());
+            match &ctls_pat.kind {
+                PatKind::Discard => Some(Arg::Discard(ctls_value)),
+                PatKind::Bind(ident) => {
+                    let variable = Variable {
+                        name: ident.name.clone(),
+                        value: ctls_value,
+                        span: ident.span,
+                    };
+                    let ctl_arg = Arg::Var(ident.id, variable);
+                    Some(ctl_arg)
+                }
+                PatKind::Tuple(_) => panic!("control qubits pattern is not expected to be a tuple"),
+            }
+        } else {
+            None
+        };
+
         let pat = self.package_store.get_pat(store_pat_id);
-        match &pat.kind {
+        let args = match &pat.kind {
             PatKind::Discard => vec![Arg::Discard(value)],
             PatKind::Bind(ident) => {
                 let variable = Variable {
@@ -1322,13 +1395,18 @@ impl<'a> PartialEvaluator<'a> {
                 let mut args = Vec::new();
                 let pat_value_tuples = pats.iter().zip(values.to_vec());
                 for (pat_id, value) in pat_value_tuples {
-                    let mut element_args =
-                        self.resolve_args((store_pat_id.package, *pat_id).into(), value);
+                    // At this point we should no longer have control qubits so pass None.
+                    let (mut element_args, None) =
+                        self.resolve_args((store_pat_id.package, *pat_id).into(), value, None)
+                    else {
+                        panic!("no control qubit are expected at this point");
+                    };
                     args.append(&mut element_args);
                 }
                 args
             }
-        }
+        };
+        (args, ctls_arg)
     }
 
     fn try_eval_block(&mut self, block_id: BlockId) -> Result<EvalControlFlow, Error> {
