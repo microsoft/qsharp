@@ -237,10 +237,19 @@ fn parse_struct(s: &mut ParserContext) -> Result<Box<ItemKind>> {
     let lo = s.peek().span.lo;
     token(s, TokenKind::Keyword(Keyword::Struct))?;
     let name = ident(s)?;
+    let _ = if token(s, TokenKind::Lt).is_ok() {
+        throw_away_doc(s);
+        let params = seq(s, ty::param)?.0;
+        token(s, TokenKind::Gt)?;
+        params
+    } else {
+        Vec::new()
+    };
 
     token(s, TokenKind::Open(Delim::Brace))?;
     let (fields, _) = seq(s, |s| {
         let lo = s.peek().span.lo;
+        let _ = opt(s, parse_visibility)?;
         let name = ident(s)?;
         token(s, TokenKind::Colon)?;
         let field_ty = ty(s)?;
