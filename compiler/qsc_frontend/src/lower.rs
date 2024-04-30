@@ -12,7 +12,6 @@ use crate::{
 use miette::Diagnostic;
 use qsc_ast::ast;
 use qsc_data_structures::{index_map::IndexMap, span::Span, target::TargetCapabilityFlags};
-use qsc_hir::hir::ExportDecl;
 use qsc_hir::{
     assigner::Assigner,
     hir::{self, LocalItemId},

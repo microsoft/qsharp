@@ -12,15 +12,13 @@ use super::{
     scan::ParserContext,
     Error, Result,
 };
-use crate::item::parse_doc;
-use crate::prim::path;
 use crate::{
     lex::{Delim, TokenKind},
     prim::{barrier, recovering, recovering_semi, recovering_token},
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Block, ExportDecl, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
+    Block,  Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 

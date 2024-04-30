@@ -18,7 +18,6 @@ use qsc_ast::{
     visit::{self, Visitor},
 };
 
-use qsc_ast::visit::walk_namespace;
 use qsc_data_structures::{
     language_features::LanguageFeatures,
     namespaces::{NamespaceId, NamespaceTreeRoot},
@@ -2910,8 +2909,23 @@ namespace Main {
   open Foo;
   operation Main() : Unit {
     Foo.Function();
+    Function();
   }
 }" },
-        &expect![[r#""#]],
+        &expect![[r#"
+            namespace namespace7 {
+                export { item2 };
+            }
+            namespace namespace10 {
+                function item2() : Unit {}
+            }
+
+            namespace namespace11 {
+              open namespace7;
+              operation item4() : Unit {
+                item2();
+                item2();
+              }
+            }"#]],
     );
 }

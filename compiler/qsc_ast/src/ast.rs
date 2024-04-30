@@ -5,7 +5,6 @@
 
 #![warn(missing_docs)]
 
-use crate::ast;
 use indenter::{indented, Format, Indented};
 use num_bigint::BigInt;
 use qsc_data_structures::span::{Span, WithSpan};
@@ -171,6 +170,7 @@ pub struct Namespace {
 }
 
 impl Namespace {
+    /// Returns an iterator over the items in the namespace that are exported.
     pub fn exports(&self) -> impl Iterator<Item = &Path> {
         self.items
             .iter()
@@ -1449,6 +1449,10 @@ impl VecIdent {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+
+    /// Returns `true` if the [`VecIdent`] contains no idents.
+    pub fn is_empty(&self) -> bool
+    { self.0.is_empty() }
 }
 
 impl Default for Ident {
@@ -1725,6 +1729,7 @@ impl Display for ExportDecl {
 }
 
 impl ExportDecl {
+    /// Returns an iterator over the items being exported from this namespace.
     pub fn items(&self) -> impl Iterator<Item = &Path> {
         self.items.iter()
     }
