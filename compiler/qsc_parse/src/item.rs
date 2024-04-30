@@ -198,7 +198,8 @@ fn validate_namespace_name(error_span: Span, name: &str) -> Result<()> {
 fn test_file_name_to_namespace_name() {
     let raw = "foo/bar.qs";
     let error_span = Span::default();
-    let namespace = file_name_to_namespace_name(raw, error_span).expect("test should not fail here");
+    let namespace =
+        file_name_to_namespace_name(raw, error_span).expect("test should not fail here");
     assert_eq!(namespace.0.len(), 2);
     assert_eq!(&*namespace.0[0].name, "foo");
     assert_eq!(&*namespace.0[1].name, "bar");

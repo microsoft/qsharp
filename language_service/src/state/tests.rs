@@ -149,43 +149,14 @@ async fn close_last_doc_in_project() {
                         offset: 59,
                     },
                 ],
+                project_root_dir: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
         &expect![[r#"
-            [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            ClosedBinOp(
-                                                Slash,
-                                            ),
-                                            Span {
-                                                lo: 59,
-                                                hi: 60,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-                (
-                    "project/src/this_file.qs",
-                    None,
-                    [],
-                ),
-            ]
+            []
         "#]],
     );
     updater.close_document("project/src/other_file.qs").await;
@@ -909,6 +880,9 @@ async fn update_doc_updates_project() {
                         offset: 59,
                     },
                 ],
+                project_root_dir: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -999,43 +973,14 @@ async fn close_doc_prioritizes_fs() {
                         offset: 59,
                     },
                 ],
+                project_root_dir: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
         &expect![[r#"
-            [
-                (
-                    "project/src/this_file.qs",
-                    Some(
-                        1,
-                    ),
-                    [
-                        Frontend(
-                            Error(
-                                Parse(
-                                    Error(
-                                        Token(
-                                            Eof,
-                                            ClosedBinOp(
-                                                Slash,
-                                            ),
-                                            Span {
-                                                lo: 59,
-                                                hi: 60,
-                                            },
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ],
-                ),
-                (
-                    "project/src/this_file.qs",
-                    None,
-                    [],
-                ),
-            ]
+            []
         "#]],
     );
 }
@@ -1078,6 +1023,9 @@ async fn delete_manifest() {
                         offset: 71,
                     },
                 ],
+                project_root_dir: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1113,6 +1061,9 @@ async fn delete_manifest() {
                         offset: 0,
                     },
                 ],
+                project_root_dir: Some(
+                    "project/src/this_file.qs",
+                ),
                 entry: None,
             }
         "#]],
@@ -1157,6 +1108,9 @@ async fn delete_manifest_then_close() {
                         offset: 71,
                     },
                 ],
+                project_root_dir: Some(
+                    "project/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1218,6 +1172,9 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
+                project_root_dir: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1268,6 +1225,9 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
+                project_root_dir: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1317,6 +1277,9 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
+                project_root_dir: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
@@ -1360,6 +1323,9 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
+                project_root_dir: Some(
+                    "nested_projects/src/subdir/src/",
+                ),
                 entry: None,
             }
         "#]],
