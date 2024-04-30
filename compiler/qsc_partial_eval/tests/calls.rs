@@ -12,13 +12,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{
-    assert_block_instructions, assert_blocks, assert_callable, compile_and_partially_evaluate,
-};
+use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
 
 #[test]
 fn call_to_single_qubit_unitary_with_two_calls_to_the_same_intrinsic() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Unit { body intrinsic; }
             operation OpSquared(q : Qubit) : Unit {
@@ -59,7 +57,7 @@ fn call_to_single_qubit_unitary_with_two_calls_to_the_same_intrinsic() {
 
 #[test]
 fn call_to_single_qubit_unitary_with_calls_to_different_intrinsics() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation OpA(q : Qubit) : Unit { body intrinsic; }
             operation OpB(q : Qubit) : Unit { body intrinsic; }
@@ -114,7 +112,7 @@ fn call_to_single_qubit_unitary_with_calls_to_different_intrinsics() {
 
 #[test]
 fn call_to_two_qubit_unitary() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q0 : Qubit, q1 : Qubit) : Unit { body intrinsic; }
             operation ApplyOpCombinations(q0 : Qubit, q1 : Qubit) : Unit {
@@ -156,7 +154,7 @@ fn call_to_two_qubit_unitary() {
 
 #[test]
 fn call_to_unitary_that_receives_double_and_qubit() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation DoubleFirst(d : Double, q : Qubit) : Unit { body intrinsic; }
             operation QubitFirst(q : Qubit, d : Double) : Unit { body intrinsic; }
@@ -213,7 +211,7 @@ fn call_to_unitary_that_receives_double_and_qubit() {
 
 #[test]
 fn calls_to_unitary_that_conditionally_calls_intrinsic_with_classical_bool() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation OpA(q : Qubit) : Unit { body intrinsic; }
             operation OpB(q : Qubit) : Unit { body intrinsic; }
@@ -286,7 +284,7 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_classical_bool() {
 
 #[test]
 fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation OpA(q : Qubit) : Unit { body intrinsic; }
             operation OpB(q : Qubit) : Unit { body intrinsic; }
@@ -395,7 +393,7 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
 
 #[test]
 fn call_to_unitary_rotation_unitary_with_computation() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Rotation(d : Double, q : Qubit) : Unit { body intrinsic; }
             operation RotationWithComputation(d : Double, q : Qubit) : Unit {
@@ -437,7 +435,7 @@ fn call_to_unitary_rotation_unitary_with_computation() {
 
 #[test]
 fn call_to_operation_that_returns_measurement_result() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Result {
                 QIR.Intrinsic.__quantum__qis__m__body(q)
@@ -490,7 +488,7 @@ fn call_to_operation_that_returns_measurement_result() {
 
 #[test]
 fn call_to_operation_that_returns_dynamic_bool() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Bool {
                 let r = QIR.Intrinsic.__quantum__qis__m__body(q);
@@ -559,7 +557,7 @@ fn call_to_operation_that_returns_dynamic_bool() {
 
 #[test]
 fn call_to_boolean_function_using_result_literal_as_argument_yields_constant() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Unit { body intrinsic; }
             function ResultAsBool(r : Result) : Bool {
@@ -618,7 +616,7 @@ fn call_to_boolean_function_using_result_literal_as_argument_yields_constant() {
 
 #[test]
 fn call_to_boolean_function_using_dynamic_result_as_argument_generates_branches() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             open QIR.Intrinsic;
             operation Op(q : Qubit) : Unit { body intrinsic; }

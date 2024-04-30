@@ -341,7 +341,7 @@ impl Env {
             .find_map(|scope| scope.bindings.get_mut(id))
     }
 
-    fn push_scope(&mut self, frame_id: usize) {
+    pub fn push_scope(&mut self, frame_id: usize) {
         let scope = Scope {
             frame_id,
             ..Default::default()
@@ -349,7 +349,7 @@ impl Env {
         self.0.push(scope);
     }
 
-    fn leave_scope(&mut self) {
+    pub fn leave_scope(&mut self) {
         // Only pop the scope if there is more than one scope in the stack,
         // because the global/top-level scope cannot be exited.
         if self.0.len() > 1 {
@@ -399,6 +399,12 @@ impl Env {
             })
             .collect();
         variables_by_scope.into_iter().flatten().collect::<Vec<_>>()
+    }
+
+    #[allow(clippy::len_without_is_empty)]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
@@ -557,27 +563,9 @@ impl State {
                     self.idx += 1;
                     self.current_span = globals.get_stmt((self.package, *stmt).into()).span;
 
-                    if let Some(bp) = breakpoints
-                        .iter()
-                        .find(|&bp| *bp == *stmt && self.package == self.source_package)
-                    {
-                        StepResult::BreakpointHit(*bp)
-                    } else {
-                        if self.current_span == Span::default() {
-                            // if there is no span, we are in generated code, so we should skip
-                            continue;
-                        }
-                        // no breakpoint, but we may stop here
-                        if step == StepAction::In {
-                            StepResult::StepIn
-                        } else if step == StepAction::Next && current_frame >= self.call_stack.len()
-                        {
-                            StepResult::Next
-                        } else if step == StepAction::Out && current_frame > self.call_stack.len() {
-                            StepResult::StepOut
-                        } else {
-                            continue;
-                        }
+                    match self.check_for_break(breakpoints, *stmt, step, current_frame) {
+                        Some(value) => value,
+                        None => continue,
                     }
                 }
                 Some(ExecGraphNode::Jump(idx)) => {
@@ -617,6 +605,16 @@ impl State {
                     env.leave_scope();
                     continue;
                 }
+                Some(ExecGraphNode::PushScope) => {
+                    self.push_scope(env);
+                    self.idx += 1;
+                    continue;
+                }
+                Some(ExecGraphNode::PopScope) => {
+                    env.leave_scope();
+                    self.idx += 1;
+                    continue;
+                }
                 None => {
                     // We have reached the end of the current graph without reaching an explicit return node,
                     // usually indicating the partial execution of a single sub-expression.
@@ -636,6 +634,38 @@ impl State {
         }
 
         Ok(StepResult::Return(self.get_result()))
+    }
+
+    fn check_for_break(
+        &self,
+        breakpoints: &[StmtId],
+        stmt: StmtId,
+        step: StepAction,
+        current_frame: usize,
+    ) -> Option<StepResult> {
+        Some(
+            if let Some(bp) = breakpoints
+                .iter()
+                .find(|&bp| *bp == stmt && self.package == self.source_package)
+            {
+                StepResult::BreakpointHit(*bp)
+            } else {
+                if self.current_span == Span::default() {
+                    // if there is no span, we are in generated code, so we should skip
+                    return None;
+                }
+                // no breakpoint, but we may stop here
+                if step == StepAction::In {
+                    StepResult::StepIn
+                } else if step == StepAction::Next && current_frame >= self.call_stack.len() {
+                    StepResult::Next
+                } else if step == StepAction::Out && current_frame > self.call_stack.len() {
+                    StepResult::StepOut
+                } else {
+                    return None;
+                }
+            },
+        )
     }
 
     pub fn get_result(&mut self) -> Value {

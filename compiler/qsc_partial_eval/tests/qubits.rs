@@ -8,11 +8,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::{assert_block_instructions, assert_callable, get_rir_program};
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -54,7 +54,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit() {
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -117,7 +117,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits() {
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -180,7 +180,7 @@ fn qubit_ids_are_correct_for_allocate_use_release_one_qubit_multiple_times() {
 
 #[test]
 fn qubit_ids_are_correct_for_allocate_use_release_multiple_qubits_interleaved() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
