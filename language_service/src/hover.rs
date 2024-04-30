@@ -59,7 +59,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
     ) {
         let contents = display_callable(
             &context.current_item_doc,
-            &context.current_namespace.join("."),
+            &context.current_namespace,
             self.display.ast_callable_decl(decl),
         );
         self.hover = Some(Hover {
