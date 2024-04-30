@@ -8,11 +8,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::{assert_block_instructions, assert_callable, get_rir_program};
 
 #[test]
 fn call_to_intrinsic_operation_using_double_literal() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation op(d : Double) : Unit { body intrinsic; }
             @EntryPoint()
@@ -47,7 +47,7 @@ fn call_to_intrinsic_operation_using_double_literal() {
 
 #[test]
 fn calls_to_intrinsic_operation_using_inline_expressions() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             function PI() : Double { 3.14159 }
             operation op(d : Double) : Unit { body intrinsic; }
@@ -87,7 +87,7 @@ fn calls_to_intrinsic_operation_using_inline_expressions() {
 
 #[test]
 fn calls_to_intrinsic_operation_using_variables() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation op(d : Double) : Unit { body intrinsic; }
             @EntryPoint()

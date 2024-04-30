@@ -26,10 +26,14 @@ use crate::{rir::Program, utils::build_predecessors_map};
 
 /// Run the default set of RIR check and transformation passes.
 /// This includes:
+/// - Simplifying control flow
 /// - Checking for unreachable code
+/// - Checking types
 /// - Remapping block IDs
 /// - Transforming the program to SSA form
 /// - Checking that the program is in SSA form
+/// - If the target has no reset capability, reindexing qubit IDs and removing resets.
+/// - If the target has no mid-program measurement capability, deferring measurements to the end of the program.
 pub fn check_and_transform(program: &mut Program) {
     simplify_control_flow(program);
     check_unreachable_code(program);
@@ -44,7 +48,8 @@ pub fn check_and_transform(program: &mut Program) {
 
     // Run the RIR passes that are necessary for targets with no mid-program measurement.
     // This requires that qubits are not reused after measurement or reset, so qubit ids must be reindexed.
-    // This also requires that the program is a single block and will panic otherwise.
+    // This also requires that the program has no loops and block ids form a topological ordering on a
+    // directed acyclic graph.
     if !program
         .config
         .capabilities

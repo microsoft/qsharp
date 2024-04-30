@@ -20,7 +20,7 @@ namespace Kata.Verification {
             Message("Incorrect.");
             Message("Hint: examine how your solution transforms the given state and compare it with the expected " +
                 "transformation");
-            ShowQuantumStateComparison(3, PrepRandomState, solution, reference);
+            ShowQuantumStateComparison(3, PrepDemoState, solution, reference);
         }
 
         isCorrect
