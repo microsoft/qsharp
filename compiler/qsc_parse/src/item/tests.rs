@@ -1734,7 +1734,7 @@ fn parse_export_basic() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-87]:
-                    Export (ExportDecl [72-87]: [Bar])"#]],
+                    Export (ExportDecl [72-87]: [Path _id_ [81-84] (Ident _id_ [81-84] "Bar")])"#]],
     );
 }
 
@@ -1755,6 +1755,6 @@ fn parse_export_list() {
                         output: Type _id_ [49-53]: Path: Path _id_ [49-53] (Ident _id_ [49-53] "Unit")
                         body: Block: Block _id_ [54-56]: <empty>
                 Item _id_ [72-155]:
-                    Export (ExportDecl [72-155]: [Bar, Baz.Quux, Math.Quantum.Some.Nested, Math.Quantum.Some.Other.Nested])"#]],
+                    Export (ExportDecl [72-155]: [Path _id_ [81-84] (Ident _id_ [81-84] "Bar"), Path _id_ [86-94] (Ident _id_ [86-89] "Baz") (Ident _id_ [90-94] "Quux"), Path _id_ [96-120] ([Ident _id_ [96-100] "Math", Ident _id_ [101-108] "Quantum", Ident _id_ [109-113] "Some"]) (Ident _id_ [114-120] "Nested"), Path _id_ [122-152] ([Ident _id_ [122-126] "Math", Ident _id_ [127-134] "Quantum", Ident _id_ [135-139] "Some", Ident _id_ [140-145] "Other"]) (Ident _id_ [146-152] "Nested")])"#]],
     );
 }
