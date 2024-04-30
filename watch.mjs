@@ -55,7 +55,7 @@ function buildRust() {
   const result = spawnSync(
     "wasm-pack",
     ["build", "--dev", "--no-pack", "--target", "web", "--out-dir", buildDir],
-    { cwd: wasmDir },
+    { cwd: wasmDir, shell: true },
   );
   console.log("wasm-pack done! ", result.stderr.toString());
 
@@ -105,7 +105,7 @@ onRustChange();
  */
 function runWatcher(dir, name, watchTask = "tsc:watch") {
   console.log(`Spawning tsc:watch for ${name} in ${dir}`);
-  const npmWatcher = spawn(npmCmd, ["run", watchTask], { cwd: dir });
+  const npmWatcher = spawn(npmCmd, ["run", watchTask], { cwd: dir, shell: true });
   npmWatcher.stdout.on("data", (data) =>
     console.log(`tsc:watch ${name}: ${data}`),
   );
