@@ -605,25 +605,31 @@ impl Resolver {
                     // just insert the id for the name ident
                     self.names.insert(item.id, resolved_item);
                     if let Some(namespace) = namespace {
-                       if let Err(errs) =  bind_global_item(
-                            &mut self.names,
-                            &mut self.globals,
-                            namespace,
-                            || intrapackage(assigner.next_item()),
-                            &ast::Item {
-                                id: Default::default(),
-                                span: item.span,
-                                doc: "".into(),
-                                // TODO calculate attrs
-                                attrs: Box::new([]),
-                                visibility: None,
-                                // TODO
-                                kind: Box::new(Default::default()),
-                            },
-                        ) {
-                            self.errors.extend(errs);
+                          self.globals
+                            .terms
+                            .entry(namespace)
+                            .or_default()
+                            .insert(item.name.name.clone(), Res::Item(resolved_item_id, ItemStatus::Available));
 
-                       };
+                       // if let Err(errs) =  bind_global_item(
+                       //      &mut self.names,
+                       //      &mut self.globals,
+                       //      namespace,
+                       //      || intrapackage(assigner.next_item()),
+                       //      &ast::Item {
+                       //          id: Default::default(),
+                       //          span: item.span,
+                       //          doc: "".into(),
+                       //          // TODO calculate attrs
+                       //          attrs: Box::new([]),
+                       //          visibility: None,
+                       //          // TODO
+                       //          kind: Box::new(Default::default()),
+                       //      },
+                       //  ) {
+                       //      self.errors.extend(errs);
+                       //
+                       // };
                     }
                 }
             }
@@ -1135,68 +1141,8 @@ fn bind_global_item(
                     Ok(())
                 }
             }
-        }
-        ast::ItemKind::Export(export) =>  {
-            let mut errs_buf = vec![];
-            for exported_item in export.items() {
-                let resolved_item = match resolve(
-                    NameKind::Term,
-                    &scope,
-                    // TODO shouldn't be default
-                    std::iter::empty(),
-                    &*exported_item.name,
-                    &exported_item.namespace,
-                ) {
-                    Ok(res) => res,
-                    Err(err) => {
-                        dbg!("not found in initial resolution");
-                        errs_buf.push(err);
-                        continue;
-                    }
-                };
-
-                let resolved_item_id = match resolved_item {
-                    Res::Item(ItemId { package: Some(_), .. } , _) => todo!("tried to export external package item"),
-                    Res::Item(id, _) => id,
-                    _ => todo!("err: tried to export a non-item"),
-                };
-                // TODO verify below line
-                let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
-                let res = Res::Item(resolved_item_id, status);
-                names.insert(exported_item.name.id, res);
-                match (
-                    scope
-                        .terms
-                        .entry(namespace)
-                        .or_default()
-                        .entry(Rc::clone(&exported_item.name.name)),
-                    scope
-                        .tys
-                        .entry(namespace)
-                        .or_default()
-                        .entry(Rc::clone(&exported_item.name.name)),
-                ) {
-                    (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
-                        let namespace_name = scope
-                            .namespaces
-                            .find_namespace_by_id(&namespace)
-                            .0
-                            .join(".");
-                         errs_buf.push(Error::Duplicate(
-                            exported_item.name.name.to_string(),
-                            namespace_name,
-                            exported_item.name.span,
-                        ));
-                    }
-                    (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
-                        term_entry.insert(res);
-                        ty_entry.insert(res);
-                    }
-                }
-            }
-            if errs_buf.is_empty() { Ok(()) } else { Err(dbg!(errs_buf)) }
         },
-        ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
+        ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::Export(..) => Ok(()),
     }
 }
 
