@@ -2871,7 +2871,7 @@ namespace Foo.Bar.Baz.Quux {
 
 namespace Foo.Bar {
    open Foo.Bar.Baz;
-    export { Quux.FooBarBazQuux };
+   export { Quux.FooBarBazQuux };
 }
 
 namespace Main {}" },
@@ -2890,5 +2890,28 @@ namespace Main {}" },
             }
 
             namespace namespace11 {}"#]],
+    );
+}
+
+
+#[test]
+fn export_symbol_and_call_it() {
+    check(
+        indoc! {
+"
+namespace Foo {
+    export { Foo.Bar.Baz.Quux.Function };
+}
+namespace Foo.Bar.Baz.Quux {
+    function Function() : Unit {}
+}
+
+namespace Main {
+  open Foo;
+  operation Main() : Unit {
+    Foo.Function();
+  }
+}" },
+        &expect![[r#""#]],
     );
 }

@@ -299,7 +299,7 @@ impl PartialOrd<Self> for Open {
 }
 
 impl Ord for Open {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> Ordering {
         let a: usize = self.namespace.into();
         let b: usize = other.namespace.into();
         a.cmp(&b)
@@ -398,7 +398,7 @@ impl Resolver {
                 }
                 TopLevelNode::Stmt(stmt) => {
                     if let ast::StmtKind::Item(item) = stmt.kind.as_ref() {
-                        self.bind_local_item(assigner, item);
+                        self.bind_local_item(assigner, item, None);
                     }
                 }
             }
@@ -544,7 +544,7 @@ impl Resolver {
         }
     }
 
-    pub(super) fn bind_local_item(&mut self, assigner: &mut Assigner, item: &ast::Item) {
+    pub(super) fn bind_local_item(&mut self, assigner: &mut Assigner, item: &ast::Item, namespace: Option<NamespaceId>) {
         match &*item.kind {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
             ast::ItemKind::Callable(decl) => {
@@ -590,7 +590,41 @@ impl Resolver {
                             continue;
                         }
                     };
+
+                    // get the actual ast item this refers to
+
+                    let scope = self.current_scope_mut();
+
+                    let resolved_item_id = match resolved_item {
+                        Res::Item(ItemId { package: Some(_), .. } , _) => todo!("tried to export external package item"),
+                        Res::Item(id, _) => id,
+                        _ => todo!("err: tried to export a non-item"),
+                    };
+
+                    scope.terms.insert(Rc::clone(dbg!(&item.name.name)), resolved_item_id);
+                    // just insert the id for the name ident
                     self.names.insert(item.id, resolved_item);
+                    if let Some(namespace) = namespace {
+                       if let Err(errs) =  bind_global_item(
+                            &mut self.names,
+                            &mut self.globals,
+                            namespace,
+                            || intrapackage(assigner.next_item()),
+                            &ast::Item {
+                                id: Default::default(),
+                                span: item.span,
+                                doc: "".into(),
+                                // TODO calculate attrs
+                                attrs: Box::new([]),
+                                visibility: None,
+                                // TODO
+                                kind: Box::new(Default::default()),
+                            },
+                        ) {
+                            self.errors.extend(errs);
+
+                       };
+                    }
                 }
             }
             ast::ItemKind::Err => {}
@@ -699,7 +733,7 @@ impl AstVisitor<'_> for With<'_> {
                         visitor.resolver.bind_open(name, alias);
                     }
                     ast::ItemKind::Export(_) => {
-                        visitor.resolver.bind_local_item(visitor.assigner, item);
+                        visitor.resolver.bind_local_item(visitor.assigner, item, Some(ns));
                     }
                     _ => {}
                 }
@@ -767,7 +801,7 @@ impl AstVisitor<'_> for With<'_> {
         self.with_scope(block.span, ScopeKind::Block, |visitor| {
             for stmt in &*block.stmts {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
-                    visitor.resolver.bind_local_item(visitor.assigner, item);
+                    visitor.resolver.bind_local_item(visitor.assigner, item, None);
                 }
             }
 
@@ -1067,6 +1101,7 @@ fn bind_global_item(
         }
         ast::ItemKind::Ty(name, _) => {
             let item_id = next_id();
+
             let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
             let res = Res::Item(item_id, status);
             names.insert(name.id, res);
@@ -1101,7 +1136,67 @@ fn bind_global_item(
                 }
             }
         }
-        ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::Export(..) => Ok(()),
+        ast::ItemKind::Export(export) =>  {
+            let mut errs_buf = vec![];
+            for exported_item in export.items() {
+                let resolved_item = match resolve(
+                    NameKind::Term,
+                    &scope,
+                    // TODO shouldn't be default
+                    std::iter::empty(),
+                    &*exported_item.name,
+                    &exported_item.namespace,
+                ) {
+                    Ok(res) => res,
+                    Err(err) => {
+                        dbg!("not found in initial resolution");
+                        errs_buf.push(err);
+                        continue;
+                    }
+                };
+
+                let resolved_item_id = match resolved_item {
+                    Res::Item(ItemId { package: Some(_), .. } , _) => todo!("tried to export external package item"),
+                    Res::Item(id, _) => id,
+                    _ => todo!("err: tried to export a non-item"),
+                };
+                // TODO verify below line
+                let status = ItemStatus::from_attrs(&ast_attrs_as_hir_attrs(item.attrs.as_ref()));
+                let res = Res::Item(resolved_item_id, status);
+                names.insert(exported_item.name.id, res);
+                match (
+                    scope
+                        .terms
+                        .entry(namespace)
+                        .or_default()
+                        .entry(Rc::clone(&exported_item.name.name)),
+                    scope
+                        .tys
+                        .entry(namespace)
+                        .or_default()
+                        .entry(Rc::clone(&exported_item.name.name)),
+                ) {
+                    (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
+                        let namespace_name = scope
+                            .namespaces
+                            .find_namespace_by_id(&namespace)
+                            .0
+                            .join(".");
+                         errs_buf.push(Error::Duplicate(
+                            exported_item.name.name.to_string(),
+                            namespace_name,
+                            exported_item.name.span,
+                        ));
+                    }
+                    (Entry::Vacant(term_entry), Entry::Vacant(ty_entry)) => {
+                        term_entry.insert(res);
+                        ty_entry.insert(res);
+                    }
+                }
+            }
+            if errs_buf.is_empty() { Ok(()) } else { Err(dbg!(errs_buf)) }
+        },
+        ast::ItemKind::Err | ast::ItemKind::Open(..) => Ok(()),
     }
 }
 
@@ -1358,6 +1453,7 @@ where
     T: Iterator<Item = (NamespaceId, O)>,
     O: Clone + std::fmt::Debug,
 {
+    println!("FSIN {provided_namespace_name:?}--{provided_symbol_name:?}");
     // check aliases to see if the provided namespace is actually an alias
     if let Some(provided_namespace_name) = provided_namespace_name {
         if let Some(opens) = aliases.get(&(Into::<Vec<Rc<_>>>::into(provided_namespace_name))) {
@@ -1365,7 +1461,7 @@ where
                 .iter()
                 .filter_map(|(ns_id, open)| {
                     globals
-                        .get(kind, *ns_id, &provided_symbol_name.name)
+                        .get(kind, *ns_id, dbg!(&provided_symbol_name.name))
                         .map(|res| (*res, open.clone()))
                 })
                 .collect();
