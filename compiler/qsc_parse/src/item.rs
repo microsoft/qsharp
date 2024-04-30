@@ -229,6 +229,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
 
 /// Parses the contents of a namespace block, what is in between the open and close braces in an
 /// explicit namespace, and any top level items in an implicit namespace.
+#[allow(clippy::vec_box)]
 fn parse_namespace_block_contents(s: &mut ParserContext) -> Result<Vec<Box<Item>>> {
     let items = barrier(s, &[TokenKind::Close(Delim::Brace)], parse_many)?;
     Ok(items)
@@ -533,14 +534,14 @@ pub(super) fn check_input_parens(inputs: &Pat) -> Result<()> {
 fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
     let lo = s.peek().span.lo;
     let _doc = parse_doc(s);
-    let _export_keyword = token(s, TokenKind::Keyword(Keyword::Export))?;
-    let _open_brace = token(s, TokenKind::Open(Delim::Brace))?;
+    token(s, TokenKind::Keyword(Keyword::Export))?;
+    token(s, TokenKind::Open(Delim::Brace))?;
     let items = seq(s, path)?;
-    let _close_brace = token(s, TokenKind::Close(Delim::Brace))?;
-    let _semi = token(s, TokenKind::Semi)?;
+    token(s, TokenKind::Close(Delim::Brace))?;
+    token(s, TokenKind::Semi)?;
 
     Ok(ExportDecl {
         span: s.span(lo),
-        items: items.0.into_iter().map(|x| (*x).into()).collect::<Vec<_>>(),
+        items: items.0.into_iter().map(|x| (*x)).collect::<Vec<_>>(),
     })
 }

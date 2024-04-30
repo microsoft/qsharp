@@ -1446,13 +1446,16 @@ impl VecIdent {
     }
 
     /// The number of idents in this [`VecIdent`].
+    #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
     /// Returns `true` if the [`VecIdent`] contains no idents.
-    pub fn is_empty(&self) -> bool
-    { self.0.is_empty() }
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl Default for Ident {
@@ -1721,7 +1724,7 @@ impl Display for ExportDecl {
         let items_str = self
             .items
             .iter()
-            .map(|i| i.to_string())
+            .map(std::string::ToString::to_string)
             .collect::<Vec<_>>()
             .join(", ");
         write!(f, "ExportDecl {}: [{items_str}]", self.span)

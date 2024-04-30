@@ -310,7 +310,7 @@ impl<'a> Visitor<'a> for Checker<'a> {
     fn visit_stmt(&mut self, stmt_id: StmtId) {
         let stmt = self.get_stmt(stmt_id);
         match &stmt.kind {
-            StmtKind::Item(_) | StmtKind::Export(_) => {}
+            StmtKind::Item(_) => {}
             StmtKind::Expr(expr_id) | StmtKind::Semi(expr_id) | StmtKind::Local(_, _, expr_id) => {
                 self.visit_expr(*expr_id);
             }

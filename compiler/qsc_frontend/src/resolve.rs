@@ -544,7 +544,12 @@ impl Resolver {
         }
     }
 
-    pub(super) fn bind_local_item(&mut self, assigner: &mut Assigner, item: &ast::Item, namespace: Option<NamespaceId>) {
+    pub(super) fn bind_local_item(
+        &mut self,
+        assigner: &mut Assigner,
+        item: &ast::Item,
+        namespace: Option<NamespaceId>,
+    ) {
         match &*item.kind {
             ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
             ast::ItemKind::Callable(decl) => {
@@ -581,7 +586,7 @@ impl Resolver {
                         NameKind::Term,
                         &self.globals,
                         self.locals.get_scopes(&self.curr_scope_chain),
-                        &*item.name,
+                        &item.name,
                         &item.namespace,
                     ) {
                         Ok(res) => res,
@@ -596,40 +601,26 @@ impl Resolver {
                     let scope = self.current_scope_mut();
 
                     let resolved_item_id = match resolved_item {
-                        Res::Item(ItemId { package: Some(_), .. } , _) => todo!("tried to export external package item"),
+                        Res::Item(
+                            ItemId {
+                                package: Some(_), ..
+                            },
+                            _,
+                        ) => todo!("tried to export external package item"),
                         Res::Item(id, _) => id,
                         _ => todo!("err: tried to export a non-item"),
                     };
 
-                    scope.terms.insert(Rc::clone(dbg!(&item.name.name)), resolved_item_id);
+                    scope
+                        .terms
+                        .insert(Rc::clone(dbg!(&item.name.name)), resolved_item_id);
                     // just insert the id for the name ident
                     self.names.insert(item.id, resolved_item);
                     if let Some(namespace) = namespace {
-                          self.globals
-                            .terms
-                            .entry(namespace)
-                            .or_default()
-                            .insert(item.name.name.clone(), Res::Item(resolved_item_id, ItemStatus::Available));
-
-                       // if let Err(errs) =  bind_global_item(
-                       //      &mut self.names,
-                       //      &mut self.globals,
-                       //      namespace,
-                       //      || intrapackage(assigner.next_item()),
-                       //      &ast::Item {
-                       //          id: Default::default(),
-                       //          span: item.span,
-                       //          doc: "".into(),
-                       //          // TODO calculate attrs
-                       //          attrs: Box::new([]),
-                       //          visibility: None,
-                       //          // TODO
-                       //          kind: Box::new(Default::default()),
-                       //      },
-                       //  ) {
-                       //      self.errors.extend(errs);
-                       //
-                       // };
+                        self.globals.terms.entry(namespace).or_default().insert(
+                            item.name.name.clone(),
+                            Res::Item(resolved_item_id, ItemStatus::Available),
+                        );
                     }
                 }
             }
@@ -739,7 +730,9 @@ impl AstVisitor<'_> for With<'_> {
                         visitor.resolver.bind_open(name, alias);
                     }
                     ast::ItemKind::Export(_) => {
-                        visitor.resolver.bind_local_item(visitor.assigner, item, Some(ns));
+                        visitor
+                            .resolver
+                            .bind_local_item(visitor.assigner, item, Some(ns));
                     }
                     _ => {}
                 }
@@ -807,7 +800,9 @@ impl AstVisitor<'_> for With<'_> {
         self.with_scope(block.span, ScopeKind::Block, |visitor| {
             for stmt in &*block.stmts {
                 if let ast::StmtKind::Item(item) = &*stmt.kind {
-                    visitor.resolver.bind_local_item(visitor.assigner, item, None);
+                    visitor
+                        .resolver
+                        .bind_local_item(visitor.assigner, item, None);
                 }
             }
 
@@ -1141,7 +1136,7 @@ fn bind_global_item(
                     Ok(())
                 }
             }
-        },
+        }
         ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::Export(..) => Ok(()),
     }
 }

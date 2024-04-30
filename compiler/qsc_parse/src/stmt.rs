@@ -18,7 +18,7 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Block,  Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
+    Block, Mutability, NodeId, QubitInit, QubitInitKind, QubitSource, Stmt, StmtKind,
 };
 use qsc_data_structures::{language_features::LanguageFeatures, span::Span};
 

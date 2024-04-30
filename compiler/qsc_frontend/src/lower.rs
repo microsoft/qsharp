@@ -140,12 +140,12 @@ impl With<'_> {
         let exports = namespace.exports();
         for export in exports {
             // get the item this export is referring to
-            let item = match self.names.get(export.id) {
-                Some(&resolve::Res::Item(item, _)) => item,
-                _ => panic!("export should have item ID"),
+            let Some(&resolve::Res::Item(item, _)) = self.names.get(export.id) else {
+                todo!("err that export was not an item")
             };
-            // TODO figure out how to map the above itemid into a local item id
-            if item.package.is_some() { todo!("handle external package re-exports -- or don't?")}
+            if item.package.is_some() {
+                todo!("handle external package re-exports -- or don't?")
+            }
             items.push(item.item);
         }
 
@@ -184,7 +184,10 @@ impl With<'_> {
         };
 
         let (id, kind) = match &*item.kind {
-            ast::ItemKind::Err | ast::ItemKind::Open(..) => return None,
+            ast::ItemKind::Err | ast::ItemKind::Open(..) |
+            // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
+
+            ast::ItemKind::Export(_) => return None,
             ast::ItemKind::Callable(callable) => {
                 let id = resolve_id(callable.name.id);
                 let grandparent = self.lowerer.parent;
@@ -203,8 +206,6 @@ impl With<'_> {
 
                 (id, hir::ItemKind::Ty(self.lower_ident(name), udt.clone()))
             }
-            // exports are handled in namespace resolution (see resolve.rs) -- we don't need them in any lowered representations
-            ast::ItemKind::Export(_) => return None,
         };
 
         self.lowerer.items.push(hir::Item {

@@ -10,7 +10,7 @@ use crate::{
 };
 use expect_test::{expect, Expect};
 use indoc::indoc;
-use qsc_ast::ast::{Item, ItemKind, Namespace, VecIdent};
+use qsc_ast::ast::{Item, ItemKind, VecIdent};
 use qsc_ast::{
     assigner::Assigner as AstAssigner,
     ast::{Ident, NodeId, Package, Path, TopLevelNode},
@@ -2891,7 +2891,6 @@ namespace Main {}" },
             namespace namespace11 {}"#]],
     );
 }
-
 
 #[test]
 fn export_symbol_and_call_it() {

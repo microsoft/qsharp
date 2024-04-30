@@ -951,7 +951,7 @@ impl<'a> Visitor<'a> for BreakpointCollector<'a> {
                 self.add_stmt(stmt_res);
                 visit::walk_expr(self, expr);
             }
-            fir::StmtKind::Item(_) | fir::StmtKind::Semi(_) | fir::StmtKind::Export(_) => {
+            fir::StmtKind::Item(_) | fir::StmtKind::Semi(_) => {
                 self.add_stmt(stmt_res);
             }
         };

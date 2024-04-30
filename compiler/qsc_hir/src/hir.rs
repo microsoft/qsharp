@@ -549,8 +549,6 @@ pub enum StmtKind {
     Qubit(QubitSource, Pat, QubitInit, Option<Block>),
     /// An expression with a trailing semicolon.
     Semi(Expr),
-    /// An export statement.
-    Export(ExportDecl),
 }
 
 impl Display for StmtKind {
@@ -575,7 +573,6 @@ impl Display for StmtKind {
                 }
             }
             StmtKind::Semi(e) => write!(indent, "Semi: {e}")?,
-            StmtKind::Export(export) => write!(indent, "Export: {export}")?,
         }
         Ok(())
     }
@@ -1554,7 +1551,7 @@ impl Display for ExportDecl {
         let items_str = self
             .items
             .iter()
-            .map(|i| i.name())
+            .map(VecIdent::name)
             .collect::<Vec<_>>()
             .join(", ");
         write!(f, "ExportDecl {}: [{items_str}]", self.span)
