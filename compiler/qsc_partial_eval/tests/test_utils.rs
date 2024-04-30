@@ -7,7 +7,7 @@ use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCap
 use qsc_fir::fir::PackageStore;
 use qsc_frontend::compile::{PackageStore as HirPackageStore, SourceMap};
 use qsc_lowerer::{map_hir_package_to_fir, Lowerer};
-use qsc_partial_eval::{partially_evaluate, ProgramEntry};
+use qsc_partial_eval::{partially_evaluate, Error, ProgramEntry};
 use qsc_rca::{Analyzer, PackageStoreComputeProperties};
 use qsc_rir::rir::{BlockId, CallableId, Program};
 
@@ -31,19 +31,36 @@ pub fn assert_callable(program: &Program, callable_id: CallableId, expected_call
     expected_callable.assert_eq(&actual_callable.to_string());
 }
 
+pub fn assert_error(error: &Error, expected_error: &Expect) {
+    expected_error.assert_eq(format!("{error:?}").as_str());
+}
+
 #[must_use]
-pub fn compile_and_partially_evaluate(source: &str) -> Program {
-    let compilation_context = CompilationContext::new(source);
-    let maybe_program = partially_evaluate(
-        &compilation_context.fir_store,
-        &compilation_context.compute_properties,
-        &compilation_context.entry,
-        TargetCapabilityFlags::empty(),
-    );
+pub fn get_partial_evaluation_error(source: &str) -> Error {
+    let maybe_program = compile_and_partially_evaluate(source);
+    match maybe_program {
+        Ok(_) => panic!("partial evaluation succeeded"),
+        Err(error) => error,
+    }
+}
+
+#[must_use]
+pub fn get_rir_program(source: &str) -> Program {
+    let maybe_program = compile_and_partially_evaluate(source);
     match maybe_program {
         Ok(program) => program,
         Err(error) => panic!("partial evaluation failed: {error:?}"),
     }
+}
+
+fn compile_and_partially_evaluate(source: &str) -> Result<Program, Error> {
+    let compilation_context = CompilationContext::new(source);
+    partially_evaluate(
+        &compilation_context.fir_store,
+        &compilation_context.compute_properties,
+        &compilation_context.entry,
+        TargetCapabilityFlags::empty(),
+    )
 }
 
 struct CompilationContext {

@@ -8,11 +8,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::{assert_block_instructions, assert_callable, get_rir_program};
 
 #[test]
 fn unitary_call_within_an_if_with_classical_condition_within_a_for_loop() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -57,7 +57,7 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_for_loop() {
 
 #[test]
 fn unitary_call_within_an_if_with_classical_condition_within_a_while_loop() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
@@ -104,7 +104,7 @@ fn unitary_call_within_an_if_with_classical_condition_within_a_while_loop() {
 
 #[test]
 fn unitary_call_within_an_if_with_classical_condition_within_a_repeat_until_loop() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             operation op(q : Qubit) : Unit { body intrinsic; }
