@@ -13,8 +13,9 @@ use super::tests_common::{
     USE_DYNAMIC_BIG_INT, USE_DYNAMIC_BOOLEAN, USE_DYNAMIC_DOUBLE, USE_DYNAMIC_FUNCTION,
     USE_DYNAMIC_INDEX, USE_DYNAMIC_INT, USE_DYNAMIC_OPERATION, USE_DYNAMIC_PAULI,
     USE_DYNAMIC_QUBIT, USE_DYNAMIC_RANGE, USE_DYNAMIC_STRING, USE_DYNAMIC_UDT,
-    USE_ENTRY_POINT_STATIC_BIG_INT, USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE,
-    USE_ENTRY_POINT_STATIC_INT, USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
+    USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE, USE_ENTRY_POINT_STATIC_BIG_INT,
+    USE_ENTRY_POINT_STATIC_BOOL, USE_ENTRY_POINT_STATIC_DOUBLE, USE_ENTRY_POINT_STATIC_INT,
+    USE_ENTRY_POINT_STATIC_INT_IN_TUPLE, USE_ENTRY_POINT_STATIC_PAULI,
     USE_ENTRY_POINT_STATIC_RANGE, USE_ENTRY_POINT_STATIC_STRING,
 };
 use expect_test::{expect, Expect};
@@ -823,6 +824,29 @@ fn use_of_static_range_return_from_entry_point_errors() {
 fn use_of_static_int_in_tuple_return_from_entry_point_errors() {
     check_profile_for_exe(
         USE_ENTRY_POINT_STATIC_INT_IN_TUPLE,
+        &expect![[r#"
+            [
+                UseOfDynamicInt(
+                    Span {
+                        lo: 63,
+                        hi: 66,
+                    },
+                ),
+                UseOfIntOutput(
+                    Span {
+                        lo: 63,
+                        hi: 66,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn use_of_static_sized_array_in_tuple_error() {
+    check_profile_for_exe(
+        USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE,
         &expect![[r#"
             [
                 UseOfDynamicInt(

@@ -1375,12 +1375,19 @@ impl<'a> Analyzer<'a> {
                 // dynamic and additional runtime features may apply.
                 if !application_instance.active_dynamic_scopes.is_empty() {
                     let local_type = &local_var_compute_kind.local.ty;
-                    let dynamic_value_kind = ValueKind::new_dynamic_from_type(local_type);
-                    let dynamic_runtime_features =
+                    let mut dynamic_value_kind = ValueKind::new_dynamic_from_type(local_type);
+                    let mut dynamic_runtime_features =
                         derive_runtime_features_for_value_kind_associated_to_type(
                             dynamic_value_kind,
                             local_type,
                         );
+                    if matches!(local_type, Ty::Array(..)) {
+                        // For arrays updated in a dynamic context, we also need to include the runtime feature
+                        // of dynamic arrays and change the value kind.
+                        dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicallySizedArray;
+                        dynamic_value_kind =
+                            ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic);
+                    }
                     let dynamic_compute_kind = ComputeKind::new_with_runtime_features(
                         dynamic_runtime_features,
                         dynamic_value_kind,
@@ -1914,11 +1921,9 @@ fn derive_intrinsic_function_application_generator_set(
 
         // Create a parameter application depending on the parameter type.
         let param_application = match &param.ty {
-            Ty::Array(_) => ParamApplication::Array(ArrayParamApplication {
-                static_content_dynamic_size: param_compute_kind,
-                dynamic_content_static_size: param_compute_kind,
-                dynamic_content_dynamic_size: param_compute_kind,
-            }),
+            Ty::Array(_) => {
+                array_param_application_from_runtime_features(runtime_features, value_kind)
+            }
             _ => ParamApplication::Element(param_compute_kind),
         };
         dynamic_param_applications.push(param_application);
@@ -1929,6 +1934,26 @@ fn derive_intrinsic_function_application_generator_set(
         inherent: ComputeKind::Classical,
         dynamic_param_applications,
     }
+}
+
+fn array_param_application_from_runtime_features(
+    runtime_features: RuntimeFeatureFlags,
+    value_kind: ValueKind,
+) -> ParamApplication {
+    ParamApplication::Array(ArrayParamApplication {
+        static_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
+            runtime_features: runtime_features | RuntimeFeatureFlags::UseOfDynamicallySizedArray,
+            value_kind,
+        }),
+        dynamic_content_static_size: ComputeKind::Quantum(QuantumProperties {
+            runtime_features,
+            value_kind,
+        }),
+        dynamic_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
+            runtime_features: runtime_features | RuntimeFeatureFlags::UseOfDynamicallySizedArray,
+            value_kind,
+        }),
+    })
 }
 
 fn derive_instrinsic_operation_application_generator_set(
@@ -1971,11 +1996,9 @@ fn derive_instrinsic_operation_application_generator_set(
 
         // Create a parameter application depending on the parameter type.
         let param_application = match &param.ty {
-            Ty::Array(_) => ParamApplication::Array(ArrayParamApplication {
-                static_content_dynamic_size: param_compute_kind,
-                dynamic_content_static_size: param_compute_kind,
-                dynamic_content_dynamic_size: param_compute_kind,
-            }),
+            Ty::Array(_) => {
+                array_param_application_from_runtime_features(runtime_features, value_kind)
+            }
             _ => ParamApplication::Element(param_compute_kind),
         };
         dynamic_param_applications.push(param_application);
