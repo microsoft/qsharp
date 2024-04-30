@@ -95,10 +95,10 @@ pub struct Scope {
     pub args_value_kind: Vec<ValueKind>,
     /// The classical environment of the callable, which holds values corresponding to local variables.
     pub env: Env,
-    /// Number of currently active blocks (starting from where this scope was created).
-    active_block_count: usize,
     /// Map that holds the values of local variables.
     pub hybrid_vars: FxHashMap<LocalVarId, Value>,
+    /// Number of currently active blocks (starting from where this scope was created).
+    active_block_count: usize,
 }
 
 impl Scope {

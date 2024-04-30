@@ -11,7 +11,7 @@ fn add_double_literals() {
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::PI)),
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::E)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -25,7 +25,7 @@ fn ashr_double_literals() {
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::PI)),
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::E)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -39,7 +39,7 @@ fn bitwise_and_double_literals() {
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::PI)),
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::E)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -52,7 +52,7 @@ fn bitwise_not_double_literals() {
     let inst = rir::Instruction::BitwiseNot(
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::PI)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -66,7 +66,7 @@ fn bitwise_or_double_literals() {
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::PI)),
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::E)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -80,7 +80,7 @@ fn bitwise_xor_double_literals() {
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::PI)),
         rir::Operand::Literal(rir::Literal::Double(core::f64::consts::E)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );

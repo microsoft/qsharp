@@ -12,7 +12,7 @@ fn phi_with_empty_args() {
     let inst = rir::Instruction::Phi(
         args.to_vec(),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
@@ -23,7 +23,7 @@ fn phi_with_empty_args() {
 fn phi_with_single_arg() {
     let args = [(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(13),
+            id: rir::VariableId(13),
             ty: rir::Ty::Integer,
         }),
         rir::BlockId(3),
@@ -31,7 +31,7 @@ fn phi_with_single_arg() {
     let inst = rir::Instruction::Phi(
         args.to_vec(),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
@@ -44,14 +44,14 @@ fn phi_with_multiple_args() {
     let args = [
         (
             rir::Operand::Variable(rir::Variable {
-                variable_id: rir::VariableId(13),
+                id: rir::VariableId(13),
                 ty: rir::Ty::Integer,
             }),
             rir::BlockId(3),
         ),
         (
             rir::Operand::Variable(rir::Variable {
-                variable_id: rir::VariableId(2),
+                id: rir::VariableId(2),
                 ty: rir::Ty::Integer,
             }),
             rir::BlockId(7),
@@ -60,7 +60,7 @@ fn phi_with_multiple_args() {
     let inst = rir::Instruction::Phi(
         args.to_vec(),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );

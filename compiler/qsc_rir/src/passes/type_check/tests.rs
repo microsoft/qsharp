@@ -11,7 +11,7 @@ use super::check_instr_types;
 #[test]
 fn binop_instr_matching_types_passes_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr1 = Operand::Variable(var);
@@ -24,7 +24,7 @@ fn binop_instr_matching_types_passes_check() {
 #[should_panic(expected = "assertion `left == right` failed")]
 fn binop_instr_mismatching_types_fails_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr1 = Operand::Variable(var);
@@ -36,7 +36,7 @@ fn binop_instr_mismatching_types_fails_check() {
 #[test]
 fn unop_instr_matching_types_passes_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Boolean,
     };
     let opr = Operand::Variable(var);
@@ -48,7 +48,7 @@ fn unop_instr_matching_types_passes_check() {
 #[should_panic(expected = "assertion `left == right` failed")]
 fn unop_instr_mismatching_types_fails_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -58,7 +58,7 @@ fn unop_instr_mismatching_types_fails_check() {
         &Instruction::BitwiseNot(
             opr,
             Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Boolean,
             },
         ),
@@ -68,7 +68,7 @@ fn unop_instr_mismatching_types_fails_check() {
 #[test]
 fn phi_instr_matching_types_passes_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -83,7 +83,7 @@ fn phi_instr_matching_types_passes_check() {
 #[should_panic(expected = "assertion `left == right` failed")]
 fn phi_instr_mismatching_types_fails_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -93,7 +93,7 @@ fn phi_instr_mismatching_types_fails_check() {
         &Instruction::Phi(
             vec![(opr, BlockId(0)), (opr, BlockId(1))],
             Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Boolean,
             },
         ),
@@ -103,7 +103,7 @@ fn phi_instr_mismatching_types_fails_check() {
 #[test]
 fn call_instr_matching_types_passes_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -126,7 +126,7 @@ fn call_instr_matching_types_passes_check() {
             CallableId(0),
             vec![opr],
             Some(Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Integer,
             }),
         ),
@@ -137,7 +137,7 @@ fn call_instr_matching_types_passes_check() {
 #[should_panic(expected = "assertion `left == right` failed")]
 fn call_instr_mismatching_output_types_fails_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -160,7 +160,7 @@ fn call_instr_mismatching_output_types_fails_check() {
             CallableId(0),
             vec![opr],
             Some(Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Boolean,
             }),
         ),
@@ -188,7 +188,7 @@ fn call_instr_mismatching_input_types_fails_check() {
             CallableId(0),
             vec![Operand::Literal(Literal::Bool(true))],
             Some(Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Integer,
             }),
         ),
@@ -199,7 +199,7 @@ fn call_instr_mismatching_input_types_fails_check() {
 #[should_panic(expected = "assertion `left == right` failed")]
 fn call_instr_too_many_args_fails_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -222,7 +222,7 @@ fn call_instr_too_many_args_fails_check() {
             CallableId(0),
             vec![opr, opr],
             Some(Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Integer,
             }),
         ),
@@ -232,7 +232,7 @@ fn call_instr_too_many_args_fails_check() {
 #[test]
 fn call_instr_no_return_type_no_output_var_passes_check() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -258,7 +258,7 @@ fn call_instr_no_return_type_no_output_var_passes_check() {
 )]
 fn call_instr_return_type_without_output_var_fails() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -284,7 +284,7 @@ fn call_instr_return_type_without_output_var_fails() {
 )]
 fn call_instr_output_var_without_return_type_fails() {
     let var = Variable {
-        variable_id: VariableId(0),
+        id: VariableId(0),
         ty: Ty::Integer,
     };
     let opr = Operand::Variable(var);
@@ -307,7 +307,7 @@ fn call_instr_output_var_without_return_type_fails() {
             CallableId(0),
             vec![opr],
             Some(Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Integer,
             }),
         ),

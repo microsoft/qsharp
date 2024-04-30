@@ -17,7 +17,7 @@ fn test_check_unreachable_instrs_panics_on_missing_terminator() {
         Block(vec![Instruction::BitwiseNot(
             Operand::Literal(Literal::Bool(true)),
             Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Boolean,
             },
         )]),
@@ -43,7 +43,7 @@ fn test_check_unreachable_instrs_succeeds_on_terminator_after_other_instrs() {
             Instruction::BitwiseNot(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
             ),
@@ -64,7 +64,7 @@ fn test_check_unreachable_instrs_panics_on_unreachable_instrs_after_terminator()
             Instruction::BitwiseNot(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
             ),
@@ -132,7 +132,7 @@ fn test_check_unreachable_blocks_succeeds_on_no_unreachable_blocks_with_branch()
         BlockId(0),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Boolean,
             },
             BlockId(1),
@@ -188,7 +188,7 @@ fn test_check_unreachable_blocks_panics_on_unreachable_block_with_branch() {
         BlockId(0),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Boolean,
             },
             BlockId(1),

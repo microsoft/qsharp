@@ -173,7 +173,7 @@ fn remap_block_ids_out_of_order_with_one_branch() {
         BlockId(2),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Boolean,
             },
             BlockId(3),
@@ -261,7 +261,7 @@ fn remap_block_ids_simple_loop() {
         BlockId(4),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Boolean,
             },
             BlockId(6),
@@ -408,7 +408,7 @@ fn remap_block_ids_nested_branching_loops() {
         BlockId(4),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Boolean,
             },
             BlockId(6),
@@ -419,7 +419,7 @@ fn remap_block_ids_nested_branching_loops() {
         BlockId(6),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Boolean,
             },
             BlockId(4),
@@ -498,7 +498,7 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
         BlockId(4),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(0),
+                id: VariableId(0),
                 ty: Ty::Boolean,
             },
             BlockId(6),
@@ -512,7 +512,7 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
         BlockId(2),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(1),
+                id: VariableId(1),
                 ty: Ty::Boolean,
             },
             BlockId(1),
@@ -526,7 +526,7 @@ fn remap_block_ids_ensures_acyclic_program_gets_topological_ordering() {
         BlockId(3),
         Block(vec![Instruction::Branch(
             Variable {
-                variable_id: VariableId(2),
+                id: VariableId(2),
                 ty: Ty::Boolean,
             },
             BlockId(5),

@@ -89,7 +89,10 @@ impl From<usize> for Result {
 pub struct Qubit(pub usize);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Var(pub usize);
+pub struct Var {
+    pub id: usize,
+    pub ty: VarTy,
+}
 
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -147,7 +150,24 @@ impl Display for Value {
                 }
                 write!(f, ")")
             }
-            Value::Var(var) => write!(f, "Var{}", (var.0)),
+            Value::Var(var) => write!(f, "Var({}, {})", var.id, var.ty),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum VarTy {
+    Boolean,
+    Integer,
+    Double,
+}
+
+impl Display for VarTy {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::Boolean => write!(f, "Boolean"),
+            Self::Integer => write!(f, "Integer"),
+            Self::Double => write!(f, "Double"),
         }
     }
 }

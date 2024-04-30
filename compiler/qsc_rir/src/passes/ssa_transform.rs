@@ -90,7 +90,7 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
                 // the original variable in the block's variable map, which will take care of any orphaned uses.
                 for (variable_id, args) in phi_nodes {
                     let new_var = Variable {
-                        variable_id: next_var_id,
+                        id: next_var_id,
                         ty: operand.get_type(),
                     };
                     let phi_node = Instruction::Phi(args, new_var);
@@ -227,17 +227,15 @@ trait VariableMapper {
 
 impl VariableMapper for FxHashMap<VariableId, Operand> {
     fn insert(&mut self, var: Variable, operand: Operand) {
-        self.insert(var.variable_id, operand);
+        self.insert(var.id, operand);
     }
 
     fn to_operand(&self, var: Variable) -> Operand {
-        self.get(&var.variable_id)
-            .copied()
-            .unwrap_or(Operand::Variable(var))
+        self.get(&var.id).copied().unwrap_or(Operand::Variable(var))
     }
 
     fn to_variable(&self, var: Variable) -> Variable {
-        self.get(&var.variable_id)
+        self.get(&var.id)
             .copied()
             .map_or(var, |operand| match operand {
                 Operand::Literal(_) => panic!("literal not supported in this context"),

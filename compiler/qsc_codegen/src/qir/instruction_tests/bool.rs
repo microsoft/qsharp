@@ -11,7 +11,7 @@ fn logical_and_literals() {
         rir::Operand::Literal(rir::Literal::Bool(true)),
         rir::Operand::Literal(rir::Literal::Bool(false)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );
@@ -22,15 +22,15 @@ fn logical_and_literals() {
 fn logical_and_variables() {
     let inst = rir::Instruction::LogicalAnd(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(1),
+            id: rir::VariableId(1),
             ty: rir::Ty::Boolean,
         }),
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(2),
+            id: rir::VariableId(2),
             ty: rir::Ty::Boolean,
         }),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );
@@ -42,7 +42,7 @@ fn logical_not_true_literal() {
     let inst = rir::Instruction::LogicalNot(
         rir::Operand::Literal(rir::Literal::Bool(true)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );
@@ -53,11 +53,11 @@ fn logical_not_true_literal() {
 fn logical_not_variables() {
     let inst = rir::Instruction::LogicalNot(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(1),
+            id: rir::VariableId(1),
             ty: rir::Ty::Boolean,
         }),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );
@@ -69,7 +69,7 @@ fn logical_not_false_literal() {
     let inst = rir::Instruction::LogicalNot(
         rir::Operand::Literal(rir::Literal::Bool(false)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );
@@ -82,7 +82,7 @@ fn logical_or_literals() {
         rir::Operand::Literal(rir::Literal::Bool(true)),
         rir::Operand::Literal(rir::Literal::Bool(false)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );
@@ -93,15 +93,15 @@ fn logical_or_literals() {
 fn logical_or_variables() {
     let inst = rir::Instruction::LogicalOr(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(1),
+            id: rir::VariableId(1),
             ty: rir::Ty::Boolean,
         }),
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(2),
+            id: rir::VariableId(2),
             ty: rir::Ty::Boolean,
         }),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );

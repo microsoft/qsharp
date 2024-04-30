@@ -37,7 +37,7 @@ fn simplify_control_flow_removes_single_redundant_block() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
             ),
@@ -50,7 +50,7 @@ fn simplify_control_flow_removes_single_redundant_block() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(1),
+                    id: VariableId(1),
                     ty: Ty::Boolean,
                 },
             ),
@@ -103,7 +103,7 @@ fn simplify_control_flow_removes_multiple_redundant_blocks() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
             ),
@@ -116,7 +116,7 @@ fn simplify_control_flow_removes_multiple_redundant_blocks() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(1),
+                    id: VariableId(1),
                     ty: Ty::Boolean,
                 },
             ),
@@ -129,7 +129,7 @@ fn simplify_control_flow_removes_multiple_redundant_blocks() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(2),
+                    id: VariableId(2),
                     ty: Ty::Boolean,
                 },
             ),
@@ -186,13 +186,13 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
             ),
             Instruction::Branch(
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
                 BlockId(1),
@@ -206,7 +206,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(1),
+                    id: VariableId(1),
                     ty: Ty::Boolean,
                 },
             ),
@@ -219,7 +219,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(2),
+                    id: VariableId(2),
                     ty: Ty::Boolean,
                 },
             ),
@@ -232,7 +232,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(3),
+                    id: VariableId(3),
                     ty: Ty::Boolean,
                 },
             ),
@@ -245,7 +245,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(4),
+                    id: VariableId(4),
                     ty: Ty::Boolean,
                 },
             ),
@@ -258,7 +258,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_branches() {
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(5),
+                    id: VariableId(5),
                     ty: Ty::Boolean,
                 },
             ),
@@ -337,13 +337,13 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
             ),
             Instruction::Branch(
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
                 BlockId(0),
@@ -357,7 +357,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(1),
+                    id: VariableId(1),
                     ty: Ty::Boolean,
                 },
             ),
@@ -370,7 +370,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(2),
+                    id: VariableId(2),
                     ty: Ty::Boolean,
                 },
             ),
@@ -383,7 +383,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(3),
+                    id: VariableId(3),
                     ty: Ty::Boolean,
                 },
             ),
@@ -396,7 +396,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(4),
+                    id: VariableId(4),
                     ty: Ty::Boolean,
                 },
             ),
@@ -409,7 +409,7 @@ fn simplify_control_flow_removes_redundant_blocks_across_out_of_order_branches()
             Instruction::Store(
                 Operand::Literal(Literal::Bool(true)),
                 Variable {
-                    variable_id: VariableId(5),
+                    id: VariableId(5),
                     ty: Ty::Boolean,
                 },
             ),

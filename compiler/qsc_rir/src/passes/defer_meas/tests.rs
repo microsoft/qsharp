@@ -193,13 +193,13 @@ fn add_branching_measurement_block(program: &mut Program) {
                 CallableId(3),
                 vec![Operand::Literal(Literal::Result(0))],
                 Some(Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 }),
             ),
             Instruction::Branch(
                 Variable {
-                    variable_id: VariableId(0),
+                    id: VariableId(0),
                     ty: Ty::Boolean,
                 },
                 BlockId(1),

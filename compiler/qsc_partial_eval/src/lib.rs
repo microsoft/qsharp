@@ -15,6 +15,7 @@ use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
+use qsc_eval::val::VarTy;
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
@@ -174,17 +175,23 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn bind_value_to_mutable_ident(&mut self, ident: &Ident, value: Value) {
-        // Get a variable to store into.
-        let value_operand = map_eval_value_to_rir_operand(&value);
-        let eval_var = self.get_or_create_variable(ident.id);
-        let rir_var = rir::Variable {
-            variable_id: eval_var.0.into(),
-            ty: value_operand.get_type(),
-        };
+        let maybe_var_type = try_get_eval_var_type(&value);
+        if let Some(var_type) = maybe_var_type {
+            // Get a variable to store into.
+            let value_operand = map_eval_value_to_rir_operand(&value);
+            let eval_var = self.get_or_create_variable(ident.id, var_type);
+            let rir_var = map_eval_var_to_rir_var(eval_var);
 
-        // Insert a store instruction.
-        let store_ins = Instruction::Store(value_operand, rir_var);
-        self.get_current_rir_block_mut().0.push(store_ins);
+            // Insert a store instruction.
+            let store_ins = Instruction::Store(value_operand, rir_var);
+            self.get_current_rir_block_mut().0.push(store_ins);
+        } else {
+            // Insert the value into the hybrid vars map.
+            self.eval_context
+                .get_current_scope_mut()
+                .hybrid_vars
+                .insert(ident.id, value);
+        }
     }
 
     fn create_intrinsic_callable(
@@ -508,7 +515,7 @@ impl<'a> PartialEvaluator<'a> {
         let variable_id = self.resource_manager.next_var();
         let variable_ty = map_fir_type_to_rir_type(&bin_op_expr.ty);
         let variable = rir::Variable {
-            variable_id,
+            id: variable_id,
             ty: variable_ty,
         };
 
@@ -527,7 +534,7 @@ impl<'a> PartialEvaluator<'a> {
         current_block.0.push(instruction);
 
         // Return the variable as a value.
-        let value = Value::Var(Var(variable_id.into()));
+        let value = Value::Var(map_rir_var_to_eval_var(variable));
         Ok(EvalControlFlow::Continue(value))
     }
 
@@ -728,7 +735,7 @@ impl<'a> PartialEvaluator<'a> {
             let variable_id = self.resource_manager.next_var();
             let variable_ty = map_fir_type_to_rir_type(&if_expr.ty);
             Some(rir::Variable {
-                variable_id,
+                id: variable_id,
                 ty: variable_ty,
             })
         };
@@ -758,10 +765,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // Finally, we insert the branch instruction.
         let condition_value_var = condition_value.unwrap_var();
-        let condition_rir_var = rir::Variable {
-            variable_id: condition_value_var.0.into(),
-            ty: rir::Ty::Boolean,
-        };
+        let condition_rir_var = map_eval_var_to_rir_var(condition_value_var);
         let branch_ins =
             Instruction::Branch(condition_rir_var, if_true_block_id, if_false_block_id);
         self.get_program_block_mut(current_block_node.id)
@@ -770,7 +774,7 @@ impl<'a> PartialEvaluator<'a> {
 
         // Return the value of the if expression.
         let if_expr_value = if let Some(if_expr_var) = maybe_if_expr_var {
-            Value::Var(Var(if_expr_var.variable_id.into()))
+            Value::Var(map_rir_var_to_eval_var(if_expr_var))
         } else {
             Value::unit()
         };
@@ -946,7 +950,7 @@ impl<'a> PartialEvaluator<'a> {
                 let variable_id = self.resource_manager.next_var();
                 let variable_ty = rir::Ty::Boolean;
                 let variable = rir::Variable {
-                    variable_id,
+                    id: variable_id,
                     ty: variable_ty,
                 };
                 let instruction = Instruction::Call(
@@ -1034,11 +1038,16 @@ impl<'a> PartialEvaluator<'a> {
         stmt_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
     }
 
-    fn get_or_create_variable(&mut self, local_var_id: LocalVarId) -> Var {
+    fn get_or_create_variable(&mut self, local_var_id: LocalVarId, var_ty: VarTy) -> Var {
         let current_scope = self.eval_context.get_current_scope_mut();
         let entry = current_scope.hybrid_vars.entry(local_var_id);
-        let local_var_value =
-            entry.or_insert(Value::Var(Var(self.resource_manager.next_var().into())));
+        let local_var_value = entry.or_insert(Value::Var({
+            let var_id = self.resource_manager.next_var();
+            Var {
+                id: var_id.into(),
+                ty: var_ty,
+            }
+        }));
         let Value::Var(var) = local_var_value else {
             panic!("value must be a variable");
         };
@@ -1244,18 +1253,15 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn record_variable(&mut self, ty: &Ty, instrs: &mut Vec<Instruction>, var: Var) {
-        let (record_callable_id, record_ty) = match ty {
-            Ty::Prim(Prim::Bool) => (self.get_bool_record_callable(), rir::Ty::Boolean),
-            Ty::Prim(Prim::Int) => (self.get_int_record_callable(), rir::Ty::Integer),
+        let record_callable_id = match ty {
+            Ty::Prim(Prim::Bool) => self.get_bool_record_callable(),
+            Ty::Prim(Prim::Int) => self.get_int_record_callable(),
             _ => panic!("unsupported variable type in output recording"),
         };
         instrs.push(Instruction::Call(
             record_callable_id,
             vec![
-                Operand::Variable(rir::Variable {
-                    variable_id: var.0.into(),
-                    ty: record_ty,
-                }),
+                Operand::Variable(map_eval_var_to_rir_var(var)),
                 Operand::Literal(Literal::Pointer),
             ],
             None,
@@ -1442,7 +1448,23 @@ fn map_eval_value_to_rir_operand(value: &Value) -> Operand {
             )),
             val::Result::Val(bool) => Operand::Literal(Literal::Bool(*bool)),
         },
+        Value::Var(var) => Operand::Variable(map_eval_var_to_rir_var(*var)),
         _ => panic!("{value} cannot be mapped to a RIR operand"),
+    }
+}
+
+fn map_eval_var_to_rir_var(var: Var) -> rir::Variable {
+    rir::Variable {
+        id: var.id.into(),
+        ty: map_eval_var_type_to_rir_type(var.ty),
+    }
+}
+
+fn map_eval_var_type_to_rir_type(var_ty: VarTy) -> rir::Ty {
+    match var_ty {
+        VarTy::Boolean => rir::Ty::Boolean,
+        VarTy::Integer => rir::Ty::Integer,
+        VarTy::Double => rir::Ty::Double,
     }
 }
 
@@ -1464,5 +1486,30 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Int => rir::Ty::Integer,
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
+    }
+}
+
+fn map_rir_var_to_eval_var(var: rir::Variable) -> Var {
+    Var {
+        id: var.id.into(),
+        ty: map_rir_type_to_eval_var_type(var.ty),
+    }
+}
+
+fn map_rir_type_to_eval_var_type(ty: rir::Ty) -> VarTy {
+    match ty {
+        rir::Ty::Boolean => VarTy::Boolean,
+        rir::Ty::Integer => VarTy::Integer,
+        rir::Ty::Double => VarTy::Double,
+        _ => panic!("cannot convert RIR type {ty} to evaluator varible type"),
+    }
+}
+
+fn try_get_eval_var_type(value: &Value) -> Option<VarTy> {
+    match value {
+        Value::Bool(_) => Some(VarTy::Boolean),
+        Value::Int(_) => Some(VarTy::Integer),
+        Value::Double(_) => Some(VarTy::Double),
+        _ => None,
     }
 }

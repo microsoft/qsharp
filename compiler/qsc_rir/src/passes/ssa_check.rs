@@ -84,9 +84,9 @@ fn check_phi_nodes(program: &Program, preds: &IndexMap<BlockId, Vec<BlockId>>) {
                     );
                     if let Operand::Variable(var) = val {
                         assert!(
-                            var.variable_id.0 != res.variable_id.0,
+                            var.id.0 != res.id.0,
                             "Phi node in {block_id:?} assigns to {:?} to itself",
-                            res.variable_id
+                            res.id
                         );
                     }
                 }
@@ -137,7 +137,7 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                 | Instruction::BitwiseXor(Operand::Variable(var), Operand::Literal(_), _)
                 | Instruction::BitwiseXor(Operand::Literal(_), Operand::Variable(var), _)
                 | Instruction::Branch(var, _, _) => {
-                    add_use(var.variable_id, block_id, idx);
+                    add_use(var.id, block_id, idx);
                 }
 
                 // Double variable
@@ -154,15 +154,15 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                 | Instruction::BitwiseAnd(Operand::Variable(var1), Operand::Variable(var2), _)
                 | Instruction::BitwiseOr(Operand::Variable(var1), Operand::Variable(var2), _)
                 | Instruction::BitwiseXor(Operand::Variable(var1), Operand::Variable(var2), _) => {
-                    add_use(var1.variable_id, block_id, idx);
-                    add_use(var2.variable_id, block_id, idx);
+                    add_use(var1.id, block_id, idx);
+                    add_use(var2.id, block_id, idx);
                 }
 
                 // Multiple variables
                 Instruction::Call(_, vals, _) => {
                     for val in vals {
                         if let Operand::Variable(var) = val {
-                            add_use(var.variable_id, block_id, idx);
+                            add_use(var.id, block_id, idx);
                         }
                     }
                 }
@@ -172,7 +172,7 @@ fn get_variable_uses(program: &Program) -> IndexMap<VariableId, Vec<(BlockId, us
                             // As a special case for phi, treat the variable as used in the predecessor block
                             // rather than the phi block, at the max instruction index to avoid failing the
                             // dominance check within that block.
-                            add_use(var.variable_id, *pred_block_id, usize::MAX);
+                            add_use(var.id, *pred_block_id, usize::MAX);
                         }
                     }
                 }

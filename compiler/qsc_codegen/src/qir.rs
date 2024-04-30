@@ -122,7 +122,7 @@ impl ToQir<String> for rir::Variable {
         format!(
             "{} {}",
             ToQir::<String>::to_qir(&self.ty, program),
-            ToQir::<String>::to_qir(&self.variable_id, program)
+            ToQir::<String>::to_qir(&self.id, program)
         )
     }
 }
@@ -233,7 +233,7 @@ fn logical_not_to_qir(
 
     format!(
         "  {} = xor i1 {}, true",
-        ToQir::<String>::to_qir(&variable.variable_id, program),
+        ToQir::<String>::to_qir(&variable.id, program),
         get_value_as_str(value, program)
     )
 }
@@ -260,7 +260,7 @@ fn logical_binop_to_qir(
 
     format!(
         "  {} = {op} {var_ty} {}, {}",
-        ToQir::<String>::to_qir(&variable.variable_id, program),
+        ToQir::<String>::to_qir(&variable.id, program),
         get_value_as_str(lhs, program),
         get_value_as_str(rhs, program)
     )
@@ -281,7 +281,7 @@ fn bitwise_not_to_qir(
 
     format!(
         "  {} = xor {var_ty} {}, -1",
-        ToQir::<String>::to_qir(&variable.variable_id, program),
+        ToQir::<String>::to_qir(&variable.id, program),
         get_value_as_str(value, program)
     )
 }
@@ -301,7 +301,7 @@ fn call_to_qir(
     if let Some(output) = output {
         format!(
             "  {} = call {} @{}({args})",
-            ToQir::<String>::to_qir(&output.variable_id, program),
+            ToQir::<String>::to_qir(&output.id, program),
             ToQir::<String>::to_qir(&callable.output_type, program),
             callable.name
         )
@@ -332,7 +332,7 @@ fn icmp_to_qir(
     assert_eq!(var_ty, "i1", "unsupported output type {var_ty} for icmp");
     format!(
         "  {} = icmp {} {lhs_ty} {}, {}",
-        ToQir::<String>::to_qir(&variable.variable_id, program),
+        ToQir::<String>::to_qir(&variable.id, program),
         ToQir::<String>::to_qir(&op, program),
         get_value_as_str(lhs, program),
         get_value_as_str(rhs, program)
@@ -361,7 +361,7 @@ fn binop_to_qir(
 
     format!(
         "  {} = {op} {var_ty} {}, {}",
-        ToQir::<String>::to_qir(&variable.variable_id, program),
+        ToQir::<String>::to_qir(&variable.id, program),
         get_value_as_str(lhs, program),
         get_value_as_str(rhs, program)
     )
@@ -389,7 +389,7 @@ fn simple_bitwise_to_qir(
 
     format!(
         "  {} = {op} {var_ty} {}, {}",
-        ToQir::<String>::to_qir(&variable.variable_id, program),
+        ToQir::<String>::to_qir(&variable.id, program),
         get_value_as_str(lhs, program),
         get_value_as_str(rhs, program)
     )
@@ -424,7 +424,7 @@ fn phi_to_qir(
 
     format!(
         "  {} = phi {var_ty} {args}",
-        ToQir::<String>::to_qir(&variable.variable_id, program)
+        ToQir::<String>::to_qir(&variable.id, program)
     )
 }
 
@@ -446,7 +446,7 @@ fn get_value_as_str(value: &rir::Operand, program: &rir::Program) -> String {
             rir::Literal::Qubit(q) => format!("{q}"),
             rir::Literal::Result(r) => format!("{r}"),
         },
-        rir::Operand::Variable(var) => ToQir::<String>::to_qir(&var.variable_id, program),
+        rir::Operand::Variable(var) => ToQir::<String>::to_qir(&var.id, program),
     }
 }
 

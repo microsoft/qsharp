@@ -93,11 +93,11 @@ pub fn get_variable_assignments(program: &Program) -> IndexMap<VariableId, (Bloc
                 | Instruction::BitwiseXor(_, _, var)
                 | Instruction::Phi(_, var) => {
                     assert!(
-                        !assignments.contains_key(var.variable_id),
+                        !assignments.contains_key(var.id),
                         "Duplicate assignment to {:?} in {block_id:?}, instruction {idx}",
-                        var.variable_id
+                        var.id
                     );
-                    assignments.insert(var.variable_id, (block_id, idx));
+                    assignments.insert(var.id, (block_id, idx));
                 }
                 Instruction::Call(_, _, None)
                 | Instruction::Jump(..)

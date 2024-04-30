@@ -444,14 +444,14 @@ impl From<usize> for VariableId {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Variable {
-    pub variable_id: VariableId,
+    pub id: VariableId,
     pub ty: Ty,
 }
 
 impl Display for Variable {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut indent = set_indentation(indented(f), 0);
-        write!(indent, "Variable({}, {})", self.variable_id.0, self.ty)?;
+        write!(indent, "Variable({}, {})", self.id.0, self.ty)?;
         Ok(())
     }
 }

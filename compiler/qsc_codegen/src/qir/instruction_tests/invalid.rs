@@ -11,7 +11,7 @@ fn add_mismatched_literal_input_tys_should_panic() {
         rir::Operand::Literal(rir::Literal::Integer(2)),
         rir::Operand::Literal(rir::Literal::Double(1.0)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
@@ -25,7 +25,7 @@ fn add_mismatched_literal_input_output_tys_should_panic() {
         rir::Operand::Literal(rir::Literal::Integer(2)),
         rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -37,15 +37,15 @@ fn add_mismatched_literal_input_output_tys_should_panic() {
 fn add_mismatched_variable_input_tys_should_panic() {
     let inst = rir::Instruction::Add(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(1),
+            id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(2),
+            id: rir::VariableId(2),
             ty: rir::Ty::Double,
         }),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
@@ -57,15 +57,15 @@ fn add_mismatched_variable_input_tys_should_panic() {
 fn add_mismatched_variable_input_output_tys_should_panic() {
     let inst = rir::Instruction::Add(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(1),
+            id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(2),
+            id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -79,7 +79,7 @@ fn bitwise_and_mismatched_literal_input_tys_should_panic() {
         rir::Operand::Literal(rir::Literal::Integer(2)),
         rir::Operand::Literal(rir::Literal::Double(1.0)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
@@ -93,7 +93,7 @@ fn bitwise_and_mismatched_literal_input_output_tys_should_panic() {
         rir::Operand::Literal(rir::Literal::Integer(2)),
         rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -105,15 +105,15 @@ fn bitwise_and_mismatched_literal_input_output_tys_should_panic() {
 fn bitwise_and_mismatched_variable_input_tys_should_panic() {
     let inst = rir::Instruction::BitwiseAnd(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(1),
+            id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(2),
+            id: rir::VariableId(2),
             ty: rir::Ty::Double,
         }),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
@@ -125,15 +125,15 @@ fn bitwise_and_mismatched_variable_input_tys_should_panic() {
 fn bitwise_and_mismatched_variable_input_output_tys_should_panic() {
     let inst = rir::Instruction::BitwiseAnd(
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(1),
+            id: rir::VariableId(1),
             ty: rir::Ty::Integer,
         }),
         rir::Operand::Variable(rir::Variable {
-            variable_id: rir::VariableId(2),
+            id: rir::VariableId(2),
             ty: rir::Ty::Integer,
         }),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Double,
         },
     );
@@ -147,7 +147,7 @@ fn add_bool_should_panic() {
         rir::Operand::Literal(rir::Literal::Bool(true)),
         rir::Operand::Literal(rir::Literal::Bool(false)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Boolean,
         },
     );
@@ -160,14 +160,14 @@ fn phi_with_mismatched_args_should_panic() {
     let args = [
         (
             rir::Operand::Variable(rir::Variable {
-                variable_id: rir::VariableId(13),
+                id: rir::VariableId(13),
                 ty: rir::Ty::Integer,
             }),
             rir::BlockId(3),
         ),
         (
             rir::Operand::Variable(rir::Variable {
-                variable_id: rir::VariableId(2),
+                id: rir::VariableId(2),
                 ty: rir::Ty::Boolean,
             }),
             rir::BlockId(7),
@@ -176,7 +176,7 @@ fn phi_with_mismatched_args_should_panic() {
     let inst = rir::Instruction::Phi(
         args.to_vec(),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
@@ -191,7 +191,7 @@ fn icmp_with_non_boolean_result_var_should_panic() {
         rir::Operand::Literal(rir::Literal::Integer(2)),
         rir::Operand::Literal(rir::Literal::Integer(5)),
         rir::Variable {
-            variable_id: rir::VariableId(0),
+            id: rir::VariableId(0),
             ty: rir::Ty::Integer,
         },
     );
