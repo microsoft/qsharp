@@ -1310,7 +1310,7 @@ pub struct Ident {
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
-pub struct Idents(pub Vec<Ident>);
+pub struct Idents(pub Box<[Ident]>);
 
 impl From<Idents> for Vec<Rc<str>> {
     fn from(v: Idents) -> Self {
@@ -1326,13 +1326,13 @@ impl From<&Idents> for Vec<Rc<str>> {
 
 impl From<Vec<Ident>> for Idents {
     fn from(v: Vec<Ident>) -> Self {
-        Idents(v)
+        Idents(v.into_boxed_slice())
     }
 }
 
 impl From<Idents> for Vec<Ident> {
     fn from(v: Idents) -> Self {
-        v.0
+        v.0.to_vec()
     }
 }
 
@@ -1340,7 +1340,7 @@ impl Display for Idents {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
 
-        for ident in &self.0 {
+        for ident in self.0.iter() {
             buf.push(format!("{ident}"));
         }
         if buf.len() > 1 {
@@ -1384,6 +1384,14 @@ impl FromIterator<Ident> for Idents {
     }
 }
 
+impl From<Path> for Idents {
+    fn from(p: Path) -> Self {
+        let mut buf = p.namespace.unwrap_or_default().0.to_vec();
+        buf.push(*p.name);
+        Self(buf.into_boxed_slice())
+    }
+}
+
 impl Idents {
     /// constructs an iterator over the [Ident]s that this contains.
     /// see [`Self::str_iter`] for an iterator over the string slices of the [Ident]s.
@@ -1412,7 +1420,7 @@ impl Idents {
     #[must_use]
     pub fn name(&self) -> String {
         let mut buf = String::new();
-        for ident in &self.0 {
+        for ident in self.0.iter() {
             if !buf.is_empty() {
                 buf.push('.');
             }
