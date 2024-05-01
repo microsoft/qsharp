@@ -7,9 +7,7 @@ async function onload() {
   const katas = await getAllKatas();
 
   katas.forEach((kata) => document.body.appendChild(getKataDiv(kata)));
-  document
-    .querySelectorAll("details")
-    .forEach((item) => item.setAttribute("open", "true"));
+  document.querySelectorAll("details").forEach((item) => (item.open = true));
   (window as any).MathJax.typeset();
 }
 
