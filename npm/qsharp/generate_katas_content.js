@@ -20,7 +20,7 @@ import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import mdit from "markdown-it";
-const md = mdit("commonmark");
+const md = mdit("commonmark").disable(["escape"]);
 
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
