@@ -68,7 +68,7 @@ The outcomes of computational basis measurements and their probabilities are sum
 ## 🔎 Analyze
 
 The qubit is in the following state:
-$$\ket \psi = 0.6 \ket 0 + 0.8 \ket 1 = \begin{bmatrix} 0.6 \\\ 0.8\end{bmatrix}$$
+$$\ket \psi = 0.6 \ket 0 + 0.8 \ket 1 = \begin{bmatrix} 0.6 \\ 0.8 \end{bmatrix}$$
 
 If this qubit is measured in the computational basis, what are the outcome probabilities?
 
@@ -196,7 +196,7 @@ $$
 As the name implies, orthogonal projection operators project the state of the qubit onto an orthogonal subspace. Using the ket-bra representation, one can represent a projection matrix in the Dirac notation.
 For example, one may construct a projector onto the $\ket{0}$ subspace as:
 $$
-P = \ket 0 \bra 0 \equiv \begin{bmatrix} 1 & 0 \\\ 0 & 0\end{bmatrix}.
+P = \ket 0 \bra 0 \equiv \begin{bmatrix} 1 & 0 \\ 0 & 0 \end{bmatrix}.
 $$
 
 A measurement in an orthogonal basis $\{ \ket{b_0}, \ket{b_1}\}$ is described by a pair of projectors $P_0 = \ket{b_0}\bra{b_0}$ and $P_1 = \ket{b_1}\bra{b_1}$. Since $\ket{b_0}$ and $\ket{b_1}$ are orthogonal, their projectors are also orthogonal, i.e., $P_0 P_1 = P_1 P_0 = 0$. The rules for measurements in this basis can then be summarized as follows:
@@ -282,12 +282,12 @@ This procedure can be used to distinguish arbitrary orthogonal states as well, a
     $$
 
     We can now construct the two projectors $P_{\pm i}$ onto states $\ket {\pm i}$ as follows:
-    $$P_{i} = \ket{i}\bra{i} = \frac{1}{2} \begin{bmatrix} 1 \\\\ i \end{bmatrix} \begin{bmatrix} 1 & -i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & -i \\\\ i & 1\end{bmatrix},$$
-    $$P_{-i} = \ket{-i}\bra{-i} = \frac{1}{2} \begin{bmatrix} 1 \\\\ -i \end{bmatrix} \begin{bmatrix} 1 & i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & i \\\\ -i & 1\end{bmatrix}.$$
+    $$P_{i} = \ket{i}\bra{i} = \frac{1}{2} \begin{bmatrix} 1 \\ i \end{bmatrix} \begin{bmatrix} 1 & -i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & -i \\ i & 1 \end{bmatrix},$$
+    $$P_{-i} = \ket{-i}\bra{-i} = \frac{1}{2} \begin{bmatrix} 1 \\ -i \end{bmatrix} \begin{bmatrix} 1 & i \end{bmatrix} = \frac{1}{2} \begin{bmatrix}1 & i \\ -i & 1 \end{bmatrix}.$$
 
     Recalling that the probabilities of measuring $\pm i$ are equal to the norm of the vectors $P_{\pm i}\ket \psi$, we now apply $P_{\pm i}$ to $\ket \psi$:
-    $$P_{+i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & -i \\\\ i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 - 0.8i \\\\ 0.8 + 0.6i \end{bmatrix},$$
-    $$P_{-i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & i \\\\ -i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\\\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 + 0.8i \\\\ 0.8 - 0.6i \end{bmatrix}.$$
+    $$P_{+i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & -i \\ i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 - 0.8i \\ 0.8 + 0.6i \end{bmatrix},$$
+    $$P_{-i} \ket \psi = \frac{1}{2} \begin{bmatrix}1 & i \\ -i & 1\end{bmatrix} \begin{bmatrix} 0.6 \\ 0.8 \end{bmatrix} = \frac{1}{2} \begin{bmatrix} 0.6 + 0.8i \\ 0.8 - 0.6i \end{bmatrix}.$$
 
     Hence, the probabilities of measuring $\pm i$, which we denote by $p(\pm i)$, are:
     $$p(+i) = |P_{+i} \ket \psi|^2 = \frac{1}{4}(|0.6 - 0.8i|^2 + |0.8 + 0.6i|^2) = \frac{1}{2},$$

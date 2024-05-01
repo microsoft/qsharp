@@ -4,18 +4,18 @@ In this case, our state can be represented as $\frac{1}{\sqrt{2}} \big( |0\rangl
 
 We see that the relative weights of $|0\rangle$ and $|1\rangle$ states of the first qubit are both $\frac12$ (the squares of their amplitudes in the decomposition above). This means that we can do the first step by applying the $H$ gate to the first qubit, which gives the $\frac{1}{\sqrt{2}}|00\rangle + \frac{1}{\sqrt{2}}|10\rangle$ state. In matrix form this will look as follows:  
 
-$$ H \otimes I = \frac{1}{\sqrt{2}} \begin{bmatrix}1 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 1 \\\ 1 & 0 & -1 & 0 \\\ 0 & 1 & 0 & -1 \end{bmatrix} \cdot
-\begin{bmatrix}1 \\\ 0 \\\0 \\\ 0 \end{bmatrix} = \frac{1}{\sqrt{2}} \begin{bmatrix} 1 \\\ 0 \\\ 1 \\\0 \end{bmatrix} = \frac{1}{\sqrt{2}} \big( |0\rangle + |1\rangle \big) \otimes |0\rangle$$
+$$ H \otimes I = \frac{1}{\sqrt{2}} \begin{bmatrix}1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 0 & -1 & 0 \\ 0 & 1 & 0 & -1 \end{bmatrix} \cdot
+\begin{bmatrix} 1 \\ 0 \\0 \\ 0 \end{bmatrix} = \frac{1}{\sqrt{2}} \begin{bmatrix} 1 \\ 0 \\ 1 \\0 \end{bmatrix} = \frac{1}{\sqrt{2}} \big( |0\rangle + |1\rangle \big) \otimes |0\rangle$$
 
 Now the first term of the state $\frac{1}{\sqrt2}|00\rangle$ matches that of the goal state, and we need to convert the second term $\frac{1}{\sqrt2}|10\rangle$ to $|1\rangle \otimes \frac{1}{\sqrt2}(|0\rangle+|1\rangle)$.
 
 To do this, we use the controlled $H$ gate. The matrix representation of the controlled $H$ gate is similar to the $CNOT$ gate, however the bottom right block of the matrix is not an $X$ gate but the $H$ gate:
 
-$$\text{Controlled } H = \begin{bmatrix}1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\\ 0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix}$$
+$$\text{Controlled } H = \begin{bmatrix}1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\ 0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}} \end{bmatrix}$$
 
 When this is applied to our current state, we get our goal state:
 
-$$\text{Controlled } H \cdot \frac{1}{\sqrt{2}} \begin{bmatrix} 1 \\\ 0 \\\ 1 \\\0 \end{bmatrix} = \begin{bmatrix}\frac{1}{\sqrt{2}} \\\ 0 \\\ \frac{1}{2} \\\ \frac{1}{2} \end{bmatrix} = \frac{1}{\sqrt{2}}|00\rangle+\frac{1}{2}|10\rangle+\frac{1}{2}|11\rangle  $$
+$$\text{Controlled } H \cdot \frac{1}{\sqrt{2}} \begin{bmatrix} 1 \\ 0 \\ 1 \\0 \end{bmatrix} = \begin{bmatrix}\frac{1}{\sqrt{2}} \\ 0 \\ \frac{1}{2} \\ \frac{1}{2} \end{bmatrix} = \frac{1}{\sqrt{2}}|00\rangle+\frac{1}{2}|10\rangle+\frac{1}{2}|11\rangle  $$
 
 @[solution]({
     "id": "superposition__controlled_rotation_solution",

@@ -35,7 +35,7 @@ The basic building block of a classical computer is the bit - a single memory ce
 
 The state of a qubit is represented by a complex vector of size 2:
 
-$$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$$
+$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix}$$
 
 Here $\alpha$ and $\beta$ are complex numbers. $\alpha$ represents how "close" the qubit is to state $0$, and $\beta$ represents how "close" the qubit is to state $1$. This vector is normalized: $|\alpha|^2 + |\beta|^2 = 1$.
 $\alpha$ and $\beta$ are known as the probability amplitudes of states $0$ and $1$, respectively.
@@ -44,18 +44,18 @@ $\alpha$ and $\beta$ are known as the probability amplitudes of states $0$ and $
 
 A qubit in state $0$ would be represented by the following vector:
 
-$$\begin{bmatrix} 1 \\\ 0 \end{bmatrix}$$
+$$\begin{bmatrix} 1 \\ 0 \end{bmatrix}$$
 
 Likewise, a qubit in state $1$ would be represented by this vector:
 
-$$\begin{bmatrix} 0 \\\ 1 \end{bmatrix}$$
+$$\begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
 
-Note that you can use scalar multiplication and vector addition to express any qubit state $\begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$ as a sum of these two vectors with certain weights $\alpha$ and $\beta$, known as linear combination.
+Note that you can use scalar multiplication and vector addition to express any qubit state $\begin{bmatrix} \alpha \\ \beta \end{bmatrix}$ as a sum of these two vectors with certain weights $\alpha$ and $\beta$, known as linear combination.
 
 $$
-\begin{bmatrix} \alpha \\\ \beta \\end{bmatrix} =
-\begin{bmatrix} \alpha \\\ 0 \end{bmatrix} + \begin{bmatrix} 0 \\\ \beta \\end{bmatrix} =
-\alpha \cdot \begin{bmatrix} 1 \\\ 0 \end{bmatrix} + \beta \cdot \begin{bmatrix} 0 \\\ 1 \end{bmatrix}
+\begin{bmatrix} \alpha \\ \beta \\end{bmatrix} =
+\begin{bmatrix} \alpha \\ 0 \end{bmatrix} + \begin{bmatrix} 0 \\ \beta \\end{bmatrix} =
+\alpha \cdot \begin{bmatrix} 1 \\ 0 \end{bmatrix} + \beta \cdot \begin{bmatrix} 0 \\ 1 \end{bmatrix}
 $$
 
 Because of this, qubit states $0$ and $1$ are known as basis states. These two vectors have two properties.
@@ -63,31 +63,31 @@ Because of this, qubit states $0$ and $1$ are known as basis states. These two v
 1. They are normalized.
 
 $$
-\langle \begin{bmatrix} 1 \\\ 0 \end{bmatrix} , \begin{bmatrix} 1 \\\ 0 \end{bmatrix} \rangle =
-\langle \begin{bmatrix} 0 \\\ 1 \end{bmatrix} , \begin{bmatrix} 0 \\\ 1 \end{bmatrix} \rangle = 1
+\langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \rangle =
+\langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle = 1
 $$
 
 2. They are orthogonal to each other.
 
 $$
-\langle \begin{bmatrix} 1 \\\ 0 \end{bmatrix} , \begin{bmatrix} 0 \\\ 1 \end{bmatrix} \rangle =
-\langle \begin{bmatrix} 0 \\\ 1 \end{bmatrix} , \begin{bmatrix} 1 \\\ 0 \end{bmatrix} \\rangle = 0
+\langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle =
+\langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \\rangle = 0
 $$
 
 > As a reminder, $\langle V , W \rangle$ is the inner product of $V$ and $W$.
 
-This means that these vectors form an **orthonormal basis**. The basis of $\begin{bmatrix} 1 \\\ 0 \end{bmatrix}$ and $\begin{bmatrix} 0 \\\ 1 \end{bmatrix}$ is called the **computational basis**, also known as the **canonical basis**.
+This means that these vectors form an **orthonormal basis**. The basis of $\begin{bmatrix} 1 \\ 0 \end{bmatrix}$ and $\begin{bmatrix} 0 \\ 1 \end{bmatrix}$ is called the **computational basis**, also known as the **canonical basis**.
 
 > There exist other orthonormal bases, for example, the **Hadamard basis**, formed by the vectors
 >
-> $$\begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix} \text{ and } \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ -\frac{1}{\sqrt{2}} \end{bmatrix}$$
+> $$\begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} \text{ and } \begin{bmatrix} \frac{1}{\sqrt{2}} \\ -\frac{1}{\sqrt{2}} \end{bmatrix}$$
 >
 > You can check that these vectors are normalized, and orthogonal to each other. Any qubit state can be expressed as a linear combination of these vectors:
 >
 > $$
-> \begin{bmatrix} \alpha \\\ \beta \end{bmatrix} =
-> \frac{\alpha + \beta}{\sqrt{2}} \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix} +
-> \frac{\alpha - \beta}{\sqrt{2}} \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ -\frac{1}{\sqrt{2}} \end{bmatrix}
+> \begin{bmatrix} \alpha \\ \beta \end{bmatrix} =
+> \frac{\alpha + \beta}{\sqrt{2}} \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix} +
+> \frac{\alpha - \beta}{\sqrt{2}} \begin{bmatrix} \frac{1}{\sqrt{2}} \\ -\frac{1}{\sqrt{2}} \end{bmatrix}
 > $$
 >
 > The Hadamard basis is widely used in quantum computing, for example, in the <a href="https://en.wikipedia.org/wiki/BB84" target="_blank">BB84 quantum key distribution protocol</a>.
@@ -101,14 +101,14 @@ Dirac notation is a shorthand notation that eases writing quantum states and com
 
 <table>
     <tr>
-        <td>$$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$$</td>
-        <td>$$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$$</td>
+        <td>$$|0\rangle = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$$</td>
+        <td>$$|1\rangle = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$</td>
     </tr>
 </table>
 
 These two kets represent basis states, so they can be used to represent any other state:
 
-$$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
+$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
 Dirac notation is not only restricted to vectors $0$ and $1$; it can be used to represent any vector, similar to how variable names are used in algebra. For example, we can call the state above "the state $\psi$" and write it as:
 
@@ -168,7 +168,7 @@ Before we continue, let's learn some techniques to visualize the quantum state o
 Let's start with a simple scenario: a program that acts on a single qubit.
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
 
-$$\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
+$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
 If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation.
 You would need to run the program repeatedly up to this point, perform a measurement on the system, and aggregate the results of multiple measurements to estimate $\alpha$ and $\beta$.

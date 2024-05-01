@@ -27,7 +27,7 @@ This kata continues the introduction to quantum gates, focusing on applying quan
 As a reminder, single-qubit gates are represented by $2\times2$ unitary matrices.
 The effect of a gate applied to a qubit can be calculated by multiplying the corresponding matrix by the state vector of the qubit to get the resulting state vector.
 
-Multi-qubit gates are represented by $2^N\\times2^N$ matrices, where $N$ is the number of qubits the gate operates on. To apply this gate, you multiply the matrix by the state vector of the $N$-qubit quantum system.
+Multi-qubit gates are represented by $2^N\times2^N$ matrices, where $N$ is the number of qubits the gate operates on. To apply this gate, you multiply the matrix by the state vector of the $N$-qubit quantum system.
 
 ## Applying Gates to a Part of the System
 
@@ -39,11 +39,11 @@ If you want to apply an $X$ gate to the first qubit of the system and do nothing
 
 $$
 X \otimes I =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\\ 0 & 1 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} =
 \begin{bmatrix}
-    0 & 0 & 1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
-    1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 \\ 
+    0 & 0 & 0 & 1 \\ 
+    1 & 0 & 0 & 0 \\ 
     0 & 1 & 0 & 0
 \end{bmatrix}
 $$
@@ -53,11 +53,11 @@ For example, applying the $X$ gate to the first qubit and the $H$ gate to the se
 
 $$
 X \otimes H =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \otimes \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} =
 \frac{1}{\sqrt{2}}\begin{bmatrix}
-    0 & 0 & 1 & 1 \\\ 
-    0 & 0 & 1 & -1 \\\ 
-    1 & 1 & 0 & 0 \\\ 
+    0 & 0 & 1 & 1 \\ 
+    0 & 0 & 1 & -1 \\ 
+    1 & 1 & 0 & 0 \\ 
     1 & -1 & 0 & 0
 \end{bmatrix}
 $$
@@ -100,7 +100,7 @@ $CNOT$ acts as a conditional gate of sorts: if the control qubit is in state $|1
     </tr>
     <tr>
         <td>$CNOT$</td>
-        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
         <td>$CNOT|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \delta|10\rangle + \gamma|11\rangle$</td>
         <td>
             $$CNOT|00\rangle = |00\rangle$$
@@ -315,7 +315,7 @@ The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantu
     </tr>
     <tr>
         <td>$SWAP$</td>
-        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}$</td>
         <td>$SWAP|\psi\rangle = \alpha|00\rangle + \gamma|01\rangle + \beta|10\rangle + \delta|11\rangle$</td>
         <td>
             $$SWAP|00\rangle = |00\rangle$$
@@ -462,7 +462,7 @@ $$CINOT = (SWAP \otimes I)(I \otimes CNOT)(SWAP \otimes I)$$
 **Controlled gates** are a class of gates derived from other gates as follows: they act on a control qubit and a target qubit, just like the $CNOT$ gate.
 A controlled-$U$ gate applies the $U$ gate to the target qubit if the control qubit is in state $|1\rangle$, and does nothing otherwise.
 
-Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatrix}$, its controlled version looks like this:
+Given a gate $U = \begin{bmatrix} \alpha & \beta \\ \gamma & \delta \end{bmatrix}$, its controlled version looks like this:
 
 <table>
     <tr>
@@ -475,9 +475,9 @@ Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatri
         <td>
             $$
             \begin{bmatrix}
-                1 & 0 & 0 & 0 \\\ 
-                0 & 1 & 0 & 0 \\\ 
-                0 & 0 & \alpha & \beta \\\ 
+                1 & 0 & 0 & 0 \\ 
+                0 & 1 & 0 & 0 \\ 
+                0 & 0 & \alpha & \beta \\ 
                 0 & 0 & \gamma & \delta
             \end{bmatrix}
             $$
@@ -494,13 +494,13 @@ Here, for example, is the Controlled $SWAP$, or **Fredkin gate**:
 
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 
     0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
 \end{bmatrix}
 $$
@@ -553,13 +553,13 @@ The simplest example of this is the **Toffoli gate**, or $CCNOT$ (controlled con
 
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 
     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 $$

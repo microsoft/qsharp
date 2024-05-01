@@ -36,7 +36,7 @@ $$
 
 Next lets take a look at our basic gates, in particular the Pauli Z gate:
 
-$$Z = \begin{bmatrix} 1 & 0 \\\ 0 & -1 \end{bmatrix}$$
+$$Z = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$$
 
 If it is applied to the state $\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big)$, it will leave the basis state $|0\rangle$ unchanged and will map $|1\rangle$ to $-|1\rangle$. Thus, 
 
@@ -46,7 +46,7 @@ So the Z gate is the answers to the question of how to do the conversion 5.3.
 
 Looking for another gate to address the conversion 5.4, we find the S gate:
 
-$$S = \begin{bmatrix} 1 & 0 \\\ 0 & i \end{bmatrix}$$ 
+$$S = \begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}$$ 
 
 If it is applied to the state $\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big)$, it will leave the basis state $|0\rangle$ unchanged and will map $|1\rangle$ to $i|1\rangle$. Thus, 
 

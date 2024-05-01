@@ -30,16 +30,16 @@ This kata doesn't come close to covering the full breadth of the topic, but it s
 A **matrix** is set of numbers arranged in a rectangular grid. Here is a $2$ by $2$ matrix:
 
 $$A =
-\begin{bmatrix} 1 & 2 \\\ 3 & 4 \end{bmatrix}$$
+\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}$$
 
 $A_{i,j}$ refers to the element in row $i$ and column $j$ of matrix $A$ (all indices are 0-based). In the above example, $A_{0,1} = 2$.
 
 An $n \times m$ matrix will have $n$ rows and $m$ columns:
 
 $$\begin{bmatrix}
-    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
-    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
-    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\
+    \vdots  & \vdots  & \ddots & \vdots  \\
     x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
 \end{bmatrix}$$
 
@@ -50,13 +50,13 @@ $$\begin{bmatrix} 3 \end{bmatrix} = 3$$
 Quantum computing uses complex-valued matrices: the elements of a matrix can be complex numbers. This, for example, is a valid complex-valued matrix:
 
 $$\begin{bmatrix}
-    1 & i \\\\
+    1 & i \\
     -2i & 3 + 4i
 \end{bmatrix}$$
 
 Finally, a **vector** is an $n \times 1$ matrix. Here, for example, is a $3 \times 1$ vector:
 
-$$V = \begin{bmatrix} 1 \\\ 2i \\\ 3 + 4i \end{bmatrix}$$
+$$V = \begin{bmatrix} 1 \\ 2i \\ 3 + 4i \end{bmatrix}$$
 
 Since vectors always have a width of $1$, vector elements are sometimes written using only one index. In the above example, $V_0 = 1$ and $V_1 = 2i$.
 
@@ -68,21 +68,21 @@ Since vectors always have a width of $1$, vector elements are sometimes written 
 The easiest matrix operation is **matrix addition**. Matrix addition works between two matrices of the same size, and adds each number from the first matrix to the number in the same position in the second matrix:
 
 $$\begin{bmatrix}
-    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
-    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
-    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\
+    \vdots  & \vdots  & \ddots & \vdots  \\
     x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
 \end{bmatrix} +$$
 $$+ \begin{bmatrix}
-    y_{0,0} & y_{0,1} & \dotsb & y_{0,m-1} \\\\
-    y_{1,0} & y_{1,1} & \dotsb & y_{1,m-1} \\\\
-    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    y_{0,0} & y_{0,1} & \dotsb & y_{0,m-1} \\
+    y_{1,0} & y_{1,1} & \dotsb & y_{1,m-1} \\
+    \vdots  & \vdots  & \ddots & \vdots  \\
     y_{n-1,0} & y_{n-1,1} & \dotsb & y_{n-1,m-1}
 \end{bmatrix} =$$
 $$= \begin{bmatrix}
-    x_{0,0} + y_{0,0} & x_{0,1} + y_{0,1} & \dotsb & x_{0,m-1} + y_{0,m-1} \\\\
-    x_{1,0} + y_{1,0} & x_{1,1} + y_{1,1} & \dotsb & x_{1,m-1} + y_{1,m-1} \\\\
-    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    x_{0,0} + y_{0,0} & x_{0,1} + y_{0,1} & \dotsb & x_{0,m-1} + y_{0,m-1} \\
+    x_{1,0} + y_{1,0} & x_{1,1} + y_{1,1} & \dotsb & x_{1,m-1} + y_{1,m-1} \\
+    \vdots  & \vdots  & \ddots & \vdots  \\
     x_{n-1,0} + y_{n-1,0} & x_{n-1,1} + y_{n-1,1} & \dotsb & x_{n-1,m-1} + y_{n-1,m-1}
 \end{bmatrix}$$
 
@@ -112,15 +112,15 @@ The next matrix operation is **scalar multiplication** - multiplying the entire 
 
 $$a \cdot
 \begin{bmatrix}
-    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
-    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
-    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\
+    \vdots  & \vdots  & \ddots & \vdots  \\
     x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
 \end{bmatrix} =
 \begin{bmatrix}
-    a \cdot x_{0,0} & a \cdot x_{0,1} & \dotsb & a \cdot x_{0,m-1} \\\\
-    a \cdot x_{1,0} & a \cdot x_{1,1} & \dotsb & a \cdot x_{1,m-1} \\\\
-    \vdots  & \vdots  & \ddots & \vdots  \\\\
+    a \cdot x_{0,0} & a \cdot x_{0,1} & \dotsb & a \cdot x_{0,m-1} \\
+    a \cdot x_{1,0} & a \cdot x_{1,1} & \dotsb & a \cdot x_{1,m-1} \\
+    \vdots  & \vdots  & \ddots & \vdots  \\
     a \cdot x_{n-1,0} & a \cdot x_{n-1,1} & \dotsb & a \cdot x_{n-1,m-1}
 \end{bmatrix}$$
 
@@ -155,20 +155,20 @@ $$C_{i,j} = A_{i,0} \cdot B_{0,j} + A_{i,1} \cdot B_{1,j} + \dotsb + A_{i,m-1} \
 Here is a small example:
 
 $$\begin{bmatrix}
-    1 & 2 & 3 \\\\
+    1 & 2 & 3 \\
     4 & 5 & 6
 \end{bmatrix}
 \begin{bmatrix}
-    1 \\\\
-    2 \\\\
+    1 \\
+    2 \\
     3
 \end{bmatrix} =
 \begin{bmatrix}
-    1 \cdot 1 + 2 \cdot 2 + 3 \cdot 3 \\\\
+    1 \cdot 1 + 2 \cdot 2 + 3 \cdot 3 \\
     4 \cdot 1 + 5 \cdot 2 + 6 \cdot 3
 \end{bmatrix} =
 \begin{bmatrix}
-    14 \\\\
+    14 \\
     32
 \end{bmatrix}$$
 
@@ -186,9 +186,9 @@ An **identity matrix** $I_n$ is a special $n \times n$ matrix which has $1$s on 
 
 $$I_n =
 \begin{bmatrix}
-    1 & 0 & \dotsb & 0 \\\\
-    0 & 1 & \dotsb & 0 \\\\
-    \vdots & \vdots & \ddots & \vdots \\\\
+    1 & 0 & \dotsb & 0 \\
+    0 & 1 & \dotsb & 0 \\
+    \vdots & \vdots & \ddots & \vdots \\
     0 & 0 & \dotsb & 1
 \end{bmatrix}$$
 
@@ -251,9 +251,9 @@ Given an $n \times m$ matrix $A$, its transpose is the $m \times n$ matrix $A^T$
 
 $$A =
 \begin{bmatrix}
-    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
-    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
-    \vdots & \vdots & \ddots & \vdots \\\\
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\
+    \vdots & \vdots & \ddots & \vdots \\
     x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
 \end{bmatrix}$$
 
@@ -261,29 +261,29 @@ then:
 
 $$A^T =
 \begin{bmatrix}
-    x_{0,0} & x_{1,0} & \dotsb & x_{n-1,0} \\\\
-    x_{0,1} & x_{1,1} & \dotsb & x_{n-1,1} \\\\
-    \vdots & \vdots & \ddots & \vdots \\\\
+    x_{0,0} & x_{1,0} & \dotsb & x_{n-1,0} \\
+    x_{0,1} & x_{1,1} & \dotsb & x_{n-1,1} \\
+    \vdots & \vdots & \ddots & \vdots \\
     x_{0,m-1} & x_{1,m-1} & \dotsb & x_{n-1,m-1}
 \end{bmatrix}$$
 
 For example:
 
 $$\begin{bmatrix}
-    1 & 2 \\\\
-    3 & 4 \\\\
+    1 & 2 \\
+    3 & 4 \\
     5 & 6
 \end{bmatrix}^T =
 \begin{bmatrix}
-    1 & 3 & 5 \\\\
+    1 & 3 & 5 \\
     2 & 4 & 6
 \end{bmatrix}$$
 
 A **symmetric** matrix is a square matrix which equals its own transpose: $A = A^T$. To put it another way, it has reflection symmetry (hence the name) across the main diagonal. For example, the following matrix is symmetric:
 
 $$\begin{bmatrix}
-    1 & 2 & 3 \\\\
-    2 & 4 & 5 \\\\
+    1 & 2 & 3 \\
+    2 & 4 & 5 \\
     3 & 5 & 6
 \end{bmatrix}$$
 
@@ -322,7 +322,7 @@ $$\overline{A} =
 \begin{bmatrix}
     \overline{x}_{0,0} & \overline{x}_{0,1} & \dotsb & \overline{x}_{0,m-1} \\
     \overline{x}_{1,0} & \overline{x}_{1,1} & \dotsb & \overline{x}_{1,m-1} \\
-    \vdots & \vdots & \ddots & \vdots \\\\
+    \vdots & \vdots & \ddots & \vdots \\
     \overline{x}_{n-1,0} & \overline{x}_{n-1,1} & \dotsb & \overline{x}_{n-1,m-1}
 \end{bmatrix}$$
 
@@ -352,7 +352,7 @@ The final important single-matrix operation is a combination of the previous two
 A matrix is known as **Hermitian** or **self-adjoint** if it equals its own adjoint: $A = A^\dagger$. For example, the following matrix is Hermitian:
 
 $$\begin{bmatrix}
-    1 & i \\\\
+    1 & i \\
     -i & 2
 \end{bmatrix}$$
 
@@ -382,11 +382,11 @@ $$(AB)^\dagger = B^\dagger A^\dagger$$
 Is this matrix unitary?
 
 $$A = \begin{bmatrix}
-    \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\\\
+    \frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\
     \frac{i}{\sqrt{2}} & \frac{-i}{\sqrt{2}}
 \end{bmatrix} = 
 \frac{1}{\sqrt{2}} \begin{bmatrix}
-    1 & 1 \\\\
+    1 & 1 \\
     i & -i
 \end{bmatrix}$$
 
@@ -397,23 +397,23 @@ To check whether the input matrix is unitary, we will need to perform the follow
 1. Calculate the adjoint of the input matrix $A^\dagger$.
 
 $$A^\dagger = \frac{1}{\sqrt{2}} \begin{bmatrix}
-    1 & -i \\\\
+    1 & -i \\
     1 & i
 \end{bmatrix}$$
 
 2. Multiply it by the input matrix.
 
 $$AA^\dagger = \frac12 \begin{bmatrix}
-    1 & 1 \\\\
+    1 & 1 \\
     i & -i
 \end{bmatrix} \begin{bmatrix}
-    1 & -i \\\\
+    1 & -i \\
     1 & i
 \end{bmatrix} = \frac12 \begin{bmatrix}
-    1 \cdot 1 + 1 \cdot 1 & 1 \cdot (-i) + 1 \cdot i \\\\
+    1 \cdot 1 + 1 \cdot 1 & 1 \cdot (-i) + 1 \cdot i \\
     i \cdot 1 + (-i) \cdot 1 & i \cdot (-i) + (-i) \cdot i
 \end{bmatrix} = \begin{bmatrix}
-    1 & 0 \\\\
+    1 & 0 \\
     0 & 1
 \end{bmatrix}$$
 
@@ -501,25 +501,25 @@ Given $n \times m$ matrix $A$ and $k \times l$ matrix $B$, their tensor product 
 
 $$A \otimes B =
 \begin{bmatrix}
-    A_{0,0} \cdot B & A_{0,1} \cdot B & \dotsb & A_{0,m-1} \cdot B \\\\
-    A_{1,0} \cdot B & A_{1,1} \cdot B & \dotsb & A_{1,m-1} \cdot B \\\\
-    \vdots & \vdots & \ddots & \vdots \\\\
+    A_{0,0} \cdot B & A_{0,1} \cdot B & \dotsb & A_{0,m-1} \cdot B \\
+    A_{1,0} \cdot B & A_{1,1} \cdot B & \dotsb & A_{1,m-1} \cdot B \\
+    \vdots & \vdots & \ddots & \vdots \\
     A_{n-1,0} \cdot B & A_{n-1,1} \cdot B & \dotsb & A_{n-1,m-1} \cdot B
 \end{bmatrix} =$$
 $$= \begin{bmatrix}
-    A_{0,0} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & b_{k-1,l-1} \end{bmatrix} & \dotsb &
-    A_{0,m-1} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix} \\\\
-    \vdots & \ddots & \vdots \\\\
-    A_{n-1,0} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix} & \dotsb &
-    A_{n-1,m-1} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\\ \vdots & \ddots & \vdots \\\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix}
+    A_{0,0} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\ \vdots & \ddots & \vdots \\ B_{k-1,0} & \dotsb & b_{k-1,l-1} \end{bmatrix} & \dotsb &
+    A_{0,m-1} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\ \vdots & \ddots & \vdots \\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix} \\
+    \vdots & \ddots & \vdots \\
+    A_{n-1,0} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\ \vdots & \ddots & \vdots \\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix} & \dotsb &
+    A_{n-1,m-1} \cdot \begin{bmatrix}B_{0,0} & \dotsb & B_{0,l-1} \\ \vdots & \ddots & \vdots \\ B_{k-1,0} & \dotsb & B_{k-1,l-1} \end{bmatrix}
 \end{bmatrix} =$$
 $$= \begin{bmatrix}
-    A_{0,0} \cdot B_{0,0} & \dotsb & A_{0,0} \cdot B_{0,l-1} & \dotsb & A_{0,m-1} \cdot B_{0,0} & \dotsb & A_{0,m-1} \cdot B_{0,l-1} \\\\
-    \vdots & \ddots & \vdots & \dotsb & \vdots & \ddots & \vdots \\\\
-    A_{0,0} \cdot B_{k-1,0} & \dotsb & A_{0,0} \cdot B_{k-1,l-1} & \dotsb & A_{0,m-1} \cdot B_{k-1,0} & \dotsb & A_{0,m-1} \cdot B_{k-1,l-1} \\\\
-    \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots \\\\
-    A_{n-1,0} \cdot B_{0,0} & \dotsb & A_{n-1,0} \cdot B_{0,l-1} & \dotsb & A_{n-1,m-1} \cdot B_{0,0} & \dotsb & A_{n-1,m-1} \cdot B_{0,l-1} \\\\
-    \vdots & \ddots & \vdots & \dotsb & \vdots & \ddots & \vdots \\\\
+    A_{0,0} \cdot B_{0,0} & \dotsb & A_{0,0} \cdot B_{0,l-1} & \dotsb & A_{0,m-1} \cdot B_{0,0} & \dotsb & A_{0,m-1} \cdot B_{0,l-1} \\
+    \vdots & \ddots & \vdots & \dotsb & \vdots & \ddots & \vdots \\
+    A_{0,0} \cdot B_{k-1,0} & \dotsb & A_{0,0} \cdot B_{k-1,l-1} & \dotsb & A_{0,m-1} \cdot B_{k-1,0} & \dotsb & A_{0,m-1} \cdot B_{k-1,l-1} \\
+    \vdots & \vdots & \vdots & \ddots & \vdots & \vdots & \vdots \\
+    A_{n-1,0} \cdot B_{0,0} & \dotsb & A_{n-1,0} \cdot B_{0,l-1} & \dotsb & A_{n-1,m-1} \cdot B_{0,0} & \dotsb & A_{n-1,m-1} \cdot B_{0,l-1} \\
+    \vdots & \ddots & \vdots & \dotsb & \vdots & \ddots & \vdots \\
     A_{n-1,0} \cdot B_{k-1,0} & \dotsb & A_{n-1,0} \cdot B_{k-1,l-1} & \dotsb & A_{n-1,m-1} \cdot B_{k-1,0} & \dotsb & A_{n-1,m-1} \cdot B_{k-1,l-1}
 \end{bmatrix}$$
 

@@ -22,9 +22,6 @@ This will include measuring a single qubit in a multi-qubit system, as well as m
 - Single and multi-qubit gates
 - Single-qubit system measurements
 
-$\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
-$\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
-
 ## Types of Measurements
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
@@ -45,7 +42,7 @@ Consider a system consisting of $n\geq1$ qubits. The wave function of such a sys
 Then, the state $|\psi\rangle$ of the multi-qubit system can be expressed as a linear combination of the $2^n$ basis vectors $|b_i\rangle$. That is, there exist complex numbers $c_0,c_1,\dotsc, c_{2^n-1}$ such that
 
 $$
-|\psi\rangle = \sum_{i=0}^{2^n-1} c_i|b_i\rangle \equiv \begin{pmatrix} c_0 \\\ c_1 \\\ \vdots \\\ c_{2^n-1} \end{pmatrix}
+|\psi\rangle = \sum_{i=0}^{2^n-1} c_i|b_i\rangle \equiv \begin{pmatrix} c_0 \\ c_1 \\ \vdots \\ c_{2^n-1} \end{pmatrix}
 $$
 
 In line with the usual convention, we choose the wave function to be normalized, so that $|c_0|^2 + \dotsc + |c_{2^n-1}|^2 =1$. Then, a quantum measurement in the basis $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$ satisfies the following rules:
@@ -449,7 +446,7 @@ For single-qubit systems, any measurement corresponding to an orthogonal basis c
 
 For example, consider the computational basis measurement, which can result in outcomes `Zero` or `One` corresponding to states $\ket 0$ and $\ket 1$. This measurement is associated with the Pauli Z operator, which is given by
 
-$$Z = \begin{pmatrix} 1 & 0 \\\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
+$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
 
 The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\{\ket{0},\ket{1}\}$ basis, with the measurement outcomes being $1$ and $-1$, respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
 
@@ -512,10 +509,10 @@ For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurem
 >$$
 Z \otimes Z =
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\ 
-    0 & -1 & 0 & 0 \\\ 
-    0 & 0 & -1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\ 
+    0 & -1 & 0 & 0 \\ 
+    0 & 0 & -1 & 0 \\ 
+    0 & 0 & 0 & 1 
 \end{bmatrix}
 $$
 >
@@ -523,13 +520,13 @@ $$
 >
 >$$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\ 
-    0 & -1 & 0 & 0 \\\ 
-    0 & 0 & -1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\ 
+    0 & -1 & 0 & 0 \\ 
+    0 & 0 & -1 & 0 \\ 
+    0 & 0 & 0 & 1 
 \end{bmatrix}
-\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}
 $$
 >
 >Comparing this to the characteristic equation for eigenvectors of $Z \otimes Z$ given by
@@ -542,13 +539,13 @@ it is easy to see that $|00\rangle$ belongs to the $+1$ eigenspace, hence the $Z
 >
 >$$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\ 
-    0 & -1 & 0 & 0 \\\ 
-    0 & 0 & -1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\ 
+    0 & -1 & 0 & 0 \\ 
+    0 & 0 & -1 & 0 \\ 
+    0 & 0 & 0 & 1 
 \end{bmatrix}
-\begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix} =
-\begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix}
+\begin{bmatrix} \alpha \\ 0 \\ 0 \\ \beta \end{bmatrix} =
+\begin{bmatrix} \alpha \\ 0 \\ 0 \\ \beta \end{bmatrix}
 $$
 >
 >So this state also belongs to the $+1$ eigenspace, and measuring it will return `Zero` and leave the state unchanged. Similarly, we can verify that an $\alpha |01\rangle + \beta |10\rangle$ state belongs to the $-1$ eigenspace, and measuring it will return `One` without changing the state.
