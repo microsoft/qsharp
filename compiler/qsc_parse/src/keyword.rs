@@ -31,6 +31,7 @@ pub enum Keyword {
     For,
     Function,
     If,
+    Import,
     In,
     Internal,
     Intrinsic,
@@ -87,6 +88,7 @@ impl Keyword {
             Self::For => "for",
             Self::Function => "function",
             Self::If => "if",
+            Self::Import => "import",
             Self::In => "in",
             Self::Internal => "internal",
             Self::Intrinsic => "intrinsic",
@@ -156,6 +158,8 @@ impl FromStr for Keyword {
             "Zero" => Ok(Self::Zero),
             "One" => Ok(Self::One),
             "namespace" => Ok(Self::Namespace),
+            "export" => Ok(Self::Export),
+            "import" => Ok(Self::Import),
             "mutable" => Ok(Self::Mutable),
             "internal" => Ok(Self::Internal),
             "PauliZ" => Ok(Self::PauliZ),
@@ -185,7 +189,6 @@ impl FromStr for Keyword {
             // in the standard library for priority order.
             "PauliY" => Ok(Self::PauliY),
             "borrow" => Ok(Self::Borrow),
-            "export" => Ok(Self::Export),
             "_" => Ok(Self::Underscore),
             _ => Err(()),
         }
