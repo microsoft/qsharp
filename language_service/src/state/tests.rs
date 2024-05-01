@@ -1418,7 +1418,8 @@ async fn loading_lints_config_from_manifest() {
 
 #[tokio::test]
 async fn lints_update_after_manifest_change() {
-    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let this_file_qs =
+        "namespace Foo { @EntryPoint() operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
     let fs = FsNode::Dir(
         [dir(
             "project",
@@ -1458,8 +1459,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 58,
-                        hi: 65,
+                        lo: 72,
+                        hi: 79,
                     },
                     level: Error,
                     message: "unnecessary parentheses",
@@ -1469,8 +1470,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 50,
-                        hi: 55,
+                        lo: 64,
+                        hi: 69,
                     },
                     level: Error,
                     message: "attempt to divide by zero",
@@ -1500,8 +1501,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 58,
-                        hi: 65,
+                        lo: 72,
+                        hi: 79,
                     },
                     level: Warn,
                     message: "unnecessary parentheses",
@@ -1511,8 +1512,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 50,
-                        hi: 55,
+                        lo: 64,
+                        hi: 69,
                     },
                     level: Warn,
                     message: "attempt to divide by zero",
