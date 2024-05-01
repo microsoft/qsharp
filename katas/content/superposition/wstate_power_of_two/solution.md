@@ -45,4 +45,7 @@ This implementation of the recursion requires $\log_2 N = k$ extra qubits alloca
 
 To do this, let's notice that to prepare $|W_{N}\rangle$ we need to prepare the $|W_{N-1}\rangle$ state on half of the qubits for both states of the auxiliary qubit, the difference is just in which half of the register we're using. This means that we can prepare the $|W_{N-1}\rangle$ state on the first half of the qubits, and use an auxiliary qubit in superposition to control SWAP-ing the first half of the register with the second half. The uncomputation of the auxiliary qubit happens in the same way as in the first approach.
 
-    TODO code 2
+@[solution]({
+    "id": "superposition__wstate_power_of_two_solution_b",
+    "codePath": "./SolutionB.qs"
+})
