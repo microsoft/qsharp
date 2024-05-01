@@ -1,6 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
-
     operation AllStatesWithParitySuperposition (qs : Qubit[], parity : Int) : Unit {
         use aux = Qubit();
         ApplyToEach(H, qs);
