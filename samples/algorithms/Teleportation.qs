@@ -33,13 +33,13 @@ namespace Sample {
             // function.
             initializer(message);
             Message($"Teleporting state {state}");
-            DumpMachine();
+            DumpRegister([message]);
 
             // Teleport the message and show the quantum state after
             // teleportation.
             Teleport(message, target);
             Message($"Received state {state}");
-            DumpMachine();
+            DumpRegister([target]);
 
             // Measure target in the corresponding basis and reset the qubits to
             // continue teleporting more messages.
