@@ -42,7 +42,7 @@ pub(crate) fn get_code_lenses(
                     .and_then(|parent_id| user_unit.package.items.get(parent_id))
                     .map(|parent| &parent.kind)
                 {
-                    let namespace = ns.name().to_string();
+                    let namespace = ns.name();
                     let range = into_range(position_encoding, decl.span, &user_unit.sources);
                     let name = decl.name.name.clone();
 

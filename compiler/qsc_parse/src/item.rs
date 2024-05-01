@@ -24,9 +24,9 @@ use crate::{
     ErrorKind,
 };
 use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Item, ItemKind,
-    Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, VecIdent, Visibility, VisibilityKind,
+    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Idents, Item,
+    ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
+    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
 };
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
@@ -150,7 +150,7 @@ pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Resul
 
 /// Given a file name, convert it to a namespace name.
 /// For example, `foo/bar.qs` becomes `foo.bar`.
-fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<VecIdent> {
+fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
     let path = std::path::Path::new(raw);
     let mut namespace = Vec::new();
     for component in path.components() {

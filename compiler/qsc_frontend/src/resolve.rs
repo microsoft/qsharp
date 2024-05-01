@@ -7,7 +7,7 @@ mod tests;
 use miette::Diagnostic;
 use qsc_ast::{
     ast::{
-        self, CallableBody, CallableDecl, Ident, NodeId, SpecBody, SpecGen, TopLevelNode, VecIdent,
+        self, CallableBody, CallableDecl, Ident, Idents, NodeId, SpecBody, SpecGen, TopLevelNode,
     },
     visit::{self as ast_visit, walk_attr, Visitor as AstVisitor},
 };
@@ -518,7 +518,7 @@ impl Resolver {
         }
     }
 
-    fn bind_open(&mut self, name: &VecIdent, alias: &Option<Box<Ident>>) {
+    fn bind_open(&mut self, name: &Idents, alias: &Option<Box<Ident>>) {
         let Some(id) = self.globals.find_namespace(name.str_iter()) else {
             self.errors.push(Error::NotFound(
                 name.iter()
@@ -1192,7 +1192,7 @@ fn resolve<'a>(
     globals: &GlobalScope,
     scopes: impl Iterator<Item = &'a Scope>,
     provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<VecIdent>,
+    provided_namespace_name: &Option<Idents>,
 ) -> Result<Res, Error> {
     // let scopes = scopes.collect::<Vec<_>>();
 
@@ -1276,7 +1276,7 @@ fn check_all_scopes<'a>(
     kind: NameKind,
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<VecIdent>,
+    provided_namespace_name: &Option<Idents>,
     scopes: impl Iterator<Item = &'a Scope>,
 ) -> Option<Result<Res, Error>> {
     let mut vars = true;
@@ -1319,7 +1319,7 @@ fn check_scoped_resolutions(
     kind: NameKind,
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
-    provided_namespace_name: &Option<VecIdent>,
+    provided_namespace_name: &Option<Idents>,
     vars: &mut bool,
     scope: &Scope,
 ) -> Option<Result<Res, Error>> {
@@ -1409,7 +1409,7 @@ fn ambiguous_symbol_error(
 fn find_symbol_in_namespaces<T, O>(
     kind: NameKind,
     globals: &GlobalScope,
-    provided_namespace_name: &Option<VecIdent>,
+    provided_namespace_name: &Option<Idents>,
     provided_symbol_name: &Ident,
     namespaces_to_search: T,
     aliases: &FxHashMap<Vec<Rc<str>>, Vec<(NamespaceId, O)>>,

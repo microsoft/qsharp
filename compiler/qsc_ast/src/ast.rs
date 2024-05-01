@@ -164,7 +164,7 @@ pub struct Namespace {
     /// The documentation.
     pub doc: Rc<str>,
     /// The namespace name.
-    pub name: VecIdent,
+    pub name: Idents,
     /// The items in the namespace.
     pub items: Box<[Box<Item>]>,
 }
@@ -272,7 +272,7 @@ pub enum ItemKind {
     #[default]
     Err,
     /// An `open` item for a namespace with an optional alias.
-    Open(VecIdent, Option<Box<Ident>>),
+    Open(Idents, Option<Box<Ident>>),
     /// A `newtype` declaration.
     Ty(Box<Ident>, Box<TyDef>),
     /// An export declaration
@@ -1289,7 +1289,7 @@ pub struct Path {
     /// The span.
     pub span: Span,
     /// The namespace.
-    pub namespace: Option<VecIdent>,
+    pub namespace: Option<Idents>,
     /// The declaration name.
     pub name: Box<Ident>,
 }
@@ -1322,37 +1322,37 @@ pub struct Ident {
     pub name: Rc<str>,
 }
 
-/// A [`VecIdent`] represents a sequence of idents. It provides a helpful abstraction
+/// A [`Idents`] represents a sequence of idents. It provides a helpful abstraction
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Default)]
-pub struct VecIdent(pub Vec<Ident>);
+pub struct Idents(pub Vec<Ident>);
 
-impl From<VecIdent> for Vec<Rc<str>> {
-    fn from(v: VecIdent) -> Self {
+impl From<Idents> for Vec<Rc<str>> {
+    fn from(v: Idents) -> Self {
         v.0.iter().map(|i| i.name.clone()).collect()
     }
 }
 
-impl From<&VecIdent> for Vec<Rc<str>> {
-    fn from(v: &VecIdent) -> Self {
+impl From<&Idents> for Vec<Rc<str>> {
+    fn from(v: &Idents) -> Self {
         v.0.iter().map(|i| i.name.clone()).collect()
     }
 }
 
-impl From<Vec<Ident>> for VecIdent {
+impl From<Vec<Ident>> for Idents {
     fn from(v: Vec<Ident>) -> Self {
-        VecIdent(v)
+        Idents(v)
     }
 }
 
-impl From<VecIdent> for Vec<Ident> {
-    fn from(v: VecIdent) -> Self {
+impl From<Idents> for Vec<Ident> {
+    fn from(v: Idents) -> Self {
         v.0
     }
 }
 
-impl Display for VecIdent {
+impl Display for Idents {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());
 
@@ -1368,7 +1368,7 @@ impl Display for VecIdent {
     }
 }
 
-impl<'a> IntoIterator for &'a VecIdent {
+impl<'a> IntoIterator for &'a Idents {
     type IntoIter = std::slice::Iter<'a, Ident>;
     type Item = &'a Ident;
     fn into_iter(self) -> Self::IntoIter {
@@ -1376,17 +1376,17 @@ impl<'a> IntoIterator for &'a VecIdent {
     }
 }
 
-impl<'a> From<&'a VecIdent> for VecIdentStrIter<'a> {
-    fn from(v: &'a VecIdent) -> Self {
-        VecIdentStrIter(v)
+impl<'a> From<&'a Idents> for IdentsStrIter<'a> {
+    fn from(v: &'a Idents) -> Self {
+        IdentsStrIter(v)
     }
 }
 
-/// An iterator which yields string slices of the names of the idents in a [`VecIdent`].
-/// Note that [`VecIdent`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
-pub struct VecIdentStrIter<'a>(pub &'a VecIdent);
+/// An iterator which yields string slices of the names of the idents in a [`Idents`].
+/// Note that [`Idents`] itself only implements [`IntoIterator`] where the item is an [`Ident`].
+pub struct IdentsStrIter<'a>(pub &'a Idents);
 
-impl<'a> IntoIterator for VecIdentStrIter<'a> {
+impl<'a> IntoIterator for IdentsStrIter<'a> {
     type IntoIter = std::iter::Map<std::slice::Iter<'a, Ident>, fn(&'a Ident) -> &'a str>;
     type Item = &'a str;
     fn into_iter(self) -> Self::IntoIter {
@@ -1394,13 +1394,13 @@ impl<'a> IntoIterator for VecIdentStrIter<'a> {
     }
 }
 
-impl FromIterator<Ident> for VecIdent {
+impl FromIterator<Ident> for Idents {
     fn from_iter<T: IntoIterator<Item = Ident>>(iter: T) -> Self {
-        VecIdent(iter.into_iter().collect())
+        Idents(iter.into_iter().collect())
     }
 }
 
-impl From<Path> for VecIdent {
+impl From<Path> for Idents {
     fn from(p: Path) -> Self {
         let mut buf = p.namespace.unwrap_or_default();
         buf.0.push(*p.name);
@@ -1408,7 +1408,7 @@ impl From<Path> for VecIdent {
     }
 }
 
-impl VecIdent {
+impl Idents {
     /// constructs an iterator over the [Ident]s that this contains.
     /// see [`Self::str_iter`] for an iterator over the string slices of the [Ident]s.
     pub fn iter(&self) -> std::slice::Iter<'_, Ident> {
@@ -1418,11 +1418,11 @@ impl VecIdent {
     /// constructs an iterator over the elements of `self` as string slices.
     /// see [`Self::iter`] for an iterator over the [Ident]s.
     #[must_use]
-    pub fn str_iter(&self) -> VecIdentStrIter {
+    pub fn str_iter(&self) -> IdentsStrIter {
         self.into()
     }
 
-    /// the conjoined span of all idents in the `VecIdent`
+    /// the conjoined span of all idents in the `Idents`
     #[must_use]
     pub fn span(&self) -> Span {
         Span {
@@ -1431,7 +1431,7 @@ impl VecIdent {
         }
     }
 
-    /// The stringified dot-separated path of the idents in this [`VecIdent`]
+    /// The stringified dot-separated path of the idents in this [`Idents`]
     /// E.g. `a.b.c`
     #[must_use]
     pub fn name(&self) -> String {
@@ -1445,13 +1445,13 @@ impl VecIdent {
         buf
     }
 
-    /// The number of idents in this [`VecIdent`].
+    /// The number of idents in this [`Idents`].
     #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    /// Returns `true` if the [`VecIdent`] contains no idents.
+    /// Returns `true` if the [`Idents`] contains no idents.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()

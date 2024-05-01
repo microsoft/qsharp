@@ -15,9 +15,9 @@ use std::vec;
 
 use qsc_ast::ast::{
     self, Attr, BinOp, Block, CallableBody, CallableDecl, CallableKind, Expr, ExprKind, Functor,
-    FunctorExpr, FunctorExprKind, Ident, Item, ItemKind, Lit, Mutability, Pat, PatKind, Path,
-    Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
-    StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp, VecIdent,
+    FunctorExpr, FunctorExprKind, Ident, Idents, Item, ItemKind, Lit, Mutability, Pat, PatKind,
+    Path, Pauli, QubitInit, QubitInitKind, QubitSource, SetOp, SpecBody, SpecDecl, SpecGen, Stmt,
+    StmtKind, StringComponent, TernOp, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, UnOp,
     Visibility, VisibilityKind,
 };
 use qsc_ast::ast::{Namespace, Package};
@@ -723,7 +723,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         self.write(&id.name);
     }
 
-    fn visit_vec_ident(&mut self, vec_ident: &'_ VecIdent) {
+    fn visit_vec_ident(&mut self, vec_ident: &'_ Idents) {
         self.write(&vec_ident.name());
     }
 }

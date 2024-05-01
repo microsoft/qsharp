@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 use crate::fir::{
-    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
-    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent,
-    VecIdent,
+    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Idents, Item,
+    ItemKind, Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
+    StringComponent,
 };
 
 pub trait MutVisitor<'a>: Sized {
@@ -50,7 +50,7 @@ pub trait MutVisitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a mut Ident) {}
 
-    fn visit_vec_ident(&mut self, _: &'a mut VecIdent) {}
+    fn visit_vec_ident(&mut self, _: &'a mut Idents) {}
 
     fn get_block(&mut self, id: BlockId) -> &'a mut Block;
     fn get_expr(&mut self, id: ExprId) -> &'a mut Expr;
