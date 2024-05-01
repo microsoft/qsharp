@@ -206,7 +206,7 @@ impl<'a> Visitor<'a> for Overrider<'a> {
             .items
             .iter()
             .filter_map(|(_, item)| match &item.kind {
-                ItemKind::Namespace(ident, items) => Some((ident.name(), items)),
+                ItemKind::Namespace(ident, items) => Some((ident.name.to_string(), items)),
                 _ => None,
             });
         for (namespace_ident, namespace_items) in namespaces {
