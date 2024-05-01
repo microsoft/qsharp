@@ -53,6 +53,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
+        Message($"Testing for N = 1...");
         if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.WState_PowerOfTwo,
             ApplyToEachA(X, _),
@@ -60,6 +61,7 @@ namespace Kata.Verification {
             return false;
         }
 
+        Message($"Testing for N = 2...");
         if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
             Kata.WState_PowerOfTwo,
             TwoBitstringSuperposition_Reference(_, [false, true], [true, false]),
@@ -68,6 +70,7 @@ namespace Kata.Verification {
         }
 
         for n in [4, 8, 16] {
+            Message($"Testing for N = {n}...");
             if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                 Kata.WState_PowerOfTwo,
                 WState_PowerOfTwo_Reference,
