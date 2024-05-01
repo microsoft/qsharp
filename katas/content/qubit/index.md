@@ -71,7 +71,7 @@ $$
 
 $$
 \langle \begin{bmatrix} 1 \\ 0 \end{bmatrix} , \begin{bmatrix} 0 \\ 1 \end{bmatrix} \rangle =
-\langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \\rangle = 0
+\langle \begin{bmatrix} 0 \\ 1 \end{bmatrix} , \begin{bmatrix} 1 \\ 0 \end{bmatrix} \rangle = 0
 $$
 
 > As a reminder, $\langle V , W \rangle$ is the inner product of $V$ and $W$.
