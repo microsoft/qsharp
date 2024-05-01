@@ -46,6 +46,10 @@ async function onload() {
     document.body.appendChild(getKataDiv(kata, indexKatas));
   });
   document.querySelectorAll("details").forEach((item) => (item.open = true));
+  document
+    .querySelectorAll("code")
+    .forEach((item) => (item.className = "qsharp"));
+  (window as any).hljs.highlightAll();
 }
 
 function getKataDiv(kata: Kata, index: HTMLElement) {
