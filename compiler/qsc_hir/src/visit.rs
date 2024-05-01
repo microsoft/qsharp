@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::hir::{
-    Block, CallableDecl, Expr, ExprKind, Ident, Item, ItemKind, Package, Pat, PatKind, QubitInit,
-    QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, VecIdent,
+    Block, CallableDecl, Expr, ExprKind, Ident, Idents, Item, ItemKind, Package, Pat, PatKind,
+    QubitInit, QubitInitKind, SpecBody, SpecDecl, Stmt, StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -45,7 +45,7 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn visit_vec_ident(&mut self, _: &'a VecIdent) {}
+    fn visit_idents(&mut self, _: &'a Idents) {}
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -57,7 +57,7 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_vec_ident(name),
+        ItemKind::Namespace(name, _) => vis.visit_idents(name),
         ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }
