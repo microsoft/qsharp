@@ -268,3 +268,118 @@ fn check_rca_for_access_using_dynamic_index() {
             dynamic_param_applications: <empty>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_array_with_dynamic_size_bound_through_tuple() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let arr = [0, size = (M(q) == Zero ? 0 | 1)];
+        let tup = ((), arr);
+        let (_, arr) = tup;
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+        ApplicationsGeneratorSet:
+            inherent: Quantum: QuantumProperties:
+                runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicallySizedArray)
+                value_kind: Array(Content: Dynamic, Size: Static)
+            dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_array_with_dynamic_size_bound_through_tuple_from_callable() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function MakeTuple(a : Int[]) : ((), Int[]) {
+            return ((), a);
+        }
+        use q = Qubit();
+        let arr = [0, size = (M(q) == Zero ? 0 | 1)];
+        let tup = MakeTuple(arr);
+        let (_, arr) = tup;
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+        ApplicationsGeneratorSet:
+            inherent: Quantum: QuantumProperties:
+                runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt | UseOfDynamicallySizedArray)
+                value_kind: Array(Content: Dynamic, Size: Static)
+            dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_array_with_static_size_bound_through_tuple() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        let arr = [0, size = 1];
+        let tup = ((), arr);
+        let (_, arr) = tup;
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_array_with_static_size_bound_through_tuple_from_callable() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        function MakeTuple(a : Int[]) : ((), Int[]) {
+            return ((), a);
+        }
+        let arr = [0, size = 1];
+        let tup = MakeTuple(arr);
+        let (_, arr) = tup;
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_array_with_static_size_bound_through_dynamic_tuple() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        use q = Qubit();
+        let arr = [0, size = 1];
+        let tup = (M(q), arr);
+        let (_, arr) = tup;
+        arr"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(0x0)
+                    value_kind: Array(Content: Dynamic, Size: Static)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
