@@ -45,7 +45,7 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn visit_vec_ident(&mut self, _: &'a Idents) {}
+    fn visit_idents(&mut self, _: &'a Idents) {}
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -57,7 +57,7 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_vec_ident(name),
+        ItemKind::Namespace(name, _) => vis.visit_idents(name),
         ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }

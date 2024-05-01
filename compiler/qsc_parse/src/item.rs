@@ -217,11 +217,7 @@ fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
         id: NodeId::default(),
         span: s.span(lo),
         doc: doc.into(),
-        name: {
-            let mut buf = name.namespace.clone().unwrap_or_default();
-            buf.0.push(*name.name);
-            buf
-        },
+        name: (*name).into(),
         items: items.into_boxed_slice(),
     })
 }

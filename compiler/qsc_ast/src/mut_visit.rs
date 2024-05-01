@@ -75,8 +75,8 @@ pub trait MutVisitor: Sized {
     fn visit_ident(&mut self, ident: &mut Ident) {
         walk_ident(self, ident);
     }
-    fn visit_vec_ident(&mut self, ident: &mut crate::ast::Idents) {
-        walk_vec_ident(self, ident);
+    fn visit_idents(&mut self, ident: &mut crate::ast::Idents) {
+        walk_idents(self, ident);
     }
 
     fn visit_span(&mut self, _: &mut Span) {}
@@ -92,7 +92,7 @@ pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
 
 pub fn walk_namespace(vis: &mut impl MutVisitor, namespace: &mut Namespace) {
     vis.visit_span(&mut namespace.span);
-    vis.visit_vec_ident(&mut namespace.name);
+    vis.visit_idents(&mut namespace.name);
 
     namespace.items.iter_mut().for_each(|i| vis.visit_item(i));
 }
@@ -108,7 +108,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
         ItemKind::Err => {}
         ItemKind::Open(ns, alias) => {
-            vis.visit_vec_ident(ns);
+            vis.visit_idents(ns);
             alias.iter_mut().for_each(|a| vis.visit_ident(a));
         }
         ItemKind::Ty(ident, def) => {
@@ -338,7 +338,7 @@ pub fn walk_qubit_init(vis: &mut impl MutVisitor, init: &mut QubitInit) {
 pub fn walk_path(vis: &mut impl MutVisitor, path: &mut Path) {
     vis.visit_span(&mut path.span);
     if let Some(ref mut ns) = path.namespace {
-        vis.visit_vec_ident(ns);
+        vis.visit_idents(ns);
     }
     vis.visit_ident(&mut path.name);
 }
@@ -346,8 +346,8 @@ pub fn walk_path(vis: &mut impl MutVisitor, path: &mut Path) {
 pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
 }
-pub fn walk_vec_ident(vis: &mut impl MutVisitor, ident: &mut crate::ast::Idents) {
-    for ref mut ident in &mut ident.0 {
+pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::ast::Idents) {
+    for ref mut ident in ident.0.iter_mut() {
         vis.visit_ident(ident);
     }
 }

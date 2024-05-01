@@ -50,7 +50,7 @@ pub trait MutVisitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a mut Ident) {}
 
-    fn visit_vec_ident(&mut self, _: &'a mut Idents) {}
+    fn visit_idents(&mut self, _: &'a mut Idents) {}
 
     fn get_block(&mut self, id: BlockId) -> &'a mut Block;
     fn get_expr(&mut self, id: ExprId) -> &'a mut Expr;
@@ -66,7 +66,7 @@ pub fn walk_package<'a>(vis: &mut impl MutVisitor<'a>, package: &'a mut Package)
 pub fn walk_item<'a>(vis: &mut impl MutVisitor<'a>, item: &'a mut Item) {
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_vec_ident(name),
+        ItemKind::Namespace(name, _) => vis.visit_idents(name),
         ItemKind::Ty(name, _) => vis.visit_ident(name),
     };
 }
