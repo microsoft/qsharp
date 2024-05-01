@@ -16,22 +16,9 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        Message($"Testing for N = 2...");
-        for i in 1 .. 10 {
+        for N in 2 .. 5 {
             for parity in 0 .. 1 {
-                if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
-                    Kata.AllStatesWithParitySuperposition(_, parity),
-                    AllStatesWithParitySuperposition_Reference(_, parity),
-                    2
-                ) {
-                    return false;
-                }
-            }
-        }
-
-        for N in 3 .. 6 {
-            Message($"Testing for N = {N}...");
-            for parity in 0 .. 1 {
+                Message($"Testing for N = {N}, with parity: {parity}...");
                 if not CheckOperationsEquivalenceOnZeroStateWithFeedback(
                     Kata.AllStatesWithParitySuperposition(_, parity),
                     AllStatesWithParitySuperposition_Reference(_, parity),
