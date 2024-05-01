@@ -12,5 +12,6 @@
   "oracles",
   "deutsch_algo",
   "deutsch_jozsa",
-  "qec_shor"
+  "qec_shor",
+  "superposition"
 ]
