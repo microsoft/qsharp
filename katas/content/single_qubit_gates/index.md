@@ -72,7 +72,7 @@ Applying several quantum gates in sequence is equivalent to performing several o
 For example, if you have gates $A$ and $B$ and a qubit in state $|\psi\rangle$, the result of applying $A$ followed by $B$ to that qubit would be $B\big(A|\psi\rangle\big)$ (the gate closest to the qubit state gets applied first).
 Matrix multiplication is associative, so this is equivalent to multiplying the $B$ matrix by the $A$ matrix, producing a compound gate of the two, and then applying that to the qubit: $\big(BA\big)|\psi\rangle$.
 
->Note that matrix multiplication isn’t commutative, thus $(BA) \neq \(AB)$.
+>Note that matrix multiplication isn’t commutative, thus $(BA) \neq (AB)$.
 
 All quantum gates are reversible - there is another gate which will undo any given gate's transformation, returning the qubit to its original state.
 This means that when dealing with quantum gates, information about qubit states is never lost, as opposed to classical logic gates, some of which destroy information.

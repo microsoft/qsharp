@@ -310,9 +310,9 @@ The next important single-matrix operation is the **matrix conjugate**, denoted 
 
 $$A =
 \begin{bmatrix}
-    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\\\
-    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\\\
-    \vdots & \vdots & \ddots & \vdots \\\\
+    x_{0,0} & x_{0,1} & \dotsb & x_{0,m-1} \\
+    x_{1,0} & x_{1,1} & \dotsb & x_{1,m-1} \\
+    \vdots & \vdots & \ddots & \vdots \\
     x_{n-1,0} & x_{n-1,1} & \dotsb & x_{n-1,m-1}
 \end{bmatrix}$$
 
@@ -320,10 +320,10 @@ Then:
 
 $$\overline{A} =
 \begin{bmatrix}
-    \overline{x}\_{0,0} & \overline{x}\_{0,1} & \dotsb & \overline{x}\_{0,m-1} \\\\
-    \overline{x}\_{1,0} & \overline{x}\_{1,1} & \dotsb & \overline{x}\_{1,m-1} \\\\
+    \overline{x}_{0,0} & \overline{x}_{0,1} & \dotsb & \overline{x}_{0,m-1} \\
+    \overline{x}_{1,0} & \overline{x}_{1,1} & \dotsb & \overline{x}_{1,m-1} \\
     \vdots & \vdots & \ddots & \vdots \\\\
-    \overline{x}\_{n-1,0} & \overline{x}\_{n-1,1} & \dotsb & \overline{x}\_{n-1,m-1}
+    \overline{x}_{n-1,0} & \overline{x}_{n-1,1} & \dotsb & \overline{x}_{n-1,m-1}
 \end{bmatrix}$$
 
 > As a reminder, a conjugate of a complex number $x = a + bi$ is $\overline{x} = a - bi$.

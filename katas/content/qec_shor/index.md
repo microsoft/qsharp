@@ -71,7 +71,7 @@ We introduced the single-qubit measurements in different Pauli bases in the Meas
 and then the general case of joint measurements in the Measurements in Multi-Qubit Systems kata.
 Let's take a closer look at the kinds of joint measurements we'll be using in this kata.
 
-A multi-qubit Pauli measurement on $n$ qubits corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_j$ being from the set of gates $\\{X,Y,Z,I\\}$, and at least one of the $M_j$ is not the identity matrix. (If $M_j = I$, you can think of it as qubit $j$ not being involved in the measurement.) The measurement can produce one of the two outcomes: `Zero` corresponding to eigenvalue $+1$ of this operator, or `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces. The operator $M_1 \otimes \dotsc \otimes M_n$ is referred to as the _measurement basis_.
+A multi-qubit Pauli measurement on $n$ qubits corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_j$ being from the set of gates $\{X,Y,Z,I\}$, and at least one of the $M_j$ is not the identity matrix. (If $M_j = I$, you can think of it as qubit $j$ not being involved in the measurement.) The measurement can produce one of the two outcomes: `Zero` corresponding to eigenvalue $+1$ of this operator, or `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces. The operator $M_1 \otimes \dotsc \otimes M_n$ is referred to as the _measurement basis_.
 
 For example, the first two joint measurements we'll encounter later in this kata are two-qubit measurements in $ZZ$ and $XX$ bases. They can be described as follows:
 
@@ -214,7 +214,7 @@ However, if a $Z$ error happens on any one of these qubits, we won't be able to 
     "title": "Phase Flip Code"
 })
 
-What kind of code could detect and correct a $Z$ error? We detected an $X$ error using the fact that in the $\\{\ket{0}, \ket{1}\\}$ basis the error changed the basis state. Similarly, we can detect a $Z$ error using the $\\{\ket{+}, \ket{-}\\}$ basis, in which the $Z$ gate converts $\ket{+}$ to $\ket{-}$ and vice versa, acting as a basis change operation.
+What kind of code could detect and correct a $Z$ error? We detected an $X$ error using the fact that in the $\{\ket{0}, \ket{1}\}$ basis the error changed the basis state. Similarly, we can detect a $Z$ error using the $\{\ket{+}, \ket{-}\}$ basis, in which the $Z$ gate converts $\ket{+}$ to $\ket{-}$ and vice versa, acting as a basis change operation.
 
 Based on this idea, we can construct the **phase flip code** that uses the following encoding:
 

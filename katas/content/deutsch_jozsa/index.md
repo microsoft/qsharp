@@ -26,7 +26,7 @@ This kata introduces you to Deutsch-Jozsa algorithm - one of the most famous alg
     "title": "The Problem"
 })
 
-You are given a classical function that takes an $N$-bit string as an input and returns one bit: $f(x): \\{0, 1\\}^N \to \\{0, 1\\}$. You are guaranteed that the function $f$ is
+You are given a classical function that takes an $N$-bit string as an input and returns one bit: $f(x): \{0, 1\}^N \to \{0, 1\}$. You are guaranteed that the function $f$ is
 
 - either *constant* (returns the same value for all inputs) 
 - or *balanced* (returns value $0$ for half of the inputs and $1$ for the other half of the inputs). 
