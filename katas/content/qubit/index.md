@@ -53,7 +53,7 @@ $$\begin{bmatrix} 0 \\ 1 \end{bmatrix}$$
 Note that you can use scalar multiplication and vector addition to express any qubit state $\begin{bmatrix} \alpha \\ \beta \end{bmatrix}$ as a sum of these two vectors with certain weights $\alpha$ and $\beta$, known as linear combination.
 
 $$
-\begin{bmatrix} \alpha \\ \beta \\end{bmatrix} =
+\begin{bmatrix} \alpha \\ \beta \end{bmatrix} =
 \begin{bmatrix} \alpha \\ 0 \end{bmatrix} + \begin{bmatrix} 0 \\ \beta \\end{bmatrix} =
 \alpha \cdot \begin{bmatrix} 1 \\ 0 \end{bmatrix} + \beta \cdot \begin{bmatrix} 0 \\ 1 \end{bmatrix}
 $$
