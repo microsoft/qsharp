@@ -1,8 +1,7 @@
 namespace Kata {
     operation AllStatesWithParitySuperposition (qs : Qubit[], parity : Int) : Unit is Adj + Ctl {
         // base of recursion: if N = 1, set the qubit to parity
-        let N = Length(qs);
-        if N == 1 {
+        if Length(qs) == 1 {
             if parity == 1 {
                 X(qs[0]);
             }

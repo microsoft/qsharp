@@ -1,4 +1,4 @@
-We are going to use a recursive approach that was hinted at in the task.
+There are multiple ways to approach this problem. In our first solution, we are going to use a recursive approach that was hinted at in the task.
 
 Let's denote the required state on $N$ qubits as $|P_{N,0}\rangle$ for `parity = 0` and $|P_{N,1}\rangle$ for `parity = 1`. We can group the $2^{N-1}$ basis states included in the state $|P_{N,0}\rangle$ by their first bit ($0$ or $1$) and write the state as follows:
 
@@ -10,7 +10,7 @@ $$|P_{N,p}\rangle = \frac{1}{\sqrt{2}} \big( |0\rangle \otimes |P_{N-1,p}\rangle
 
 Now we can use this expression to prepare the state using a recursive approach we've seen before:
 
-1. Apply **H** gate to the first qubit to prepare state $\frac{1}{\sqrt{2}} ( |0\rangle + |1\rangle ) \otimes |0\rangle_{N-1}$
+1. Apply $H$ gate to the first qubit to prepare state $\frac{1}{\sqrt{2}} ( |0\rangle + |1\rangle ) \otimes |0\rangle_{N-1}$.
 2. Apply the controlled variant of procedure of preparing $|P_{N-1,p}\rangle$ on the last $N-1$ qubits, with the first qubit in the $|0\rangle$ state as the control.
 3. Apply the controlled variant of procedure of preparing $|P_{N-1,1-p}\rangle$ on the last $N-1$ qubits, with the first qubit in the $|1\rangle$ state as the control.
 
@@ -18,11 +18,11 @@ Now we can use this expression to prepare the state using a recursive approach w
 
 4. The base of recursion is preparing the states for $N = 1$:
 * For `parity = 0`, there is one single-qubit state with this parity: $|0\rangle$ (no action required to prepare).
-* For `parity = 1`, there is one single-qubit state with this parity: $|1\rangle$ (apply **X** gate to prepare).
+* For `parity = 1`, there is one single-qubit state with this parity: $|1\rangle$ (apply $X$ gate to prepare).
 
 @[solution]({ "id": "superposition__parity_bitstrings_solution_a", "codePath": "./SolutionA.qs" })
 
-We start by preparing an equal superposition of all basis states and allocating an extra qubit.
+In the second solution, we'll use post-selection. We start by preparing an equal superposition of all basis states and allocating an extra qubit.
 
 This time we use the extra qubit to calculate the parity of the input state: applying a series of CNOT gates, each one with one of the input qubits as control and the extra qubit as a target will compute the parity of the state.
 

@@ -2,9 +2,8 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Katas;
 
-    operation AllStatesWithParitySuperposition_Reference (qs : Qubit[], parity : Int) : Unit is Adj + Ctl{
-        let N = Length(qs);
-        if N == 1 {
+    operation AllStatesWithParitySuperposition_Reference (qs : Qubit[], parity : Int) : Unit is Adj + Ctl {
+        if Length(qs) == 1 {
             if parity == 1 {
                 X(qs[0]);
             }
