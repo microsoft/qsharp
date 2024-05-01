@@ -661,6 +661,9 @@ impl ValueKind {
                 }
                 ValueKind::Element(self_runtime_kind) => {
                     *content_runtime_kind = self_runtime_kind;
+                    // When we project from an element variant to an array variant, we assume the size of the
+                    // array is statically sized because we rely on the dynamically sized arrays runtime feature
+                    // flag to detect such cases.
                     *size_runtime_kind = RuntimeKind::Static;
                 }
             },
