@@ -6,22 +6,43 @@ import { ExplainedSolutionItem, Kata, getAllKatas } from "qsharp-lang";
 async function onload() {
   const katas = await getAllKatas();
 
-  katas.forEach((kata) => document.body.appendChild(getKataDiv(kata)));
+  const indexDiv = document.createElement("div");
+  document.body.appendChild(indexDiv);
+  const indexKatas = document.createElement("ul");
+  indexDiv.appendChild(indexKatas);
+
+  katas.forEach((kata) => {
+    const kataLi = document.createElement("li");
+    kataLi.innerHTML = `<a href="#kata-${kata.id}">${kata.title}</a>`;
+    indexKatas.appendChild(kataLi);
+
+    document.body.appendChild(getKataDiv(kata, indexKatas));
+  });
   document.querySelectorAll("details").forEach((item) => (item.open = true));
   (window as any).MathJax.typeset();
 }
 
-function getKataDiv(kata: Kata) {
+function getKataDiv(kata: Kata, index: HTMLElement) {
   const kataDiv = document.createElement("div");
   const kataHeader = document.createElement("h1");
   kataHeader.innerText = kata.title;
+  kataHeader.id = `kata-${kata.id}`;
   kataDiv.appendChild(kataHeader);
+
+  const sectionIndex = document.createElement("ul");
+  index.appendChild(sectionIndex);
 
   kata.sections.forEach((section) => {
     const sectionDiv = document.createElement("div");
     const sectionHeader = document.createElement("h2");
     sectionHeader.innerText = section.title;
+    const sectionId = `section-${section.id}`;
+    sectionHeader.id = sectionId;
     sectionDiv.appendChild(sectionHeader);
+
+    const sectionLi = document.createElement("li");
+    sectionLi.innerHTML = `<a href="#${sectionId}">${section.title}</a>`;
+    sectionIndex.appendChild(sectionLi);
 
     if (section.type === "lesson") {
       section.items.forEach((item) => {
