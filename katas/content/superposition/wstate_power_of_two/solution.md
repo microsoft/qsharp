@@ -12,10 +12,10 @@ To do this, we can again use an auxiliary qubit prepared in the $|+\rangle$ stat
 $$|0\rangle_{aux} |00\rangle_{reg} \overset{H}{\longrightarrow}
 \frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux} \otimes |00\rangle_{reg} =
 \frac{1}{\sqrt2}(|0\rangle_{aux} |00\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})
-\overset{CNOT_0}{\longrightarrow} \\\\ {\longrightarrow}
-\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})
-\overset{CNOT_1}{\longrightarrow} \\\\ {\longrightarrow}
-\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |0\rangle|W_1\rangle_{reg})$$
+\overset{CNOT_0}{\longrightarrow} $$
+$${\longrightarrow}\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})
+\overset{CNOT_1}{\longrightarrow} $$
+$${\longrightarrow}\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |0\rangle|W_1\rangle_{reg})$$
 
 > The auxiliary qubit is now entangled with the rest of the qubits, so we can't simply reset it without it affecting the superposition we have prepared using it.
 
