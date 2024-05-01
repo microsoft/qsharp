@@ -146,9 +146,9 @@ impl<'a> PartialEvaluator<'a> {
                 self.bind_value_to_ident(mutability, ident, value);
             }
             PatKind::Tuple(pats) => {
-                let tup = value.unwrap_tuple();
-                assert!(pats.len() == tup.len());
-                for (pat_id, value) in pats.iter().zip(tup.iter()) {
+                let tuple = value.unwrap_tuple();
+                assert!(pats.len() == tuple.len());
+                for (pat_id, value) in pats.iter().zip(tuple.iter()) {
                     self.bind_value_to_pat(mutability, *pat_id, value.clone());
                 }
             }
@@ -166,31 +166,53 @@ impl<'a> PartialEvaluator<'a> {
         };
     }
 
-    fn bind_value_to_immutable_ident(&mut self, ident: &Ident, value: Value) {
-        // Just insert the value into the hybrid vars map.
+    fn bind_value_in_classical_map(&mut self, ident: &Ident, value: &Value) {
+        // Create a variable and bind it to the classical environment.
+        let var = Variable {
+            name: ident.name.clone(),
+            value: value.clone(),
+            span: ident.span,
+        };
+        let scope = self.eval_context.get_current_scope_mut();
+        scope.env.bind_variable_in_top_frame(ident.id, var);
+    }
+
+    fn bind_value_in_hybrid_map(&mut self, ident: &Ident, value: Value) {
+        // Insert the value into the hybrid vars map.
         self.eval_context
             .get_current_scope_mut()
             .hybrid_vars
             .insert(ident.id, value);
     }
 
+    fn bind_value_to_immutable_ident(&mut self, ident: &Ident, value: Value) {
+        // If the value is not a variable, bind it to the classical map.
+        if !matches!(value, Value::Var(_)) {
+            self.bind_value_in_classical_map(ident, &value);
+        }
+
+        // Always bind the value to the hybrid map.
+        self.bind_value_in_hybrid_map(ident, value);
+    }
+
     fn bind_value_to_mutable_ident(&mut self, ident: &Ident, value: Value) {
+        // If the value is not a variable, bind it to the classical map.
+        if !matches!(value, Value::Var(_)) {
+            self.bind_value_in_classical_map(ident, &value);
+        }
+
+        // Always bind the value to the hybrid map but do it differently depending of the value type.
         let maybe_var_type = try_get_eval_var_type(&value);
         if let Some(var_type) = maybe_var_type {
             // Get a variable to store into.
             let value_operand = map_eval_value_to_rir_operand(&value);
             let eval_var = self.get_or_create_variable(ident.id, var_type);
             let rir_var = map_eval_var_to_rir_var(eval_var);
-
             // Insert a store instruction.
             let store_ins = Instruction::Store(value_operand, rir_var);
             self.get_current_rir_block_mut().0.push(store_ins);
         } else {
-            // Insert the value into the hybrid vars map.
-            self.eval_context
-                .get_current_scope_mut()
-                .hybrid_vars
-                .insert(ident.id, value);
+            self.bind_value_in_hybrid_map(ident, value);
         }
     }
 
@@ -278,6 +300,7 @@ impl<'a> PartialEvaluator<'a> {
             &[],
             StepAction::Continue,
         );
+        // TODO (cesarzc): need to update hybrid bindings in the case of assignments.
         match eval_result {
             Ok(step_result) => {
                 let StepResult::Return(value) = step_result else {
@@ -294,40 +317,6 @@ impl<'a> PartialEvaluator<'a> {
                 Ok(eval_control_flow)
             }
             Err((error, _)) => Err(Error::EvaluationFailed(error.to_string(), expr.span)),
-        }
-    }
-
-    fn eval_classical_stmt(&mut self, stmt_id: StmtId) -> Result<EvalControlFlow, Error> {
-        let current_package_id = self.get_current_package_id();
-        let stmt = self.get_stmt(stmt_id);
-        let scope_exec_graph = self.get_current_scope_exec_graph().clone();
-        let scope = self.eval_context.get_current_scope_mut();
-        let exec_graph = exec_graph_section(&scope_exec_graph, stmt.exec_graph_range.clone());
-        let mut state = State::new(current_package_id, exec_graph, None);
-        let eval_result = state.eval(
-            self.package_store,
-            &mut scope.env,
-            &mut self.backend,
-            &mut GenericReceiver::new(&mut std::io::sink()),
-            &[],
-            StepAction::Continue,
-        );
-        match eval_result {
-            Ok(step_result) => {
-                let StepResult::Return(value) = step_result else {
-                    panic!("evaluating a classical expression should always return a value");
-                };
-
-                // Figure out the control flow kind.
-                let scope = self.eval_context.get_current_scope();
-                let eval_control_flow = if scope.has_classical_evaluator_returned() {
-                    EvalControlFlow::Return(value)
-                } else {
-                    EvalControlFlow::Continue(value)
-                };
-                Ok(eval_control_flow)
-            }
-            Err((error, _)) => Err(Error::EvaluationFailed(error.to_string(), stmt.span)),
         }
     }
 
@@ -401,34 +390,6 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn eval_hybrid_stmt(&mut self, stmt_id: StmtId) -> Result<EvalControlFlow, Error> {
-        let stmt = self.get_stmt(stmt_id);
-        match stmt.kind {
-            StmtKind::Expr(expr_id) => self.try_eval_expr(expr_id),
-            StmtKind::Semi(expr_id) => {
-                let control_flow = self.try_eval_expr(expr_id)?;
-                match control_flow {
-                    EvalControlFlow::Continue(_) => Ok(EvalControlFlow::Continue(Value::unit())),
-                    EvalControlFlow::Return(_) => Ok(control_flow),
-                }
-            }
-            StmtKind::Local(mutability, pat_id, expr_id) => {
-                let control_flow = self.try_eval_expr(expr_id)?;
-                match control_flow {
-                    EvalControlFlow::Continue(value) => {
-                        self.bind_value_to_pat(mutability, pat_id, value);
-                        Ok(EvalControlFlow::Continue(Value::unit()))
-                    }
-                    EvalControlFlow::Return(_) => Ok(control_flow),
-                }
-            }
-            StmtKind::Item(_) => {
-                // Do nothing and return a continue unit value.
-                Ok(EvalControlFlow::Continue(Value::unit()))
-            }
-        }
-    }
-
     fn eval_expr_array_repeat(
         &mut self,
         value_expr_id: ExprId,
@@ -462,10 +423,20 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval_expr_assign(
         &mut self,
-        _lhs_expr_id: ExprId,
-        _rhs_expr_id: ExprId,
+        lhs_expr_id: ExprId,
+        rhs_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        unimplemented!();
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in assign expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+
+        self.update_bindings(lhs_expr_id, rhs_value);
+        Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
     #[allow(clippy::similar_names)]
@@ -1030,14 +1001,6 @@ impl<'a> PartialEvaluator<'a> {
         expr_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
     }
 
-    fn get_stmt_compute_kind(&self, stmt_id: StmtId) -> ComputeKind {
-        let current_package_id = self.get_current_package_id();
-        let store_stmt_id = StoreStmtId::from((current_package_id, stmt_id));
-        let stmt_generator_set = self.compute_properties.get_stmt(store_stmt_id);
-        let callable_scope = self.eval_context.get_current_scope();
-        stmt_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
-    }
-
     fn get_or_create_variable(&mut self, local_var_id: LocalVarId, var_ty: VarTy) -> Var {
         let current_scope = self.eval_context.get_current_scope_mut();
         let entry = current_scope.hybrid_vars.entry(local_var_id);
@@ -1078,11 +1041,6 @@ impl<'a> PartialEvaluator<'a> {
 
     fn is_classical_expr(&self, expr_id: ExprId) -> bool {
         let compute_kind = self.get_expr_compute_kind(expr_id);
-        matches!(compute_kind, ComputeKind::Classical)
-    }
-
-    fn is_classical_stmt(&self, stmt_id: StmtId) -> bool {
-        let compute_kind = self.get_stmt_compute_kind(stmt_id);
         matches!(compute_kind, ComputeKind::Classical)
     }
 
@@ -1190,11 +1148,64 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn try_eval_stmt(&mut self, stmt_id: StmtId) -> Result<EvalControlFlow, Error> {
-        // If the statement is classical, we can just evaluate it.
-        if self.is_classical_stmt(stmt_id) {
-            self.eval_classical_stmt(stmt_id)
-        } else {
-            self.eval_hybrid_stmt(stmt_id)
+        let stmt = self.get_stmt(stmt_id);
+        match stmt.kind {
+            StmtKind::Expr(expr_id) => self.try_eval_expr(expr_id),
+            StmtKind::Semi(expr_id) => {
+                let control_flow = self.try_eval_expr(expr_id)?;
+                match control_flow {
+                    EvalControlFlow::Continue(_) => Ok(EvalControlFlow::Continue(Value::unit())),
+                    EvalControlFlow::Return(_) => Ok(control_flow),
+                }
+            }
+            StmtKind::Local(mutability, pat_id, expr_id) => {
+                let control_flow = self.try_eval_expr(expr_id)?;
+                match control_flow {
+                    EvalControlFlow::Continue(value) => {
+                        self.bind_value_to_pat(mutability, pat_id, value);
+                        Ok(EvalControlFlow::Continue(Value::unit()))
+                    }
+                    EvalControlFlow::Return(_) => Ok(control_flow),
+                }
+            }
+            StmtKind::Item(_) => {
+                // Do nothing and return a continue unit value.
+                Ok(EvalControlFlow::Continue(Value::unit()))
+            }
+        }
+    }
+
+    fn update_bindings(&mut self, lhs_expr_id: ExprId, rhs_value: Value) {
+        let lhs_expr = &self.get_expr(lhs_expr_id);
+        match (&lhs_expr.kind, rhs_value) {
+            (ExprKind::Hole, _) => {}
+            (ExprKind::Var(Res::Local(local_var_id), _), value) => {
+                let bound_value = self
+                    .eval_context
+                    .get_current_scope()
+                    .get_local_value(*local_var_id);
+                match bound_value {
+                    Value::Var(var) => {
+                        //
+                        let rhs_operand = map_eval_value_to_rir_operand(&value);
+                        let rir_var = map_eval_var_to_rir_var(*var);
+                        let store_ins = Instruction::Store(rhs_operand, rir_var);
+                        self.get_current_rir_block_mut().0.push(store_ins);
+                    }
+                    _ => {
+                        //
+                        self.eval_context
+                            .get_current_scope_mut()
+                            .update_local_value(*local_var_id, value);
+                    }
+                }
+            }
+            (ExprKind::Tuple(exprs), Value::Tuple(values)) => {
+                for (expr_id, value) in exprs.iter().zip(values.iter()) {
+                    self.update_bindings(*expr_id, value.clone());
+                }
+            }
+            _ => unreachable!("unassignable pattern should be disallowed by compiler"),
         }
     }
 

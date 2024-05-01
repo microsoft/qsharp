@@ -45,6 +45,7 @@ fn unitary_call_within_a_for_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
+                Variable(0, Integer) = Store Integer(1)
                 Call id(1), args( Qubit(0), )
                 Call id(1), args( Qubit(0), )
                 Call id(1), args( Qubit(0), )
@@ -90,6 +91,7 @@ fn unitary_call_within_a_while_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
+                Variable(0, Integer) = Store Integer(0)
                 Call id(1), args( Qubit(0), )
                 Call id(1), args( Qubit(0), )
                 Call id(1), args( Qubit(0), )
@@ -135,6 +137,8 @@ fn unitary_call_within_a_repeat_until_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
+                Variable(0, Integer) = Store Integer(0)
+                Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Qubit(0), )
                 Call id(1), args( Qubit(0), )
                 Call id(1), args( Qubit(0), )
@@ -179,6 +183,7 @@ fn rotation_call_within_a_for_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
+                Variable(0, Integer) = Store Integer(0)
                 Call id(1), args( Double(0), Qubit(0), )
                 Call id(1), args( Double(1), Qubit(0), )
                 Call id(1), args( Double(2), Qubit(0), )
@@ -226,6 +231,7 @@ fn rotation_call_within_a_while_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
+                Variable(0, Integer) = Store Integer(0)
                 Call id(1), args( Double(0), Qubit(0), )
                 Call id(1), args( Double(1), Qubit(0), )
                 Call id(1), args( Double(2), Qubit(0), )
@@ -273,6 +279,8 @@ fn rotation_call_within_a_repeat_until_loop() {
         BlockId(0),
         &expect![[r#"
             Block:
+                Variable(0, Integer) = Store Integer(0)
+                Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Double(0), Qubit(0), )
                 Call id(1), args( Double(1), Qubit(0), )
                 Call id(1), args( Double(2), Qubit(0), )

@@ -3,13 +3,14 @@
 
 use qsc_data_structures::functors::FunctorApp;
 use qsc_eval::{
-    val::{Result, Value, Var},
+    val::{Result, Value},
     Env, Variable,
 };
 use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
 use qsc_rir::rir::BlockId;
 use rustc_hash::FxHashMap;
+use std::collections::hash_map::Entry;
 
 /// Struct that keeps track of the active RIR blocks (where RIR instructions are added) and the active scopes (which
 /// correspond to the Q#'s program call stack).
@@ -162,14 +163,6 @@ impl Scope {
             .expect("local variable value does not exist")
     }
 
-    pub fn _get_local_var(&self, local_var_id: LocalVarId) -> Var {
-        let local_value = self.get_local_value(local_var_id);
-        let Value::Var(var) = local_value else {
-            panic!("local value is not a variable");
-        };
-        *var
-    }
-
     /// Determines whether we are currently evaluating a branch within the scope.
     pub fn is_currently_evaluating_branch(&self) -> bool {
         self.active_block_count > 1
@@ -180,6 +173,14 @@ impl Scope {
     /// happens the number of scopes in the environment will be exactly one.
     pub fn has_classical_evaluator_returned(&self) -> bool {
         self.env.len() == 1
+    }
+
+    /// Updates the value of a local variable.
+    pub fn update_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
+        let Entry::Occupied(mut occupied) = self.hybrid_vars.entry(local_var_id) else {
+            panic!("local variable to update does not exist");
+        };
+        occupied.insert(value);
     }
 }
 
