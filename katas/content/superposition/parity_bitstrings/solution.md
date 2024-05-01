@@ -2,9 +2,9 @@ There are multiple ways to approach this problem. In our first solution, we are 
 
 Let's denote the required state on $N$ qubits as $|P_{N,0}\rangle$ for `parity = 0` and $|P_{N,1}\rangle$ for `parity = 1`. We can group the $2^{N-1}$ basis states included in the state $|P_{N,0}\rangle$ by their first bit ($0$ or $1$) and write the state as follows:
 
-$$|P_{N,0}\rangle = \frac{1}{\sqrt{2^{N-1}}} \sum_{k : k \text{ has parity }0} |k\rangle_N = \\\\
-= \frac{1}{\sqrt{2^{N-1}}} \big( |0\rangle \otimes \sum_{k' : k' \\text{ has parity }0} |k'\rangle_{N-1} + |1\rangle \otimes \sum_{k'' : k'' \\text{ has parity }1} |k''\rangle_{N-1} \big) = \\\\
-= \frac{1}{\sqrt{2}} \big( |0\rangle \otimes |P_{N-1,0}\rangle + |1\rangle \otimes |P_{N-1,1}\rangle \big)$$
+$$|P_{N,0}\rangle = \frac{1}{\sqrt{2^{N-1}}} \sum_{k : k \text{ has parity }0} |k\rangle_N = $$
+$$= \frac{1}{\sqrt{2^{N-1}}} \big( |0\rangle \otimes \sum_{k' : k' \\text{ has parity }0} |k'\rangle_{N-1} + |1\rangle \otimes \sum_{k'' : k'' \\text{ has parity }1} |k''\rangle_{N-1} \big) = $$
+$$= \frac{1}{\sqrt{2}} \big( |0\rangle \otimes |P_{N-1,0}\rangle + |1\rangle \otimes |P_{N-1,1}\rangle \big)$$
 We can consider the expression for $|P_{N,1}\rangle$ in a similar manner, and get a unified expression for both states:
 $$|P_{N,p}\rangle = \frac{1}{\sqrt{2}} \big( |0\rangle \otimes |P_{N-1,p}\rangle + |1\rangle \otimes |P_{N-1,1-p}\rangle \big)$$
 
