@@ -12,8 +12,7 @@ use qsc::{
     line_column::{Encoding, Position},
     resolve,
     target::Profile,
-    CompileUnit, LanguageFeatures, NamespaceId, PackageStore, PackageType, PassContext, SourceMap,
-    Span,
+    CompileUnit, LanguageFeatures, PackageStore, PackageType, PassContext, SourceMap, Span,
 };
 use qsc_linter::LintConfig;
 use std::sync::Arc;
@@ -272,17 +271,6 @@ impl Compilation {
         self.package_store = new.package_store;
         self.user_package_id = new.user_package_id;
         self.errors = new.errors;
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn find_namespace_id(&self, ns: [&str; 3]) -> NamespaceId {
-        self.package_store
-            .get(self.user_package_id)
-            .expect("user package should exist")
-            .ast
-            .namespaces
-            .get_namespace_id(ns)
-            .expect("namespace should exist")
     }
 }
 

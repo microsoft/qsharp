@@ -783,7 +783,7 @@ impl Lowerer {
         }
     }
 
-    fn lower_vec_ident(&mut self, name: &hir::VecIdent) -> fir::VecIdent {
+    fn lower_vec_ident(&mut self, name: &hir::Idents) -> fir::Idents {
         name.iter()
             .cloned()
             .map(|ident| self.lower_ident(&ident))

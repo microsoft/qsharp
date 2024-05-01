@@ -3,9 +3,9 @@
 
 use crate::ast::{
     Attr, Block, CallableBody, CallableDecl, Expr, ExprKind, FunctorExpr, FunctorExprKind, Ident,
-    Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind, SpecBody,
-    SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind, TyKind,
-    VecIdent, Visibility,
+    Idents, Item, ItemKind, Namespace, Package, Pat, PatKind, Path, QubitInit, QubitInitKind,
+    SpecBody, SpecDecl, Stmt, StmtKind, StringComponent, TopLevelNode, Ty, TyDef, TyDefKind,
+    TyKind, Visibility,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -73,7 +73,7 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn visit_vec_ident(&mut self, _: &'a VecIdent) {}
+    fn visit_vec_ident(&mut self, _: &'a Idents) {}
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
