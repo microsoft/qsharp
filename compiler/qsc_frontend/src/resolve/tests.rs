@@ -120,7 +120,7 @@ impl Visitor<'_> for Renamer<'_> {
         visit::walk_item(self, item);
     }
 
-    fn visit_vec_ident(&mut self, vec_ident: &Idents) {
+    fn visit_idents(&mut self, vec_ident: &Idents) {
         let ns_id = match self.namespaces.get_namespace_id(vec_ident.str_iter()) {
             Some(x) => x,
             None => match self

@@ -104,7 +104,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_namespace(&mut self, namespace: &'_ Namespace) {
         self.write("namespace ");
-        self.visit_vec_ident(&namespace.name);
+        self.visit_idents(&namespace.name);
         self.writeln("{");
         namespace.items.iter().for_each(|i| {
             self.visit_item(i);
@@ -124,7 +124,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
             ItemKind::Callable(decl) => self.visit_callable_decl(decl),
             ItemKind::Open(ns, alias) => {
                 self.write("open ");
-                self.visit_vec_ident(ns);
+                self.visit_idents(ns);
                 if let Some(alias) = alias {
                     self.write(" as ");
                     self.visit_ident(alias);
@@ -713,7 +713,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
 
     fn visit_path(&mut self, path: &'_ Path) {
         if let Some(ns) = &path.namespace {
-            self.visit_vec_ident(ns);
+            self.visit_idents(ns);
             self.write(".");
         }
         self.visit_ident(&path.name);
@@ -723,7 +723,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         self.write(&id.name);
     }
 
-    fn visit_vec_ident(&mut self, vec_ident: &'_ Idents) {
+    fn visit_idents(&mut self, vec_ident: &'_ Idents) {
         self.write(&vec_ident.name());
     }
 }

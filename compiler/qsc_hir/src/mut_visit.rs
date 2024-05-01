@@ -49,12 +49,12 @@ pub trait MutVisitor: Sized {
     }
 
     fn visit_span(&mut self, _: &mut Span) {}
-    fn visit_vec_ident(&mut self, ident: &mut crate::hir::Idents) {
-        walk_vec_ident(self, ident);
+    fn visit_idents(&mut self, ident: &mut crate::hir::Idents) {
+        walk_idents(self, ident);
     }
 }
-pub fn walk_vec_ident(vis: &mut impl MutVisitor, ident: &mut crate::hir::Idents) {
-    for ref mut ident in &mut ident.0 {
+pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::hir::Idents) {
+    for ref mut ident in ident.0.iter_mut() {
         vis.visit_ident(ident);
     }
 }
@@ -69,7 +69,7 @@ pub fn walk_item(vis: &mut impl MutVisitor, item: &mut Item) {
 
     match &mut item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_vec_ident(name),
+        ItemKind::Namespace(name, _) => vis.visit_idents(name),
         ItemKind::Ty(name, _) => vis.visit_ident(name),
     }
 }
