@@ -548,7 +548,8 @@ impl<'a> PartialEvaluator<'a> {
             "DumpRegister"
             | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
-            | "EndRepeatEstimatesInternal" => Value::unit(),
+            | "EndRepeatEstimatesInternal"
+            | "GlobalPhase" => Value::unit(),
             _ => self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value),
         }
     }
