@@ -22,6 +22,19 @@ import { fileURLToPath } from "node:url";
 import mdit from "markdown-it";
 const md = mdit("commonmark").disable(["escape"]);
 
+// Set up the Markdown renderer with KaTeX support for validation
+import mk from "@vscode/markdown-it-katex";
+const mdValidator = mdit("commonmark");
+const katexOpts = {
+  enableMathBlockInHtml: true,
+  enableMathInlineInHtml: true,
+  throwOnError: true,
+};
+// @ts-expect-error: This isn't typed correctly for some reason
+mdValidator.use(mk.default, katexOpts);
+
+const validate = true; // Consider making this a command-line option
+
 const scriptDirPath = dirname(fileURLToPath(import.meta.url));
 const katasContentPath = join(scriptDirPath, "..", "..", "katas", "content");
 const katasGeneratedContentPath = join(scriptDirPath, "src");
@@ -250,6 +263,14 @@ function createExample(baseFolderPath, properties) {
 }
 
 function createTextContent(markdown) {
+  if (validate) {
+    try {
+      mdValidator.render(markdown);
+    } catch (e) {
+      console.log("LaTeX validation error: ", e);
+    }
+  }
+
   const html = md.render(markdown);
   return { type: "text-content", asHtml: html, asMarkdown: markdown };
 }
