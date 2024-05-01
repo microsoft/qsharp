@@ -15,7 +15,7 @@ import {
 } from "qsharp-lang";
 import { Editor, getProfile } from "./editor.js";
 import { OutputTabs } from "./tabs.js";
-import { RenderDiv } from "qsharp-lang/ux";
+import { Markdown } from "qsharp-lang/ux";
 
 type Props = {
   kata: Kata;
@@ -40,7 +40,7 @@ function ExplainedSolutionElem(props: { solution: ExplainedSolution }) {
               </pre>
             );
           case "text-content":
-            return <RenderDiv input={item.asMarkdown}></RenderDiv>;
+            return <Markdown markdown={item.asMarkdown}></Markdown>;
         }
       })}
     </details>
@@ -51,7 +51,7 @@ function QuestionElem(props: { question: Question }) {
   return (
     <>
       <h2>{"❓ Question:"}</h2>
-      <RenderDiv input={props.question.description.asMarkdown}></RenderDiv>
+      <Markdown markdown={props.question.description.asMarkdown}></Markdown>
       <details>
         <summary>
           <strong>{"💡 Answer"}</strong>
@@ -65,7 +65,7 @@ function QuestionElem(props: { question: Question }) {
                 </pre>
               );
             case "text-content":
-              return <RenderDiv input={item.asMarkdown}></RenderDiv>;
+              return <Markdown markdown={item.asMarkdown}></Markdown>;
           }
         })}
       </details>
@@ -95,7 +95,7 @@ function LessonElem(props: Props & { section: KataSection }) {
                 </pre>
               );
             case "text-content":
-              return <RenderDiv input={item.asMarkdown}></RenderDiv>;
+              return <Markdown markdown={item.asMarkdown}></Markdown>;
             case "question":
               return <QuestionElem question={item}></QuestionElem>;
           }
@@ -120,9 +120,9 @@ function ExerciseElem(props: Props & { section: KataSection }) {
           <u>{exercise.title}</u>
         </h1>
       </div>
-      <RenderDiv
+      <Markdown
         className="excercise-description"
-        input={exercise.description.asMarkdown}
+        markdown={exercise.description.asMarkdown}
       />
       <div>
         <Editor

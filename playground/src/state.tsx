@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { Dump } from "qsharp-lang";
-import { RenderDiv } from "qsharp-lang/ux";
+import { Markdown } from "qsharp-lang/ux";
 
 function probability(real: number, imag: number) {
   return real * real + imag * imag;
@@ -59,7 +59,7 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
           })}
         </tbody>
       </table>
-      <RenderDiv input={props.latexDump} />
+      <Markdown markdown={props.latexDump} />
       <br></br>
     </div>
   );

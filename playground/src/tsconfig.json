@@ -11,6 +11,7 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
     "skipLibCheck": true,
-    "customConditions": ["browser"] // Required as 'node' is automatically added also.
+    "customConditions": ["browser"], // Required as 'node' is automatically added also.
+    "types": []
   }
 }

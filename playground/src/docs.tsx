@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { IDocFile } from "qsharp-lang";
-import { RenderDiv } from "qsharp-lang/ux";
+import { Markdown } from "qsharp-lang/ux";
 
 export function getNamespaces(
   documentation: Map<string, string> | undefined,
@@ -50,5 +50,5 @@ export function DocumentationDisplay(props: {
 }) {
   const docsMd = props.documentation?.get(props.currentNamespace) ?? "";
 
-  return <RenderDiv input={docsMd} />;
+  return <Markdown markdown={docsMd} />;
 }

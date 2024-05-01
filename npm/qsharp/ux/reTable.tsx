@@ -4,7 +4,7 @@
 import { useState } from "preact/hooks";
 import { SingleEstimateResult } from "./data.js";
 import { CreateReport } from "./report.js";
-import { RenderDiv, RenderLi } from "./renderers.js";
+import { Markdown } from "./renderers.js";
 
 export function ReTable(props: { estimatesData: SingleEstimateResult }) {
   const [showDetail, setShowDetail] = useState(false);
@@ -52,9 +52,9 @@ export function ReTable(props: { estimatesData: SingleEstimateResult }) {
                         <>
                           <strong>{entry.description}</strong>
                           <hr />
-                          <RenderDiv
+                          <Markdown
                             className="estimate-explanation"
-                            input={entry.explanation}
+                            markdown={entry.explanation}
                           />
                         </>
                       ) : (
@@ -76,7 +76,11 @@ export function ReTable(props: { estimatesData: SingleEstimateResult }) {
         </summary>
         <ul className="estimate-table">
           {reportData.assumptions.map((assumption) => (
-            <RenderLi className="estimate-assumption" input={assumption} />
+            <Markdown
+              className="estimate-assumption"
+              markdown={assumption}
+              tagName="li"
+            />
           ))}
         </ul>
       </details>

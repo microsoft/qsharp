@@ -304,7 +304,7 @@ $$=|00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rang
     "title": "SWAP Gate"
 })
 
-The $\text{SWAP}$ gate acts on two qubits, and, as the name implies, swaps their quantum states.
+The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantum states.
 
 <table>
     <tr>
