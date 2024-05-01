@@ -134,13 +134,13 @@ We will learn more about Dirac notation in the next katas, as we introduce quant
     "title": "Relative and Global Phase"
 })
 
-Complex numbers have a parameter called the phase. If a complex number $z = x + iy$ is written in polar form $z = re^{i\theta}$, its phase is $\theta$, where $\theta = \atan2(y, x)$.
+Complex numbers have a parameter called the phase. If a complex number $z = x + iy$ is written in polar form $z = re^{i\theta}$, its phase is $\theta$, where $\theta = atan2(y, x)$.
 
 > `atan2` is a useful function available in most programming languages. It takes two arguments and returns an angle $\theta$
 > between $-\pi$ and $\pi$ that has $\cos \theta = x$ and $\sin \theta = y$. Unlike using $\tan^{-1}(\frac{y}{x})$, `atan2` computes
 > the correct quadrant for the angle, since it preserves information about the signs of both sine and cosine of the angle.
 
-The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$. If you do the math, you see that the phase of $|0\rangle$ is $\atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $|1\rangle$ is $\atan2(\frac12, -\frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
+The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$. If you do the math, you see that the phase of $|0\rangle$ is $atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $|1\rangle$ is $atan2(\frac12, -\frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
 
 Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha|0\rangle + \beta|1\rangle$ has the same relative phase as $e^{i\theta}\big(\alpha|0\rangle + \beta|1\rangle\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
 
