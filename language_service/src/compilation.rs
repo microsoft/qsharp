@@ -85,7 +85,7 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(Some(lints_config), &mut errors, unit);
+        run_linter_passes(lints_config, &mut errors, unit);
 
         Self {
             package_store,
@@ -141,7 +141,7 @@ impl Compilation {
             unit,
         );
 
-        run_linter_passes(Some(lints_config), &mut errors, unit);
+        run_linter_passes(lints_config, &mut errors, unit);
 
         Self {
             package_store,
@@ -283,12 +283,12 @@ fn run_fir_passes(
 /// reasons we don't want to waste time running lints every few keystrokes,
 /// if the user is in the middle of typing a statement, for example.
 fn run_linter_passes(
-    config: Option<&[LintConfig]>,
+    config: &[LintConfig],
     errors: &mut Vec<WithSource<compile::ErrorKind>>,
     unit: &CompileUnit,
 ) {
     if errors.is_empty() {
-        let lints = qsc::linter::run_lints(unit, config);
+        let lints = qsc::linter::run_lints(unit, Some(config));
         let lints: Vec<_> = lints
             .into_iter()
             .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
