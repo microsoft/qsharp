@@ -9,12 +9,8 @@ $$|W_2\rangle = \frac{1}{\sqrt2}\big(|10\rangle + |01\rangle\big) = \frac{1}{\sq
 This representation suggests us a solution: "split" the starting state $|00\rangle$ in two terms, prepare $|W_1\rangle$ on the first qubit for the first term and on the second qubit - for the second term.
 To do this, we can again use an auxiliary qubit prepared in the $|+\rangle$ state and control the preparation of $|W_1\rangle$ state on the first or the second qubit based on the state of the auxiliary qubit:
 
-$$|0\rangle_{aux} |00\rangle_{reg} \overset{H}{\longrightarrow}
-\frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux} \otimes |00\rangle_{reg} =
-\frac{1}{\sqrt2}(|0\rangle_{aux} |00\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})
-\overset{CNOT_0}{\longrightarrow} $$
-$${\longrightarrow}\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})
-\overset{CNOT_1}{\longrightarrow} $$
+$$|0\rangle_{aux} |00\rangle_{reg} \overset{H}{\longrightarrow}\frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux} \otimes |00\rangle_{reg} = \frac{1}{\sqrt2}(|0\rangle_{aux} |00\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})\overset{CNOT_0}{\longrightarrow}$$
+$${\longrightarrow}\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})\overset{CNOT_1}{\longrightarrow}$$
 $${\longrightarrow}\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |0\rangle|W_1\rangle_{reg})$$
 
 > The auxiliary qubit is now entangled with the rest of the qubits, so we can't simply reset it without it affecting the superposition we have prepared using it.
@@ -27,10 +23,9 @@ The last step can be simplified to use fewer qubits as controls: we can use just
 
 3. If we take this one step further, to $N = 4$, we'll see that the same recursive logic can be applied to the larger and larger sizes of the problem. Indeed,
 
-$$|W_4\rangle = \frac{1}{2}\big(|1000\rangle + |0100\rangle + |0010\rangle + |0001\rangle\big) = \\\\
-= \frac{1}{\sqrt2} \big(\frac{1}{\sqrt2}(|10\rangle + |01\rangle) \otimes |00\rangle + |00\rangle \otimes \frac{1}{\sqrt2}(|10\rangle + |01\rangle) \big) = \\\\
-= \frac{1}{\sqrt2} \big(|W_2\rangle \otimes |00\rangle + |00\rangle \otimes |W_2\rangle\big)
-$$
+$$|W_4\rangle = \frac{1}{2}\big(|1000\rangle + |0100\rangle + |0010\rangle + |0001\rangle\big) = $$
+$$= \frac{1}{\sqrt2} \big(\frac{1}{\sqrt2}(|10\rangle + |01\rangle) \otimes |00\rangle + |00\rangle \otimes \frac{1}{\sqrt2}(|10\rangle + |01\rangle) \big) = $$
+$$= \frac{1}{\sqrt2} \big(|W_2\rangle \otimes |00\rangle + |00\rangle \otimes |W_2\rangle\big)$$
 
 We can use the same approach for this case: prepare an auxiliary qubit in $|+\rangle$ state and use it to control preparation of $W_2$ state on the first and the second half of the register. The last step will be uncomputing the $|1\rangle$ state of the auxiliary qubit using two controlled X gates with each of the qubits of the second half of the register in state $|1\rangle$ as controls.
 
