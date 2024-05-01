@@ -8,5 +8,5 @@ For $N = 4$ the required state is $\frac{1}{2}\big(|1000\rangle + |0100\rangle +
 
 <details>
   <summary><b>Need a hint?</b></summary>
-  You can use `Controlled` modifier to perform arbitrary controlled gates.
+  You can use <code>Controlled</code> modifier to perform arbitrary controlled gates.
 </details>
