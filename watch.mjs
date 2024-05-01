@@ -105,7 +105,10 @@ onRustChange();
  */
 function runWatcher(dir, name, watchTask = "tsc:watch") {
   console.log(`Spawning tsc:watch for ${name} in ${dir}`);
-  const npmWatcher = spawn(npmCmd, ["run", watchTask], { cwd: dir, shell: true });
+  const npmWatcher = spawn(npmCmd, ["run", watchTask], {
+    cwd: dir,
+    shell: true,
+  });
   npmWatcher.stdout.on("data", (data) =>
     console.log(`tsc:watch ${name}: ${data}`),
   );
