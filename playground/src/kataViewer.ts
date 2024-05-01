@@ -3,6 +3,33 @@
 
 import { ExplainedSolutionItem, Kata, getAllKatas } from "qsharp-lang";
 
+(window as any).MathJax = {
+  loader: { load: ["[tex]/physics", "[tex]/color"] },
+  tex: {
+    packages: { "[+]": ["physics", "color"] },
+    inlineMath: [
+      ["$", "$"],
+      ["\\(", "\\)"],
+    ],
+    formatError: (jax: any, err: any) => {
+      console.log("LaTeX processing error occurred. ", err, jax);
+      const errorNode = document.createElement("div");
+      errorNode.innerText = `LaTeX processing error: ${err.message}.\nLaTeX: ${jax.latex}\n\n`;
+      errorNode.style.fontSize = "20px";
+      errorNode.style.color = "red";
+      document.querySelector("#errors")?.appendChild(errorNode);
+      window.scroll(0, 0);
+      jax.formatError(err);
+    },
+  },
+  startup: {
+    pageReady: async () => {
+      await onload();
+      return (window as any).MathJax.startup.defaultPageReady();
+    },
+  },
+};
+
 async function onload() {
   const katas = await getAllKatas();
 
@@ -19,7 +46,6 @@ async function onload() {
     document.body.appendChild(getKataDiv(kata, indexKatas));
   });
   document.querySelectorAll("details").forEach((item) => (item.open = true));
-  (window as any).MathJax.typeset();
 }
 
 function getKataDiv(kata: Kata, index: HTMLElement) {
@@ -112,5 +138,3 @@ function addContent(item: ExplainedSolutionItem, sectionDiv: HTMLDivElement) {
     sectionDiv.appendChild(codeDiv);
   }
 }
-
-document.addEventListener("DOMContentLoaded", onload);

@@ -54,7 +54,7 @@ Note that you can use scalar multiplication and vector addition to express any q
 
 $$
 \begin{bmatrix} \alpha \\ \beta \end{bmatrix} =
-\begin{bmatrix} \alpha \\ 0 \end{bmatrix} + \begin{bmatrix} 0 \\ \beta \\end{bmatrix} =
+\begin{bmatrix} \alpha \\ 0 \end{bmatrix} + \begin{bmatrix} 0 \\ \beta \end{bmatrix} =
 \alpha \cdot \begin{bmatrix} 1 \\ 0 \end{bmatrix} + \beta \cdot \begin{bmatrix} 0 \\ 1 \end{bmatrix}
 $$
 

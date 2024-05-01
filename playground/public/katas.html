@@ -9,28 +9,15 @@
         font-family: system-ui, "Segoe UI", sans-serif;
       }
     </style>
-    <script>
-      // Need the physics extension for certain constructs
-      // https://docs.mathjax.org/en/latest/input/tex/extensions/physics.html
-      window.MathJax = {
-        loader: { load: ["[tex]/physics", "[tex]/color"] },
-        tex: {
-          packages: { "[+]": ["physics", "color"] },
-          inlineMath: [
-            ["$", "$"],
-            ["\\(", "\\)"],
-          ],
-        },
-      };
-    </script>
   </head>
   <body>
+    <div id="errors"></div>
     <h1>Azure Quantum Katas</h1>
     <p>
       This is a very basic rendering of the Azure Quantum Katas using MathJax
       for content review purposes
     </p>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="libs/kataViewer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   </body>
 </html>
