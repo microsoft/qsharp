@@ -289,10 +289,9 @@ fn run_linter_passes(
 ) {
     if errors.is_empty() {
         let lints = qsc::linter::run_lints(unit, Some(config));
-        let lints: Vec<_> = lints
+        let lints = lints
             .into_iter()
-            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)))
-            .collect();
+            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)));
         errors.extend(lints);
     }
 }
