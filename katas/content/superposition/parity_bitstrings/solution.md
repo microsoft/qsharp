@@ -39,7 +39,7 @@ We start by preparing a superposition of all basis states with parity $0$. To ac
 For example, after the first loop iteration we get the state $\frac12(|00\rangle + |11\rangle)$. After the second iteration we get the state
 
 $$CNOT_{2,0} \frac1{\sqrt2}(|00\rangle + |11\rangle) \otimes \frac1{\sqrt2}(|0\rangle + |1\rangle) = \\\\
-= CNOT_{2,0} \frac12(|000\rangle + |\color{red}00\color{red}1\rangle + |110\rangle + |\color{red}11\color{red}1\rangle) = \\\\
+= CNOT_{2,0} \frac12(|000\rangle + |\textbf{0}0\textbf{1}\rangle + |110\rangle + |\textbf{1}1\textbf{1}\rangle) = \\\\
 = \frac12(|000\rangle + |101\rangle + |110\rangle + |011\rangle)$$
 
 After the loop we will have a superposition of all possible basis states with even number of $|1\rangle$s.
