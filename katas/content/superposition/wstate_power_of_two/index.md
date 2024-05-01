@@ -5,3 +5,8 @@
 **Example:**
 
 For $N = 4$ the required state is $\frac{1}{2}\big(|1000\rangle + |0100\rangle + |0010\rangle + |0001\rangle\big)$.
+
+<details>
+  <summary><b>Need a hint?</b></summary>
+  You can use `Controlled` modifier to perform arbitrary controlled gates.
+</details>
