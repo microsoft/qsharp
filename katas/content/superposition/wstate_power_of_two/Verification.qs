@@ -6,7 +6,6 @@ namespace Kata.Verification {
         let N = Length(qs);
 
         if N == 1 {
-            // base of recursion: |1⟩
             X(qs[0]);
         } else {
             let K = N / 2;
