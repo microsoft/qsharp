@@ -16,9 +16,6 @@ namespace Sample {
 
     @EntryPoint()
     operation Main() : Result[] {
-        // Allocate the message and target qubits.
-        use (message, target) = (Qubit(), Qubit());
-
         // Use the `Teleport` operation to send different quantum states.
         let stateInitializerBasisTuples = [
             ("|0〉", I, PauliZ),
@@ -29,6 +26,9 @@ namespace Sample {
 
         mutable results = [];
         for (state, initializer, basis) in stateInitializerBasisTuples {
+            // Allocate the message and target qubits.
+            use (message, target) = (Qubit(), Qubit());
+
             // Initialize the message and show its state using the `DumpMachine`
             // function.
             initializer(message);
@@ -77,11 +77,12 @@ namespace Sample {
         // Measure the qubits to extract the classical data we need to decode
         // the message by applying the corrections on the target qubit
         // accordingly.
-        if M(message) == One {
-            Z(target);
-        }
         if M(auxiliary) == One {
             X(target);
+        }
+
+        if M(message) == One {
+            Z(target);
         }
 
         // Reset auxiliary qubit before releasing.
