@@ -9,25 +9,13 @@ $$|W_2\rangle = \frac{1}{\sqrt2}\big(|10\rangle + |01\rangle\big) = \frac{1}{\sq
 This representation suggests us a solution: "split" the starting state $|00\rangle$ in two terms, prepare $|W_1\rangle$ on the first qubit for the first term and on the second qubit - for the second term.
 To do this, we can again use an auxiliary qubit prepared in the $|+\rangle$ state and control the preparation of $|W_1\rangle$ state on the first or the second qubit based on the state of the auxiliary qubit:
 
-$$|0\rangle_{aux} |00\rangle_{reg} \overset{H}{\longrightarrow}$$
-
-$$\frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux}$$
-
-$$\frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux} \otimes $$
-
-$$\frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux} \otimes (|00\rangle_{reg})$$
-
-$$\frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux} \otimes (|00\rangle_{reg}) =$$
-
-$$\frac{1}{\sqrt2}(|0\rangle_{aux} |00\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})$$
-
-$$\overset{CNOT_0}{\longrightarrow} \\ {\longrightarrow}$$
-
-$$\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})$$
-
-$$\overset{CNOT_1}{\longrightarrow} \\ {\longrightarrow}$$
-
-$$\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |0\rangle|W_1\rangle_{reg})$$
+$$|0\rangle_{aux} |00\rangle_{reg} \overset{H}{\longrightarrow}
+\frac{1}{\sqrt2}(|0\rangle + |1\rangle)_{aux} \otimes |00\rangle_{reg} =
+\frac{1}{\sqrt2}(|0\rangle_{aux} |00\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})
+\overset{CNOT_0}{\longrightarrow} \\\\ {\longrightarrow}
+\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |00\rangle_{reg})
+\overset{CNOT_1}{\longrightarrow} \\\\ {\longrightarrow}
+\frac{1}{\sqrt2}(|0\rangle_{aux} |W_1\rangle|0\rangle_{reg} + |1\rangle_{aux} |0\rangle|W_1\rangle_{reg})$$
 
 > The auxiliary qubit is now entangled with the rest of the qubits, so we can't simply reset it without it affecting the superposition we have prepared using it.
 
