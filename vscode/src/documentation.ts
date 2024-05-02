@@ -5,10 +5,7 @@ import { IOperationInfo, getCompilerWorker } from "qsharp-lang";
 import { Uri } from "vscode";
 import { sendMessageToPanel } from "./webviewPanel";
 
-export async function showDocumentationCommand(
-  extensionUri: Uri,
-  _operation: IOperationInfo | undefined,
-) {
+export async function showDocumentationCommand(extensionUri: Uri) {
   // Reveal panel an show 'Loading...' for immediate feedback.
   sendMessageToPanel(
     "documentationPanelType", // This is needed to route the message to the proper panel

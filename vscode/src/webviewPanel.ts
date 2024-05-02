@@ -382,12 +382,9 @@ export function registerWebViewCommands(context: ExtensionContext) {
   );
 
   context.subscriptions.push(
-    commands.registerCommand(
-      "qsharp-vscode.showDocumentation",
-      async (operation?: IOperationInfo) => {
-        await showDocumentationCommand(context.extensionUri, operation);
-      },
-    ),
+    commands.registerCommand("qsharp-vscode.showDocumentation", async () => {
+      await showDocumentationCommand(context.extensionUri);
+    }),
   );
 }
 
