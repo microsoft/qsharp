@@ -13,9 +13,6 @@ namespace Adaptive {
         use (q0, q1) = (Qubit(), Qubit());
         H(q0);
         let r0 = MResetZ(q0);
-        //if r0 == One {
-        //    X(q1);
-        //}
 
         // Quantinuum supports dynamic bools and ints, which means
         // bools and ints that depend on measurement results.
@@ -25,6 +22,7 @@ namespace Adaptive {
 
         // However, dynamic values cannot be used in certain situations.
         //let dynamicallySizedArray = [0, size = dynamicInt];
+        //let staticallySizedArray = [0, size = 10];
         //ApplyNPiXRotations(dynamicInt, q1);
         //let staticInt = 3;
         //ApplyNPiXRotations(staticInt, q1);
