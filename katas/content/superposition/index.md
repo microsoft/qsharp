@@ -218,6 +218,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__wstate_power_of_two",
+    "title": "W State Power Of Two",
+    "path": "./wstate_power_of_two/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__conclusion",
     "title": "Conclusion"
