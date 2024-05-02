@@ -7,7 +7,7 @@ import { sendMessageToPanel } from "./webviewPanel";
 
 export async function showDocumentationCommand(
   extensionUri: Uri,
-  operation: IOperationInfo | undefined,
+  _operation: IOperationInfo | undefined,
 ) {
   // Reveal panel an show 'Loading...' for immediate feedback.
   sendMessageToPanel(
@@ -22,7 +22,7 @@ export async function showDocumentationCommand(
     "./out/compilerWorker.js",
   ).toString();
   const worker = getCompilerWorker(compilerWorkerScriptPath);
-  let content = await worker.getCombinedDocumentation();
+  const content = await worker.getCombinedDocumentation();
 
   const message = {
     command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
