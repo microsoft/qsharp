@@ -54,46 +54,6 @@ type CircuitOrError = {
     }
 );
 
-export async function showDocumentationCommand(
-  extensionUri: Uri,
-  operation: IOperationInfo | undefined,
-) {
-  sendMessageToPanel(
-    "documentationPanelType", // This is needed to route the message to the proper panel
-    true,
-    null);
-
-  const editor = window.activeTextEditor;
-  if (!editor || !isQsharpDocument(editor.document)) {
-    throw new Error("The currently active window is not a Q# file");
-  }
-
-  const docUri = editor.document.uri;
-  const program = await loadProject(docUri);
-  const targetProfile = getTarget();
-  const programPath = docUri.path;
-
-  const compilerWorkerScriptPath = Uri.joinPath(
-    extensionUri,
-    "./out/compilerWorker.js",
-  ).toString();
-  const worker = getCompilerWorker(compilerWorkerScriptPath);
-  const docFiles = await worker.getDocumentation();
-
-  const contentByNamespace = new Map<string, string>();
-  contentByNamespace.set("Some.Namespace", "Hello!");
-
-  const message = {
-    command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
-    contentToRender: docFiles[0].contents,
-  };
-
-  sendMessageToPanel(
-    "documentationPanelType", // This is needed to route the message to the proper panel
-    true,
-    message);
-}
-
 export async function showCircuitCommand(
   extensionUri: Uri,
   operation: IOperationInfo | undefined,

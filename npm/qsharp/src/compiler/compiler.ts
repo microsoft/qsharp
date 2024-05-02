@@ -86,6 +86,7 @@ export interface ICompiler {
   ): Promise<CircuitData>;
 
   getDocumentation(): Promise<IDocFile[]>;
+  getCombinedDocumentation(): Promise<string>;
 
   checkExerciseSolution(
     userCode: string,
@@ -253,6 +254,17 @@ export class Compiler implements ICompiler {
     return this.wasm.generate_docs();
   }
 
+  async getCombinedDocumentation(): Promise<string> {
+    const docFiles: IDocFile[] = this.wasm.generate_docs();
+    let content = "";
+    for (const file of docFiles) {
+        if (file.metadata.indexOf("qsharp.name:") >= 0) {
+            content += file.contents + "\n---\n";
+        }
+    }
+    return content;
+  }
+
   async checkExerciseSolution(
     userCode: string,
     exerciseSources: string[],
@@ -310,6 +322,7 @@ export const compilerProtocol: ServiceProtocol<ICompiler, QscEventData> = {
     getEstimates: "request",
     getCircuit: "request",
     getDocumentation: "request",
+    getCombinedDocumentation: "request",
     run: "requestWithProgress",
     checkExerciseSolution: "requestWithProgress",
   },
