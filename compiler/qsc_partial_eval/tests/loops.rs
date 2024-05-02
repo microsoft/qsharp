@@ -140,8 +140,11 @@ fn unitary_call_within_a_repeat_until_loop() {
                 Variable(0, Integer) = Store Integer(0)
                 Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Qubit(0), )
+                Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Qubit(0), )
+                Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Qubit(0), )
+                Variable(1, Boolean) = Store Bool(false)
                 Call id(2), args( Integer(0), Pointer, )
                 Return"#]],
     );
@@ -282,8 +285,11 @@ fn rotation_call_within_a_repeat_until_loop() {
                 Variable(0, Integer) = Store Integer(0)
                 Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Double(0), Qubit(0), )
+                Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Double(1), Qubit(0), )
+                Variable(1, Boolean) = Store Bool(true)
                 Call id(1), args( Double(2), Qubit(0), )
+                Variable(1, Boolean) = Store Bool(false)
                 Call id(2), args( Integer(0), Pointer, )
                 Return"#]],
     );

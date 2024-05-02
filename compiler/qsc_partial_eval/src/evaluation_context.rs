@@ -156,11 +156,20 @@ impl Scope {
         }
     }
 
-    /// Gets the value of a (hybrid) local variable.
-    pub fn get_local_value(&self, local_var_id: LocalVarId) -> &Value {
+    /// Gets the value of a hybrid local variable.
+    pub fn get_classical_local_value(&self, local_var_id: LocalVarId) -> &Value {
+        &self
+            .env
+            .get(local_var_id)
+            .expect("local classcial variable value does not exist")
+            .value
+    }
+
+    /// Gets the value of a hybrid local variable.
+    pub fn get_hybrid_local_value(&self, local_var_id: LocalVarId) -> &Value {
         self.hybrid_vars
             .get(&local_var_id)
-            .expect("local variable value does not exist")
+            .expect("local hybrid variable value does not exist")
     }
 
     /// Determines whether we are currently evaluating a branch within the scope.
@@ -175,8 +184,8 @@ impl Scope {
         self.env.len() == 1
     }
 
-    /// Updates the value of a local variable.
-    pub fn update_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
+    /// Updates the value of a hybrid local variable.
+    pub fn update_hybrid_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
         let Entry::Occupied(mut occupied) = self.hybrid_vars.entry(local_var_id) else {
             panic!("local variable to update does not exist");
         };

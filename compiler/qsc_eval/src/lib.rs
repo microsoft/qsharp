@@ -330,7 +330,7 @@ impl Default for Env {
 
 impl Env {
     #[must_use]
-    fn get(&self, id: LocalVarId) -> Option<&Variable> {
+    pub fn get(&self, id: LocalVarId) -> Option<&Variable> {
         self.0.iter().rev().find_map(|scope| scope.bindings.get(id))
     }
 

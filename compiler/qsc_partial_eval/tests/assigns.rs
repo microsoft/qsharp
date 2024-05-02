@@ -12,9 +12,8 @@ pub mod test_utils;
 use indoc::indoc;
 use test_utils::get_rir_program;
 
-#[ignore = "WIP"]
 #[test]
-fn assign_result_directly() {
+fn assign_result_register_updates_value() {
     let program = get_rir_program(indoc! {r#"
         namespace Test {
             @EntryPoint()

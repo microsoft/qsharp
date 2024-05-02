@@ -292,7 +292,7 @@ impl<'a> PartialEvaluator<'a> {
         let scope = self.eval_context.get_current_scope_mut();
         let exec_graph = exec_graph_section(&scope_exec_graph, expr.exec_graph_range.clone());
         let mut state = State::new(current_package_id, exec_graph, None);
-        let eval_result = state.eval(
+        let classical_result = state.eval(
             self.package_store,
             &mut scope.env,
             &mut self.backend,
@@ -300,8 +300,7 @@ impl<'a> PartialEvaluator<'a> {
             &[],
             StepAction::Continue,
         );
-        // TODO (cesarzc): need to update hybrid bindings in the case of assignments.
-        match eval_result {
+        let eval_result = match classical_result {
             Ok(step_result) => {
                 let StepResult::Return(value) = step_result else {
                     panic!("evaluating a classical expression should always return a value");
@@ -317,7 +316,17 @@ impl<'a> PartialEvaluator<'a> {
                 Ok(eval_control_flow)
             }
             Err((error, _)) => Err(Error::EvaluationFailed(error.to_string(), expr.span)),
+        };
+
+        //
+        if let Ok(EvalControlFlow::Continue(_)) = eval_result {
+            let expr = self.get_expr(expr_id);
+            if let ExprKind::Assign(lhs_expr_id, _) = &expr.kind {
+                self.update_hybrid_bindings_from_classical_bindings(*lhs_expr_id);
+            }
         }
+
+        eval_result
     }
 
     fn eval_hybrid_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
@@ -435,7 +444,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
 
-        self.update_bindings(lhs_expr_id, rhs_value);
+        self.update_hybrid_bindings(lhs_expr_id, rhs_value);
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
@@ -854,7 +863,7 @@ impl<'a> PartialEvaluator<'a> {
             Res::Local(local_var_id) => self
                 .eval_context
                 .get_current_scope()
-                .get_local_value(*local_var_id)
+                .get_hybrid_local_value(*local_var_id)
                 .clone(),
         }
     }
@@ -1175,7 +1184,7 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn update_bindings(&mut self, lhs_expr_id: ExprId, rhs_value: Value) {
+    fn update_hybrid_bindings(&mut self, lhs_expr_id: ExprId, rhs_value: Value) {
         let lhs_expr = &self.get_expr(lhs_expr_id);
         match (&lhs_expr.kind, rhs_value) {
             (ExprKind::Hole, _) => {}
@@ -1183,7 +1192,7 @@ impl<'a> PartialEvaluator<'a> {
                 let bound_value = self
                     .eval_context
                     .get_current_scope()
-                    .get_local_value(*local_var_id);
+                    .get_hybrid_local_value(*local_var_id);
                 match bound_value {
                     Value::Var(var) => {
                         //
@@ -1196,13 +1205,54 @@ impl<'a> PartialEvaluator<'a> {
                         //
                         self.eval_context
                             .get_current_scope_mut()
-                            .update_local_value(*local_var_id, value);
+                            .update_hybrid_local_value(*local_var_id, value);
                     }
                 }
             }
             (ExprKind::Tuple(exprs), Value::Tuple(values)) => {
                 for (expr_id, value) in exprs.iter().zip(values.iter()) {
-                    self.update_bindings(*expr_id, value.clone());
+                    self.update_hybrid_bindings(*expr_id, value.clone());
+                }
+            }
+            _ => unreachable!("unassignable pattern should be disallowed by compiler"),
+        }
+    }
+
+    fn update_hybrid_bindings_from_classical_bindings(&mut self, lhs_expr_id: ExprId) {
+        let lhs_expr = &self.get_expr(lhs_expr_id);
+        match &lhs_expr.kind {
+            ExprKind::Hole => {
+                // Nothing to bind to.
+            }
+            ExprKind::Var(Res::Local(local_var_id), _) => {
+                let classical_value = self
+                    .eval_context
+                    .get_current_scope()
+                    .get_classical_local_value(*local_var_id)
+                    .clone();
+                let hybrid_value = self
+                    .eval_context
+                    .get_current_scope()
+                    .get_hybrid_local_value(*local_var_id);
+                match hybrid_value {
+                    Value::Var(var) => {
+                        //
+                        let rhs_operand = map_eval_value_to_rir_operand(&classical_value);
+                        let rir_var = map_eval_var_to_rir_var(*var);
+                        let store_ins = Instruction::Store(rhs_operand, rir_var);
+                        self.get_current_rir_block_mut().0.push(store_ins);
+                    }
+                    _ => {
+                        //
+                        self.eval_context
+                            .get_current_scope_mut()
+                            .update_hybrid_local_value(*local_var_id, classical_value);
+                    }
+                }
+            }
+            ExprKind::Tuple(exprs) => {
+                for expr_id in exprs {
+                    self.update_hybrid_bindings_from_classical_bindings(*expr_id);
                 }
             }
             _ => unreachable!("unassignable pattern should be disallowed by compiler"),
