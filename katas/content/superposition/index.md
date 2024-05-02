@@ -153,6 +153,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__parity_bitstrings",
+    "title": "Same Parity Bit Strings",
+    "path": "./parity_bitstrings/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__arbitrary_rotations",
     "title": "Arbitrary Rotations"
