@@ -85,7 +85,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
   });
 
   const [currentNavItem, setCurrentNavItem] = useState(
-    props.linkedCode ? "linked" : "sample-Interactive Hybrid",
+    props.linkedCode ? "linked" : "sample-Adaptive",
   );
   const [shotError, setShotError] = useState<VSDiagnostic | undefined>(
     undefined,

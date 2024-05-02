@@ -9,7 +9,7 @@ namespace Adaptive {
     open Microsoft.Quantum.Convert;
     @EntryPoint()
     operation Main() : Result {
-        // A minimal adaptive (aka interactive hybrid) program.
+        // A minimal adaptive (aka integrated hybrid) program.
         use (q0, q1) = (Qubit(), Qubit());
         H(q0);
         let r0 = MResetZ(q0);
