@@ -322,7 +322,7 @@ impl<'a> PartialEvaluator<'a> {
         if let Ok(EvalControlFlow::Continue(_)) = eval_result {
             let expr = self.get_expr(expr_id);
             if let ExprKind::Assign(lhs_expr_id, _) = &expr.kind {
-                self.update_hybrid_bindings_from_classical_bindings(*lhs_expr_id);
+                self.update_hybrid_bindings_from_classical_bindings(*lhs_expr_id)?;
             }
         }
 
@@ -444,7 +444,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
 
-        self.update_hybrid_bindings(lhs_expr_id, rhs_value);
+        self.update_hybrid_bindings(lhs_expr_id, rhs_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
@@ -1184,41 +1184,31 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn update_hybrid_bindings(&mut self, lhs_expr_id: ExprId, rhs_value: Value) {
-        let lhs_expr = &self.get_expr(lhs_expr_id);
+    fn update_hybrid_bindings(
+        &mut self,
+        lhs_expr_id: ExprId,
+        rhs_value: Value,
+    ) -> Result<(), Error> {
+        let lhs_expr = self.get_expr(lhs_expr_id);
         match (&lhs_expr.kind, rhs_value) {
             (ExprKind::Hole, _) => {}
             (ExprKind::Var(Res::Local(local_var_id), _), value) => {
-                let bound_value = self
-                    .eval_context
-                    .get_current_scope()
-                    .get_hybrid_local_value(*local_var_id);
-                match bound_value {
-                    Value::Var(var) => {
-                        //
-                        let rhs_operand = map_eval_value_to_rir_operand(&value);
-                        let rir_var = map_eval_var_to_rir_var(*var);
-                        let store_ins = Instruction::Store(rhs_operand, rir_var);
-                        self.get_current_rir_block_mut().0.push(store_ins);
-                    }
-                    _ => {
-                        //
-                        self.eval_context
-                            .get_current_scope_mut()
-                            .update_hybrid_local_value(*local_var_id, value);
-                    }
-                }
+                self.update_hybrid_local(lhs_expr, *local_var_id, value)?;
             }
             (ExprKind::Tuple(exprs), Value::Tuple(values)) => {
                 for (expr_id, value) in exprs.iter().zip(values.iter()) {
-                    self.update_hybrid_bindings(*expr_id, value.clone());
+                    self.update_hybrid_bindings(*expr_id, value.clone())?;
                 }
             }
             _ => unreachable!("unassignable pattern should be disallowed by compiler"),
-        }
+        };
+        Ok(())
     }
 
-    fn update_hybrid_bindings_from_classical_bindings(&mut self, lhs_expr_id: ExprId) {
+    fn update_hybrid_bindings_from_classical_bindings(
+        &mut self,
+        lhs_expr_id: ExprId,
+    ) -> Result<(), Error> {
         let lhs_expr = &self.get_expr(lhs_expr_id);
         match &lhs_expr.kind {
             ExprKind::Hole => {
@@ -1230,33 +1220,53 @@ impl<'a> PartialEvaluator<'a> {
                     .get_current_scope()
                     .get_classical_local_value(*local_var_id)
                     .clone();
-                let hybrid_value = self
-                    .eval_context
-                    .get_current_scope()
-                    .get_hybrid_local_value(*local_var_id);
-                match hybrid_value {
-                    Value::Var(var) => {
-                        //
-                        let rhs_operand = map_eval_value_to_rir_operand(&classical_value);
-                        let rir_var = map_eval_var_to_rir_var(*var);
-                        let store_ins = Instruction::Store(rhs_operand, rir_var);
-                        self.get_current_rir_block_mut().0.push(store_ins);
-                    }
-                    _ => {
-                        //
-                        self.eval_context
-                            .get_current_scope_mut()
-                            .update_hybrid_local_value(*local_var_id, classical_value);
-                    }
-                }
+                self.update_hybrid_local(lhs_expr, *local_var_id, classical_value)?;
             }
             ExprKind::Tuple(exprs) => {
                 for expr_id in exprs {
-                    self.update_hybrid_bindings_from_classical_bindings(*expr_id);
+                    self.update_hybrid_bindings_from_classical_bindings(*expr_id)?;
                 }
             }
             _ => unreachable!("unassignable pattern should be disallowed by compiler"),
+        };
+        Ok(())
+    }
+
+    fn update_hybrid_local(
+        &mut self,
+        local_expr: &Expr,
+        local_var_id: LocalVarId,
+        value: Value,
+    ) -> Result<(), Error> {
+        let bound_value = self
+            .eval_context
+            .get_current_scope()
+            .get_hybrid_local_value(local_var_id);
+        if let Value::Var(var) = bound_value {
+            //
+            let rhs_operand = map_eval_value_to_rir_operand(&value);
+            let rir_var = map_eval_var_to_rir_var(*var);
+            let store_ins = Instruction::Store(rhs_operand, rir_var);
+            self.get_current_rir_block_mut().0.push(store_ins);
+        } else {
+            //
+            if self
+                .eval_context
+                .get_current_scope()
+                .is_currently_evaluating_branch()
+            {
+                let msg = format!(
+                    "re-assignment within a dynamic branch is unsupported for type {}",
+                    local_expr.ty
+                );
+                let error = Error::Unexpected(msg, local_expr.span);
+                return Err(error);
+            }
+            self.eval_context
+                .get_current_scope_mut()
+                .update_hybrid_local_value(local_var_id, value);
         }
+        Ok(())
     }
 
     fn generate_output_recording_instructions(
