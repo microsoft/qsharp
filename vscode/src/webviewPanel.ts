@@ -389,10 +389,14 @@ export function registerWebViewCommands(context: ExtensionContext) {
       },
     ),
   );
-
 }
 
-type PanelType = "histogram" | "estimates" | "help" | "circuit" | "documentationPanelType";
+type PanelType =
+  | "histogram"
+  | "estimates"
+  | "help"
+  | "circuit"
+  | "documentationPanelType";
 
 const panelTypeToPanel: Record<
   PanelType,
@@ -402,7 +406,11 @@ const panelTypeToPanel: Record<
   estimates: { title: "Q# Estimates", panel: undefined, state: {} },
   circuit: { title: "Q# Circuit", panel: undefined, state: {} },
   help: { title: "Q# Help", panel: undefined, state: {} },
-  documentationPanelType: { title: "Q# Documentation", panel: undefined, state: {} },
+  documentationPanelType: {
+    title: "Q# Documentation",
+    panel: undefined,
+    state: {},
+  },
 };
 
 export function sendMessageToPanel(

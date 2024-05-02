@@ -20,7 +20,6 @@ import { DocumentationView } from "./docview";
 // @ts-ignore - there are no types for this
 import mk from "@vscode/markdown-it-katex";
 import markdownIt from "markdown-it";
-import { log } from "console";
 const md = markdownIt();
 md.use(mk);
 
@@ -54,7 +53,7 @@ type CircuitState = {
 type DocumentationState = {
   viewType: "documentationView";
   contentToRender: string;
-}
+};
 
 type State =
   | { viewType: "loading" }
@@ -134,7 +133,7 @@ function onMessage(event: any) {
         state = {
           viewType: "documentationView",
           contentToRender: message.contentToRender,
-        }
+        };
       }
       break;
     default:

@@ -258,9 +258,9 @@ export class Compiler implements ICompiler {
     const docFiles: IDocFile[] = this.wasm.generate_docs();
     let content = "";
     for (const file of docFiles) {
-        if (file.metadata.indexOf("qsharp.name:") >= 0) {
-            content += file.contents + "\n---\n";
-        }
+      if (file.metadata.indexOf("qsharp.name:") >= 0) {
+        content += file.contents + "\n---\n";
+      }
     }
     return content;
   }
