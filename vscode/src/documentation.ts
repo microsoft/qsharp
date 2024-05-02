@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { IOperationInfo, getCompilerWorker } from "qsharp-lang";
+import { getCompilerWorker } from "qsharp-lang";
 import { Uri } from "vscode";
 import { sendMessageToPanel } from "./webviewPanel";
 
