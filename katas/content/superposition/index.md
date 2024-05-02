@@ -153,6 +153,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__parity_bitstrings",
+    "title": "Same Parity Bit Strings",
+    "path": "./parity_bitstrings/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
 @[section]({
     "id": "superposition__arbitrary_rotations",
     "title": "Arbitrary Rotations"
@@ -202,6 +212,16 @@ This kata is designed to get you familiar with the concept of superposition and 
     "id": "superposition__hardy_state",
     "title": "Hardy State",
     "path": "./hardy_state/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superposition__wstate_power_of_two",
+    "title": "W State Power Of Two",
+    "path": "./wstate_power_of_two/",
     "qsDependencies": [
         "../KatasLibrary.qs",
         "./Common.qs"
