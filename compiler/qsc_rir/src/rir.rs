@@ -456,6 +456,29 @@ impl Display for Variable {
     }
 }
 
+impl Variable {
+    #[must_use]
+    pub fn new_boolean(id: VariableId) -> Self {
+        Self {
+            id,
+            ty: Ty::Boolean,
+        }
+    }
+
+    #[must_use]
+    pub fn new_integer(id: VariableId) -> Self {
+        Self {
+            id,
+            ty: Ty::Integer,
+        }
+    }
+
+    #[must_use]
+    pub fn new_double(id: VariableId) -> Self {
+        Self { id, ty: Ty::Double }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Ty {
     Qubit,

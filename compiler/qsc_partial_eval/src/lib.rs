@@ -289,103 +289,60 @@ impl<'a> PartialEvaluator<'a> {
         bin_op: BinOp,
         lhs_expr_id: ExprId,
         rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
         // Try to evaluate the LHS expression, short-circuiting execution if it is a return.
         let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
         let EvalControlFlow::Continue(lhs_value) = lhs_control_flow else {
             let lhs_expr = self.get_expr(lhs_expr_id);
             return Err(Error::Unexpected(
-                "embedded return in binary operation expression".to_string(),
+                "embedded return in LHS expression".to_string(),
                 lhs_expr.span,
             ));
         };
 
-        //
+        // Evaluate the binary operation differently depending on the LHS value variant.
         match lhs_value {
-            Value::Array(lhs_array) => {
-                // Try to evaluate the RHS expression to get its value.
-                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-                let EvalControlFlow::Continue(Value::Array(rhs_array)) = rhs_control_flow else {
-                    let rhs_expr = self.get_expr(rhs_expr_id);
-                    return Err(Error::Unexpected(
-                        "expected array value from LHS expression".to_string(),
-                        rhs_expr.span,
-                    ));
-                };
-
-                // Concatenate the arrays.
-                assert!(
-                    matches!(bin_op, BinOp::Add),
-                    "the only supported binary operation for arrays is addition"
-                );
-                let concatenated_array: Vec<Value> =
-                    lhs_array.iter().chain(rhs_array.iter()).cloned().collect();
-                let array_value = Value::Array(concatenated_array.into());
-                Ok(EvalControlFlow::Continue(array_value))
-            }
+            Value::Array(lhs_array) => self.eval_bin_op_with_lhs_array_operand(
+                bin_op,
+                &lhs_array,
+                rhs_expr_id,
+                bin_op_expr_span,
+            ),
             Value::Bool(lhs_bool) => {
-                // Handle short-circuiting.
-                let value = match (bin_op, lhs_bool) {
-                    (BinOp::AndL, false) => Value::Bool(false),
-                    (BinOp::OrL, true) => Value::Bool(true),
-                    (BinOp::AndL | BinOp::OrL, _) => {
-                        let bin_op_variable_id = self.resource_manager.next_var();
-                        let bin_op_rir_variable = rir::Variable {
-                            id: bin_op_variable_id,
-                            ty: rir::Ty::Boolean,
-                        };
-
-                        // Try to evaluate the RHS expression to get its value.
-                        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-                        let EvalControlFlow::Continue(Value::Var(rhs_eval_var)) = rhs_control_flow
-                        else {
-                            let rhs_expr = self.get_expr(rhs_expr_id);
-                            return Err(Error::Unexpected(
-                                "expected bool var from LHS expression".to_string(),
-                                rhs_expr.span,
-                            ));
-                        };
-                        let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
-                        let rhs_operand = Operand::Variable(map_eval_var_to_rir_var(rhs_eval_var));
-                        let bin_op_ins = match bin_op {
-                            BinOp::AndL => Instruction::LogicalAnd(
-                                lhs_operand,
-                                rhs_operand,
-                                bin_op_rir_variable,
-                            ),
-                            BinOp::OrL => Instruction::LogicalOr(
-                                lhs_operand,
-                                rhs_operand,
-                                bin_op_rir_variable,
-                            ),
-                            _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
-                        };
-                        self.get_current_rir_block_mut().0.push(bin_op_ins);
-                        Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable))
-                    }
-                    _ => {
-                        let lhs_expr = self.get_expr(lhs_expr_id);
-                        return Err(Error::Unexpected(
-                            format!("unsupported bool binary operation pattern: BIN_OP = {bin_op:?}, LHS = {lhs_bool}"),
-                            lhs_expr.span,
-                        ));
-                    }
-                };
-                Ok(EvalControlFlow::Continue(value))
+                self.eval_bin_op_with_lhs_classical_bool_operand(bin_op, lhs_bool, rhs_expr_id)
             }
-            Value::Int(_lhs_int) => {
+            Value::Int(lhs_int) => self.eval_bin_op_with_lhs_classical_int_operand(
+                bin_op,
+                lhs_int,
+                rhs_expr_id,
+                bin_op_expr_span,
+            ),
+            Value::Double(_) => {
                 let lhs_expr = self.get_expr(lhs_expr_id);
                 Err(Error::Unimplemented(
-                    "integer binary operation".to_string(),
+                    "double binary operation with classical LHS".to_string(),
                     lhs_expr.span,
                 ))
             }
-            Value::Var(_lhs_eval_var) => {
+            Value::Var(lhs_eval_var) => {
                 let lhs_expr = self.get_expr(lhs_expr_id);
-                Err(Error::Unimplemented(
-                    "LHS variable binary operation".to_string(),
-                    lhs_expr.span,
-                ))
+                match lhs_eval_var.ty {
+                    VarTy::Boolean => Err(Error::Unimplemented(
+                        "bool binary operation with dynamic LHS".to_string(),
+                        lhs_expr.span,
+                    )),
+                    VarTy::Integer => self.eval_bin_op_with_lhs_dynamic_int_operand(
+                        bin_op,
+                        lhs_eval_var,
+                        rhs_expr_id,
+                        bin_op_expr_span,
+                    ),
+                    VarTy::Double => Err(Error::Unimplemented(
+                        "double binary operation with dynamic LHS".to_string(),
+                        lhs_expr.span,
+                    )),
+                }
             }
             _ => {
                 let lhs_expr = self.get_expr(lhs_expr_id);
@@ -395,6 +352,177 @@ impl<'a> PartialEvaluator<'a> {
                 ))
             }
         }
+    }
+
+    fn eval_bin_op_with_lhs_array_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_array: &Rc<Vec<Value>>,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        // Check that the binary operation is supported by partial evaluation.
+        if !matches!(bin_op, BinOp::Add) {
+            return Err(Error::Unexpected(
+                "partial evaluation only supports array addition".to_string(),
+                bin_op_expr_span,
+            ));
+        }
+        // Try to evaluate the RHS array expression to get its value.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let Value::Array(rhs_array) = rhs_value else {
+            panic!("expected array value from RHS expression");
+        };
+
+        // Concatenate the arrays.
+        let concatenated_array: Vec<Value> =
+            lhs_array.iter().chain(rhs_array.iter()).cloned().collect();
+        let array_value = Value::Array(concatenated_array.into());
+        Ok(EvalControlFlow::Continue(array_value))
+    }
+
+    fn eval_bin_op_with_lhs_classical_bool_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_bool: bool,
+        rhs_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        let value = match (bin_op, lhs_bool) {
+            // Handle short-circuiting for logical AND and logical OR.
+            (BinOp::AndL, false) => Value::Bool(false),
+            (BinOp::OrL, true) => Value::Bool(true),
+            // The other possible cases
+            (BinOp::AndL | BinOp::OrL, _) => {
+                // Try to evaluate the RHS expression to get its value.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(Value::Var(rhs_eval_var)) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "expected var from RHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+                assert!(
+                    matches!(rhs_eval_var.ty, VarTy::Boolean),
+                    "expected var to be boolean"
+                );
+
+                // Generate the specific instruction depending on the operand.
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable {
+                    id: bin_op_variable_id,
+                    ty: rir::Ty::Boolean,
+                };
+                let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
+                let rhs_operand = Operand::Variable(map_eval_var_to_rir_var(rhs_eval_var));
+                let bin_op_ins = match bin_op {
+                    BinOp::AndL => {
+                        Instruction::LogicalAnd(lhs_operand, rhs_operand, bin_op_rir_variable)
+                    }
+                    BinOp::OrL => {
+                        Instruction::LogicalOr(lhs_operand, rhs_operand, bin_op_rir_variable)
+                    }
+                    _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
+                };
+                self.get_current_rir_block_mut().0.push(bin_op_ins);
+                Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable))
+            }
+            _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
+        };
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn eval_bin_op_with_lhs_classical_int_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_int: i64,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        // Try to evaluate the RHS expression to get its value.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(Value::Var(rhs_eval_var)) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "expected var from LHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        assert!(
+            matches!(rhs_eval_var.ty, VarTy::Integer),
+            "expected var to be of integer type"
+        );
+
+        // Generate the specific instruction depending on the operand.
+        let bin_op_variable_id = self.resource_manager.next_var();
+        let lhs_operand = Operand::Literal(Literal::Integer(lhs_int));
+        let rhs_operand = Operand::Variable(map_eval_var_to_rir_var(rhs_eval_var));
+        let (bin_op_rir_variable, bin_op_rir_ins) =
+            create_instruction_for_binary_operation_with_integer_operands(
+                bin_op,
+                lhs_operand,
+                rhs_operand,
+                bin_op_variable_id,
+                bin_op_expr_span,
+            )?;
+
+        // Insert the instruction.
+        self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable));
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn eval_bin_op_with_lhs_dynamic_int_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_eval_var: Var,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        assert!(
+            matches!(lhs_eval_var.ty, VarTy::Integer),
+            "LHS var is expected to be of integer type"
+        );
+
+        // Try to evaluate the RHS expression to get its value.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "expected var from LHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+
+        // Construct the operands and generate the instruction.
+        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+        assert!(
+            matches!(rhs_operand.get_type(), rir::Ty::Integer),
+            "LHS value is expected to be of integer type"
+        );
+        let lhs_rir_var = map_eval_var_to_rir_var(lhs_eval_var);
+        let lhs_operand = Operand::Variable(lhs_rir_var);
+        let bin_op_variable_id = self.resource_manager.next_var();
+        let (bin_op_rir_variable, bin_op_rir_ins) =
+            create_instruction_for_binary_operation_with_integer_operands(
+                bin_op,
+                lhs_operand,
+                rhs_operand,
+                bin_op_variable_id,
+                bin_op_expr_span,
+            )?;
+
+        // Insert the instruction.
+        self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable));
+        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
@@ -463,7 +591,8 @@ impl<'a> PartialEvaluator<'a> {
                 self.eval_expr_assign_index(*array_expr_id, *index_expr_id, *replace_expr_id)
             }
             ExprKind::AssignOp(bin_op, lhs_expr_id, rhs_expr_id) => {
-                self.eval_expr_assign_op(*bin_op, *lhs_expr_id, *rhs_expr_id)
+                let expr = self.get_expr(expr_id);
+                self.eval_expr_assign_op(expr.span, *bin_op, *lhs_expr_id, *rhs_expr_id)
             }
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
                 self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
@@ -603,11 +732,13 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval_expr_assign_op(
         &mut self,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
         bin_op: BinOp,
         lhs_expr_id: ExprId,
         rhs_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        let bin_op_control_flow = self.eval_bin_op(bin_op, lhs_expr_id, rhs_expr_id)?;
+        let bin_op_control_flow =
+            self.eval_bin_op(bin_op, lhs_expr_id, rhs_expr_id, bin_op_expr_span)?;
         let EvalControlFlow::Continue(bin_op_value) = bin_op_control_flow else {
             panic!("evaluating a binary operation is expected to return an error or a continue, never a return");
         };
@@ -1647,6 +1778,142 @@ impl<'a> PartialEvaluator<'a> {
         self.program.callables.insert(callable_id, callable);
         callable_id
     }
+}
+
+#[allow(clippy::too_many_lines)]
+fn create_instruction_for_binary_operation_with_integer_operands(
+    bin_op: BinOp,
+    lhs_operand: Operand,
+    rhs_operand: Operand,
+    bin_op_variable_id: rir::VariableId,
+    bin_op_expr_span: Span, // For diagnostic purposes only.
+) -> Result<(rir::Variable, Instruction), Error> {
+    let (rir_variable, rir_ins) = match bin_op {
+        BinOp::Add => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Add(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Sub => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Sub(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Mul => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Mul(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Div => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Sdiv(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Mod => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Srem(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::AndB => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins =
+                Instruction::BitwiseAnd(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::OrB => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins =
+                Instruction::BitwiseOr(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::XorB => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins =
+                Instruction::BitwiseXor(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Shl => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Shl(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Shr => {
+            let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Ashr(lhs_operand, rhs_operand, bin_op_rir_variable);
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Eq => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Eq,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Neq => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Ne,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Gt => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Sgt,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Gte => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Sge,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Lt => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Slt,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Lte => {
+            let bin_op_rir_variable = rir::Variable::new_boolean(bin_op_variable_id);
+            let bin_op_rir_ins = Instruction::Icmp(
+                ConditionCode::Sle,
+                lhs_operand,
+                rhs_operand,
+                bin_op_rir_variable,
+            );
+            (bin_op_rir_variable, bin_op_rir_ins)
+        }
+        BinOp::Exp => {
+            let error = Error::Unexpected(
+                format!(
+                    "partial support does not support the {bin_op:?} operator for integer operands"
+                ),
+                bin_op_expr_span,
+            );
+            return Err(error);
+        }
+        _ => panic!("unsupported binary operation for integers: {bin_op:?}"),
+    };
+    Ok((rir_variable, rir_ins))
 }
 
 fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
