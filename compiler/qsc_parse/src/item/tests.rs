@@ -1758,3 +1758,58 @@ fn parse_export_list() {
                     Export (ExportDecl [72-155]: [Path _id_ [81-84] (Ident _id_ [81-84] "Bar"), Path _id_ [86-94] (Ident _id_ [86-89] "Baz") (Ident _id_ [90-94] "Quux"), Path _id_ [96-120] ([Ident _id_ [96-100] "Math", Ident _id_ [101-108] "Quantum", Ident _id_ [109-113] "Some"]) (Ident _id_ [114-120] "Nested"), Path _id_ [122-152] ([Ident _id_ [122-126] "Math", Ident _id_ [127-134] "Quantum", Ident _id_ [135-139] "Some", Ident _id_ [140-145] "Other"]) (Ident _id_ [146-152] "Nested")])"#]],
     );
 }
+
+#[test]
+fn parse_single_import() {
+    check(
+        parse,
+        "import Foo;",
+        &expect![[r#"
+            ["Foo"]
+        "#]],
+    );
+}
+
+#[test]
+fn parse_multiple_imports() {
+    check(
+        parse,
+        "import Foo.{Bar, Baz};",
+        &expect![[r#"
+            ["Foo.Bar", "Foo.Baz"]
+        "#]],
+    );
+}
+
+#[test]
+fn parse_nested_imports() {
+    check(
+        parse,
+        "import Foo.{Bar, Baz.{Quux, Corge}};",
+        &expect![[r#"
+            ["Foo.Bar", "Foo.Baz.Quux", "Foo.Baz.Corge"]
+        "#]],
+    );
+}
+
+#[test]
+fn parse_import_with_alias() {
+    check(
+        parse,
+        "import Foo as Bar;",
+        &expect![[r#"
+            ["Foo as Bar"]
+        "#]],
+    );
+}
+
+#[test]
+fn parse_import_with_nested_alias() {
+    check(
+        parse,
+        "import Foo.{Bar as Baz};",
+        &expect![[r#"
+            ["Foo.Bar as Baz"]
+        "#]],
+    );
+}

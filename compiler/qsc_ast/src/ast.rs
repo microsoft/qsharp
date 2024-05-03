@@ -1737,3 +1737,19 @@ impl ExportDecl {
         self.items.iter()
     }
 }
+
+
+pub struct ImportDecl {
+    /// The span.
+    pub span: Span,
+    /// The items being imported from this namespace.
+    pub items: Vec<ImportItem>,
+}
+pub struct ImportItem {
+    /// The span.
+    pub span: Span,
+    /// The items being imported from this namespace.
+    pub path: Path,
+    /// The alias of the imported item.
+    pub alias: Option<Ident>,
+}

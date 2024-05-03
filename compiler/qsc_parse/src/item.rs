@@ -23,11 +23,7 @@ use crate::{
     ty::array_or_arrow,
     ErrorKind,
 };
-use qsc_ast::ast::{
-    Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Idents, Item,
-    ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind,
-    TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind,
-};
+use qsc_ast::ast::{Attr, Block, CallableBody, CallableDecl, CallableKind, ExportDecl, Ident, Idents, Item, ItemKind, Namespace, NodeId, Pat, PatKind, Path, Spec, SpecBody, SpecDecl, SpecGen, StmtKind, TopLevelNode, Ty, TyDef, TyDefKind, TyKind, Visibility, VisibilityKind, ImportDecl, ImportItem};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_data_structures::span::Span;
 
@@ -539,5 +535,68 @@ fn parse_export(s: &mut ParserContext) -> Result<ExportDecl> {
     Ok(ExportDecl {
         span: s.span(lo),
         items: items.0.into_iter().map(|x| (*x)).collect::<Vec<_>>(),
+    })
+}
+
+/// Parses import items. Note that import items in Q# can be nested and are a tree structure.
+/// For example:
+/// ```qsharp
+/// import Foo.Bar;
+/// import Foo.{Baz, Quux};
+/// import Foo.{Bar.{Baz, Quux}, Corge as Grault};
+/// ```
+fn parse_import(s: &mut ParserContext) -> Result<ImportDecl> {
+    let lo = s.peek().span.lo;
+    let _doc = parse_doc(s);
+    token(s, TokenKind::Keyword(Keyword::Import))?;
+    let items = parse_import_items(s)?;
+    token(s, TokenKind::Semi)?;
+
+    Ok(ImportDecl {
+        span: s.span(lo),
+        items,
+    })
+}
+
+fn parse_import_items(s: &mut ParserContext) -> Result<Vec<ImportItem>> {
+    let mut items = Vec::new();
+
+    if token(s, TokenKind::Open(Delim::Brace)).is_ok() {
+        // Parse nested import items
+        loop {
+            items.push(parse_import_item(s)?);
+
+            match s.peek().kind {
+                TokenKind::Comma => {
+                    s.advance();
+                }
+                TokenKind::Close(Delim::Brace) => {
+                    s.advance();
+                    break;
+                }
+                _ => return Err(Error(ErrorKind::ExpectedCommaOrCloseBrace)),
+            }
+        }
+    } else {
+        // Parse single import item
+        items.push(parse_import_item(s)?);
+    }
+
+    Ok(items)
+}
+
+fn parse_import_item(s: &mut ParserContext) -> Result<ImportItem> {
+    let lo = s.peek().span.lo;
+    let path = path(s)?;
+    let alias = if token(s, TokenKind::Keyword(Keyword::As)).is_ok() {
+        Some(ident(s)?)
+    } else {
+        None
+    };
+
+    Ok(ImportItem {
+        span: s.span(lo),
+        path: (*path).into(),
+        alias,
     })
 }
