@@ -11,5 +11,6 @@
   "random_numbers",
   "oracles",
   "deutsch_algo",
-  "deutsch_jozsa"
+  "deutsch_jozsa",
+  "teleportation"
 ]
