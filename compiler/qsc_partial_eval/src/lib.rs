@@ -593,7 +593,7 @@ impl<'a> PartialEvaluator<'a> {
             }
             ExprKind::AssignOp(bin_op, lhs_expr_id, rhs_expr_id) => {
                 let expr = self.get_expr(expr_id);
-                self.eval_expr_assign_op(expr.span, *bin_op, *lhs_expr_id, *rhs_expr_id)
+                self.eval_expr_assign_op(*bin_op, *lhs_expr_id, *rhs_expr_id, expr.span)
             }
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
                 self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
@@ -614,7 +614,9 @@ impl<'a> PartialEvaluator<'a> {
                 *body_expr_id,
                 *otherwise_expr_id,
             ),
-            ExprKind::Index(_, _) => Err(Error::Unimplemented("Index Expr".to_string(), expr.span)),
+            ExprKind::Index(array_expr_id, index_expr_id) => {
+                self.eval_expr_index(*array_expr_id, *index_expr_id)
+            }
             ExprKind::Lit(_) => panic!("instruction generation for literal expressions is invalid"),
             ExprKind::Range(_, _, _) => {
                 panic!("instruction generation for range expressions is invalid")
@@ -733,10 +735,10 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval_expr_assign_op(
         &mut self,
-        bin_op_expr_span: Span, // For diagnostic purposes only.
         bin_op: BinOp,
         lhs_expr_id: ExprId,
         rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
         let bin_op_control_flow =
             self.eval_bin_op(bin_op, lhs_expr_id, rhs_expr_id, bin_op_expr_span)?;
@@ -973,7 +975,7 @@ impl<'a> PartialEvaluator<'a> {
         body_expr_id: ExprId,
         otherwise_expr_id: Option<ExprId>,
     ) -> Result<EvalControlFlow, Error> {
-        // Visit the the condition expression to get its value.
+        // Try to evaluate the condition expression to get its value.
         let condition_control_flow = self.try_eval_expr(condition_expr_id)?;
         if condition_control_flow.is_return() {
             let condition_expr = self.get_expr(condition_expr_id);
@@ -1110,6 +1112,44 @@ impl<'a> PartialEvaluator<'a> {
             // Return unit since it is the only possibility for if expressions with no otherwise block.
             Ok(EvalControlFlow::Continue(Value::unit()))
         }
+    }
+
+    fn eval_expr_index(
+        &mut self,
+        array_expr_id: ExprId,
+        index_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        // Get the value of the array expression to use it as the basis to perform a replacement on.
+        let array_control_flow = self.try_eval_expr(array_expr_id)?;
+        let EvalControlFlow::Continue(array_value) = array_control_flow else {
+            let array_expr = self.get_expr(array_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in index expression".to_string(),
+                array_expr.span,
+            ));
+        };
+
+        // Try to evaluate the index and replace expressions to get their value, short-circuiting execution if any of
+        // the expressions is a return.
+        let index_control_flow = self.try_eval_expr(index_expr_id)?;
+        let EvalControlFlow::Continue(index_value) = index_control_flow else {
+            let index_expr = self.get_expr(index_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in index expression".to_string(),
+                index_expr.span,
+            ));
+        };
+
+        // Get the value at the specified index.
+        let array = array_value.unwrap_array();
+        let index: usize = index_value
+            .unwrap_int()
+            .try_into()
+            .expect("could not convert index to usize");
+        let value_at_index = array
+            .get(index)
+            .unwrap_or_else(|| panic!("could not get value at index {index}"));
+        Ok(EvalControlFlow::Continue(value_at_index.clone()))
     }
 
     fn eval_expr_return(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {

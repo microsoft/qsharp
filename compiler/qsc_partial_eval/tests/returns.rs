@@ -1009,10 +1009,9 @@ fn explicit_return_embedded_in_index_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Index Expr", Span { lo: 168, hi: 195 })"#]],
+        &expect![[r#"Unexpected("embedded return in index expression", Span { lo: 170, hi: 194 })"#]],
     );
 }
 
