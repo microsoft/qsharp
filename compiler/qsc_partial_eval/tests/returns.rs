@@ -1081,16 +1081,17 @@ fn explicit_return_embedded_in_update_index_expr_yields_error() {
     namespace Test {
         @EntryPoint()
         operation Main() : Bool {
-            use q = Qubit(); // Needed to make `Main` non-classical.
-            mutable a = [1];
+            use q = Qubit();
+            mutable a = [MResetZ(q)];
             set a w/= 0 <- return false;
             true
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Assignment Index Expr", Span { lo: 164, hi: 191 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in assign index expression", Span { lo: 148, hi: 160 })"#
+        ]],
     );
 }

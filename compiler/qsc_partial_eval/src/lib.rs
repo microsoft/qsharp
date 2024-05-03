@@ -346,10 +346,9 @@ impl<'a> PartialEvaluator<'a> {
                 "Field Assignment Expr".to_string(),
                 expr.span,
             )),
-            ExprKind::AssignIndex(_, _, _) => Err(Error::Unimplemented(
-                "Assignment Index Expr".to_string(),
-                expr.span,
-            )),
+            ExprKind::AssignIndex(array_expr_id, index_expr_id, replace_expr_id) => {
+                self.eval_expr_assign_index(*array_expr_id, *index_expr_id, *replace_expr_id)
+            }
             ExprKind::AssignOp(_, _, _) => Err(Error::Unimplemented(
                 "Assignment Op Expr".to_string(),
                 expr.span,
@@ -445,6 +444,46 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         self.update_hybrid_bindings(lhs_expr_id, rhs_value)?;
+        Ok(EvalControlFlow::Continue(Value::unit()))
+    }
+
+    fn eval_expr_assign_index(
+        &mut self,
+        array_expr_id: ExprId,
+        index_expr_id: ExprId,
+        replace_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        // Try to evaluate the array, index and replace expressions to get their value, short-circuiting execution if
+        // any of the expressions is a return.
+        let array_control_flow = self.try_eval_expr(array_expr_id)?;
+        let EvalControlFlow::Continue(array_value) = array_control_flow else {
+            panic!("the array in sub-expression in an assign index expression is not expected to contain an embedded return");
+        };
+        let index_control_flow = self.try_eval_expr(index_expr_id)?;
+        let EvalControlFlow::Continue(index_value) = index_control_flow else {
+            let index_expr = self.get_expr(index_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in assign index expression".to_string(),
+                index_expr.span,
+            ));
+        };
+        let replace_control_flow = self.try_eval_expr(replace_expr_id)?;
+        let EvalControlFlow::Continue(replace_value) = replace_control_flow else {
+            let replace_expr = self.get_expr(replace_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in assign index expression".to_string(),
+                replace_expr.span,
+            ));
+        };
+
+        // Replace the value at the corresponding index and update the array binding.
+        let index: usize = index_value
+            .unwrap_int()
+            .try_into()
+            .expect("could not convert array index into usize");
+        let mut array = (*array_value.unwrap_array()).clone();
+        let _ = std::mem::replace(&mut array[index], replace_value);
+        self.update_hybrid_bindings(array_expr_id, Value::Array(array.into()))?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
