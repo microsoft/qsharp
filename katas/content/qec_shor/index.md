@@ -298,8 +298,8 @@ $$\alpha \ket{0} + \beta \ket{1} \rightarrow \alpha \ket{0_L} + \beta \ket{1_L}$
 
 > Shor code was created as a *concatenation* of bit flip and phase flip codes. Encoding a qubit into its 9-qubit representation happens in two steps:
 >
-> 1. A qubit is encoded in three qubits using phase flip code.
-> 2. After that, each of those three qubits is encoded again using bit flip code.
+> 1. A qubit is encoded in three qubits using the phase flip code.
+> 2. After that, each of those three qubits is encoded again using the bit flip code.
 >
 > Concatenation is a commonly used method of combining several error correction codes by encoding the qubit state using the first code, followed by encoding each qubit of the resulting state using the second code, and so on.
 
