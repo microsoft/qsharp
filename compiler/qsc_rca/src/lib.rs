@@ -599,8 +599,10 @@ impl ValueKind {
             Self::Element(RuntimeKind::Static)
         } else {
             match ty {
-                // For a dynamic array, both contents and size are dynamic.
-                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic),
+                // For a dynamic array, the content is dynamic and the size is static.
+                // We assume this because the source of the array produces something with dynamic length,
+                // that source should have already added the runtime feature flag for dynamic arrays.
+                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Static),
                 // For every other dynamic type, we use the element variant with a dynamic runtime value.
                 _ => ValueKind::Element(RuntimeKind::Dynamic),
             }
@@ -659,7 +661,10 @@ impl ValueKind {
                 }
                 ValueKind::Element(self_runtime_kind) => {
                     *content_runtime_kind = self_runtime_kind;
-                    *size_runtime_kind = self_runtime_kind;
+                    // When we project from an element variant to an array variant, we assume the size of the
+                    // array is statically sized because we rely on the dynamically sized arrays runtime feature
+                    // flag to detect such cases.
+                    *size_runtime_kind = RuntimeKind::Static;
                 }
             },
             ValueKind::Element(runtime_kind) => {

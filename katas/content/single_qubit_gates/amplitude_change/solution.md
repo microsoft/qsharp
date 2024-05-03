@@ -4,18 +4,18 @@ As a reminder,
 
 $$
 R_{y}(\theta) =
-\begin{bmatrix}\cos \frac{\theta}{2} & -\sin \frac{\theta}{2}\\\ \sin \frac{\theta}{2} & \cos \frac{\theta}{2}\end{bmatrix}
+\begin{bmatrix}\cos \frac{\theta}{2} & -\sin \frac{\theta}{2}\\ \sin \frac{\theta}{2} & \cos \frac{\theta}{2}\end{bmatrix}
 $$
 
 Let's see its effect on the $|0\rangle$ state:
 
 $$
 R_y(\theta)|0\rangle =
-\begin{bmatrix}\cos \frac{\theta}{2} & -\sin \frac{\theta}{2}\\\ \sin \frac{\theta}{2} & \cos \frac{\theta}{2} \end{bmatrix}
-\begin{bmatrix}1\\\ 0\\\ \end{bmatrix}=
-\begin{bmatrix}\cos \frac{\theta}{2}\cdot1 - \sin \frac{\theta}{2}\cdot0\\\ \sin \frac{\theta}{2}\cdot1 + \cos \frac{\theta}{2}\cdot0
+\begin{bmatrix}\cos \frac{\theta}{2} & -\sin \frac{\theta}{2}\\ \sin \frac{\theta}{2} & \cos \frac{\theta}{2} \end{bmatrix}
+\begin{bmatrix}1\\ 0\\ \end{bmatrix}=
+\begin{bmatrix}\cos \frac{\theta}{2}\cdot1 - \sin \frac{\theta}{2}\cdot0\\ \sin \frac{\theta}{2}\cdot1 + \cos \frac{\theta}{2}\cdot0
 \end{bmatrix}=
-\begin{bmatrix}\cos \frac{\theta}{2}\\\ \sin \frac{\theta}{2}\end{bmatrix}=
+\begin{bmatrix}\cos \frac{\theta}{2}\\ \sin \frac{\theta}{2}\end{bmatrix}=
 \cos\frac{\theta}{2} |0\rangle + \sin\frac{\theta}{2} |1\rangle
 $$
 
@@ -25,12 +25,12 @@ Since $\cos \frac{\pi}{3} = 0.5$ and $\sin \frac{\pi}{3} = 0.8660$, working to 4
 
 $$
 R_{y}(\theta) |\psi\rangle=
- \begin{bmatrix}\cos \frac{\theta}{2} & -\sin \frac{\theta}{2}\\\ \sin \frac{\theta}{2} & \cos \frac{\theta}{2} \end{bmatrix}
-  \begin{bmatrix}\beta\\\ \gamma\\\ \end{bmatrix}=
-  \begin{bmatrix}\cos \frac{\theta}{2}\cdot\beta - \sin \frac{\theta}{2}\cdot\gamma\\\ \sin \frac{\theta}{2}\cdot\beta +\cos \frac{\theta}{2}\cdot\gamma \end{bmatrix}=
- \begin{bmatrix} 0.6\cdot\cos \frac{\pi}{3} -0.8\cdot\sin \frac{\pi}{3}\\\0.6\cdot\sin \frac{\pi}{3} +0.8\cdot\cos \frac{\pi}{3}\end{bmatrix}=
- \begin{bmatrix}0.3 - 0.6928\\\ 0.5196 + 0.4\end{bmatrix}=
-\begin{bmatrix}-0.3928\\\ 0.9196\\\ \end{bmatrix}
+ \begin{bmatrix}\cos \frac{\theta}{2} & -\sin \frac{\theta}{2}\\ \sin \frac{\theta}{2} & \cos \frac{\theta}{2} \end{bmatrix}
+  \begin{bmatrix}\beta\\ \gamma\\ \end{bmatrix}=
+  \begin{bmatrix}\cos \frac{\theta}{2}\cdot\beta - \sin \frac{\theta}{2}\cdot\gamma\\ \sin \frac{\theta}{2}\cdot\beta +\cos \frac{\theta}{2}\cdot\gamma \end{bmatrix}=
+ \begin{bmatrix} 0.6\cdot\cos \frac{\pi}{3} -0.8\cdot\sin \frac{\pi}{3}\\0.6\cdot\sin \frac{\pi}{3} +0.8\cdot\cos \frac{\pi}{3}\end{bmatrix}=
+ \begin{bmatrix}0.3 - 0.6928\\ 0.5196 + 0.4\end{bmatrix}=
+\begin{bmatrix}-0.3928\\ 0.9196\\ \end{bmatrix}
 $$
 
 Notice that we used $\frac{\theta}{2} = \alpha$; this means that in the Q# code we need to pass the angle $\theta = 2\alpha$.

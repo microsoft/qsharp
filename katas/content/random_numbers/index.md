@@ -21,11 +21,11 @@ The quantum algorithm for random number generation is one of the simplest applic
 
 @[section]({"id": "random_numbers__introduction", "title": "Introduction"})
 
-Recall from the Qubit kata that a qubit state $|\psi\rangle$ is defined via the basis states $|0\rangle$ and $|1\rangle$ as $|\psi\rangle = \begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$, where $|\alpha|^2 + |\beta|^2 = 1$.
+Recall from the Qubit kata that a qubit state $|\psi\rangle$ is defined via the basis states $|0\rangle$ and $|1\rangle$ as $|\psi\rangle = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$, where $|\alpha|^2 + |\beta|^2 = 1$.
 
-We call $\alpha$ and $\beta$ the probability amplitudes of states $|0\rangle$ and $|1\rangle$, respectively. When $|\psi\rangle$ is measured in the $\\{|0\rangle, |1\rangle\\}$ basis (the computational basis), the probabilities of the outcomes are defined based on the state amplitudes: there is a $|\alpha|^2$ probability that the measurement result will be $0$, and a $|\beta|^2$ probability that the measurement result will be $1$.
+We call $\alpha$ and $\beta$ the probability amplitudes of states $|0\rangle$ and $|1\rangle$, respectively. When $|\psi\rangle$ is measured in the $\{|0\rangle, |1\rangle\}$ basis (the computational basis), the probabilities of the outcomes are defined based on the state amplitudes: there is a $|\alpha|^2$ probability that the measurement result will be $0$, and a $|\beta|^2$ probability that the measurement result will be $1$.
 
-> For example, a qubit in state $\begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{1}{\sqrt{2}} \end{bmatrix}$ will yield measurement results $0$ or $1$ with equal probability, while a qubit in state $\begin{bmatrix} \frac{1}{2} \\\ \frac{\sqrt3}{2} \end{bmatrix}$ will yield measurement result $0$ only 25% of the time, and $1$ 75% of the time.
+> For example, a qubit in state $\begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{1}{\sqrt{2}} \end{bmatrix}$ will yield measurement results $0$ or $1$ with equal probability, while a qubit in state $\begin{bmatrix} \frac{1}{2} \\ \frac{\sqrt3}{2} \end{bmatrix}$ will yield measurement result $0$ only 25% of the time, and $1$ 75% of the time.
 
 This knowledge is sufficient to implement a simple random number generator!
 

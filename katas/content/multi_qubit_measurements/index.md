@@ -22,9 +22,6 @@ This will include measuring a single qubit in a multi-qubit system, as well as m
 - Single and multi-qubit gates
 - Single-qubit system measurements
 
-$\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
-$\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
-
 ## Types of Measurements
 
 There are several types of measurements you can perform on an $n$-qubit system ($n>1$):
@@ -40,15 +37,15 @@ We will discuss these concepts in the same order as in the list above.
     "title": "Full Measurements: Measurements in Multi-Qubit Bases"
 })
 
-Consider a system consisting of $n\geq1$ qubits. The wave function of such a system belongs to a vector space of dimension $2^n$. Thus, the vector space is spanned by an orthogonal basis, such as the computational basis which consists of the vectors $|0\dotsc0\rangle, \dotsc, |1\dotsc 1\rangle$. For generality, we consider an arbitrary orthonormal basis, which we denote by $\\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \\}$.
+Consider a system consisting of $n\geq1$ qubits. The wave function of such a system belongs to a vector space of dimension $2^n$. Thus, the vector space is spanned by an orthogonal basis, such as the computational basis which consists of the vectors $|0\dotsc0\rangle, \dotsc, |1\dotsc 1\rangle$. For generality, we consider an arbitrary orthonormal basis, which we denote by $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$.
 
 Then, the state $|\psi\rangle$ of the multi-qubit system can be expressed as a linear combination of the $2^n$ basis vectors $|b_i\rangle$. That is, there exist complex numbers $c_0,c_1,\dotsc, c_{2^n-1}$ such that
 
 $$
-|\psi\rangle = \sum_{i=0}^{2^n-1} c_i|b_i\rangle \equiv \begin{pmatrix} c_0 \\\ c_1 \\\ \vdots \\\ c_{2^n-1} \end{pmatrix}
+|\psi\rangle = \sum_{i=0}^{2^n-1} c_i|b_i\rangle \equiv \begin{pmatrix} c_0 \\ c_1 \\ \vdots \\ c_{2^n-1} \end{pmatrix}
 $$
 
-In line with the usual convention, we choose the wave function to be normalized, so that $|c_0|^2 + \dotsc + |c_{2^n-1}|^2 =1$. Then, a quantum measurement in the basis $\\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \\}$ satisfies the following rules:
+In line with the usual convention, we choose the wave function to be normalized, so that $|c_0|^2 + \dotsc + |c_{2^n-1}|^2 =1$. Then, a quantum measurement in the basis $\{ |b_0\rangle, |b_1\rangle, \dotsc, |b_{2^n-1}\rangle \}$ satisfies the following rules:
 
 - The measurement outcome $b_i$ occurs with probability $|c_i|^2$.
 - Whenever the measurement outcome is $b_i$, the wave function collapses to the state $|b_i\rangle$. That is, the post-measurement state of the system is equal to $|b_i\rangle$.
@@ -113,7 +110,7 @@ The wave function $|\psi\rangle$ is normalized, since $\left(\frac{1}{3}\right)^
 You are given a two-qubit system in the following state:
 $$\ket \psi = \frac{2}{3}\ket {00} + \frac{1}{3} \ket {01} + \frac{2}{3}\ket {11}$$
 
-If all the qubits are measured simultaneously in the Pauli X basis, that is, in the $\\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\\}$ basis, what are the outcome probabilities?
+If all the qubits are measured simultaneously in the Pauli X basis, that is, in the $\{ \ket{++}, \ket{+-}, \ket{-+}, \ket{--}\}$ basis, what are the outcome probabilities?
 
 <details>
 <summary><b>Analytical Solution</b></summary>
@@ -213,7 +210,7 @@ In practice, this is implemented by measuring all the qubits one after another. 
 
 This can be generalized to measurements in other bases, such as the 2-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$, and the bases for larger numbers of qubits.
 
-> Note that measurement of all qubits sequentially can only be done in orthogonal bases $\\{ \ket{b_i}\\}$, such that each $\ket{b_i}$ is a **tensor product state**. That is, each $\ket{b_i}$ must be of the form $\ket{v_0} \otimes \ket{v_1} \dotsc \otimes \ket{v_{n-1}}$, with each $\ket{v_j}$ being a single-qubit basis state.
+> Note that measurement of all qubits sequentially can only be done in orthogonal bases $\{ \ket{b_i}\}$, such that each $\ket{b_i}$ is a **tensor product state**. That is, each $\ket{b_i}$ must be of the form $\ket{v_0} \otimes \ket{v_1} \dotsc \otimes \ket{v_{n-1}}$, with each $\ket{v_j}$ being a single-qubit basis state.
 For example, for the two-qubit Pauli X basis $\ket{++}, \ket{+-}, \ket{-+}, \ket{--}$ each basis state is a tensor product of states $\ket{+}$ and $\ket{-}$, which form a single-qubit basis state.
 >
 > Measuring in orthogonal bases which contain states which are not tensor product states, such as the Bell basis, are trickier to implement, and require appropriate unitary rotations in addition to measuring all qubits one after another.
@@ -258,7 +255,7 @@ For a system with $n>1$ qubits, it is possible to measure $m<n$ qubits one after
 
 First, we recall the concept of projection operators introduced in the Measurements in Single-Qubit Systems kata. Measurements are modeled by orthogonal projection operators - matrices that satisfy
 $$P^2 = P^\dagger = P$$
-Consider an $n$-qubit system in a state $|\psi\rangle$, for which the first $m<n$ qubits are measured in an orthogonal basis $\\{ |b_0\rangle , |b_1\rangle, \dotsc, |b_{2^m-1}\rangle\\}$ corresponding to the $m$ qubits being measured. Then we define $2^m$ projectors corresponding to each of the $|b_i\rangle$ states as
+Consider an $n$-qubit system in a state $|\psi\rangle$, for which the first $m<n$ qubits are measured in an orthogonal basis $\{ |b_0\rangle , |b_1\rangle, \dotsc, |b_{2^m-1}\rangle\}$ corresponding to the $m$ qubits being measured. Then we define $2^m$ projectors corresponding to each of the $|b_i\rangle$ states as
 
 $$P_i = |b_i\rangle \langle b_i| \otimes \mathbb{1}_{n-m} $$
 
@@ -279,7 +276,7 @@ $$
 \frac{P_i |\psi\rangle}{\big|P_i |\psi\rangle\big|}.
 $$
 
-For example, consider a two-qubit system in the state $\ket \psi = \frac{1}{\sqrt{2}}\ket{01} - \frac{1}{\sqrt 2}\ket{10}$. Consider a measurement of the first qubit in the computational basis, i.e., in the $\\{\ket 0 , \ket 1 \\}$ basis. Then, we have two projectors that represent this measurement:
+For example, consider a two-qubit system in the state $\ket \psi = \frac{1}{\sqrt{2}}\ket{01} - \frac{1}{\sqrt 2}\ket{10}$. Consider a measurement of the first qubit in the computational basis, i.e., in the $\{\ket 0 , \ket 1 \}$ basis. Then, we have two projectors that represent this measurement:
 $$P_0 = \ket 0\bra 0 \otimes \mathbb{1}$$
 $$P_1 = \ket 1 \bra 1 \otimes \mathbb{1}$$
 
@@ -373,7 +370,7 @@ Entanglement has an effect on the measurement statistics of the system. If two q
 $$
 > Here $\ket{\phi_A}$ and $\ket{\phi_B}$ are wave functions that describe parts $A$ and $B$, respectively. If it is not possible to express $\ket \psi$ in such a form, then we say that system A is entangled with system B.
 
-Consider a measurement on the subsystem $A$ of a separable state. Let the measurement be done in a basis $\\{ \ket{b_0},\dotsc,\ket{b_{2^m-1}}\\}$. According to the projection formalism, a projection operator $P_i = \ket{b_i}\bra{b_i} \otimes \mathbb{1}$ is chosen randomly. The corresponding post-measurement state of the system is then given by
+Consider a measurement on the subsystem $A$ of a separable state. Let the measurement be done in a basis $\{ \ket{b_0},\dotsc,\ket{b_{2^m-1}}\}$. According to the projection formalism, a projection operator $P_i = \ket{b_i}\bra{b_i} \otimes \mathbb{1}$ is chosen randomly. The corresponding post-measurement state of the system is then given by
 
 $$\ket{\psi}_{i} \equiv \frac{P_i \ket{\psi}}{\big|P_i \ket{\psi}\big|}
 = \frac{\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}}{\big|\ket{b_i}\bra{b_i}\phi_A\rangle \otimes \ket {\phi_B}\big|}=$$
@@ -449,9 +446,9 @@ For single-qubit systems, any measurement corresponding to an orthogonal basis c
 
 For example, consider the computational basis measurement, which can result in outcomes `Zero` or `One` corresponding to states $\ket 0$ and $\ket 1$. This measurement is associated with the Pauli Z operator, which is given by
 
-$$Z = \begin{pmatrix} 1 & 0 \\\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
+$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
 
-The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\\{\ket{0},\ket{1}\\}$ basis, with the measurement outcomes being $1$ and $-1$, respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
+The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\{\ket{0},\ket{1}\}$ basis, with the measurement outcomes being $1$ and $-1$, respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
 
 Similarly, one can implement measurements corresponding to the Pauli X and Y operators. We summarize the various properties below:
 <table>
@@ -505,17 +502,17 @@ Joint measurements are a generalization of this principle for multi-qubit matric
 
 The simplest joint measurement is a parity measurement. A parity measurement treats computational basis vectors differently depending on whether the number of 1s in the basis vector is even or odd.
 
-For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\\{ |00\rangle, |11\rangle \\}$ and $\\{ |01\rangle, |10\rangle \\}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e., the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of 1s. On the other hand, a result of `One` corresponds to a post-measurement state with only computational basis vectors which have an odd number of 1s.
+For example, the operator $Z\otimes Z$, or $ZZ$ in short, is the parity measurement operator for a two-qubit system. The eigenvalues $1$ and $-1$ correspond to the subspaces spanned by basis vectors $\{ |00\rangle, |11\rangle \}$ and $\{ |01\rangle, |10\rangle \}$, respectively. That is, when a $ZZ$ measurement results in a `Zero` (i.e., the eigenvalue $+1$), the post-measurement state is a superposition of only those computational basis vectors which have an even number of 1s. On the other hand, a result of `One` corresponds to a post-measurement state with only computational basis vectors which have an odd number of 1s.
 
 > Let's see what happens to various two-qubit states after the parity measurement. The $Z \otimes Z$ matrix for two qubits is:
 >
 >$$
 Z \otimes Z =
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\ 
-    0 & -1 & 0 & 0 \\\ 
-    0 & 0 & -1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\ 
+    0 & -1 & 0 & 0 \\ 
+    0 & 0 & -1 & 0 \\ 
+    0 & 0 & 0 & 1 
 \end{bmatrix}
 $$
 >
@@ -523,13 +520,13 @@ $$
 >
 >$$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\ 
-    0 & -1 & 0 & 0 \\\ 
-    0 & 0 & -1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\ 
+    0 & -1 & 0 & 0 \\ 
+    0 & 0 & -1 & 0 \\ 
+    0 & 0 & 0 & 1 
 \end{bmatrix}
-\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}
 $$
 >
 >Comparing this to the characteristic equation for eigenvectors of $Z \otimes Z$ given by
@@ -542,13 +539,13 @@ it is easy to see that $|00\rangle$ belongs to the $+1$ eigenspace, hence the $Z
 >
 >$$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 \\\ 
-    0 & -1 & 0 & 0 \\\ 
-    0 & 0 & -1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 \\ 
+    0 & -1 & 0 & 0 \\ 
+    0 & 0 & -1 & 0 \\ 
+    0 & 0 & 0 & 1 
 \end{bmatrix}
-\begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix} =
-\begin{bmatrix} \alpha \\\ 0 \\\ 0 \\\ \beta \end{bmatrix}
+\begin{bmatrix} \alpha \\ 0 \\ 0 \\ \beta \end{bmatrix} =
+\begin{bmatrix} \alpha \\ 0 \\ 0 \\ \beta \end{bmatrix}
 $$
 >
 >So this state also belongs to the $+1$ eigenspace, and measuring it will return `Zero` and leave the state unchanged. Similarly, we can verify that an $\alpha |01\rangle + \beta |10\rangle$ state belongs to the $-1$ eigenspace, and measuring it will return `One` without changing the state.
@@ -570,7 +567,7 @@ Similarly, a parity measurement on a higher number of qubits can be implemented 
 })
 
 Joint measurement is a generalization of the measurement in the computational basis.
-Pauli measurements can also be generalized to a larger number of qubits. A multi-qubit Pauli measurement corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_i$ being from the set of gates $\\{X,Y,Z,I\\}$. If at least one of the operators is not the identity matrix, then the measurement can result in two outcomes: a `Result` of `Zero` corresponding to eigenvalue $+1$ and a `Result` of `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces.
+Pauli measurements can also be generalized to a larger number of qubits. A multi-qubit Pauli measurement corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_i$ being from the set of gates $\{X,Y,Z,I\}$. If at least one of the operators is not the identity matrix, then the measurement can result in two outcomes: a `Result` of `Zero` corresponding to eigenvalue $+1$ and a `Result` of `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces.
 
 For example, a Pauli/joint measurement corresponding to the $X\otimes Z$ operator can be characterized as follows:
 <table>
