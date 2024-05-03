@@ -19,3 +19,4 @@ export { ScatterChart } from "./scatterChart.js";
 export { EstimatesOverview } from "./estimatesOverview.js";
 export { EstimatesPanel } from "./estimatesPanel.js";
 export { Circuit, CircuitPanel } from "./circuit.js";
+export { setRenderer, Markdown } from "./renderers.js";

@@ -23,7 +23,7 @@ How can we do this?
 
 We can take advantage of controlled gates, specifically the [controlled NOT gate](https://en.wikipedia.org/wiki/Controlled_NOT_gate), also referred to as $CNOT$. This gate acts on two qubits, hence it is represented as a $4 \times 4$ unitary matrix. The $CNOT$ gate changes the target qubit from state $|0\rangle$ to $|1\rangle$ and vice versa when the control qubit is $|1\rangle$ and does nothing to the target qubit when the control qubit is $|0\rangle$. The control qubit always remains unchanged. 
 
-$$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$$
+$$\text{CNOT} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$$
 
 If we apply the CNOT gate to the state $\frac{1}{\sqrt2} (|00\rangle + |10\rangle)$, taking the first qubit as the control and the second one as target, we'll get exactly the desired goal state. 
  
@@ -33,18 +33,18 @@ Steps required to reach goal state:
 
 In matrix representation we can represent this operation as a product of two $4 \times 4$ matrices, with the matrix corresponding to the first step being the tensor product of a Hadamard gate on the first qubit and identity gate on the second qubit.
 
-$$H \otimes I = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 1  \\\ 1 & -1 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0  \\\ 0 & 1 \end{bmatrix} = 
-\frac{1}{\sqrt2}\begin{bmatrix} 1 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 1 \\\ 1 & 0 & -1 & 0 \\\ 0 & 1 & 0 & -1 \end{bmatrix}$$
+$$H \otimes I = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 1  \\ 1 & -1 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0  \\ 0 & 1 \end{bmatrix} = 
+\frac{1}{\sqrt2}\begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 0 & -1 & 0 \\ 0 & 1 & 0 & -1 \end{bmatrix}$$
 
-$$\underset{\text{CNOT}}{\underbrace{\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}}} 
+$$\underset{\text{CNOT}}{\underbrace{\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}}} 
 \cdot 
-\underset{H \otimes I}{\underbrace{\frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 1 \\\ 1 & 0 & -1 & 0 \\\ 0 & 1 & 0 & -1 \end{bmatrix}}}
+\underset{H \otimes I}{\underbrace{\frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 0 & -1 & 0 \\ 0 & 1 & 0 & -1 \end{bmatrix}}}
 \cdot
-\underset{|0\rangle}{\underbrace{ \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}}}
-= \frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 1 \\\ 0 & 1 & 0 & -1 \\\ 1 & 0 & -1 & 0 \end{bmatrix}
+\underset{|0\rangle}{\underbrace{ \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}}}
+= \frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 0 & 1 & 0 & -1 \\ 1 & 0 & -1 & 0 \end{bmatrix}
 \cdot
-\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}
-= \underset{goal}{\underbrace{ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}}}
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}
+= \underset{goal}{\underbrace{ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}}}
 \label{6.1} \tag{6.1}
 $$
 

@@ -420,17 +420,17 @@ fn check_rca_for_function_cycle_within_call_input() {
                     dynamic_param_applications:
                         [0]: [Parameter Type Element] Quantum: QuantumProperties:
                             runtime_features: RuntimeFeatureFlags(CallToCyclicFunctionWithDynamicArg)
-                            value_kind: Array(Content: Dynamic, Size: Dynamic)
+                            value_kind: Array(Content: Dynamic, Size: Static)
                         [1]: [Parameter Type Array] ArrayParamApplication:
                             static_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(CallToCyclicFunctionWithDynamicArg)
-                                value_kind: Array(Content: Dynamic, Size: Dynamic)
+                                value_kind: Array(Content: Dynamic, Size: Static)
                             dynamic_content_static_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(CallToCyclicFunctionWithDynamicArg)
-                                value_kind: Array(Content: Dynamic, Size: Dynamic)
+                                value_kind: Array(Content: Dynamic, Size: Static)
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(CallToCyclicFunctionWithDynamicArg)
-                                value_kind: Array(Content: Dynamic, Size: Dynamic)
+                                value_kind: Array(Content: Dynamic, Size: Static)
                 adj: <none>
                 ctl: <none>
                 ctl-adj: <none>"#
@@ -787,7 +787,7 @@ fn check_rca_for_operation_body_adj_recursion() {
             body ... {
                 Adjoint Foo(q);
             }
-            adjoint ... { 
+            adjoint ... {
                 Foo(q);
             }
         }"#,
@@ -830,7 +830,7 @@ fn check_rca_for_operation_body_ctl_recursion() {
             body ... {
                 Controlled Foo([], q);
             }
-            controlled (_, ...) { 
+            controlled (_, ...) {
                 Foo(q);
             }
         }"#,
@@ -873,7 +873,7 @@ fn check_rca_for_operation_multi_controlled_functor_recursion() {
             body ... {
                 Controlled Controlled Foo([], ([], q));
             }
-            controlled (_, ...) { 
+            controlled (_, ...) {
                 Foo(q);
             }
         }"#,
