@@ -161,7 +161,7 @@ impl Lowerer {
                 fir::ItemKind::Namespace(name, items)
             }
             hir::ItemKind::Callable(callable) => {
-                let callable = self.lower_callable_decl(callable);
+                let callable = self.lower_callable_decl(callable, &item.attrs);
 
                 fir::ItemKind::Callable(callable)
             }
@@ -184,7 +184,11 @@ impl Lowerer {
         }
     }
 
-    fn lower_callable_decl(&mut self, decl: &hir::CallableDecl) -> fir::CallableDecl {
+    fn lower_callable_decl(
+        &mut self,
+        decl: &hir::CallableDecl,
+        attrs: &[hir::Attr],
+    ) -> fir::CallableDecl {
         self.assigner.stash_local();
         let locals = self.locals.drain().collect::<Vec<_>>();
 
@@ -201,6 +205,9 @@ impl Lowerer {
                 "intrinsic callables should not have specializations"
             );
             CallableImpl::Intrinsic
+        } else if attrs.contains(&hir::Attr::CodeGenIntrinsic) {
+            let body = self.lower_spec_decl(&decl.body);
+            CallableImpl::CodeGenIntrinsic(body)
         } else {
             let body = self.lower_spec_decl(&decl.body);
             let adj = decl.adj.as_ref().map(|f| self.lower_spec_decl(f));
@@ -789,7 +796,13 @@ fn lower_generics(generics: &[qsc_hir::ty::GenericParam]) -> Vec<qsc_fir::ty::Ge
 }
 
 fn lower_attrs(attrs: &[hir::Attr]) -> Vec<fir::Attr> {
-    attrs.iter().map(|_| fir::Attr::EntryPoint).collect()
+    attrs
+        .iter()
+        .filter_map(|attr| match attr {
+            hir::Attr::EntryPoint => Some(fir::Attr::EntryPoint),
+            hir::Attr::CodeGenIntrinsic | hir::Attr::Unimplemented | hir::Attr::Config => None,
+        })
+        .collect()
 }
 
 fn lower_functors(functors: qsc_hir::ty::FunctorSetValue) -> qsc_fir::ty::FunctorSetValue {

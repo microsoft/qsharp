@@ -2124,3 +2124,100 @@ fn op_array_unsupported_functors_with_lambdas() {
         "#]],
     );
 }
+
+#[test]
+fn codegen_intrinsic_succeeds_with_no_specializations() {
+    check(
+        indoc! {r#"
+            namespace A {
+                @CodeGenIntrinsic()
+                operation Foo(q : Qubit) : Unit {
+                    Bar(q);
+                }
+                operation Bar(q : Qubit) : Unit { }
+            }
+        "#},
+        &expect![[r#"
+            Package:
+                Item 0 [0-139] (Public):
+                    Namespace (Ident 16 [10-11] "A"): Item 1, Item 2
+                Item 1 [18-97] (Public):
+                    Parent: 0
+                    CodeGenIntrinsic
+                    Callable 0 [42-97] (operation):
+                        name: Ident 1 [52-55] "Foo"
+                        input: Pat 2 [56-65] [Type Qubit]: Bind: Ident 3 [56-57] "q"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 4 [42-97]: Impl:
+                            Block 5 [74-97] [Type Unit]:
+                                Stmt 6 [84-91]: Semi: Expr 7 [84-90] [Type Unit]: Call:
+                                    Expr 8 [84-87] [Type (Qubit => Unit)]: Var: Item 2
+                                    Expr 9 [88-89] [Type Qubit]: Var: Local 3
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>
+                Item 2 [102-137] (Public):
+                    Parent: 0
+                    Callable 10 [102-137] (operation):
+                        name: Ident 11 [112-115] "Bar"
+                        input: Pat 12 [116-125] [Type Qubit]: Bind: Ident 13 [116-117] "q"
+                        output: Unit
+                        functors: empty set
+                        body: SpecDecl 14 [102-137]: Impl:
+                            Block 15 [134-137]: <empty>
+                        adj: <none>
+                        ctl: <none>
+                        ctl-adj: <none>"#]],
+    );
+}
+
+#[test]
+fn codegen_intrinsic_fails_with_adj_specialization() {
+    check(
+        indoc! {r#"
+            namespace A {
+                @CodeGenIntrinsic()
+                operation Foo(q : Qubit) : Unit is Adj {
+                    Bar(q);
+                }
+                operation Bar(q : Qubit) : Unit { }
+            }
+        "#},
+        &expect![[r#"
+            [
+                CodeGenIntrinsic(
+                    Span {
+                        lo: 42,
+                        hi: 104,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}
+
+#[test]
+fn codegen_intrinsic_fails_with_ctl_specialization() {
+    check(
+        indoc! {r#"
+            namespace A {
+                @CodeGenIntrinsic()
+                operation Foo(q : Qubit) : Unit is Ctl {
+                    Bar(q);
+                }
+                operation Bar(q : Qubit) : Unit { }
+            }
+        "#},
+        &expect![[r#"
+            [
+                CodeGenIntrinsic(
+                    Span {
+                        lo: 42,
+                        hi: 104,
+                    },
+                ),
+            ]
+        "#]],
+    );
+}

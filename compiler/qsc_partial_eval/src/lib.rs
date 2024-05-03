@@ -736,7 +736,7 @@ impl<'a> PartialEvaluator<'a> {
         // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
         // with an implementation.
         let value = match &callable_decl.implementation {
-            CallableImpl::Intrinsic => {
+            CallableImpl::Intrinsic | CallableImpl::CodeGenIntrinsic(_) => {
                 let callee_expr = self.get_expr(callee_expr_id);
                 self.eval_expr_call_to_intrinsic(
                     store_item_id,

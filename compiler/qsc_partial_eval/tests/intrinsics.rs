@@ -1031,3 +1031,35 @@ fn call_to_length_in_inner_function_succeeds() {
                 Return"#]],
     );
 }
+
+#[test]
+fn call_to_operation_with_codegen_intrinsic_override_should_skip_impl() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op1() : Unit {
+                body intrinsic;
+            }
+            @CodeGenIntrinsic()
+            operation Op2() : Unit {
+                Op1();
+            }
+            operation Op3() : Unit {
+                Op1();
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                Op1();
+                Op2();
+                Op3();
+            }
+        }
+    "});
+
+    assert_block_instructions(&program, BlockId(0), &expect![[r#"
+        Block:
+            Call id(1), args( )
+            Call id(2), args( )
+            Call id(1), args( )
+            Call id(3), args( Integer(0), Pointer, )
+            Return"#]]);
+}
