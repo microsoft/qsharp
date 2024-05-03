@@ -1,7 +1,6 @@
 namespace Kata {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
-    open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
     operation DeutschAlgorithmDemo () : Unit {

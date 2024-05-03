@@ -46,7 +46,7 @@ The final sequence of steps is as follows:
 
 #### Solution 2
 
-Let's take a closer look at the unitary transformation $\text{CNOT}\cdot(H \otimes I)$ discussed in task 6 (see equation 6.1).
+Let's take a closer look at the unitary transformation $\text{CNOT}\cdot(H \otimes I)$ discussed in the previous task.
 
 $$\frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 0 & 1 & 0 & -1 \\ \underset{|\Phi^{+}\rangle}{\underbrace{1}} & \underset{|\Psi^{+}\rangle}{\underbrace{0}} & \underset{|\Phi^{-}\rangle}{\underbrace{-1}} & \underset{|\Psi^{-}\rangle}{\underbrace{0}} \end{bmatrix}$$
 

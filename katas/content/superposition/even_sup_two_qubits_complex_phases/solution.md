@@ -7,7 +7,6 @@ $$
 $$
 = \big(|0\rangle - |1\rangle\big) |0\rangle + \big(|0\rangle - |1\rangle\big) i|1\rangle
 = \big(|0\rangle - |1\rangle\big) \otimes \big(|0\rangle + i|1\rangle\big)
-\label{5.1} \tag{5.1}
 $$
 
 The fact that we were able to factor out the state into a tensor product of two terms means the state is separable.
@@ -18,23 +17,20 @@ As we've seen in the previous task, applying a Hadamard operation to each $|0\ra
 $$
 H|0\rangle \otimes H|0\rangle = \frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big) \otimes \frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big)
 =\frac{1}{2} \big(|0\rangle + |1\rangle\big) \otimes \big(|0\rangle + |1\rangle\big) 
-\label{5.2} \tag{5.2}
 $$
 
-If we compare equations 5.1 and 5.2 (while ignoring the $\frac{1}{2}$ term in equation 5.2), we end up with the following transformations that we need to perform on the individual qubits:
+If we compare these two equations (while ignoring the $\frac{1}{2}$ term in the second equation), we end up with the following transformations that we need to perform on the individual qubits:
 
 $$
 |0\rangle + |1\rangle \overset{???}\rightarrow |0\rangle - |1\rangle
-\label{5.3} \tag{5.3}
 $$
 
 $$
 |0\rangle + |1\rangle \overset{???}\rightarrow |0\rangle + i|1\rangle
-\label{5.4} \tag{5.4}
 $$
 
 
-Next lets take a look at our basic gates, in particular the Pauli Z gate:
+Next lets take a look at our basic gates, in particular the Pauli $Z$ gate:
 
 $$Z = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$$
 
@@ -42,9 +38,9 @@ If it is applied to the state $\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big)$
 
 $$Z\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big) = \frac{1}{\sqrt2} \big(|0\rangle - |1\rangle\big)$$
 
-So the Z gate is the answers to the question of how to do the conversion 5.3. 
+So the $Z$ gate is the answer to the question of how to do the first transformation. 
 
-Looking for another gate to address the conversion 5.4, we find the S gate:
+Looking for another gate to address the second transformation, we find the $S$ gate:
 
 $$S = \begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}$$ 
 
@@ -52,7 +48,7 @@ If it is applied to the state $\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big)$
 
 $$S\frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big) = \frac{1}{\sqrt2} \big(|0\rangle + i|1\rangle\big)$$
 
-So the S gate now answers the question of how to do the conversion 5.4.
+So the $S$ gate now answers the question of how to do the second transformation.
 
 To summarize, the state we need to prepare can be represented as follows:
 $$ZH|0\rangle \otimes SH|0\rangle$$

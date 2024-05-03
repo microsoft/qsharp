@@ -45,7 +45,6 @@ $$\underset{\text{CNOT}}{\underbrace{\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 
 \cdot
 \begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}
 = \underset{goal}{\underbrace{ \frac{1}{\sqrt2} \begin{bmatrix} 1 \\ 0 \\ 0 \\ 1 \end{bmatrix}}}
-\label{6.1} \tag{6.1}
 $$
 
 Note that in the matrix representation and in Dirac notation the gates are applied from right to left (the rightmost operation happens firts), while in circuit notation the operations are applied from left to right (the leftmost operation happens first).
