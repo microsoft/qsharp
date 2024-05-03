@@ -330,7 +330,7 @@ impl Default for Env {
 
 impl Env {
     #[must_use]
-    fn get(&self, id: LocalVarId) -> Option<&Variable> {
+    pub fn get(&self, id: LocalVarId) -> Option<&Variable> {
         self.0.iter().rev().find_map(|scope| scope.bindings.get(id))
     }
 
@@ -541,7 +541,6 @@ impl State {
         step: StepAction,
     ) -> Result<StepResult, (Error, Vec<Frame>)> {
         let current_frame = self.call_stack.len();
-
         while !self.exec_graph_stack.is_empty() {
             let exec_graph = self
                 .exec_graph_stack
@@ -686,7 +685,6 @@ impl State {
     ) -> Result<(), Error> {
         let expr = globals.get_expr((self.package, expr).into());
         self.current_span = expr.span;
-
         match &expr.kind {
             ExprKind::Array(arr) => self.eval_arr(arr.len()),
             ExprKind::ArrayLit(arr) => self.eval_arr_lit(arr, globals),
