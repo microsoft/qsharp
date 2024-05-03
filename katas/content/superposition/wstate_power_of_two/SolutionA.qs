@@ -1,5 +1,5 @@
 namespace Kata {
-    operation WState_PowerOfTwo (qs : Qubit[]) : Unit is Adj+Ctl {
+    operation WState_PowerOfTwo (qs : Qubit[]) : Unit is Adj + Ctl {
         let N = Length(qs);
 
         if N == 1 {

@@ -1,6 +1,6 @@
 **Inputs:** 
 
-1. $N$ ($N \ge 1$) qubits in the $|0 \dots 0\rangle$ state (stored in an array of length $N$).
+1. $N$ ($N \ge 1$) qubits in the $|0 \dots 0\rangle$ state.
 2. A boolean `isEven`.
 
 **Goal:**  Prepare a superposition of all *even* numbers if `isEven` is `true`, or of all *odd* numbers if `isEven` is `false`.  
