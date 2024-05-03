@@ -398,7 +398,7 @@ impl<'a> PartialEvaluator<'a> {
             // Handle short-circuiting for logical AND and logical OR.
             (BinOp::AndL, false) => Value::Bool(false),
             (BinOp::OrL, true) => Value::Bool(true),
-            // The other possible cases
+            // The other possible cases.
             (BinOp::AndL | BinOp::OrL, _) => {
                 // Try to evaluate the RHS expression to get its value.
                 let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
@@ -559,7 +559,8 @@ impl<'a> PartialEvaluator<'a> {
             Err((error, _)) => Err(Error::EvaluationFailed(error.to_string(), expr.span)),
         };
 
-        //
+        // If this was an assign expression, update the bindings in the hybrid side to keep them in sync and to insert
+        // store instructions if needed.
         if let Ok(EvalControlFlow::Continue(_)) = eval_result {
             let expr = self.get_expr(expr_id);
             if let ExprKind::Assign(lhs_expr_id, _) = &expr.kind {
@@ -1541,13 +1542,14 @@ impl<'a> PartialEvaluator<'a> {
             .get_current_scope()
             .get_hybrid_local_value(local_var_id);
         if let Value::Var(var) = bound_value {
-            //
+            // Insert a store instruction when the value of a variable is updated.
             let rhs_operand = map_eval_value_to_rir_operand(&value);
             let rir_var = map_eval_var_to_rir_var(*var);
             let store_ins = Instruction::Store(rhs_operand, rir_var);
             self.get_current_rir_block_mut().0.push(store_ins);
         } else {
-            //
+            // Verify that we are not updating a value that does not have a backing variable from a dynamic branch
+            // because it is unsupported.
             if self
                 .eval_context
                 .get_current_scope()
