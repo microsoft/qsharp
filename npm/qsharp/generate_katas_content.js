@@ -20,7 +20,9 @@ import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import mdit from "markdown-it";
-const md = mdit("commonmark").disable(["escape"]);
+import { plugin } from "./markdown_latex_plugin.js";
+const md = mdit("commonmark");
+md.use(plugin);
 
 // Set up the Markdown renderer with KaTeX support for validation
 import mk from "@vscode/markdown-it-katex";
