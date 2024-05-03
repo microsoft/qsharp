@@ -25,8 +25,6 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
           <tr>
             <th>
               Basis State
-              <br />
-              (|𝜓₁…𝜓ₙ⟩)
             </th>
             <th>Amplitude</th>
             <th>Measurement Probability</th>
