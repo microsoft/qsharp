@@ -3121,3 +3121,136 @@ fn export_udt() {
         "#]],
     );
 }
+
+#[test]
+fn import_single_item() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                function item1() : Unit {}
+            }
+            namespace namespace8 {
+                import item1;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_namespace() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                function Baz() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar.Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                function item1() : Unit {}
+            }
+            namespace namespace8 {
+                import namespace7;
+                operation item3() : Unit {
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_non_existent_item() {
+    check(
+        indoc! {"
+            namespace Foo {
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+            }
+            namespace namespace8 {
+                import Foo.Bar;
+                operation item2() : Unit {
+                    Bar();
+                }
+            }
+
+            // NotFound("Foo.Bar", Span { lo: 60, hi: 67 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_shadowing() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Main {
+                function Bar() : Unit {}
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            // ConflictingImportSymbolAlreadyExists
+        "#]],
+    );
+}
+
+#[test]
+fn import_with_alias() {
+    check(
+        indoc! {"
+            namespace Foo {
+                function Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar as Baz;
+                operation Main() : Unit {
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                function item1() : Unit {}
+            }
+            namespace namespace8 {
+                import item1 as Baz;
+                operation item3() : Unit {
+                    Baz();
+                }
+            }
+        "#]],
+    );
+}
