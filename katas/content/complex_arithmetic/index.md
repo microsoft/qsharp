@@ -86,7 +86,7 @@ Let's see how to do the main arithmetic operations on complex numbers.
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_multiplication", 
-    "title": "Multuply Complex Numbers", 
+    "title": "Multiply Complex Numbers", 
     "path": "./complex_multiplication/", 
     "qsDependencies": [ 
         "./Common.qs"
