@@ -1,6 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
-    
     operation DeutschAlgorithm (oracle : Qubit => Unit) : Bool {
         use x = Qubit();
         H(x);

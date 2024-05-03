@@ -1,6 +1,5 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Diagnostics;
-    open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Katas;
 
     operation QubitSwap (qs : Qubit[], index1 : Int, index2 : Int) : Unit is Adj + Ctl {
