@@ -1,7 +1,7 @@
 Here we start with the end state of the previous task $\frac{1}{2} \big(|00\rangle + |01\rangle + |10\rangle + |11\rangle\big)$. Looking at the desired state, the phase of the $|11\rangle$ state is flipped ($+$ changed to a $-$).
 
 A regular phase flip on one qubit can be done using a Z gate:
-$$\begin{bmatrix} 1 & 0 \\\ 0 & -1 \end{bmatrix}$$
+$$\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$$
 This gate will perform a phase flip only on the $|1\rangle$ state:
 
 $$Z(\alpha|0\rangle + \beta|1\rangle) = \alpha|0\rangle - \beta|1\rangle$$

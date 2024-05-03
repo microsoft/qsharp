@@ -2,21 +2,21 @@
 In vector form the transformation we need is:
 
 $$
-\begin{bmatrix}\color{blue}\alpha\\\ \color{blue}\beta\\\ \gamma\\\ \delta\\\ \end{bmatrix}
+\begin{bmatrix}\color{blue}\alpha\\ \color{blue}\beta\\ \gamma\\ \delta \end{bmatrix}
 \rightarrow
-\begin{bmatrix} \color{red}\beta\\\ \color{red}\alpha\\\ \gamma\\\ \delta\\\ \end{bmatrix}
+\begin{bmatrix} \color{red}\beta\\ \color{red}\alpha\\ \gamma\\ \delta \end{bmatrix}
 $$
 
 This can be represented by a matrix:
 $$
-U = \begin{bmatrix}0 & 1 & 0 & 0\\\ 1 & 0 & 0 & 0\\\ 0 & 0 & 1 & 0\\\ 0 & 0 & 0 & 1\\\ \end{bmatrix}
+U = \begin{bmatrix}0 & 1 & 0 & 0\\ 1 & 0 & 0 & 0\\ 0 & 0 & 1 & 0\\ 0 & 0 & 0 & 1 \end{bmatrix}
 $$
 
 We remember a two-qubit gate with a similar matrix representation - the $CNOT$ gate:
 
 $$
 CNOT = 
- \begin{bmatrix}1 & 0 & 0 & 0\\\ 0 & 1 & 0 & 0\\\ 0 & 0 & 0 & 1\\\ 0 & 0 & 1 & 0\\\ \end{bmatrix}
+ \begin{bmatrix}1 & 0 & 0 & 0\\ 0 & 1 & 0 & 0\\ 0 & 0 & 0 & 1\\ 0 & 0 & 1 & 0 \end{bmatrix}
 $$
 
 We need a way to transform the $CNOT$ gate into the unitary transformation represented by $U$.   
@@ -27,13 +27,13 @@ We validate that composition of $I \otimes X$ and the $CNOT$ gate produces the r
 $$
  (I \otimes X)\cdot CNOT =  
  \left(
-\begin{bmatrix}1 & 0 \\\  0 & 1 \\\ \end{bmatrix}\otimes
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \\\ \end{bmatrix}
+\begin{bmatrix}1 & 0 \\  0 & 1 \end{bmatrix}\otimes
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
 \right) \cdot
-\begin{bmatrix}1 & 0 & 0 & 0\\\ 0 & 1 & 0 & 0\\\ 0 & 0 & 0 & 1\\\ 0 & 0 & 1 & 0\\\ \end{bmatrix}=
-\begin{bmatrix}0 & 1 & 0 & 0\\\ 1 & 0 & 0 & 0\\\ 0 & 0 & 0 & 1\\\ 0 & 0 & 1 & 0\\\ \end{bmatrix}
-\begin{bmatrix} 1 & 0 & 0 & 0\\\ 0 & 1 & 0 & 0\\\ 0 & 0 & 0 & 1\\\ 0 & 0 & 1 & 0\\\ \end{bmatrix}=
-\begin{bmatrix} 0 & 1 & 0 & 0\\\ 1 & 0 & 0 & 0\\\ 0 & 0 & 1 & 0\\\ 0 & 0 & 0 & 1\\\ \end{bmatrix}=
+\begin{bmatrix}1 & 0 & 0 & 0\\ 0 & 1 & 0 & 0\\ 0 & 0 & 0 & 1\\ 0 & 0 & 1 & 0 \end{bmatrix}=
+\begin{bmatrix}0 & 1 & 0 & 0\\ 1 & 0 & 0 & 0\\ 0 & 0 & 0 & 1\\ 0 & 0 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 & 0 & 0 & 0\\ 0 & 1 & 0 & 0\\ 0 & 0 & 0 & 1\\ 0 & 0 & 1 & 0 \end{bmatrix}=
+\begin{bmatrix} 0 & 1 & 0 & 0\\ 1 & 0 & 0 & 0\\ 0 & 0 & 1 & 0\\ 0 & 0 & 0 & 1 \end{bmatrix}=
 U
 $$
 

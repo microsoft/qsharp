@@ -1,6 +1,6 @@
 When you start learning the basic quantum gates, one of the first gates described will be the Hadamard gate:
 
-$$H = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix}$$
+$$H = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$$
 
 This gate converts $|0\rangle$ into $|+\rangle = \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big)$ and $|1\rangle$ into $|−\rangle = \frac{1}{\sqrt{2}} \big(|0\rangle - |1\rangle\big)$.  The first of these transformations is exactly the one we're looking for!
 

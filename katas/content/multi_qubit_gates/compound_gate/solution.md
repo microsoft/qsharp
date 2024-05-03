@@ -2,8 +2,8 @@ One way to represent a multi-qubit transformation is to use the tensor product o
 
 $$
 Z \otimes X =
-\begin{bmatrix} 1 & 0 \\\ 0 & -1 \end{bmatrix} \otimes \begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} =
-\begin{bmatrix} 0 & 1 & 0 & 0 \\\ 1 & 0 & 0 & 0 \\\ 0 & 0 & 0 & -1 \\\ 0 & 0 & -1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix} \otimes \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 & 0 & 0 \\ 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & -1 \\ 0 & 0 & -1 & 0 \end{bmatrix}
 $$
 
 With this in mind, let's see how to reverse engineer the target matrix above to find the 3 gates which, acting on individual qubits, together form the target transformation.
@@ -12,21 +12,21 @@ Start by noticing that the top right and bottom left quadrants of the target mat
 
 $$
 Q =
-\begin{bmatrix} 1 & 0 \\\ 0 & i \end{bmatrix} \otimes
+\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix} \otimes
 \begin{bmatrix}
-    0 & -i & 0 & 0 \\\ 
-    i & 0 & 0 & 0  \\\ 
-    0 & 0 & 0 & -i \\\ 
+    0 & -i & 0 & 0 \\ 
+    i & 0 & 0 & 0  \\ 
+    0 & 0 & 0 & -i \\ 
     0 & 0 & i & 0 
 \end{bmatrix} =
 \begin{bmatrix}
-    0 & -i & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    i & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & -i & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & i & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    0 & -i & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    i & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & -i & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & i & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & -1 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 
     0 & 0 & 0 & 0 & 0 & 0 & -1 & 0
 \end{bmatrix}
 $$
@@ -35,8 +35,8 @@ Now the $4 \times 4$ matrix has all $0$s in the top right and bottom left quadra
 
 $$
 Q =
-\begin{bmatrix} 1 & 0 \\\ 0 & i \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\\ 0 & 1 \end{bmatrix} \otimes
-\begin{bmatrix} 0 & -i \\\ i & 0 \end{bmatrix} = S \otimes I \otimes Y
+\begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} \otimes
+\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix} = S \otimes I \otimes Y
 $$
 
 @[solution]({
