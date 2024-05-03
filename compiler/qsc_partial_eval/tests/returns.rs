@@ -855,7 +855,6 @@ fn explicit_return_embedded_in_array_repeat_expr_yields_error() {
     );
 }
 
-#[ignore = "WIP"]
 #[test]
 fn explicit_return_embedded_in_assign_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
@@ -869,10 +868,11 @@ fn explicit_return_embedded_in_assign_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Assignment Expr", Span { lo: 165, hi: 185 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in assign expression", Span { lo: 173, hi: 185 })"#
+        ]],
     );
 }
 
@@ -933,7 +933,7 @@ fn explicit_return_embedded_in_assign_op_expr_yields_error() {
     // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Assignment Op Expr", Span { lo: 162, hi: 183 })"#]],
+        &expect![[r#"Unimplemented("integer binary operation", Span { lo: 166, hi: 167 })"#]],
     );
 }
 

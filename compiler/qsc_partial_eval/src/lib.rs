@@ -284,6 +284,119 @@ impl<'a> PartialEvaluator<'a> {
         Ok(self.program)
     }
 
+    fn eval_bin_op(
+        &mut self,
+        bin_op: BinOp,
+        lhs_expr_id: ExprId,
+        rhs_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        // Try to evaluate the LHS expression, short-circuiting execution if it is a return.
+        let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
+        let EvalControlFlow::Continue(lhs_value) = lhs_control_flow else {
+            let lhs_expr = self.get_expr(lhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in binary operation expression".to_string(),
+                lhs_expr.span,
+            ));
+        };
+
+        //
+        match lhs_value {
+            Value::Array(lhs_array) => {
+                // Try to evaluate the RHS expression to get its value.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(Value::Array(rhs_array)) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "expected array value from LHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+
+                // Concatenate the arrays.
+                assert!(
+                    matches!(bin_op, BinOp::Add),
+                    "the only supported binary operation for arrays is addition"
+                );
+                let concatenated_array: Vec<Value> =
+                    lhs_array.iter().chain(rhs_array.iter()).cloned().collect();
+                let array_value = Value::Array(concatenated_array.into());
+                Ok(EvalControlFlow::Continue(array_value))
+            }
+            Value::Bool(lhs_bool) => {
+                // Handle short-circuiting.
+                let value = match (bin_op, lhs_bool) {
+                    (BinOp::AndL, false) => Value::Bool(false),
+                    (BinOp::OrL, true) => Value::Bool(true),
+                    (BinOp::AndL | BinOp::OrL, _) => {
+                        let bin_op_variable_id = self.resource_manager.next_var();
+                        let bin_op_rir_variable = rir::Variable {
+                            id: bin_op_variable_id,
+                            ty: rir::Ty::Boolean,
+                        };
+
+                        // Try to evaluate the RHS expression to get its value.
+                        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                        let EvalControlFlow::Continue(Value::Var(rhs_eval_var)) = rhs_control_flow
+                        else {
+                            let rhs_expr = self.get_expr(rhs_expr_id);
+                            return Err(Error::Unexpected(
+                                "expected bool var from LHS expression".to_string(),
+                                rhs_expr.span,
+                            ));
+                        };
+                        let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
+                        let rhs_operand = Operand::Variable(map_eval_var_to_rir_var(rhs_eval_var));
+                        let bin_op_ins = match bin_op {
+                            BinOp::AndL => Instruction::LogicalAnd(
+                                lhs_operand,
+                                rhs_operand,
+                                bin_op_rir_variable,
+                            ),
+                            BinOp::OrL => Instruction::LogicalOr(
+                                lhs_operand,
+                                rhs_operand,
+                                bin_op_rir_variable,
+                            ),
+                            _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
+                        };
+                        self.get_current_rir_block_mut().0.push(bin_op_ins);
+                        Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable))
+                    }
+                    _ => {
+                        let lhs_expr = self.get_expr(lhs_expr_id);
+                        return Err(Error::Unexpected(
+                            format!("unsupported bool binary operation pattern: BIN_OP = {bin_op:?}, LHS = {lhs_bool}"),
+                            lhs_expr.span,
+                        ));
+                    }
+                };
+                Ok(EvalControlFlow::Continue(value))
+            }
+            Value::Int(_lhs_int) => {
+                let lhs_expr = self.get_expr(lhs_expr_id);
+                Err(Error::Unimplemented(
+                    "integer binary operation".to_string(),
+                    lhs_expr.span,
+                ))
+            }
+            Value::Var(_lhs_eval_var) => {
+                let lhs_expr = self.get_expr(lhs_expr_id);
+                Err(Error::Unimplemented(
+                    "LHS variable binary operation".to_string(),
+                    lhs_expr.span,
+                ))
+            }
+            _ => {
+                let lhs_expr = self.get_expr(lhs_expr_id);
+                Err(Error::Unexpected(
+                    format!("unsupported LHS value: {lhs_value}"),
+                    lhs_expr.span,
+                ))
+            }
+        }
+    }
+
     fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
         let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
@@ -349,10 +462,9 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::AssignIndex(array_expr_id, index_expr_id, replace_expr_id) => {
                 self.eval_expr_assign_index(*array_expr_id, *index_expr_id, *replace_expr_id)
             }
-            ExprKind::AssignOp(_, _, _) => Err(Error::Unimplemented(
-                "Assignment Op Expr".to_string(),
-                expr.span,
-            )),
+            ExprKind::AssignOp(bin_op, lhs_expr_id, rhs_expr_id) => {
+                self.eval_expr_assign_op(*bin_op, *lhs_expr_id, *rhs_expr_id)
+            }
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
                 self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
             }
@@ -453,12 +565,14 @@ impl<'a> PartialEvaluator<'a> {
         index_expr_id: ExprId,
         replace_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        // Try to evaluate the array, index and replace expressions to get their value, short-circuiting execution if
-        // any of the expressions is a return.
+        // Get the value of the array expression to use it as the basis to perform a replacement on.
         let array_control_flow = self.try_eval_expr(array_expr_id)?;
         let EvalControlFlow::Continue(array_value) = array_control_flow else {
             panic!("the array in sub-expression in an assign index expression is not expected to contain an embedded return");
         };
+
+        // Try to evaluate the index and replace expressions to get their value, short-circuiting execution if any of
+        // the expressions is a return.
         let index_control_flow = self.try_eval_expr(index_expr_id)?;
         let EvalControlFlow::Continue(index_value) = index_control_flow else {
             let index_expr = self.get_expr(index_expr_id);
@@ -484,6 +598,20 @@ impl<'a> PartialEvaluator<'a> {
         let mut array = (*array_value.unwrap_array()).clone();
         let _ = std::mem::replace(&mut array[index], replace_value);
         self.update_hybrid_bindings(array_expr_id, Value::Array(array.into()))?;
+        Ok(EvalControlFlow::Continue(Value::unit()))
+    }
+
+    fn eval_expr_assign_op(
+        &mut self,
+        bin_op: BinOp,
+        lhs_expr_id: ExprId,
+        rhs_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        let bin_op_control_flow = self.eval_bin_op(bin_op, lhs_expr_id, rhs_expr_id)?;
+        let EvalControlFlow::Continue(bin_op_value) = bin_op_control_flow else {
+            panic!("evaluating a binary operation is expected to return an error or a continue, never a return");
+        };
+        self.update_hybrid_bindings(lhs_expr_id, bin_op_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
