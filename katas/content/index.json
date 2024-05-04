@@ -9,6 +9,7 @@
   "superposition",
   "single_qubit_measurements",
   "multi_qubit_measurements",
+  "superdense_coding",
   "random_numbers",
   "oracles",
   "deutsch_algo",
