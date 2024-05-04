@@ -545,7 +545,7 @@ impl<'a> PartialEvaluator<'a> {
         let EvalControlFlow::Continue(size) = size_control_flow else {
             let size_expr = self.get_expr(size_expr_id);
             return Err(Error::Unexpected(
-                "embedded return in array".to_string(),
+                "embedded return in array size".to_string(),
                 size_expr.span,
             ));
         };
