@@ -1,5 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
     operation RandomTwoBits() : Int {
         return 2 * RandomBit() + RandomBit();
     }

@@ -2,8 +2,6 @@ namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Convert;
-    open Microsoft.Quantum.Canon;
-    open Microsoft.Quantum.Intrinsic;
 
 
     operation GlobalPhaseChange (q : Qubit) : Unit is Adj + Ctl {

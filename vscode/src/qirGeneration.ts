@@ -34,7 +34,7 @@ export async function getQirForActiveWindow(): Promise<string> {
   const targetProfile = getTarget();
   const enablePreviewQirGen = getEnablePreviewQirGen();
   if (targetProfile !== "base") {
-    const allowed = targetProfile === "quantinuum" && enablePreviewQirGen;
+    const allowed = targetProfile === "adaptive_ri" && enablePreviewQirGen;
     if (!allowed) {
       const result = await vscode.window.showWarningMessage(
         "Submitting to Azure is only supported when targeting the QIR base profile.",

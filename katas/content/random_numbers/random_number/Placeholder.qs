@@ -1,6 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
-
     operation RandomNumberInRange(min : Int, max : Int) : Int {
         // Implement your solution here...
 

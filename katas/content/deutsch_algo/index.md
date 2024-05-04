@@ -24,7 +24,7 @@ This kata introduces you to Deutsch algorithm - the single-qubit variant of Deut
     "title": "The Problem"
 })
 
-You are given a classical function that takes one bit as an input and returns one bit: $f(x): \\{0, 1\\} \to \\{0, 1\\}$. You are guaranteed that the function $f$ is
+You are given a classical function that takes one bit as an input and returns one bit: $f(x): \{0, 1\} \to \{0, 1\}$. You are guaranteed that the function $f$ is
 
 - either *constant* (returns the same value for all inputs) 
 - or *variable* (returns different values for different inputs). 

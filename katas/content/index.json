@@ -6,11 +6,13 @@
   "single_qubit_gates",
   "multi_qubit_systems",
   "multi_qubit_gates",
+  "superposition",
   "single_qubit_measurements",
   "multi_qubit_measurements",
   "random_numbers",
   "oracles",
   "deutsch_algo",
   "deutsch_jozsa",
-  "teleportation"
+  "teleportation",
+  "qec_shor"
 ]
