@@ -10,7 +10,7 @@ namespace Microsoft.Quantum.Katas {
     /// # Summary
     /// Given two operations, checks whether they act identically for all input states.
     /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
-    operation CheckOperationsEquivalence(
+    operation CheckOperationsAreEqual(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
         inputSize : Int)
@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.Katas {
     /// Given two operations, checks whether they act identically (including global phase) for all input states.
     /// This is done through controlled versions of the operations instead of plain ones which convert the global phase
     /// into a relative phase that can be detected.
-    operation CheckOperationsEquivalenceStrict(
+    operation CheckOperationsAreEqualStrict(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
         inputSize : Int)
@@ -42,14 +42,14 @@ namespace Microsoft.Quantum.Katas {
         Fact(inputSize > 0, "`inputSize` must be positive");
         let controlledOp = register => Controlled op(register[...0], register[1...]);
         let controlledReference = register => Controlled reference(register[...0], register[1...]);
-        let areEquivalent = CheckOperationsEquivalence(controlledOp, controlledReference, inputSize + 1);
+        let areEquivalent = CheckOperationsAreEqual(controlledOp, controlledReference, inputSize + 1);
         areEquivalent
     }
 
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits.
-    operation CheckOperationsEquivalenceOnZeroState(
+    operation CheckOperationsAreEqualOnZeroState(
         op : (Qubit[] => Unit),
         reference : (Qubit[] => Unit is Adj),
         inputSize : Int)
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.Katas {
     /// The initial state is prepared by applying the `initialState` operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
     /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect it.
     /// `initialState` operation should be deterministic.
-    operation CheckOperationsEquivalenceOnInitialStateStrict(
+    operation CheckOperationsAreEqualOnInitialStateStrict(
         initialState : Qubit[] => Unit is Adj,
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
@@ -96,13 +96,13 @@ namespace Microsoft.Quantum.Katas {
     /// `inputSize` qubits.
     /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
     /// it.
-    operation CheckOperationsEquivalenceOnZeroStateStrict(
+    operation CheckOperationsAreEqualOnZeroStateStrict(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
         inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
-        CheckOperationsEquivalenceOnInitialStateStrict(qs => (), op, reference, inputSize)
+        CheckOperationsAreEqualOnInitialStateStrict(qs => (), op, reference, inputSize)
     }
 
 
@@ -143,13 +143,13 @@ namespace Microsoft.Quantum.Katas {
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits. If they don't, prints user feedback.
-    operation CheckOperationsEquivalenceOnZeroStateWithFeedback(
+    operation CheckOperationsAreEqualOnZeroStateWithFeedback(
         testImpl : (Qubit[] => Unit),
         refImpl : (Qubit[] => Unit is Adj),
         inputSize : Int
     ) : Bool {
 
-        let isCorrect = CheckOperationsEquivalenceOnZeroState(testImpl, refImpl, inputSize);
+        let isCorrect = CheckOperationsAreEqualOnZeroState(testImpl, refImpl, inputSize);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         if isCorrect {
