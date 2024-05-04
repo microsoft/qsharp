@@ -851,7 +851,7 @@ fn explicit_return_embedded_in_array_repeat_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unexpected("embedded return in array", Span { lo: 161, hi: 173 })"#]],
+        &expect![[r#"Unexpected("embedded return in array size", Span { lo: 161, hi: 173 })"#]],
     );
 }
 
