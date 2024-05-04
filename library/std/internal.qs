@@ -94,11 +94,11 @@ namespace Microsoft.Quantum.Intrinsic {
 
     internal operation EntangleForJointMeasure(basis : Pauli, aux : Qubit, qubit : Qubit) : Unit {
         if basis == PauliX {
-            Controlled X([aux], qubit);
+            __quantum__qis__cx__body(aux, qubit);
         } elif basis == PauliZ {
-            Controlled Z([aux], qubit);
+            __quantum__qis__cz__body(aux, qubit);
         } elif basis == PauliY {
-            Controlled Y([aux], qubit);
+            __quantum__qis__cy__body(aux, qubit);
         }
     }
 
