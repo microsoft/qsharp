@@ -406,6 +406,13 @@ impl Env {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+
+    pub fn update_variable_in_top_frame(&mut self, local_var_id: LocalVarId, value: Value) {
+        let variable = self
+            .get_mut(local_var_id)
+            .expect("local variable is not present");
+        variable.value = value;
+    }
 }
 
 #[derive(Default)]

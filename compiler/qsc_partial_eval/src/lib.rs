@@ -440,7 +440,7 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // If this was an assign expression, update the bindings in the hybrid side to keep them in sync and to insert
-        // store instructions if needed.
+        // store instructions for variables of type `Bool`, `Int` or `Double`.
         if let Ok(EvalControlFlow::Continue(_)) = eval_result {
             let expr = self.get_expr(expr_id);
             if let ExprKind::Assign(lhs_expr_id, _)
@@ -571,7 +571,7 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
 
-        self.update_hybrid_bindings(lhs_expr_id, rhs_value)?;
+        self.update_bindings(lhs_expr_id, rhs_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
@@ -613,7 +613,7 @@ impl<'a> PartialEvaluator<'a> {
             .expect("could not convert array index into usize");
         let mut array = (*array_value.unwrap_array()).clone();
         let _ = std::mem::replace(&mut array[index], replace_value);
-        self.update_hybrid_bindings(array_expr_id, Value::Array(array.into()))?;
+        self.update_bindings(array_expr_id, Value::Array(array.into()))?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
@@ -624,12 +624,14 @@ impl<'a> PartialEvaluator<'a> {
         rhs_expr_id: ExprId,
         bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
+        // Consider optimization of array in-place operations instead of re-using the general binary operation
+        // evaluation.
         let bin_op_control_flow =
             self.eval_bin_op(bin_op, lhs_expr_id, rhs_expr_id, bin_op_expr_span)?;
         let EvalControlFlow::Continue(bin_op_value) = bin_op_control_flow else {
             panic!("evaluating a binary operation is expected to return an error or a continue, never a return");
         };
-        self.update_hybrid_bindings(lhs_expr_id, bin_op_value)?;
+        self.update_bindings(lhs_expr_id, bin_op_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
 
@@ -1382,7 +1384,11 @@ impl<'a> PartialEvaluator<'a> {
     fn try_eval_stmt(&mut self, stmt_id: StmtId) -> Result<EvalControlFlow, Error> {
         let stmt = self.get_stmt(stmt_id);
         match stmt.kind {
-            StmtKind::Expr(expr_id) => self.try_eval_expr(expr_id),
+            StmtKind::Expr(expr_id) => {
+                // Since non-semi expressions are the only ones whose value is non-unit (their value is the same as the
+                // value of the expression), they do not need to map their control flow to be unit on continue.
+                self.try_eval_expr(expr_id)
+            }
             StmtKind::Semi(expr_id) => {
                 let control_flow = self.try_eval_expr(expr_id)?;
                 match control_flow {
@@ -1407,25 +1413,53 @@ impl<'a> PartialEvaluator<'a> {
         }
     }
 
-    fn update_hybrid_bindings(
-        &mut self,
-        lhs_expr_id: ExprId,
-        rhs_value: Value,
-    ) -> Result<(), Error> {
+    fn update_bindings(&mut self, lhs_expr_id: ExprId, rhs_value: Value) -> Result<(), Error> {
         let lhs_expr = self.get_expr(lhs_expr_id);
         match (&lhs_expr.kind, rhs_value) {
             (ExprKind::Hole, _) => {}
             (ExprKind::Var(Res::Local(local_var_id), _), value) => {
-                self.update_hybrid_local(lhs_expr, *local_var_id, value)?;
+                // We update both the hybrid and classical bindings because there are some cases where an expression is
+                // classified as classical by RCA, but some elements of the expression are non-classical.
+                //
+                // For example, the output of the `Length` intrinsic function is only considered non-classical when used
+                // on a dynamically-sized array. However, it can be used on arrays that are considered non-classical,
+                // such as arrays of Qubits or Results.
+                //
+                // Since expressions call expressions to the `Length` intrinsic will be offloaded to the evaluator,
+                // the evaluator environment also needs to track some non-classical variables.
+                self.update_hybrid_local(lhs_expr, *local_var_id, value.clone())?;
+                self.update_classical_local(*local_var_id, value);
             }
             (ExprKind::Tuple(exprs), Value::Tuple(values)) => {
                 for (expr_id, value) in exprs.iter().zip(values.iter()) {
-                    self.update_hybrid_bindings(*expr_id, value.clone())?;
+                    self.update_bindings(*expr_id, value.clone())?;
                 }
             }
             _ => unreachable!("unassignable pattern should be disallowed by compiler"),
         };
         Ok(())
+    }
+
+    fn update_classical_local(&mut self, local_var_id: LocalVarId, value: Value) {
+        // Classical values are not updated when we are within a dynamic branch.
+        if self
+            .eval_context
+            .get_current_scope()
+            .is_currently_evaluating_branch()
+        {
+            return;
+        }
+
+        // Variable values are not updated on the classical locals either.
+        if matches!(value, Value::Var(_)) {
+            return;
+        }
+
+        // Create a variable and bind it to the classical environment.
+        self.eval_context
+            .get_current_scope_mut()
+            .env
+            .update_variable_in_top_frame(local_var_id, value);
     }
 
     fn update_hybrid_local(
@@ -1452,11 +1486,11 @@ impl<'a> PartialEvaluator<'a> {
                 .get_current_scope()
                 .is_currently_evaluating_branch()
             {
-                let msg = format!(
+                let error_message = format!(
                     "re-assignment within a dynamic branch is unsupported for type {}",
                     local_expr.ty
                 );
-                let error = Error::Unexpected(msg, local_expr.span);
+                let error = Error::Unexpected(error_message, local_expr.span);
                 return Err(error);
             }
             self.eval_context
