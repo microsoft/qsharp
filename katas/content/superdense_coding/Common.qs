@@ -48,7 +48,6 @@ namespace Kata.Verification {
             let data = (1 == n / 2, 1 == n % 2);
             let (dataBit1, dataBit2) = data;
 
-
             for iter in 1..100 {
                 let (bit1, bit2) = protocolOp(data);
 
