@@ -22,8 +22,8 @@ We can transform it according to the value of bits:
   $$ (Z \otimes I).(X \otimes I) (\ket{\Psi^{+}}) = (Z \otimes I) \frac{1}{\sqrt{2}} (\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) $$
 
 The final sequence of steps is as follows:
-1. Apply the $Z$ gate to the alice's qubit if `bit2 == 1`.
-2. Apply the $X$ gate to the alice's qubit if `bit1 == 1`.
+1. Apply the $X$ gate to the alice's qubit if `bit2 == 1`.
+2. Apply the $Z$ gate to the alice's qubit if `bit1 == 1`.
 
 
 @[solution]({
