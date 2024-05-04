@@ -5,7 +5,7 @@ namespace Kata.Verification {
         CNOT(qAlice, qBob);
     }
 
-    operation EncodeMessageInQubit_Reference(qAlice : Qubit,message : (Bool, Bool)) : Unit {
+    operation EncodeMessageInQubit_Reference(qAlice : Qubit, message : (Bool, Bool)) : Unit {
         let (bit1, bit2) = message;
 
         if bit1 {
@@ -17,7 +17,7 @@ namespace Kata.Verification {
         }
     }
 
-    operation DecodeMessageFromQubits_Reference(qAlice: Qubit, qBob : Qubit) : (Bool, Bool) {
+    operation DecodeMessageFromQubits_Reference(qAlice : Qubit, qBob : Qubit) : (Bool, Bool) {
         Adjoint CreateEntangledPair_Reference([qAlice, qBob]);
         return (MResetZ(qAlice) == One, MResetZ(qBob) == One);
     }
