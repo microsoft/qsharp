@@ -7,7 +7,7 @@ namespace Kata {
         if cbit2 {
             X(qAlice);
         }
-        
+
         if cbit1 {
             Z(qAlice);
         }
