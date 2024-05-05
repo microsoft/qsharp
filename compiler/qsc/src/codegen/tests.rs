@@ -393,7 +393,7 @@ mod adaptive_profile {
     }
 }
 
-mod quantinuum_profile {
+mod adaptive_ri_profile {
     use expect_test::expect;
     use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
     use qsc_frontend::compile::SourceMap;

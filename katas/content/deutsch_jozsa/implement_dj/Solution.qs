@@ -1,6 +1,4 @@
 namespace Kata {
-    open Microsoft.Quantum.Measurement;
-
     operation DeutschJozsaAlgorithm (N : Int, oracle : Qubit[] => Unit) : Bool {
         mutable isConstant = true;
         use x = Qubit[N];

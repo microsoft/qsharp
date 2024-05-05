@@ -271,13 +271,15 @@ pub fn test_hubbard_e2e() -> Result<()> {
     let same_ftp = Protocol::default();
     let output_t_error_rate = part.required_output_error_rate();
     let builder = TFactoryBuilder::default();
-    let tfactories = builder.find_factories(
-        &same_ftp,
-        &qubit,
-        0,
-        output_t_error_rate,
-        &same_ftp.max_code_distance(),
-    );
+    let tfactories = builder
+        .find_factories(
+            &same_ftp,
+            &qubit,
+            0,
+            output_t_error_rate,
+            &same_ftp.max_code_distance(),
+        )
+        .expect("can compute factories");
 
     assert_eq!(tfactories.len(), 2);
     if let Some(factory1) = find_factory(&tfactories, 88000, 27900) {
@@ -362,13 +364,15 @@ pub fn test_hubbard_e2e_measurement_based() -> Result<()> {
     let output_t_error_rate = part.required_output_error_rate();
     let same_ftp = Protocol::floquet_code();
     let builder = TFactoryBuilder::default();
-    let tfactories = builder.find_factories(
-        &same_ftp,
-        &qubit,
-        0,
-        output_t_error_rate,
-        &same_ftp.max_code_distance(),
-    );
+    let tfactories = builder
+        .find_factories(
+            &same_ftp,
+            &qubit,
+            0,
+            output_t_error_rate,
+            &same_ftp.max_code_distance(),
+        )
+        .expect("can compute factories");
 
     assert_eq!(tfactories.len(), 2);
     if let Some(factory1) = find_factory(&tfactories, 12300, 1612) {

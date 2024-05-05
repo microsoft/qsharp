@@ -274,7 +274,7 @@ def test_entry_expr_circuit() -> None:
 
 # this is by design
 def test_callables_failing_profile_validation_are_still_registered() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
@@ -287,7 +287,7 @@ def test_callables_failing_profile_validation_are_still_registered() -> None:
 
 # this is by design
 def test_once_rca_validation_fails_following_calls_also_fail() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
@@ -299,7 +299,7 @@ def test_once_rca_validation_fails_following_calls_also_fail() -> None:
 
 
 def test_adaptive_errors_are_raised_when_interpreting() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
@@ -308,14 +308,14 @@ def test_adaptive_errors_are_raised_when_interpreting() -> None:
 
 
 def test_adaptive_errors_are_raised_from_entry_expr() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     e.interpret("use q = Qubit();")
     with pytest.raises(Exception) as excinfo:
         e.run("{mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; }}")
     assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
 
 
-def test_quantinuum_qir_can_be_generated() -> None:
+def test_adaptive_ri_qir_can_be_generated() -> None:
     adaptive_input = """
         namespace Test {
             open Microsoft.Quantum.Math;
@@ -333,7 +333,7 @@ def test_quantinuum_qir_can_be_generated() -> None:
             }
         }
         """
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     e.interpret(adaptive_input)
     qir = e.qir("Test.Main()")
     assert qir == dedent(

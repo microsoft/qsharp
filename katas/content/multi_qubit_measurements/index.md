@@ -446,7 +446,7 @@ For single-qubit systems, any measurement corresponding to an orthogonal basis c
 
 For example, consider the computational basis measurement, which can result in outcomes `Zero` or `One` corresponding to states $\ket 0$ and $\ket 1$. This measurement is associated with the Pauli Z operator, which is given by
 
-$$Z = \begin{pmatrix} 1 & 0 \\ 0 & -1\end{pmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
+$$Z = \begin{bmatrix} 1 & 0 \\ 0 & -1\end{bmatrix} = \ket{0}\bra{0} - \ket{1}\bra{1}$$
 
 The $Z$ operator has two eigenvalues, $1$ and $-1$, with corresponding eigenvectors $\ket{0}$ and $\ket{1}$. A $Z$-measurement is then a measurement in the $\{\ket{0},\ket{1}\}$ basis, with the measurement outcomes being $1$ and $-1$, respectively. In Q#, by convention, an eigenvalue of $1$ corresponds to a `Result` of `Zero`, while an eigenvalue of $-1$ corresponds to a `Result` of `One`.
 
