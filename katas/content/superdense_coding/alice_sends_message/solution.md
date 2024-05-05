@@ -1,4 +1,4 @@
-Recall that we learnt how to prepare Bell states in "Preparing Quantum States" kata. This is slightly advanced version of that task demonstrating the "power of entanglement", where operations applied to only one qubit affect the state of the system in interesting way.
+Recall that we learnt how to prepare all Bell states in "Preparing Quantum States" kata. This is slightly advanced version of that task demonstrating the "power of entanglement", where operations applied to only one qubit affect the state of the system in interesting way.
 
 Let's use the below Bell state we prepared in the previous task:
 
