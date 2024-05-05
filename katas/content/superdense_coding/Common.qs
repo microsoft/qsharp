@@ -1,5 +1,5 @@
 namespace Kata.Verification {
-    operation CreateEntangledPair_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
+    operation CreateEntangledPairWrapper_Reference(qs : Qubit[]) : Unit is Adj + Ctl {
         let (qAlice, qBob) = (qs[0], qs[1]);
         H(qAlice);
         CNOT(qAlice, qBob);
@@ -18,7 +18,7 @@ namespace Kata.Verification {
     }
 
     operation DecodeMessageFromQubits_Reference(qAlice : Qubit, qBob : Qubit) : (Bool, Bool) {
-        Adjoint CreateEntangledPair_Reference([qAlice, qBob]);
+        Adjoint CreateEntangledPairWrapper_Reference([qAlice, qBob]);
         return (MResetZ(qAlice) == One, MResetZ(qBob) == One);
     }
 
@@ -33,7 +33,7 @@ namespace Kata.Verification {
     ) : (Bool, Bool) {
 
         use (qAlice, qBob) = (Qubit(), Qubit());
-        CreateEntangledPair_Reference([qAlice, qBob]);
+        CreateEntangledPairWrapper_Reference([qAlice, qBob]);
         encodeOp(qAlice, message);
         return decodeOp(qAlice, qBob);
     }
