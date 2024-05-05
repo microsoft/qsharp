@@ -285,20 +285,11 @@ impl<'a> PartialEvaluator<'a> {
     fn eval_bin_op(
         &mut self,
         bin_op: BinOp,
-        lhs_expr_id: ExprId,
+        lhs_value: Value,
+        lhs_span: Span,
         rhs_expr_id: ExprId,
         bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
-        // Try to evaluate the LHS expression, short-circuiting execution if it is a return.
-        let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
-        let EvalControlFlow::Continue(lhs_value) = lhs_control_flow else {
-            let lhs_expr = self.get_expr(lhs_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in LHS expression".to_string(),
-                lhs_expr.span,
-            ));
-        };
-
         // Evaluate the binary operation differently depending on the LHS value variant.
         match lhs_value {
             Value::Array(lhs_array) => self.eval_bin_op_with_lhs_array_operand(
@@ -307,48 +298,30 @@ impl<'a> PartialEvaluator<'a> {
                 rhs_expr_id,
                 bin_op_expr_span,
             ),
-            Value::Result(_lhs_result) => {
-                let lhs_expr = self.get_expr(lhs_expr_id);
-                Err(Error::Unimplemented(
-                    "result binary operation".to_string(),
-                    lhs_expr.span,
-                ))
-            }
-            Value::Bool(_lhs_bool) => {
-                let lhs_expr = self.get_expr(lhs_expr_id);
-                Err(Error::Unimplemented(
-                    "bool binary operation".to_string(),
-                    lhs_expr.span,
-                ))
-            }
-            Value::Int(_lhs_int) => {
-                let lhs_expr = self.get_expr(lhs_expr_id);
-                Err(Error::Unimplemented(
-                    "int binary operation".to_string(),
-                    lhs_expr.span,
-                ))
-            }
-            Value::Double(_lhs_double) => {
-                let lhs_expr = self.get_expr(lhs_expr_id);
-                Err(Error::Unimplemented(
-                    "double binary operation".to_string(),
-                    lhs_expr.span,
-                ))
-            }
-            Value::Var(_lhs_eval_var) => {
-                let lhs_expr = self.get_expr(lhs_expr_id);
-                Err(Error::Unimplemented(
-                    "binary operation with dynamic LHS".to_string(),
-                    lhs_expr.span,
-                ))
-            }
-            _ => {
-                let lhs_expr = self.get_expr(lhs_expr_id);
-                Err(Error::Unexpected(
-                    format!("unsupported LHS value: {lhs_value}"),
-                    lhs_expr.span,
-                ))
-            }
+            Value::Result(_lhs_result) => Err(Error::Unimplemented(
+                "result binary operation".to_string(),
+                lhs_span,
+            )),
+            Value::Bool(_lhs_bool) => Err(Error::Unimplemented(
+                "bool binary operation".to_string(),
+                lhs_span,
+            )),
+            Value::Int(_lhs_int) => Err(Error::Unimplemented(
+                "int binary operation".to_string(),
+                lhs_span,
+            )),
+            Value::Double(_lhs_double) => Err(Error::Unimplemented(
+                "double binary operation".to_string(),
+                lhs_span,
+            )),
+            Value::Var(_lhs_eval_var) => Err(Error::Unimplemented(
+                "binary operation with dynamic LHS".to_string(),
+                lhs_span,
+            )),
+            _ => Err(Error::Unexpected(
+                format!("unsupported LHS value: {lhs_value}"),
+                lhs_span,
+            )),
         }
     }
 
@@ -394,18 +367,6 @@ impl<'a> PartialEvaluator<'a> {
     }
 
     fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
-        // This is a workaround since evaluating sections of the execution graph that correspond to local variable
-        // expressions does not yield the expected results.
-        let expr = self.get_expr(expr_id);
-        if let ExprKind::Var(Res::Local(local_var_id), _) = &expr.kind {
-            let value = self
-                .eval_context
-                .get_current_scope()
-                .get_classical_local_value(*local_var_id);
-            return Ok(EvalControlFlow::Continue(value.clone()));
-        }
-
-        // For any other expression, evaluate the section of the execution graph corresponding to the expression.
         let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
         let expr = self.package_store.get_expr(store_expr_id);
@@ -582,10 +543,15 @@ impl<'a> PartialEvaluator<'a> {
         replace_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
         // Get the value of the array expression to use it as the basis to perform a replacement on.
-        let array_control_flow = self.try_eval_expr(array_expr_id)?;
-        let EvalControlFlow::Continue(array_value) = array_control_flow else {
-            panic!("the array in sub-expression in an assign index expression is not expected to contain an embedded return");
+        let array_expr = self.get_expr(array_expr_id);
+        let ExprKind::Var(Res::Local(array_loc_id), _) = &array_expr.kind else {
+            panic!("array expression in assign index expression is expected to be a variable");
         };
+        let array_value = self
+            .eval_context
+            .get_current_scope()
+            .get_classical_local_value(*array_loc_id)
+            .clone();
 
         // Try to evaluate the index and replace expressions to get their value, short-circuiting execution if any of
         // the expressions is a return.
@@ -611,8 +577,8 @@ impl<'a> PartialEvaluator<'a> {
             .unwrap_int()
             .try_into()
             .expect("could not convert array index into usize");
-        let mut array = (*array_value.unwrap_array()).clone();
-        let _ = std::mem::replace(&mut array[index], replace_value);
+        let mut array = array_value.unwrap_array().to_vec();
+        array[index] = replace_value;
         self.update_bindings(array_expr_id, Value::Array(array.into()))?;
         Ok(EvalControlFlow::Continue(Value::unit()))
     }
@@ -626,8 +592,32 @@ impl<'a> PartialEvaluator<'a> {
     ) -> Result<EvalControlFlow, Error> {
         // Consider optimization of array in-place operations instead of re-using the general binary operation
         // evaluation.
-        let bin_op_control_flow =
-            self.eval_bin_op(bin_op, lhs_expr_id, rhs_expr_id, bin_op_expr_span)?;
+        let lhs_expr = self.get_expr(lhs_expr_id);
+        let lhs_value = if matches!(lhs_expr.ty, Ty::Array(_)) {
+            let ExprKind::Var(Res::Local(lhs_loc_id), _) = &lhs_expr.kind else {
+                panic!("array expression in assign op expression is expected to be a variable");
+            };
+            self.eval_context
+                .get_current_scope()
+                .get_classical_local_value(*lhs_loc_id)
+                .clone()
+        } else {
+            let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
+            if lhs_control_flow.is_return() {
+                return Err(Error::Unexpected(
+                    "embedded return in assign op LHS expression".to_string(),
+                    lhs_expr.span,
+                ));
+            }
+            lhs_control_flow.into_value()
+        };
+        let bin_op_control_flow = self.eval_bin_op(
+            bin_op,
+            lhs_value,
+            lhs_expr.span,
+            rhs_expr_id,
+            bin_op_expr_span,
+        )?;
         let EvalControlFlow::Continue(bin_op_value) = bin_op_control_flow else {
             panic!("evaluating a binary operation is expected to return an error or a continue, never a return");
         };
