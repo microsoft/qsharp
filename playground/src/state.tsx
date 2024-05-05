@@ -23,11 +23,7 @@ export function StateTable(props: { dump: Dump; latexDump: string }) {
       <table class="state-table">
         <thead>
           <tr>
-            <th>
-              Basis State
-              <br />
-              (|𝜓₁…𝜓ₙ⟩)
-            </th>
+            <th>Basis State</th>
             <th>Amplitude</th>
             <th>Measurement Probability</th>
             <th colSpan={2}>Phase</th>
