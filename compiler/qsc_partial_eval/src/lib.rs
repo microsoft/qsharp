@@ -15,6 +15,7 @@ use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
 use qsc_data_structures::span::Span;
 use qsc_data_structures::{functors::FunctorApp, target::TargetCapabilityFlags};
+use qsc_eval::resolve_closure;
 use qsc_eval::{
     self, exec_graph_section,
     output::GenericReceiver,
@@ -450,8 +451,16 @@ impl<'a> PartialEvaluator<'a> {
             ExprKind::Call(callee_expr_id, args_expr_id) => {
                 self.eval_expr_call(*callee_expr_id, *args_expr_id)
             }
-            ExprKind::Closure(_, _) => {
-                panic!("instruction generation for closure expressions is unsupported")
+            ExprKind::Closure(args, callable) => {
+                let closure = resolve_closure(
+                    &self.eval_context.get_current_scope().env,
+                    self.get_current_package_id(),
+                    expr.span,
+                    args,
+                    *callable,
+                )
+                .map_err(|e| Error::EvaluationFailed(e.to_string(), e.span().span))?;
+                Ok(EvalControlFlow::Continue(closure))
             }
             ExprKind::Fail(_) => panic!("instruction generation for fail expression is invalid"),
             ExprKind::Field(_, _) => Err(Error::Unimplemented("Field Expr".to_string(), expr.span)),
@@ -723,7 +732,11 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Get the callable.
-        let (store_item_id, functor_app) = callee_control_flow.into_value().unwrap_global();
+        let (store_item_id, functor_app, fixed_args) = match callee_control_flow.into_value() {
+            Value::Closure(inner) => (inner.id, inner.functor, Some(inner.fixed_args)),
+            Value::Global(id, functor) => (id, functor, None),
+            _ => panic!("value is not callable"),
+        };
         let global = self
             .package_store
             .get_global(store_item_id)
@@ -751,6 +764,7 @@ impl<'a> PartialEvaluator<'a> {
                 spec_impl,
                 callable_decl.input,
                 args_control_flow.into_value(),
+                fixed_args,
             )?,
         };
         Ok(EvalControlFlow::Continue(value))
@@ -811,6 +825,7 @@ impl<'a> PartialEvaluator<'a> {
             (store_item_id.package, callable_decl.input).into(),
             args_value,
             None,
+            None,
         );
         assert!(
             ctls_arg.is_none(),
@@ -834,6 +849,7 @@ impl<'a> PartialEvaluator<'a> {
         spec_impl: &SpecImpl,
         args_pat: PatId,
         args_value: Value,
+        fixed_args: Option<Rc<[Value]>>,
     ) -> Result<Value, Error> {
         let spec_decl = get_spec_decl(spec_impl, functor_app);
 
@@ -858,6 +874,7 @@ impl<'a> PartialEvaluator<'a> {
             (global_callable_id.package, args_pat).into(),
             args_value,
             ctls,
+            fixed_args,
         );
         let call_scope = Scope::new(
             global_callable_id.package,
@@ -1344,6 +1361,7 @@ impl<'a> PartialEvaluator<'a> {
         store_pat_id: StorePatId,
         value: Value,
         ctls: Option<(StorePatId, u8)>,
+        fixed_args: Option<Rc<[Value]>>,
     ) -> (Vec<Arg>, Option<Arg>) {
         let mut value = value;
         let ctls_arg = if let Some((ctls_pat_id, ctls_count)) = ctls {
@@ -1374,6 +1392,14 @@ impl<'a> PartialEvaluator<'a> {
             None
         };
 
+        let value = if let Some(fixed_args) = fixed_args {
+            let mut fixed_args = fixed_args.to_vec();
+            fixed_args.push(value);
+            Value::Tuple(fixed_args.into())
+        } else {
+            value
+        };
+
         let pat = self.package_store.get_pat(store_pat_id);
         let args = match &pat.kind {
             PatKind::Discard => vec![Arg::Discard(value)],
@@ -1396,9 +1422,12 @@ impl<'a> PartialEvaluator<'a> {
                 let pat_value_tuples = pats.iter().zip(values.to_vec());
                 for (pat_id, value) in pat_value_tuples {
                     // At this point we should no longer have control qubits so pass None.
-                    let (mut element_args, None) =
-                        self.resolve_args((store_pat_id.package, *pat_id).into(), value, None)
-                    else {
+                    let (mut element_args, None) = self.resolve_args(
+                        (store_pat_id.package, *pat_id).into(),
+                        value,
+                        None,
+                        None,
+                    ) else {
                         panic!("no control qubit are expected at this point");
                     };
                     args.append(&mut element_args);
