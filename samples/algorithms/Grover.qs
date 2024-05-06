@@ -60,13 +60,14 @@ namespace Sample {
     /// Returns the optimal number of Grover iterations needed to find a marked
     /// item, given the number of qubits in a register.
     function CalculateOptimalIterations(nQubits : Int) : Int {
-        if nQubits > 63 {
-            fail "This sample supports at most 63 qubits.";
+        if nQubits > 126 {
+            fail "This sample supports at most 126 qubits.";
         }
-        let nItems = 1 <<< nQubits; // 2^nQubits
-        let angle = ArcSin(1. / Sqrt(IntAsDouble(nItems)));
+
+        let nItems = 2.0^IntAsDouble(nQubits);
+        let angle = ArcSin(1. / Sqrt(nItems));
         let iterations = Round(0.25 * PI() / angle - 0.5);
-        return iterations;
+        iterations
     }
 
     /// # Summary

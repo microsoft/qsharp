@@ -27,7 +27,7 @@ This kata continues the introduction to quantum gates, focusing on applying quan
 As a reminder, single-qubit gates are represented by $2\times2$ unitary matrices.
 The effect of a gate applied to a qubit can be calculated by multiplying the corresponding matrix by the state vector of the qubit to get the resulting state vector.
 
-Multi-qubit gates are represented by $2^N\\times2^N$ matrices, where $N$ is the number of qubits the gate operates on. To apply this gate, you multiply the matrix by the state vector of the $N$-qubit quantum system.
+Multi-qubit gates are represented by $2^N\times2^N$ matrices, where $N$ is the number of qubits the gate operates on. To apply this gate, you multiply the matrix by the state vector of the $N$-qubit quantum system.
 
 ## Applying Gates to a Part of the System
 
@@ -39,11 +39,11 @@ If you want to apply an $X$ gate to the first qubit of the system and do nothing
 
 $$
 X \otimes I =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\\ 0 & 1 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \otimes \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} =
 \begin{bmatrix}
-    0 & 0 & 1 & 0 \\\ 
-    0 & 0 & 0 & 1 \\\ 
-    1 & 0 & 0 & 0 \\\ 
+    0 & 0 & 1 & 0 \\ 
+    0 & 0 & 0 & 1 \\ 
+    1 & 0 & 0 & 0 \\ 
     0 & 1 & 0 & 0
 \end{bmatrix}
 $$
@@ -53,11 +53,11 @@ For example, applying the $X$ gate to the first qubit and the $H$ gate to the se
 
 $$
 X \otimes H =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix} \otimes \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\\ 1 & -1 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \otimes \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} =
 \frac{1}{\sqrt{2}}\begin{bmatrix}
-    0 & 0 & 1 & 1 \\\ 
-    0 & 0 & 1 & -1 \\\ 
-    1 & 1 & 0 & 0 \\\ 
+    0 & 0 & 1 & 1 \\ 
+    0 & 0 & 1 & -1 \\ 
+    1 & 1 & 0 & 0 \\ 
     1 & -1 & 0 & 0
 \end{bmatrix}
 $$
@@ -86,7 +86,7 @@ It can be less straightforward when a multi-qubit gate is applied to a subset of
 
 Our first proper multi-qubit gate is the $CNOT$ ("controlled NOT") gate. The $CNOT$ gate is a two-qubit gate, with one qubit referred to as the **control** qubit, and the other qubit as the **target** qubit (usually the first qubit is the control, and the second qubit is the target).
 
-$CNOT$ acts as a conditional gate of sorts: if the control qubit is in state $|1\\rangle$, it applies the $X$ gate to the target qubit, otherwise it does nothing.
+$CNOT$ acts as a conditional gate of sorts: if the control qubit is in state $|1\rangle$, it applies the $X$ gate to the target qubit, otherwise it does nothing.
 
 > If the system is in a superposition of several basis states, the effects of the gate will be a linear combination of the effects of it acting separately on each of the basis states.
 > This will be the case for all quantum gates you'll encounter later that are specified in terms of basis states: since all unitary gates are linear, it is sufficient to define their effect on the basis states, and use linearity to figure out their effect on any state.
@@ -100,7 +100,7 @@ $CNOT$ acts as a conditional gate of sorts: if the control qubit is in state $|1
     </tr>
     <tr>
         <td>$CNOT$</td>
-        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \end{bmatrix}$</td>
         <td>$CNOT|\psi\rangle = \alpha|00\rangle + \beta|01\rangle + \delta|10\rangle + \gamma|11\rangle$</td>
         <td>
             $$CNOT|00\rangle = |00\rangle$$
@@ -214,18 +214,18 @@ Let's consider ket-bra representation of the $CNOT$ gate:
 $$CNOT =$$
 $$= |00\rangle\langle00| + |01\rangle\langle01| + |10\rangle\langle11| + |11\rangle\langle10| =$$
 $$=
-\begin{bmatrix} 1 \\\ 0 \\\ 0 \\\ 0 \end{bmatrix}\begin{bmatrix} 1 & 0 & 0 & 0 \end{bmatrix} +
-\begin{bmatrix} 0 \\\ 1 \\\ 0 \\\ 0 \end{bmatrix}\begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} +
-\begin{bmatrix} 0 \\\ 0 \\\ 1 \\\ 0 \end{bmatrix}\begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix} +
-\begin{bmatrix} 0 \\\ 0 \\\ 0 \\\ 1 \end{bmatrix}\begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix} =
+\begin{bmatrix} 1 \\ 0 \\ 0 \\ 0 \end{bmatrix}\begin{bmatrix} 1 & 0 & 0 & 0 \end{bmatrix} +
+\begin{bmatrix} 0 \\ 1 \\ 0 \\ 0 \end{bmatrix}\begin{bmatrix} 0 & 1 & 0 & 0 \end{bmatrix} +
+\begin{bmatrix} 0 \\ 0 \\ 1 \\ 0 \end{bmatrix}\begin{bmatrix} 0 & 0 & 0 & 1 \end{bmatrix} +
+\begin{bmatrix} 0 \\ 0 \\ 0 \\ 1 \end{bmatrix}\begin{bmatrix} 0 & 0 & 1 & 0 \end{bmatrix} =
 $$
 $$=
-\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} +
-\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} +
-\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 0 & 0 \\\ \end{bmatrix} +
-\begin{bmatrix} 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 0 & 0 \\\ 0 & 0 & 1 & 0 \\\ \end{bmatrix} =
+\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix} +
+\begin{bmatrix} 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix} +
+\begin{bmatrix} 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 \end{bmatrix} +
+\begin{bmatrix} 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \end{bmatrix} =
 $$
-$$=\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \\\ 0 & 0 & 1 & 0 \\\ \end{bmatrix}$$
+$$=\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 1 & 0 \\ \end{bmatrix}$$
 
 This representation can be used to carry out calculations in Dirac notation without ever switching back to matrix representation:
 
@@ -238,13 +238,13 @@ $$=|00\rangle(0) + |01\rangle(0) + |10\rangle(0) + |11\rangle(1) = |11\rangle$$
 
 > Notice how a lot of the inner product terms turn out to equal 0, and our expression is easily simplified. We have expressed the $CNOT$ gate in terms of outer product of computational basis states, which are orthonormal, and apply it to another computational basis state, so the individual inner products are going to always be 0 or 1.
 
-In general case, a $4\\times4$ matrix that describes a 2-qubit gate
+In general case, a $4 \times 4$ matrix that describes a 2-qubit gate
 $$A =
 \begin{bmatrix}
-    a_{00} & a_{01} & a_{02} & a_{03} \\\ 
-    a_{10} & a_{11} & a_{12} & a_{13} \\\ 
-    a_{20} & a_{21} & a_{22} & a_{23} \\\ 
-    a_{30} & a_{31} & a_{32} & a_{33} \\\ 
+    a_{00} & a_{01} & a_{02} & a_{03} \\
+    a_{10} & a_{11} & a_{12} & a_{13} \\
+    a_{20} & a_{21} & a_{22} & a_{23} \\
+    a_{30} & a_{31} & a_{32} & a_{33} \\
 \end{bmatrix}
 $$
 
@@ -315,7 +315,7 @@ The $SWAP$ gate acts on two qubits, and, as the name implies, swaps their quantu
     </tr>
     <tr>
         <td>$SWAP$</td>
-        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 0 & 1 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & 0 & 1 \end{bmatrix}$</td>
+        <td>$\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix}$</td>
         <td>$SWAP|\psi\rangle = \alpha|00\rangle + \gamma|01\rangle + \beta|10\rangle + \delta|11\rangle$</td>
         <td>
             $$SWAP|00\rangle = |00\rangle$$
@@ -369,13 +369,13 @@ $$= x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\r
 $CINOT$ can also be represented in matrix form as a $2^3 \times 2^3$ matrix:
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 $$
@@ -383,20 +383,20 @@ $$
 Applying $CINOT$ to $|\psi\rangle$ gives us
 $$
 CINOT \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 \begin{bmatrix}
-    x_{000} \\\ x_{001} \\\ x_{010} \\\ x_{011} \\\ x_{100} \\\ x_{101} \\\ x_{110} \\\ x_{111}
+    x_{000} \\ x_{001} \\ x_{010} \\ x_{011} \\ x_{100} \\ x_{101} \\ x_{110} \\ x_{111}
 \end{bmatrix} =
 \begin{bmatrix}
-    x_{000} \\\ x_{001} \\\ x_{010} \\\ x_{011} \\\ x_{101} \\\ x_{100} \\\ x_{111} \\\ x_{110}
+    x_{000} \\ x_{001} \\ x_{010} \\ x_{011} \\ x_{101} \\ x_{100} \\ x_{111} \\ x_{110}
 \end{bmatrix}
 $$
 
@@ -410,7 +410,7 @@ However, as $N$ gets larger, creating a full size matrix can be extremely unwiel
 
 These can be represented as applying the following gates on the 3 qubits.
 
-1. $SWAP \otimes I$
+1. $\text{SWAP} \otimes I$
 
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{100}|010\rangle + x_{101}|011\rangle +
@@ -421,10 +421,10 @@ $$
 
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{101}|010\rangle + x_{100}|011\rangle +
-x_{010}|100\\rangle + x_{011}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
+x_{010}|100\rangle + x_{011}|101\rangle + x_{111}|110\rangle + x_{110}|111\rangle
 $$
 
-3. $SWAP \otimes I$
+3. $\text{SWAP} \otimes I$
 
 $$
 x_{000}|000\rangle + x_{001}|001\rangle + x_{010}|010\rangle + x_{011}|011\rangle +
@@ -441,18 +441,18 @@ $$CINOT = (SWAP \otimes I)(I \otimes CNOT)(SWAP \otimes I)$$
 > We can also spell out all gates applied explicitly (this makes for a much longer code, though):
 >
 > ```qsharp
-operation CINOT (qs: Qubit[]) : Unit {
-    // First step
-    SWAP(qs[0], qs[1]);
-    I(qs[2]);
-    // Second step
-    I(qs[0]);
-    CNOT(qs[1], qs[2]);
-    // Third step
-    SWAP(qs[0], qs[1]);
-    I(qs[2]);
-}
-```
+> operation CINOT (qs: Qubit[]) : Unit {
+>     // First step
+>     SWAP(qs[0], qs[1]);
+>     I(qs[2]);
+>     // Second step
+>     I(qs[0]);
+>     CNOT(qs[1], qs[2]);
+>     // Third step
+>     SWAP(qs[0], qs[1]);
+>     I(qs[2]);
+> }
+> ```
 
 @[section]({
     "id": "multi_qubit_gates__controlled_gates",
@@ -462,7 +462,7 @@ operation CINOT (qs: Qubit[]) : Unit {
 **Controlled gates** are a class of gates derived from other gates as follows: they act on a control qubit and a target qubit, just like the $CNOT$ gate.
 A controlled-$U$ gate applies the $U$ gate to the target qubit if the control qubit is in state $|1\rangle$, and does nothing otherwise.
 
-Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatrix}$, its controlled version looks like this:
+Given a gate $U = \begin{bmatrix} \alpha & \beta \\ \gamma & \delta \end{bmatrix}$, its controlled version looks like this:
 
 <table>
     <tr>
@@ -475,9 +475,9 @@ Given a gate $U = \begin{bmatrix} \alpha & \beta \\\ \gamma & \delta \end{bmatri
         <td>
             $$
             \begin{bmatrix}
-                1 & 0 & 0 & 0 \\\ 
-                0 & 1 & 0 & 0 \\\ 
-                0 & 0 & \alpha & \beta \\\ 
+                1 & 0 & 0 & 0 \\ 
+                0 & 1 & 0 & 0 \\ 
+                0 & 0 & \alpha & \beta \\ 
                 0 & 0 & \gamma & \delta
             \end{bmatrix}
             $$
@@ -494,13 +494,13 @@ Here, for example, is the Controlled $SWAP$, or **Fredkin gate**:
 
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 
     0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
 \end{bmatrix}
 $$
@@ -553,13 +553,13 @@ The simplest example of this is the **Toffoli gate**, or $CCNOT$ (controlled con
 
 $$
 \begin{bmatrix}
-    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\\ 
-    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\\ 
+    1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\ 
+    0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\ 
     0 & 0 & 0 & 0 & 0 & 0 & 1 & 0
 \end{bmatrix}
 $$

@@ -4,17 +4,17 @@ As a reminder, the Pauli $X$ gate is defined by the following matrix:
 
 $$
 X =
-\begin{bmatrix} 0 &  1 \\\ 1 &  0 \end{bmatrix}
+\begin{bmatrix} 0 &  1 \\ 1 &  0 \end{bmatrix}
 $$
 
 We can see how it affects, for example, the basis state $|0\rangle$:
 
 $$
 X|0\rangle =
-\begin{bmatrix} 0 &  1 \\\ 1 &  0 \end{bmatrix}
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 0 \cdot 1 + 1 \cdot 0 \\\ 1 \cdot 1 + 0 \cdot 0 \end{bmatrix}=
-\begin{bmatrix} 0 \\\1 \end{bmatrix}=
+\begin{bmatrix} 0 &  1 \\ 1 &  0 \end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 0 \cdot 1 + 1 \cdot 0 \\ 1 \cdot 1 + 0 \cdot 0 \end{bmatrix}=
+\begin{bmatrix} 0 \\1 \end{bmatrix}=
 |1\rangle
 $$
 
@@ -22,10 +22,10 @@ Similarly, we can consider the effect of the $X$ gate on the superposition state
 
 $$
 X|\psi\rangle =
-\begin{bmatrix} 0 &  1 \\\1 &  0\end{bmatrix}
-\begin{bmatrix}0.6 \\\0.8 \end{bmatrix}=
-\begin{bmatrix} 0 \cdot 0.6 + 1 \cdot 0.8 \\\1 \cdot 0.6 + 0 \cdot 0.8\end{bmatrix}=
-\begin{bmatrix}0.8 \\\0.6\end{bmatrix}=
+\begin{bmatrix} 0 &  1 \\1 & 0\end{bmatrix}
+\begin{bmatrix}0.6 \\ 0.8 \end{bmatrix}=
+\begin{bmatrix} 0 \cdot 0.6 + 1 \cdot 0.8 \\ 1 \cdot 0.6 + 0 \cdot 0.8 \end{bmatrix}=
+\begin{bmatrix}0.8 \\ 0.6 \end{bmatrix}=
 0.8|0\rangle + 0.6|1\rangle
 $$
 

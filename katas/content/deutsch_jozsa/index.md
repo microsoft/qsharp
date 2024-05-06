@@ -26,7 +26,7 @@ This kata introduces you to Deutsch-Jozsa algorithm - one of the most famous alg
     "title": "The Problem"
 })
 
-You are given a classical function that takes an $N$-bit string as an input and returns one bit: $f(x): \\{0, 1\\}^N \to \\{0, 1\\}$. You are guaranteed that the function $f$ is
+You are given a classical function that takes an $N$-bit string as an input and returns one bit: $f(x): \{0, 1\}^N \to \{0, 1\}$. You are guaranteed that the function $f$ is
 
 - either *constant* (returns the same value for all inputs) 
 - or *balanced* (returns value $0$ for half of the inputs and $1$ for the other half of the inputs). 
@@ -235,7 +235,7 @@ The last demo in this kata shows you how to combine the oracles you've seen so f
 })
 
 To wrap up our discussion in this kata, let's take a look at a problem solved using a similar approach - the Bernstein-Vazirani algorithm.
-In this problem, you are also given an oracle implementing an $N$-bit function $f(x): \\{0, 1\\}^N \to \\{0, 1\\}$.
+In this problem, you are also given an oracle implementing an $N$-bit function $f(x): \{0, 1\}^N \to \{0, 1\}$.
 However, this time the function is guaranteed to be a *scalar product function*, that is, there exists an $N$-bit string $s$
 that allows the following representation ($\cdot$ is bitwise inner product of integers modulo $2$):
 

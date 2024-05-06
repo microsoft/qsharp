@@ -10,7 +10,7 @@ To do that, we utilize a sequence of gates. The Pauli Z gate followed by the Pau
 
    $$
    Z =
-   \begin{bmatrix}1 & 0 \\\ 0 & -1 \end{bmatrix}
+   \begin{bmatrix}1 & 0 \\ 0 & -1 \end{bmatrix}
    $$
 
 2. **Apply the Pauli X gate**: The X gate flips the $|0\rangle$ and $|1\rangle$ basis states, converting our $\beta |0\rangle - \gamma |1\rangle$ state to $\beta |1\rangle - \gamma |0\rangle$.
@@ -19,7 +19,7 @@ To do that, we utilize a sequence of gates. The Pauli Z gate followed by the Pau
 
    $$
    X =
-   \begin{bmatrix}0 & 1 \\\1 & 0\end{bmatrix}
+   \begin{bmatrix}0 & 1 \\ 1 & 0\end{bmatrix}
    $$
 
 3. **Repeat the Z and X gates**: Applying the Z gate again will multiply the $|1\rangle$ state (that used to be $|0\rangle$), converting our state $\beta |1\rangle - \gamma |0\rangle$ to $- \beta |1\rangle - \gamma |0\rangle$. Finally, the second X gate will restore the original basis states, but now with both amplitudes having acquired an additional phase of $-1$. This means our state has been multiplied by $-1$, achieving the required global phase change.

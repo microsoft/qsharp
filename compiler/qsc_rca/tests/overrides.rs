@@ -35,9 +35,7 @@ fn check_rca_for_length_of_statically_sized_array_with_dynamic_content() {
         package_store_compute_properties,
         &expect![[r#"
             ApplicationsGeneratorSet:
-                inherent: Quantum: QuantumProperties:
-                    runtime_features: RuntimeFeatureFlags(0x0)
-                    value_kind: Element(Static)
+                inherent: Classical
                 dynamic_param_applications: <empty>"#]],
     );
 }

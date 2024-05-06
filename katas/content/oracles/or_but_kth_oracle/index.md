@@ -23,5 +23,5 @@ Flip the sign of the basis state $|x\rangle$ if any of the bits of $x$ (not cons
   <summary><b>Need a hint?</b></summary>
   You can use the previously implemented oracles if needed by copying the code.
   <br/>
-  You can use <a href="https://docs.microsoft.com/azure/quantum/user-guide/language/expressions/itemaccessexpressions" target="_blank">array slicing</a> to get parts of the array before and after the $k$-th element.
+  You can use <a href="https://learn.microsoft.com/azure/quantum/user-guide/language/expressions/itemaccessexpressions#array-item-access-and-array-slicing" target="_blank">array slicing</a> to get parts of the array before and after the $k$-th element.
 </details>

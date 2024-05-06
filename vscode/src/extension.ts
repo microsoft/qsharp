@@ -316,7 +316,7 @@ async function updateLanguageServiceProfile(languageService: ILanguageService) {
 
   switch (targetProfile) {
     case "base":
-    case "quantinuum":
+    case "adaptive_ri":
     case "unrestricted":
       break;
     default:

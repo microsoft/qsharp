@@ -2,7 +2,7 @@
 
 **Goal:** Return the inverse of the following matrix:
 
-$$\begin{bmatrix} 1 & 2 \\\ 3 & 4 \end{bmatrix}$$
+$$\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}$$
 
 <details>
   <summary><b>Need a hint?</b></summary>
