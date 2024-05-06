@@ -1055,11 +1055,15 @@ fn call_to_operation_with_codegen_intrinsic_override_should_skip_impl() {
         }
     "});
 
-    assert_block_instructions(&program, BlockId(0), &expect![[r#"
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
         Block:
             Call id(1), args( )
             Call id(2), args( )
             Call id(1), args( )
             Call id(3), args( Integer(0), Pointer, )
-            Return"#]]);
+            Return"#]],
+    );
 }
