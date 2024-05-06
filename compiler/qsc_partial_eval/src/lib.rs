@@ -791,7 +791,8 @@ impl<'a> PartialEvaluator<'a> {
             "DumpRegister"
             | "AccountForEstimatesInternal"
             | "BeginRepeatEstimatesInternal"
-            | "EndRepeatEstimatesInternal" => Ok(Value::unit()),
+            | "EndRepeatEstimatesInternal"
+            | "GlobalPhase" => Ok(Value::unit()),
             // The following intrinsic functions and operations should never make it past conditional compilation and
             // the capabilities check pass.
             "CheckZero" | "DrawRandomInt" | "DrawRandomDouble" | "Length" => {
