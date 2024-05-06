@@ -1424,7 +1424,7 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
     }
 }
 
-fn resolve_closure(
+pub fn resolve_closure(
     env: &Env,
     package: PackageId,
     span: Span,
