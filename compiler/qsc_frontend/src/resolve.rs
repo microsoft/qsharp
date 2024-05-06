@@ -648,6 +648,7 @@ impl Resolver {
                     }
                 }
             }
+            ast::ItemKind::Import(import) => todo!(),
             ast::ItemKind::Err => {}
         }
     }
@@ -1161,7 +1162,7 @@ fn bind_global_item(
                 }
             }
         }
-        ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::Export(..) => Ok(()),
+        ast::ItemKind::Err | ast::ItemKind::Open(..) | ast::ItemKind::Export(..) | ast::ItemKind::Import(..) => Ok(()),
     }
 }
 

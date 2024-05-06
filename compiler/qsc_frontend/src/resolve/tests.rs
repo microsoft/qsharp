@@ -3248,7 +3248,7 @@ fn import_with_alias() {
             namespace namespace8 {
                 import item1 as Baz;
                 operation item3() : Unit {
-                    Baz();
+                    item1();
                 }
             }
         "#]],

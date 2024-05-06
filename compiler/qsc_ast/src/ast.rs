@@ -277,6 +277,7 @@ pub enum ItemKind {
     Ty(Box<Ident>, Box<TyDef>),
     /// An export declaration
     Export(ExportDecl),
+    Import(ImportDecl),
 }
 
 impl Display for ItemKind {
@@ -290,6 +291,7 @@ impl Display for ItemKind {
             },
             ItemKind::Ty(name, t) => write!(f, "New Type ({name}): {t}")?,
             ItemKind::Export(export) => write!(f, "Export ({export})")?,
+            ItemKind::Import(import) => write!(f, "Import ({import})")?,
         }
         Ok(())
     }
@@ -1739,12 +1741,28 @@ impl ExportDecl {
 }
 
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ImportDecl {
     /// The span.
     pub span: Span,
     /// The items being imported from this namespace.
     pub items: Vec<ImportItem>,
 }
+
+impl Display for ImportDecl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let items_str = self
+            .items
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "ImportDecl {}: [{items_str}]", self.span)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+
 pub struct ImportItem {
     /// The span.
     pub span: Span,
@@ -1752,4 +1770,11 @@ pub struct ImportItem {
     pub path: Path,
     /// The alias of the imported item.
     pub alias: Option<Ident>,
+}
+
+impl Display for ImportItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let alias_str = self.alias.as_ref().map(|a| a.name.as_ref()).unwrap_or("");
+        write!(f, "ImportItem {}: {} as {alias_str}", self.span, self.path)
+    }
 }

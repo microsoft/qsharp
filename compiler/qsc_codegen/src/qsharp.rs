@@ -139,7 +139,7 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
                 self.writeln(";");
             }
             // TODO verify that we actually don't want to do anything here
-            ItemKind::Export(_) => (),
+            ItemKind::Export(_) | ItemKind::Import(_) => (),
         }
     }
 

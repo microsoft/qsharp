@@ -38,6 +38,8 @@ pub(super) fn parse(s: &mut ParserContext) -> Result<Box<Item>> {
         ty
     } else if let Some(callable) = opt(s, parse_callable_decl)? {
         Box::new(ItemKind::Callable(callable))
+    } else if let Some(import) = opt(s, parse_import)? {
+        Box::new(ItemKind::Import(import))
     } else if let Some(export) = opt(s, parse_export)? {
         Box::new(ItemKind::Export(export))
     } else if visibility.is_some() {
@@ -574,7 +576,7 @@ fn parse_import_items(s: &mut ParserContext) -> Result<Vec<ImportItem>> {
                     s.advance();
                     break;
                 }
-                _ => return Err(Error(ErrorKind::ExpectedCommaOrCloseBrace)),
+                _ => return todo!("error"),
             }
         }
     } else {
@@ -597,6 +599,6 @@ fn parse_import_item(s: &mut ParserContext) -> Result<ImportItem> {
     Ok(ImportItem {
         span: s.span(lo),
         path: (*path).into(),
-        alias,
+        alias: alias.map(|x| (*x)),
     })
 }
