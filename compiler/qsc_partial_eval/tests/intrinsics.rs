@@ -1031,3 +1031,26 @@ fn call_to_length_in_inner_function_succeeds() {
                 Return"#]],
     );
 }
+
+#[test]
+fn call_to_pauli_i_rotation_for_global_phase_is_noop() {
+    let program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                R(PauliI, 1.0, q);
+            }
+        }
+        "#,
+    });
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}

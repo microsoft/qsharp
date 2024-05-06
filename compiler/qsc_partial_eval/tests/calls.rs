@@ -572,7 +572,7 @@ fn call_to_boolean_function_using_result_literal_as_argument_yields_constant() {
                 }
                 if ResultAsBool(One) {
                     Op(q);
-                } 
+                }
             }
         }
     "#});
@@ -1046,6 +1046,157 @@ fn call_to_unitary_operation_using_multiple_controlled_functors() {
                 Call id(3), args( Qubit(1), Qubit(2), Qubit(0), )
                 Call id(4), args( Qubit(3), )
                 Call id(5), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_no_bound_locals() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : (Qubit => Unit) {
+                X(_)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__x__body
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_one_bound_local() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : (Qubit => Unit) {
+                Rx(1.0, _)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__rx__body
+                call_type: Regular
+                input_type:
+                    [0]: Double
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_two_bound_locals() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : (Qubit => Unit) {
+                R(PauliX, 1.0, _)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__rx__body
+                call_type: Regular
+                input_type:
+                    [0]: Double
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_one_bound_local_two_unbound() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : ((Double, Qubit) => Unit) {
+                R(PauliX, _, _)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(1.0, q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__rx__body
+                call_type: Regular
+                input_type:
+                    [0]: Double
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
                 Return"#]],
     );
 }

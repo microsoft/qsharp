@@ -462,6 +462,12 @@ impl Backend for BaseProfSim {
         name: &str,
         arg: Value,
     ) -> Option<std::result::Result<Value, String>> {
+        // Global phase is a special case that is non-physical, so there is no need to generate
+        // a call here, just do a shortcut return.
+        if name == "GlobalPhase" {
+            return Some(Ok(Value::unit()));
+        }
+
         match self.write_decl(name, &arg) {
             Ok(()) => {}
             Err(e) => return Some(Err(e)),

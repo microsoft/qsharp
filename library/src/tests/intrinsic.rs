@@ -5,7 +5,7 @@ use expect_test::expect;
 use indoc::indoc;
 use qsc::{interpret::Value, target::Profile, SparseSim};
 
-use super::test_expression_with_lib_and_profile_and_sim;
+use super::{test_expression, test_expression_with_lib_and_profile_and_sim};
 
 // These tests verify multi-controlled decomposition logic for gate operations. Each test
 // manually allocates 2N qubits, performs the decomposed operation from the library on the first N,
@@ -2568,4 +2568,260 @@ fn test_base_mcz_4_control() {
         assert!(sim.sim.qubit_is_zero(i + 5), "qubit {} is not zero", i + 5);
         assert!(sim.sim.qubit_is_zero(i), "qubit {i} is not zero");
     }
+}
+
+#[test]
+fn global_phase_correct_for_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use q = Qubit();
+            H(q);
+            R1(PI() / 2.0, q);
+            Adjoint S(q);
+            H(q);
+            DumpMachine();
+            Reset(q);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use q = Qubit();
+            H(q);
+            Adjoint R1(PI() / 2.0, q);
+            S(q);
+            H(q);
+            DumpMachine();
+            Reset(q);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_singly_controlled_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use ctls = Qubit[1];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled Adjoint S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |00⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_singly_controlled_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use ctls = Qubit[1];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Adjoint Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |00⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_doubly_controlled_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use ctls = Qubit[2];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled Adjoint S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_doubly_controlled_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use ctls = Qubit[2];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Adjoint Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_triply_controlled_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use ctls = Qubit[3];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled Adjoint S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
+}
+
+#[test]
+fn global_phase_correct_for_triply_controlled_adjoint_r1() {
+    let dump = test_expression(
+        indoc! {"
+        {
+            open Microsoft.Quantum.Math;
+            open Microsoft.Quantum.Diagnostics;
+            use ctls = Qubit[3];
+            use q = Qubit();
+            for c in ctls {
+                H(c);
+            }
+            H(q);
+            Adjoint Controlled R1(ctls, (PI() / 2.0, q));
+            Controlled S(ctls, q);
+            H(q);
+            for c in ctls {
+                H(c);
+            }
+            DumpMachine();
+            Reset(q);
+            ResetAll(ctls);
+        }
+        "},
+        &Value::unit(),
+    );
+
+    expect![[r#"
+        STATE:
+        |0000⟩: 1.0000+0.0000𝑖
+    "#]]
+    .assert_eq(&dump);
 }
