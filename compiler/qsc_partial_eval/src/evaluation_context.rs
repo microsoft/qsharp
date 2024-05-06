@@ -130,8 +130,6 @@ impl Scope {
             })
             .collect();
 
-        // Add the values to either the environment or the hybrid variables depending on whether the value is static or
-        // dynamic.
         let mut hybrid_vars = FxHashMap::default();
 
         // Bind the control qubits to both the hybrid and classical maps.
@@ -140,17 +138,15 @@ impl Scope {
             env.bind_variable_in_top_frame(local_var_id, var);
         }
 
+        // Add the values to both the classical environment and the hybrid variables depending on whether the value is
+        // static or dynamic.
         let arg_runtime_kind_tuple = args.into_iter().zip(args_value_kind.iter());
-        for (arg, value_kind) in arg_runtime_kind_tuple {
+        for (arg, _) in arg_runtime_kind_tuple {
             let Arg::Var(local_var_id, var) = arg else {
                 continue;
             };
-
-            if value_kind.is_dynamic() {
-                hybrid_vars.insert(local_var_id, var.value);
-            } else {
-                env.bind_variable_in_top_frame(local_var_id, var);
-            }
+            hybrid_vars.insert(local_var_id, var.value.clone());
+            env.bind_variable_in_top_frame(local_var_id, var);
         }
 
         // Add the dynamic values to the hybrid variables
