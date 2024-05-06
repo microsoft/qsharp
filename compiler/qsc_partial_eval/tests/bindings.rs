@@ -324,7 +324,7 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
 }
 
 #[test]
-fn mutable_int_binding_does_not_generate_store_instruction() {
+fn mutable_int_binding_does_generate_store_instruction() {
     let program = get_rir_program(indoc! {r#"
         namespace Test {
             @EntryPoint()
