@@ -13,7 +13,6 @@ export function EstimatesPanel(props: {
   colors: string[];
   runNames: string[];
   calculating: boolean;
-  renderer: (input: string) => string;
   onRowDeleted: (rowId: string) => void;
 }) {
   const [estimate, setEstimate] = useState<SingleEstimateResult | null>(null);
@@ -77,7 +76,7 @@ export function EstimatesPanel(props: {
             <summary style="font-size: 1.5em; font-weight: bold; margin: 24px 8px;">
               Resource Estimates
             </summary>
-            <ReTable mdRenderer={props.renderer} estimatesData={estimate} />
+            <ReTable estimatesData={estimate} />
           </details>
         </>
       )}

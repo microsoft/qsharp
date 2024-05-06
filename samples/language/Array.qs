@@ -27,7 +27,7 @@ namespace MyQuantumApp {
         let stringArray = ["a", "string", "array"];
 
         // A new array expression creating the array `[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]`
-        let intArray = Repeated(0, 10);
+        let repeatedArray = Repeated(0, 10);
 
         // Arrays can be sliced with ranges.
         let slice = intArray[1..2..4];  // contains [2,4]
