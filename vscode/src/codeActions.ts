@@ -31,11 +31,15 @@ class QSharpCodeActionProvider implements vscode.CodeActionProvider {
     for (const diagnostic of context.diagnostics) {
       if (diagnostic.range.intersection(range)) {
         const codeAction = new vscode.CodeAction(
-          "Demo",
+          diagnostic.message,
           vscode.CodeActionKind.QuickFix,
         );
         const edit = new vscode.WorkspaceEdit();
-        edit.replace(document.uri, range, "HelloQuickFixes");
+        edit.replace(
+          document.uri,
+          diagnostic.range,
+          '"Hello QuickFixes for lints!"',
+        );
         codeAction.edit = edit;
         codeActions.push(codeAction);
       }
