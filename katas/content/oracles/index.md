@@ -55,7 +55,7 @@ An oracle in the quantum world is a "black box" operation that is used as input 
 Many quantum algorithms assume an oracle implementation of some classical function as input, but this is a very strong assumption - sometimes implementing the oracle for a function is a lot more complex than the algorithm that will use this oracle!  
 In this kata, you will learn the properties of quantum oracles and how to implement them.
 
-A quantum oracle implements a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}^m$, where the input is $n$-bits of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, we will focus on this class of functions.
+A quantum oracle implements a function $f: \{0,1\}^n \rightarrow \{0,1\}^m$, where the input is $n$-bits of the form $x = (x_{0}, x_{1}, \dots, x_{n-1})$. In most commonly used cases $m=1$, that is, the function can return values $0$ or $1$. In this kata, we will focus on this class of functions.
 
 Quantum oracles operate on qubit arrays (and can take classical parameters as well).  The classical input is encoded into the state of an $n$-qubit register:  
 $$|\vec{x}\rangle = |x_0\rangle \otimes |x_1\rangle \otimes ... \otimes |x_{n-1}\rangle,$$
@@ -73,7 +73,7 @@ There are two types of quantum oracles: phase oracles and marking oracles.  Let'
     "title": "Phase Oracles"
 })
 
-For a function $f: \\{0,1\\}^n \rightarrow \\{0,1\\}$, the phase oracle $U_{\text{phase}}$ encodes the values of the function $f$ in the *relative phases* of basis states. When provided an input basis state $|\vec{x}\rangle$, it flips the sign of that state if $f(x)=1$:
+For a function $f: \{0,1\}^n \rightarrow \{0,1\}$, the phase oracle $U_{\text{phase}}$ encodes the values of the function $f$ in the *relative phases* of basis states. When provided an input basis state $|\vec{x}\rangle$, it flips the sign of that state if $f(x)=1$:
 
 $$U_{phase} |\vec{x}\rangle = (-1)^{f(x)}|\vec{x}\rangle$$
 
@@ -186,7 +186,7 @@ $$U_{mark} |x\rangle |-\rangle = \frac1{\sqrt2} \big(U_{mark}|x\rangle|0\rangle 
 $$= \frac1{\sqrt2} \big(|x\rangle|0\oplus f(x)\rangle - |x\rangle |1\oplus f(x)\rangle\big) =$$
 
 $$=\begin{cases}
-\frac1{\sqrt2} \big(|x\rangle|0\rangle - |x\rangle |1\rangle\big) = |x\rangle|-\rangle \text{ if } f(x) = 0 \\\\
+\frac1{\sqrt2} \big(|x\rangle|0\rangle - |x\rangle |1\rangle\big) = |x\rangle|-\rangle \text{ if } f(x) = 0 \\
 \frac1{\sqrt2} \big(|x\rangle|1\rangle - |x\rangle |0\rangle\big) = -|x\rangle|-\rangle \text{ if } f(x) = 1
 \end{cases}=$$
 

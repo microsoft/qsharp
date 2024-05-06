@@ -274,7 +274,7 @@ def test_entry_expr_circuit() -> None:
 
 # this is by design
 def test_callables_failing_profile_validation_are_still_registered() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
@@ -287,7 +287,7 @@ def test_callables_failing_profile_validation_are_still_registered() -> None:
 
 # this is by design
 def test_once_rca_validation_fails_following_calls_also_fail() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
@@ -299,7 +299,7 @@ def test_once_rca_validation_fails_following_calls_also_fail() -> None:
 
 
 def test_adaptive_errors_are_raised_when_interpreting() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     with pytest.raises(Exception) as excinfo:
         e.interpret(
             "operation Foo() : Double { use q = Qubit(); mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; } x }"
@@ -308,14 +308,14 @@ def test_adaptive_errors_are_raised_when_interpreting() -> None:
 
 
 def test_adaptive_errors_are_raised_from_entry_expr() -> None:
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     e.interpret("use q = Qubit();")
     with pytest.raises(Exception) as excinfo:
         e.run("{mutable x = 1.0; if MResetZ(q) == One { set x = 2.0; }}")
     assert "Qsc.CapabilitiesCk.UseOfDynamicDouble" in str(excinfo)
 
 
-def test_adaptive_qir_can_be_generated() -> None:
+def test_adaptive_ri_qir_can_be_generated() -> None:
     adaptive_input = """
         namespace Test {
             open Microsoft.Quantum.Math;
@@ -333,7 +333,7 @@ def test_adaptive_qir_can_be_generated() -> None:
             }
         }
         """
-    e = Interpreter(TargetProfile.Quantinuum)
+    e = Interpreter(TargetProfile.Adaptive_RI)
     e.interpret(adaptive_input)
     qir = e.qir("Test.Main()")
     assert qir == dedent(
@@ -358,6 +358,87 @@ def test_adaptive_qir_can_be_generated() -> None:
         declare void @__quantum__rt__result_record_output(%Result*, i8*)
 
         attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="adaptive_profile" "required_num_qubits"="1" "required_num_results"="1" }
+        attributes #1 = { "irreversible" }
+
+        ; module flags
+
+        !llvm.module.flags = !{!0, !1, !2, !3, !4, !5, !6, !7, !8, !9, !10}
+
+        !0 = !{i32 1, !"qir_major_version", i32 1}
+        !1 = !{i32 7, !"qir_minor_version", i32 0}
+        !2 = !{i32 1, !"dynamic_qubit_management", i1 false}
+        !3 = !{i32 1, !"dynamic_result_management", i1 false}
+        !4 = !{i32 1, !"classical_ints", i1 true}
+        !5 = !{i32 1, !"qubit_resetting", i1 true}
+        !6 = !{i32 1, !"classical_floats", i1 false}
+        !7 = !{i32 1, !"backwards_branching", i1 false}
+        !8 = !{i32 1, !"classical_fixed_points", i1 false}
+        !9 = !{i32 1, !"user_functions", i1 false}
+        !10 = !{i32 1, !"multiple_target_branching", i1 false}
+        """
+    )
+
+
+def test_base_qir_can_be_generated() -> None:
+    base_input = """
+        namespace Test {
+            open Microsoft.Quantum.Math;
+            open QIR.Intrinsic;
+            @EntryPoint()
+            operation Main() : Result {
+                use q = Qubit();
+                let pi_over_two = 4.0 / 2.0;
+                __quantum__qis__rz__body(pi_over_two, q);
+                mutable some_angle = ArcSin(0.0);
+                __quantum__qis__rz__body(some_angle, q);
+                set some_angle = ArcCos(-1.0) / PI();
+                __quantum__qis__rz__body(some_angle, q);
+                __quantum__qis__mresetz__body(q)
+            }
+        }
+        """
+    e = Interpreter(TargetProfile.Base)
+    e.interpret(base_input)
+    qir = e.qir("Test.Main()")
+    assert qir == dedent(
+        """\
+        %Result = type opaque
+        %Qubit = type opaque
+
+        define void @ENTRYPOINT__main() #0 {
+          call void @__quantum__qis__rz__body(double 2.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__rz__body(double 0.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__rz__body(double 1.0, %Qubit* inttoptr (i64 0 to %Qubit*))
+          call void @__quantum__qis__mz__body(%Qubit* inttoptr (i64 0 to %Qubit*), %Result* inttoptr (i64 0 to %Result*)) #1
+          call void @__quantum__rt__result_record_output(%Result* inttoptr (i64 0 to %Result*), i8* null)
+          ret void
+        }
+
+        declare void @__quantum__qis__ccx__body(%Qubit*, %Qubit*, %Qubit*)
+        declare void @__quantum__qis__cx__body(%Qubit*, %Qubit*)
+        declare void @__quantum__qis__cy__body(%Qubit*, %Qubit*)
+        declare void @__quantum__qis__cz__body(%Qubit*, %Qubit*)
+        declare void @__quantum__qis__rx__body(double, %Qubit*)
+        declare void @__quantum__qis__rxx__body(double, %Qubit*, %Qubit*)
+        declare void @__quantum__qis__ry__body(double, %Qubit*)
+        declare void @__quantum__qis__ryy__body(double, %Qubit*, %Qubit*)
+        declare void @__quantum__qis__rz__body(double, %Qubit*)
+        declare void @__quantum__qis__rzz__body(double, %Qubit*, %Qubit*)
+        declare void @__quantum__qis__h__body(%Qubit*)
+        declare void @__quantum__qis__s__body(%Qubit*)
+        declare void @__quantum__qis__s__adj(%Qubit*)
+        declare void @__quantum__qis__t__body(%Qubit*)
+        declare void @__quantum__qis__t__adj(%Qubit*)
+        declare void @__quantum__qis__x__body(%Qubit*)
+        declare void @__quantum__qis__y__body(%Qubit*)
+        declare void @__quantum__qis__z__body(%Qubit*)
+        declare void @__quantum__qis__swap__body(%Qubit*, %Qubit*)
+        declare void @__quantum__qis__mz__body(%Qubit*, %Result* writeonly) #1
+        declare void @__quantum__rt__result_record_output(%Result*, i8*)
+        declare void @__quantum__rt__array_record_output(i64, i8*)
+        declare void @__quantum__rt__tuple_record_output(i64, i8*)
+
+        attributes #0 = { "entry_point" "output_labeling_schema" "qir_profiles"="base_profile" "required_num_qubits"="1" "required_num_results"="1" }
         attributes #1 = { "irreversible" }
 
         ; module flags

@@ -5,10 +5,10 @@ allocator::assign_global!();
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use indoc::indoc;
-use qsc::{interpret::Interpreter, PackageType};
+use qsc::{interpret::Interpreter, PackageType, TargetCapabilityFlags};
 use qsc_data_structures::language_features::LanguageFeatures;
 use qsc_eval::output::GenericReceiver;
-use qsc_frontend::compile::{SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::SourceMap;
 
 const TELEPORT: &str = include_str!("../../../samples/algorithms/Teleportation.qs");
 const DEUTSCHJOZSA: &str = include_str!("../../../samples/algorithms/DeutschJozsa.qs");

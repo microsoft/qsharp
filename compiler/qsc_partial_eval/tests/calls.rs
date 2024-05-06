@@ -12,13 +12,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{
-    assert_block_instructions, assert_blocks, assert_callable, compile_and_partially_evaluate,
-};
+use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
 
 #[test]
 fn call_to_single_qubit_unitary_with_two_calls_to_the_same_intrinsic() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Unit { body intrinsic; }
             operation OpSquared(q : Qubit) : Unit {
@@ -59,7 +57,7 @@ fn call_to_single_qubit_unitary_with_two_calls_to_the_same_intrinsic() {
 
 #[test]
 fn call_to_single_qubit_unitary_with_calls_to_different_intrinsics() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation OpA(q : Qubit) : Unit { body intrinsic; }
             operation OpB(q : Qubit) : Unit { body intrinsic; }
@@ -114,7 +112,7 @@ fn call_to_single_qubit_unitary_with_calls_to_different_intrinsics() {
 
 #[test]
 fn call_to_two_qubit_unitary() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q0 : Qubit, q1 : Qubit) : Unit { body intrinsic; }
             operation ApplyOpCombinations(q0 : Qubit, q1 : Qubit) : Unit {
@@ -156,7 +154,7 @@ fn call_to_two_qubit_unitary() {
 
 #[test]
 fn call_to_unitary_that_receives_double_and_qubit() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation DoubleFirst(d : Double, q : Qubit) : Unit { body intrinsic; }
             operation QubitFirst(q : Qubit, d : Double) : Unit { body intrinsic; }
@@ -213,7 +211,7 @@ fn call_to_unitary_that_receives_double_and_qubit() {
 
 #[test]
 fn calls_to_unitary_that_conditionally_calls_intrinsic_with_classical_bool() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation OpA(q : Qubit) : Unit { body intrinsic; }
             operation OpB(q : Qubit) : Unit { body intrinsic; }
@@ -286,7 +284,7 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_classical_bool() {
 
 #[test]
 fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation OpA(q : Qubit) : Unit { body intrinsic; }
             operation OpB(q : Qubit) : Unit { body intrinsic; }
@@ -395,7 +393,7 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
 
 #[test]
 fn call_to_unitary_rotation_unitary_with_computation() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Rotation(d : Double, q : Qubit) : Unit { body intrinsic; }
             operation RotationWithComputation(d : Double, q : Qubit) : Unit {
@@ -437,7 +435,7 @@ fn call_to_unitary_rotation_unitary_with_computation() {
 
 #[test]
 fn call_to_operation_that_returns_measurement_result() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Result {
                 QIR.Intrinsic.__quantum__qis__m__body(q)
@@ -490,7 +488,7 @@ fn call_to_operation_that_returns_measurement_result() {
 
 #[test]
 fn call_to_operation_that_returns_dynamic_bool() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Bool {
                 let r = QIR.Intrinsic.__quantum__qis__m__body(q);
@@ -559,7 +557,7 @@ fn call_to_operation_that_returns_dynamic_bool() {
 
 #[test]
 fn call_to_boolean_function_using_result_literal_as_argument_yields_constant() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             operation Op(q : Qubit) : Unit { body intrinsic; }
             function ResultAsBool(r : Result) : Bool {
@@ -574,7 +572,7 @@ fn call_to_boolean_function_using_result_literal_as_argument_yields_constant() {
                 }
                 if ResultAsBool(One) {
                     Op(q);
-                } 
+                }
             }
         }
     "#});
@@ -618,7 +616,7 @@ fn call_to_boolean_function_using_result_literal_as_argument_yields_constant() {
 
 #[test]
 fn call_to_boolean_function_using_dynamic_result_as_argument_generates_branches() {
-    let program = compile_and_partially_evaluate(indoc! {r#"
+    let program = get_rir_program(indoc! {r#"
         namespace Test {
             open QIR.Intrinsic;
             operation Op(q : Qubit) : Unit { body intrinsic; }
@@ -705,5 +703,500 @@ fn call_to_boolean_function_using_dynamic_result_as_argument_generates_branches(
             Block 2:Block:
                 Call id(3), args( Qubit(1), )
                 Jump(1)"#]],
+    );
+}
+
+#[test]
+fn call_to_unitary_operation_with_one_qubit_argument_using_one_control_qubit() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            operation IntrinsicA(q : Qubit) : Unit { body intrinsic; }
+            operation IntrinsicB(control: Qubit, target : Qubit) : Unit { body intrinsic; }
+            operation Op(q : Qubit) : Unit is Ctl {
+                body ... {
+                    IntrinsicA(q);
+                }
+                controlled (ctls, ...) {
+                    IntrinsicB(ctls[0], q);
+                }
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use (ctl, target) = (Qubit(), Qubit());
+                Op(target);
+                Controlled Op([ctl], target);
+            }
+        }
+    "#});
+    let intrinsic_a_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        intrinsic_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: IntrinsicA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let intrinsic_b_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        intrinsic_b_callable_id,
+        &expect![[r#"
+        Callable:
+            name: IntrinsicB
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+                [1]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__tuple_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(1), )
+                Call id(2), args( Qubit(0), Qubit(1), )
+                Call id(3), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_unitary_operation_with_one_qubit_argument_using_mutiple_control_qubits() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            operation IntrinsicA(q : Qubit) : Unit { body intrinsic; }
+            operation IntrinsicB(control0: Qubit, control1: Qubit, target : Qubit) : Unit { body intrinsic; }
+            operation Op(q : Qubit) : Unit is Ctl {
+                body ... {
+                    IntrinsicA(q);
+                }
+                controlled (ctls, ...) {
+                    IntrinsicB(ctls[0], ctls[1], q);
+                }
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use (ctl0, ctl1, target) = (Qubit(), Qubit(), Qubit());
+                Op(target);
+                Controlled Op([ctl0, ctl1], target);
+            }
+        }
+    "#});
+    let intrinsic_a_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        intrinsic_a_callable_id,
+        &expect![[r#"
+        Callable:
+            name: IntrinsicA
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    let intrinsic_b_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        intrinsic_b_callable_id,
+        &expect![[r#"
+            Callable:
+                name: IntrinsicB
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                    [1]: Qubit
+                    [2]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__tuple_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(2), )
+                Call id(2), args( Qubit(0), Qubit(1), Qubit(2), )
+                Call id(3), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_unitary_operation_with_two_qubit_arguments_using_one_control_qubit() {
+    let program = get_rir_program(indoc! {r#"
+        namespace Test {
+            operation IntrinsicA(q0 : Qubit, q1 : Qubit) : Unit { body intrinsic; }
+            operation IntrinsicB(control: Qubit, target0 : Qubit, target1 : Qubit) : Unit { body intrinsic; }
+            operation Op(q0 : Qubit, q1: Qubit) : Unit is Ctl {
+                body ... {
+                    IntrinsicA(q0, q1);
+                }
+                controlled (ctls, ...) {
+                    IntrinsicB(ctls[0], q0, q1);
+                }
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use (ctl, target0, target1) = (Qubit(), Qubit(), Qubit());
+                Op(target0, target1);
+                Controlled Op([ctl], (target0, target1));
+            }
+        }
+    "#});
+    let intrinsic_a_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        intrinsic_a_callable_id,
+        &expect![[r#"
+            Callable:
+                name: IntrinsicA
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let intrinsic_b_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        intrinsic_b_callable_id,
+        &expect![[r#"
+            Callable:
+                name: IntrinsicB
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                    [1]: Qubit
+                    [2]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__tuple_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(1), Qubit(2), )
+                Call id(2), args( Qubit(0), Qubit(1), Qubit(2), )
+                Call id(3), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_unitary_operation_using_multiple_controlled_functors() {
+    let program = get_rir_program(indoc! {r#"
+    namespace Test {
+        operation IntrinsicA1(q : Qubit) : Unit { body intrinsic; }
+        operation IntrinsicA2(q : Qubit) : Unit { body intrinsic; }
+        operation IntrinsicB(control: Qubit, target : Qubit) : Unit { body intrinsic; }
+        operation IntrinsicC(control0: Qubit, control1: Qubit, target : Qubit) : Unit { body intrinsic; }
+        operation Op(q : Qubit) : Unit is Ctl {
+            body ... {
+                IntrinsicA1(q);
+            }
+            controlled (ctls, ...) {
+                let len = Length(ctls);
+                if len == 1 {
+                    IntrinsicB(ctls[0], q);
+                } elif len == 2 {
+                    IntrinsicC(ctls[0], ctls[1], q);
+                } else {
+                    IntrinsicA2(ctls[2]);
+                }
+            }
+        }
+        @EntryPoint()
+        operation Main() : Unit {
+            use (target, ctl1, ctl2, ctl3,) = (Qubit(), Qubit(), Qubit(), Qubit());
+            Op(target);
+            Controlled Op([ctl1], target);
+            Controlled Controlled Op([ctl1], ([ctl2], target));
+            Controlled Controlled Controlled Op([ctl1], ([ctl2], ([ctl3], target)));
+        }
+    }
+    "#});
+    let intrinsic_a1_callable_id = CallableId(1);
+    assert_callable(
+        &program,
+        intrinsic_a1_callable_id,
+        &expect![[r#"
+            Callable:
+                name: IntrinsicA1
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let intrinsic_b_callable_id = CallableId(2);
+    assert_callable(
+        &program,
+        intrinsic_b_callable_id,
+        &expect![[r#"
+            Callable:
+                name: IntrinsicB
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let intrinsic_c_callable_id = CallableId(3);
+    assert_callable(
+        &program,
+        intrinsic_c_callable_id,
+        &expect![[r#"
+            Callable:
+                name: IntrinsicC
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                    [1]: Qubit
+                    [2]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let intrinsic_a2_callable_id = CallableId(4);
+    assert_callable(
+        &program,
+        intrinsic_a2_callable_id,
+        &expect![[r#"
+            Callable:
+                name: IntrinsicA2
+                call_type: Regular
+                input_type:
+                    [0]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    let output_recording_callable_id = CallableId(5);
+    assert_callable(
+        &program,
+        output_recording_callable_id,
+        &expect![[r#"
+            Callable:
+                name: __quantum__rt__tuple_record_output
+                call_type: OutputRecording
+                input_type:
+                    [0]: Integer
+                    [1]: Pointer
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Qubit(0), )
+                Call id(2), args( Qubit(1), Qubit(0), )
+                Call id(3), args( Qubit(1), Qubit(2), Qubit(0), )
+                Call id(4), args( Qubit(3), )
+                Call id(5), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_no_bound_locals() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : (Qubit => Unit) {
+                X(_)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+        Callable:
+            name: __quantum__qis__x__body
+            call_type: Regular
+            input_type:
+                [0]: Qubit
+            output_type: <VOID>
+            body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_one_bound_local() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : (Qubit => Unit) {
+                Rx(1.0, _)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__rx__body
+                call_type: Regular
+                input_type:
+                    [0]: Double
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_two_bound_locals() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : (Qubit => Unit) {
+                R(PauliX, 1.0, _)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__rx__body
+                call_type: Regular
+                input_type:
+                    [0]: Double
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn call_to_closue_with_one_bound_local_two_unbound() {
+    let program = get_rir_program(indoc! {"
+        namespace Test {
+            operation Op() : ((Double, Qubit) => Unit) {
+                R(PauliX, _, _)
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                (Op())(1.0, q);
+            }
+        }
+    "});
+    assert_callable(
+        &program,
+        CallableId(1),
+        &expect![[r#"
+            Callable:
+                name: __quantum__qis__rx__body
+                call_type: Regular
+                input_type:
+                    [0]: Double
+                    [1]: Qubit
+                output_type: <VOID>
+                body: <NONE>"#]],
+    );
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Double(1), Qubit(0), )
+                Call id(2), args( Integer(0), Pointer, )
+                Return"#]],
     );
 }

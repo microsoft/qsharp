@@ -76,7 +76,7 @@ impl<E: ErrorCorrection, Builder1: FactoryBuilder<E>, Builder2: FactoryBuilder<E
         magic_state_type: usize,
         output_error_rate: f64,
         max_code_parameter: &E::Parameter,
-    ) -> Vec<Cow<Self::Factory>> {
+    ) -> Option<Vec<Cow<Self::Factory>>> {
         match magic_state_type {
             0 => self
                 .builder1
@@ -87,9 +87,12 @@ impl<E: ErrorCorrection, Builder1: FactoryBuilder<E>, Builder2: FactoryBuilder<E
                     output_error_rate,
                     max_code_parameter,
                 )
-                .into_iter()
-                .map(|f| Cow::Owned(FactoryDispatch2::Factory1(f.into_owned())))
-                .collect(),
+                .map(|factories| {
+                    factories
+                        .into_iter()
+                        .map(|f| Cow::Owned(FactoryDispatch2::Factory1(f.into_owned())))
+                        .collect()
+                }),
             1 => self
                 .builder2
                 .find_factories(
@@ -99,9 +102,12 @@ impl<E: ErrorCorrection, Builder1: FactoryBuilder<E>, Builder2: FactoryBuilder<E
                     output_error_rate,
                     max_code_parameter,
                 )
-                .into_iter()
-                .map(|f| Cow::Owned(FactoryDispatch2::Factory2(f.into_owned())))
-                .collect(),
+                .map(|factories| {
+                    factories
+                        .into_iter()
+                        .map(|f| Cow::Owned(FactoryDispatch2::Factory2(f.into_owned())))
+                        .collect()
+                }),
             _ => unreachable!("factory builder only has two magic state types"),
         }
     }

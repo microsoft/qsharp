@@ -5,10 +5,7 @@
 mod tests;
 
 use crate::{
-    compile::{
-        self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, SourceMap,
-        TargetCapabilityFlags,
-    },
+    compile::{self, preprocess, AstPackage, CompileUnit, Offsetter, PackageStore, SourceMap},
     error::WithSource,
     lower::Lowerer,
     resolve::{self, Resolver},
@@ -21,7 +18,7 @@ use qsc_ast::{
     validate::Validator as AstValidator,
     visit::Visitor as AstVisitor,
 };
-use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::{language_features::LanguageFeatures, target::TargetCapabilityFlags};
 use qsc_hir::{
     assigner::Assigner as HirAssigner,
     hir::{self, PackageId},

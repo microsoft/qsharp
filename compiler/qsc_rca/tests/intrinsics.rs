@@ -87,8 +87,7 @@ fn check_rca_for_length() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Length",
-        &expect![
-            r#"
+        &expect![[r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
@@ -97,16 +96,13 @@ fn check_rca_for_length() {
                             static_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
                                 value_kind: Element(Dynamic)
-                            dynamic_content_static_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(0x0)
-                                value_kind: Element(Static)
+                            dynamic_content_static_size: Classical
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
                                 value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
-                ctl-adj: <none>"#
-        ],
+                ctl-adj: <none>"#]],
     );
 }
 
@@ -1205,8 +1201,7 @@ fn check_rca_for_account_for_estimates_internal() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "AccountForEstimatesInternal",
-        &expect![
-            r#"
+        &expect![[r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Quantum: QuantumProperties:
@@ -1218,7 +1213,7 @@ fn check_rca_for_account_for_estimates_internal() {
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                             dynamic_content_static_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicInt)
                                 value_kind: Element(Static)
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicInt | UseOfDynamicallySizedArray)
@@ -1231,15 +1226,14 @@ fn check_rca_for_account_for_estimates_internal() {
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                             dynamic_content_static_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicallySizedArray)
+                                runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit)
                                 value_kind: Element(Static)
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicQubit | UseOfDynamicallySizedArray)
                                 value_kind: Element(Static)
                 adj: <none>
                 ctl: <none>
-                ctl-adj: <none>"#
-        ],
+                ctl-adj: <none>"#]],
     );
 }
 

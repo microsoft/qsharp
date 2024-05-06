@@ -8,11 +8,11 @@ pub mod test_utils;
 use expect_test::expect;
 use indoc::indoc;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_callable, compile_and_partially_evaluate};
+use test_utils::{assert_block_instructions, assert_callable, get_rir_program};
 
 #[test]
 fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -66,7 +66,7 @@ fn result_ids_are_correct_for_measuring_and_resetting_one_qubit() {
 
 #[test]
 fn result_ids_are_correct_for_measuring_one_qubit() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -120,7 +120,7 @@ fn result_ids_are_correct_for_measuring_one_qubit() {
 
 #[test]
 fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -193,7 +193,7 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times() {
 
 #[test]
 fn result_ids_are_correct_for_measuring_one_qubit_multiple_times_into_array() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -268,7 +268,7 @@ fn result_ids_are_correct_for_measuring_one_qubit_multiple_times_into_array() {
 
 #[test]
 fn result_ids_are_correct_for_measuring_multiple_qubits() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -343,7 +343,7 @@ fn result_ids_are_correct_for_measuring_multiple_qubits() {
 
 #[test]
 fn comparing_measurement_results_for_equality_adds_read_result_and_comparison_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -416,7 +416,7 @@ fn comparing_measurement_results_for_equality_adds_read_result_and_comparison_in
 
 #[test]
 fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_instructions() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -490,7 +490,7 @@ fn comparing_measurement_results_for_inequality_adds_read_result_and_comparison_
 #[test]
 fn comparing_measurement_result_against_result_literal_for_equality_adds_read_result_and_comparison_instructions(
 ) {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -561,7 +561,7 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
 #[test]
 fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_result_and_comparison_instructions(
 ) {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()

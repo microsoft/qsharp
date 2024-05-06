@@ -5,13 +5,13 @@
 
 use expect_test::expect;
 use indoc::indoc;
-use test_utils::compile_and_partially_evaluate;
+use test_utils::get_rir_program;
 
 pub mod test_utils;
 
 #[test]
 fn output_recording_for_tuple_of_different_types() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -83,8 +83,7 @@ fn output_recording_for_tuple_of_different_types() {
                     Call id(5), args( Variable(1, Boolean), Pointer, )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -92,7 +91,7 @@ fn output_recording_for_tuple_of_different_types() {
 
 #[test]
 fn output_recording_for_nested_tuples() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -170,8 +169,7 @@ fn output_recording_for_nested_tuples() {
                     Call id(5), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -181,7 +179,7 @@ fn output_recording_for_nested_tuples() {
 fn output_recording_for_tuple_of_arrays() {
     // This program would not actually pass RCA checks as it shows up as using a dynamically sized array.
     // However, the output recording should still be correct if/when we support this kind of return in the future.
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -265,8 +263,7 @@ fn output_recording_for_tuple_of_arrays() {
                     Call id(6), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -274,7 +271,7 @@ fn output_recording_for_tuple_of_arrays() {
 
 #[test]
 fn output_recording_for_array_of_tuples() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -360,8 +357,7 @@ fn output_recording_for_array_of_tuples() {
                     Call id(6), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -369,7 +365,7 @@ fn output_recording_for_array_of_tuples() {
 
 #[test]
 fn output_recording_for_literal_bool() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -403,8 +399,7 @@ fn output_recording_for_literal_bool() {
                     Call id(1), args( Bool(true), Pointer, )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -412,7 +407,7 @@ fn output_recording_for_literal_bool() {
 
 #[test]
 fn output_recording_for_literal_int() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -446,8 +441,7 @@ fn output_recording_for_literal_int() {
                     Call id(1), args( Integer(42), Pointer, )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -455,7 +449,7 @@ fn output_recording_for_literal_int() {
 
 #[test]
 fn output_recording_for_mix_of_literal_and_variable() {
-    let program = compile_and_partially_evaluate(indoc! {
+    let program = get_rir_program(indoc! {
         r#"
         namespace Test {
             @EntryPoint()
@@ -518,9 +512,78 @@ fn output_recording_for_mix_of_literal_and_variable() {
                     Call id(4), args( Bool(true), Pointer, )
                     Return
             config: Config:
-                remap_qubits_on_reuse: false
-                defer_measurements: false
+                capabilities: Base
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_one() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result {
+                One
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_zero() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result {
+                Zero
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_in_array() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Result[] {
+                use q = Qubit();
+                [QIR.Intrinsic.__quantum__qis__mresetz__body(q), Zero]
+            }
+        }
+        "#,
+    });
+}
+
+#[test]
+#[should_panic(
+    expected = "partial evaluation failed: OutputResultLiteral(Span { lo: 50, hi: 54 })"
+)]
+fn output_recording_fails_with_result_literal_in_tuple() {
+    let _ = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : (Result, Result) {
+                use q = Qubit();
+                (QIR.Intrinsic.__quantum__qis__mresetz__body(q), Zero)
+            }
+        }
+        "#,
+    });
 }

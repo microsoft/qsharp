@@ -17,8 +17,9 @@ use expect_test::{expect, Expect};
 use indoc::indoc;
 use num_bigint::BigInt;
 use qsc_data_structures::language_features::LanguageFeatures;
+use qsc_data_structures::target::TargetCapabilityFlags;
 use qsc_fir::fir;
-use qsc_frontend::compile::{self, compile, PackageStore, SourceMap, TargetCapabilityFlags};
+use qsc_frontend::compile::{self, compile, PackageStore, SourceMap};
 use qsc_lowerer::map_hir_package_to_fir;
 use qsc_passes::{run_core_passes, run_default_passes, PackageType};
 
@@ -461,6 +462,45 @@ fn dump_register_qubits_not_unique_fails() {
             Microsoft.Quantum.Diagnostics.DumpRegister([qs[0], qs[0]]);
         }"},
         &expect!["qubits in invocation are not unique"],
+    );
+}
+
+#[test]
+fn dump_register_target_in_minus_with_other_in_zero() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[2];
+            X(qs[0]);
+            H(qs[0]);
+            Microsoft.Quantum.Diagnostics.DumpRegister([qs[0]]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: −0.7071+0.0000𝑖
+        "#]],
+    );
+}
+
+#[test]
+fn dump_register_target_in_minus_with_other_in_one() {
+    check_intrinsic_output(
+        "",
+        indoc! {"{
+            use qs = Qubit[2];
+            X(qs[1]);
+            X(qs[0]);
+            H(qs[0]);
+            Microsoft.Quantum.Diagnostics.DumpRegister([qs[0]]);
+            ResetAll(qs);
+        }"},
+        &expect![[r#"
+            STATE:
+            |0⟩: 0.7071+0.0000𝑖
+            |1⟩: −0.7071+0.0000𝑖
+        "#]],
     );
 }
 

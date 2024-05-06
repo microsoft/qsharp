@@ -85,13 +85,7 @@ impl Compilation {
             unit,
         );
 
-        let lints = qsc::linter::run_lints(unit, Some(lints_config));
-        for lint in lints {
-            errors.push(WithSource::from_map(
-                &unit.sources,
-                qsc::compile::ErrorKind::Lint(lint),
-            ));
-        }
+        run_linter_passes(lints_config, &mut errors, unit);
 
         Self {
             package_store,
@@ -106,6 +100,7 @@ impl Compilation {
         cells: I,
         target_profile: Profile,
         language_features: LanguageFeatures,
+        lints_config: &[LintConfig],
     ) -> Self
     where
         I: Iterator<Item = (Arc<str>, Arc<str>)>,
@@ -145,6 +140,8 @@ impl Compilation {
             package_id,
             unit,
         );
+
+        run_linter_passes(lints_config, &mut errors, unit);
 
         Self {
             package_store,
@@ -234,7 +231,7 @@ impl Compilation {
                 lints_config,
             ),
             CompilationKind::Notebook => {
-                Self::new_notebook(sources, target_profile, language_features)
+                Self::new_notebook(sources, target_profile, language_features, lints_config)
             }
         };
         self.package_store = new.package_store;
@@ -278,6 +275,24 @@ fn run_fir_passes(
             let err = WithSource::from_map(&unit.sources, compile::ErrorKind::Pass(err));
             errors.push(err);
         }
+    }
+}
+
+/// Compute new lints and append them to the errors Vec.
+/// Lints are only computed if the erros vector is empty. For performance
+/// reasons we don't want to waste time running lints every few keystrokes,
+/// if the user is in the middle of typing a statement, for example.
+fn run_linter_passes(
+    config: &[LintConfig],
+    errors: &mut Vec<WithSource<compile::ErrorKind>>,
+    unit: &CompileUnit,
+) {
+    if errors.is_empty() {
+        let lints = qsc::linter::run_lints(unit, Some(config));
+        let lints = lints
+            .into_iter()
+            .map(|lint| WithSource::from_map(&unit.sources, qsc::compile::ErrorKind::Lint(lint)));
+        errors.extend(lints);
     }
 }
 

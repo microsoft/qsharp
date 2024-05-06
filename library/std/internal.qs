@@ -28,24 +28,43 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     internal operation ApplyGlobalPhase(theta : Double) : Unit is Ctl + Adj {
-        body ... {}
+        body ... {
+            ControllableGlobalPhase(theta);
+        }
+        adjoint ... {
+            ControllableGlobalPhase(-theta);
+        }
+    }
+
+    // Global phase is not relevant for physical systems, but controlled global phase is physical. We use
+    // the Rz gate to implement controlled global phase physically, and then correct for the extra global phase it
+    // introduces in simulation using additional calls to the simulation-only global phase intrinsic.
+    // We use a separate operation for this controlled case to avoid recursive calls to the same operation
+    // that can interfere with runtime capabilities analysis.
+    internal operation ControllableGlobalPhase(theta : Double) : Unit is Ctl {
+        body ... {
+            GlobalPhase([], theta);
+        }
         controlled (ctls, ...) {
             if Length(ctls) == 0 {
-                // Noop
-            } elif Length(ctls) == 1 {
-                Rz(theta, ctls[0]);
+                GlobalPhase([], theta);
             } else {
-                Controlled R1(ctls[1..(Length(ctls) - 1)], (theta, ctls[0]));
+                Controlled Rz(ctls[1...], (theta, ctls[0]));
+                GlobalPhase(ctls[1...], theta / 2.0);
+                // With a single control qubit, the call to Rz uses no controls and global phase is corrected
+                // by just the call above.
+                // Multi-controlled Rz gates use a decomposition that introduces an additional global
+                // phase, so we need to correct for that here.
+                if Length(ctls) > 1 {
+                    GlobalPhase([], -theta / 4.0);
+                }
             }
         }
     }
 
-    internal operation CR1(theta : Double, control : Qubit, target : Qubit) : Unit is Adj {
-        Rz(theta / 2.0, target);
-        Rz(theta / 2.0, control);
-        CNOT(control, target);
-        Rz(-theta / 2.0, target);
-        CNOT(control, target);
+    // Global phase intrinsic, which only has affect in simulation and is a no-op otherwise.
+    internal operation GlobalPhase(ctls : Qubit[], theta : Double) : Unit {
+        body intrinsic;
     }
 
     internal operation CRz(control : Qubit, theta : Double, target : Qubit) : Unit is Adj {
@@ -94,11 +113,11 @@ namespace Microsoft.Quantum.Intrinsic {
 
     internal operation EntangleForJointMeasure(basis : Pauli, aux : Qubit, qubit : Qubit) : Unit {
         if basis == PauliX {
-            Controlled X([aux], qubit);
+            __quantum__qis__cx__body(aux, qubit);
         } elif basis == PauliZ {
-            Controlled Z([aux], qubit);
+            __quantum__qis__cz__body(aux, qubit);
         } elif basis == PauliY {
-            Controlled Y([aux], qubit);
+            __quantum__qis__cy__body(aux, qubit);
         }
     }
 

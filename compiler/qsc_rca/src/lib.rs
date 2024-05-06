@@ -18,7 +18,10 @@ mod scaffolding;
 use crate::common::set_indentation;
 use bitflags::bitflags;
 use indenter::indented;
-use qsc_data_structures::index_map::{IndexMap, Iter};
+use qsc_data_structures::{
+    index_map::{IndexMap, Iter},
+    target::TargetCapabilityFlags,
+};
 use qsc_fir::{
     fir::{
         BlockId, ExprId, LocalItemId, PackageId, StmtId, StoreBlockId, StoreExprId, StoreItemId,
@@ -26,7 +29,7 @@ use qsc_fir::{
     },
     ty::Ty,
 };
-use qsc_frontend::compile::TargetCapabilityFlags;
+
 use std::{
     cmp::Ord,
     fmt::{self, Debug, Display, Formatter, Write},
@@ -596,8 +599,10 @@ impl ValueKind {
             Self::Element(RuntimeKind::Static)
         } else {
             match ty {
-                // For a dynamic array, both contents and size are dynamic.
-                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic),
+                // For a dynamic array, the content is dynamic and the size is static.
+                // We assume this because the source of the array produces something with dynamic length,
+                // that source should have already added the runtime feature flag for dynamic arrays.
+                Ty::Array(_) => ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Static),
                 // For every other dynamic type, we use the element variant with a dynamic runtime value.
                 _ => ValueKind::Element(RuntimeKind::Dynamic),
             }
@@ -656,7 +661,10 @@ impl ValueKind {
                 }
                 ValueKind::Element(self_runtime_kind) => {
                     *content_runtime_kind = self_runtime_kind;
-                    *size_runtime_kind = self_runtime_kind;
+                    // When we project from an element variant to an array variant, we assume the size of the
+                    // array is statically sized because we rely on the dynamically sized arrays runtime feature
+                    // flag to detect such cases.
+                    *size_runtime_kind = RuntimeKind::Static;
                 }
             },
             ValueKind::Element(runtime_kind) => {
@@ -749,6 +757,14 @@ bitflags! {
         const LoopWithDynamicCondition = 1 << 20;
         /// Use of a closure.
         const UseOfClosure = 1 << 21;
+        /// Use of an advanced type as output of a computation.
+        const UseOfAdvancedOutput = 1 << 22;
+        // Use of a `Bool` as output of a computation.
+        const UseOfBoolOutput = 1 << 23;
+        // Use of a `Double` as output of a computation.
+        const UseOfDoubleOutput = 1 << 24;
+        // Use of an `Int` as output of a computation.
+        const UseOfIntOutput = 1 << 25;
     }
 }
 
@@ -834,6 +850,18 @@ impl RuntimeFeatureFlags {
             capabilities |= TargetCapabilityFlags::BackwardsBranching;
         }
         if self.contains(RuntimeFeatureFlags::UseOfClosure) {
+            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfBoolOutput) {
+            capabilities |= TargetCapabilityFlags::Adaptive;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfDoubleOutput) {
+            capabilities |= TargetCapabilityFlags::FloatingPointComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfIntOutput) {
+            capabilities |= TargetCapabilityFlags::IntegerComputations;
+        }
+        if self.contains(RuntimeFeatureFlags::UseOfAdvancedOutput) {
             capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         capabilities

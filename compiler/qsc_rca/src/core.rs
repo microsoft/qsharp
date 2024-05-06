@@ -293,7 +293,14 @@ impl<'a> Analyzer<'a> {
                 value_kind,
             })
         } else {
-            self.analyze_expr_call_with_static_callee(callee_expr_id, args_expr_id, expr_type)
+            let call_compute_kind =
+                self.analyze_expr_call_with_static_callee(callee_expr_id, args_expr_id, expr_type);
+            match call_compute_kind {
+                CallComputeKind::Regular(compute_kind) => compute_kind,
+                CallComputeKind::Override(compute_kind) => {
+                    return compute_kind;
+                }
+            }
         };
 
         // If this call happens within a dynamic scope, there might be additional runtime features being used.
@@ -339,13 +346,41 @@ impl<'a> Analyzer<'a> {
         compute_kind
     }
 
+    fn analyze_expr_call_for_length_intrinsic(&self, args_expr_id: ExprId) -> ComputeKind {
+        let application_instance = self.get_current_application_instance();
+        let args_compute_kind = *application_instance.get_expr_compute_kind(args_expr_id);
+        match args_compute_kind {
+            ComputeKind::Classical => ComputeKind::Classical,
+            ComputeKind::Quantum(quantum_properties) => {
+                if quantum_properties
+                    .runtime_features
+                    .contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray)
+                {
+                    ComputeKind::new_with_runtime_features(
+                        quantum_properties.runtime_features,
+                        ValueKind::Element(RuntimeKind::Dynamic),
+                    )
+                } else {
+                    ComputeKind::Classical
+                }
+            }
+        }
+    }
+
     fn analyze_expr_call_with_spec_callee(
         &mut self,
         callee: &Callee,
         callable_decl: &'a CallableDecl,
         args_expr_id: ExprId,
         expr_type: &Ty,
-    ) -> ComputeKind {
+    ) -> CallComputeKind {
+        // The `Length` intrinsic function has a specialized override.
+        if is_length_intrinsic(callable_decl) {
+            return CallComputeKind::Override(
+                self.analyze_expr_call_for_length_intrinsic(args_expr_id),
+            );
+        }
+
         // Analyze the specialization to determine its application generator set.
         let callee_id = GlobalSpecId::from((callee.item, callee.functor_app.functor_set_value()));
         self.analyze_spec(callee_id, callable_decl);
@@ -423,7 +458,7 @@ impl<'a> Analyzer<'a> {
                 quantum_properties.value_kind = mapped_value_kind;
             }
         }
-        compute_kind
+        CallComputeKind::Regular(compute_kind)
     }
 
     fn analyze_expr_call_with_static_callee(
@@ -431,7 +466,7 @@ impl<'a> Analyzer<'a> {
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
         expr_type: &Ty,
-    ) -> ComputeKind {
+    ) -> CallComputeKind {
         // Try to resolve the callee.
         let package_id = self.get_current_package_id();
         let package = self.package_store.get(package_id);
@@ -448,10 +483,11 @@ impl<'a> Analyzer<'a> {
             // The value kind of a call expression with an unresolved callee is dynamic but its specific variant depends
             // on the expression's type.
             let value_kind = ValueKind::new_dynamic_from_type(expr_type);
-            return ComputeKind::Quantum(QuantumProperties {
+            let compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
                 value_kind,
             });
+            return CallComputeKind::Regular(compute_kind);
         };
 
         // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
@@ -466,7 +502,9 @@ impl<'a> Analyzer<'a> {
                 args_expr_id,
                 expr_type,
             ),
-            Global::Udt => self.analyze_expr_call_with_udt_callee(args_expr_id),
+            Global::Udt => {
+                CallComputeKind::Regular(self.analyze_expr_call_with_udt_callee(args_expr_id))
+            }
         }
     }
 
@@ -1001,6 +1039,26 @@ impl<'a> Analyzer<'a> {
         // Analyze the entry expression.
         if let Some(entry_expr_id) = package.entry {
             self.visit_expr(entry_expr_id);
+
+            // An entry expression includes runtime flags for each primitive type in its return type
+            // that must be used in output recording.
+            let entry_ty = self.get_expr(entry_expr_id).ty.clone();
+            let ty_flags = ty_to_runtime_runtime_output_flags(&entry_ty);
+            if !ty_flags.is_empty() {
+                let mut entry_compute_kind = *self
+                    .get_current_application_instance()
+                    .get_expr_compute_kind(entry_expr_id);
+                if let ComputeKind::Quantum(quantum_properties) = &mut entry_compute_kind {
+                    quantum_properties.runtime_features |= ty_flags;
+                } else {
+                    entry_compute_kind = ComputeKind::Quantum(QuantumProperties {
+                        runtime_features: ty_flags,
+                        value_kind: ValueKind::new_static_from_type(&entry_ty),
+                    });
+                }
+                self.get_current_application_instance_mut()
+                    .insert_expr_compute_kind(entry_expr_id, entry_compute_kind);
+            }
         }
         let top_level_context = self.pop_top_level_context();
         assert!(top_level_context.package_id == package_id);
@@ -1355,12 +1413,19 @@ impl<'a> Analyzer<'a> {
                 // dynamic and additional runtime features may apply.
                 if !application_instance.active_dynamic_scopes.is_empty() {
                     let local_type = &local_var_compute_kind.local.ty;
-                    let dynamic_value_kind = ValueKind::new_dynamic_from_type(local_type);
-                    let dynamic_runtime_features =
+                    let mut dynamic_value_kind = ValueKind::new_dynamic_from_type(local_type);
+                    let mut dynamic_runtime_features =
                         derive_runtime_features_for_value_kind_associated_to_type(
                             dynamic_value_kind,
                             local_type,
                         );
+                    if matches!(local_type, Ty::Array(..)) {
+                        // For arrays updated in a dynamic context, we also need to include the runtime feature
+                        // of dynamic arrays and change the value kind.
+                        dynamic_runtime_features |= RuntimeFeatureFlags::UseOfDynamicallySizedArray;
+                        dynamic_value_kind =
+                            ValueKind::Array(RuntimeKind::Dynamic, RuntimeKind::Dynamic);
+                    }
                     let dynamic_compute_kind = ComputeKind::new_with_runtime_features(
                         dynamic_runtime_features,
                         dynamic_value_kind,
@@ -1475,18 +1540,17 @@ impl<'a> Visitor<'a> for Analyzer<'a> {
                 .last()
                 .expect("block should have at least one statement");
             let last_stmt = self.get_stmt(*last_stmt_id);
-            let (StmtKind::Expr(last_expr_id) | StmtKind::Semi(last_expr_id)) = last_stmt.kind
-            else {
-                panic!("expected Expr or Semi statement")
-            };
-            let application_instance = self.get_current_application_instance();
-            let last_expr_compute_kind = application_instance.get_expr_compute_kind(last_expr_id);
-            if let ComputeKind::Quantum(last_expr_quantum_properties) = last_expr_compute_kind {
-                let mut block_value_kind = ValueKind::new_static_from_type(&block.ty);
-                last_expr_quantum_properties
-                    .value_kind
-                    .project_onto_variant(&mut block_value_kind);
-                block_compute_kind.aggregate_value_kind(block_value_kind);
+            if let StmtKind::Expr(last_expr_id) = last_stmt.kind {
+                let application_instance = self.get_current_application_instance();
+                let last_expr_compute_kind =
+                    application_instance.get_expr_compute_kind(last_expr_id);
+                if let ComputeKind::Quantum(last_expr_quantum_properties) = last_expr_compute_kind {
+                    let mut block_value_kind = ValueKind::new_static_from_type(&block.ty);
+                    last_expr_quantum_properties
+                        .value_kind
+                        .project_onto_variant(&mut block_value_kind);
+                    block_compute_kind.aggregate_value_kind(block_value_kind);
+                }
             }
         }
 
@@ -1870,6 +1934,11 @@ impl SpecContext {
     }
 }
 
+enum CallComputeKind {
+    Regular(ComputeKind),
+    Override(ComputeKind),
+}
+
 fn derive_intrinsic_function_application_generator_set(
     callable_context: &CallableContext,
 ) -> ApplicationGeneratorSet {
@@ -1895,11 +1964,9 @@ fn derive_intrinsic_function_application_generator_set(
 
         // Create a parameter application depending on the parameter type.
         let param_application = match &param.ty {
-            Ty::Array(_) => ParamApplication::Array(ArrayParamApplication {
-                static_content_dynamic_size: param_compute_kind,
-                dynamic_content_static_size: param_compute_kind,
-                dynamic_content_dynamic_size: param_compute_kind,
-            }),
+            Ty::Array(_) => {
+                array_param_application_from_runtime_features(runtime_features, value_kind)
+            }
             _ => ParamApplication::Element(param_compute_kind),
         };
         dynamic_param_applications.push(param_application);
@@ -1910,6 +1977,26 @@ fn derive_intrinsic_function_application_generator_set(
         inherent: ComputeKind::Classical,
         dynamic_param_applications,
     }
+}
+
+fn array_param_application_from_runtime_features(
+    runtime_features: RuntimeFeatureFlags,
+    value_kind: ValueKind,
+) -> ParamApplication {
+    ParamApplication::Array(ArrayParamApplication {
+        static_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
+            runtime_features: runtime_features | RuntimeFeatureFlags::UseOfDynamicallySizedArray,
+            value_kind,
+        }),
+        dynamic_content_static_size: ComputeKind::Quantum(QuantumProperties {
+            runtime_features,
+            value_kind,
+        }),
+        dynamic_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
+            runtime_features: runtime_features | RuntimeFeatureFlags::UseOfDynamicallySizedArray,
+            value_kind,
+        }),
+    })
 }
 
 fn derive_instrinsic_operation_application_generator_set(
@@ -1952,11 +2039,9 @@ fn derive_instrinsic_operation_application_generator_set(
 
         // Create a parameter application depending on the parameter type.
         let param_application = match &param.ty {
-            Ty::Array(_) => ParamApplication::Array(ArrayParamApplication {
-                static_content_dynamic_size: param_compute_kind,
-                dynamic_content_static_size: param_compute_kind,
-                dynamic_content_dynamic_size: param_compute_kind,
-            }),
+            Ty::Array(_) => {
+                array_param_application_from_runtime_features(runtime_features, value_kind)
+            }
             _ => ParamApplication::Element(param_compute_kind),
         };
         dynamic_param_applications.push(param_application);
@@ -1965,6 +2050,47 @@ fn derive_instrinsic_operation_application_generator_set(
     ApplicationGeneratorSet {
         inherent: inherent_compute_kind,
         dynamic_param_applications,
+    }
+}
+
+fn is_length_intrinsic(callable_decl: &CallableDecl) -> bool {
+    matches!(callable_decl.implementation, CallableImpl::Intrinsic)
+        && callable_decl.name.name.as_ref() == "Length"
+}
+
+fn ty_to_runtime_runtime_output_flags(ty: &Ty) -> RuntimeFeatureFlags {
+    match ty {
+        Ty::Array(content_type) => ty_to_runtime_runtime_output_flags(content_type),
+        Ty::Prim(prim) => ty_prim_to_runtime_output_flag(*prim),
+        Ty::Tuple(element_types) => {
+            let mut runtime_features = RuntimeFeatureFlags::empty();
+            for element_type in element_types {
+                let element_runtime_features = ty_to_runtime_runtime_output_flags(element_type);
+                runtime_features |= element_runtime_features;
+            }
+            runtime_features
+        }
+        Ty::Arrow(_) | Ty::Udt(_) => RuntimeFeatureFlags::UseOfAdvancedOutput,
+        Ty::Infer(_) => panic!("cannot derive runtime features for `Infer` type"),
+        Ty::Param(_) => panic!("cannot derive runtime features for `Param` type"),
+        Ty::Err => panic!("cannot derive runtime features for `Err` type"),
+    }
+}
+
+fn ty_prim_to_runtime_output_flag(prim: Prim) -> RuntimeFeatureFlags {
+    match prim {
+        Prim::Bool => RuntimeFeatureFlags::UseOfBoolOutput,
+        Prim::Double => RuntimeFeatureFlags::UseOfDoubleOutput,
+        Prim::Int => RuntimeFeatureFlags::UseOfIntOutput,
+        Prim::Result => RuntimeFeatureFlags::empty(),
+        Prim::BigInt
+        | Prim::Pauli
+        | Prim::Qubit
+        | Prim::Range
+        | Prim::RangeFrom
+        | Prim::RangeTo
+        | Prim::RangeFull
+        | Prim::String => RuntimeFeatureFlags::UseOfAdvancedOutput,
     }
 }
 

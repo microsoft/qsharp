@@ -5,18 +5,18 @@ As a reminder, the Pauli Z gate is defined by the following matrix:
 
 $$
 Z =
- \begin{bmatrix}1 & 0\\\0 & -1 \end{bmatrix}
+ \begin{bmatrix}1 & 0 \\ 0 & -1 \end{bmatrix}
 $$
 
 Let's see its effect on the only computational basis state that it changes, $|1\rangle$:
 
 $$
 Z|1\rangle =
- \begin{bmatrix} 1 & 0\\\0 & -1 \end{bmatrix}
- \begin{bmatrix}0\\\ 1\\\ \end{bmatrix}=
-\begin{bmatrix}1 \cdot 0 + 0 \cdot1\\\0 \cdot 1 +  (-1) \cdot 1\\\ \end{bmatrix}=
-\begin{bmatrix}0\\\ -1\\\ \end{bmatrix}=
- -\begin{bmatrix}0\\\ 1\\\ \end{bmatrix}=
+ \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}
+ \begin{bmatrix}0 \\ 1 \end{bmatrix}=
+\begin{bmatrix}1 \cdot 0 + 0 \cdot1 \\ 0 \cdot 1 +  (-1) \cdot 1 \end{bmatrix}=
+\begin{bmatrix}0 \\ -1 \end{bmatrix}=
+ -\begin{bmatrix}0 \\ 1 \end{bmatrix}=
 -|1\rangle
 $$
 
@@ -24,10 +24,10 @@ In general applying the Z gate to a single qubit superposition state $|\psi\rang
 
 $$
 Z|\psi\rangle =
- \begin{bmatrix}1 & 0 \\\0 & -1\end{bmatrix}
- \begin{bmatrix}\alpha\\\ \beta\\\ \end{bmatrix}=
-\begin{bmatrix}1\cdot\alpha + 0\cdot\beta\\\0\cdot\alpha + (-1)\cdot\beta\\\ \end{bmatrix}=
- \begin{bmatrix}\alpha\\\ -\beta\\\ \end{bmatrix}=
+ \begin{bmatrix}1 & 0 \\ 0 & -1 \end{bmatrix}
+ \begin{bmatrix}\alpha \\ \beta \end{bmatrix}=
+\begin{bmatrix}1\cdot\alpha + 0\cdot\beta \\ 0\cdot\alpha + (-1)\cdot\beta \end{bmatrix}=
+ \begin{bmatrix}\alpha \\ -\beta \end{bmatrix}=
  \alpha |0\rangle -\beta |1\rangle
 $$
 
