@@ -47,6 +47,7 @@ fn _native(py: Python, m: &PyModule) -> PyResult<()> {
 // This ordering must match the _native.pyi file.
 #[derive(Clone, Copy)]
 #[pyclass(unsendable)]
+#[allow(non_camel_case_types)]
 /// A Q# target profile.
 ///
 /// A target profile describes the capabilities of the hardware or simulator
@@ -56,12 +57,12 @@ pub(crate) enum TargetProfile {
     ///
     /// This option maps to the Base Profile as defined by the QIR specification.
     Base,
-    /// Target supports Quantinuum profile.
+    /// Target supports the Adaptive profile with integer computation and qubit reset capabilities.
     ///
     /// This profile includes all of the required Adaptive Profile
     /// capabilities, as well as the optional integer computation and qubit
     /// reset capabilities, as defined by the QIR specification.
-    Quantinuum,
+    Adaptive_RI,
     /// Target supports the full set of capabilities required to run any Q# program.
     ///
     /// This option maps to the Full Profile as defined by the QIR specification.
@@ -114,7 +115,7 @@ impl Interpreter {
         list_directory: Option<PyObject>,
     ) -> PyResult<Self> {
         let target = match target {
-            TargetProfile::Quantinuum => Profile::Quantinuum,
+            TargetProfile::Adaptive_RI => Profile::AdaptiveRI,
             TargetProfile::Base => Profile::Base,
             TargetProfile::Unrestricted => Profile::Unrestricted,
         };

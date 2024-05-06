@@ -13,7 +13,7 @@ $$ re^{i \theta} = r \cos \theta + i r \sin \theta $$
 
 For two complex numbers to be equal, their real and imaginary parts have to be equal. This gives us the following system of equations:
 
-$$ \begin{cases} a = r \cos \theta \\\\ b = r \sin \theta \end{cases} $$
+$$ \begin{cases} a = r \cos \theta \\ b = r \sin \theta \end{cases} $$
 
 To calculate $\theta$, we can divide the second equation by the first one to get
 

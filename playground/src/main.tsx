@@ -37,6 +37,18 @@ import {
   monacoPositionToLsPosition,
 } from "./utils.js";
 
+// Set up the Markdown renderer with KaTeX support
+import mk from "@vscode/markdown-it-katex";
+import markdownIt from "markdown-it";
+import { setRenderer } from "qsharp-lang/ux";
+
+const md = markdownIt("commonmark");
+md.use((mk as any).default, {
+  enableMathBlockInHtml: true,
+  enableMathInlineInHtml: true,
+}); // Not sure why it's not using the default export automatically :-/
+setRenderer((input: string) => md.render(input));
+
 export type ActiveTab = "results-tab" | "ast-tab" | "hir-tab" | "qir-tab";
 
 const basePath = (window as any).qscBasePath || "";
@@ -44,14 +56,6 @@ const monacoPath = basePath + "libs/monaco/vs";
 const modulePath = basePath + "libs/qsharp/qsc_wasm_bg.wasm";
 const compilerWorkerPath = basePath + "libs/compiler-worker.js";
 const languageServiceWorkerPath = basePath + "libs/language-service-worker.js";
-
-declare global {
-  const MathJax: {
-    typeset: () => void;
-    typesetPromise: (nodes: HTMLElement[]) => Promise<any>;
-    typesetClear: (nodes: HTMLElement[]) => void;
-  };
-}
 
 function telemetryHandler({ id, data }: { id: string; data?: any }) {
   // NOTE: This is for demo purposes. Wire up to the real telemetry library.

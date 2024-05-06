@@ -20,9 +20,10 @@ class TargetProfile:
     This option maps to the Base Profile as defined by the QIR specification.
     """
 
-    Quantinuum: ClassVar[Any]
+    Adaptive_RI: ClassVar[Any]
     """
-    Target supports Quantinuum profile.
+    Target supports the Adaptive profile with integer computation and qubit
+    reset capabilities.
 
     This profile includes all of the required Adaptive Profile
     capabilities, as well as the optional integer computation and qubit

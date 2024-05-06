@@ -39,7 +39,7 @@ $$i+i=2i$$
 
 $$i-i=0$$
 
-$$-1 \\cdot i=-i$$
+$$-1 \cdot i=-i$$
 
 $$(-i)^{2} = -1$$
 
@@ -49,7 +49,7 @@ We'll call the number $i$ and its real multiples (numbers obtained by multiplyin
 
 @[exercise]({ 
     "id": "complex_arithmetic__powers_of_i", 
-    "title": "Powers of $i$", 
+    "title": "Powers of Imaginary Unit", 
     "path": "./powers_of_i/", 
     "qsDependencies": [] 
 })
@@ -77,7 +77,7 @@ Let's see how to do the main arithmetic operations on complex numbers.
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_addition", 
-    "title": "Complex addition", 
+    "title": "Add Complex Numbers", 
     "path": "./complex_addition/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -86,7 +86,7 @@ Let's see how to do the main arithmetic operations on complex numbers.
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_multiplication", 
-    "title": "Complex Multiplication", 
+    "title": "Multiply Complex Numbers", 
     "path": "./complex_multiplication/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -117,7 +117,7 @@ $$\overline{x \cdot y} = \overline{x} \cdot \overline{y}$$
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_conjugate_exercise", 
-    "title": "Complex Conjugate", 
+    "title": "Find Conjugate", 
     "path": "./complex_conjugate/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -145,7 +145,7 @@ $$\frac{a + bi}{r} = \frac{a}{r} + \frac{b}{r}i$$
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_division_exercise", 
-    "title": "Complex division", 
+    "title": "Divide Complex Numbers", 
     "path": "./complex_division/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -183,7 +183,7 @@ $$|x + y| \leq |x| + |y|$$
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_modulus_exercise", 
-    "title": "Complex Modulus", 
+    "title": "Find Modulus", 
     "path": "./complex_modulus/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -226,7 +226,7 @@ Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_exponents_exercise", 
-    "title": "Complex Exponents", 
+    "title": "Find Complex Exponent", 
     "path": "./complex_exponents/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -235,7 +235,7 @@ Finally, using logarithms to express the base of the exponent as $r = e^{\ln r}$
 
 @[exercise]({ 
     "id": "complex_arithmetic__complex_powers_real_exercise", 
-    "title": "Complex powers of real numbers", 
+    "title": "Find Complex Power of Real Number", 
     "path": "./complex_powers_real/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -265,7 +265,7 @@ Sometimes $\theta$ will be referred to as the number's **argument** or **phase**
 
 @[exercise]({ 
     "id": "complex_arithmetic__cartesian_to_polar", 
-    "title": "Cartesian to Polar Conversion", 
+    "title": "Convert Cartesian to Polar", 
     "path": "./cartesian_to_polar/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -274,7 +274,7 @@ Sometimes $\theta$ will be referred to as the number's **argument** or **phase**
 
 @[exercise]({ 
     "id": "complex_arithmetic__polar_to_cartesian", 
-    "title": "Polar to Cartesian Conversion", 
+    "title": "Convert Polar to Cartesian", 
     "path": "./polar_to_cartesian/", 
     "qsDependencies": [ 
         "./Common.qs"
@@ -283,7 +283,7 @@ Sometimes $\theta$ will be referred to as the number's **argument** or **phase**
 
 @[exercise]({ 
     "id": "complex_arithmetic__polar_multiplication", 
-    "title": "Polar Multiplication", 
+    "title": "Multiply Polar Numbers", 
     "path": "./polar_multiplication/", 
     "qsDependencies": [ 
         "./Common.qs"
