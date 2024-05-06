@@ -10,6 +10,7 @@ use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
 use qsc_rir::rir::BlockId;
 use rustc_hash::FxHashMap;
+use std::collections::hash_map::Entry;
 
 /// Struct that keeps track of the active RIR blocks (where RIR instructions are added) and the active scopes (which
 /// correspond to the Q#'s program call stack).
@@ -95,10 +96,10 @@ pub struct Scope {
     pub args_value_kind: Vec<ValueKind>,
     /// The classical environment of the callable, which holds values corresponding to local variables.
     pub env: Env,
+    /// Map that holds the values of local variables.
+    pub hybrid_vars: FxHashMap<LocalVarId, Value>,
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
-    /// Map that holds the values of local variables.
-    hybrid_vars: FxHashMap<LocalVarId, Value>,
 }
 
 impl Scope {
@@ -155,11 +156,20 @@ impl Scope {
         }
     }
 
-    /// Gets the value of a (hybrid) local variable.
-    pub fn get_local_var_value(&self, local_var_id: LocalVarId) -> &Value {
+    /// Gets the value of a hybrid local variable.
+    pub fn get_classical_local_value(&self, local_var_id: LocalVarId) -> &Value {
+        &self
+            .env
+            .get(local_var_id)
+            .expect("local classcial variable value does not exist")
+            .value
+    }
+
+    /// Gets the value of a hybrid local variable.
+    pub fn get_hybrid_local_value(&self, local_var_id: LocalVarId) -> &Value {
         self.hybrid_vars
             .get(&local_var_id)
-            .expect("local variable value does not exist")
+            .expect("local hybrid variable value does not exist")
     }
 
     /// Determines whether we are currently evaluating a branch within the scope.
@@ -174,9 +184,12 @@ impl Scope {
         self.env.len() == 1
     }
 
-    /// Inserts the value of a local variable into the hybrid variables map.
-    pub fn insert_local_var_value(&mut self, local_var_id: LocalVarId, value: Value) {
-        self.hybrid_vars.insert(local_var_id, value);
+    /// Updates the value of a hybrid local variable.
+    pub fn update_hybrid_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
+        let Entry::Occupied(mut occupied) = self.hybrid_vars.entry(local_var_id) else {
+            panic!("local variable to update does not exist");
+        };
+        occupied.insert(value);
     }
 }
 
