@@ -1121,14 +1121,23 @@ impl<'a> PartialEvaluator<'a> {
             ));
         };
 
-        // Create a variable to store the result.
-        let variable_id = self.resource_manager.next_var();
+        // Get the variable type corresponding to the value the unary operator acts upon.
         let Some(eval_variable_type) = try_get_eval_var_type(&value) else {
             return Err(Error::Unexpected(
                 format!("invalid type for unary operation value: {value}"),
                 value_expr.span,
             ));
         };
+
+        // The leading positive operator is a no-op.
+        if matches!(un_op, UnOp::Pos) {
+            let control_flow = EvalControlFlow::Continue(value);
+            return Ok(control_flow);
+        }
+
+        // For all the other supported unary operations we have to generate an instruction, so create a variable to
+        // store the result.
+        let variable_id = self.resource_manager.next_var();
         let rir_variable_type = map_eval_var_type_to_rir_type(eval_variable_type);
         let rir_variable = rir::Variable {
             variable_id,
@@ -1138,7 +1147,6 @@ impl<'a> PartialEvaluator<'a> {
         // Generate the instruction depending on the unary operator.
         let value_operand = map_eval_value_to_rir_operand(&value);
         let instruction = match un_op {
-            UnOp::Pos => Instruction::Store(value_operand, rir_variable),
             UnOp::Neg => {
                 let constant = match rir_variable_type {
                     rir::Ty::Integer => Operand::Literal(Literal::Integer(-1)),
@@ -1161,6 +1169,7 @@ impl<'a> PartialEvaluator<'a> {
                     unary_expr_span,
                 ));
             }
+            UnOp::Pos => panic!("the leading positive operator should have been a no-op"),
         };
 
         // Insert the instruction and return the corresponding evaluator variable.
