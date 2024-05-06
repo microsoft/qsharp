@@ -48,10 +48,7 @@ impl<'a> Overrider<'a> {
                                 runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
                                 value_kind: ValueKind::Element(RuntimeKind::Dynamic),
                             }),
-                            dynamic_content_static_size: ComputeKind::Quantum(QuantumProperties {
-                                runtime_features: RuntimeFeatureFlags::empty(),
-                                value_kind: ValueKind::Element(RuntimeKind::Static),
-                            }),
+                            dynamic_content_static_size: ComputeKind::Classical,
                             dynamic_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
                                 runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
                                 value_kind: ValueKind::Element(RuntimeKind::Dynamic),
