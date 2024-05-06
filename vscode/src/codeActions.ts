@@ -18,16 +18,8 @@ class QSharpCodeActionProvider implements vscode.CodeActionProvider {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken,
   ): vscode.ProviderResult<vscode.CodeAction[]> {
-    const codeAction = new vscode.CodeAction(
-      "Demo",
-      vscode.CodeActionKind.QuickFix,
-    );
-    const edit = new vscode.WorkspaceEdit();
-    edit.replace(document.uri, range, "HelloQuickFixes");
-    codeAction.edit = edit;
-    // return [codeAction];
     const codeActions = [];
-
+    // QuickFixes for diagnostics
     for (const diagnostic of context.diagnostics) {
       if (diagnostic.range.intersection(range)) {
         const codeAction = new vscode.CodeAction(
