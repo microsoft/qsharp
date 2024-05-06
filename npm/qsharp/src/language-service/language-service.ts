@@ -161,6 +161,10 @@ export class QSharpLanguageService implements ILanguageService {
     this.languageService.close_notebook_document(documentUri);
   }
 
+  // async getCodeActions(documentUri: vscode.Uri, range: vscode.Range) {
+  //   return this.languageService.get_code_actions(documentUri, range);
+  // }
+
   async getCompletions(
     documentUri: string,
     position: IPosition,

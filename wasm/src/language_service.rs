@@ -150,6 +150,29 @@ impl LanguageService {
         self.0.close_notebook_document(notebook_uri);
     }
 
+    // pub fn get_code_actions(
+    //     &self,
+    //     uri: lsp_types::Url,
+    //     range: lsp_types::Range,
+    // ) -> Vec<lsp_types::CodeAction> {
+    //     let edit = lsp_types::WorkspaceEdit::new(HashMap::from([(
+    //         uri,
+    //         vec![lsp_types::TextEdit::new(
+    //             range,
+    //             "Hello Code Actions".to_string(),
+    //         )],
+    //     )]));
+
+    //     let mut code_action = lsp_types::CodeAction {
+    //         title: "Demo from wasm".to_string(),
+    //         kind: Some(lsp_types::CodeActionKind::QUICKFIX),
+    //         edit: Some(edit),
+    //         ..Default::default()
+    //     };
+
+    //     vec![code_action]
+    // }
+
     pub fn get_completions(&self, uri: &str, position: IPosition) -> ICompletionList {
         let position: Position = position.into();
         let completion_list = self.0.get_completions(uri, position.into());
