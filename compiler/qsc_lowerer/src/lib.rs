@@ -156,7 +156,19 @@ impl Lowerer {
     fn lower_item(&mut self, item: &hir::Item) -> fir::Item {
         let kind = match &item.kind {
             hir::ItemKind::Namespace(name, items) => {
-                let name = self.lower_vec_ident(name);
+                let name = fir::Ident {
+                    // We don't have a node ID for the whole dotted name,
+                    // but we can use the node ID of the last part.
+                    // This ident is not a local anyway. (@swernli should check if this is harmless)
+                    id: self.lower_local_id(
+                        name.0
+                            .last()
+                            .expect("should have at least one ident in name")
+                            .id,
+                    ),
+                    span: name.span(),
+                    name: name.name().into(),
+                };
                 let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
                 fir::ItemKind::Namespace(name, items)
             }
@@ -781,13 +793,6 @@ impl Lowerer {
             name: field.name.clone(),
             name_span: field.name_span,
         }
-    }
-
-    fn lower_vec_ident(&mut self, name: &hir::Idents) -> fir::Idents {
-        name.iter()
-            .cloned()
-            .map(|ident| self.lower_ident(&ident))
-            .collect()
     }
 }
 

@@ -1,17 +1,41 @@
-This is essentially bookwork, because there is only one gate that performs this state change (and the task title already gave it away!)  
+This is essentially bookwork, because there is only one gate that performs this state change (and the task title already gave it away!)
 The Fredkin gate is also known as the controlled $SWAP$ gate:
 $$
-\begin{bmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\\ \end{bmatrix}
+\begin{bmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}
 $$
 and our initial state is:
 $$
-\begin{bmatrix} \alpha\\\ \beta\\\ \gamma\\\ \delta\\\ \epsilon\\\ \zeta\\\ \eta\\\ \theta\\\ \end{bmatrix}
+\begin{bmatrix}
+\alpha \\ \beta \\ \gamma \\ \delta \\ \epsilon \\ \zeta \\ \eta \\ \theta
+\end{bmatrix}
 $$
 So we have:
 $$
-\begin{bmatrix} 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\\ 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0\\\ 0 & 0 & 1 & 0 & 0 & 0 & 0 & 0\\\ 0 & 0 & 0 & 1 & 0 & 0 & 0 & 0\\\ 0 & 0 & 0 & 0 & 1 & 0 & 0 & 0\\\ 0 & 0 & 0 & 0 & 0 & 0 & 1 & 0\\\ 0 & 0 & 0 & 0 & 0 & 1 & 0 & 0\\\ 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1\\\ \end{bmatrix}
-\begin{bmatrix} \alpha\\\ \beta\\\ \gamma\\\ \delta\\\ \epsilon\\\ \color{blue}\zeta\\\ \color{blue}\eta\\\ \theta\\\ \end{bmatrix} =
-\begin{bmatrix} \alpha\\\ \beta\\\ \gamma\\\ \delta\\\ \epsilon\\\ \color{red}\eta\\\ \color{red}\zeta\\\ \theta\\\ \end{bmatrix} =
+\begin{bmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+\alpha \\ \beta \\ \gamma \\ \delta \\ \epsilon \\ \color{blue}\zeta \\ \color{blue}\eta \\ \theta
+\end{bmatrix} =
+\begin{bmatrix}
+\alpha \\ \beta \\ \gamma \\ \delta \\ \epsilon \\ \color{red}\eta \\ \color{red}\zeta \\ \theta
+\end{bmatrix} =
 \alpha |000\rangle + \beta |001\rangle + \gamma |010\rangle + \delta |011\rangle + \epsilon |100\rangle + {\color{red}\eta}|101\rangle + {\color{red}\zeta}|110\rangle + \theta|111\rangle
 $$
 

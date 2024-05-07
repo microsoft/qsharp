@@ -4,6 +4,6 @@ $$||V|| = \sqrt{\langle V , V \rangle} = \sqrt{-6 \cdot (-6) + (-8i) \cdot 8i} =
 
 Then the normalized vector can be obtained by dividing each element of the original vector by its norm:
  
-$$\frac{V}{||V||} = \begin{bmatrix} -0.6 \\\ 0.8i \end{bmatrix}$$
+$$\frac{V}{||V||} = \begin{bmatrix} -0.6 \\ 0.8i \end{bmatrix}$$
 
 @[solution]({"id": "linear_algebra__normalized_vector_solution", "codePath": "Solution.qs"})

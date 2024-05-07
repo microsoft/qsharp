@@ -32,24 +32,24 @@ As a quick reminder, a unitary matrix is a square matrix whose inverse is its ad
 Single-qubit gates are represented by $2 \times 2$ matrices.
 Our example for this section, the $X$ gate, is represented by the following matrix:
 
-$$\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix}$$
+$$\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
 You may recall that the state of a qubit is represented by a vector of size $2$. You can apply a gate to a qubit by multiplying the gate's matrix by the qubit's state vector. The result will be another vector, representing the new state of the qubit. For example, applying the $X$ gate to the computational basis states looks like this:
 
 $$
 X|0\rangle =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix}
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} 0 \cdot 1 + 1 \cdot 0 \\\ 1 \cdot 1 + 0 \cdot 0 \end{bmatrix} =
-\begin{bmatrix} 0 \\\ 1 \end{bmatrix}
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \end{bmatrix} =
+\begin{bmatrix} 0 \cdot 1 + 1 \cdot 0 \\ 1 \cdot 1 + 0 \cdot 0 \end{bmatrix} =
+\begin{bmatrix} 0 \\ 1 \end{bmatrix}
 $$
 
 $$
 X|1\rangle =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix}
-\begin{bmatrix} 0 \\\ 1 \end{bmatrix} =
-\begin{bmatrix} 0 \cdot 0 + 1 \cdot 1 \\\ 1 \cdot 0 + 0 \cdot 1 \end{bmatrix} =
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix}
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+\begin{bmatrix} 0 \\ 1 \end{bmatrix} =
+\begin{bmatrix} 0 \cdot 0 + 1 \cdot 1 \\ 1 \cdot 0 + 0 \cdot 1 \end{bmatrix} =
+\begin{bmatrix} 1 \\ 0 \end{bmatrix}
 $$
 
 The general case:
@@ -58,10 +58,10 @@ $$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$$
 
 $$
 X|\psi\rangle =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix}
-\begin{bmatrix} \alpha \\\ \beta \end{bmatrix} =
-\begin{bmatrix} 0 \cdot \alpha + 1 \cdot \beta \\\ 1 \cdot \alpha + 0 \cdot \beta \end{bmatrix} =
-\begin{bmatrix} \beta \\\ \alpha \end{bmatrix}
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+\begin{bmatrix} \alpha \\ \beta \end{bmatrix} =
+\begin{bmatrix} 0 \cdot \alpha + 1 \cdot \beta \\ 1 \cdot \alpha + 0 \cdot \beta \end{bmatrix} =
+\begin{bmatrix} \beta \\ \alpha \end{bmatrix}
 $$
 
 > If you need a reminder of what $|0\rangle$, $|1\rangle$, and $|\psi\rangle$ mean, you can review the section on Dirac notation in "The Qubit" kata.
@@ -72,7 +72,7 @@ Applying several quantum gates in sequence is equivalent to performing several o
 For example, if you have gates $A$ and $B$ and a qubit in state $|\psi\rangle$, the result of applying $A$ followed by $B$ to that qubit would be $B\big(A|\psi\rangle\big)$ (the gate closest to the qubit state gets applied first).
 Matrix multiplication is associative, so this is equivalent to multiplying the $B$ matrix by the $A$ matrix, producing a compound gate of the two, and then applying that to the qubit: $\big(BA\big)|\psi\rangle$.
 
->Note that matrix multiplication isn’t commutative, thus $(BA) \neq \(AB)$.
+>Note that matrix multiplication isn’t commutative, thus $(BA) \neq (AB)$.
 
 All quantum gates are reversible - there is another gate which will undo any given gate's transformation, returning the qubit to its original state.
 This means that when dealing with quantum gates, information about qubit states is never lost, as opposed to classical logic gates, some of which destroy information.
@@ -82,38 +82,38 @@ Quantum gates are represented by unitary matrices, so the inverse of a gate is i
 
 There is a simple way to find out what a gate does to the two computational basis states $|0\rangle$ and $|1\rangle$. Consider an arbitrary gate:
 
-$$A = \begin{bmatrix} \epsilon & \zeta \\\ \eta & \mu \end{bmatrix}$$
+$$A = \begin{bmatrix} \epsilon & \zeta \\ \eta & \mu \end{bmatrix}$$
 
 Watch what happens when we apply it to these states:
 
 $$
 A|0\rangle =
-\begin{bmatrix} \epsilon & \zeta \\\ \eta & \mu \end{bmatrix}
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix} =
-\begin{bmatrix} \epsilon \cdot 1 + \zeta \cdot 0 \\\ \eta \cdot 1 + \mu \cdot 0 \end{bmatrix} =
-\begin{bmatrix} \epsilon \\\ \eta \end{bmatrix} = \epsilon|0\rangle + \eta|1\rangle
+\begin{bmatrix} \epsilon & \zeta \\ \eta & \mu \end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \end{bmatrix} =
+\begin{bmatrix} \epsilon \cdot 1 + \zeta \cdot 0 \\ \eta \cdot 1 + \mu \cdot 0 \end{bmatrix} =
+\begin{bmatrix} \epsilon \\ \eta \end{bmatrix} = \epsilon|0\rangle + \eta|1\rangle
 $$
 
 $$
 A|1\rangle =
-\begin{bmatrix} \epsilon & \zeta \\\ \eta & \mu \end{bmatrix}
-\begin{bmatrix} 0 \\\ 1 \end{bmatrix} =
-\begin{bmatrix} \epsilon \cdot 0 + \zeta \cdot 1 \\\ \eta \cdot 0 + \mu \cdot 1 \end{bmatrix} =
-\begin{bmatrix} \zeta \\\ \mu \end{bmatrix} = \zeta|0\rangle + \mu|1\rangle
+\begin{bmatrix} \epsilon & \zeta \\ \eta & \mu \end{bmatrix}
+\begin{bmatrix} 0 \\ 1 \end{bmatrix} =
+\begin{bmatrix} \epsilon \cdot 0 + \zeta \cdot 1 \\ \eta \cdot 0 + \mu \cdot 1 \end{bmatrix} =
+\begin{bmatrix} \zeta \\ \mu \end{bmatrix} = \zeta|0\rangle + \mu|1\rangle
 $$
 
 Notice that applying the gate to the $|0\rangle$ state transforms it into the state written as the first column of the gate's matrix. Likewise, applying the gate to the $|1\rangle$ state transforms it into the state written as the second column. This holds true for any quantum gate, including, of course, the $X$ gate:
 
-$$X = \begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix}$$
+$$X = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$$
 
-$$X|0\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix} = |1\rangle$$
+$$X|0\rangle = \begin{bmatrix} 0 \\ 1 \end{bmatrix} = |1\rangle$$
 
-$$X|1\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix} = |0\rangle$$
+$$X|1\rangle = \begin{bmatrix} 1 \\ 0 \end{bmatrix} = |0\rangle$$
 
 Once you understand how a gate affects the computational basis states, you can easily find how it affects any state.
 Recall that any qubit state vector can be written as a linear combination of the basis states:
 
-$$|\psi\rangle = \begin{bmatrix} \alpha \\\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
+$$|\psi\rangle = \begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
 
 Because matrix multiplication distributes over addition, once you know how a gate affects those two basis states, you can calculate how it affects any state:
 
@@ -138,19 +138,19 @@ Some examples:
     <th>Bra</th>
   </tr>
   <tr>
-    <td>$|0\rangle = \begin{bmatrix} 1 \\\ 0 \end{bmatrix}$</td>
+    <td>$|0\rangle = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$</td>
     <td>$\langle0| = \begin{bmatrix} 1 & 0 \end{bmatrix}$</td>
   </tr>
   <tr>
-    <td>$|1\rangle = \begin{bmatrix} 0 \\\ 1 \end{bmatrix}$</td>
+    <td>$|1\rangle = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$</td>
     <td>$\langle1| = \begin{bmatrix} 0 & 1 \end{bmatrix}$</td>
   </tr>
   <tr>
-    <td>$|i\rangle = \begin{bmatrix} \frac{1}{\sqrt{2}} \\\ \frac{i}{\sqrt{2}} \end{bmatrix}$</td>
+    <td>$|i\rangle = \begin{bmatrix} \frac{1}{\sqrt{2}} \\ \frac{i}{\sqrt{2}} \end{bmatrix}$</td>
     <td>$\langle i| = \begin{bmatrix} \frac{1}{\sqrt{2}} & -\frac{i}{\sqrt{2}} \end{bmatrix}$</td>
   </tr>
   <tr>
-    <td>$|\psi\rangle = \begin{bmatrix} \alpha \\\ \beta \end{bmatrix}$</td>
+    <td>$|\psi\rangle = \begin{bmatrix} \alpha \\ \beta \end{bmatrix}$</td>
     <td>$\langle\psi| = \begin{bmatrix} \overline{\alpha} & \overline{\beta} \end{bmatrix}$</td>
   </tr>
   <tr>
@@ -167,10 +167,10 @@ $$X = |0\rangle\langle1| + |1\rangle\langle0|$$
 
 $$
 |0\rangle\langle1| + |1\rangle\langle0| =
-\begin{bmatrix} 1 \\\ 0 \end{bmatrix}\begin{bmatrix} 0 & 1 \end{bmatrix} +
-\begin{bmatrix} 0 \\\ 1 \end{bmatrix}\begin{bmatrix} 1 & 0 \end{bmatrix} =
-\begin{bmatrix} 0 & 1 \\\ 0 & 0 \end{bmatrix} + \begin{bmatrix} 0 & 0 \\\ 1 & 0 \end{bmatrix} =
-\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 \\ 0 \end{bmatrix}\begin{bmatrix} 0 & 1 \end{bmatrix} +
+\begin{bmatrix} 0 \\ 1 \end{bmatrix}\begin{bmatrix} 1 & 0 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix} + \begin{bmatrix} 0 & 0 \\ 1 & 0 \end{bmatrix} =
+\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
 $$
 
 This representation can be used to carry out calculations in Dirac notation without ever switching back to matrix representation:
@@ -184,7 +184,7 @@ $$X|0\rangle = \big(|0\rangle\langle1| + |1\rangle\langle0|\big)|0\rangle = |0\r
 > Two vectors are orthogonal to each other if their inner product equals $0$. This means that $\langle0|1\rangle = \langle 1|0\rangle = 0$.
 
 In general case, a matrix
-$$A = \begin{bmatrix} a_{00} & a_{01} \\\ a_{10} & a_{11} \end{bmatrix}$$
+$$A = \begin{bmatrix} a_{00} & a_{01} \\ a_{10} & a_{11} \end{bmatrix}$$
 will have the following ket-bra representation:
 $$A = a_{00} |0\rangle\langle0| + a_{01} |0\rangle\langle1| + a_{10} |1\rangle\langle0| + a_{11} |1\rangle\langle1|$$
 
@@ -250,7 +250,7 @@ The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pau
   </tr>
   <tr>
     <td>$X$</td>
-    <td>$\begin{bmatrix} 0 & 1 \\\ 1 & 0 \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}$</td>
     <td>$|0\rangle\langle1| + |1\rangle\langle0|$</td>
     <td>$X|\psi\rangle = \alpha|1\rangle + \beta|0\rangle$</td>
     <td>
@@ -264,7 +264,7 @@ The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pau
   </tr>
   <tr>
     <td>$Y$</td>
-    <td>$\begin{bmatrix} 0 & -i \\\ i & 0 \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} 0 & -i \\ i & 0 \end{bmatrix}$</td>
     <td>$i(|1\rangle\langle0| - |0\rangle\langle1|)$</td>
     <td>$Y|\psi\rangle = i\big(\alpha|1\rangle - \beta|0\rangle\big)$</td>
     <td>
@@ -278,7 +278,7 @@ The Pauli gates, named after <a href="https://en.wikipedia.org/wiki/Wolfgang_Pau
   </tr>
   <tr>
     <td>$Z$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\\ 0 & -1 \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$</td>
     <td>$|0\rangle\langle0| - |1\rangle\langle1|$</td>
     <td>$Z|\psi\rangle = \alpha|0\rangle - \beta|1\rangle$</td>
     <td>
@@ -485,7 +485,7 @@ The next two gates are known as phase shift gates. They apply a phase to the $|1
     </tr>
   <tr>
     <td>$T$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\\ 0 & e^{i\pi/4} \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\pi/4} \end{bmatrix}$</td>
     <td>$|0\rangle\langle0| + e^{i\pi/4}|1\rangle$$\langle1|$</td>
     <td>$T|\psi\rangle = \alpha|0\rangle + e^{i\pi/4} \beta |1\rangle$</td>
     <td>
@@ -540,7 +540,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
     <td>$R_x(\theta)$</td>
     <td>
     $$
-    \begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}
+    \begin{bmatrix} \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\ -i\sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}
     $$
     </td>
     <td>$R_x(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - i\beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} - i\alpha\sin\frac{\theta}{2})|1\rangle$</td>
@@ -551,7 +551,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
    </tr>
   <tr>
     <td>$R_y(\theta)$</td>
-    <td>$\begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} \cos\frac{\theta}{2} & -\sin\frac{\theta}{2} \\ \sin\frac{\theta}{2} & \cos\frac{\theta}{2} \end{bmatrix}$</td>
     <td>$R_y(\theta)|\psi\rangle = (\alpha\cos\frac{\theta}{2} - \beta\sin\frac{\theta}{2})|0\rangle + (\beta\cos\frac{\theta}{2} + \alpha\sin\frac{\theta}{2})|1\rangle$</td>
     <td>
       $R_y(\theta)|0\rangle = \cos\frac{\theta}{2}|0\rangle + \sin\frac{\theta}{2}|1\rangle$<br>
@@ -560,7 +560,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
     </tr>
   <tr>
     <td>$R_z(\theta)$</td>
-    <td>$\begin{bmatrix} e^{-i\theta/2} & 0 \\\ 0 & e^{i\theta/2} \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} e^{-i\theta/2} & 0 \\ 0 & e^{i\theta/2} \end{bmatrix}$</td>
     <td>$R_z(\theta)|\psi\rangle = \alpha e^{-i\theta/2}|0\rangle + \beta e^{i\theta/2}|1\rangle$</td>
     <td>
       $R_z(\theta)|0\rangle = e^{-i\theta/2}|0\rangle$<br>
@@ -569,7 +569,7 @@ Note that for the first three gates the parameter $\theta$ is multiplied by $\fr
   </tr>
   <tr>
     <td>$R_1(\theta)$</td>
-    <td>$\begin{bmatrix} 1 & 0 \\\ 0 & e^{i\theta} \end{bmatrix}$</td>
+    <td>$\begin{bmatrix} 1 & 0 \\ 0 & e^{i\theta} \end{bmatrix}$</td>
     <td>$R_1(\theta)|\psi\rangle = \alpha|0\rangle + \beta e^{i\theta}|1\rangle$</td>
     <td>
       $R_1(\theta)|0\rangle = |0\rangle$<br>

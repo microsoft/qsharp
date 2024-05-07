@@ -1,11 +1,11 @@
-# Superposition
+# Preparing Quantum States
 
 @[section]({
     "id": "superposition__overview",
     "title": "Overview"
 })
 
-This kata is designed to get you familiar with the concept of superposition and with Q# programming.
+This kata is designed to get you familiar with quantum state preparation and to help you practice using gates to change quantum states.
 
 **This kata covers the following topics:**
 
@@ -20,12 +20,14 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[section]({
     "id": "superposition__even_superpositions",
-    "title": "Even superpositions"
+    "title": "Even Superpositions"
 })
+
+In this lesson, you'll practice preparing states that are even superpositions of specific sets of basis states, possibly with some relative phases on some of the basis states. These exercises can be solved using some sequences of $H$ and $X$ gates, their controlled variants, and some phase-introducing gates.
 
 @[exercise]({
     "id": "superposition__plus_state",
-    "title": "The Plus State",
+    "title": "Plus State",
     "path": "./plus_state/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -35,7 +37,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__minus_state",
-    "title": "The Minus State",
+    "title": "Minus State",
     "path": "./minus_state/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -45,7 +47,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__even_sup_two_qubits",
-    "title": "Even superposition of all basis vectors on two qubits",
+    "title": "All Two-Qubit Basis Vectors",
     "path": "./even_sup_two_qubits/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -55,7 +57,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__even_sup_two_qubits_phase_flip",
-    "title": "Even superposition of all basis vectors on two qubits with phase flip",
+    "title": "All Two-Qubit Basis Vectors with Phase Flip",
     "path": "./even_sup_two_qubits_phase_flip/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -65,7 +67,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__even_sup_two_qubits_complex_phases",
-    "title": "Even superposition of all basis vectors on two qubits with complex phases",
+    "title": "All Two-Qubit Basis Vectors with Complex Phases",
     "path": "./even_sup_two_qubits_complex_phases/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -105,7 +107,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__all_basis_vectors",
-    "title": "All Basis Vectors",
+    "title": "All N-Qubit Basis Vectors",
     "path": "./all_basis_vectors/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -115,7 +117,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__even_odd",
-    "title": "Even and Odd Numbers",
+    "title": "Even or Odd Basis Vectors",
     "path": "./even_odd/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -153,10 +155,26 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__parity_bitstrings",
+    "title": "Same Parity Bit Strings",
+    "path": "./parity_bitstrings/",
+    "qsDependencies": [
+        "../KatasLibrary.qs",
+        "./Common.qs"
+    ]
+})
+
+
 @[section]({
     "id": "superposition__arbitrary_rotations",
     "title": "Arbitrary Rotations"
 })
+
+In this lesson, you'll practice preparing more interesting states that require the use of arbitrary rotation gates. 
+
+> Some of the alternative solutions rely on clever tricks such as partial measurement of the system. 
+> To fully appreciate them, come back to this kata after you've familiarized yourself with quantum measurements!
 
 @[exercise]({
     "id": "superposition__unequal_superposition",
@@ -180,7 +198,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__three_states_two_qubits",
-    "title": "Three States Two Qubits",
+    "title": "Three Two-Qubit Basis States",
     "path": "./three_states_two_qubits/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -190,7 +208,7 @@ This kata is designed to get you familiar with the concept of superposition and 
 
 @[exercise]({
     "id": "superposition__three_states_two_qubits_phases",
-    "title": "Three States Two Qubits Phases",
+    "title": "Three Two-Qubit Basis States with Complex Phases",
     "path": "./three_states_two_qubits_phases/",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -208,11 +226,28 @@ This kata is designed to get you familiar with the concept of superposition and 
     ]
 })
 
+@[exercise]({
+    "id": "superposition__wstate_power_of_two",
+    "title": "W State on Power of Two Number of Qubits",
+    "path": "./wstate_power_of_two/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superposition__wstate_arbitrary",
+    "title": "W State on Arbitrary Number of Qubits",
+    "path": "./wstate_arbitrary/",
+    "qsDependencies": [
+        "../KatasLibrary.qs"
+    ]
+})
+
+
 @[section]({
     "id": "superposition__conclusion",
     "title": "Conclusion"
 })
 
-Congratulations! In this kata you learned to use the basic quantum computing gates to prepare quantum states. Here are a few key concepts to keep in mind:
-
-- TODO
+Congratulations! In this kata you learned to use the basic quantum computing gates to prepare quantum states.

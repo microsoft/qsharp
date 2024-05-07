@@ -3,7 +3,7 @@ In Q# the `Rx` intrinsic gate takes the angle $\theta$ and the target qubit as i
 A matrix representation of this operation would be:
 
 $$
-\begin{bmatrix} 1 & 0 & 0 & 0 \\\ 0 & 1 & 0 & 0 \\\ 0 & 0 & \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\\ 0 & 0 & -i\sin\frac{\theta}{2} &  \cos\frac{\theta}{2} \end{bmatrix}
+\begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & \cos\frac{\theta}{2} & -i\sin\frac{\theta}{2} \\ 0 & 0 & -i\sin\frac{\theta}{2} &  \cos\frac{\theta}{2} \end{bmatrix}
 $$
 
 The parameters of the new gate are changed a bit:
