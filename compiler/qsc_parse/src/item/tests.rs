@@ -1683,7 +1683,7 @@ fn namespace_with_conflicting_names() {
     );
 }
 
-// We technically broke this syntax. Although we don't think anybody was using it,
+// We technically broke this syntax as of May 2024. Although we don't think anybody was using it,
 // we want to make sure we provide a helpful error message.
 #[test]
 fn helpful_error_on_dotted_alias() {
