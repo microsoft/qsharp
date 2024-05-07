@@ -25,7 +25,6 @@ use qsc_ast::{
 use qsc_data_structures::{
     index_map::{self, IndexMap},
     language_features::LanguageFeatures,
-    namespaces::NamespaceTreeRoot,
     span::Span,
     target::TargetCapabilityFlags,
 };
@@ -55,7 +54,6 @@ pub struct AstPackage {
     pub tys: Table,
     pub names: Names,
     pub locals: Locals,
-    pub namespaces: NamespaceTreeRoot,
 }
 
 #[derive(Debug, Default)]
@@ -324,7 +322,7 @@ pub fn compile_ast(
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, locals, name_errors, namespaces) = resolve_all(
+    let (names, locals, name_errors) = resolve_all(
         store,
         dependencies,
         &mut hir_assigner,
@@ -355,7 +353,6 @@ pub fn compile_ast(
             tys,
             names,
             locals,
-            namespaces,
         },
         assigner: hir_assigner,
         sources,
@@ -460,7 +457,7 @@ fn resolve_all(
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
-) -> (Names, Locals, Vec<resolve::Error>, NamespaceTreeRoot) {
+) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -478,9 +475,9 @@ fn resolve_all(
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
+    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
-    (names, locals, errors, namespaces)
+    (names, locals, errors)
 }
 
 fn typeck_all(

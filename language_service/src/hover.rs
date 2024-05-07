@@ -82,7 +82,7 @@ impl<'a> Handler<'a> for HoverGenerator<'a> {
             .map_or_else(
                 || Rc::from(""),
                 |parent| match &parent.kind {
-                    qsc::hir::ItemKind::Namespace(namespace, _) => Rc::from(namespace.name()),
+                    hir::ItemKind::Namespace(namespace, _) => namespace.name(),
                     _ => Rc::from(""),
                 },
             );

@@ -597,10 +597,6 @@ impl Resolver {
 
         self.locals.get_scope_mut(scope_id)
     }
-
-    pub(crate) fn namespaces(&self) -> &NamespaceTreeRoot {
-        &self.globals.namespaces
-    }
 }
 
 /// Constructed from a [Resolver] and an [Assigner], this structure implements `Visitor`
