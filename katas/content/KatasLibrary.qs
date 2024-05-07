@@ -6,29 +6,7 @@ namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;
-
-    /// # Summary
-    /// Given two operations, checks whether they act identically for all input states.
-    /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
-    operation CheckOperationsAreEqual(
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
-    : Bool {
-        Fact(inputSize > 0, "`inputSize` must be positive");
-        use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
-        within {
-            EntangleRegisters(control, target);
-        }
-        apply {
-            op(target);
-            Adjoint reference(target);
-        }
-
-        let areEquivalent = CheckAllZero(control + target);
-        ResetAll(control + target);
-        areEquivalent
-    }
+    open Microsoft.Quantum.Diagnostics;
 
     /// # Summary
     /// Given two operations, checks whether they act identically (including global phase) for all input states.
@@ -49,7 +27,7 @@ namespace Microsoft.Quantum.Katas {
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits.
-    operation CheckOperationsAreEqualOnZeroState(
+    operation CheckOperationsEquivalenceOnZeroState(
         op : (Qubit[] => Unit),
         reference : (Qubit[] => Unit is Adj),
         inputSize : Int)
@@ -69,7 +47,7 @@ namespace Microsoft.Quantum.Katas {
     /// The initial state is prepared by applying the `initialState` operation to the state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉.
     /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect it.
     /// `initialState` operation should be deterministic.
-    operation CheckOperationsAreEqualOnInitialStateStrict(
+    operation CheckOperationsEquivalenceOnInitialStateStrict(
         initialState : Qubit[] => Unit is Adj,
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
@@ -96,13 +74,13 @@ namespace Microsoft.Quantum.Katas {
     /// `inputSize` qubits.
     /// This operation introduces a control qubit to convert a global phase into a relative phase to be able to detect
     /// it.
-    operation CheckOperationsAreEqualOnZeroStateStrict(
+    operation CheckOperationsEquivalenceOnZeroStateStrict(
         op : (Qubit[] => Unit is Adj + Ctl),
         reference : (Qubit[] => Unit is Adj + Ctl),
         inputSize : Int)
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
-        CheckOperationsAreEqualOnInitialStateStrict(qs => (), op, reference, inputSize)
+        CheckOperationsEquivalenceOnInitialStateStrict(qs => (), op, reference, inputSize)
     }
 
 
@@ -143,13 +121,13 @@ namespace Microsoft.Quantum.Katas {
     /// # Summary
     /// Given two operations, checks whether they act identically on the zero state |0〉 ⊗ |0〉 ⊗ ... ⊗ |0〉 composed of
     /// `inputSize` qubits. If they don't, prints user feedback.
-    operation CheckOperationsAreEqualOnZeroStateWithFeedback(
+    operation CheckOperationsEquivalenceOnZeroStateWithFeedback(
         testImpl : (Qubit[] => Unit),
         refImpl : (Qubit[] => Unit is Adj),
         inputSize : Int
     ) : Bool {
 
-        let isCorrect = CheckOperationsAreEqualOnZeroState(testImpl, refImpl, inputSize);
+        let isCorrect = CheckOperationsEquivalenceOnZeroState(testImpl, refImpl, inputSize);
 
         // Output different feedback to the user depending on whether the exercise was correct.
         if isCorrect {
