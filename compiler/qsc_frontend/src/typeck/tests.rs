@@ -282,7 +282,7 @@ fn call_generic_length() {
             }
         "},
         "Length([true, false, true])",
-        &expect![[r##"
+        &expect![[r#"
             #9 58-69 "(xs : 'T[])" : ?
             #10 59-68 "xs : 'T[]" : ?
             #19 98-125 "Length([true, false, true])" : Int
@@ -292,7 +292,7 @@ fn call_generic_length() {
             #25 106-110 "true" : Bool
             #26 112-117 "false" : Bool
             #27 119-123 "true" : Bool
-        "##]],
+        "#]],
     );
 }
 
@@ -326,7 +326,7 @@ fn int_as_double_error() {
             }
         "},
         "Microsoft.Quantum.Convert.IntAsDouble(false)",
-        &expect![[r##"
+        &expect![[r#"
             #8 62-71 "(a : Int)" : ?
             #9 63-70 "a : Int" : ?
             #18 103-147 "Microsoft.Quantum.Convert.IntAsDouble(false)" : Double
@@ -334,7 +334,7 @@ fn int_as_double_error() {
             #25 140-147 "(false)" : Bool
             #26 141-146 "false" : Bool
             Error(Type(Error(TyMismatch("Int", "Bool", Span { lo: 103, hi: 147 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -347,7 +347,7 @@ fn length_type_error() {
             }
         "},
         "Length((1, 2, 3))",
-        &expect![[r##"
+        &expect![[r#"
             #9 58-69 "(xs : 'T[])" : ?
             #10 59-68 "xs : 'T[]" : ?
             #19 98-115 "Length((1, 2, 3))" : Int
@@ -359,7 +359,7 @@ fn length_type_error() {
             #27 112-113 "3" : Int
             Error(Type(Error(TyMismatch("?[]", "(Int, Int, Int)", Span { lo: 98, hi: 115 }))))
             Error(Type(Error(AmbiguousTy(Span { lo: 98, hi: 104 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -375,7 +375,7 @@ fn single_arg_for_tuple() {
             use q = Qubit();
             Ry(q);
         }"},
-        &expect![[r##"
+        &expect![[r#"
             #8 56-87 "(theta : Double, qubit : Qubit)" : (Double, Qubit)
             #9 57-71 "theta : Double" : Double
             #14 73-86 "qubit : Qubit" : Qubit
@@ -389,7 +389,7 @@ fn single_arg_for_tuple() {
             #35 140-143 "(q)" : Qubit
             #36 141-142 "q" : Qubit
             Error(Type(Error(TyMismatch("(Double, Qubit)", "Qubit", Span { lo: 138, hi: 143 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -1699,7 +1699,7 @@ fn return_with_satisfying_specialization_succeeds() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 32-34 "()" : Unit
             #10 42-44 "{}" : Unit
             #14 60-62 "()" : Unit
@@ -1732,7 +1732,7 @@ fn return_with_satisfying_specialization_succeeds() {
             #166 592-594 "()" : Unit
             #175 612-617 "{ E }" : (Unit => Unit)
             #177 614-615 "E" : (Unit => Unit)
-        "##]],
+        "#]],
     );
 }
 
@@ -1758,7 +1758,7 @@ fn return_with_unsatisfying_specialization_fails() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 32-34 "()" : Unit
             #10 42-44 "{}" : Unit
             #14 60-62 "()" : Unit
@@ -1795,7 +1795,7 @@ fn return_with_unsatisfying_specialization_fails() {
             Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Empty), Span { lo: 463, hi: 464 }))))
             Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Adj), Span { lo: 530, hi: 531 }))))
             Error(Type(Error(FunctorMismatch(Value(CtlAdj), Value(Ctl), Span { lo: 597, hi: 598 }))))
-        "##]],
+        "#]],
     );
 }
 
@@ -3762,7 +3762,7 @@ fn lambda_on_array_where_item_used_in_call_should_be_inferred() {
             }
         "},
         "",
-        &expect![[r##"
+        &expect![[r#"
             #6 28-30 "()" : Unit
             #10 38-77 "{\n        let f = qs => C(qs[0]);\n    }" : Unit
             #12 52-53 "f" : (Qubit[] => Unit)
@@ -3777,6 +3777,6 @@ fn lambda_on_array_where_item_used_in_call_should_be_inferred() {
             #30 93-104 "(q : Qubit)" : Qubit
             #31 94-103 "q : Qubit" : Qubit
             #42 125-128 "{ }" : Unit
-        "##]],
+        "#]],
     );
 }

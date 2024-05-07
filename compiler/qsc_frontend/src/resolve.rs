@@ -451,16 +451,7 @@ impl Resolver {
                     {
                         self.errors.push(Error::NotAvailable(
                             name,
-                            format!(
-                                "{}.{}",
-                                dropped_name
-                                    .namespace
-                                    .iter()
-                                    .map(std::string::ToString::to_string)
-                                    .collect::<Vec<_>>()
-                                    .join("."),
-                                dropped_name.name
-                            ),
+                            format!("{}.{}", dropped_name.namespace, dropped_name.name),
                             span,
                         ));
                     } else {
@@ -1108,8 +1099,6 @@ fn resolve<'a>(
     provided_symbol_name: &Ident,
     provided_namespace_name: &Option<Idents>,
 ) -> Result<Res, Error> {
-    // let scopes = scopes.collect::<Vec<_>>();
-
     if let Some(value) = check_all_scopes(
         kind,
         globals,
@@ -1274,14 +1263,14 @@ fn check_scoped_resolutions(
                 .expect("we asserted on the length, so this is infallible")))
         }
         len if len > 1 => {
-            return Some(ambiguous_symbol_error(
+            return Some(Err(ambiguous_symbol_error(
                 globals,
                 provided_symbol_name,
                 explicit_open_candidates
                     .into_iter()
                     .map(|(a, b)| (a, b.clone()))
                     .collect(),
-            ))
+            )))
         }
         _ => (),
     }
@@ -1292,7 +1281,7 @@ fn check_scoped_resolutions(
     None
 }
 
-/// This function always returns an `Err` variant of `Result`. The error is of type `Error::Ambiguous` and contains
+/// This function returns type `Error::Ambiguous` and contains
 /// the name of the ambiguous symbol and the namespaces that contain the conflicting entities.
 /// # Arguments
 ///
@@ -1305,19 +1294,19 @@ fn ambiguous_symbol_error(
     globals: &GlobalScope,
     provided_symbol_name: &Ident,
     candidates: FxHashMap<Res, Open>,
-) -> Result<Res, Error> {
+) -> Error {
     let mut opens: Vec<_> = candidates.into_values().collect();
     opens.sort_unstable_by_key(|open| open.span);
     let (first_open_ns, _) = globals.namespaces.find_namespace_by_id(&opens[0].namespace);
     let (second_open_ns, _) = globals.namespaces.find_namespace_by_id(&opens[1].namespace);
-    Err(Error::Ambiguous {
+    Error::Ambiguous {
         name: provided_symbol_name.name.to_string(),
         first_open: first_open_ns.join("."),
         second_open: second_open_ns.join("."),
         name_span: provided_symbol_name.span,
         first_open_span: opens[0].span,
         second_open_span: opens[1].span,
-    })
+    }
 }
 
 fn find_symbol_in_namespaces<T, O>(
@@ -1371,11 +1360,7 @@ where
 
         // Attempt to get the symbol from the global scope. If the namespace is None, use the candidate_namespace_id as a fallback
         let res = namespace
-            .or(if namespace.is_none() {
-                Some(candidate_namespace_id)
-            } else {
-                None
-            })
+            .or(Some(candidate_namespace_id))
             .and_then(|ns_id| globals.get(kind, ns_id, &provided_symbol_name.name));
 
         // If a symbol was found, insert it into the candidates map

@@ -45,7 +45,9 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn visit_idents(&mut self, _: &'a Idents) {}
+    fn visit_idents(&mut self, idents: &'a Idents) {
+        walk_idents(self, idents)
+    }
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -203,4 +205,8 @@ pub fn walk_qubit_init<'a>(vis: &mut impl Visitor<'a>, init: &'a QubitInit) {
         QubitInitKind::Single | QubitInitKind::Err => {}
         QubitInitKind::Tuple(inits) => inits.iter().for_each(|i| vis.visit_qubit_init(i)),
     }
+}
+
+pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a Idents) {
+    idents.iter().for_each(|i| vis.visit_ident(i));
 }
