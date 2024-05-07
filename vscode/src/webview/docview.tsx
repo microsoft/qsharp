@@ -1,13 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-export function DocumentationView(props: {
-  renderer: (input: string) => string;
-  contentToRender: string;
-}) {
-  const renderedContent = {
-    __html: props.renderer(props.contentToRender),
-  };
+import { Markdown } from "qsharp-lang/ux";
 
-  return <div dangerouslySetInnerHTML={renderedContent} />;
+export function DocumentationView(props: { contentToRender: string }) {
+  return <Markdown markdown={props.contentToRender} />;
 }

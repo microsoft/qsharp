@@ -194,12 +194,7 @@ function App({ state }: { state: State }) {
     case "help":
       return <HelpPage />;
     case "documentationView":
-      return (
-        <DocumentationView
-          renderer={markdownRenderer}
-          contentToRender={state.contentToRender}
-        />
-      );
+      return <DocumentationView contentToRender={state.contentToRender} />;
     default:
       console.error("Unknown view type in state", state);
       return <div>Loading error</div>;
