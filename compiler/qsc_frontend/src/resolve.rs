@@ -239,8 +239,8 @@ pub enum LocalKind {
 
 #[derive(Debug, Clone, Default)]
 pub struct GlobalScope {
-    tys: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
-    terms: FxHashMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    tys: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
+    terms: IndexMap<NamespaceId, FxHashMap<Rc<str>, Res>>,
     namespaces: NamespaceTreeRoot,
     intrinsics: FxHashSet<Rc<str>>,
 }
@@ -255,7 +255,7 @@ impl GlobalScope {
             NameKind::Ty => &self.tys,
             NameKind::Term => &self.terms,
         };
-        items.get(&namespace).and_then(|items| items.get(name))
+        items.get(namespace).and_then(|items| items.get(name))
     }
 
     /// Creates a namespace in the namespace mapping. Note that namespaces are tracked separately from their
@@ -597,10 +597,6 @@ impl Resolver {
 
         self.locals.get_scope_mut(scope_id)
     }
-
-    pub(crate) fn namespaces(&self) -> &NamespaceTreeRoot {
-        &self.globals.namespaces
-    }
 }
 
 /// Constructed from a [Resolver] and an [Assigner], this structure implements `Visitor`
@@ -832,14 +828,14 @@ impl GlobalTable {
             Rc::from("Core"),
         ]);
 
-        let mut tys = FxHashMap::default();
+        let mut tys = IndexMap::default();
         tys.insert(ns, core);
 
         Self {
             names: IndexMap::new(),
             scope: GlobalScope {
                 tys,
-                terms: FxHashMap::default(),
+                terms: IndexMap::default(),
                 namespaces: NamespaceTreeRoot::default(),
                 intrinsics: FxHashSet::default(),
             },
@@ -884,16 +880,14 @@ impl GlobalTable {
                 (global::Kind::Ty(ty), hir::Visibility::Public) => {
                     self.scope
                         .tys
-                        .entry(namespace)
-                        .or_default()
+                        .get_mut_or_default(namespace)
                         .insert(global.name, Res::Item(ty.id, global.status));
                 }
                 (global::Kind::Term(term), visibility) => {
                     if visibility == hir::Visibility::Public {
                         self.scope
                             .terms
-                            .entry(namespace)
-                            .or_default()
+                            .get_mut_or_default(namespace)
                             .insert(global.name.clone(), Res::Item(term.id, global.status));
                     }
                     if term.intrinsic {
@@ -996,8 +990,7 @@ fn bind_global_item(
             let mut errors = Vec::new();
             match scope
                 .terms
-                .entry(namespace)
-                .or_default()
+                .get_mut_or_default(namespace)
                 .entry(Rc::clone(&decl.name.name))
             {
                 Entry::Occupied(_) => {
@@ -1038,13 +1031,11 @@ fn bind_global_item(
             match (
                 scope
                     .terms
-                    .entry(namespace)
-                    .or_default()
+                    .get_mut_or_default(namespace)
                     .entry(Rc::clone(&name.name)),
                 scope
                     .tys
-                    .entry(namespace)
-                    .or_default()
+                    .get_mut_or_default(namespace)
                     .entry(Rc::clone(&name.name)),
             ) {
                 (Entry::Occupied(_), _) | (_, Entry::Occupied(_)) => {
@@ -1083,7 +1074,7 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
 /// Resolves a given symbol and namespace name, according to the Q# shadowing rules.
 /// Shadowing rules are as follows:
 /// - Local variables shadow everything. They are the first priority.
-/// - Next, we check open statements for an explicit open.
+/// - Next, we check open statements for a non-prelude open.
 /// - Then, we check the prelude.
 /// - Lastly, we check the global namespace.
 /// In the example `Foo.Bar.Baz()` -- the `provided_namespace_name` would be

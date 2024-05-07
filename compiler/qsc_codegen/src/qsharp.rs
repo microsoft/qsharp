@@ -721,8 +721,8 @@ impl<W: Write> Visitor<'_> for QSharpGen<W> {
         self.write(&id.name);
     }
 
-    fn visit_idents(&mut self, vec_ident: &'_ Idents) {
-        self.write(&vec_ident.name());
+    fn visit_idents(&mut self, idents: &'_ Idents) {
+        self.write(&idents.name());
     }
 }
 

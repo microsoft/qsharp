@@ -48,11 +48,11 @@ pub trait MutVisitor: Sized {
         walk_ident(self, ident);
     }
 
-    fn visit_span(&mut self, _: &mut Span) {}
-
     fn visit_idents(&mut self, ident: &mut crate::hir::Idents) {
         walk_idents(self, ident);
     }
+
+    fn visit_span(&mut self, _: &mut Span) {}
 }
 
 pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {

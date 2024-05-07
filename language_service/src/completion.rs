@@ -549,7 +549,7 @@ impl CompletionListBuilder {
                 if !namespace.starts_with_sequence(&["Microsoft", "Quantum", "Unstable"]) =>
             {
                 Some(CompletionItem::new(
-                    namespace.name(),
+                    namespace.name().to_string(),
                     CompletionItemKind::Module,
                 ))
             }
