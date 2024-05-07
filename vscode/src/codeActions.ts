@@ -20,6 +20,7 @@ class QSharpCodeActionProvider implements vscode.CodeActionProvider {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     token: vscode.CancellationToken,
   ) {
+    range.intersection;
     const iCodeActions = await this.languageService.getCodeActions(
       document.uri.toString(),
       range,

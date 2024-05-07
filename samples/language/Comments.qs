@@ -15,7 +15,6 @@ namespace MyQuantumApp {
     operation Main() : Result[] {
         // Comments can go anywhere in a program, although they typically
         // preface what they refer to.
-        let x = 2 / 0;
         return [];
     }
 }

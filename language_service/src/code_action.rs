@@ -1,3 +1,4 @@
+use miette::Diagnostic;
 use qsc::{
     compile::ErrorKind,
     error::WithSource,
@@ -30,8 +31,8 @@ pub(crate) fn get_code_actions(
                 changes: vec![(
                     source_name.to_string(),
                     vec![TextEdit {
-                        new_text: r#""Hello from rust!!""#.to_string(),
-                        range: *range,
+                        new_text: r#""CodeActions from rust!!""#.to_string(),
+                        range: resolve_range(diagnostic),
                     }],
                 )],
             }),
@@ -46,14 +47,34 @@ pub(crate) fn get_code_actions(
 /// Returns true if the error:
 ///  - is in the file named `source_name`
 ///  - has a `Range` and it overlaps with the `code_action`'s range
-fn is_error_relevant(error: &WithSource<ErrorKind>, source_name: &str, _range: &Range) -> bool {
+fn is_error_relevant(error: &WithSource<ErrorKind>, source_name: &str, range: &Range) -> bool {
     let uri = error
         .sources()
         .first()
         .map(|source| source.name.to_string())
         .unwrap_or_default();
 
-    log::error!("{uri} ==? {source_name}");
+    let error_range = resolve_range(error);
+    uri == source_name && range.intersection(&error_range).is_some()
+}
 
-    uri == source_name
+fn resolve_range(e: &WithSource<ErrorKind>) -> Range {
+    e.labels()
+        .into_iter()
+        .flatten()
+        .map(|labeled_span| {
+            let (source, span) = e.resolve_span(labeled_span.inner());
+            let start = u32::try_from(span.offset()).expect("offset should fit in u32");
+            let len = u32::try_from(span.len()).expect("length should fit in u32");
+            qsc::line_column::Range::from_span(
+                qsc::line_column::Encoding::Utf16,
+                &source.contents,
+                &qsc::Span {
+                    lo: start,
+                    hi: start + len,
+                },
+            )
+        })
+        .next()
+        .expect("range should exist")
 }

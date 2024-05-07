@@ -93,6 +93,18 @@ impl Position {
     }
 }
 
+impl PartialOrd for Position {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Position {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (self.line, self.column).cmp(&(other.line, other.column))
+    }
+}
+
 /// Same as a [`Span`], but represented with [`Position`]s instead of offsets.
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub struct Range {
@@ -123,6 +135,26 @@ impl Range {
     #[must_use]
     pub fn empty(&self) -> bool {
         self.start == self.end
+    }
+
+    /// Returns true if the position is within the range.
+    #[must_use]
+    pub fn contains(&self, pos: &Position) -> bool {
+        (self.start..self.end).contains(pos)
+    }
+
+    /// Intersect `range` with this range and returns a new range or `None`
+    /// if the ranges have no overlap.
+    #[must_use]
+    pub fn intersection(&self, other: &Self) -> Option<Self> {
+        let start = self.start.max(other.start);
+        let end = self.end.min(other.end);
+
+        if start <= end {
+            Some(Self { start, end })
+        } else {
+            None
+        }
     }
 }
 
