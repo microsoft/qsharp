@@ -1048,10 +1048,11 @@ fn explicit_return_embedded_in_unary_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Unary Expr", Span { lo: 147, hi: 163 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in unary operation expression", Span { lo: 151, hi: 163 })"#
+        ]],
     );
 }
 
