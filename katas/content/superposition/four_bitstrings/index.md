@@ -9,6 +9,4 @@
 
 **Goal:** Create an equal superposition of the four basis states given by the bit strings.
 
-**Example:**
-
-For $N = 3$ and `bits =  [[false, true, false], [true, false, false], [false, false, true], [true, true, false]]`, the state you need to prepare is $\frac{1}{2} \big(|010\rangle + |100\rangle + |001\rangle + |110\rangle\big)$.
+> For example, for $N = 3$ and `bits =  [[false, true, false], [true, false, false], [false, false, true], [true, true, false]]`, the state you need to prepare is $\frac{1}{2} \big(|010\rangle + |100\rangle + |001\rangle + |110\rangle\big)$.

@@ -698,7 +698,7 @@ pub enum ItemKind {
     /// A `function` or `operation` declaration.
     Callable(CallableDecl),
     /// A `namespace` declaration.
-    Namespace(Idents, Vec<LocalItemId>),
+    Namespace(Ident, Vec<LocalItemId>),
     /// A `newtype` declaration.
     Ty(Ident, Udt),
 }
@@ -1427,6 +1427,7 @@ impl Display for PatKind {
     }
 }
 
+<<<<<<< HEAD
 /// A [`Idents`] represents a sequence of idents. It provides a helpful abstraction
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.
@@ -1469,6 +1470,7 @@ impl FromIterator<Ident> for Idents {
         Idents(iter.into_iter().collect())
     }
 }
+
 impl Display for Idents {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut buf = Vec::with_capacity(self.0.len());

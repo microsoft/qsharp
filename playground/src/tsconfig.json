@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "es2020",
+    "moduleResolution": "bundler",
     "target": "ES2020",
     "noEmit": true,
     "lib": ["DOM", "ES2020"],
@@ -11,6 +11,7 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
     "skipLibCheck": true,
-    "customConditions": ["browser"] // Required as 'node' is automatically added also.
+    "customConditions": ["browser"], // Required as 'node' is automatically added also.
+    "types": []
   }
 }

@@ -2,9 +2,8 @@
 // Licensed under the MIT License.
 
 use crate::fir::{
-    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Idents, Item,
-    ItemKind, Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
-    StringComponent,
+    Block, BlockId, CallableDecl, CallableImpl, Expr, ExprId, ExprKind, Ident, Item, ItemKind,
+    Package, Pat, PatId, PatKind, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind, StringComponent,
 };
 
 pub trait Visitor<'a>: Sized {
@@ -50,8 +49,6 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn visit_idents(&mut self, _: &'a Idents) {}
-
     fn get_block(&self, id: BlockId) -> &'a Block;
     fn get_expr(&self, id: ExprId) -> &'a Expr;
     fn get_pat(&self, id: PatId) -> &'a Pat;
@@ -66,8 +63,7 @@ pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
 pub fn walk_item<'a>(vis: &mut impl Visitor<'a>, item: &'a Item) {
     match &item.kind {
         ItemKind::Callable(decl) => vis.visit_callable_decl(decl),
-        ItemKind::Namespace(name, _) => vis.visit_idents(name),
-        ItemKind::Ty(name, _) => vis.visit_ident(name),
+        ItemKind::Namespace(name, _) | ItemKind::Ty(name, _) => vis.visit_ident(name),
     };
 }
 

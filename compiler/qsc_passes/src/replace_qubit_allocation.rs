@@ -4,6 +4,7 @@
 #[cfg(test)]
 mod tests;
 
+use qsc_data_structures::namespaces::NamespaceId;
 use qsc_data_structures::span::Span;
 use qsc_hir::{
     assigner::Assigner,
@@ -239,10 +240,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_alloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
-        let ns = self
-            .core
-            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
-            .expect("prelude namespaces should exist");
+        let ns = self.get_qir_runtime_namespace();
         let mut call_expr = create_gen_core_ref(
             self.core,
             ns,
@@ -255,10 +253,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_array_alloc_stmt(&mut self, ident: &IdentTemplate, array_size: Expr) -> Stmt {
-        let ns = self
-            .core
-            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
-            .expect("prelude namespaces should exist");
+        let ns = self.get_qir_runtime_namespace();
         let mut call_expr =
             create_gen_core_ref(self.core, ns, "AllocateQubitArray", Vec::new(), ident.span);
         call_expr.id = self.assigner.next_node();
@@ -266,10 +261,7 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
-        let ns = self
-            .core
-            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
-            .expect("prelude namespaces should exist");
+        let ns = self.get_qir_runtime_namespace();
         let mut call_expr = create_gen_core_ref(
             self.core,
             ns,
@@ -282,14 +274,16 @@ impl<'a> ReplaceQubitAllocation<'a> {
     }
 
     fn create_array_dealloc_stmt(&mut self, ident: &IdentTemplate) -> Stmt {
-        let ns = self
-            .core
-            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
-            .expect("prelude namespaces should exist");
+        let ns = self.get_qir_runtime_namespace();
         let mut call_expr =
             create_gen_core_ref(self.core, ns, "ReleaseQubitArray", Vec::new(), ident.span);
         call_expr.id = self.assigner.next_node();
         create_general_dealloc_stmt(self.assigner, call_expr, ident)
+    }
+    fn get_qir_runtime_namespace(&self) -> NamespaceId {
+        self.core
+            .find_namespace(QIR_RUNTIME_NAMESPACE.iter().copied())
+            .expect("prelude namespaces should exist")
     }
 }
 
