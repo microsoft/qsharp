@@ -2,7 +2,7 @@ Both input states are superposition states, with equal absolute values of amplit
 
 To determine in which state the input qubit is with certainty, we want to transform the qubit into a state where there is no superposition with respect to the basis in which we perform the measurement.
 
-Consider how we can prepare the input states, starting with basis states: $H\ket{0} = \ket{+}$ and $H\ket{1} = \ket{-}$. This transformation can also be undone by applying the **H** gate again (remember that the **H** gate is self-adjoint, i.e., it equals its own inverse): $H\ket{+} = \ket{0}$ and $H\ket{-} = \ket{1}$.
+Consider how we can prepare the input states, starting with basis states: $H\ket{0} = \ket{+}$ and $H\ket{1} = \ket{-}$. This transformation can also be undone by applying the $H$ gate again (remember that the $H$ gate is self-adjoint, i.e., it equals its own inverse): $H\ket{+} = \ket{0}$ and $H\ket{-} = \ket{1}$.
 
 Once we have the $\ket{0}$ or $\ket{1}$ state, we can use the same principle as in previous task $\ket{0}$ or $\ket{1}$ to measure the state and report the outcome. Note that in this task return value `true` corresponds to input state $\ket{+}$, so we compare the measurement result with `Zero`.
 
