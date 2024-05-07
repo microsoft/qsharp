@@ -15,7 +15,7 @@ schedules:
   always: true
 
 jobs:
-- job: "qsharp-governance"
+- job: "qsharp"
   pool:
     vmImage: 'ubuntu-latest'
   timeoutInMinutes: 120
