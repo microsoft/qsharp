@@ -3,6 +3,8 @@
 
 import { TextDocument, Uri, Range, Location } from "vscode";
 import { ILocation, IRange } from "qsharp-lang";
+import { IWorkspaceEdit } from "../../npm/qsharp/lib/web/qsc_wasm";
+import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
 
@@ -36,4 +38,18 @@ export function toVscodeRange(range: IRange): Range {
 
 export function toVscodeLocation(location: ILocation): any {
   return new Location(Uri.parse(location.source), toVscodeRange(location.span));
+}
+
+export function toVscodeWorkspaceEdit(
+  iWorkspaceEdit: IWorkspaceEdit,
+): vscode.WorkspaceEdit {
+  const workspaceEdit = new vscode.WorkspaceEdit();
+  for (const [source, edits] of iWorkspaceEdit.changes) {
+    const uri = vscode.Uri.parse(source, true);
+    const vsEdits = edits.map((edit) => {
+      return new vscode.TextEdit(toVscodeRange(edit.range), edit.newText);
+    });
+    workspaceEdit.set(uri, vsEdits);
+  }
+  return workspaceEdit;
 }

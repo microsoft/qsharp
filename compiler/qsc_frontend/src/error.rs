@@ -17,6 +17,12 @@ pub struct WithSource<E> {
     error: E,
 }
 
+impl<E> WithSource<E> {
+    pub fn sources(&self) -> &[Source] {
+        &self.sources
+    }
+}
+
 impl<E: Diagnostic + Send + Sync> WithSource<E> {
     pub fn error(&self) -> &E {
         &self.error

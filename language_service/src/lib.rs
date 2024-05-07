@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+pub mod code_action;
 pub mod code_lens;
 mod compilation;
 pub mod completion;
@@ -25,8 +26,8 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures_util::StreamExt;
 use log::{trace, warn};
 use protocol::{
-    CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp, TextEdit,
-    WorkspaceConfigurationUpdate,
+    CodeAction, CodeLens, CompletionList, DiagnosticUpdate, Hover, NotebookMetadata, SignatureHelp,
+    TextEdit, WorkspaceConfigurationUpdate,
 };
 use qsc::{
     line_column::{Encoding, Position, Range},
@@ -176,6 +177,11 @@ impl LanguageService {
         self.send_update(Update::CloseNotebookDocument {
             notebook_uri: notebook_uri.into(),
         });
+    }
+
+    #[must_use]
+    pub fn get_code_actions(&self, uri: &str, range: &Range) -> Vec<CodeAction> {
+        self.document_op(code_action::get_code_actions, "get_completions", uri, range)
     }
 
     /// LSP: textDocument/completion
