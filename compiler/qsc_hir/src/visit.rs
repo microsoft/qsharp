@@ -46,7 +46,7 @@ pub trait Visitor<'a>: Sized {
     fn visit_ident(&mut self, _: &'a Ident) {}
 
     fn visit_idents(&mut self, idents: &'a Idents) {
-        walk_idents(self, idents)
+        walk_idents(self, idents);
     }
 }
 
