@@ -1083,7 +1083,7 @@ fn decl_is_intrinsic(decl: &CallableDecl) -> bool {
 /// Resolves a given symbol and namespace name, according to the Q# shadowing rules.
 /// Shadowing rules are as follows:
 /// - Local variables shadow everything. They are the first priority.
-/// - Next, we check open statements for an explicit open.
+/// - Next, we check open statements for a non-prelude open.
 /// - Then, we check the prelude.
 /// - Lastly, we check the global namespace.
 /// In the example `Foo.Bar.Baz()` -- the `provided_namespace_name` would be
