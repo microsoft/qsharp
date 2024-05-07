@@ -39,7 +39,7 @@ We split the superdense coding protocol into several steps:
 
 @[exercise]({
     "id": "superdense_coding__bob_decodes_message",
-    "title": "Bob's task: Decode the Message and Reset the qubits",
+    "title": "Bob's task: Decode the Message and Reset the Qubits",
     "path": "bob_decodes_message",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -49,7 +49,7 @@ We split the superdense coding protocol into several steps:
 
 @[exercise]({
     "id": "superdense_coding__protocol_e2e",
-    "title": "Superdense coding protocol: End to End",
+    "title": "Superdense Coding Protocol: End to End",
     "path": "protocol_e2e",
     "qsDependencies": [
         "../KatasLibrary.qs",
