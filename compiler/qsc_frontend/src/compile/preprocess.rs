@@ -69,7 +69,7 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: Rc::from((&namespace.name).name()),
+                                namespace: Rc::from((namespace.name).name()),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
