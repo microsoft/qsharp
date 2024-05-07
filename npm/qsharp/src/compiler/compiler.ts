@@ -309,7 +309,7 @@ export function onCompilerEvent(msg: string, eventTarget: IQscEventTarget) {
     case "DumpMachine":
       qscEvent = makeEvent("DumpMachine", {
         state: qscMsg.state,
-        stateLatex: qscMsg.stateLatex, // can be null or undefined or something, check
+        stateLatex: qscMsg.stateLatex,
       });
       break;
     case "Result":
