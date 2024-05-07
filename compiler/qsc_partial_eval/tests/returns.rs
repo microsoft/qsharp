@@ -631,7 +631,7 @@ fn default_qubit_management_releases_qubits_when_they_are_out_of_scope_with_impl
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            operation AllocateAndApply() : Unit { 
+            operation AllocateAndApply() : Unit {
                 use q = Qubit();
                 OpB(q);
             }
@@ -694,7 +694,7 @@ fn default_qubit_management_releases_qubits_when_they_are_out_of_scope_with_expl
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            operation AllocateAndApply() : Unit { 
+            operation AllocateAndApply() : Unit {
                 use q = Qubit();
                 OpB(q);
                 return ();
@@ -759,7 +759,7 @@ fn default_qubit_management_releases_qubits_when_they_are_out_of_scope_with_expl
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
-            operation AllocateAndApply() : Unit { 
+            operation AllocateAndApply() : Unit {
                 use q = Qubit();
                 OpB(q);
                 return ();
@@ -849,10 +849,9 @@ fn explicit_return_embedded_in_array_repeat_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Array Repeat", Span { lo: 147, hi: 174 })"#]],
+        &expect![[r#"Unexpected("embedded return in array size", Span { lo: 161, hi: 173 })"#]],
     );
 }
 
@@ -869,10 +868,11 @@ fn explicit_return_embedded_in_assign_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Assignment Expr", Span { lo: 165, hi: 185 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in assign expression", Span { lo: 173, hi: 185 })"#
+        ]],
     );
 }
 
@@ -933,7 +933,7 @@ fn explicit_return_embedded_in_assign_op_expr_yields_error() {
     // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Assignment Op Expr", Span { lo: 162, hi: 183 })"#]],
+        &expect![[r#"Unimplemented("int binary operation", Span { lo: 166, hi: 167 })"#]],
     );
 }
 
@@ -1010,10 +1010,11 @@ fn explicit_return_embedded_in_index_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Index Expr", Span { lo: 168, hi: 195 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in index expression", Span { lo: 170, hi: 194 })"#
+        ]],
     );
 }
 
@@ -1076,21 +1077,41 @@ fn explicit_return_embedded_in_update_field_expr_yields_error() {
 }
 
 #[test]
-fn explicit_return_embedded_in_update_index_expr_yields_error() {
+fn explicit_return_embedded_in_hybrid_update_index_expr_yields_error() {
     let error = get_partial_evaluation_error(indoc! {r#"
     namespace Test {
         @EntryPoint()
         operation Main() : Bool {
-            use q = Qubit(); // Needed to make `Main` non-classical.
-            mutable a = [1];
+            use q = Qubit();
+            mutable a = [true];
             set a w/= 0 <- return false;
             true
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("Assignment Index Expr", Span { lo: 164, hi: 191 })"#]],
+        &expect![[
+            r#"Unexpected("embedded return in assign index expression", Span { lo: 142, hi: 154 })"#
+        ]],
+    );
+}
+
+#[test]
+fn explicit_return_embedded_in_hybrid_array_assignop_expr_yields_error() {
+    let error = get_partial_evaluation_error(indoc! {r#"
+    namespace Test {
+        @EntryPoint()
+        operation Main() : Bool {
+            use q = Qubit();
+            mutable a = [true];
+            set a += return false;
+            true
+        }
+    }
+    "#});
+    assert_error(
+        &error,
+        &expect![[r#"Unexpected("embedded return in RHS expression", Span { lo: 136, hi: 148 })"#]],
     );
 }
