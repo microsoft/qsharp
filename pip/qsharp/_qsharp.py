@@ -343,7 +343,7 @@ class StateDump:
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
 
-    def _repr_latex_(self) -> str:
+    def _repr_latex_(self) -> Optional[str]:
         return self.__data._repr_latex_()
 
     def check_eq(

@@ -360,7 +360,7 @@ impl Output {
 
     fn _repr_latex_(&self) -> Option<String> {
         match &self.0 {
-            DisplayableOutput::State(state) => Some(state.to_latex()),
+            DisplayableOutput::State(state) => state.to_latex(),
             DisplayableOutput::Message(_) => None,
         }
     }
@@ -424,7 +424,7 @@ impl StateDumpData {
         self.0.to_html()
     }
 
-    fn _repr_latex_(&self) -> String {
+    fn _repr_latex_(&self) -> Option<String> {
         self.0.to_latex()
     }
 }

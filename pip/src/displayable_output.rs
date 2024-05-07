@@ -52,7 +52,7 @@ impl DisplayableState {
         )
     }
 
-    pub fn to_latex(&self) -> String {
+    pub fn to_latex(&self) -> Option<String> {
         get_latex(&self.0, self.1)
     }
 }
