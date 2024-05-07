@@ -9,7 +9,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = register => Kata.BasisChange(register[0]);
         let reference = register => BasisChange(register[0]);
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+        let isCorrect = CheckOperationsAreEqualStrict(solution, reference, 1);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {

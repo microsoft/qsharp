@@ -23,7 +23,7 @@ namespace Kata.Verification {
 
                 let sol = Kata.ArbitraryBitPattern_Oracle_Challenge(_, pattern);
                 let ref = ArbitraryBitPattern_Oracle_Challenge_Reference(_, pattern);
-                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+                let isCorrect = CheckOperationsAreEqualStrict(sol, ref, N);
 
                 if not isCorrect {
                     Message("Incorrect.");

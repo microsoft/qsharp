@@ -10,7 +10,7 @@ namespace Kata.Verification {
     @EntryPoint()
     operation CheckSolution() : Bool {
         let N = 3;
-        let isCorrect = CheckOperationsEquivalenceStrict(
+        let isCorrect = CheckOperationsAreEqualStrict(
             Kata.IsSeven_PhaseOracle,
             IsSeven_PhaseOracle_Reference,
             3);

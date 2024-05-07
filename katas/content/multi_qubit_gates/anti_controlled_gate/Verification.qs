@@ -9,7 +9,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = Kata. AntiControlledGate;
         let reference =  AntiControlledGate;
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 2);
+        let isCorrect = CheckOperationsAreEqualStrict(solution, reference, 2);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {

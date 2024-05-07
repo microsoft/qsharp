@@ -12,7 +12,7 @@ namespace Kata.Verification {
         let N = 3;
         let sol = ApplyOracle(_, Kata.IsSeven_MarkingOracle);
         let ref = ApplyOracle(_, IsSeven_MarkingOracle_Reference);
-        let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N + 1);
+        let isCorrect = CheckOperationsAreEqualStrict(sol, ref, N + 1);
         if isCorrect {
             Message("Correct!");
         } else {
