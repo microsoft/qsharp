@@ -20,7 +20,7 @@ We can transform it according to the value of bits:
   $$Z \otimes I (\ket{\Phi^{+}}) = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11})$$
 
 - If `bits = (1, 1)`, we use the same logic to realize that we need to apply both the $Z$ and $X$ corrections to get $\ket{\Psi^{-}}$ state.
-  $$ (Z \otimes I).(X \otimes I) (\ket{\Psi^{+}}) = (Z \otimes I) \frac{1}{\sqrt{2}} (\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) $$
+  $$ (Z \otimes I).(X \otimes I) (\ket{\Psi^{+}}) = (Z \otimes I) \frac{1}{\sqrt{2}} (\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10}) $$
 
 The final sequence of steps is as follows:
 

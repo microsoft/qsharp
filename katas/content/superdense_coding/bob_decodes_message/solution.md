@@ -12,10 +12,10 @@ Notice that [`Adjoint`](https://learn.microsoft.com/azure/quantum/user-guide/lan
   
 What is the outcome of this transformation, assuming each of the possible quantum states after the encoding step?
 
-- $\ket{\Phi^{+}} = \frac{1}{\sqrt{2}} (\ket{00} + \ket{11}) --> \ket{00}$
-- $\ket{\Psi^{+}} = \frac{1}{\sqrt{2}} (\ket{01} + \ket{10}) --> \ket{01}$
-- $\ket{\Phi^{-}} = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11}) --> \ket{10}$
-- $\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10}) --> \ket{11}$
+- $\ket{\Phi^{+}} = \frac{1}{\sqrt{2}} (\ket{00} + \ket{11}) \rightarrow \ket{00}$
+- $\ket{\Psi^{+}} = \frac{1}{\sqrt{2}} (\ket{01} + \ket{10}) \rightarrow \ket{01}$
+- $\ket{\Phi^{-}} = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11}) \rightarrow \ket{10}$
+- $\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10}) \rightarrow \ket{11}$
 
 Hence, we can retrieve the encoded bits just by measuring the bits.
 

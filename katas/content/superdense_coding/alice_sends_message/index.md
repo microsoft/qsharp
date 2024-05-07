@@ -1,12 +1,10 @@
 **Inputs**:
 
 1. `qAlice` : Alice's part of the entangled pair of qubits.
-2. Two classical bits : (bit1, bit2)
+2. `message`: Two classical bits represented by a tuple of of two `Bool` variables to represent `bit1` and `bit2` respectively.
 
 **Goal**:  
 Encode the message (two classical bits) by manipulating Alice's qubit.
-
-> `message` is a tuple of 2 `Bool` variables to represent `bit1` and `bit2` respectively.
 
 <details>
   <summary><b>Need a hint? Click here</b></summary>
