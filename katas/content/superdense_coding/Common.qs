@@ -41,7 +41,7 @@ namespace Kata.Verification {
     // ------------------------------------------------------
     // Helper operation that runs superdense coding protocol (specified by protocolOp)
     // on all possible input values and verifies that decoding result matches the inputs
-    operation TestProtocolWithFeedback(protocolOp : ((Bool, Bool) => (Bool, Bool))) : Bool {
+    operation CheckProtocolWithFeedback(protocolOp : ((Bool, Bool) => (Bool, Bool))) : Bool {
 
         // Loop over the 4 possible combinations of two bits
         for n in 0..3 {

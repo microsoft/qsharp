@@ -3,7 +3,7 @@ namespace Kata.Verification {
 
     @EntryPoint()
     operation CheckSolution() : Bool {
-        return TestProtocolWithFeedback(ComposeProtocol(EncodeMessageInQubit_Reference, Kata.DecodeMessageFromQubits, _));
+        return CheckProtocolWithFeedback(ComposeProtocol(EncodeMessageInQubit_Reference, Kata.DecodeMessageFromQubits, _));
     }
 }
 
