@@ -367,6 +367,32 @@ impl<'a> PartialEvaluator<'a> {
         Ok(EvalControlFlow::Continue(array_value))
     }
 
+    fn eval_bin_op_with_lhs_result_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_result: val::Result,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let Value::Result(rhs_result) = rhs_value else {
+            panic!("expected result value from RHS expression");
+        };
+
+        // Get the operands to use when generating the binary operation instruction.
+        let lhs_operand = self.eval_result_as_bool_operand(lhs_result);
+        let rhs_operand = self.eval_result_as_bool_operand(rhs_result);
+        // TODO (cesarzc): keep implementing.
+        unimplemented!();
+    }
+
     fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
         let current_package_id = self.get_current_package_id();
         let store_expr_id = StoreExprId::from((current_package_id, expr_id));
