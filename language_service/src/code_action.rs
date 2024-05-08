@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use miette::Diagnostic;
 use qsc::{
     compile::ErrorKind,
