@@ -11,7 +11,6 @@ namespace Kata {
         CNOT(qAlice, qBob);
     }
 
-    // You might find this helper operation from an earlier task useful.
     operation EncodeMessageInQubit(qAlice : Qubit, message : (Bool, Bool)) : Unit {
         let (bit1, bit2) = message;
 
@@ -24,7 +23,6 @@ namespace Kata {
         }
     }
 
-    // You might find this helper operation from an earlier task useful.
     operation DecodeMessageFromQubits(qAlice : Qubit, qBob : Qubit) : (Bool, Bool) {
         CNOT(qAlice, qBob);
         H(qAlice);

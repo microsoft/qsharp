@@ -40,6 +40,7 @@ namespace Kata.Verification {
 
         let (bit1, bit2) = decodeOp(qAlice, qBob);
 
+        // We get this error if dont call Reset
         // [ERR_ASSERTION]: Exercise "superdense_coding__bob_decodes_message" has compilation or runtime errors
         //  when using the placeholder as solution. Compilation and runtime errors:
         //   Message = runtime error: Qubit1 released while not in |0⟩ state
