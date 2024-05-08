@@ -11,7 +11,7 @@ We can transform it into every other Bell state according to the value of `messa
 - `(1, 0)`: $\ket{\Phi^{-}} = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11})$
 - `(1, 1)`: $\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10})$
 
-### Detailed Explaination
+Here is how we can perform this transformation:
 
 - If `bits == (0, 0)`, we do nothing - the prepared state is already $\ket{\Phi^{+}}$.
 
