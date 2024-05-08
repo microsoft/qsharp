@@ -3,7 +3,10 @@
 
 use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
-    common::{try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId, Local, LocalKind, TyExt},
+    common::{
+        try_resolve_callee, AssignmentStmtCounter, Callee, FunctorAppExt, GlobalSpecId, Local,
+        LocalKind, TyExt,
+    },
     scaffolding::{InternalItemComputeProperties, InternalPackageStoreComputeProperties},
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ComputePropertiesLookup,
     ParamApplication, QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind,
@@ -941,16 +944,23 @@ impl<'a> Analyzer<'a> {
     }
 
     fn analyze_expr_while(&mut self, condition_expr_id: ExprId, block_id: BlockId) -> ComputeKind {
-        // We analyze both the condition expression and the block twice because of the following reasons:
-        // - The first analysis of the block can affect the condition if the condition relies on a mutable variable that
-        //   is updated within the block.
-        // - After the second analysis of the condition, if it turns out the condition is dynamic, the block is now a
-        //   dynamic scope and further runtime features might apply.
-        let mut condition_expr_compute_kind = ComputeKind::Classical;
-        for _ in 0..2 {
-            // Visit the condition expression to determine its compute kind.
-            self.visit_expr(condition_expr_id);
+        // Visit the condition expression to determine its initial compute kind.
+        self.visit_expr(condition_expr_id);
+        let application_instance = self.get_current_application_instance_mut();
+        let mut condition_expr_compute_kind =
+            *application_instance.get_expr_compute_kind(condition_expr_id);
 
+        // We analyze both the condition expression and the block N times, where N is the analysis stabilization limit.
+        // The reason why we need a stabilization limit is because there can be up-to N levels of indirection for the
+        // condition due to variable assigments.
+        // The number of statements with assignments in the condition expression and the loop block is a good proxy for
+        // the worst case scenario regarding the propagation of properties throughout variables. Because of this, we use
+        // it as the stabilization limit.
+        let package_id = self.get_current_package_id();
+        let package = self.package_store.get(package_id);
+        let stabilization_limit = AssignmentStmtCounter::new(package).count_in_block(block_id)
+            + AssignmentStmtCounter::new(package).count_in_expr(condition_expr_id);
+        for _ in 0..=stabilization_limit {
             // If the condition expression is dynamic, we push a new dynamic scope before visiting the block.
             let application_instance = self.get_current_application_instance_mut();
             condition_expr_compute_kind =
@@ -961,6 +971,7 @@ impl<'a> Analyzer<'a> {
                     .active_dynamic_scopes
                     .push(condition_expr_id);
             }
+            self.visit_expr(condition_expr_id);
             self.visit_block(block_id);
             if within_dynamic_scope {
                 let application_instance = self.get_current_application_instance_mut();
