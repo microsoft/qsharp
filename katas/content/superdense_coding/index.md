@@ -1,4 +1,4 @@
-# Superdense Coding Kata
+# Superdense Coding
 
 @[section]({
     "id": "superdense_coding__overview",
