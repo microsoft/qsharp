@@ -2,7 +2,10 @@
 // Licensed under the MIT License.
 
 import { getCompilerWorker } from "qsharp-lang";
-import { Uri } from "vscode";
+import { isQsharpDocument } from "./common";
+import { getTarget } from "./config";
+import { Uri, window } from "vscode";
+import { loadProject } from "./projectSystem";
 import { sendMessageToPanel } from "./webviewPanel";
 
 export async function showDocumentationCommand(extensionUri: Uri) {
@@ -12,6 +15,14 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     true,
     null,
   );
+  const editor = window.activeTextEditor;
+  if (!editor || !isQsharpDocument(editor.document)) {
+    throw new Error("The currently active window is not a Q# file");
+  }
+
+  const docUri = editor.document.uri;
+  const program = await loadProject(docUri);
+  const targetProfile = getTarget();
 
   // Get std library documentation from compiler.
   const compilerWorkerScriptPath = Uri.joinPath(
@@ -19,7 +30,16 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     "./out/compilerWorker.js",
   ).toString();
   const worker = getCompilerWorker(compilerWorkerScriptPath);
-  const content = await worker.getCombinedDocumentation();
+  const documentation = await worker.getDocumentationContent(
+    program.sources,
+    targetProfile,
+    program.languageFeatures,
+  );
+
+  // Concatenate all documentation.
+  // The following adds an empty line and a horizontal line
+  // between documentation for different functions.
+  const content = documentation.join("\n<pre>\n\n</pre>\n---\n");
 
   const message = {
     command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
