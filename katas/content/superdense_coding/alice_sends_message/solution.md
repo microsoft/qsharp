@@ -11,13 +11,15 @@ We can transform it into every other Bell state according to the value of `messa
 - `(1, 0)`: $\ket{\Phi^{-}} = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11})$
 - `(1, 1)`: $\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10})$
 
+### Detailed Explaination
+
 - If `bits == (0, 0)`, we do nothing - the prepared state is already $\ket{\Phi^{+}}$.
 
 - If `bits ==  (0, 1)`, we need to change the second qubit in both $\ket{00}$ and $\ket{11}$ terms. Observe that applying an $X$ gate to Alice's qubit does exactly that:
-  $$X \otimes I (\ket{\Phi^{+}}) = \frac{1}{\sqrt{2}} (\ket{10} + \ket{01})$$
+  $$(X \otimes I) \ket{\Phi^{+}} = \frac{1}{\sqrt{2}} (\ket{10} + \ket{01})$$
 
 - If `bits == (1, 0)`, we need to add a relative phase of $-1$ to the $\ket{11}$ term. Observe that applying $Z$ gate to Alice's qubit does exactly that:
-  $$Z \otimes I (\ket{\Phi^{+}}) = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11})$$
+  $$(Z \otimes I) \ket{\Phi^{+}} = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11})$$
 
 - If `bits = (1, 1)`, we use the same logic to realize that we need to apply both the $Z$ and $X$ corrections to get $\ket{\Psi^{-}}$ state.
   $$ (Z \otimes I) \cdot (X \otimes I) \ket{\Psi^{+}} = (Z \otimes I) \frac{1}{\sqrt{2}} (\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10}) $$
