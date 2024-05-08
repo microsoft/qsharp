@@ -16,13 +16,13 @@ namespace Kata {
     }
 
     operation EncodeMessageInQubit(qAlice : Qubit, message : (Bool, Bool)) : Unit {
-        let (cbit1, cbit2) = message;
+        let (bit1, bit2) = message;
 
-        if cbit2 {
+        if bit2 {
             X(qAlice);
         }
 
-        if cbit1 {
+        if bit1 {
             Z(qAlice);
         }
     }

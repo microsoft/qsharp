@@ -13,13 +13,13 @@ namespace Kata {
 
     // You might find this helper operation from an earlier task useful.
     operation EncodeMessageInQubit(qAlice : Qubit, message : (Bool, Bool)) : Unit {
-        let (cbit1, cbit2) = message;
+        let (bit1, bit2) = message;
 
-        if cbit2 {
+        if bit2 {
             X(qAlice);
         }
 
-        if cbit1 {
+        if bit1 {
             Z(qAlice);
         }
     }
