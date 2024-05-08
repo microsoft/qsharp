@@ -38,10 +38,6 @@ pub enum LocalKind {
 
 pub trait LocalsLookup {
     fn find(&self, local_var_id: LocalVarId) -> Option<&Local>;
-
-    fn get(&self, local_var_id: LocalVarId) -> &Local {
-        self.find(local_var_id).expect("local should exist")
-    }
 }
 
 impl LocalsLookup for FxHashMap<LocalVarId, Local> {

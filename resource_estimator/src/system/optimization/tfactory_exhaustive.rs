@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 use std::borrow::Cow;
+use std::fmt::Display;
 use std::rc::Rc;
 
 use crate::system::modeling::{
@@ -28,14 +29,14 @@ where
 {
     /// Target output T-error rate
     output_t_error_rate: f64,
-    /// Number of combinations for which a TFactory was tried to build
+    /// Number of combinations for which a `TFactory` was tried to build
     num_combinations: usize,
-    /// Number of valid TFactory instances that were successfully build
+    /// Number of valid `TFactory` instances that were successfully build
     num_valid: usize,
-    /// Number of sufficient TFactory instances that do not succeed the user
+    /// Number of sufficient `TFactory` instances that do not succeed the user
     /// specified output T-error rate
     num_candidates: usize,
-    /// Pareto frontier of currently best TFactories.
+    /// Pareto frontier of currently best `TFactories`.
     /// We optimize them by two duration and normalized qubits.
     frontier_factories: Population<P>,
 }
@@ -176,12 +177,12 @@ impl From<TFactory> for Point2D<TFactory> {
     }
 }
 
-impl ToString for Point2D<TFactory> {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for Point2D<TFactory> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
             "Pareto frontier point.   normalized qubits: {},    duration: {}",
             self.value1, self.value2,
-        )
+        ))
     }
 }
 
@@ -199,12 +200,12 @@ impl From<TFactory> for Point4D<TFactory> {
     }
 }
 
-impl ToString for Point4D<TFactory> {
-    fn to_string(&self) -> String {
-        format!(
+impl Display for Point4D<TFactory> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
             "Pareto frontier point.   normalized qubits: {},    duration: {},    output T-error rate: {},    code distance: {}",
             self.value1, self.value2, self.value3, self.value4,
-        )
+        ))
     }
 }
 
