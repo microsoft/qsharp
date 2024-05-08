@@ -5,7 +5,7 @@ namespace Kata {
         return (false, false);
     }
 
-    // You might find this helper operation from an earlier task useful.
+    // You might find these helper operations from earlier tasks useful.
     operation CreateEntangledPair(qAlice : Qubit, qBob : Qubit) : Unit is Adj {
         H(qAlice);
         CNOT(qAlice, qBob);

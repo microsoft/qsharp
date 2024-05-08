@@ -1,4 +1,4 @@
-We can put together the operations defined in the previous tasks to run superdense protocol E2E.
+We can put together the operations defined in the previous tasks to run superdense coding protocol end-to-end.
 
 - Prepare an EPR Pair
 - Encode the two classical bits in the state of the pair by applying quantum gates to one member of the pair,

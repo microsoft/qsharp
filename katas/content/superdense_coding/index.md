@@ -29,7 +29,7 @@ We split the superdense coding protocol into several steps:
 
 @[exercise]({
     "id": "superdense_coding__alice_sends_message",
-    "title": "Alice's task: Encode the Message",
+    "title": "Alice's Task: Encode Message",
     "path": "alice_sends_message",
     "qsDependencies": [
         "../KatasLibrary.qs",
@@ -39,7 +39,7 @@ We split the superdense coding protocol into several steps:
 
 @[exercise]({
     "id": "superdense_coding__bob_decodes_message",
-    "title": "Bob's task: Decode the Message and Reset the Qubits",
+    "title": "Bob's Task: Decode Message",
     "path": "bob_decodes_message",
     "qsDependencies": [
         "../KatasLibrary.qs",
