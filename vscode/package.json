@@ -322,7 +322,7 @@
       },
       {
         "command": "qsharp-vscode.showDocumentation",
-        "title": "Generate API documentation",
+        "title": "Show API documentation",
         "category": "Q#"
       },
       {
