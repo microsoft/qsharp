@@ -81,7 +81,6 @@ impl<'a> TFactoryQubit<'a> {
 }
 
 impl Display for TFactoryDistillationUnitType {
-
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TFactoryDistillationUnitType::Logical => f.write_str("Logical"),
