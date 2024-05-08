@@ -428,24 +428,8 @@ namespace Microsoft.Quantum.Intrinsic {
     /// R(PauliI, -theta, qubit);
     /// ```
     operation R1(theta : Double, qubit : Qubit) : Unit is Adj + Ctl {
-        body ... {
-            Rz(theta, qubit);
-        }
-        controlled (ctls, ...) {
-            if Length(ctls) == 0 {
-                Rz(theta, qubit);
-            } elif Length(ctls) == 1 {
-                CR1(theta, ctls[0], qubit);
-            } else {
-                use aux = Qubit[Length(ctls) - 1];
-                within {
-                    CollectControls(ctls, aux, 0);
-                    AdjustForSingleControl(ctls, aux);
-                } apply {
-                    CR1(theta, aux[Length(ctls) - 2], qubit);
-                }
-            }
-        }
+        Rz(theta, qubit);
+        R(PauliI, -theta, qubit);
     }
 
     /// # Summary

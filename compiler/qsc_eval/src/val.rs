@@ -89,7 +89,10 @@ impl From<usize> for Result {
 pub struct Qubit(pub usize);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Var(pub usize);
+pub struct Var {
+    pub id: usize,
+    pub ty: VarTy,
+}
 
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -131,13 +134,16 @@ impl Display for Value {
                 (None, step, Some(end)) => write!(f, "...{step}..{end}"),
                 (None, step, None) => write!(f, "...{step}..."),
             },
-            Value::Result(v) => {
-                if v.unwrap_bool() {
-                    write!(f, "One")
-                } else {
-                    write!(f, "Zero")
+            Value::Result(v) => match v {
+                Result::Id(id) => write!(f, "Result({id})"),
+                Result::Val(val) => {
+                    if *val {
+                        write!(f, "One")
+                    } else {
+                        write!(f, "Zero")
+                    }
                 }
-            }
+            },
             Value::String(v) => write!(f, "{v}"),
             Value::Tuple(tup) => {
                 write!(f, "(")?;
@@ -147,7 +153,24 @@ impl Display for Value {
                 }
                 write!(f, ")")
             }
-            Value::Var(var) => write!(f, "Var{}", (var.0)),
+            Value::Var(var) => write!(f, "Var({}, {})", var.id, var.ty),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum VarTy {
+    Boolean,
+    Integer,
+    Double,
+}
+
+impl Display for VarTy {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::Boolean => write!(f, "Boolean"),
+            Self::Integer => write!(f, "Integer"),
+            Self::Double => write!(f, "Double"),
         }
     }
 }

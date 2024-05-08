@@ -5,4 +5,4 @@ mod code_distance_iterators;
 mod distillation_units_map;
 mod tfactory_exhaustive;
 
-pub(crate) use tfactory_exhaustive::TFactoryBuilder;
+pub use tfactory_exhaustive::TFactoryBuilder;

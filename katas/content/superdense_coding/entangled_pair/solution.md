@@ -1,4 +1,4 @@
-Recall that this state is the Bell state that we have already seen in Multi-Qubit Gates and Superposition katas.
+Recall that this state is the Bell state that we have already seen in "Multi-Qubit Gates" and "Preparing Quantum States" katas.
 
 The solution takes two steps:
 
