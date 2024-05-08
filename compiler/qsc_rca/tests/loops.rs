@@ -13,7 +13,8 @@ fn check_rca_for_classical_for_loop() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        let loop = for i in 0..5 { };
+        let loop =
+            for i in 0..5 { };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -35,7 +36,8 @@ fn check_rca_for_dynamic_for_loop() {
         r#"
         use q = Qubit();
         let end = M(q) == Zero ? 5 | 10;
-        let loop = for i in 0..end { };
+        let loop =
+            for i in 0..end { };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -57,7 +59,9 @@ fn check_rca_for_classical_repeat_until_loop() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        let loop = repeat { } until true;
+        let loop =
+            repeat { }
+            until true;
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -79,7 +83,9 @@ fn check_rca_for_dynamic_repeat_until_loop_with_initial_dynamic_condition() {
         r#"
         use q = Qubit();
         mutable r = MResetZ(q);
-        let loop = repeat { } until r == One;
+        let loop =
+            repeat { }
+            until r == One;
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -102,9 +108,11 @@ fn check_rca_for_dynamic_repeat_until_loop_with_initial_classical_condition_and_
         r#"
         use q = Qubit();
         mutable r = Zero;
-        let loop = repeat {
-            set r = MResetZ(q);
-        } until r == One;
+        let loop =
+            repeat {
+                set r = MResetZ(q);
+            }
+            until r == One;
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -125,7 +133,9 @@ fn check_rca_for_dynamic_repeat_until_loop_with_measurement_in_condition() {
     compilation_context.update(
         r#"
         use q = Qubit();
-        let loop = repeat { } until MResetZ(q) == One;
+        let loop =
+            repeat { }
+            until MResetZ(q) == One;
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -148,11 +158,12 @@ fn check_rca_for_dynamic_repeat_until_loop_with_initial_classical_condition_and_
         r#"
         use q = Qubit();
         mutable r = Zero;
-        let loop = repeat { }
-        until r == One
-        fixup {
-            set r = MResetZ(q);
-        };
+        let loop = 
+            repeat { }
+            until r == One
+            fixup {
+                set r = MResetZ(q);
+            };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -172,7 +183,8 @@ fn check_rca_for_classical_while_loop() {
     let mut compilation_context = CompilationContext::default();
     compilation_context.update(
         r#"
-        let loop = while true { };
+        let loop =
+            while true { };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -194,7 +206,8 @@ fn check_rca_for_dynamic_while_loop_with_initial_dynamic_condition() {
         r#"
         use q = Qubit();
         mutable r = MResetZ(q);
-        let loop = while r == One { };
+        let loop =
+            while r == One { };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -217,9 +230,10 @@ fn check_rca_for_dynamic_while_loop_with_initial_classical_condition_and_measure
         r#"
         use q = Qubit();
         mutable r = Zero;
-        let loop = while r == One {
-            set r = MResetZ(q);
-        };
+        let loop =
+            while r == One {
+                set r = MResetZ(q);
+            };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -240,7 +254,8 @@ fn check_rca_for_dynamic_while_loop_with_measurement_in_condition() {
     compilation_context.update(
         r#"
         use q = Qubit();
-        let loop = while MResetZ(q) == One { };
+        let loop =
+            while MResetZ(q) == One { };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -263,12 +278,13 @@ fn check_rca_for_dynamic_while_loop_with_initial_classical_condition_and_dynamic
         r#"
         use q = Qubit();
         mutable (a, b, c, d) = (Zero, Zero, Zero, Zero);
-        let loop = while a == One {
-            set a = b;
-            set b = c;
-            set c = d;
-            set d = MResetZ(q);
-        };
+        let loop =
+            while a == One {
+                set a = b;
+                set b = c;
+                set c = d;
+                set d = MResetZ(q);
+            };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
@@ -291,11 +307,12 @@ fn check_rca_for_dynamic_while_loop_with_assignments_in_both_the_condition_and_t
         use q = Qubit();
         mutable foo = true;
         mutable bar = One;
-        let loop = while { set bar = MResetZ(q); foo } {
-            if bar == Zero {
-                set foo = false;
-            }
-        };
+        let loop =
+            while { set bar = MResetZ(q); foo } {
+                if bar == Zero {
+                    set foo = false;
+                }
+            };
         loop"#,
     );
     let package_store_compute_properties = compilation_context.get_compute_properties();
