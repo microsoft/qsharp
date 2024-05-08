@@ -12,6 +12,7 @@ mod common;
 mod core;
 mod cycle_detection;
 mod cyclic_callables;
+pub mod errors;
 mod overrider;
 mod scaffolding;
 
