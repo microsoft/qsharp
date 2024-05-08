@@ -11,9 +11,9 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let N = 3;
         let isCorrect = CheckOperationsAreEqualStrict(
+            3,
             Kata.IsSeven_PhaseOracle,
-            IsSeven_PhaseOracle_Reference,
-            3);
+            IsSeven_PhaseOracle_Reference);
         if isCorrect {
             Message("Correct!");
         } else {

@@ -6,21 +6,20 @@ namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Random;
-    open Microsoft.Quantum.Diagnostics;
 
     /// # Summary
     /// Given two operations, checks whether they act identically (including global phase) for all input states.
     /// This is done through controlled versions of the operations instead of plain ones which convert the global phase
     /// into a relative phase that can be detected.
     operation CheckOperationsAreEqualStrict(
+        inputSize : Int,
         op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
+        reference : (Qubit[] => Unit is Adj + Ctl))
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         let controlledOp = register => Controlled op(register[...0], register[1...]);
         let controlledReference = register => Controlled reference(register[...0], register[1...]);
-        let areEquivalent = CheckOperationsAreEqual(controlledOp, controlledReference, inputSize + 1);
+        let areEquivalent = CheckOperationsAreEqual(inputSize + 1, controlledOp, controlledReference);
         areEquivalent
     }
 
