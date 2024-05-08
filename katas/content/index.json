@@ -10,6 +10,7 @@
   "single_qubit_measurements",
   "multi_qubit_measurements",
   "random_numbers",
+  "superdense_coding",
   "oracles",
   "deutsch_algo",
   "deutsch_jozsa",
