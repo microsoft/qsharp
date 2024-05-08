@@ -54,7 +54,6 @@ We split the superdense coding protocol into several steps:
     ]
 })
 
-
 @[section]({
     "id": "superdense_coding__conclusion",
     "title": "Conclusion"
