@@ -10,7 +10,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = register => Kata.PhaseOracle_OneMinusX(register[0]);
         let reference = register => PhaseOracle_OneMinusX_Reference(register[0]);
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 1);
+        let isCorrect = CheckOperationsAreEqualStrict(1, solution, reference);
 
         if isCorrect {
             Message("Correct!");

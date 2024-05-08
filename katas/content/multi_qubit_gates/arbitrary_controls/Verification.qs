@@ -21,7 +21,7 @@ namespace Kata.Verification {
             let bits = IntAsBoolArray(i, 4);
             let solution = register => Kata.MultiControls(Most(register), Tail(register), bits);
             let reference = register => MultiControls(Most(register), Tail(register), bits);
-            if not CheckOperationsEquivalence(solution, reference, 5) {
+            if not CheckOperationsAreEqual(5, solution, reference) {
                 Message("Incorrect.");
                 Message($"The test case for controlBits = {bits} did not pass.");
                 return false;
