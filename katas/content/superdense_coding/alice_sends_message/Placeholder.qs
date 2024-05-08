@@ -4,11 +4,7 @@ namespace Kata {
         // Get the bits from the message
         let (bit1, bit2) = message;
 
-        // Accessing bit1
-        if bit1 {
-            // Implement your solution here...
-
-        }
+        // Implement your solution here...
 
     }
 }
