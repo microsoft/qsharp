@@ -32,7 +32,6 @@ We split the superdense coding protocol into several steps:
     "title": "Alice's Task: Encode Message",
     "path": "alice_sends_message",
     "qsDependencies": [
-        "../KatasLibrary.qs",
         "./Common.qs"
     ]
 })
@@ -42,7 +41,6 @@ We split the superdense coding protocol into several steps:
     "title": "Bob's Task: Decode Message",
     "path": "bob_decodes_message",
     "qsDependencies": [
-        "../KatasLibrary.qs",
         "./Common.qs"
     ]
 })
@@ -52,7 +50,6 @@ We split the superdense coding protocol into several steps:
     "title": "Superdense Coding Protocol: End to End",
     "path": "protocol_e2e",
     "qsDependencies": [
-        "../KatasLibrary.qs",
         "./Common.qs"
     ]
 })
