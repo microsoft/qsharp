@@ -941,27 +941,35 @@ impl<'a> Analyzer<'a> {
     }
 
     fn analyze_expr_while(&mut self, condition_expr_id: ExprId, block_id: BlockId) -> ComputeKind {
-        // Visit the condition expression to determine its compute kind.
-        self.visit_expr(condition_expr_id);
+        // We analyze both the condition expression and the block twice because of the following reasons:
+        // - The first analysis of the block can affect the condition if the condition relies on a mutable variable that
+        //   is updated within the block.
+        // - After the second analysis of the condition, if it turns out the condition is dynamic, the block is now a
+        //   dynamic scope and further runtime features might apply.
+        let mut condition_expr_compute_kind = ComputeKind::Classical;
+        for _ in 0..2 {
+            // Visit the condition expression to determine its compute kind.
+            self.visit_expr(condition_expr_id);
 
-        // If the condition expression is dynamic, we push a new dynamic scope before visiting the block.
-        let application_instance = self.get_current_application_instance_mut();
-        let condition_expr_compute_kind =
-            *application_instance.get_expr_compute_kind(condition_expr_id);
-        let within_dynamic_scope = condition_expr_compute_kind.is_dynamic();
-        if within_dynamic_scope {
-            application_instance
-                .active_dynamic_scopes
-                .push(condition_expr_id);
-        }
-        self.visit_block(block_id);
-        if within_dynamic_scope {
+            // If the condition expression is dynamic, we push a new dynamic scope before visiting the block.
             let application_instance = self.get_current_application_instance_mut();
-            let dynamic_scope_expr_id = application_instance
-                .active_dynamic_scopes
-                .pop()
-                .expect("at least one dynamic scope should exist");
-            assert!(dynamic_scope_expr_id == condition_expr_id);
+            condition_expr_compute_kind =
+                *application_instance.get_expr_compute_kind(condition_expr_id);
+            let within_dynamic_scope = condition_expr_compute_kind.is_dynamic();
+            if within_dynamic_scope {
+                application_instance
+                    .active_dynamic_scopes
+                    .push(condition_expr_id);
+            }
+            self.visit_block(block_id);
+            if within_dynamic_scope {
+                let application_instance = self.get_current_application_instance_mut();
+                let dynamic_scope_expr_id = application_instance
+                    .active_dynamic_scopes
+                    .pop()
+                    .expect("at least one dynamic scope should exist");
+                assert!(dynamic_scope_expr_id == condition_expr_id);
+            }
         }
 
         // Return the aggregated runtime features of the condition expression and the block.
