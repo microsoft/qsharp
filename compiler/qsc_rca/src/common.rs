@@ -236,27 +236,27 @@ fn try_resolve_un_op_callee(
 
 pub struct AssignmentStmtCounter<'a> {
     package: &'a Package,
-    assign_found: bool,
-    total_count: usize,
+    assignment_expr_count: usize,
+    assignment_stmt_count: usize,
 }
 
 impl<'a> AssignmentStmtCounter<'a> {
     pub fn new(package: &'a Package) -> Self {
         Self {
             package,
-            assign_found: false,
-            total_count: 0,
+            assignment_expr_count: 0,
+            assignment_stmt_count: 0,
         }
     }
 
     pub fn count_in_expr(mut self, expr_id: ExprId) -> usize {
         self.visit_expr(expr_id);
-        max(self.total_count, 1)
+        max(self.assignment_stmt_count, 1)
     }
 
     pub fn count_in_block(mut self, block_id: BlockId) -> usize {
         self.visit_block(block_id);
-        self.total_count
+        self.assignment_stmt_count
     }
 }
 
@@ -286,16 +286,16 @@ impl<'a> Visitor<'a> for AssignmentStmtCounter<'a> {
                 | ExprKind::AssignIndex(_, _, _)
                 | ExprKind::AssignOp(_, _, _)
         ) {
-            self.assign_found = true;
+            self.assignment_expr_count += 1;
         }
         walk_expr(self, expr_id);
     }
 
     fn visit_stmt(&mut self, stmt_id: StmtId) {
-        self.assign_found = false;
+        let initial_assigment_expr_count = self.assignment_expr_count;
         walk_stmt(self, stmt_id);
-        if self.assign_found {
-            self.total_count += 1;
+        if self.assignment_expr_count > initial_assigment_expr_count {
+            self.assignment_stmt_count += 1;
         }
     }
 }
