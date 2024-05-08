@@ -134,13 +134,16 @@ impl Display for Value {
                 (None, step, Some(end)) => write!(f, "...{step}..{end}"),
                 (None, step, None) => write!(f, "...{step}..."),
             },
-            Value::Result(v) => {
-                if v.unwrap_bool() {
-                    write!(f, "One")
-                } else {
-                    write!(f, "Zero")
+            Value::Result(v) => match v {
+                Result::Id(id) => write!(f, "Result({id})"),
+                Result::Val(val) => {
+                    if *val {
+                        write!(f, "One")
+                    } else {
+                        write!(f, "Zero")
+                    }
                 }
-            }
+            },
             Value::String(v) => write!(f, "{v}"),
             Value::Tuple(tup) => {
                 write!(f, "(")?;
