@@ -1,10 +1,10 @@
-Recall that we learnt how to prepare all Bell states in "Preparing Quantum States" kata. This is slightly advanced version of that task demonstrating the "power of entanglement", where operations applied to only one qubit affect the state of the system in interesting way.
+Recall that we learnt how to prepare all Bell states in "Preparing Quantum States" kata. This is slightly advanced version of that task demonstrating how operations applied to one qubit of a Bell state allow us to transform it into any other Bell state.
 
-Let's use the below Bell state we prepared in the previous task:
+Superdense coding protocol uses the below Bell state we prepared in the previous task:
 
 $$\frac{1}{\sqrt{2}} \big(\ket{00} + \ket{11} \big)$$
 
-We can transform it according to the value of bits:
+We can transform it into every other Bell state according to the value of `message`:
 
 - `(0, 0)`: $\ket{\Phi^{+}} = \frac{1}{\sqrt{2}} (\ket{00} + \ket{11})$
 - `(0, 1)`: $\ket{\Psi^{+}} = \frac{1}{\sqrt{2}} (\ket{01} + \ket{10})$
@@ -20,12 +20,12 @@ We can transform it according to the value of bits:
   $$Z \otimes I (\ket{\Phi^{+}}) = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11})$$
 
 - If `bits = (1, 1)`, we use the same logic to realize that we need to apply both the $Z$ and $X$ corrections to get $\ket{\Psi^{-}}$ state.
-  $$ (Z \otimes I).(X \otimes I) (\ket{\Psi^{+}}) = (Z \otimes I) \frac{1}{\sqrt{2}} (\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10}) $$
+  $$ (Z \otimes I) \cdot (X \otimes I) \ket{\Psi^{+}} = (Z \otimes I) \frac{1}{\sqrt{2}} (\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (-\ket{10} + \ket{01}) = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10}) $$
 
 The final sequence of steps is as follows:
 
-1. Apply the $X$ gate to the alice's qubit if `bit2 == 1`.
-2. Apply the $Z$ gate to the alice's qubit if `bit1 == 1`.
+1. Apply the $X$ gate to Alice's qubit if `bit2 == 1`.
+2. Apply the $Z$ gate to Alice's qubit if `bit1 == 1`.
 
 @[solution]({
     "id": "superdense_coding__alice_sends_message_solution",

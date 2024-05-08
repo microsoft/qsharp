@@ -3,11 +3,11 @@
 1. `qAlice` : Alice's part of the entangled pair of qubits.
 2. `message`: Two classical bits represented by a tuple of of two `Bool` variables to represent `bit1` and `bit2` respectively.
 
-**Goal**:  
+**Goal**:
 Encode the message (two classical bits) by manipulating Alice's qubit.
 
 <details>
-  <summary><b>Need a hint? Click here</b></summary>
+  <summary><b>Need a hint?</b></summary>
 Manipulate Alice's half of the entangled pair to change the joint state of the two qubits to one of the following four states based on the value of message:
 
 - `(0, 0)`: $\ket{\Phi^{+}} = \frac{1}{\sqrt{2}} (\ket{00} + \ket{11})$

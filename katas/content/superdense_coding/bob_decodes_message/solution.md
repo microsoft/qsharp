@@ -5,10 +5,7 @@ Recall that Alice encoded qubits as follows:
 - `(1, 0)`: $\ket{\Phi^{-}} = \frac{1}{\sqrt{2}} (\ket{00} - \ket{11})$
 - `(1, 1)`: $\ket{\Psi^{-}} = \frac{1}{\sqrt{2}} (\ket{01} - \ket{10})$
 
-To get our state back, we can undo the entanglement by applying $CNOT$ and $H$ gate.
-Notice that it's important to keep the order right. The qubits that are subject to the Hadamard transform and the $CNOT$ gate in the preparation of the pair have to match the operations below, or the order of the data bits will get flipped.
-
-Notice that [`Adjoint`](https://learn.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#adjoint-functor) functor in Q# does exactly that.
+To read out the encoded message, Bob needs to figure out which of the four Bell states he has. We can map the Bell states to basis states by applying a $CNOT$ gate with the first qubit as control and the second qubit as target, followed by an $H$ gate on the first qubit. (Notice that this is exactly what [`Adjoint`](https://learn.microsoft.com/azure/quantum/user-guide/language/expressions/functorapplication#adjoint-functor) of the state preparation operation in the first task does.)
   
 What is the outcome of this transformation, assuming each of the possible quantum states after the encoding step?
 
