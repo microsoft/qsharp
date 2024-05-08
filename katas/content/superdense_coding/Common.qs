@@ -18,7 +18,8 @@ namespace Kata.Verification {
     }
 
     operation DecodeMessageFromQubits_Reference(qAlice : Qubit, qBob : Qubit) : (Bool, Bool) {
-        Adjoint CreateEntangledPairWrapper_Reference([qAlice, qBob]);
+        CNOT(qAlice, qBob);
+        H(qAlice);
         return (MResetZ(qAlice) == One, MResetZ(qBob) == One);
     }
 
