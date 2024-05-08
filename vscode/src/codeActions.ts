@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-import { ILanguageService } from "qsharp-lang";
+import { ILanguageService, ICodeAction } from "qsharp-lang";
 import * as vscode from "vscode";
-import { ICodeAction } from "../../npm/qsharp/lib/web/qsc_wasm";
 import { toVscodeWorkspaceEdit } from "./common";
 
 export function createCodeActionsProvider(languageService: ILanguageService) {
@@ -15,10 +14,6 @@ class QSharpCodeActionProvider implements vscode.CodeActionProvider {
   async provideCodeActions(
     document: vscode.TextDocument,
     range: vscode.Range | vscode.Selection,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    context: vscode.CodeActionContext,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    token: vscode.CancellationToken,
   ) {
     range.intersection;
     const iCodeActions = await this.languageService.getCodeActions(

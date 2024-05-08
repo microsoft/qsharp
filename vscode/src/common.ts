@@ -2,8 +2,7 @@
 // Licensed under the MIT License.
 
 import { TextDocument, Uri, Range, Location } from "vscode";
-import { ILocation, IRange } from "qsharp-lang";
-import { IWorkspaceEdit } from "../../npm/qsharp/lib/web/qsc_wasm";
+import { ILocation, IRange, IWorkspaceEdit } from "qsharp-lang";
 import * as vscode from "vscode";
 
 export const qsharpLanguageId = "qsharp";
