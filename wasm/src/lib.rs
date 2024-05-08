@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#![allow(non_snake_case, clippy::empty_docs)]
+#![allow(unknown_lints, clippy::empty_docs)]
+#![allow(non_snake_case)]
 
 use diagnostic::{interpret_errors_into_vs_diagnostics, VSDiagnostic};
 use katas::check_solution;
