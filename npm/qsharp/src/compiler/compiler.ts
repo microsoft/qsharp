@@ -300,7 +300,7 @@ export class Compiler implements ICompiler {
       languageFeatures,
     );
 
-    let result: string[] = [];
+    const result: string[] = [];
     for (const file of docFiles) {
       // Some files may contain information other than documentation
       // For example, table of content is a separate file in a special format
