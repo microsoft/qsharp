@@ -11,8 +11,13 @@ pub mod test_utils;
 
 use expect_test::expect;
 use indoc::indoc;
+use qsc::TargetCapabilityFlags;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
+use test_utils::{
+    assert_block_instructions, assert_blocks, assert_callable, assert_error,
+    get_partial_evaluation_error_with_capabilities, get_rir_program,
+    get_rir_program_with_capabilities,
+};
 
 #[test]
 fn immutable_result_binding_does_not_generate_store_instruction() {
@@ -394,6 +399,129 @@ fn mutable_int_binding_does_generate_store_instruction() {
                 Jump(1)
             Block 3:Block:
                 Variable(2, Integer) = Store Integer(1)
+                Jump(1)"#]],
+    );
+}
+
+#[test]
+fn classical_mutable_int_binding_does_not_generate_store_instruction_without_capability() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Int {
+                    mutable i = 0;
+                    set i = i + 1;
+                    i
+                }
+            }
+        "#},
+        TargetCapabilityFlags::Adaptive,
+    );
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Call id(1), args( Integer(1), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn classical_mutable_int_binding_does_generate_store_instruction_with_capability() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {r#"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Int {
+                    mutable i = 0;
+                    set i = i + 1;
+                    i
+                }
+            }
+        "#},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+            Block:
+                Variable(0, Integer) = Store Integer(0)
+                Variable(0, Integer) = Store Integer(1)
+                Call id(1), args( Integer(1), Pointer, )
+                Return"#]],
+    );
+}
+
+#[test]
+fn dynamic_mutable_int_binding_fails_without_capability() {
+    let error = get_partial_evaluation_error_with_capabilities(
+        indoc! {r#"
+        namespace Test {
+            function UpdateFunc() : Result -> Int {
+                r -> if r == One { 0 } else { 1 }
+            }
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                mutable i = 0;
+                let f = UpdateFunc();
+                set i = f(MResetZ(q));
+                i
+            }
+        }
+    "#},
+        TargetCapabilityFlags::Adaptive,
+    );
+    assert_error(
+        &error,
+        &expect![[r#"MissingCapabilities("Integer Computations", Span { lo: 75, hi: 103 })"#]],
+    );
+}
+
+#[test]
+fn dynamic_mutable_int_binding_succeeds_with_capability() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {r#"
+        namespace Test {
+            function UpdateFunc() : Result -> Int {
+                r -> if r == One { 0 } else { 1 }
+            }
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                mutable i = 0;
+                let f = UpdateFunc();
+                set i = f(MResetZ(q));
+                i
+            }
+        }
+    "#},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Variable(0, Integer) = Store Integer(0)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(1, Boolean) = Call id(2), args( Result(0), )
+                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(true)
+                Branch Variable(2, Boolean), 2, 3
+            Block 1:Block:
+                Variable(0, Integer) = Store Variable(3, Integer)
+                Call id(3), args( Variable(0, Integer), Pointer, )
+                Return
+            Block 2:Block:
+                Variable(3, Integer) = Store Integer(0)
+                Jump(1)
+            Block 3:Block:
+                Variable(3, Integer) = Store Integer(1)
                 Jump(1)"#]],
     );
 }

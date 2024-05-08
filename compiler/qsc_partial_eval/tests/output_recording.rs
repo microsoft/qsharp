@@ -83,7 +83,7 @@ fn output_recording_for_tuple_of_different_types() {
                     Call id(5), args( Variable(1, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -169,7 +169,7 @@ fn output_recording_for_nested_tuples() {
                     Call id(5), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -263,7 +263,7 @@ fn output_recording_for_tuple_of_arrays() {
                     Call id(6), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -357,7 +357,7 @@ fn output_recording_for_array_of_tuples() {
                     Call id(6), args( Variable(3, Boolean), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());
@@ -399,7 +399,7 @@ fn output_recording_for_literal_bool() {
                     Call id(1), args( Bool(true), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -441,7 +441,7 @@ fn output_recording_for_literal_int() {
                     Call id(1), args( Integer(42), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 0
             num_results: 0"#]]
     .assert_eq(&program.to_string());
@@ -512,7 +512,7 @@ fn output_recording_for_mix_of_literal_and_variable() {
                     Call id(4), args( Bool(true), Pointer, )
                     Return
             config: Config:
-                capabilities: Base
+                capabilities: TargetCapabilityFlags(Adaptive | IntegerComputations | FloatingPointComputations | BackwardsBranching | HigherLevelConstructs | QubitReset)
             num_qubits: 1
             num_results: 1"#]]
     .assert_eq(&program.to_string());

@@ -38,3 +38,29 @@ impl Default for TargetCapabilityFlags {
         TargetCapabilityFlags::empty()
     }
 }
+
+impl TargetCapabilityFlags {
+    #[must_use]
+    pub fn to_user_string(&self) -> String {
+        let mut output = Vec::new();
+        if self.contains(TargetCapabilityFlags::Adaptive) {
+            output.push("Adaptive");
+        }
+        if self.contains(TargetCapabilityFlags::IntegerComputations) {
+            output.push("Integer Computations");
+        }
+        if self.contains(TargetCapabilityFlags::FloatingPointComputations) {
+            output.push("Floating Point Computations");
+        }
+        if self.contains(TargetCapabilityFlags::BackwardsBranching) {
+            output.push("Backwards Branching");
+        }
+        if self.contains(TargetCapabilityFlags::HigherLevelConstructs) {
+            output.push("Higher Level Constructs");
+        }
+        if self.contains(TargetCapabilityFlags::QubitReset) {
+            output.push("Qubit Reset");
+        }
+        output.join(", ")
+    }
+}
