@@ -33,9 +33,19 @@ namespace Kata.Verification {
     ) : (Bool, Bool) {
 
         use (qAlice, qBob) = (Qubit(), Qubit());
+
         CreateEntangledPairWrapper_Reference([qAlice, qBob]);
+
         encodeOp(qAlice, message);
-        return decodeOp(qAlice, qBob);
+
+        let (bit1, bit2) = decodeOp(qAlice, qBob);
+
+        // [ERR_ASSERTION]: Exercise "superdense_coding__bob_decodes_message" has compilation or runtime errors
+        //  when using the placeholder as solution. Compilation and runtime errors:
+        //   Message = runtime error: Qubit1 released while not in |0⟩ state
+        ResetAll([qAlice, qBob]);
+
+        return (bit1, bit2);
     }
 
     // ------------------------------------------------------
