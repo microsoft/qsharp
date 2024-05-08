@@ -53,3 +53,11 @@ We split the superdense coding protocol into several steps:
         "./Common.qs"
     ]
 })
+
+
+@[section]({
+    "id": "superdense_coding__conclusion",
+    "title": "Conclusion"
+})
+
+Congratulations! In this kata you learned to implement superdense coding protocol.
