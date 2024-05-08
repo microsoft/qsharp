@@ -7,8 +7,17 @@ Consider how we can prepare the input states, starting with basis states: $H\ket
 Once we have the $\ket{0}$ or $\ket{1}$ state, we can use the same principle as in previous task $\ket{0}$ or $\ket{1}$ to measure the state and report the outcome. Note that in this task return value `true` corresponds to input state $\ket{+}$, so we compare the measurement result with `Zero`.
 
 @[solution]({
-    "id": "distinguishing_states__plus_minus_solution",
-    "codePath": "Solution.qs"
+    "id": "distinguishing_states__plus_minus_solution_a",
+    "codePath": "SolutionA.qs"
 })
 
+#### Alternate solution
 
+Another possible solution could be to measure in the Pauli $X$ basis ($\ket{+}, \ket{-}$ basis), this means a transformation with the $H$ gate before measurement is not needed. Again, measurement result `Zero` would correspond to state $\ket{+}$.
+
+In Q#, measuring in another Pauli basis can be done with the `Measure()` operation.
+
+@[solution]({
+    "id": "distinguishing_states__plus_minus_solution_b",
+    "codePath": "SolutionB.qs"
+})
