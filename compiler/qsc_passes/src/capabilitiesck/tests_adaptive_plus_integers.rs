@@ -432,18 +432,11 @@ fn loop_with_dynamic_condition_yields_errors() {
 }
 
 #[test]
-fn use_closure_yields_errors() {
+fn use_closure_allowed() {
     check_profile(
         USE_CLOSURE_FUNCTION,
         &expect![[r#"
-            [
-                UseOfClosure(
-                    Span {
-                        lo: 149,
-                        hi: 168,
-                    },
-                ),
-            ]
+            []
         "#]],
     );
 }
