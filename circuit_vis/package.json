@@ -1,0 +1,53 @@
+{
+  "name": "@microsoft/quantum-viz.js",
+  "version": "1.0.6",
+  "description": "quantum-viz.js is a configurable tool for visualizing quantum circuits.",
+  "main": "dist/qviz.min.js",
+  "scripts": {
+    "build": "tsc",
+    "build:prod": "tsc && webpack",
+    "coverage": "jest --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepublishOnly": "npm run lint && npm run test && npm run build:prod",
+    "start": "tsc -w",
+    "test": "jest"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.txt",
+    "lib",
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/quantum-viz.js"
+  },
+  "keywords": [
+    "quantum",
+    "circuits",
+    "visualization"
+  ],
+  "author": "Microsoft Quantum",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^26.0.4",
+    "@types/prettier": "2.6.0",
+    "@typescript-eslint/eslint-plugin": "^3.9.0",
+    "@typescript-eslint/parser": "^3.9.0",
+    "canvas": "^2.6.1",
+    "eslint": "^7.6.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-jest": "^23.20.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "jest": "^26.6.3",
+    "prettier": "2.6.0",
+    "terser-webpack-plugin": "^4.1.0",
+    "ts-jest": "^26.1.2",
+    "ts-loader": "^8.0.2",
+    "typescript": "^4.9.4",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
+  },
+  "homepage": "https://github.com/microsoft/quantum-viz.js#readme"
+}
