@@ -305,10 +305,9 @@ impl<'a> PartialEvaluator<'a> {
                 rhs_expr_id,
                 bin_op_expr_span,
             ),
-            Value::Bool(_lhs_bool) => Err(Error::Unimplemented(
-                "bool binary operation".to_string(),
-                lhs_span,
-            )),
+            Value::Bool(lhs_bool) => {
+                self.eval_bin_op_with_lhs_classical_bool_operand(bin_op, lhs_bool, rhs_expr_id)
+            }
             Value::Int(_lhs_int) => Err(Error::Unimplemented(
                 "int binary operation".to_string(),
                 lhs_span,
@@ -415,6 +414,69 @@ impl<'a> PartialEvaluator<'a> {
 
         // Return the variable as a value.
         let value = Value::Var(map_rir_var_to_eval_var(rir_variable));
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn eval_bin_op_with_lhs_classical_bool_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_bool: bool,
+        rhs_expr_id: ExprId,
+    ) -> Result<EvalControlFlow, Error> {
+        let value = match (bin_op, lhs_bool) {
+            // Handle short-circuiting for logical AND and logical OR.
+            (BinOp::AndL, false) => Value::Bool(false),
+            (BinOp::OrL, true) => Value::Bool(true),
+            // The other possible cases.
+            (BinOp::AndL | BinOp::OrL | BinOp::Eq | BinOp::Neq, _) => {
+                // Try to evaluate the RHS expression to get its value.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(Value::Var(rhs_eval_var)) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "expected var from RHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+                assert!(
+                    matches!(rhs_eval_var.ty, VarTy::Boolean),
+                    "expected var to be boolean"
+                );
+
+                // Generate the specific instruction depending on the operand.
+                let bin_op_variable_id = self.resource_manager.next_var();
+                let bin_op_rir_variable = rir::Variable {
+                    variable_id: bin_op_variable_id,
+                    ty: rir::Ty::Boolean,
+                };
+                let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
+                let rhs_operand = Operand::Variable(map_eval_var_to_rir_var(rhs_eval_var));
+                let bin_op_ins = match bin_op {
+                    BinOp::AndL => {
+                        Instruction::LogicalAnd(lhs_operand, rhs_operand, bin_op_rir_variable)
+                    }
+                    BinOp::OrL => {
+                        Instruction::LogicalOr(lhs_operand, rhs_operand, bin_op_rir_variable)
+                    }
+                    BinOp::Eq => Instruction::Icmp(
+                        ConditionCode::Eq,
+                        lhs_operand,
+                        rhs_operand,
+                        bin_op_rir_variable,
+                    ),
+                    BinOp::Neq => Instruction::Icmp(
+                        ConditionCode::Ne,
+                        lhs_operand,
+                        rhs_operand,
+                        bin_op_rir_variable,
+                    ),
+                    _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
+                };
+                self.get_current_rir_block_mut().0.push(bin_op_ins);
+                Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable))
+            }
+            _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
+        };
         Ok(EvalControlFlow::Continue(value))
     }
 
