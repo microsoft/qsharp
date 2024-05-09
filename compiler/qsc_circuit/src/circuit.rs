@@ -121,7 +121,7 @@ impl Row {
     }
 
     fn add_vertical(&mut self, column: usize) {
-        if self.objects.get(&column).is_none() {
+        if !self.objects.contains_key(&column) {
             match self.wire {
                 Wire::Qubit { .. } => self.add(column, QUBIT_WIRE_CROSS),
                 Wire::Classical { start_column } => {
@@ -136,7 +136,7 @@ impl Row {
     }
 
     fn add_dashed_vertical(&mut self, column: usize) {
-        if self.objects.get(&column).is_none() {
+        if !self.objects.contains_key(&column) {
             match self.wire {
                 Wire::Qubit { .. } => self.add(column, QUBIT_WIRE_DASHED_CROSS),
                 Wire::Classical { start_column } => {
