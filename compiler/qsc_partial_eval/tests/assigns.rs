@@ -1786,7 +1786,9 @@ fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    assert_blocks(&program, &expect![[r#"
+    assert_blocks(
+        &program,
+        &expect![[r#"
         Blocks:
         Block 0:Block:
             Call id(1), args( Qubit(0), Result(0), )
@@ -1804,7 +1806,8 @@ fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
             Jump(1)
         Block 3:Block:
             Variable(2, Integer) = Store Integer(1)
-            Jump(1)"#]]);
+            Jump(1)"#]],
+    );
 }
 
 #[test]
