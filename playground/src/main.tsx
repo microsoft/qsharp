@@ -117,7 +117,7 @@ function App(props: { katas: Kata[]; linkedCode?: string }) {
     createDocumentation();
   }, []);
   async function createDocumentation() {
-    const docFiles = await compiler.getDocumentationFiles();
+    const docFiles = await compiler.getDocumentation();
     setDocumentation(processDocumentFiles(docFiles));
   }
 

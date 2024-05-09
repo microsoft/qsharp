@@ -30,11 +30,22 @@ export async function showDocumentationCommand(extensionUri: Uri) {
     "./out/compilerWorker.js",
   ).toString();
   const worker = getCompilerWorker(compilerWorkerScriptPath);
-  const documentation = await worker.getDocumentationContent(
+  const docFiles = await worker.getDocumentation(
     program.sources,
     targetProfile,
     program.languageFeatures,
   );
+
+  const documentation: string[] = [];
+  for (const file of docFiles) {
+    // Some files may contain information other than documentation
+    // For example, table of content is a separate file in a special format
+    // We check presence of qsharp.name in metadata to make sure we take
+    // only files that contain documentation from some qsharp object.
+    if (file.metadata.indexOf("qsharp.name:") >= 0) {
+      documentation.push(file.contents);
+    }
+  }
 
   const message = {
     command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
