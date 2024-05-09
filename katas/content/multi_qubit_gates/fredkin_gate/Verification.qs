@@ -8,7 +8,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = Kata.FredkinGate;
         let reference = FredkinGate;
-        let isCorrect = CheckOperationsEquivalenceStrict(solution, reference, 3);
+        let isCorrect = CheckOperationsAreEqualStrict(3, solution, reference);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {

@@ -27,7 +27,7 @@ use qsc_fir::{
         self, BinOp, Block, BlockId, CallableDecl, CallableImpl, ExecGraphNode, Expr, ExprId,
         ExprKind, Global, Ident, LocalVarId, Mutability, PackageId, PackageStore,
         PackageStoreLookup, Pat, PatId, PatKind, Res, SpecDecl, SpecImpl, Stmt, StmtId, StmtKind,
-        StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId,
+        StoreBlockId, StoreExprId, StoreItemId, StorePatId, StoreStmtId, UnOp,
     },
     ty::{Prim, Ty},
 };
@@ -483,7 +483,9 @@ impl<'a> PartialEvaluator<'a> {
                 panic!("instruction generation for string expressions is invalid")
             }
             ExprKind::Tuple(exprs) => self.eval_expr_tuple(exprs),
-            ExprKind::UnOp(_, _) => Err(Error::Unimplemented("Unary Expr".to_string(), expr.span)),
+            ExprKind::UnOp(un_op, value_expr_id) => {
+                self.eval_expr_unary(*un_op, *value_expr_id, expr.span)
+            }
             ExprKind::UpdateField(_, _, _) => Err(Error::Unimplemented(
                 "Updated Field Expr".to_string(),
                 expr.span,
@@ -1120,6 +1122,78 @@ impl<'a> PartialEvaluator<'a> {
             values.push(control_flow.into_value());
         }
         Ok(EvalControlFlow::Continue(Value::Tuple(values.into())))
+    }
+
+    fn eval_expr_unary(
+        &mut self,
+        un_op: UnOp,
+        value_expr_id: ExprId,
+        unary_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        let value_expr = self.get_expr(value_expr_id);
+        let value_control_flow = self.try_eval_expr(value_expr_id)?;
+        let EvalControlFlow::Continue(value) = value_control_flow else {
+            return Err(Error::Unexpected(
+                "embedded return in unary operation expression".to_string(),
+                value_expr.span,
+            ));
+        };
+
+        // Get the variable type corresponding to the value the unary operator acts upon.
+        let Some(eval_variable_type) = try_get_eval_var_type(&value) else {
+            return Err(Error::Unexpected(
+                format!("invalid type for unary operation value: {value}"),
+                value_expr.span,
+            ));
+        };
+
+        // The leading positive operator is a no-op.
+        if matches!(un_op, UnOp::Pos) {
+            let control_flow = EvalControlFlow::Continue(value);
+            return Ok(control_flow);
+        }
+
+        // For all the other supported unary operations we have to generate an instruction, so create a variable to
+        // store the result.
+        let variable_id = self.resource_manager.next_var();
+        let rir_variable_type = map_eval_var_type_to_rir_type(eval_variable_type);
+        let rir_variable = rir::Variable {
+            variable_id,
+            ty: rir_variable_type,
+        };
+
+        // Generate the instruction depending on the unary operator.
+        let value_operand = map_eval_value_to_rir_operand(&value);
+        let instruction = match un_op {
+            UnOp::Neg => {
+                let constant = match rir_variable_type {
+                    rir::Ty::Integer => Operand::Literal(Literal::Integer(-1)),
+                    rir::Ty::Double => Operand::Literal(Literal::Double(-1.0)),
+                    _ => panic!("invalid type for negation operator {rir_variable_type}"),
+                };
+                Instruction::Mul(constant, value_operand, rir_variable)
+            }
+            UnOp::NotB => {
+                assert!(matches!(rir_variable_type, rir::Ty::Integer));
+                Instruction::BitwiseNot(value_operand, rir_variable)
+            }
+            UnOp::NotL => {
+                assert!(matches!(rir_variable_type, rir::Ty::Boolean));
+                Instruction::LogicalNot(value_operand, rir_variable)
+            }
+            UnOp::Functor(_) | UnOp::Unwrap => {
+                return Err(Error::Unexpected(
+                    format!("invalid unary operator: {un_op}"),
+                    unary_expr_span,
+                ));
+            }
+            UnOp::Pos => panic!("the leading positive operator should have been a no-op"),
+        };
+
+        // Insert the instruction and return the corresponding evaluator variable.
+        self.get_current_rir_block_mut().0.push(instruction);
+        let eval_variable = map_rir_var_to_eval_var(rir_variable);
+        Ok(EvalControlFlow::Continue(Value::Var(eval_variable)))
     }
 
     fn eval_expr_var(&mut self, res: &Res) -> Value {

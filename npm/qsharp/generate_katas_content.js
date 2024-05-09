@@ -20,7 +20,9 @@ import { basename, dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import mdit from "markdown-it";
-const md = mdit("commonmark").disable(["escape"]);
+import { plugin } from "./markdown_latex_plugin.js";
+const md = mdit("commonmark");
+md.use(plugin);
 
 // Set up the Markdown renderer with KaTeX support for validation
 import mk from "@vscode/markdown-it-katex";
@@ -131,6 +133,15 @@ function resolveSvgSegment(properties, baseFolderPath) {
     svgPath,
     `Could not read the contents of the SVG file at ${svgPath}`,
   );
+
+  // An SVG file is basically an HTML file. If it includes blank lines, this will
+  // cause issues when including in Markdown, as blank lines indicate the end of
+  // HTML content. Check for blank lines within the document.
+  if (/\n\s*\r?\n/.test(svg)) {
+    throw new Error(
+      `SVG file ${svgPath} includes blank lines, which will break the Markdown`,
+    );
+  }
 
   properties["svg"] = svg;
 }

@@ -15,7 +15,7 @@ namespace Kata.Verification {
 
                 let sol = ApplyOracle(_, Kata.ArbitraryBitPattern_Oracle(_, _, pattern));
                 let ref = ApplyOracle(_, ArbitraryBitPattern_Oracle_Reference(_, _, pattern));
-                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N + 1);
+                let isCorrect = CheckOperationsAreEqualStrict(N + 1, sol, ref);
 
                 if not isCorrect {
                     Message("Incorrect.");

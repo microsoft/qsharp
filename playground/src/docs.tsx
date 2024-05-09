@@ -35,7 +35,7 @@ export function processDocumentFiles(
       const existingContent = contentByNamespace.get(newNamespace)!;
       contentByNamespace.set(
         newNamespace,
-        existingContent + "\n<br>\n<br>\n" + doc.contents,
+        existingContent + "\n<br>\n<br>\n\n" + doc.contents,
       );
     } else {
       contentByNamespace.set(newNamespace, doc.contents);
