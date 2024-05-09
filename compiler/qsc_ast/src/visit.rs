@@ -73,7 +73,9 @@ pub trait Visitor<'a>: Sized {
 
     fn visit_ident(&mut self, _: &'a Ident) {}
 
-    fn visit_idents(&mut self, _: &'a Idents) {}
+    fn visit_idents(&mut self, idents: &'a Idents) {
+        walk_idents(self, idents);
+    }
 }
 
 pub fn walk_package<'a>(vis: &mut impl Visitor<'a>, package: &'a Package) {
@@ -309,4 +311,8 @@ pub fn walk_path<'a>(vis: &mut impl Visitor<'a>, path: &'a Path) {
         vis.visit_idents(ns);
     }
     vis.visit_ident(&path.name);
+}
+
+pub fn walk_idents<'a>(vis: &mut impl Visitor<'a>, idents: &'a Idents) {
+    idents.iter().for_each(|i| vis.visit_ident(i));
 }

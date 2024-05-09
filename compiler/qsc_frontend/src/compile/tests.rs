@@ -1349,7 +1349,7 @@ fn reject_bad_filename_implicit_namespace() {
                 .into(),
             ),
             (
-                "Namespace.Foo.qs   ".into(),
+                "Namespace.Foo.qs".into(),
                 indoc! {"
                     operation Bar() : Unit {}
             "}

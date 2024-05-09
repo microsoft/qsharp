@@ -1427,7 +1427,6 @@ impl Display for PatKind {
     }
 }
 
-<<<<<<< HEAD
 /// A [`Idents`] represents a sequence of idents. It provides a helpful abstraction
 /// that is more powerful than a simple `Vec<Ident>`, and is primarily used to represent
 /// dot-separated paths.

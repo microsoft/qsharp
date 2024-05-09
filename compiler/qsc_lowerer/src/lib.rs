@@ -157,9 +157,6 @@ impl Lowerer {
         let kind = match &item.kind {
             hir::ItemKind::Namespace(name, items) => {
                 let name = fir::Ident {
-                    // We don't have a node ID for the whole dotted name,
-                    // but we can use the node ID of the last part.
-                    // This ident is not a local anyway. (@swernli should check if this is harmless)
                     id: self.lower_local_id(
                         name.0
                             .last()
@@ -167,7 +164,7 @@ impl Lowerer {
                             .id,
                     ),
                     span: name.span(),
-                    name: name.name().into(),
+                    name: name.name(),
                 };
                 let items = items.iter().map(|i| lower_local_item_id(*i)).collect();
                 fir::ItemKind::Namespace(name, items)

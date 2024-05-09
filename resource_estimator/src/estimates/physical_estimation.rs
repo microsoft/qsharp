@@ -188,7 +188,7 @@ where
         magic_state_type: usize,
         output_error_rate: f64,
         max_code_parameter: &E::Parameter,
-    ) -> Vec<Cow<Self::Factory>>;
+    ) -> Option<Vec<Cow<Self::Factory>>>;
 
     fn num_magic_state_types(&self) -> usize {
         1
@@ -508,13 +508,18 @@ impl<
                     .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
                     .is_gt()
             }) {
-                last_factories = self.factory_builder.find_factories(
-                    &self.ftp,
-                    &self.qubit,
-                    0,
-                    required_logical_magic_state_error_rate,
-                    &code_parameter,
-                );
+                last_factories = self
+                    .factory_builder
+                    .find_factories(
+                        &self.ftp,
+                        &self.qubit,
+                        0,
+                        required_logical_magic_state_error_rate,
+                        &code_parameter,
+                    )
+                    .ok_or(Error::CannotComputeMagicStates(
+                        required_logical_magic_state_error_rate,
+                    ))?;
 
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
@@ -628,13 +633,18 @@ impl<
                     / self.factory_builder.num_magic_state_types() as f64)
                     / (num_magic_states as f64);
 
-                let factories = self.factory_builder.find_factories(
-                    &self.ftp,
-                    &self.qubit,
-                    index,
-                    required_logical_magic_state_error_rate,
-                    logical_patch.code_parameter(),
-                );
+                let factories = self
+                    .factory_builder
+                    .find_factories(
+                        &self.ftp,
+                        &self.qubit,
+                        index,
+                        required_logical_magic_state_error_rate,
+                        logical_patch.code_parameter(),
+                    )
+                    .ok_or(Error::CannotComputeMagicStates(
+                        required_logical_magic_state_error_rate,
+                    ))?;
 
                 if factories.is_empty() {
                     break;
@@ -825,13 +835,18 @@ impl<
                     .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
                     .is_gt()
             }) {
-                last_factories = self.factory_builder.find_factories(
-                    &self.ftp,
-                    &self.qubit,
-                    0,
-                    required_logical_magic_state_error_rate,
-                    &code_parameter,
-                );
+                last_factories = self
+                    .factory_builder
+                    .find_factories(
+                        &self.ftp,
+                        &self.qubit,
+                        0,
+                        required_logical_magic_state_error_rate,
+                        &code_parameter,
+                    )
+                    .ok_or(Error::CannotComputeMagicStates(
+                        required_logical_magic_state_error_rate,
+                    ))?;
 
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
@@ -965,13 +980,18 @@ impl<
                     .code_parameter_cmp(self.qubit.as_ref(), d, &code_parameter)
                     .is_gt()
             }) {
-                last_factories = self.factory_builder.find_factories(
-                    &self.ftp,
-                    &self.qubit,
-                    0,
-                    required_logical_magic_state_error_rate,
-                    &code_parameter,
-                );
+                last_factories = self
+                    .factory_builder
+                    .find_factories(
+                        &self.ftp,
+                        &self.qubit,
+                        0,
+                        required_logical_magic_state_error_rate,
+                        &code_parameter,
+                    )
+                    .ok_or(Error::CannotComputeMagicStates(
+                        required_logical_magic_state_error_rate,
+                    ))?;
 
                 last_code_parameter = self.find_highest_code_parameter(&last_factories);
             }
@@ -1290,20 +1310,15 @@ impl<
         factory: &Builder::Factory,
         num_cycles: u64,
     ) -> u64 {
-        let num_magic_states_big = u128::from(
+        let magic_states_per_cycles =
             self.layout_overhead
-                .num_magic_states(&self.error_budget, magic_state_index),
-        );
-        let duration_big = u128::from(factory.duration());
-        let output_magic_count_big = u128::from(factory.num_output_states());
-        let logical_cycle_time_big = u128::from(logical_patch.logical_cycle_time());
-        let num_cycles_big = u128::from(num_cycles);
+                .num_magic_states(&self.error_budget, magic_state_index) as f64
+                / (factory.num_output_states() * num_cycles) as f64;
 
-        let result = (num_magic_states_big * duration_big)
-            .div_ceil(output_magic_count_big * logical_cycle_time_big * num_cycles_big);
+        let factory_duration_fraction =
+            factory.duration() as f64 / logical_patch.logical_cycle_time() as f64;
 
-        // We expect the result to be small enough to fit into a u64.
-        u64::try_from(result).expect("result should fit into u64")
+        (magic_states_per_cycles * factory_duration_fraction).ceil() as _
     }
 }
 

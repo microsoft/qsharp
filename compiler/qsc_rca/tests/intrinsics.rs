@@ -87,8 +87,7 @@ fn check_rca_for_length() {
         &compilation_context.fir_store,
         compilation_context.get_compute_properties(),
         "Length",
-        &expect![
-            r#"
+        &expect![[r#"
             Callable: CallableComputeProperties:
                 body: ApplicationsGeneratorSet:
                     inherent: Classical
@@ -97,16 +96,13 @@ fn check_rca_for_length() {
                             static_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
                                 value_kind: Element(Dynamic)
-                            dynamic_content_static_size: Quantum: QuantumProperties:
-                                runtime_features: RuntimeFeatureFlags(0x0)
-                                value_kind: Element(Static)
+                            dynamic_content_static_size: Classical
                             dynamic_content_dynamic_size: Quantum: QuantumProperties:
                                 runtime_features: RuntimeFeatureFlags(UseOfDynamicallySizedArray)
                                 value_kind: Element(Dynamic)
                 adj: <none>
                 ctl: <none>
-                ctl-adj: <none>"#
-        ],
+                ctl-adj: <none>"#]],
     );
 }
 

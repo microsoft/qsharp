@@ -156,7 +156,7 @@ fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
     for component in path.components() {
         match component {
             std::path::Component::Normal(name) => {
-                // strip the extension off], if there is one
+                // strip the extension off, if there is one
                 let mut name = name
                     .to_str()
                     .ok_or(Error(ErrorKind::InvalidFileName(error_span)))?;
@@ -192,18 +192,6 @@ fn validate_namespace_name(error_span: Span, name: &str) -> Result<()> {
         return Err(Error(ErrorKind::InvalidFileName(error_span)));
     }
     Ok(())
-}
-
-// unit tests for file_name_to_namespace_name
-#[test]
-fn test_file_name_to_namespace_name() {
-    let raw = "foo/bar.qs";
-    let error_span = Span::default();
-    let namespace =
-        file_name_to_namespace_name(raw, error_span).expect("test should not fail here");
-    assert_eq!(namespace.0.len(), 2);
-    assert_eq!(&*namespace.0[0].name, "foo");
-    assert_eq!(&*namespace.0[1].name, "bar");
 }
 
 fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {

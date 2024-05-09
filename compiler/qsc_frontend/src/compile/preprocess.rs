@@ -54,12 +54,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.included_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: Rc::from(namespace.name.name().as_ref()),
+                                namespace: namespace.name.name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.included_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: Rc::from(namespace.name.name().as_ref()),
+                            namespace: namespace.name.name(),
                         }),
                         _ => {}
                     }
@@ -69,12 +69,12 @@ impl MutVisitor for Conditional {
                         ItemKind::Callable(callable) => {
                             self.dropped_names.push(TrackedName {
                                 name: callable.name.name.clone(),
-                                namespace: Rc::from((namespace.name).name()),
+                                namespace: namespace.name.name(),
                             });
                         }
                         ItemKind::Ty(ident, _) => self.dropped_names.push(TrackedName {
                             name: ident.name.clone(),
-                            namespace: Rc::from(namespace.name.name().as_ref()),
+                            namespace: namespace.name.name(),
                         }),
                         _ => {}
                     }

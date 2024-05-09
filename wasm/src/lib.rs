@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#![allow(unknown_lints, clippy::empty_docs)]
 #![allow(non_snake_case)]
 
 use diagnostic::{interpret_errors_into_vs_diagnostics, VSDiagnostic};
@@ -478,5 +479,5 @@ pub fn generate_docs() -> Vec<IDocFile> {
 
 #[wasm_bindgen(typescript_custom_section)]
 const TARGET_PROFILE: &'static str = r#"
-export type TargetProfile = "base" | "quantinuum" |"unrestricted";
+export type TargetProfile = "base" | "adaptive_ri" |"unrestricted";
 "#;

@@ -3,7 +3,10 @@
 
 use crate::{
     applications::{ApplicationInstance, GeneratorSetsBuilder, LocalComputeKind},
-    common::{try_resolve_callee, Callee, FunctorAppExt, GlobalSpecId, Local, LocalKind, TyExt},
+    common::{
+        try_resolve_callee, AssignmentStmtCounter, Callee, FunctorAppExt, GlobalSpecId, Local,
+        LocalKind, TyExt,
+    },
     scaffolding::{InternalItemComputeProperties, InternalPackageStoreComputeProperties},
     ApplicationGeneratorSet, ArrayParamApplication, ComputeKind, ComputePropertiesLookup,
     ParamApplication, QuantumProperties, RuntimeFeatureFlags, RuntimeKind, ValueKind,
@@ -293,7 +296,14 @@ impl<'a> Analyzer<'a> {
                 value_kind,
             })
         } else {
-            self.analyze_expr_call_with_static_callee(callee_expr_id, args_expr_id, expr_type)
+            let call_compute_kind =
+                self.analyze_expr_call_with_static_callee(callee_expr_id, args_expr_id, expr_type);
+            match call_compute_kind {
+                CallComputeKind::Regular(compute_kind) => compute_kind,
+                CallComputeKind::Override(compute_kind) => {
+                    return compute_kind;
+                }
+            }
         };
 
         // If this call happens within a dynamic scope, there might be additional runtime features being used.
@@ -339,13 +349,41 @@ impl<'a> Analyzer<'a> {
         compute_kind
     }
 
+    fn analyze_expr_call_for_length_intrinsic(&self, args_expr_id: ExprId) -> ComputeKind {
+        let application_instance = self.get_current_application_instance();
+        let args_compute_kind = *application_instance.get_expr_compute_kind(args_expr_id);
+        match args_compute_kind {
+            ComputeKind::Classical => ComputeKind::Classical,
+            ComputeKind::Quantum(quantum_properties) => {
+                if quantum_properties
+                    .runtime_features
+                    .contains(RuntimeFeatureFlags::UseOfDynamicallySizedArray)
+                {
+                    ComputeKind::new_with_runtime_features(
+                        quantum_properties.runtime_features,
+                        ValueKind::Element(RuntimeKind::Dynamic),
+                    )
+                } else {
+                    ComputeKind::Classical
+                }
+            }
+        }
+    }
+
     fn analyze_expr_call_with_spec_callee(
         &mut self,
         callee: &Callee,
         callable_decl: &'a CallableDecl,
         args_expr_id: ExprId,
         expr_type: &Ty,
-    ) -> ComputeKind {
+    ) -> CallComputeKind {
+        // The `Length` intrinsic function has a specialized override.
+        if is_length_intrinsic(callable_decl) {
+            return CallComputeKind::Override(
+                self.analyze_expr_call_for_length_intrinsic(args_expr_id),
+            );
+        }
+
         // Analyze the specialization to determine its application generator set.
         let callee_id = GlobalSpecId::from((callee.item, callee.functor_app.functor_set_value()));
         self.analyze_spec(callee_id, callable_decl);
@@ -423,7 +461,7 @@ impl<'a> Analyzer<'a> {
                 quantum_properties.value_kind = mapped_value_kind;
             }
         }
-        compute_kind
+        CallComputeKind::Regular(compute_kind)
     }
 
     fn analyze_expr_call_with_static_callee(
@@ -431,7 +469,7 @@ impl<'a> Analyzer<'a> {
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
         expr_type: &Ty,
-    ) -> ComputeKind {
+    ) -> CallComputeKind {
         // Try to resolve the callee.
         let package_id = self.get_current_package_id();
         let package = self.package_store.get(package_id);
@@ -448,10 +486,11 @@ impl<'a> Analyzer<'a> {
             // The value kind of a call expression with an unresolved callee is dynamic but its specific variant depends
             // on the expression's type.
             let value_kind = ValueKind::new_dynamic_from_type(expr_type);
-            return ComputeKind::Quantum(QuantumProperties {
+            let compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
                 value_kind,
             });
+            return CallComputeKind::Regular(compute_kind);
         };
 
         // We could resolve the callee. Determine the compute kind of the call depending on the callee kind.
@@ -466,7 +505,9 @@ impl<'a> Analyzer<'a> {
                 args_expr_id,
                 expr_type,
             ),
-            Global::Udt => self.analyze_expr_call_with_udt_callee(args_expr_id),
+            Global::Udt => {
+                CallComputeKind::Regular(self.analyze_expr_call_with_udt_callee(args_expr_id))
+            }
         }
     }
 
@@ -903,27 +944,43 @@ impl<'a> Analyzer<'a> {
     }
 
     fn analyze_expr_while(&mut self, condition_expr_id: ExprId, block_id: BlockId) -> ComputeKind {
-        // Visit the condition expression to determine its compute kind.
+        // Visit the condition expression to determine its initial compute kind.
         self.visit_expr(condition_expr_id);
-
-        // If the condition expression is dynamic, we push a new dynamic scope before visiting the block.
         let application_instance = self.get_current_application_instance_mut();
-        let condition_expr_compute_kind =
+        let mut condition_expr_compute_kind =
             *application_instance.get_expr_compute_kind(condition_expr_id);
-        let within_dynamic_scope = condition_expr_compute_kind.is_dynamic();
-        if within_dynamic_scope {
-            application_instance
-                .active_dynamic_scopes
-                .push(condition_expr_id);
-        }
-        self.visit_block(block_id);
-        if within_dynamic_scope {
+
+        // We analyze both the condition expression and the block N times, where N is the analysis stabilization limit.
+        // The reason why we need a stabilization limit is because there can be up-to N levels of indirection for the
+        // condition due to variable assigments.
+        // The number of statements with assignments in the condition expression and the loop block is a good proxy for
+        // the worst case scenario regarding the propagation of properties throughout variables. Because of this, we use
+        // it as the stabilization limit.
+        let package_id = self.get_current_package_id();
+        let package = self.package_store.get(package_id);
+        let stabilization_limit = AssignmentStmtCounter::new(package).count_in_block(block_id)
+            + AssignmentStmtCounter::new(package).count_in_expr(condition_expr_id);
+        for _ in 0..=stabilization_limit {
+            // If the condition expression is dynamic, we push a new dynamic scope before visiting the block.
             let application_instance = self.get_current_application_instance_mut();
-            let dynamic_scope_expr_id = application_instance
-                .active_dynamic_scopes
-                .pop()
-                .expect("at least one dynamic scope should exist");
-            assert!(dynamic_scope_expr_id == condition_expr_id);
+            condition_expr_compute_kind =
+                *application_instance.get_expr_compute_kind(condition_expr_id);
+            let within_dynamic_scope = condition_expr_compute_kind.is_dynamic();
+            if within_dynamic_scope {
+                application_instance
+                    .active_dynamic_scopes
+                    .push(condition_expr_id);
+            }
+            self.visit_expr(condition_expr_id);
+            self.visit_block(block_id);
+            if within_dynamic_scope {
+                let application_instance = self.get_current_application_instance_mut();
+                let dynamic_scope_expr_id = application_instance
+                    .active_dynamic_scopes
+                    .pop()
+                    .expect("at least one dynamic scope should exist");
+                assert!(dynamic_scope_expr_id == condition_expr_id);
+            }
         }
 
         // Return the aggregated runtime features of the condition expression and the block.
@@ -1896,6 +1953,11 @@ impl SpecContext {
     }
 }
 
+enum CallComputeKind {
+    Regular(ComputeKind),
+    Override(ComputeKind),
+}
+
 fn derive_intrinsic_function_application_generator_set(
     callable_context: &CallableContext,
 ) -> ApplicationGeneratorSet {
@@ -2008,6 +2070,11 @@ fn derive_instrinsic_operation_application_generator_set(
         inherent: inherent_compute_kind,
         dynamic_param_applications,
     }
+}
+
+fn is_length_intrinsic(callable_decl: &CallableDecl) -> bool {
+    matches!(callable_decl.implementation, CallableImpl::Intrinsic)
+        && callable_decl.name.name.as_ref() == "Length"
 }
 
 fn ty_to_runtime_runtime_output_flags(ty: &Ty) -> RuntimeFeatureFlags {

@@ -75,6 +75,7 @@ pub trait MutVisitor: Sized {
     fn visit_ident(&mut self, ident: &mut Ident) {
         walk_ident(self, ident);
     }
+
     fn visit_idents(&mut self, ident: &mut crate::ast::Idents) {
         walk_idents(self, ident);
     }
@@ -350,6 +351,7 @@ pub fn walk_path(vis: &mut impl MutVisitor, path: &mut Path) {
 pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
 }
+
 pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::ast::Idents) {
     for ref mut ident in ident.0.iter_mut() {
         vis.visit_ident(ident);

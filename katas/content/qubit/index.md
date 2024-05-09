@@ -196,7 +196,7 @@ Note that each row has the following format:
 <table>
     <thead>
         <tr>
-            <th>Basis State<br>(|𝜓₁…𝜓ₙ⟩)</th>
+            <th>Basis State</th>
             <th>Amplitude</th>
             <th>Measurement Probability</th>
             <th>Phase</th>
@@ -216,7 +216,7 @@ For example, the state $|0\rangle$ would be represented as follows:
     </tbody>
 </table>
 
-> It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see <a href="https://docs.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states" target="_blank">Q# documentation on quantum states</a>.
+> It is important to note that although we reason about quantum systems in terms of their state, Q# does not have any representation of the quantum state in the language. Instead, state is an internal property of the quantum system, modified using gates. For more information, see <a href="https://learn.microsoft.com/azure/quantum/concepts-dirac-notation#q-gate-sequences-equivalent-to-quantum-states" target="_blank">Q# documentation on quantum states</a>.
 
 @[exercise]({
     "id": "qubit__learn_single_qubit_state",

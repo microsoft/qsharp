@@ -111,18 +111,6 @@ impl NamespaceTreeRoot {
             .expect("namespace creation should not fail")
     }
 
-    /// Create a new namespace node with the given children.
-    pub fn new_namespace_node(
-        &mut self,
-        children: FxHashMap<Rc<str>, NamespaceTreeCell>,
-    ) -> NamespaceTreeNode {
-        self.assigner += 1;
-        NamespaceTreeNode {
-            id: NamespaceId::new(self.assigner),
-            children,
-        }
-    }
-
     /// Get the ID of a namespace given its name.
     pub fn get_namespace_id<'a>(
         &self,
@@ -236,6 +224,7 @@ impl NamespaceTreeNode {
 
     /// Inserts a new namespace into the tree, if it does not yet exist.
     /// Returns the ID of the namespace.
+    /// Returns `None` if an empty iterator is passed in.
     pub fn insert_or_find_namespace<I>(
         &mut self,
         mut iter: Peekable<I>,
@@ -294,9 +283,7 @@ impl NamespaceTreeNode {
             let Some((names, node)) = node.borrow().find_namespace_by_id(id, &names) else {
                 continue;
             };
-            if !names.is_empty() {
-                return Some((names, node));
-            }
+            return Some((names, node));
         }
 
         None

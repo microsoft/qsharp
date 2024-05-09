@@ -6,13 +6,17 @@ use qsc_data_structures::functors::FunctorApp;
 use qsc_fir::{
     extensions::{InputParam, InputParamIndex},
     fir::{
-        ExprId, ExprKind, Functor, ItemId, LocalItemId, LocalVarId, PackageId, PackageLookup,
-        PatId, Res, StoreItemId, UnOp,
+        Block, BlockId, Expr, ExprId, ExprKind, Functor, ItemId, LocalItemId, LocalVarId, Package,
+        PackageId, PackageLookup, Pat, PatId, Res, Stmt, StmtId, StoreItemId, UnOp,
     },
     ty::{FunctorSetValue, Ty},
+    visit::{walk_expr, walk_stmt, Visitor},
 };
 use rustc_hash::FxHashMap;
-use std::fmt::{Debug, Formatter};
+use std::{
+    cmp::max,
+    fmt::{Debug, Formatter},
+};
 
 /// A represenation of a local symbol.
 #[derive(Clone, Debug)]
@@ -38,10 +42,6 @@ pub enum LocalKind {
 
 pub trait LocalsLookup {
     fn find(&self, local_var_id: LocalVarId) -> Option<&Local>;
-
-    fn get(&self, local_var_id: LocalVarId) -> &Local {
-        self.find(local_var_id).expect("local should exist")
-    }
 }
 
 impl LocalsLookup for FxHashMap<LocalVarId, Local> {
@@ -228,6 +228,72 @@ fn try_resolve_un_op_callee(
             functor_app: spec_functor,
         }
     })
+}
+
+pub struct AssignmentStmtCounter<'a> {
+    package: &'a Package,
+    assignment_expr_count: usize,
+    assignment_stmt_count: usize,
+}
+
+impl<'a> AssignmentStmtCounter<'a> {
+    pub fn new(package: &'a Package) -> Self {
+        Self {
+            package,
+            assignment_expr_count: 0,
+            assignment_stmt_count: 0,
+        }
+    }
+
+    pub fn count_in_expr(mut self, expr_id: ExprId) -> usize {
+        self.visit_expr(expr_id);
+        max(self.assignment_stmt_count, 1)
+    }
+
+    pub fn count_in_block(mut self, block_id: BlockId) -> usize {
+        self.visit_block(block_id);
+        self.assignment_stmt_count
+    }
+}
+
+impl<'a> Visitor<'a> for AssignmentStmtCounter<'a> {
+    fn get_block(&self, id: BlockId) -> &'a Block {
+        self.package.get_block(id)
+    }
+
+    fn get_expr(&self, id: ExprId) -> &'a Expr {
+        self.package.get_expr(id)
+    }
+
+    fn get_pat(&self, id: PatId) -> &'a Pat {
+        self.package.get_pat(id)
+    }
+
+    fn get_stmt(&self, id: StmtId) -> &'a Stmt {
+        self.package.get_stmt(id)
+    }
+
+    fn visit_expr(&mut self, expr_id: ExprId) {
+        let expr = self.get_expr(expr_id);
+        if matches!(
+            expr.kind,
+            ExprKind::Assign(_, _)
+                | ExprKind::AssignField(_, _, _)
+                | ExprKind::AssignIndex(_, _, _)
+                | ExprKind::AssignOp(_, _, _)
+        ) {
+            self.assignment_expr_count += 1;
+        }
+        walk_expr(self, expr_id);
+    }
+
+    fn visit_stmt(&mut self, stmt_id: StmtId) {
+        let initial_assigment_expr_count = self.assignment_expr_count;
+        walk_stmt(self, stmt_id);
+        if self.assignment_expr_count > initial_assigment_expr_count {
+            self.assignment_stmt_count += 1;
+        }
+    }
 }
 
 pub fn set_indentation<'a, 'b>(
