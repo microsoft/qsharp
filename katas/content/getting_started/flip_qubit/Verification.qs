@@ -1,5 +1,6 @@
 namespace Kata.Verification {
     open Microsoft.Quantum.Katas;
+    open Microsoft.Quantum.Diagnostics;
 
     operation FlipQubit(q : Qubit) : Unit is Adj + Ctl {
         X(q);
@@ -8,7 +9,7 @@ namespace Kata.Verification {
     operation CheckSolution() : Bool {
         let solution = register => Kata.FlipQubit(register[0]);
         let reference = register => FlipQubit(register[0]);
-        let isCorrect = CheckOperationsEquivalence(solution, reference, 1);
+        let isCorrect = CheckOperationsAreEqual(1, solution, reference);
 
         // Output different feedback to the user depending on whether the solution was correct.
         if isCorrect {

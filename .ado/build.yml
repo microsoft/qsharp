@@ -6,6 +6,10 @@ trigger:
 pr:
 - main
 
+variables:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN_VERSION: "1.77"
+
 schedules:
 - cron: "0 9 * * Sat"
   displayName: 'Build for Component Governance'
@@ -15,7 +19,7 @@ schedules:
   always: true
 
 jobs:
-- job: "qsharp-governance"
+- job: "qsharp"
   pool:
     vmImage: 'ubuntu-latest'
   timeoutInMinutes: 120

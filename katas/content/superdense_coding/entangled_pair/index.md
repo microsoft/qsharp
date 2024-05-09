@@ -1,3 +1,6 @@
-**Input:** Two qubits in the $|00\rangle$ state (stored in an array of length 2).
+**Inputs:**
 
-**Goal:**  Prepare a Bell state $|\Phi^{+}\rangle = \frac{1}{\sqrt{2}} (|00\rangle + |11\rangle)$ on these qubits.
+1. `qAlice` : Alice's qubit in $\ket{0}$ state.
+2. `qBob` : Bob's qubit in $\ket{0}$ state.
+
+**Goal:**  Prepare a Bell state $|\Phi^{+}\rangle = \frac{1}{\sqrt{2}} (\ket{00} + \ket{11})$ on these qubits.

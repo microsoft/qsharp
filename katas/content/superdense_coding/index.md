@@ -1,7 +1,7 @@
-# Superdense Coding Kata
+# Superdense Coding
 
 @[section]({
-    "id": "./superdense_coding__overview",
+    "id": "superdense_coding__overview",
     "title": "Overview"
 })
 
@@ -18,10 +18,45 @@ We split the superdense coding protocol into several steps:
 - Finally, we compose those steps into the complete superdense coding protocol.
 
 @[exercise]({
-    "id": "./superdense_coding__entangled_pair",
+    "id": "superdense_coding__entangled_pair",
     "title": "Entangled Pair",
     "path": "entangled_pair",
     "qsDependencies": [
-        "../KatasLibrary.qs"
+        "../KatasLibrary.qs",
+        "./Common.qs"
     ]
 })
+
+@[exercise]({
+    "id": "superdense_coding__alice_sends_message",
+    "title": "Alice's Task: Encode Message",
+    "path": "alice_sends_message",
+    "qsDependencies": [
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superdense_coding__bob_decodes_message",
+    "title": "Bob's Task: Decode Message",
+    "path": "bob_decodes_message",
+    "qsDependencies": [
+        "./Common.qs"
+    ]
+})
+
+@[exercise]({
+    "id": "superdense_coding__protocol_e2e",
+    "title": "Superdense Coding Protocol: End to End",
+    "path": "protocol_e2e",
+    "qsDependencies": [
+        "./Common.qs"
+    ]
+})
+
+@[section]({
+    "id": "superdense_coding__conclusion",
+    "title": "Conclusion"
+})
+
+Congratulations! In this kata you learned to implement superdense coding protocol.
