@@ -141,7 +141,12 @@ impl Interpreter {
             )
             .load_project(&manifest_descriptor.0)
             .map_py_err()?;
-            SourceMap::new(project.sources, Some(Arc::from(manifest_descriptor.0.manifest_dir.to_string_lossy())))
+            SourceMap::new(
+                project.sources,
+                Some(Arc::from(
+                    manifest_descriptor.0.manifest_dir.to_string_lossy(),
+                )),
+            )
         } else {
             SourceMap::default()
         };

@@ -144,20 +144,18 @@ impl SourceMap {
 
     /// Returns the sources as an iter, but with the project root directory subtracted
     /// from the individual source names.
-    pub(crate) fn localized_project_sources(&self) -> impl Iterator<Item = Source> + '_ {
+    pub(crate) fn relative_project_sources(&self) -> impl Iterator<Item = Source> + '_ {
         self.sources.iter().map(move |source| {
             let name = source.name.as_ref();
-            let localized_name = if let Some(project_root_dir) = &self.project_root_dir {
-                let localized_name = name
-                    .strip_prefix(&*project_root_dir.clone())
-                    .unwrap_or(name);
-                localized_name
+            let relative_name = if let Some(project_root_dir) = &self.project_root_dir {
+                name.strip_prefix(&*project_root_dir.clone())
+                    .unwrap_or(name)
             } else {
                 name
             };
 
             Source {
-                name: localized_name.into(),
+                name: relative_name.into(),
                 contents: source.contents.clone(),
                 offset: source.offset,
             }
@@ -463,7 +461,7 @@ fn parse_all(
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
-    for source in sources.localized_project_sources() {
+    for source in sources.relative_project_sources() {
         let (source_namespaces, source_errors) =
             qsc_parse::namespaces(&source.contents, Some(&source.name), features);
         for mut namespace in source_namespaces {
