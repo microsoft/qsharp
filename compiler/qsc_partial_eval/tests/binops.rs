@@ -1174,12 +1174,14 @@ fn integer_exponentiation_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
     // When this binary operation is supported, this error should be different.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("exponentiation for integer operands", Span { lo: 186, hi: 191 })"#]],
+        &expect![[
+            r#"Unimplemented("exponentiation for integer operands", Span { lo: 186, hi: 191 })"#
+        ]],
     );
 }
 
 #[test]
-fn integer_binary_and_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
+fn integer_bitwise_and_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -1268,7 +1270,7 @@ fn integer_binary_and_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
 }
 
 #[test]
-fn integer_binary_or_with_lhs_classical_integer_and_rhs_dynamic_integer() {
+fn integer_bitwise_or_with_lhs_classical_integer_and_rhs_dynamic_integer() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -1345,7 +1347,7 @@ fn integer_binary_or_with_lhs_classical_integer_and_rhs_dynamic_integer() {
 }
 
 #[test]
-fn integer_binary_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
+fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -1422,7 +1424,7 @@ fn integer_binary_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
 }
 
 #[test]
-fn integer_binary_left_shif_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
+fn integer_bitwise_left_shif_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -1511,7 +1513,7 @@ fn integer_binary_left_shif_with_lhs_dynamic_integer_and_rhs_dynamic_integer() {
 }
 
 #[test]
-fn integer_binary_right_shift_with_lhs_classical_integer_and_rhs_dynamic_integer() {
+fn integer_bitwise_right_shift_with_lhs_classical_integer_and_rhs_dynamic_integer() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
