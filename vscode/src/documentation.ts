@@ -38,7 +38,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
 
   const message = {
     command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
-    contentToRender: documentation,
+    fragmentsToRender: documentation,
   };
 
   sendMessageToPanel(
