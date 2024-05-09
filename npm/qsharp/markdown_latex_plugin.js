@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 // @ts-check
 /// <reference lib="es2022"/>
 
@@ -27,6 +30,7 @@ raw Markdown and inline HTML, and passes it through the Markdown parser as-is.
 /** @typedef {import("markdown-it/dist/markdown-it.js").StateInline} StateInline */
 
 // Below code to locate LaTeX blocks largely taken from @vscode/markdown-it-katex
+// See https://github.com/microsoft/vscode-markdown-it-katex/blob/9f3e1dff0fa2e011c63cb6a05fa6e80b7624538f/src/index.ts
 
 /**
  * @param {MarkdownIt} md

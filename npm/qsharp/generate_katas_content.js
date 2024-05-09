@@ -137,7 +137,7 @@ function resolveSvgSegment(properties, baseFolderPath) {
   // An SVG file is basically an HTML file. If it includes blank lines, this will
   // cause issues when including in Markdown, as blank lines indicate the end of
   // HTML content. Check for blank lines within the document.
-  if (/\n\r?\n/.test(svg)) {
+  if (/\n\s*\r?\n/.test(svg)) {
     throw new Error(
       `SVG file ${svgPath} includes blank lines, which will break the Markdown`,
     );
