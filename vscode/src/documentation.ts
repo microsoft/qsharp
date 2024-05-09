@@ -11,7 +11,7 @@ import { sendMessageToPanel } from "./webviewPanel";
 export async function showDocumentationCommand(extensionUri: Uri) {
   // Reveal panel an show 'Loading...' for immediate feedback.
   sendMessageToPanel(
-    "documentationPanelType", // This is needed to route the message to the proper panel
+    "documentation", // This is needed to route the message to the proper panel
     true,
     null,
   );
@@ -39,7 +39,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
   // Concatenate all documentation.
   // The following adds an empty line and a horizontal line
   // between documentation for different functions.
-  const content = documentation.join("\n<pre>\n\n</pre>\n---\n");
+  const content = documentation.join("<br/>\n\n---\n\n");
 
   const message = {
     command: "showDocumentationCommand", // This is handled in webview.tsx onMessage
@@ -47,7 +47,7 @@ export async function showDocumentationCommand(extensionUri: Uri) {
   };
 
   sendMessageToPanel(
-    "documentationPanelType", // This is needed to route the message to the proper panel
+    "documentation", // This is needed to route the message to the proper panel
     true,
     message,
   );

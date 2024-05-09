@@ -393,7 +393,7 @@ type PanelType =
   | "estimates"
   | "help"
   | "circuit"
-  | "documentationPanelType";
+  | "documentation";
 
 const panelTypeToPanel: Record<
   PanelType,
@@ -403,7 +403,7 @@ const panelTypeToPanel: Record<
   estimates: { title: "Q# Estimates", panel: undefined, state: {} },
   circuit: { title: "Q# Circuit", panel: undefined, state: {} },
   help: { title: "Q# Help", panel: undefined, state: {} },
-  documentationPanelType: {
+  documentation: {
     title: "Q# Documentation",
     panel: undefined,
     state: {},
@@ -476,7 +476,7 @@ export class QSharpWebViewPanel {
     }
 
     const katexCss = getUri(["out", "katex", "katex.min.css"]);
-    const githubCss = getUri(["out", "katex", "github-markdown.css"]);
+    const githubCss = getUri(["out", "katex", "github-markdown-dark.css"]);
     const webviewCss = getUri(["out", "webview", "webview.css"]);
     const webviewJs = getUri(["out", "webview", "webview.js"]);
     const resourcesUri = getUri(["resources"]);
@@ -547,7 +547,7 @@ export class QSharpViewViewPanelSerializer implements WebviewPanelSerializer {
       panelType !== "histogram" &&
       panelType !== "circuit" &&
       panelType !== "help" &&
-      panelType != "documentationPanelType"
+      panelType != "documentation"
     ) {
       // If it was loading when closed, that's fine
       if (panelType === "loading") {

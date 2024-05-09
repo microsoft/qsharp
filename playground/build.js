@@ -58,7 +58,7 @@ function copyLibs() {
   mkdirSync(monacoDest, { recursive: true });
   cpSync(monacoBase, monacoDest, { recursive: true });
 
-  copyKatex(join(thisDir, "public/libs/katex"), true);
+  copyKatex(join(thisDir, "public/libs/katex"));
 
   copyWasmToPlayground();
 }
