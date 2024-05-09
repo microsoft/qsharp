@@ -56,6 +56,7 @@ const processOperations = (
     regOps.map((opIdx, col) => {
       let op: Operation | null = null;
 
+      // eslint-disable-next-line no-prototype-builtins
       if (opIdx != null && !visited.hasOwnProperty(opIdx)) {
         op = operations[opIdx];
         visited[opIdx] = true;
@@ -72,7 +73,9 @@ const processOperations = (
 
         // Get y coordinates of classical registers in the same column as this operation
         const classicalRegY: number[] = classicalRegs
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           .filter(([regCol, _]) => regCol <= col)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           .map(([_, reg]) => {
             if (reg.cId == null)
               throw new Error("Could not find cId for classical register.");
@@ -362,7 +365,7 @@ const _opToMetadata = (
  */
 const _getRegY = (reg: Register, registers: RegisterMap): number => {
   const { type, qId, cId } = reg;
-  if (!registers.hasOwnProperty(qId))
+  if (!Object.prototype.hasOwnProperty.call(registers, qId))
     throw new Error(`ERROR: Qubit register with ID ${qId} not found.`);
   const { y, children } = registers[qId];
   switch (type) {
@@ -478,17 +481,19 @@ const _fillMetadataX = (
       switch (metadata.type) {
         case GateType.ClassicalControlled:
         case GateType.Group:
-          // Subtract startX offset from nested gates and add offset and padding
-          let offset: number = x - startX + groupBoxPadding;
-          if (metadata.type === GateType.ClassicalControlled)
-            offset += controlBtnOffset;
+          {
+            // Subtract startX offset from nested gates and add offset and padding
+            let offset: number = x - startX + groupBoxPadding;
+            if (metadata.type === GateType.ClassicalControlled)
+              offset += controlBtnOffset;
 
-          // Offset each x coord in children gates
-          _offsetChildrenX(metadata.children, offset);
+            // Offset each x coord in children gates
+            _offsetChildrenX(metadata.children, offset);
 
-          // We don't use the centre x coord because we only care about the rightmost x for
-          // rendering the box around the group of nested gates
-          metadata.x = x;
+            // We don't use the centre x coord because we only care about the rightmost x for
+            // rendering the box around the group of nested gates
+            metadata.x = x;
+          }
           break;
 
         default:

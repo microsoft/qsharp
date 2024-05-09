@@ -75,6 +75,7 @@ export class Sqore {
     if (
       circuit.operations.length == 1 &&
       circuit.operations[0].dataAttributes != null &&
+      // eslint-disable-next-line no-prototype-builtins
       circuit.operations[0].dataAttributes.hasOwnProperty("id")
     ) {
       const id: string = circuit.operations[0].dataAttributes["id"];
@@ -94,6 +95,7 @@ export class Sqore {
   private getStyle(style: StyleConfig | string = {}): StyleConfig {
     if (typeof style === "string" || style instanceof String) {
       const styleName: string = style as string;
+      // eslint-disable-next-line no-prototype-builtins
       if (!STYLES.hasOwnProperty(styleName)) {
         console.error(`No style ${styleName} found in STYLES.`);
         return {};

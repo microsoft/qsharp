@@ -167,7 +167,7 @@ const _gatePosition = (
   let x1: number, y1: number, x2: number, y2: number;
 
   switch (type) {
-    case GateType.Group:
+    case GateType.Group: {
       const padding = groupBoxPadding - nestedDepth * nestedGroupPadding;
 
       x1 = x - 2 * padding;
@@ -176,6 +176,7 @@ const _gatePosition = (
       y2 = maxY + +gateHeight / 2 + padding - (minY - gateHeight / 2 - padding);
 
       return [x1, y1, x2, y2];
+    }
 
     default:
       x1 = x - width / 2;
@@ -321,6 +322,7 @@ const _swap = (metadata: Metadata, nestedDepth: number): SVGElement => {
  *
  * @returns SVG representation of X gate.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _x = (metadata: Metadata, _: number): SVGElement => {
   const { x, targetsY } = metadata;
   const ys = targetsY.flatMap((y) => y as number[]);
@@ -375,11 +377,13 @@ const _controlledGate = (
       (targetsY as number[]).forEach((y) => targetGateSvgs.push(_cross(x, y)));
       break;
     case GateType.ControlledUnitary:
-      const groupedTargetsY: number[][] = targetsY as number[][];
-      targetGateSvgs.push(
-        _unitary(label, x, groupedTargetsY, width, displayArgs, false),
-      );
-      targetsY = targetsY.flat();
+      {
+        const groupedTargetsY: number[][] = targetsY as number[][];
+        targetGateSvgs.push(
+          _unitary(label, x, groupedTargetsY, width, displayArgs, false),
+        );
+        targetsY = targetsY.flat();
+      }
       break;
     default:
       throw new Error(`ERROR: Unrecognized gate: ${label} of type ${type}`);

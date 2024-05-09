@@ -43,12 +43,13 @@ const getGateWidth = ({
     case GateType.Cnot:
     case GateType.Swap:
       return minGateWidth;
-    default:
+    default: {
       const labelWidth = _getStringWidth(label);
       const argsWidth =
         displayArgs != null ? _getStringWidth(displayArgs, argsFontSize) : 0;
       const textWidth = Math.max(labelWidth, argsWidth) + labelPadding * 2;
       return Math.max(minGateWidth, textWidth);
+    }
   }
 };
 
