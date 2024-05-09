@@ -930,10 +930,9 @@ fn explicit_return_embedded_in_assign_op_expr_yields_error() {
         }
     }
     "#});
-    // The type of error will change once this kind of hybrid expression is supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("int binary operation", Span { lo: 166, hi: 167 })"#]],
+        &expect![[r#"Unexpected("embedded return in RHS expression", Span { lo: 171, hi: 183 })"#]],
     );
 }
 
@@ -951,7 +950,7 @@ fn explicit_return_embedded_in_bin_op_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("int binary operation", Span { lo: 147, hi: 148 })"#]],
+        &expect![[r#"Unexpected("embedded return in RHS expression", Span { lo: 151, hi: 163 })"#]],
     );
 }
 
