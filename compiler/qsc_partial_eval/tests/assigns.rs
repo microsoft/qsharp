@@ -1156,7 +1156,6 @@ fn integer_assign_add_with_lhs_classical_integer_and_rhs_dynamic_integer() {
     );
 }
 
-#[ignore = "WIP"]
 #[test]
 fn integer_assign_sub_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     let program = get_rir_program(indoc! {
@@ -1213,7 +1212,28 @@ fn integer_assign_sub_with_lhs_dynamic_integer_and_rhs_classical_integer() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    assert_blocks(&program, &expect![[r#""#]]);
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Variable(3, Integer) = Store Variable(2, Integer)
+            Variable(4, Integer) = Sub Variable(3, Integer), Integer(1)
+            Variable(3, Integer) = Store Variable(4, Integer)
+            Call id(3), args( Variable(3, Integer), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Integer) = Store Integer(0)
+            Jump(1)
+        Block 3:Block:
+            Variable(2, Integer) = Store Integer(1)
+            Jump(1)"#]],
+    );
 }
 
 #[test]
@@ -1387,7 +1407,6 @@ fn integer_assign_div_with_lhs_classical_integer_and_rhs_dynamic_integer() {
     );
 }
 
-#[ignore = "WIP"]
 #[test]
 fn integer_assign_mod_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     let program = get_rir_program(indoc! {
@@ -1444,7 +1463,28 @@ fn integer_assign_mod_with_lhs_dynamic_integer_and_rhs_classical_integer() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    assert_blocks(&program, &expect![[r#""#]]);
+    assert_blocks(
+        &program,
+        &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Variable(3, Integer) = Store Variable(2, Integer)
+            Variable(4, Integer) = Srem Variable(3, Integer), Integer(1)
+            Variable(3, Integer) = Store Variable(4, Integer)
+            Call id(3), args( Variable(3, Integer), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Integer) = Store Integer(0)
+            Jump(1)
+        Block 3:Block:
+            Variable(2, Integer) = Store Integer(1)
+            Jump(1)"#]],
+    );
 }
 
 #[test]
@@ -1471,7 +1511,6 @@ fn integer_assign_exp_with_lhs_classical_integer_and_rhs_dynamic_integer() {
     );
 }
 
-#[ignore = "WIP"]
 #[test]
 fn integer_assign_exp_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     let error = get_partial_evaluation_error(indoc! {
@@ -1488,7 +1527,12 @@ fn integer_assign_exp_with_lhs_dynamic_integer_and_rhs_classical_integer() {
         "#,
     });
     // When this binary operation is supported, this program should not yield an error.
-    assert_error(&error, &expect![[r#""#]]);
+    assert_error(
+        &error,
+        &expect![[
+            r#"Unimplemented("exponentiation for integer operands", Span { lo: 146, hi: 156 })"#
+        ]],
+    );
 }
 
 #[test]
@@ -1686,7 +1730,6 @@ fn integer_assign_bitwise_or_with_lhs_classical_integer_and_rhs_dynamic_integer(
     );
 }
 
-#[ignore = "WIP"]
 #[test]
 fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
     let program = get_rir_program(indoc! {
@@ -1743,7 +1786,25 @@ fn integer_bitwise_xor_with_lhs_dynamic_integer_and_rhs_classical_integer() {
                 output_type: <VOID>
                 body: <NONE>"#]],
     );
-    assert_blocks(&program, &expect![[r#""#]]);
+    assert_blocks(&program, &expect![[r#"
+        Blocks:
+        Block 0:Block:
+            Call id(1), args( Qubit(0), Result(0), )
+            Variable(0, Boolean) = Call id(2), args( Result(0), )
+            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
+            Branch Variable(1, Boolean), 2, 3
+        Block 1:Block:
+            Variable(3, Integer) = Store Variable(2, Integer)
+            Variable(4, Integer) = BitwiseXor Variable(3, Integer), Integer(1)
+            Variable(3, Integer) = Store Variable(4, Integer)
+            Call id(3), args( Variable(3, Integer), Pointer, )
+            Return
+        Block 2:Block:
+            Variable(2, Integer) = Store Integer(0)
+            Jump(1)
+        Block 3:Block:
+            Variable(2, Integer) = Store Integer(1)
+            Jump(1)"#]]);
 }
 
 #[test]

@@ -276,3 +276,101 @@ fn check_rca_for_assign_dynamic_call_result_to_tuple_of_vars() {
                 dynamic_param_applications: <empty>"#]],
     );
 }
+
+#[test]
+fn check_rca_for_mutable_classical_integer_assigned_updated_with_classical_integer() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        use register = Qubit[8];
+        let results = MeasureEachZ(register);
+        mutable i = 0;
+        set i += 1;
+        i"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Classical
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_classical_integer_assigned_updated_with_dynamic_integer() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        use register = Qubit[8];
+        let results = MeasureEachZ(register);
+        mutable i = 0;
+        set i += ResultArrayAsInt(results);
+        i"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_dynamic_integer_assigned_updated_with_classical_integer() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        use register = Qubit[8];
+        let results = MeasureEachZ(register);
+        mutable i = ResultArrayAsInt(results);
+        set i += 1;
+        i"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
+
+#[test]
+fn check_rca_for_mutable_dynamic_integer_assigned_updated_with_dynamic_integer() {
+    let mut compilation_context = CompilationContext::default();
+    compilation_context.update(
+        r#"
+        open Microsoft.Quantum.Convert;
+        open Microsoft.Quantum.Measurement;
+        use register = Qubit[8];
+        let results = MeasureEachZ(register);
+        mutable i = ResultArrayAsInt(results);
+        set i += ResultArrayAsInt(results);
+        i"#,
+    );
+    let package_store_compute_properties = compilation_context.get_compute_properties();
+    check_last_statement_compute_properties(
+        package_store_compute_properties,
+        &expect![[r#"
+            ApplicationsGeneratorSet:
+                inherent: Quantum: QuantumProperties:
+                    runtime_features: RuntimeFeatureFlags(UseOfDynamicBool | UseOfDynamicInt)
+                    value_kind: Element(Dynamic)
+                dynamic_param_applications: <empty>"#]],
+    );
+}
