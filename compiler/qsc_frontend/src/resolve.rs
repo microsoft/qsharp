@@ -128,7 +128,7 @@ pub struct Scope {
     ///
     /// Bug: Because we keep track of only one `valid_at` offset per name,
     /// when a variable is later shadowed in the same scope,
-    /// it is missed in the list. https://github.com/microsoft/qsharp/issues/897
+    /// it is missed in the list. <a href=https://github.com/microsoft/qsharp/issues/897 />
     vars: FxHashMap<Rc<str>, (u32, NodeId)>,
     /// Type parameters.
     ty_vars: FxHashMap<Rc<str>, ParamId>,
@@ -412,14 +412,12 @@ impl Resolver {
     }
 
     fn resolve_ident(&mut self, kind: NameKind, name: &Ident) {
-        let namespace = None;
-
         match resolve(
             kind,
             &self.globals,
             self.locals.get_scopes(&self.curr_scope_chain),
             name,
-            &namespace,
+            &None,
         ) {
             Ok(res) => {
                 self.check_item_status(res, name.name.to_string(), name.span);
@@ -501,43 +499,50 @@ impl Resolver {
         }
     }
 
-    fn bind_open(&mut self, name: &Idents, alias: &Option<Box<Ident>>) {
-        let Some(id) = self.globals.find_namespace(name.str_iter()) else {
-            self.errors.push(Error::NotFound(
-                name.iter()
-                    .map(|x| x.name.to_string())
-                    .collect::<Vec<_>>()
-                    .join("."),
-                name.span(),
-            ));
-            return;
+    fn bind_open(
+        &mut self,
+        name: &Idents,
+        alias: &Option<Box<Ident>>,
+        current_namespace: NamespaceId,
+    ) {
+        let (_current_ns_name, current_namespace) = self
+            .globals
+            .namespaces
+            .find_namespace_by_id(&current_namespace);
+        // try scoping from the current namespace, and then use the absolute namespace as the backup
+
+        let id = if let Some(id) = (*current_namespace)
+            .borrow()
+            .get_namespace_id(name.str_iter())
+        {
+            id
+        } else if let Some(id) = self.globals.namespaces.get_namespace_id(name.str_iter()) {
+            id
+        } else {
+            return self
+                .errors
+                .push(Error::NotFound(name.name().to_string(), name.span()));
         };
+
         let alias = alias
             .as_ref()
             .map_or(name.into(), |a| vec![Rc::clone(&a.name)]);
-        if self
-            .globals
-            .namespaces
-            .get_namespace_id(name.str_iter())
-            .is_some()
-        {
-            self.current_scope_mut()
-                .opens
-                .entry(alias)
-                .or_default()
-                .push(Open {
-                    namespace: id,
-                    span: name.span(),
-                });
-        } else {
-            self.errors
-                .push(Error::NotFound(name.to_string(), name.span()));
-        }
+
+        self.current_scope_mut()
+            .opens
+            .entry(alias)
+            .or_default()
+            .push(Open {
+                namespace: id,
+                span: name.span(),
+            });
     }
 
     pub(super) fn bind_local_item(&mut self, assigner: &mut Assigner, item: &ast::Item) {
         match &*item.kind {
-            ast::ItemKind::Open(name, alias) => self.bind_open(name, alias),
+            ast::ItemKind::Open(name, alias) => {
+                self.bind_open(name, alias, self.globals.namespaces.root_id());
+            }
             ast::ItemKind::Callable(decl) => {
                 let id = intrapackage(assigner.next_item());
                 self.names.insert(
@@ -654,15 +659,17 @@ impl AstVisitor<'_> for With<'_> {
             .find_namespace(namespace.name.str_iter())
             .expect("namespace should exist by this point");
 
+        let root_id = self.resolver.globals.namespaces.root_id();
+
         let kind = ScopeKind::Namespace(ns);
         self.with_scope(namespace.span, kind, |visitor| {
             // the below line ensures that this namespace opens itself, in case
             // we are re-opening a namespace. This is important, as without this,
             // a re-opened namespace would only have knowledge of its scopes.
-            visitor.resolver.bind_open(&namespace.name, &None);
+            visitor.resolver.bind_open(&namespace.name, &None, root_id);
             for item in &*namespace.items {
                 if let ast::ItemKind::Open(name, alias) = &*item.kind {
-                    visitor.resolver.bind_open(name, alias);
+                    visitor.resolver.bind_open(name, alias, ns);
                 }
             }
             ast_visit::walk_namespace(visitor, namespace);

@@ -22,7 +22,7 @@ where
     pub fn get_mut_or_default(&mut self, key: K) -> &mut V {
         let index: usize = key.into();
         if index >= self.values.len() {
-            self.values.resize_with(index + 1, Default::default);
+            self.values.resize_with(index + 1, Option::default);
         }
         self.values
             .get_mut(index)

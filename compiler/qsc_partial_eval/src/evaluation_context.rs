@@ -10,6 +10,7 @@ use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
 use qsc_rir::rir::BlockId;
 use rustc_hash::FxHashMap;
+use std::collections::hash_map::Entry;
 
 /// Struct that keeps track of the active RIR blocks (where RIR instructions are added) and the active scopes (which
 /// correspond to the Q#'s program call stack).
@@ -21,7 +22,7 @@ pub struct EvaluationContext {
 impl EvaluationContext {
     /// Creates a new evaluation context.
     pub fn new(package_id: PackageId, initial_block: BlockId) -> Self {
-        let entry_callable_scope = Scope::new(package_id, None, Vec::new());
+        let entry_callable_scope = Scope::new(package_id, None, Vec::new(), None);
         Self {
             active_blocks: vec![BlockNode {
                 id: initial_block,
@@ -95,10 +96,10 @@ pub struct Scope {
     pub args_value_kind: Vec<ValueKind>,
     /// The classical environment of the callable, which holds values corresponding to local variables.
     pub env: Env,
+    /// Map that holds the values of local variables.
+    pub hybrid_vars: FxHashMap<LocalVarId, Value>,
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
-    /// Map that holds the values of local variables.
-    hybrid_vars: FxHashMap<LocalVarId, Value>,
 }
 
 impl Scope {
@@ -107,6 +108,7 @@ impl Scope {
         package_id: PackageId,
         callable: Option<(LocalItemId, FunctorApp)>,
         args: Vec<Arg>,
+        ctls_arg: Option<Arg>,
     ) -> Self {
         // Create the environment for the classical evaluator.
         // A default classical evaluator environment is created with one scope. However, we need to push an additional
@@ -128,20 +130,23 @@ impl Scope {
             })
             .collect();
 
-        // Add the values to either the environment or the hybrid variables depending on whether the value is static or
-        // dynamic.
         let mut hybrid_vars = FxHashMap::default();
+
+        // Bind the control qubits to both the hybrid and classical maps.
+        if let Some(Arg::Var(local_var_id, var)) = ctls_arg {
+            hybrid_vars.insert(local_var_id, var.value.clone());
+            env.bind_variable_in_top_frame(local_var_id, var);
+        }
+
+        // Add the values to both the classical environment and the hybrid variables depending on whether the value is
+        // static or dynamic.
         let arg_runtime_kind_tuple = args.into_iter().zip(args_value_kind.iter());
-        for (arg, value_kind) in arg_runtime_kind_tuple {
+        for (arg, _) in arg_runtime_kind_tuple {
             let Arg::Var(local_var_id, var) = arg else {
                 continue;
             };
-
-            if value_kind.is_dynamic() {
-                hybrid_vars.insert(local_var_id, var.value);
-            } else {
-                env.bind_variable_in_top_frame(local_var_id, var);
-            }
+            hybrid_vars.insert(local_var_id, var.value.clone());
+            env.bind_variable_in_top_frame(local_var_id, var);
         }
 
         // Add the dynamic values to the hybrid variables
@@ -155,11 +160,20 @@ impl Scope {
         }
     }
 
-    /// Gets the value of a (hybrid) local variable.
-    pub fn get_local_var_value(&self, local_var_id: LocalVarId) -> &Value {
+    /// Gets the value of a hybrid local variable.
+    pub fn get_classical_local_value(&self, local_var_id: LocalVarId) -> &Value {
+        &self
+            .env
+            .get(local_var_id)
+            .expect("local classcial variable value does not exist")
+            .value
+    }
+
+    /// Gets the value of a hybrid local variable.
+    pub fn get_hybrid_local_value(&self, local_var_id: LocalVarId) -> &Value {
         self.hybrid_vars
             .get(&local_var_id)
-            .expect("local variable value does not exist")
+            .expect("local hybrid variable value does not exist")
     }
 
     /// Determines whether we are currently evaluating a branch within the scope.
@@ -174,9 +188,12 @@ impl Scope {
         self.env.len() == 1
     }
 
-    /// Inserts the value of a local variable into the hybrid variables map.
-    pub fn insert_local_var_value(&mut self, local_var_id: LocalVarId, value: Value) {
-        self.hybrid_vars.insert(local_var_id, value);
+    /// Updates the value of a hybrid local variable.
+    pub fn update_hybrid_local_value(&mut self, local_var_id: LocalVarId, value: Value) {
+        let Entry::Occupied(mut occupied) = self.hybrid_vars.entry(local_var_id) else {
+            panic!("local variable to update does not exist");
+        };
+        occupied.insert(value);
     }
 }
 

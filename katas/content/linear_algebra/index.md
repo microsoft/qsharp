@@ -320,13 +320,13 @@ Then:
 
 $$\overline{A} =
 \begin{bmatrix}
-    \overline x_{0,0} & \overline x_{0,1} & \dotsb & \overline x_{0,m-1} \\
-    \overline x_{1,0} & \overline x_{1,1} & \dotsb & \overline x_{1,m-1} \\
+    \overline{x}_{0,0} & \overline{x}_{0,1} & \dotsb & \overline{x}_{0,m-1} \\
+    \overline{x}_{1,0} & \overline{x}_{1,1} & \dotsb & \overline{x}_{1,m-1} \\
     \vdots & \vdots & \ddots & \vdots \\
-    \overline x_{n-1,0} & \overline x_{n-1,1} & \dotsb & \overline x_{n-1,m-1}
+    \overline{x}_{n-1,0} & \overline{x}_{n-1,1} & \dotsb & \overline{x}_{n-1,m-1}
 \end{bmatrix}$$
 
-> As a reminder, a conjugate of a complex number $x = a + bi$ is $\overline x = a - bi$.
+> As a reminder, a conjugate of a complex number $x = a + bi$ is $\overline{x} = a - bi$.
 
 The conjugate of a matrix product equals to the product of conjugates of the matrices:
 

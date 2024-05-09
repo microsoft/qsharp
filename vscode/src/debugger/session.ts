@@ -41,7 +41,7 @@ import {
 import { getRandomGuid } from "../utils";
 import { createDebugConsoleEventTarget } from "./output";
 import { ILaunchRequestArguments } from "./types";
-import { escapeHtml } from "markdown-it/lib/common/utils";
+import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import { isPanelOpen } from "../webviewPanel";
 
 const ErrorProgramHasErrors =

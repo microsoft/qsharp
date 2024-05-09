@@ -208,3 +208,31 @@ fn account_for_estimates_works() {
         "]],
     );
 }
+
+#[test]
+fn pauli_i_rotation_for_global_phase_is_noop() {
+    verify_logical_counts(
+        indoc! {"
+            namespace Test {
+                @EntryPoint()
+                operation Main() : Unit {
+                    use q = Qubit();
+                    T(q);
+                    R(PauliI, 1.0, q);
+                }
+            }
+        "},
+        None,
+        &expect![[r#"
+            LogicalResourceCounts {
+                num_qubits: 1,
+                t_count: 1,
+                rotation_count: 0,
+                rotation_depth: 0,
+                ccz_count: 0,
+                ccix_count: 0,
+                measurement_count: 0,
+            }
+        "#]],
+    );
+}

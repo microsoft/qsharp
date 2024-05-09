@@ -22,7 +22,7 @@ namespace Kata.Verification {
             for k in 0 .. N - 1 {
                 let sol = Kata.OrOfBitsExceptKth_Oracle(_, k);
                 let ref = OrOfBitsExceptKth_Oracle_Reference(_, k);
-                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+                let isCorrect = CheckOperationsAreEqualStrict(N, sol, ref);
 
                 if not isCorrect {
                     Message("Incorrect.");

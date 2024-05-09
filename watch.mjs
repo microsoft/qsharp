@@ -42,6 +42,8 @@ const libsDir = join(thisDir, "library");
 const vslsDir = join(thisDir, "language_service");
 const wasmDir = join(thisDir, "wasm");
 const npmDir = join(thisDir, "npm", "qsharp");
+const katasDir = join(thisDir, "katas");
+const samplesDir = join(thisDir, "samples");
 
 const isWin = process.platform === "win32";
 const npmCmd = isWin ? "npm.cmd" : "npm";
@@ -55,7 +57,7 @@ function buildRust() {
   const result = spawnSync(
     "wasm-pack",
     ["build", "--dev", "--no-pack", "--target", "web", "--out-dir", buildDir],
-    { cwd: wasmDir },
+    { cwd: wasmDir, shell: true },
   );
   console.log("wasm-pack done! ", result.stderr.toString());
 
@@ -98,6 +100,39 @@ onRustChange();
   subscribe(dir, onRustChange),
 );
 
+let katasBuildPending = false;
+function onKatasAndSamplesChange() {
+  if (katasBuildPending) return; // Already queued
+  katasBuildPending = true;
+  setTimeout(() => {
+    // The build task runs sychronously, so we can clear the timeout handle and
+    // run the build knowing that nothing will interleave with those operations
+    if (katasBuildPending) {
+      katasBuildPending = false;
+      buildKatasAndSamples();
+    }
+  }, buildDelayMs);
+}
+
+function buildKatasAndSamples() {
+  console.log("Recompiling katas and samples content");
+
+  const result = spawnSync(npmCmd, ["run", "generate"], {
+    cwd: npmDir,
+    shell: true,
+  });
+
+  console.log("Katas and samples recompiled!", result.stderr.toString());
+}
+
+// Do an initial build
+onKatasAndSamplesChange();
+
+// Watch the katas directories for code changes
+[katasDir, samplesDir].forEach((dir) =>
+  subscribe(dir, onKatasAndSamplesChange),
+);
+
 /**
  *
  * @param {string} dir
@@ -105,7 +140,10 @@ onRustChange();
  */
 function runWatcher(dir, name, watchTask = "tsc:watch") {
   console.log(`Spawning tsc:watch for ${name} in ${dir}`);
-  const npmWatcher = spawn(npmCmd, ["run", watchTask], { cwd: dir });
+  const npmWatcher = spawn(npmCmd, ["run", watchTask], {
+    cwd: dir,
+    shell: true,
+  });
   npmWatcher.stdout.on("data", (data) =>
     console.log(`tsc:watch ${name}: ${data}`),
   );
