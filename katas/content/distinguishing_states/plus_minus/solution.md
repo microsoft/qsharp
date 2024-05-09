@@ -11,7 +11,7 @@ Once we have the $\ket{0}$ or $\ket{1}$ state, we can use the same principle as 
     "codePath": "SolutionA.qs"
 })
 
-#### Alternate solution
+#### Alternative solution
 
 Another possible solution could be to measure in the Pauli $X$ basis ($\ket{+}, \ket{-}$ basis), this means a transformation with the $H$ gate before measurement is not needed. Again, measurement result `Zero` would correspond to state $\ket{+}$.
 
