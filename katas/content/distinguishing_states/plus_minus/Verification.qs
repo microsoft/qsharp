@@ -17,7 +17,7 @@ namespace Kata.Verification {
         let isCorrect = DistinguishTwoStates_SingleQubit(
             StatePrep_IsQubitPlus,
             Kata.IsQubitPlus,
-            ["|+⟩", "|-⟩"],
+            ["|-⟩", "|+⟩"],
             false
         );
         if isCorrect {
