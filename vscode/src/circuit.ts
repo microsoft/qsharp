@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 import { type Circuit as CircuitData } from "@microsoft/quantum-viz.js/lib";
-import { escapeHtml } from "markdown-it/lib/common/utils";
+import { escapeHtml } from "markdown-it/lib/common/utils.mjs";
 import {
   ICompilerWorker,
   IOperationInfo,

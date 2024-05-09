@@ -330,7 +330,7 @@ impl Default for Env {
 
 impl Env {
     #[must_use]
-    fn get(&self, id: LocalVarId) -> Option<&Variable> {
+    pub fn get(&self, id: LocalVarId) -> Option<&Variable> {
         self.0.iter().rev().find_map(|scope| scope.bindings.get(id))
     }
 
@@ -405,6 +405,13 @@ impl Env {
     #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn update_variable_in_top_frame(&mut self, local_var_id: LocalVarId, value: Value) {
+        let variable = self
+            .get_mut(local_var_id)
+            .expect("local variable is not present");
+        variable.value = value;
     }
 }
 
@@ -541,7 +548,6 @@ impl State {
         step: StepAction,
     ) -> Result<StepResult, (Error, Vec<Frame>)> {
         let current_frame = self.call_stack.len();
-
         while !self.exec_graph_stack.is_empty() {
             let exec_graph = self
                 .exec_graph_stack
@@ -686,7 +692,6 @@ impl State {
     ) -> Result<(), Error> {
         let expr = globals.get_expr((self.package, expr).into());
         self.current_span = expr.span;
-
         match &expr.kind {
             ExprKind::Array(arr) => self.eval_arr(arr.len()),
             ExprKind::ArrayLit(arr) => self.eval_arr_lit(arr, globals),
@@ -1419,7 +1424,7 @@ fn spec_from_functor_app(functor: FunctorApp) -> Spec {
     }
 }
 
-fn resolve_closure(
+pub fn resolve_closure(
     env: &Env,
     package: PackageId,
     span: Span,

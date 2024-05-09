@@ -311,7 +311,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     let mut updater = new_updater(&errors);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        target_profile: Some(Profile::Quantinuum),
+        target_profile: Some(Profile::AdaptiveRI),
         package_type: Some(PackageType::Lib),
     });
 

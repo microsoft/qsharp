@@ -8,41 +8,18 @@ namespace Microsoft.Quantum.Katas {
     open Microsoft.Quantum.Random;
 
     /// # Summary
-    /// Given two operations, checks whether they act identically for all input states.
-    /// This operation is implemented by using the Choi–Jamiołkowski isomorphism.
-    operation CheckOperationsEquivalence(
-        op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
-    : Bool {
-        Fact(inputSize > 0, "`inputSize` must be positive");
-        use (control, target) = (Qubit[inputSize], Qubit[inputSize]);
-        within {
-            EntangleRegisters(control, target);
-        }
-        apply {
-            op(target);
-            Adjoint reference(target);
-        }
-
-        let areEquivalent = CheckAllZero(control + target);
-        ResetAll(control + target);
-        areEquivalent
-    }
-
-    /// # Summary
     /// Given two operations, checks whether they act identically (including global phase) for all input states.
     /// This is done through controlled versions of the operations instead of plain ones which convert the global phase
     /// into a relative phase that can be detected.
-    operation CheckOperationsEquivalenceStrict(
+    operation CheckOperationsAreEqualStrict(
+        inputSize : Int,
         op : (Qubit[] => Unit is Adj + Ctl),
-        reference : (Qubit[] => Unit is Adj + Ctl),
-        inputSize : Int)
+        reference : (Qubit[] => Unit is Adj + Ctl))
     : Bool {
         Fact(inputSize > 0, "`inputSize` must be positive");
         let controlledOp = register => Controlled op(register[...0], register[1...]);
         let controlledReference = register => Controlled reference(register[...0], register[1...]);
-        let areEquivalent = CheckOperationsEquivalence(controlledOp, controlledReference, inputSize + 1);
+        let areEquivalent = CheckOperationsAreEqual(inputSize + 1, controlledOp, controlledReference);
         areEquivalent
     }
 
