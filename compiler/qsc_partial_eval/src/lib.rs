@@ -1118,7 +1118,10 @@ impl<'a> PartialEvaluator<'a> {
         // Intrinsic callables that make it to this point are expected to be unitary.
         if callable_decl.output != Ty::UNIT {
             return Err(Error::Unexpected(
-                format!("dynamic call to intrinsic `{}`", callable_decl.name.name),
+                format!(
+                    "dynamic call to non-Unit intrinsic `{}`",
+                    callable_decl.name.name
+                ),
                 callee_expr_span,
             ));
         }
