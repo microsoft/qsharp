@@ -287,8 +287,8 @@ impl<'a> PartialEvaluator<'a> {
         &mut self,
         bin_op: BinOp,
         lhs_value: Value,
-        lhs_span: Span,
         rhs_expr_id: ExprId,
+        lhs_span: Span,         // For diagnostic purposes only.
         bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
         // Evaluate the binary operation differently depending on the LHS value variant.
@@ -299,10 +299,12 @@ impl<'a> PartialEvaluator<'a> {
                 rhs_expr_id,
                 bin_op_expr_span,
             ),
-            Value::Result(_lhs_result) => Err(Error::Unimplemented(
-                "result binary operation".to_string(),
-                lhs_span,
-            )),
+            Value::Result(lhs_result) => self.eval_bin_op_with_lhs_result_operand(
+                bin_op,
+                lhs_result,
+                rhs_expr_id,
+                bin_op_expr_span,
+            ),
             Value::Bool(_lhs_bool) => Err(Error::Unimplemented(
                 "bool binary operation".to_string(),
                 lhs_span,
@@ -389,8 +391,31 @@ impl<'a> PartialEvaluator<'a> {
         // Get the operands to use when generating the binary operation instruction.
         let lhs_operand = self.eval_result_as_bool_operand(lhs_result);
         let rhs_operand = self.eval_result_as_bool_operand(rhs_result);
-        // TODO (cesarzc): keep implementing.
-        unimplemented!();
+
+        // Create a variable to store the result of the expression.
+        let variable_id = self.resource_manager.next_var();
+        let rir_variable = rir::Variable {
+            variable_id,
+            ty: rir::Ty::Boolean, // Binary operations between results are always Boolean.
+        };
+
+        // Create the binary operation instruction and add it to the current block.
+        let condition_code = match bin_op {
+            BinOp::Eq => ConditionCode::Eq,
+            BinOp::Neq => ConditionCode::Ne,
+            _ => {
+                return Err(Error::Unexpected(
+                    format!("invalid binary operator for Result operands: {bin_op:?})"),
+                    bin_op_expr_span,
+                ))
+            }
+        };
+        let instruction = Instruction::Icmp(condition_code, lhs_operand, rhs_operand, rir_variable);
+        self.get_current_rir_block_mut().0.push(instruction);
+
+        // Return the variable as a value.
+        let value = Value::Var(map_rir_var_to_eval_var(rir_variable));
+        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
@@ -471,7 +496,7 @@ impl<'a> PartialEvaluator<'a> {
                 self.eval_expr_assign_op(*bin_op, *lhs_expr_id, *rhs_expr_id, expr.span)
             }
             ExprKind::BinOp(bin_op, lhs_expr_id, rhs_expr_id) => {
-                self.eval_expr_bin_op(expr_id, *bin_op, *lhs_expr_id, *rhs_expr_id)
+                self.eval_expr_bin_op(*bin_op, *lhs_expr_id, *rhs_expr_id, expr.span)
             }
             ExprKind::Block(block_id) => self.try_eval_block(*block_id),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
@@ -654,12 +679,12 @@ impl<'a> PartialEvaluator<'a> {
         let bin_op_control_flow = self.eval_bin_op(
             bin_op,
             lhs_value,
-            lhs_expr.span,
             rhs_expr_id,
+            lhs_expr.span,
             bin_op_expr_span,
         )?;
         let EvalControlFlow::Continue(bin_op_value) = bin_op_control_flow else {
-            panic!("evaluating a binary operation is expected to return an error or a continue, never a return");
+            panic!("evaluating a binary operation is expected to result in an error or a continue, but never in a return");
         };
         self.update_bindings(lhs_expr_id, bin_op_value)?;
         Ok(EvalControlFlow::Continue(Value::unit()))
@@ -668,71 +693,31 @@ impl<'a> PartialEvaluator<'a> {
     #[allow(clippy::similar_names)]
     fn eval_expr_bin_op(
         &mut self,
-        bin_op_expr_id: ExprId,
         bin_op: BinOp,
         lhs_expr_id: ExprId,
         rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
     ) -> Result<EvalControlFlow, Error> {
-        // Try to evaluate both the LHS and RHS expressions to get their value, short-circuiting execution if any of the
-        // expressions is a return.
+        // Try to evaluate the LHS expression and get its value, short-circuiting execution if it is a return.
         let lhs_control_flow = self.try_eval_expr(lhs_expr_id)?;
-        if lhs_control_flow.is_return() {
+        let EvalControlFlow::Continue(lhs_value) = lhs_control_flow else {
             let lhs_expr = self.get_expr(lhs_expr_id);
             return Err(Error::Unexpected(
                 "embedded return in binary operation".to_string(),
                 lhs_expr.span,
             ));
-        }
-        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-        if rhs_control_flow.is_return() {
-            let rhs_expr = self.get_expr(rhs_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in binary operation".to_string(),
-                rhs_expr.span,
-            ));
-        }
-
-        // Get the operands to use when generating the binary operation instruction depending on the type of the
-        // expression's value.
-        let lhs_value = lhs_control_flow.into_value();
-        let lhs_operand = if let Value::Result(result) = lhs_value {
-            self.eval_result_as_bool_operand(result)
-        } else {
-            map_eval_value_to_rir_operand(&lhs_value)
-        };
-        let rhs_value = rhs_control_flow.into_value();
-        let rhs_operand = if let Value::Result(result) = rhs_value {
-            self.eval_result_as_bool_operand(result)
-        } else {
-            map_eval_value_to_rir_operand(&rhs_value)
         };
 
-        // Create a variable to store the result of the expression.
-        let bin_op_expr = self.get_expr(bin_op_expr_id);
-        let variable_id = self.resource_manager.next_var();
-        let variable_ty = map_fir_type_to_rir_type(&bin_op_expr.ty);
-        let variable = rir::Variable {
-            variable_id,
-            ty: variable_ty,
-        };
-
-        // Create the binary operation instruction and add it to the current block.
-        let instruction = match bin_op {
-            BinOp::Eq => Instruction::Icmp(ConditionCode::Eq, lhs_operand, rhs_operand, variable),
-            BinOp::Neq => Instruction::Icmp(ConditionCode::Ne, lhs_operand, rhs_operand, variable),
-            _ => {
-                return Err(Error::Unimplemented(
-                    format!("BinOp Expr ({bin_op:?})"),
-                    bin_op_expr.span,
-                ))
-            }
-        };
-        let current_block = self.get_current_rir_block_mut();
-        current_block.0.push(instruction);
-
-        // Return the variable as a value.
-        let value = Value::Var(map_rir_var_to_eval_var(variable));
-        Ok(EvalControlFlow::Continue(value))
+        // Now that we have a LHS value, evaluate the binary operation, which will properly consider short-circuiting
+        // logic in the case of Boolean operations.
+        let lhs_expr = self.get_expr(lhs_expr_id);
+        self.eval_bin_op(
+            bin_op,
+            lhs_value,
+            rhs_expr_id,
+            lhs_expr.span,
+            bin_op_expr_span,
+        )
     }
 
     fn eval_expr_call(

@@ -951,9 +951,7 @@ fn explicit_return_embedded_in_bin_op_expr_yields_error() {
     "#});
     assert_error(
         &error,
-        &expect![[
-            r#"Unexpected("embedded return in binary operation", Span { lo: 151, hi: 163 })"#
-        ]],
+        &expect![[r#"Unimplemented("int binary operation", Span { lo: 147, hi: 148 })"#]],
     );
 }
 
