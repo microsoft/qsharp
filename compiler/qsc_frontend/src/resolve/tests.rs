@@ -1984,6 +1984,7 @@ fn use_unbound_generic() {
         "#]],
     );
 }
+
 #[test]
 fn resolve_local_generic() {
     check(
@@ -2749,6 +2750,7 @@ namespace Foo.Bar.Baz {
         "#]],
     );
 }
+
 #[test]
 fn basic_hierarchical_namespace() {
     check(
@@ -2821,5 +2823,39 @@ namespace Kata.Verification {
                 operation item4() : Unit {}
             }
         "#]],
+    );
+}
+
+#[test]
+fn open_can_access_parent_scope() {
+    check(
+        indoc! {r#"
+namespace Foo.Bar {
+    operation Hello() : Unit {
+
+    }
+}
+
+namespace Foo {
+    open Bar;
+    @EntryPoint()
+    operation Main() : Unit {
+        Hello();
+    }
+}"#},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item1() : Unit {
+
+                }
+            }
+
+            namespace namespace7 {
+                open Bar;
+                @EntryPoint()
+                operation item3() : Unit {
+                    item1();
+                }
+            }"#]],
     );
 }
