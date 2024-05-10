@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{file_name_to_namespace_name, parse, parse_attr, parse_spec_decl};
+use super::{source_name_to_namespace_name, parse, parse_attr, parse_spec_decl};
 use crate::{
     scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
@@ -48,7 +48,7 @@ fn test_file_name_to_namespace_name() {
     let raw = "foo/bar.qs";
     let error_span = Span::default();
     let namespace =
-        file_name_to_namespace_name(raw, error_span).expect("test should not fail here");
+        source_name_to_namespace_name(raw, error_span).expect("test should not fail here");
     assert_eq!(namespace.0.len(), 2);
     assert_eq!(&*namespace.0[0].name, "foo");
     assert_eq!(&*namespace.0[1].name, "bar");
