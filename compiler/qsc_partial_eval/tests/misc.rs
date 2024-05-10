@@ -7,7 +7,10 @@ pub mod test_utils;
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{BlockId, CallableId};
+use qsc_rir::{
+    passes::check_and_transform,
+    rir::{BlockId, CallableId},
+};
 use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
 
 #[test]
@@ -247,4 +250,57 @@ fn integer_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
                 Variable(0, Integer) = Store Integer(5)
                 Jump(1)"#]],
     );
+}
+
+// SSA panic.
+#[test]
+fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
+    let mut program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use qubit = Qubit();
+                mutable i = 0;
+                for idxBit in 0..1 {
+                    if (MResetZ(qubit) == One) {
+                        set i |||= 1 <<< idxBit;
+                    }
+                }
+                return i;
+            }
+        }
+        "#,
+    });
+    assert_blocks(
+        &program,
+        &expect![[r#"
+            Blocks:
+            Block 0:Block:
+                Variable(0, Integer) = Store Integer(0)
+                Variable(1, Integer) = Store Integer(0)
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(2, Boolean) = Call id(2), args( Result(0), )
+                Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+                Branch Variable(3, Boolean), 2, 1
+            Block 1:Block:
+                Variable(1, Integer) = Store Integer(1)
+                Call id(1), args( Qubit(0), Result(1), )
+                Variable(5, Boolean) = Call id(2), args( Result(1), )
+                Variable(6, Boolean) = Icmp Eq, Variable(5, Boolean), Bool(true)
+                Branch Variable(6, Boolean), 4, 3
+            Block 2:Block:
+                Variable(4, Integer) = BitwiseOr Variable(0, Integer), Integer(1)
+                Variable(0, Integer) = Store Variable(4, Integer)
+                Jump(1)
+            Block 3:Block:
+                Variable(1, Integer) = Store Integer(2)
+                Call id(3), args( Variable(0, Integer), Pointer, )
+                Return
+            Block 4:Block:
+                Variable(7, Integer) = BitwiseOr Variable(0, Integer), Integer(2)
+                Variable(0, Integer) = Store Variable(7, Integer)
+                Jump(3)"#]],
+    );
+    check_and_transform(&mut program);
 }
