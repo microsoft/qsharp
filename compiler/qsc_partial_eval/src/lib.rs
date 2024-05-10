@@ -725,11 +725,6 @@ impl<'a> PartialEvaluator<'a> {
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        let call_expr_compute_kind = self.get_expr_compute_kind(call_expr_id);
-        let call_was_unresolved = matches!(call_expr_compute_kind, ComputeKind::Quantum(QuantumProperties {
-                runtime_features, ..
-            }) if runtime_features.contains(RuntimeFeatureFlags::CallToUnresolvedCallee));
-
         let (callee_control_flow, args_control_flow) =
             self.try_eval_callee_and_args(callee_expr_id, args_expr_id)?;
 
@@ -790,6 +785,10 @@ impl<'a> PartialEvaluator<'a> {
         // Now that we are in evaluation, we have a distinct callable resolved and can perform runtime capability check
         // ahead of performing the actual call and return the appropriate capabilities error if this call is not supported
         // by the target.
+        let call_expr_compute_kind = self.get_expr_compute_kind(call_expr_id);
+        let call_was_unresolved = matches!(call_expr_compute_kind, ComputeKind::Quantum(QuantumProperties {
+                runtime_features, ..
+            }) if runtime_features.contains(RuntimeFeatureFlags::CallToUnresolvedCallee));
         if call_was_unresolved {
             let call_compute_kind = self.get_call_compute_kind(&call_scope);
             if let ComputeKind::Quantum(QuantumProperties {
