@@ -1,4 +1,4 @@
-**Input:** A qubit in an arbitrary state $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$.
+**Input:** A qubit in an arbitrary state $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$.
 
 **Goal:** Use several phase shift gates to apply the transformation represented by the following matrix to the given qubit:
 

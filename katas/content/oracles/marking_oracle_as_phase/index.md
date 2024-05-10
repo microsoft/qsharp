@@ -5,7 +5,7 @@
   
 **Goal:**
 
-Flip the phase of each basis state $|x\rangle$ for which $f(x) = 1$. You can only access $f(x)$ via the marking oracle you are given.
+Flip the phase of each basis state $\ket{x}$ for which $f(x) = 1$. You can only access $f(x)$ via the marking oracle you are given.
 
 <br/>
 <details>
