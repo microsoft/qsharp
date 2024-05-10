@@ -2,7 +2,7 @@ Recall that this state is the Bell state that we have already seen in "Multi-Qub
 
 The solution takes two steps:
 
-1. Apply Hadamard gate on first qubit to get the state: $\big(\frac{1}{\sqrt{2}}|0\rangle + \frac{1}{\sqrt{2}}|1\rangle\big) \otimes |0\rangle$.
+1. Apply Hadamard gate on first qubit to get the state: $\big(\frac{1}{\sqrt{2}} \ket{0} + \frac{1}{\sqrt{2}} \ket{1} \big) \otimes \ket{0}$.
 2. Apply a $CNOT$ gate with the first qubit as the control and the second qubit as the target.
 
 @[solution]({

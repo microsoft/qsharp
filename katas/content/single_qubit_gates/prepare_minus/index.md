@@ -1,3 +1,3 @@
-**Input:** A qubit in state $|0\rangle$.
+**Input:** A qubit in state $\ket{0}$.
 
-**Goal:** Transform the qubit into state $|-\rangle$.
+**Goal:** Transform the qubit into state $\ket{-}$.

@@ -1,5 +1,5 @@
-We know that applying the Hadamard gate $H$ on the computational basis states $|0\rangle$ and $|1\rangle$ results in Hadamard basis states $|+\rangle$ and $|-\rangle$, respectively.
-We are given a qubit in the state $|0\rangle$. We first apply the Pauli $X$ gate to turn it into $X|0\rangle=|1\rangle$, and then apply the $H$ gate, turning the qubit into the required $H|1\rangle=|-\rangle$ state.
+We know that applying the Hadamard gate $H$ on the computational basis states $\ket{0}$ and $\ket{1}$ results in Hadamard basis states $\ket{+}$ and $\ket{-}$, respectively.
+We are given a qubit in the state $\ket{0}$. We first apply the Pauli $X$ gate to turn it into $X\ket{0}=\ket{1}$, and then apply the $H$ gate, turning the qubit into the required $H\ket{1}=\ket{-}$ state.
 
 @[solution]({
     "id": "single_qubit_gates__prepare_minus_solution",

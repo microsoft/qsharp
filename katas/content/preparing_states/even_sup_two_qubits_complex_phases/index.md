@@ -1,6 +1,6 @@
-**Input:** Two qubits in the $|00\rangle$ state (stored in an array of length 2).
+**Input:** Two qubits in the $\ket{00}$ state (stored in an array of length 2).
 
-**Goal:** Change the state of the qubits to $\frac{1}{2} \big(|00\rangle + i|01\rangle - |10\rangle - i|11\rangle\big)$.
+**Goal:** Change the state of the qubits to $\frac{1}{2} \big(\ket{00} + i\ket{01} - \ket{10} - i\ket{11}\big)$.
 
 <br/>
 <details>

@@ -36,7 +36,7 @@ $$
  \begin{bmatrix}
  \alpha \\ \beta \\ \gamma \\ \delta \\ \epsilon \\ \zeta \\ \color{red}\theta \\ \color{red}\eta
  \end{bmatrix}=
-\alpha |000\rangle + \beta |001\rangle + \gamma |010\rangle + \delta |011\rangle + \epsilon |100\rangle + \zeta|101\rangle + {\color{red}\theta}|110\rangle + {\color{red}\eta}|111\rangle
+\alpha \ket{000} + \beta \ket{001} + \gamma \ket{010} + \delta \ket{011} + \epsilon \ket{100} + \zeta\ket{101} + {\color{red}\theta}\ket{110} + {\color{red}\eta}\ket{111}
 $$
 
 @[solution]({
