@@ -23,8 +23,8 @@ declare global {
 }
 
 window.MathJax = {
-  loader: { 
-    load: ["[tex]/color", "[tex]/braket"]
+  loader: {
+    load: ["[tex]/color", "[tex]/braket"],
   },
   tex: {
     packages: { "[+]": ["color", "braket"] },
@@ -186,7 +186,7 @@ async function onload() {
   }
 
   // Handle back/forward navigation
-  window.addEventListener('popstate', () => {
+  window.addEventListener("popstate", () => {
     loadFromUrl();
   });
 
@@ -194,14 +194,13 @@ async function onload() {
     let kataIndex = 0;
     if (window.location.hash) {
       const kataId = window.location.hash.slice(1);
-      kataIndex = katas.findIndex(kata => kata.id === kataId);
+      kataIndex = katas.findIndex((kata) => kata.id === kataId);
     }
     if (kataIndex < 0) kataIndex = 0;
-  
+
     onRender(kataIndex);
   }
 
   // Do initial load
   loadFromUrl();
-
 }
