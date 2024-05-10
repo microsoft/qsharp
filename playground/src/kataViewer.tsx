@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import "preact/debug"; // TODO: Remove this line from production builds
+// import "preact/debug"; // Include this line only when debugging rendering
 
 import { render } from "preact";
 import { useEffect } from "preact/hooks";
@@ -24,9 +23,11 @@ declare global {
 }
 
 window.MathJax = {
-  loader: { load: ["[tex]/physics", "[tex]/color"] },
+  loader: { 
+    load: ["[tex]/color", "[tex]/braket"]
+  },
   tex: {
-    packages: { "[+]": ["physics", "color"] },
+    packages: { "[+]": ["color", "braket"] },
     inlineMath: [
       ["$", "$"],
       ["\\(", "\\)"],
@@ -76,11 +77,14 @@ function Nav(props: {
 function KataEl(props: { kata: Kata }) {
   useEffect(() => {
     window.hljs.highlightAll();
-    window.MathJax.typeset();
-  });
+    window.MathJax.texReset();
+    window.MathJax.typesetClear();
+    window.MathJax.typesetPromise([".content"]);
+  }, [props.kata.id]);
   window.scrollTo(0, 0);
   return (
-    <div class="content">
+    <div class="content" key={props.kata.id}>
+      <div id="errors"></div>
       <h1>{props.kata.title}</h1>
       {props.kata.sections.map((section) =>
         section.type === "lesson" ? (
@@ -177,116 +181,3 @@ async function onload() {
 
   onNav(0);
 }
-
-// async function _old_onload() {
-//   const katas = await getAllKatas();
-
-//   const indexDiv = document.createElement("div");
-//   document.body.appendChild(indexDiv);
-//   const indexKatas = document.createElement("ul");
-//   indexDiv.appendChild(indexKatas);
-
-//   katas.forEach((kata) => {
-//     const kataLi = document.createElement("li");
-//     kataLi.innerHTML = `<a href="#kata-${kata.id}">${kata.title}</a>`;
-//     indexKatas.appendChild(kataLi);
-
-//     document.body.appendChild(getKataDiv(kata, indexKatas));
-//   });
-//   document.querySelectorAll("details").forEach((item) => (item.open = true));
-//   document
-//     .querySelectorAll("code")
-//     .forEach((item) => (item.className = "qsharp"));
-//   window.hljs.highlightAll();
-// }
-
-// function getKataDiv(kata: Kata, index: HTMLElement) {
-//   const kataDiv = document.createElement("div");
-//   const kataHeader = document.createElement("h1");
-//   kataHeader.innerText = kata.title;
-//   kataHeader.id = `kata-${kata.id}`;
-//   kataDiv.appendChild(kataHeader);
-
-//   const sectionIndex = document.createElement("ul");
-//   index.appendChild(sectionIndex);
-
-//   kata.sections.forEach((section) => {
-//     const sectionDiv = document.createElement("div");
-//     const sectionHeader = document.createElement("h2");
-//     sectionHeader.innerText = section.title;
-//     const sectionId = `section-${section.id}`;
-//     sectionHeader.id = sectionId;
-//     sectionDiv.appendChild(sectionHeader);
-
-//     const sectionLi = document.createElement("li");
-//     sectionLi.innerHTML = `<a href="#${sectionId}">${section.title}</a>`;
-//     sectionIndex.appendChild(sectionLi);
-
-//     if (section.type === "lesson") {
-//       section.items.forEach((item) => {
-//         switch (item.type) {
-//           case "text-content": {
-//             const content = document.createElement("div");
-//             content.innerHTML = item.asHtml;
-//             sectionDiv.appendChild(content);
-//             break;
-//           }
-//           case "question": {
-//             const questionHeader = document.createElement("h3");
-//             questionHeader.innerHTML = `Question`;
-//             sectionDiv.appendChild(questionHeader);
-//             const questionBody = document.createElement("div");
-//             questionBody.innerHTML = item.description.asHtml;
-//             sectionDiv.appendChild(questionBody);
-//             const answerHeader = document.createElement("h3");
-//             answerHeader.innerHTML = `Answer`;
-//             sectionDiv.appendChild(answerHeader);
-//             item.answer.items.forEach((item) => addContent(item, sectionDiv));
-//             break;
-//           }
-//           case "example": {
-//             const code = document.createElement("pre");
-//             code.innerHTML = `<code>${item.code}</code>`;
-//             sectionDiv.appendChild(code);
-//             break;
-//           }
-//         }
-//       });
-//     } else {
-//       // Exercise
-//       const exerciseHeader = document.createElement("h3");
-//       exerciseHeader.innerHTML = `Exercise: <u>${section.title}</u>`;
-//       sectionDiv.appendChild(exerciseHeader);
-//       const exerciseDesc = document.createElement("div");
-//       exerciseDesc.innerHTML = section.description.asHtml;
-//       sectionDiv.appendChild(exerciseDesc);
-
-//       const codeDiv = document.createElement("pre");
-//       codeDiv.innerHTML = `<code>${section.placeholderCode}</code>`;
-//       sectionDiv.appendChild(codeDiv);
-
-//       const solutionHeader = document.createElement("h4");
-//       solutionHeader.innerHTML = `Solution`;
-//       sectionDiv.appendChild(solutionHeader);
-
-//       section.explainedSolution.items.forEach((item) =>
-//         addContent(item, sectionDiv),
-//       );
-//     }
-//     kataDiv.appendChild(sectionDiv);
-//   });
-//   return kataDiv;
-// }
-
-// function addContent(item: ExplainedSolutionItem, sectionDiv: HTMLDivElement) {
-//   if (item.type === "text-content") {
-//     const contentDiv = document.createElement("div");
-//     contentDiv.innerHTML = item.asHtml;
-//     sectionDiv.appendChild(contentDiv);
-//   } else {
-//     // example or solution
-//     const codeDiv = document.createElement("pre");
-//     codeDiv.innerHTML = `<code>${item.code}</code>`;
-//     sectionDiv.appendChild(codeDiv);
-//   }
-// }
