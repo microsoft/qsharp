@@ -101,7 +101,7 @@ async fn clear_error() {
 }
 
 #[tokio::test]
-async fn close_last_doc_in_project() {
+    async fn close_last_doc_in_project() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&received_errors);
 
@@ -116,7 +116,7 @@ async fn close_last_doc_in_project() {
         .update_document(
             "project/src/this_file.qs",
             1,
-            "/* this should not show up in the final state */ we should not see compile errors",
+            "namespace Foo.Bar { operation Main() : Unit { 5 }  }",
         )
         .await;
 
@@ -156,7 +156,37 @@ async fn close_last_doc_in_project() {
             }
         "#]],
         &expect![[r#"
-            []
+            [
+                (
+                    "project/src/this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Type(
+                                    Error(
+                                        TyMismatch(
+                                            "Unit",
+                                            "Int",
+                                            Span {
+                                                lo: 105,
+                                                hi: 106,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "project/src/this_file.qs",
+                    None,
+                    [],
+                ),
+            ]
         "#]],
     );
     updater.close_document("project/src/other_file.qs").await;
@@ -941,7 +971,7 @@ async fn close_doc_prioritizes_fs() {
         .update_document(
             "project/src/this_file.qs",
             1,
-            "/* this should not show up in the final state */ we should not see compile errors",
+            "namespace Foo.Bar { @EntryPoint() operation Main() : NotAType {} }",
         )
         .await;
 
@@ -980,7 +1010,34 @@ async fn close_doc_prioritizes_fs() {
             }
         "#]],
         &expect![[r#"
-            []
+            [
+                (
+                    "project/src/this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Resolve(
+                                    NotFound(
+                                        "NotAType",
+                                        Span {
+                                            lo: 112,
+                                            hi: 120,
+                                        },
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "project/src/this_file.qs",
+                    None,
+                    [],
+                ),
+            ]
         "#]],
     );
 }
