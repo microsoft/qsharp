@@ -435,17 +435,25 @@ impl<'a> PartialEvaluator<'a> {
             (BinOp::AndL | BinOp::OrL | BinOp::Eq | BinOp::Neq, _) => {
                 // Try to evaluate the RHS expression to get its value.
                 let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-                let EvalControlFlow::Continue(Value::Var(rhs_eval_var)) = rhs_control_flow else {
+                let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
                     let rhs_expr = self.get_expr(rhs_expr_id);
                     return Err(Error::Unexpected(
-                        "expected var from RHS expression".to_string(),
+                        "embedded return in RHS expression".to_string(),
                         rhs_expr.span,
                     ));
                 };
-                assert!(
-                    matches!(rhs_eval_var.ty, VarTy::Boolean),
-                    "expected var to be boolean"
-                );
+
+                // Create the operands.
+                let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
+                let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+
+                // If both operands are literals, evaluate the binary operation and return its value.
+                if let (Operand::Literal(lhs_literal), Operand::Literal(rhs_literal)) =
+                    (lhs_operand, rhs_operand)
+                {
+                    let value = eval_bin_op_with_bool_literals(bin_op, lhs_literal, rhs_literal);
+                    return Ok(EvalControlFlow::Continue(value));
+                }
 
                 // Generate the specific instruction depending on the operand.
                 let bin_op_variable_id = self.resource_manager.next_var();
@@ -453,8 +461,6 @@ impl<'a> PartialEvaluator<'a> {
                     variable_id: bin_op_variable_id,
                     ty: rir::Ty::Boolean,
                 };
-                let lhs_operand = Operand::Literal(Literal::Bool(lhs_bool));
-                let rhs_operand = Operand::Variable(map_eval_var_to_rir_var(rhs_eval_var));
                 let bin_op_ins = match bin_op {
                     BinOp::AndL => {
                         Instruction::LogicalAnd(lhs_operand, rhs_operand, bin_op_rir_variable)
@@ -481,6 +487,63 @@ impl<'a> PartialEvaluator<'a> {
             }
             _ => panic!("unsupported binary operation for bools: {bin_op:?}"),
         };
+        Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn eval_bin_op_with_lhs_integer_operand(
+        &mut self,
+        bin_op: BinOp,
+        lhs_operand: Operand,
+        rhs_expr_id: ExprId,
+        bin_op_expr_span: Span, // For diagnostic purposes only.
+    ) -> Result<EvalControlFlow, Error> {
+        assert!(
+            matches!(lhs_operand.get_type(), rir::Ty::Integer),
+            "LHS is expected to be of integer type"
+        );
+
+        // Try to evaluate the RHS expression to get its value and construct its operand.
+        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+            let rhs_expr = self.get_expr(rhs_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in RHS expression".to_string(),
+                rhs_expr.span,
+            ));
+        };
+        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
+        assert!(
+            matches!(rhs_operand.get_type(), rir::Ty::Integer),
+            "LHS value is expected to be of integer type"
+        );
+
+        // If both operands are literals, evaluate the binary operation and return its value.
+        if let (Operand::Literal(lhs_literal), Operand::Literal(rhs_literal)) =
+            (lhs_operand, rhs_operand)
+        {
+            let value = eval_bin_op_with_integer_literals(
+                bin_op,
+                lhs_literal,
+                rhs_literal,
+                bin_op_expr_span,
+            )?;
+            return Ok(EvalControlFlow::Continue(value));
+        }
+
+        // Create the variable ID, create the instruction and insert it.
+        let bin_op_variable_id = self.resource_manager.next_var();
+        let (bin_op_rir_variable, bin_op_rir_ins) =
+            create_instruction_for_binary_operation_with_integer_operands(
+                bin_op,
+                lhs_operand,
+                rhs_operand,
+                bin_op_variable_id,
+                bin_op_expr_span,
+            )?;
+
+        // Insert the instruction.
+        self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
+        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable));
         Ok(EvalControlFlow::Continue(value))
     }
 
@@ -511,50 +574,6 @@ impl<'a> PartialEvaluator<'a> {
                 bin_op_expr_span,
             )),
         }
-    }
-
-    fn eval_bin_op_with_lhs_integer_operand(
-        &mut self,
-        bin_op: BinOp,
-        lhs_operand: Operand,
-        rhs_expr_id: ExprId,
-        bin_op_expr_span: Span, // For diagnostic purposes only.
-    ) -> Result<EvalControlFlow, Error> {
-        assert!(
-            matches!(lhs_operand.get_type(), rir::Ty::Integer),
-            "LHS is expected to be of integer type"
-        );
-
-        // Try to evaluate the RHS expression to get its value and construct its operand.
-        let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
-        let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
-            let rhs_expr = self.get_expr(rhs_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in RHS expression".to_string(),
-                rhs_expr.span,
-            ));
-        };
-        let rhs_operand = map_eval_value_to_rir_operand(&rhs_value);
-        assert!(
-            matches!(rhs_operand.get_type(), rir::Ty::Integer),
-            "LHS value is expected to be of integer type"
-        );
-
-        // Create the variable ID, create the instruction and insert it.
-        let bin_op_variable_id = self.resource_manager.next_var();
-        let (bin_op_rir_variable, bin_op_rir_ins) =
-            create_instruction_for_binary_operation_with_integer_operands(
-                bin_op,
-                lhs_operand,
-                rhs_operand,
-                bin_op_variable_id,
-                bin_op_expr_span,
-            )?;
-
-        // Insert the instruction.
-        self.get_current_rir_block_mut().0.push(bin_op_rir_ins);
-        let value = Value::Var(map_rir_var_to_eval_var(bin_op_rir_variable));
-        Ok(EvalControlFlow::Continue(value))
     }
 
     fn eval_classical_expr(&mut self, expr_id: ExprId) -> Result<EvalControlFlow, Error> {
@@ -2194,6 +2213,89 @@ fn create_instruction_for_binary_operation_with_integer_operands(
         _ => panic!("unsupported binary operation for integers: {bin_op:?}"),
     };
     Ok((rir_variable, rir_ins))
+}
+
+fn eval_bin_op_with_bool_literals(
+    bin_op: BinOp,
+    lhs_literal: Literal,
+    rhs_literal: Literal,
+) -> Value {
+    let (Literal::Bool(lhs_bool), Literal::Bool(rhs_bool)) = (lhs_literal, rhs_literal) else {
+        panic!("at least one literal is not bool: {lhs_literal}, {rhs_literal}");
+    };
+
+    let bin_op_result = match bin_op {
+        BinOp::Eq => lhs_bool == rhs_bool,
+        BinOp::Neq => lhs_bool != rhs_bool,
+        BinOp::AndL => lhs_bool && rhs_bool,
+        BinOp::OrL => lhs_bool || rhs_bool,
+        _ => panic!("invalid bool operator: {bin_op:?}"),
+    };
+    Value::Bool(bin_op_result)
+}
+
+fn eval_bin_op_with_integer_literals(
+    bin_op: BinOp,
+    lhs_literal: Literal,
+    rhs_literal: Literal,
+    bin_op_expr_span: Span, // For diagnostic purposes only
+) -> Result<Value, Error> {
+    fn eval_integer_div(lhs_int: i64, rhs_int: i64, span: Span) -> Result<Value, Error> {
+        match (lhs_int, rhs_int) {
+            (_, 0) => Err(Error::EvaluationFailed(
+                "division by zero".to_string(),
+                span,
+            )),
+            (lhs, rhs) => Ok(Value::Int(lhs / rhs)),
+        }
+    }
+
+    fn eval_integer_mod(lhs_int: i64, rhs_int: i64, span: Span) -> Result<Value, Error> {
+        match (lhs_int, rhs_int) {
+            (_, 0) => Err(Error::EvaluationFailed(
+                "division by zero".to_string(),
+                span,
+            )),
+            (lhs, rhs) => Ok(Value::Int(lhs % rhs)),
+        }
+    }
+
+    fn eval_integer_exp(lhs_int: i64, rhs_int: i64, span: Span) -> Result<Value, Error> {
+        let Ok(rhs_int_as_u32) = u32::try_from(rhs_int) else {
+            return Err(Error::EvaluationFailed(
+                "invalid exponent".to_string(),
+                span,
+            ));
+        };
+
+        Ok(Value::Int(lhs_int.pow(rhs_int_as_u32)))
+    }
+
+    // Validate that both literals are integers.
+    let (Literal::Integer(lhs_int), Literal::Integer(rhs_int)) = (lhs_literal, rhs_literal) else {
+        panic!("at least one literal is not an integer: {lhs_literal}, {rhs_literal}");
+    };
+
+    match bin_op {
+        BinOp::Eq => Ok(Value::Bool(lhs_int == rhs_int)),
+        BinOp::Neq => Ok(Value::Bool(lhs_int != rhs_int)),
+        BinOp::Gt => Ok(Value::Bool(lhs_int > rhs_int)),
+        BinOp::Gte => Ok(Value::Bool(lhs_int >= rhs_int)),
+        BinOp::Lt => Ok(Value::Bool(lhs_int < rhs_int)),
+        BinOp::Lte => Ok(Value::Bool(lhs_int <= rhs_int)),
+        BinOp::Add => Ok(Value::Int(lhs_int + rhs_int)),
+        BinOp::Sub => Ok(Value::Int(lhs_int - rhs_int)),
+        BinOp::Mul => Ok(Value::Int(lhs_int * rhs_int)),
+        BinOp::Div => eval_integer_div(lhs_int, rhs_int, bin_op_expr_span),
+        BinOp::Mod => eval_integer_mod(lhs_int, rhs_int, bin_op_expr_span),
+        BinOp::Exp => eval_integer_exp(lhs_int, rhs_int, bin_op_expr_span),
+        BinOp::AndB => Ok(Value::Int(lhs_int & rhs_int)),
+        BinOp::OrB => Ok(Value::Int(lhs_int | rhs_int)),
+        BinOp::XorB => Ok(Value::Int(lhs_int ^ rhs_int)),
+        BinOp::Shl => Ok(Value::Int(lhs_int << rhs_int)),
+        BinOp::Shr => Ok(Value::Int(lhs_int >> rhs_int)),
+        _ => panic!("invalid integer operator: {bin_op:?}"),
+    }
 }
 
 fn get_spec_decl(spec_impl: &SpecImpl, functor_app: FunctorApp) -> &SpecDecl {
