@@ -520,14 +520,7 @@ fn call_to_unresolved_allowed() {
     check_profile(
         CALL_UNRESOLVED_FUNCTION,
         &expect![[r#"
-            [
-                UseOfDynamicDouble(
-                    Span {
-                        lo: 172,
-                        hi: 180,
-                    },
-                ),
-            ]
+            []
         "#]],
     );
 }

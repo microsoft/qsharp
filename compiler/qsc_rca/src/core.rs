@@ -485,7 +485,7 @@ impl<'a> Analyzer<'a> {
         let Some(callee) = maybe_callee else {
             // The value kind of a call expression with an unresolved callee is dynamic but its specific variant depends
             // on the expression's type.
-            let value_kind = ValueKind::new_dynamic_from_type(expr_type);
+            let value_kind = ValueKind::new_static_from_type(expr_type);
             let compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
                 value_kind,
