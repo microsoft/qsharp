@@ -169,6 +169,9 @@ pub fn generate_errors_from_runtime_features(
     span: Span,
 ) -> Vec<Error> {
     let mut errors = Vec::<Error>::new();
+
+    // Errors are reported in order of relative importance, which makes it easier to read them
+    // and is helpful during partial evaluation when only the first error is reported to the user.
     if runtime_features.contains(RuntimeFeatureFlags::UseOfDynamicBool) {
         errors.push(Error::UseOfDynamicBool(span));
     }

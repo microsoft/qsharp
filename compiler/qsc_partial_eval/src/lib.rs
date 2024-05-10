@@ -786,9 +786,12 @@ impl<'a> PartialEvaluator<'a> {
         // ahead of performing the actual call and return the appropriate capabilities error if this call is not supported
         // by the target.
         let call_expr_compute_kind = self.get_expr_compute_kind(call_expr_id);
-        let call_was_unresolved = matches!(call_expr_compute_kind, ComputeKind::Quantum(QuantumProperties {
-                runtime_features, ..
-            }) if runtime_features.contains(RuntimeFeatureFlags::CallToUnresolvedCallee));
+        let call_was_unresolved = match call_expr_compute_kind {
+            ComputeKind::Quantum(props) => props
+                .runtime_features
+                .contains(RuntimeFeatureFlags::CallToUnresolvedCallee),
+            ComputeKind::Classical => false,
+        };
         if call_was_unresolved {
             let call_compute_kind = self.get_call_compute_kind(&call_scope);
             if let ComputeKind::Quantum(QuantumProperties {
