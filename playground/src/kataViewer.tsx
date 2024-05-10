@@ -169,7 +169,7 @@ async function onload() {
   const katas = await getAllKatas();
   const app = document.querySelector("#app") as HTMLDivElement;
 
-  function onNav(index: number) {
+  function onRender(index: number) {
     render(
       <>
         <Nav katas={katas} onnav={onNav} selected={index} />
@@ -179,5 +179,29 @@ async function onload() {
     );
   }
 
-  onNav(0);
+  // Update the history and URL fragment if the user navigates katas
+  function onNav(index: number) {
+    history.pushState(null, "", "#" + katas[index].id);
+    onRender(index);
+  }
+
+  // Handle back/forward navigation
+  window.addEventListener('popstate', () => {
+    loadFromUrl();
+  });
+
+  function loadFromUrl() {
+    let kataIndex = 0;
+    if (window.location.hash) {
+      const kataId = window.location.hash.slice(1);
+      kataIndex = katas.findIndex(kata => kata.id === kataId);
+    }
+    if (kataIndex < 0) kataIndex = 0;
+  
+    onRender(kataIndex);
+  }
+
+  // Do initial load
+  loadFromUrl();
+
 }
