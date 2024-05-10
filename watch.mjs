@@ -9,17 +9,16 @@ Always use ./build.py to ensure that all projects are built correctly before che
 Also run ./build.py to do any initial repo setup (npm install, copying 3rd party libs, etc.)
 
 Once running, any changes to the source code for Rust directories listed, or for
-the npm, vscode, or playground projects, should automatically recompile. Just
+the npm, vscode, docs, katas, samples or playground projects, should automatically recompile. Just
 reload the playground page or reload the VS Code window to see the changes.
 
 Notes:
 
-- This builds the wasm module, npm package, VS Code extension, and runs the playground.
+- This builds the wasm module, npm package, VS Code extension, docs, katas, samples and runs the playground.
 - It does NOT build Python packages or native binaries (currently).
-- It does NOT watch for docs, katas, or samples changes (currently).
 - It does NOT build the Node.js wasm package (or run any of the node unit tests).
 - It builds debug binaries (whereas ./build.py builds for release).
-- Future updates could include watching for katas changes, and supporting '--release'
+- Future updates could include supporting '--release'
 
 */
 
