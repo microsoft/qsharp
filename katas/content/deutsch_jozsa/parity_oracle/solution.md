@@ -4,19 +4,19 @@ $$f(x) = \bigoplus_{k=0}^{N-1} x_k$$
 
 Let's substitute this expression in the expression for the oracle effect on the quantum state:
 
-$$U_f |x\rangle = (-1)^{f(x)} |x\rangle = (-1)^{\bigoplus_{k=0}^{N-1} x_k} |x\rangle$$
+$$U_f \ket{x} = (-1)^{f(x)} \ket{x} = (-1)^{\bigoplus_{k=0}^{N-1} x_k} \ket{x}$$
 
 Since $(-1)^2 = 1$, we can replace sum modulo $2$ with a regular sum in the exponent. Then we'll be able to rewrite it as a product of individual exponents for each bit:
 
-$$U_f |x\rangle = (-1)^{\sum_{k=0}^{N-1} x_k} |x\rangle = \prod_{k=0}^{N-1} {(-1)^{x_k}} |x\rangle$$
+$$U_f \ket{x} = (-1)^{\sum_{k=0}^{N-1} x_k} \ket{x} = \prod_{k=0}^{N-1} {(-1)^{x_k}} \ket{x}$$
 
 Now let's spell out the system state as a tensor product of individual qubit states:
 
-$$U_f |x\rangle = \prod_{k=0}^{N-1} {(-1)^{x_k}} \cdot |x_{0} \rangle \otimes \cdots \otimes |x_{N-1}\rangle$$
+$$U_f \ket{x} = \prod_{k=0}^{N-1} {(-1)^{x_k}} \cdot \ket{x_{0} } \otimes \cdots \otimes \ket{x_{N-1}}$$
 
-Tensor product is a linear operation, so we can bring each $(-1)^{x_k}$ scalar factor in next to the corresponding $|x_k\rangle$:
+Tensor product is a linear operation, so we can bring each $(-1)^{x_k}$ scalar factor in next to the corresponding $\ket{x_k}$:
 
-$$U_f |x\rangle = (-1)^{x_0} |x_{k}\rangle \otimes \dots \otimes (-1)^{x_{N-1}} |x_{N-1}\rangle = \bigotimes_{k=0}^{N-1} (-1)^{x_k} |x_{k}\rangle$$
+$$U_f \ket{x} = (-1)^{x_0} \ket{x_{k}} \otimes \dots \otimes (-1)^{x_{N-1}} \ket{x_{N-1}} = \bigotimes_{k=0}^{N-1} (-1)^{x_k} \ket{x_{k}}$$
 
 As we've seen in the previous oracle, this can be achieved by applying a $Z$ gate to each qubit.
 

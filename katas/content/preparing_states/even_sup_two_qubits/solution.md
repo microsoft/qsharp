@@ -1,15 +1,15 @@
-We know that the Hadamard gate maps the basis state $|0\rangle$ to $\frac{1}{\sqrt2}(|0\rangle + |1\rangle)$, so it is a logical starting point for solving this problem. 
+We know that the Hadamard gate maps the basis state $\ket{0}$ to $\frac{1}{\sqrt2}(\ket{0} + \ket{1})$, so it is a logical starting point for solving this problem. 
 
 Next, we see that the final state has a $\frac{1}{2}$ term hinting that we might be applying two operations involving a $\frac{1}{\sqrt{2}}$ term. 
 
-Now, how do we get the $|00\rangle + |01\rangle + |10\rangle + |11\rangle$ expression? Let's see what does multiplying the expression $|0\rangle + |1\rangle$ by itself look like:
+Now, how do we get the $\ket{00} + \ket{01} + \ket{10} + \ket{11}$ expression? Let's see what does multiplying the expression $\ket{0} + \ket{1}$ by itself look like:
 
-$$\big(|0\rangle + |1\rangle\big) \otimes \big(|0\rangle + |1\rangle\big) = |0\rangle|0\rangle + |0\rangle|1\rangle + |1\rangle|0\rangle + |1\rangle|1\rangle$$
+$$\big(\ket{0} + \ket{1}\big) \otimes \big(\ket{0} + \ket{1}\big) = \ket{0}\ket{0} + \ket{0}\ket{1} + \ket{1}\ket{0} + \ket{1}\ket{1}$$
 
 Thus, applying the Hadamard gate to each qubit in isolation will deliver the desired final result:
 
-$$H|0\rangle \otimes H|0\rangle = \frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big) \otimes \frac{1}{\sqrt2}\big(|0\rangle + |1\rangle\big)
-= \frac{1}{2} (|00\rangle + |01\rangle + |10\rangle + |11\rangle)$$
+$$H\ket{0} \otimes H\ket{0} = \frac{1}{\sqrt2} \big(\ket{0} + \ket{1}\big) \otimes \frac{1}{\sqrt2}\big(\ket{0} + \ket{1}\big)
+= \frac{1}{2} (\ket{00} + \ket{01} + \ket{10} + \ket{11})$$
 
 Q# arrays are similar to arrays in other languages: you can access the $i$-th element of the array `qs` as `qs[i]` (indices are 0-based).
 

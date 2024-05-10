@@ -1,20 +1,20 @@
 The strategy of using an auxiliary qubit to control the preparation process described in the previous task can be applied to this task as well. 
 
-We will start by allocating an auxiliary qubit and preparing it in the $\frac{1}{\sqrt2} (|0\rangle + |1\rangle)$ state using the $H$ gate. The overall state of the system will be 
+We will start by allocating an auxiliary qubit and preparing it in the $\frac{1}{\sqrt2} (\ket{0} + \ket{1})$ state using the $H$ gate. The overall state of the system will be 
 
-$$\frac{1}{\sqrt2} (|0\rangle + |1\rangle)_a \otimes |0 \dots 0\rangle_r = \frac{1}{\sqrt2} (|0\rangle_a \otimes |0 \dots 0\rangle_r + |1\rangle_a \otimes |0 \dots 0\rangle_r)$$
+$$\frac{1}{\sqrt2} (\ket{0} + \ket{1})_a \otimes \ket{0 \dots 0}_r = \frac{1}{\sqrt2} (\ket{0}_a \otimes \ket{0 \dots 0}_r + \ket{1}_a \otimes \ket{0 \dots 0}_r)$$
 
-At this point, we can prepare the two basis states of the target state separately, bit by bit, controlling the preparation of one of them on the $|0\rangle$ state of the auxiliary qubit and the preparation of the other one - on the $|1\rangle$ state. 
-If a bit in one of the bit strings is `true`, we will apply a controlled $X$ gate with the auxiliary qubit as control, the qubit in the corresponding position of the register as target, and control it on the $|0\rangle$ or the $|1\rangle$ state depending on which bit string we are considering at the moment. 
+At this point, we can prepare the two basis states of the target state separately, bit by bit, controlling the preparation of one of them on the $\ket{0}$ state of the auxiliary qubit and the preparation of the other one - on the $\ket{1}$ state. 
+If a bit in one of the bit strings is `true`, we will apply a controlled $X$ gate with the auxiliary qubit as control, the qubit in the corresponding position of the register as target, and control it on the $\ket{0}$ or the $\ket{1}$ state depending on which bit string we are considering at the moment. 
 Such controlled gate can be implemented using [`ApplyControlledOnInt`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonint) library function.
 
 After this the state of the system will be 
-$$\frac{1}{\sqrt2} (|0\rangle_a \otimes |bits_1\rangle_r + |1\rangle_a \otimes |bits_2\rangle_r)$$
+$$\frac{1}{\sqrt2} (\ket{0}_a \otimes \ket{bits_1}_r + \ket{1}_a \otimes \ket{bits_2}_r)$$
 
 Finally, we will uncompute the auxiliary qubit by using [`ApplyControlledOnBitString`](https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.canon/applycontrolledonbitstring) library function with the second bit string and the `X` operation as arguments, the quantum register as the control, and the auxiliary qubit as the target. 
-This will affect only the $|1\rangle_a \otimes |bits_2\rangle_r$ term, flipping the state of the auxiliary qubit in it and bringing the system to its final state:
+This will affect only the $\ket{1}_a \otimes \ket{bits_2}_r$ term, flipping the state of the auxiliary qubit in it and bringing the system to its final state:
 
-$$|0\rangle_a \otimes \frac{1}{\sqrt2} (|bits_1\rangle + |bits_2\rangle)_r$$
+$$\ket{0}_a \otimes \frac{1}{\sqrt2} (\ket{bits_1} + \ket{bits_2})_r$$
 
 @[solution]({
     "id": "preparing_states__two_bitstrings_solution_a",

@@ -1,3 +1,3 @@
-**Input:** Two qubits in the $|00\rangle$ state (stored in an array of length 2).
+**Input:** Two qubits in the $\ket{00}$ state (stored in an array of length 2).
 
-**Goal:**  Change the state of the qubits to $|+\rangle \otimes |+\rangle = \frac{1}{2} \big(|00\rangle + |01\rangle + |10\rangle + |11\rangle\big)$.
+**Goal:**  Change the state of the qubits to $\ket{+} \otimes \ket{+} = \frac{1}{2} \big(\ket{00} + \ket{01} + \ket{10} + \ket{11}\big)$.

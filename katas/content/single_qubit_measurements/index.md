@@ -24,9 +24,6 @@ We recommend you complete the "Single-Qubit Gates" kata before starting this one
 - The concept of a qubit
 - Single-qubit gates
 
-$\renewcommand{\ket}[1]{\left\lvert#1\right\rangle}$
-$\renewcommand{\bra}[1]{\left\langle#1\right\rvert}$
-
 @[section]({
     "id": "single_qubit_measurements__computational_basis_measurements",
     "title": "Computational Basis Measurements"
@@ -82,7 +79,7 @@ The given state $\ket \psi$ is normalized, since $0.6^2 + 0.8^2 = 1$. Hence, the
     "title": "Implementing Measurement in Q# Using Operations M and MResetZ"
 })
 
-In this demo, we prepare a qubit in the state $0.6|0\rangle + 0.8|1\rangle$, and then measure it in the computational basis. In Q#, single-qubit measurements in the computational basis can be implemented using the `M` operation. It will return the constant `Zero` if measurement result was $0$ or the constant `One` if the measurement result was $1$. `Zero` and `One` are constants of type `Result`.
+In this demo, we prepare a qubit in the state $0.6\ket{0} + 0.8\ket{1}$, and then measure it in the computational basis. In Q#, single-qubit measurements in the computational basis can be implemented using the `M` operation. It will return the constant `Zero` if measurement result was $0$ or the constant `One` if the measurement result was $1$. `Zero` and `One` are constants of type `Result`.
 
 > If you run this code multiple times, you will notice that whenever the measurement outcome is $1$, the post-measurement state of the qubit is $\ket 1$, and similarly for outcome $0$ the final state is $\ket{0}$. This is in line with our expectation that after the measurement the wave function 'collapses' to the corresponding state.
 
