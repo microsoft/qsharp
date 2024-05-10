@@ -1,46 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 901 665">
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="850" height="450" viewBox="20 100 850 450">
   <defs>
     <style>
       .cls-1, .cls-2, .cls-3, .cls-4, .cls-5 {
         fill-rule: evenodd;
       }
-
       .cls-1, .cls-6 {
         fill: #0070c0;
       }
-
       .cls-1, .cls-4, .cls-5, .cls-7 {
         stroke-width: 0px;
       }
-
       .cls-2, .cls-3 {
         fill: #fff;
       }
-
       .cls-2, .cls-3, .cls-8 {
         stroke-miterlimit: 8;
         stroke-width: 2px;
       }
-
       .cls-2, .cls-6 {
         stroke: #0070c0;
       }
-
       .cls-3 {
         stroke: #000;
       }
-
       .cls-6 {
         stroke-miterlimit: 10;
         stroke-width: .5px;
       }
-
       .cls-8 {
         fill: none;
         stroke: #747474;
       }
-
       .cls-5 {
         fill: #0078d4;
       }
