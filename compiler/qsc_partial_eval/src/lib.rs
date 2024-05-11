@@ -9,7 +9,8 @@ mod evaluation_context;
 mod management;
 
 use evaluation_context::{
-    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, Scope,
+    Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, MutableKind, MutableVar,
+    Scope,
 };
 use management::{QuantumIntrinsicsChecker, ResourceManager};
 use miette::Diagnostic;
@@ -182,15 +183,11 @@ impl<'a> PartialEvaluator<'a> {
         }
 
         // Always bind the value to the hybrid map but do it differently depending of the value type.
-        let maybe_var_type = try_get_eval_var_type(&value);
-        if let Some(var_type) = maybe_var_type {
-            // Get a variable to store into.
-            let value_operand = map_eval_value_to_rir_operand(&value);
-            let eval_var = self.get_or_create_variable(ident.id, var_type);
-            let rir_var = map_eval_var_to_rir_var(eval_var);
-            // Insert a store instruction.
-            let store_ins = Instruction::Store(value_operand, rir_var);
-            self.get_current_rir_block_mut().0.push(store_ins);
+        if let Some((var_id, mutable_var)) = self.try_create_mutable_variable(ident.id, &value) {
+            // Keep track of whether the mutable variable is static or dynamic.
+            self.eval_context
+                .get_current_scope_mut()
+                .insert_mutable_var(var_id, mutable_var);
         } else {
             self.bind_value_in_hybrid_map(ident, value);
         }
@@ -211,8 +208,7 @@ impl<'a> PartialEvaluator<'a> {
         // Insert the value into the hybrid vars map.
         self.eval_context
             .get_current_scope_mut()
-            .hybrid_vars
-            .insert(ident.id, value);
+            .insert_hybrid_local_value(ident.id, value);
     }
 
     fn create_intrinsic_callable(
@@ -1375,11 +1371,29 @@ impl<'a> PartialEvaluator<'a> {
                 },
                 FunctorApp::default(),
             ),
-            Res::Local(local_var_id) => self
-                .eval_context
-                .get_current_scope()
-                .get_hybrid_local_value(*local_var_id)
-                .clone(),
+            Res::Local(local_var_id) => {
+                let bound_value = self
+                    .eval_context
+                    .get_current_scope()
+                    .get_hybrid_local_value(*local_var_id);
+
+                // Check whether the bound value is a mutable variable, and if so, return its value directly rather than
+                // the variable if it is static at this moment.
+                if let Value::Var(var) = bound_value {
+                    let current_scope = self.eval_context.get_current_scope();
+                    if let Some(MutableVar {
+                        kind: MutableKind::Static(literal),
+                        ..
+                    }) = current_scope.find_mutable_var(var.id.into())
+                    {
+                        map_rir_literal_to_eval_value(*literal)
+                    } else {
+                        bound_value.clone()
+                    }
+                } else {
+                    bound_value.clone()
+                }
+            }
         }
     }
 
@@ -1525,20 +1539,40 @@ impl<'a> PartialEvaluator<'a> {
         expr_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
     }
 
-    fn get_or_create_variable(&mut self, local_var_id: LocalVarId, var_ty: VarTy) -> Var {
-        let current_scope = self.eval_context.get_current_scope_mut();
-        let entry = current_scope.hybrid_vars.entry(local_var_id);
-        let local_var_value = entry.or_insert(Value::Var({
-            let var_id = self.resource_manager.next_var();
-            Var {
-                id: var_id.into(),
-                ty: var_ty,
-            }
-        }));
-        let Value::Var(var) = local_var_value else {
-            panic!("value must be a variable");
+    fn try_create_mutable_variable(
+        &mut self,
+        local_var_id: LocalVarId,
+        value: &Value,
+    ) -> Option<(rir::VariableId, MutableVar)> {
+        // Check if we can create a mutable variable for this value.
+        let var_ty = try_get_eval_var_type(value)?;
+
+        // Create an evaluator variable and insert it.
+        let var_id = self.resource_manager.next_var();
+        let eval_var = Var {
+            id: var_id.into(),
+            ty: var_ty,
         };
-        *var
+        self.eval_context
+            .get_current_scope_mut()
+            .insert_hybrid_local_value(local_var_id, Value::Var(eval_var));
+
+        // Insert a store instruction.
+        let value_operand = map_eval_value_to_rir_operand(value);
+        let rir_var = map_eval_var_to_rir_var(eval_var);
+        let store_ins = Instruction::Store(value_operand, rir_var);
+        self.get_current_rir_block_mut().0.push(store_ins);
+
+        // Create a mutable variable.
+        let mutable_kind = match value_operand {
+            Operand::Literal(literal) => MutableKind::Static(literal),
+            Operand::Variable(_) => MutableKind::Dynamic,
+        };
+        let mutable_var = MutableVar {
+            id: local_var_id,
+            kind: mutable_kind,
+        };
+        Some((var_id, mutable_var))
     }
 
     fn get_or_insert_callable(&mut self, callable: Callable) -> CallableId {
@@ -1819,6 +1853,16 @@ impl<'a> PartialEvaluator<'a> {
             let rir_var = map_eval_var_to_rir_var(*var);
             let store_ins = Instruction::Store(rhs_operand, rir_var);
             self.get_current_rir_block_mut().0.push(store_ins);
+
+            // If this is a mutable variable, make sure to update whether it is static or dynamic.
+            let current_scope = self.eval_context.get_current_scope_mut();
+            if matches!(rhs_operand, Operand::Variable(_))
+                || current_scope.is_currently_evaluating_branch()
+            {
+                if let Some(mutable_var) = current_scope.find_mutable_var_mut(rir_var.variable_id) {
+                    mutable_var.kind = MutableKind::Dynamic;
+                }
+            }
         } else {
             // Verify that we are not updating a value that does not have a backing variable from a dynamic branch
             // because it is unsupported.
@@ -2373,6 +2417,15 @@ fn map_fir_type_to_rir_type(ty: &Ty) -> rir::Ty {
         Prim::Int => rir::Ty::Integer,
         Prim::Qubit => rir::Ty::Qubit,
         Prim::Result => rir::Ty::Result,
+    }
+}
+
+fn map_rir_literal_to_eval_value(literal: rir::Literal) -> Value {
+    match literal {
+        rir::Literal::Bool(b) => Value::Bool(b),
+        rir::Literal::Double(d) => Value::Double(d),
+        rir::Literal::Integer(i) => Value::Int(i),
+        _ => panic!("{literal:?} RIR literal cannot be mapped to evaluator value"),
     }
 }
 

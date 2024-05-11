@@ -7,7 +7,10 @@ pub mod test_utils;
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::rir::{BlockId, CallableId};
+use qsc_rir::{
+    passes::check_and_transform,
+    rir::{BlockId, CallableId},
+};
 use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
 
 #[test]
@@ -247,4 +250,27 @@ fn integer_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
                 Variable(0, Integer) = Store Integer(5)
                 Jump(1)"#]],
     );
+}
+
+#[ignore = "WIP"]
+#[test]
+fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
+    let mut program = get_rir_program(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use qubit = Qubit();
+                mutable i = 0;
+                for idxBit in 0..1{
+                    if (MResetZ(qubit) == One) {
+                        set i |||= 1 <<< idxBit;
+                    }
+                }
+                return i;
+            }
+        }
+        "#,
+    });
+    check_and_transform(&mut program);
 }

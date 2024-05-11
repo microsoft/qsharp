@@ -926,7 +926,7 @@ fn logical_and_assign_with_lhs_classical_false_short_circuits_evaluation() {
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
                 Variable(2, Boolean) = Store Bool(false)
                 Variable(2, Boolean) = Store Bool(false)
-                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Call id(3), args( Bool(false), Pointer, )
                 Return"#]],
     );
 }
@@ -998,7 +998,7 @@ fn logical_or_assign_with_lhs_classical_true_short_circuits_evaluation() {
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
                 Variable(2, Boolean) = Store Bool(true)
                 Variable(2, Boolean) = Store Bool(true)
-                Call id(3), args( Variable(2, Boolean), Pointer, )
+                Call id(3), args( Bool(true), Pointer, )
                 Return"#]],
     );
 }
