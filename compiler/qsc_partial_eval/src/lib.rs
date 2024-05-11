@@ -181,12 +181,13 @@ impl<'a> PartialEvaluator<'a> {
             self.bind_value_in_classical_map(ident, &value);
         }
 
-        // Always bind the value to the hybrid map but do it differently depending of the value type.
+        // Always bind the value to the hybrid map but do it differently depending on the value type.
         let maybe_var_type = try_get_eval_var_type(&value);
         if let Some(var_type) = maybe_var_type {
             // Get a variable to store into.
             let value_operand = map_eval_value_to_rir_operand(&value);
             let eval_var = self.get_or_create_variable(ident.id, var_type);
+            // TODO (cesarzc): Move the insertion of the store instruction into `get_or_create_variable`.
             let rir_var = map_eval_var_to_rir_var(eval_var);
             // Insert a store instruction.
             let store_ins = Instruction::Store(value_operand, rir_var);
@@ -1375,11 +1376,14 @@ impl<'a> PartialEvaluator<'a> {
                 },
                 FunctorApp::default(),
             ),
-            Res::Local(local_var_id) => self
-                .eval_context
-                .get_current_scope()
-                .get_hybrid_local_value(*local_var_id)
-                .clone(),
+            Res::Local(local_var_id) => {
+                // TODO (cesarzc): maybe here check whether the variable is static or dynamic and if it is static,
+                // return the value rather than the variable.
+                self.eval_context
+                    .get_current_scope()
+                    .get_hybrid_local_value(*local_var_id)
+                    .clone()
+            }
         }
     }
 
@@ -1538,6 +1542,7 @@ impl<'a> PartialEvaluator<'a> {
         let Value::Var(var) = local_var_value else {
             panic!("value must be a variable");
         };
+        // TODO (cesarzc): instead of returning the variable, we should just insert the store instruction here as well.
         *var
     }
 
@@ -1815,6 +1820,7 @@ impl<'a> PartialEvaluator<'a> {
             .get_hybrid_local_value(local_var_id);
         if let Value::Var(var) = bound_value {
             // Insert a store instruction when the value of a variable is updated.
+            // TODO (cesarzc): maybe here mark it as "updated".
             let rhs_operand = map_eval_value_to_rir_operand(&value);
             let rir_var = map_eval_var_to_rir_var(*var);
             let store_ins = Instruction::Store(rhs_operand, rir_var);

@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qsc_data_structures::functors::FunctorApp;
+use qsc_data_structures::{functors::FunctorApp, index_map::IndexMap};
 use qsc_eval::{
     val::{Result, Value},
     Env, Variable,
 };
 use qsc_fir::fir::{LocalItemId, LocalVarId, PackageId};
 use qsc_rca::{RuntimeKind, ValueKind};
-use qsc_rir::rir::BlockId;
+use qsc_rir::rir::{BlockId, VariableId};
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 
@@ -97,7 +97,10 @@ pub struct Scope {
     /// The classical environment of the callable, which holds values corresponding to local variables.
     pub env: Env,
     /// Map that holds the values of local variables.
+    // TODO (cesarzc): this can be an IndexMap.
     pub hybrid_vars: FxHashMap<LocalVarId, Value>,
+    /// Maps variable IDs to mutable variables, which contain their current kind.
+    pub mutable_vars: IndexMap<LocalVarId, MutableVar>,
     /// Number of currently active blocks (starting from where this scope was created).
     active_block_count: usize,
 }
@@ -157,6 +160,7 @@ impl Scope {
             env,
             active_block_count: 1,
             hybrid_vars,
+            mutable_vars: IndexMap::default(),
         }
     }
 
@@ -288,4 +292,14 @@ fn map_eval_value_to_value_kind(value: &Value) -> ValueKind {
         | Value::Result(Result::Val(_))
         | Value::String(_) => ValueKind::Element(RuntimeKind::Static),
     }
+}
+
+pub struct MutableVar {
+    id: VariableId,
+    kind: MutableKind,
+}
+
+pub enum MutableKind {
+    Static(Value),
+    Dynamic,
 }

@@ -92,6 +92,7 @@ pub struct Qubit(pub usize);
 pub struct Var {
     pub id: usize,
     pub ty: VarTy,
+    //pub is_static: bool,
 }
 
 impl Display for Value {

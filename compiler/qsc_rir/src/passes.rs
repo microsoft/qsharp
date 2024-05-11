@@ -39,8 +39,12 @@ pub fn check_and_transform(program: &mut Program) {
     check_unreachable_code(program);
     check_types(program);
     remap_block_ids(program);
+    println!("SIMPLIFIED AND REMAPPED");
+    println!("{program}");
     let preds = build_predecessors_map(program);
     transform_to_ssa(program, &preds);
+    println!("SSA TRANSFORMED");
+    println!("{program}");
     let doms = build_dominator_graph(program, &preds);
     check_ssa_form(program, &preds, &doms);
     check_unreachable_code(program);

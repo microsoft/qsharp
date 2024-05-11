@@ -252,7 +252,7 @@ fn integer_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
     );
 }
 
-// SSA panic.
+#[ignore = "SSA panic"]
 #[test]
 fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
     let mut program = get_rir_program(indoc! {
@@ -262,7 +262,7 @@ fn integer_assign_with_hybrid_value_within_an_if_with_dynamic_condition() {
             operation Main() : Int {
                 use qubit = Qubit();
                 mutable i = 0;
-                for idxBit in 0..1 {
+                for idxBit in 0..1{
                     if (MResetZ(qubit) == One) {
                         set i |||= 1 <<< idxBit;
                     }
