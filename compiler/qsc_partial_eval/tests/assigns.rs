@@ -191,7 +191,7 @@ fn assigning_dynamic_bool_updates_value_and_adds_store_instructions() {
                 Variable(0, Boolean) = Store Bool(false)
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(1, Boolean) = Call id(2), args( Result(0), )
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
                 Variable(0, Boolean) = Store Variable(2, Boolean)
                 Call id(3), args( Variable(0, Boolean), Pointer, )
                 Return"#]],
@@ -299,7 +299,7 @@ fn assigning_dynamic_int_updates_value_and_adds_store_instructions() {
                 Variable(0, Integer) = Store Integer(0)
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(1, Boolean) = Call id(2), args( Result(0), )
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
                 Branch Variable(2, Boolean), 2, 3
             Block 1:Block:
                 Variable(0, Integer) = Store Variable(3, Integer)
@@ -378,7 +378,7 @@ fn assigning_classical_bool_within_dynamic_if_expression_adds_store_instruction(
                 Variable(0, Boolean) = Store Bool(false)
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(1, Boolean) = Call id(2), args( Result(0), )
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
                 Branch Variable(2, Boolean), 2, 1
             Block 1:Block:
                 Call id(3), args( Variable(0, Boolean), Pointer, )
@@ -639,7 +639,7 @@ fn array_of_bools_replace_element_at_index_with_dynamic_content() {
                 Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
                 Call id(1), args( Qubit(1), Result(1), )
                 Variable(2, Boolean) = Call id(2), args( Result(1), )
-                Variable(3, Boolean) = Icmp Eq, Variable(2, Boolean), Bool(true)
+                Variable(3, Boolean) = Store Variable(2, Boolean)
                 Call id(3), args( Integer(2), Pointer, )
                 Call id(4), args( Variable(1, Boolean), Pointer, )
                 Call id(4), args( Variable(3, Boolean), Pointer, )
@@ -850,7 +850,7 @@ fn logical_and_assign_with_lhs_classical_true_generates_boolean_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Bool(true)
                 Variable(3, Boolean) = LogicalAnd Bool(true), Variable(1, Boolean)
                 Variable(2, Boolean) = Store Variable(3, Boolean)
@@ -923,7 +923,7 @@ fn logical_and_assign_with_lhs_classical_false_short_circuits_evaluation() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Bool(false)
                 Variable(2, Boolean) = Store Bool(false)
                 Call id(3), args( Bool(false), Pointer, )
@@ -995,7 +995,7 @@ fn logical_or_assign_with_lhs_classical_true_short_circuits_evaluation() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Bool(true)
                 Variable(2, Boolean) = Store Bool(true)
                 Call id(3), args( Bool(true), Pointer, )
@@ -1067,7 +1067,7 @@ fn logical_or_assign_with_lhs_classical_false_generates_boolean_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Bool(false)
                 Variable(3, Boolean) = LogicalOr Bool(false), Variable(1, Boolean)
                 Variable(2, Boolean) = Store Variable(3, Boolean)

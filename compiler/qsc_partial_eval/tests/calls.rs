@@ -373,21 +373,21 @@ fn calls_to_unitary_that_conditionally_calls_intrinsic_with_dynamic_bool() {
     assert_blocks(
         &program,
         &expect![[r#"
-        Blocks:
-        Block 0:Block:
-            Call id(1), args( Qubit(0), Result(0), )
-            Variable(0, Boolean) = Call id(2), args( Result(0), )
-            Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
-            Branch Variable(1, Boolean), 2, 3
-        Block 1:Block:
-            Call id(5), args( Integer(0), Pointer, )
-            Return
-        Block 2:Block:
-            Call id(3), args( Qubit(1), )
-            Jump(1)
-        Block 3:Block:
-            Call id(4), args( Qubit(1), )
-            Jump(1)"#]],
+            Blocks:
+            Block 0:Block:
+                Call id(1), args( Qubit(0), Result(0), )
+                Variable(0, Boolean) = Call id(2), args( Result(0), )
+                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Branch Variable(1, Boolean), 2, 3
+            Block 1:Block:
+                Call id(5), args( Integer(0), Pointer, )
+                Return
+            Block 2:Block:
+                Call id(3), args( Qubit(1), )
+                Jump(1)
+            Block 3:Block:
+                Call id(4), args( Qubit(1), )
+                Jump(1)"#]],
     );
 }
 
@@ -695,7 +695,7 @@ fn call_to_boolean_function_using_dynamic_result_as_argument_generates_branches(
             Block 0:Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Branch Variable(1, Boolean), 2, 1
             Block 1:Block:
                 Call id(4), args( Integer(0), Pointer, )

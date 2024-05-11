@@ -409,7 +409,18 @@ impl<'a> PartialEvaluator<'a> {
                 ))
             }
         };
-        let instruction = Instruction::Icmp(condition_code, lhs_operand, rhs_operand, rir_variable);
+
+        let instruction = match (bin_op, lhs_operand, rhs_operand) {
+            (BinOp::Eq, Operand::Literal(Literal::Bool(true)), operand)
+            | (BinOp::Eq, operand, Operand::Literal(Literal::Bool(true)))
+            | (BinOp::Neq, Operand::Literal(Literal::Bool(false)), operand)
+            | (BinOp::Neq, operand, Operand::Literal(Literal::Bool(false))) => {
+                // One of the operands is a literal so we just need a store instruction.
+                Instruction::Store(operand, rir_variable)
+            }
+            // Both operators are non-literals so we need the comparison instruction.
+            _ => Instruction::Icmp(condition_code, lhs_operand, rhs_operand, rir_variable),
+        };
         self.get_current_rir_block_mut().0.push(instruction);
 
         // Return the variable as a value.

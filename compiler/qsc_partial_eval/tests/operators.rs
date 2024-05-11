@@ -513,7 +513,7 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Call id(3), args( Variable(1, Boolean), Pointer, )
                 Return"#]],
     );
@@ -584,7 +584,7 @@ fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(false)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Call id(3), args( Variable(1, Boolean), Pointer, )
                 Return"#]],
     );
@@ -654,7 +654,7 @@ fn comparing_lhs_classical_boolean_against_rhs_dynamic_boolean_for_equality() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Icmp Eq, Bool(true), Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
@@ -723,7 +723,7 @@ fn comparing_lhs_classical_boolean_against_rhs_dynamic_boolean_for_inequality() 
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Icmp Ne, Bool(true), Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
@@ -792,7 +792,7 @@ fn logical_and_with_lhs_classical_true_generates_boolean_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = LogicalAnd Bool(true), Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
@@ -861,7 +861,7 @@ fn logical_and_with_lhs_classical_false_short_circuits_evaluation() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Call id(3), args( Bool(false), Pointer, )
                 Return"#]],
     );
@@ -929,7 +929,7 @@ fn logical_or_with_lhs_classical_true_short_circuits_evaluation() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Call id(3), args( Bool(true), Pointer, )
                 Return"#]],
     );
@@ -997,7 +997,7 @@ fn logical_or_with_lhs_classical_false_generates_boolean_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = LogicalOr Bool(false), Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],

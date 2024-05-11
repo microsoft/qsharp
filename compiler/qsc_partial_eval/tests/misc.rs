@@ -205,7 +205,7 @@ fn boolean_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
                 Variable(0, Boolean) = Store Bool(true)
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(1, Boolean) = Call id(2), args( Result(0), )
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
                 Branch Variable(2, Boolean), 2, 1
             Block 1:Block:
                 Call id(3), args( Variable(0, Boolean), Pointer, )
@@ -241,7 +241,7 @@ fn integer_assign_and_update_with_classical_value_within_an_if_with_dynamic_cond
                 Variable(0, Integer) = Store Integer(1)
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(1, Boolean) = Call id(2), args( Result(0), )
-                Variable(2, Boolean) = Icmp Eq, Variable(1, Boolean), Bool(true)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
                 Branch Variable(2, Boolean), 2, 1
             Block 1:Block:
                 Call id(3), args( Variable(0, Integer), Pointer, )

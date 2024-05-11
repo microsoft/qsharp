@@ -141,7 +141,7 @@ fn array_with_hybrid_content() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Call id(3), args( Integer(2), Pointer, )
                 Call id(4), args( Bool(true), Pointer, )
                 Call id(4), args( Variable(1, Boolean), Pointer, )
