@@ -460,7 +460,7 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
             operation Main() : Bool {
                 use q = Qubit();
                 let r = MResetZ(q);
-                r == One
+                r == Zero
             }
         }
         "#,
@@ -513,7 +513,7 @@ fn comparing_measurement_result_against_result_literal_for_equality_adds_read_re
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(false)
                 Call id(3), args( Variable(1, Boolean), Pointer, )
                 Return"#]],
     );
@@ -531,7 +531,7 @@ fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_
             operation Main() : Bool {
                 use q = Qubit();
                 let r = MResetZ(q);
-                r != Zero
+                r != One
             }
         }
         "#,
@@ -584,7 +584,7 @@ fn comparing_measurement_result_against_result_literal_for_inequality_adds_read_
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Store Variable(0, Boolean)
+                Variable(1, Boolean) = Icmp Ne, Variable(0, Boolean), Bool(true)
                 Call id(3), args( Variable(1, Boolean), Pointer, )
                 Return"#]],
     );
