@@ -74,6 +74,7 @@ namespace MyQuantumApp {
         // A tuple contains a fixed number of items of potentially different types.
         // Tuples containing a single element are equivalent to the element they contain.
         let tuple = (1, "one", One);
+        Message($"Tuple: {tuple}");
 
         // A user-defined-type (UDT) consisting of two named parameters, `Real` and `Imaginary`,
         // and one anonymous parameter of Boolean type.
