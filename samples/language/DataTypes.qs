@@ -81,7 +81,8 @@ namespace MyQuantumApp {
         newtype ComplexBool = (Real : Double, Imaginary : Double, Bool);
         // Instantiation of the above UDT.
         let complex = ComplexBool(42.0, 0.0, false);
-        Message($"Complex Bool: {complex}");
+        let (real, imaginary, anon) = complex!;
+        Message($"Complex Bool: (real: {real}, imaginary: {imaginary}, anonymous: {anon})");
 
         // A function that takes an integer and returns a boolean. This variable declaration
         // uses a Lambda function as its right hand side.
