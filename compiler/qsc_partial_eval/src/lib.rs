@@ -2174,6 +2174,12 @@ fn create_instruction_for_binary_operation_with_integer_operands(
             (bin_op_rir_variable, bin_op_rir_ins)
         }
         BinOp::Div => {
+            // Validate that the RHS is not a zero.
+            if let Operand::Literal(Literal::Integer(0)) = rhs_operand {
+                let error =
+                    Error::EvaluationFailed("division by zero".to_string(), bin_op_expr_span);
+                return Err(error);
+            }
             let bin_op_rir_variable = rir::Variable::new_integer(bin_op_variable_id);
             let bin_op_rir_ins = Instruction::Sdiv(lhs_operand, rhs_operand, bin_op_rir_variable);
             (bin_op_rir_variable, bin_op_rir_ins)

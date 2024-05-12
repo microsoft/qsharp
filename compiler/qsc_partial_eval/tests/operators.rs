@@ -1084,7 +1084,9 @@ fn logical_or_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
     // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 99, hi: 142 })"#]],
+        &expect![[
+            r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 99, hi: 142 })"#
+        ]],
     );
 }
 
@@ -1405,6 +1407,26 @@ fn integer_div_with_lhs_classical_integer_and_rhs_dynamic_integer() {
             Block 3:Block:
                 Variable(2, Integer) = Store Integer(1)
                 Jump(1)"#]],
+    );
+}
+
+#[test]
+fn integer_div_with_lhs_dynamic_integer_and_rhs_zero_raises_error() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Int {
+                use q = Qubit();
+                let i = MResetZ(q) == Zero ? 0 | 1;
+                i / 0
+            }
+        }
+        "#,
+    });
+    assert_error(
+        &error,
+        &expect![[r#"EvaluationFailed("division by zero", Span { lo: 142, hi: 147 })"#]],
     );
 }
 
