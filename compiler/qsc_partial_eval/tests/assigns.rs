@@ -1116,7 +1116,9 @@ fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
     // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
     assert_error(
         &error,
-        &expect![[r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 139, hi: 166 })"#]],
+        &expect![[
+            r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 139, hi: 166 })"#
+        ]],
     );
 }
 
