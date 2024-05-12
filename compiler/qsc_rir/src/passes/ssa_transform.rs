@@ -50,7 +50,7 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
         // The block is only a candidate for phi nodes if it has multiple predecessors.
         if rest_preds.is_empty() {
             // If the block has only one predecessor, track any updates to the variable map from that
-            // predecessory to ensure any phi values that may have been added or inherited in the predecessor
+            // predecessor to ensure any phi values that may have been added or inherited in the predecessor
             // are propagated to this block.
             let pred_var_map = block_var_map
                 .get(*first_pred)
