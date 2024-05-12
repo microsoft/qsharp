@@ -48,7 +48,15 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
             .expect("block should have at least one predecessor");
 
         // The block is only a candidate for phi nodes if it has multiple predecessors.
-        if !rest_preds.is_empty() {
+        if rest_preds.is_empty() {
+            // If the block has only one predecessor, track any updates to the variable map from that
+            // predecessory to ensure any phi values that may have been added or inherited in the predecessor
+            // are propagated to this block.
+            let pred_var_map = block_var_map
+                .get(*first_pred)
+                .expect("block should have variable map");
+            pred_var_map.clone_into(&mut var_map_updates);
+        } else {
             // Check each variable in the first predecessor's variable map, and if any other
             // predecessor has a different value for the variable, a phi node is needed.
             for (var_id, operand) in block_var_map
@@ -99,16 +107,16 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
                     next_var_id = next_var_id.successor();
                 }
             }
+        }
 
-            // Now that the block has finished processing, apply any updates to the block and
-            // merge those updates into the stored variable map to propagate to successors.
-            map_variable_use_in_block(block, &mut var_map_updates);
-            for (var_id, operand) in var_map_updates {
-                let var_map = block_var_map
-                    .get_mut(block_id)
-                    .expect("block should have variable map");
-                var_map.entry(var_id).or_insert(operand);
-            }
+        // Now that the block has finished processing, apply any updates to the block and
+        // merge those updates into the stored variable map to propagate to successors.
+        map_variable_use_in_block(block, &mut var_map_updates);
+        for (var_id, operand) in var_map_updates {
+            let var_map = block_var_map
+                .get_mut(block_id)
+                .expect("block should have variable map");
+            var_map.entry(var_id).or_insert(operand);
         }
     }
 }
