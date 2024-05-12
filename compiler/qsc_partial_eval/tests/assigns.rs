@@ -787,7 +787,7 @@ fn non_empty_array_of_results_in_place_concatenation() {
 }
 
 #[test]
-fn logical_and_assign_with_lhs_classical_true_generates_boolean_instruction() {
+fn logical_and_assign_with_lhs_classical_true_is_optimized_as_store() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -852,8 +852,7 @@ fn logical_and_assign_with_lhs_classical_true_generates_boolean_instruction() {
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Bool(true)
-                Variable(3, Boolean) = LogicalAnd Bool(true), Variable(1, Boolean)
-                Variable(2, Boolean) = Store Variable(3, Boolean)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
     );
@@ -932,6 +931,30 @@ fn logical_and_assign_with_lhs_classical_false_short_circuits_evaluation() {
 }
 
 #[test]
+fn logical_and_assign_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Bool {
+                use q = Qubit();
+                mutable b = MResetZ(q) == Zero;
+                set b and= MResetZ(q) == One;
+                b
+            }
+        }
+        "#,
+    });
+    // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
+    assert_error(
+        &error,
+        &expect![[
+            r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 139, hi: 167 })"#
+        ]],
+    );
+}
+
+#[test]
 fn logical_or_assign_with_lhs_classical_true_short_circuits_evaluation() {
     let program = get_rir_program(indoc! {
         r#"
@@ -1004,7 +1027,7 @@ fn logical_or_assign_with_lhs_classical_true_short_circuits_evaluation() {
 }
 
 #[test]
-fn logical_or_assign_with_lhs_classical_false_generates_boolean_instruction() {
+fn logical_or_assign_with_lhs_classical_false_is_optimized_as_store() {
     let program = get_rir_program(indoc! {
         r#"
         namespace Test {
@@ -1069,10 +1092,31 @@ fn logical_or_assign_with_lhs_classical_false_generates_boolean_instruction() {
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
                 Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Bool(false)
-                Variable(3, Boolean) = LogicalOr Bool(false), Variable(1, Boolean)
-                Variable(2, Boolean) = Store Variable(3, Boolean)
+                Variable(2, Boolean) = Store Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
+    );
+}
+
+#[test]
+fn logical_or_assign_with_dynamic_lhs_and_dynamic_rhs_raises_error() {
+    let error = get_partial_evaluation_error(indoc! {
+        r#"
+        namespace Test {
+            @EntryPoint()
+            operation Main() : Bool {
+                use q = Qubit();
+                mutable b = MResetZ(q) == Zero;
+                set b or= MResetZ(q) == One;
+                b
+            }
+        }
+        "#,
+    });
+    // This error message will no longer happen once Boolean operations with a dynamic LHS are supported.
+    assert_error(
+        &error,
+        &expect![[r#"Unimplemented("bool binary operation with dynamic LHS", Span { lo: 139, hi: 166 })"#]],
     );
 }
 

@@ -438,8 +438,21 @@ impl<'a> PartialEvaluator<'a> {
             // Handle short-circuiting for logical AND and logical OR.
             (BinOp::AndL, false) => Value::Bool(false),
             (BinOp::OrL, true) => Value::Bool(true),
+            // Cases for which just returning the RHS value is sufficient.
+            (BinOp::AndL | BinOp::Eq, true) | (BinOp::OrL | BinOp::Neq, false) => {
+                // Try to evaluate the RHS expression to get its value.
+                let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
+                let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
+                    let rhs_expr = self.get_expr(rhs_expr_id);
+                    return Err(Error::Unexpected(
+                        "embedded return in RHS expression".to_string(),
+                        rhs_expr.span,
+                    ));
+                };
+                rhs_value
+            }
             // The other possible cases.
-            (BinOp::AndL | BinOp::OrL | BinOp::Eq | BinOp::Neq, _) => {
+            (BinOp::Eq | BinOp::Neq, _) => {
                 // Try to evaluate the RHS expression to get its value.
                 let rhs_control_flow = self.try_eval_expr(rhs_expr_id)?;
                 let EvalControlFlow::Continue(rhs_value) = rhs_control_flow else {
