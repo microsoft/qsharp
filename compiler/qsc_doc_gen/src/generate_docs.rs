@@ -35,18 +35,12 @@ impl Compilation {
         language_features: Option<LanguageFeatures>,
     ) -> Self {
         let mut package_store = PackageStore::new(compile::core());
-        let actual_capabilities = match capabilities {
-            Some(c) => c,
-            None => TargetCapabilityFlags::default(),
-        };
+        let actual_capabilities = capabilities.unwrap_or_default();
         let std_unit = compile::std(&package_store, actual_capabilities);
         let std_package_id = package_store.insert(std_unit);
 
         if let Some(sources) = additional_sources {
-            let actual_language_features = match language_features {
-                Some(l) => l,
-                None => LanguageFeatures::default(),
-            };
+            let actual_language_features = language_features.unwrap_or_default();
 
             let unit = compile(
                 &package_store,
