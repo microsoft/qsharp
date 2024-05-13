@@ -176,7 +176,7 @@ fn immutable_bool_binding_does_not_generate_store_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Call id(3), args( Variable(1, Boolean), Pointer, )
                 Return"#]],
     );
@@ -242,7 +242,7 @@ fn mutable_bool_binding_generates_store_instruction() {
             Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Variable(2, Boolean) = Store Variable(1, Boolean)
                 Call id(3), args( Variable(2, Boolean), Pointer, )
                 Return"#]],
@@ -309,7 +309,7 @@ fn immutable_int_binding_does_not_generate_store_instruction() {
             Block 0:Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Branch Variable(1, Boolean), 2, 3
             Block 1:Block:
                 Call id(3), args( Variable(2, Integer), Pointer, )
@@ -383,7 +383,7 @@ fn mutable_int_binding_does_generate_store_instruction() {
             Block 0:Block:
                 Call id(1), args( Qubit(0), Result(0), )
                 Variable(0, Boolean) = Call id(2), args( Result(0), )
-                Variable(1, Boolean) = Icmp Eq, Variable(0, Boolean), Bool(true)
+                Variable(1, Boolean) = Store Variable(0, Boolean)
                 Branch Variable(1, Boolean), 2, 3
             Block 1:Block:
                 Variable(3, Integer) = Store Variable(2, Integer)
