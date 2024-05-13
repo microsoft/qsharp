@@ -1119,7 +1119,7 @@ impl<'a> PartialEvaluator<'a> {
         if callable_decl.output != Ty::UNIT {
             return Err(Error::Unexpected(
                 format!(
-                    "dynamic call to non-Unit intrinsic `{}`",
+                    "non-classical call to non-Unit intrinsic `{}`",
                     callable_decl.name.name
                 ),
                 callee_expr_span,
