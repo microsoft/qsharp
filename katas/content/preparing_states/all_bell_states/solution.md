@@ -1,7 +1,7 @@
 > The [Bell states](https://en.wikipedia.org/wiki/Bell_state) form an orthonormal basis in the 4-dimensional space that describes the states of a 2-qubit system. 
 You can check that the norm of each of these states is 1, and their inner product of each pair of states is 0.
 
-The goal is to transform the $|00\rangle$ basis state into one of the Bell basis states, depending on the value of `index` given as an input.
+The goal is to transform the $\ket{00}$ basis state into one of the Bell basis states, depending on the value of `index` given as an input.
 
 We will describe two solutions, one of which will be based on the previous task, and the second one will help us understand the unitary transformation that converts the computational basis into the Bell basis.
 
@@ -9,29 +9,29 @@ We will describe two solutions, one of which will be based on the previous task,
 
 Let's use the first Bell state we prepared in the previous task and transform it according to the value of `index`.
 
-$$\frac{1}{\sqrt2} \big(|00\rangle + |11\rangle\big)$$
+$$\frac{1}{\sqrt2} \big(\ket{00} + \ket{11}\big)$$
 
 What transformation do we need to apply to get to the final state?
 
-* If `index = 0`, we do nothing - the prepared state is already $|\Phi^{+}\rangle$.
+* If `index = 0`, we do nothing - the prepared state is already $\ket{\Phi^{+}}$.
 
-* If `index = 1`, we need to add a relative phase of $-1$ to the $|11\rangle$ term. Remember that $Z$ gate does exactly that with a qubit:
+* If `index = 1`, we need to add a relative phase of $-1$ to the $\ket{11}$ term. Remember that $Z$ gate does exactly that with a qubit:
   
-  $$Z(H|0\rangle) \otimes |0\rangle = \frac{1}{\sqrt2} \big(|0\rangle - |1\rangle\big) \otimes |0\rangle = \frac{1}{\sqrt2} \big(|00\rangle - |10\rangle\big)$$
+  $$Z(H\ket{0}) \otimes \ket{0} = \frac{1}{\sqrt2} \big(\ket{0} - \ket{1}\big) \otimes \ket{0} = \frac{1}{\sqrt2} \big(\ket{00} - \ket{10}\big)$$
   
   If we now apply the $CNOT$ as before, we will have:
 
-  $$\frac{1}{\sqrt2} \big(|00\rangle - |\overset{\curvearrowright}{10}\rangle\big) \underset{\text{CNOT}}{\Longrightarrow} \frac{1}{\sqrt2} \big(|00\rangle - |11\rangle\big) = |\Phi^{-}\rangle$$
+  $$\frac{1}{\sqrt2} \big(\ket{00} - \ket{\overset{\curvearrowright}{10}}\big) \underset{\text{CNOT}}{\Longrightarrow} \frac{1}{\sqrt2} \big(\ket{00} - \ket{11}\big) = \ket{\Phi^{-}}$$
 
-* If `index = 2`, we need to change the second qubit in both $|00\rangle$ and $|11\rangle$ terms, which can be done applying an $X$ gate:
+* If `index = 2`, we need to change the second qubit in both $\ket{00}$ and $\ket{11}$ terms, which can be done applying an $X$ gate:
   
-  $$H|0\rangle \otimes X|0\rangle = H|0\rangle \otimes |1\rangle = \frac{1}{\sqrt2} \big(|0\rangle + |1\rangle\big) \otimes |1\rangle = \frac{1}{\sqrt2} \big(|01\rangle + |11\rangle\big)$$
+  $$H\ket{0} \otimes X\ket{0} = H\ket{0} \otimes \ket{1} = \frac{1}{\sqrt2} \big(\ket{0} + \ket{1}\big) \otimes \ket{1} = \frac{1}{\sqrt2} \big(\ket{01} + \ket{11}\big)$$
   
   If we now apply the $CNOT$ as before, we will have:
   
-  $$\frac{1}{\sqrt2} \big(|01\rangle + |\overset{\curvearrowright}{11}\rangle\big) \underset{\text{CNOT}}{\Longrightarrow} \frac{1}{\sqrt2} \big(|01\rangle + |10\rangle\big) = |\Psi^{+}\rangle$$
+  $$\frac{1}{\sqrt2} \big(\ket{01} + \ket{\overset{\curvearrowright}{11}}\big) \underset{\text{CNOT}}{\Longrightarrow} \frac{1}{\sqrt2} \big(\ket{01} + \ket{10}\big) = \ket{\Psi^{+}}$$
 
-* If `index = 3`, we use the same logic to realize that we need to apply both the $Z$ and $X$ corrections to get $|\Psi^{-}\rangle$ state.
+* If `index = 3`, we use the same logic to realize that we need to apply both the $Z$ and $X$ corrections to get $\ket{\Psi^{-}}$ state.
 
 The final sequence of steps is as follows:
 1. Apply the $H$ gate to the first qubit. 
@@ -48,14 +48,14 @@ The final sequence of steps is as follows:
 
 Let's take a closer look at the unitary transformation $\text{CNOT}\cdot(H \otimes I)$ discussed in the previous task.
 
-$$\frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 0 & 1 & 0 & -1 \\ \underset{|\Phi^{+}\rangle}{\underbrace{1}} & \underset{|\Psi^{+}\rangle}{\underbrace{0}} & \underset{|\Phi^{-}\rangle}{\underbrace{-1}} & \underset{|\Psi^{-}\rangle}{\underbrace{0}} \end{bmatrix}$$
+$$\frac{1}{\sqrt2} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \\ 0 & 1 & 0 & -1 \\ \underset{\ket{\Phi^{+}}}{\underbrace{1}} & \underset{\ket{\Psi^{+}}}{\underbrace{0}} & \underset{\ket{\Phi^{-}}}{\underbrace{-1}} & \underset{\ket{\Psi^{-}}}{\underbrace{0}} \end{bmatrix}$$
 
 
 Notice that each of the columns in the unitary matrix corresponds to one of the Bell states.
 This unitary transformation transforms the computational basis into the Bell basis, which is exactly what the task asks us to do.
 
-We see that this transformation converts $|00\rangle$ into the first Bell state, $|01\rangle$ into the second Bell state, etc. 
-We just need to make sure we set the qubits to the correct state before applying this transformation, using $X$ gates to change the initial $|0\rangle$ states to $|1\rangle$ if needed. 
+We see that this transformation converts $\ket{00}$ into the first Bell state, $\ket{01}$ into the second Bell state, etc. 
+We just need to make sure we set the qubits to the correct state before applying this transformation, using $X$ gates to change the initial $\ket{0}$ states to $\ket{1}$ if needed. 
 
 In Q#, we can use the <a href="https://learn.microsoft.com/qsharp/api/qsharp-lang/microsoft.quantum.convert/intasboolarray">IntAsBoolArray</a> function to convert the input `index` to the right bit pattern.
 

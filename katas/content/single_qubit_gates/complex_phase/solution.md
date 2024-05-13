@@ -8,12 +8,12 @@ $$
 So we have:
 
 $$
-R1(\beta |0\rangle + \gamma |1\rangle) =
+R1(\beta \ket{0} + \gamma \ket{1}) =
  \begin{bmatrix}1 & 0 \\ 0 & \color{red}{e^{i\alpha}} \end{bmatrix}
  \begin{bmatrix}\beta \\ \gamma \\ \end{bmatrix}=
 \begin{bmatrix}1 \cdot \beta + 0 \cdot \gamma \\ 0 \cdot \beta + {\color{red}{e^{i\alpha}}} \cdot \gamma \end{bmatrix}=
  \begin{bmatrix}\beta \\ {\color{red}{e^{i\alpha}}} \gamma \end{bmatrix}=
- \beta |0\rangle + {\color{red}{e^{i\alpha}}} \gamma |1\rangle
+ \beta \ket{0} + {\color{red}{e^{i\alpha}}} \gamma \ket{1}
 $$
 
 > Suppose now that $\alpha = \frac{\pi}{2}$.

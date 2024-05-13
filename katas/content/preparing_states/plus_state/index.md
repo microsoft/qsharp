@@ -1,9 +1,9 @@
 
-**Input:** A qubit in the $|0\rangle$ state.
+**Input:** A qubit in the $\ket{0}$ state.
 
-**Goal:** Change the state of the qubit to $|+\rangle = \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big)$.
+**Goal:** Change the state of the qubit to $\ket{+} = \frac{1}{\sqrt{2}} \big(\ket{0} + \ket{1}\big)$.
 
 <details>
   <summary><b>Need a hint?</b></summary>
-  Hadamard gate H will convert $|0\rangle$ state to $|+\rangle$ state.
+  Hadamard gate H will convert $\ket{0}$ state to $\ket{+}$ state.
 </details>

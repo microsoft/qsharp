@@ -1054,7 +1054,7 @@ namespace Microsoft.Quantum.Arrays {
     /// let naturals = SequenceI(1, _); // function to create sequence from 1 to `to`
     /// ```
     function SequenceI(from : Int, to : Int) : Int[] {
-        Fact(to >= from, $"`to` must be larger than `from`.");
+        Fact(to >= from, "`to` must be larger than `from`.");
         mutable array = [];
         for index in from..to {
             set array += [index];
