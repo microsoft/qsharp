@@ -86,9 +86,13 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
+        dbg!(&path);
         if let Some(&id) = self.names.get(path.id) {
+            println!("{path} did exist");
             self.changes.push((path.span, id.into()));
         } else {
+            println!("{path} did not exist");
+
             visit::walk_path(self, path);
         }
     }
@@ -3286,5 +3290,36 @@ fn import_with_alias() {
                 }
             }
         "#]],
+    );
+}
+#[test]
+fn import_non_item() {
+    check(
+        indoc! {"
+            namespace Main {
+                import Unit;
+                operation Main() : Unit {
+                }
+            }
+        "},
+        &expect![[r#" "#]],
+    );
+}
+
+#[test]
+fn import_namespace_nested() {
+    check(
+        indoc! {"
+            namespace Foo.Bar.Baz {
+                operation Quux() : Unit {}
+            }
+            namespace Main {
+                import Foo.Bar;
+                operation Main() : Unit {
+                    Bar.Baz.Quux();
+                }
+            }
+        "},
+        &expect![[r#" "#]],
     );
 }

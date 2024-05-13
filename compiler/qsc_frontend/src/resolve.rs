@@ -116,6 +116,15 @@ pub(super) enum Error {
     #[error("exporting external items is not yet supported")]
     #[diagnostic(code("Qsc.Resolve.ExportedExternalItem"))]
     ExportedExternalItem(#[label] Span),
+
+    #[error("imported non-item")]
+    #[diagnostic(help("only callables, namespaces, and non-primitive types can be imported"))]
+    #[diagnostic(code("Qsc.Resolve.ImportedNonItem"))]
+    ImportedNonItem(Span),
+
+    #[error("imported item conflicts with existing item `{0}`")]
+    #[diagnostic(code("Qsc.Resolve.ImportConflict"))]
+    ImportConflict(String, #[label] Span),
 }
 
 #[derive(Debug, Clone)]
@@ -644,7 +653,65 @@ impl Resolver {
                     }
                 }
             }
-            ast::ItemKind::Import(import) => todo!(),
+            ast::ItemKind::Import(import) => {
+                enum TermOrTy { Term(Res), Ty(Res)}
+                // resolve the imported item and insert the vec ident into the names table, so we can access it in
+                // lowering
+                for item in import.items.iter() {
+                    let resolved_item = match resolve(
+                        NameKind::Term,
+                        &self.globals,
+                        self.locals.get_scopes(&self.curr_scope_chain),
+                        &item.path.name,
+                        &item.path.namespace,
+                    ) {
+                        Ok(res) => TermOrTy::Term(res),
+                        Err(_) => {
+                            // try to see if it is a type
+                            match resolve(
+                                NameKind::Ty,
+                                &self.globals,
+                                self.locals.get_scopes(&self.curr_scope_chain),
+                                &item.path.name,
+                                &item.path.namespace,
+                            ) {
+                                Ok(res) => TermOrTy::Ty(res),
+                                Err(err) => {
+                                    self.errors.push(err);
+                                    continue;
+                                }
+                            }
+                        }
+                    };
+
+                    let scope = self.current_scope_mut();
+
+                    let local_name = item.alias.as_ref().unwrap_or(&item.path.name);
+
+                    // if the local name already exists in the scope, it should be an error,
+                    // as there's no reason not to use an import alias or rename the pre-existing local symbol.
+                    // shadowing rules in this context may result in confusion.
+                    if scope.terms.contains_key(&local_name.name) || scope.tys.contains_key(&local_name.name) {
+                        self.errors.push(Error::ImportConflict(local_name.name.to_string(), local_name.span));
+                        continue;
+                    }
+
+                    // insert the item into the local scope
+                    match resolved_item {
+                        TermOrTy::Term(Res::Item(id, _)) => {
+                            scope.terms.insert(Rc::clone(&local_name.name), id);
+                        },
+                        TermOrTy::Ty(Res::Item(id, _)) => {
+                            scope.tys.insert(Rc::clone(&local_name.name), id);
+                        }
+                        _ => self.errors.push(Error::ImportedNonItem(item.path.span)),
+                    }
+
+                    if let TermOrTy::Term(res) | TermOrTy::Ty(res) = resolved_item { self.names.insert(item.path.id, res); }
+
+                }
+
+            },
             ast::ItemKind::Err => {}
         }
     }
@@ -748,7 +815,7 @@ impl AstVisitor<'_> for With<'_> {
                     ast::ItemKind::Open(name, alias) => {
                         visitor.resolver.bind_open(name, alias, ns);
                     }
-                    ast::ItemKind::Export(_) => {
+                    ast::ItemKind::Export(_) | ast::ItemKind::Import(_)  => {
                         visitor
                             .resolver
                             .bind_local_item(visitor.assigner, item, Some(ns));
