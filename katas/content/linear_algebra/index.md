@@ -145,14 +145,14 @@ Scalar multiplication has the following properties:
     "title": "Matrix Multiplication" 
 })
 
-**Matrix multiplication** is a very important and somewhat unusual operation. The unusual thing about it is that neither its operands nor its output are the same size: an $n \times m$ matrix multiplied by an $m \times k$ matrix results in an $n \times k$ matrix. 
+**Matrix multiplication** is a very important and somewhat unusual operation. The unusual thing about it's that neither its operands nor its output are the same size: an $n \times m$ matrix multiplied by an $m \times k$ matrix results in an $n \times k$ matrix. 
 That is, for matrix multiplication to be applicable, the number of columns in the first matrix must equal the number of rows in the second matrix.
 
-Here is how matrix product is calculated: if you're calculating $AB = C$, then
+Here's how matrix product is calculated: if you're calculating $AB = C$, then
 
 $$C_{i,j} = A_{i,0} \cdot B_{0,j} + A_{i,1} \cdot B_{1,j} + \dotsb + A_{i,m-1} \cdot B_{m-1,j} = \sum_{t = 0}^{m-1} A_{i,t} \cdot B_{t,j}$$
 
-Here is a small example:
+Here's a small example:
 
 $$\begin{bmatrix}
     1 & 2 & 3 \\
@@ -192,11 +192,11 @@ $$I_n =
     0 & 0 & \dotsb & 1
 \end{bmatrix}$$
 
-What makes it special is that multiplying any matrix (of compatible size) by $I_n$ returns the original matrix. To put it another way, if $A$ is an $n \times m$ matrix:
+What makes an identity matrix $I_n$ special is that multiplying any matrix (of compatible size) by $I_n$ returns the original matrix. That is, if $A$ is an $n \times m$ matrix:
 
 $$AI_m = I_nA = A$$
 
-This is why $I_n$ is called an identity matrix - it acts as a **multiplicative identity**. In other words, it is the matrix equivalent of the number $1$.
+This is why $I_n$ is called an identity matrix - it acts as a **multiplicative identity**. In other words, it's the matrix equivalent of the number $1$.
 
 @[exercise]({ 
     "id": "linear_algebra__matrix_multiplication_ex", 
@@ -224,7 +224,7 @@ Another, equivalent definition highlights what makes this an interesting propert
 $$A^{-1}(AB) = A(A^{-1}B) = B$$
 $$(CA)A^{-1} = (CA^{-1})A = C$$
 
-A square matrix has a property called the **determinant**, with the determinant of matrix $A$ being written as $|A|$. A matrix is invertible if and only if its determinant isn't equal to $0$.
+A square matrix has a property called the **determinant**, with the determinant of matrix $A$ being written as $|A|$. A matrix is invertible if and only if, its determinant isn't equal to $0$.
 
 For a $2 \times 2$ matrix $A$, the determinant is defined as $|A| = A_{0,0} \cdot A_{1,1} - A_{0,1} \cdot A_{1,0}$.
 
@@ -279,7 +279,7 @@ $$\begin{bmatrix}
     2 & 4 & 6
 \end{bmatrix}$$
 
-A **symmetric** matrix is a square matrix which equals its own transpose: $A = A^T$. To put it another way, it has reflection symmetry (hence the name) across the main diagonal. For example, the following matrix is symmetric:
+A **symmetric** matrix is a square matrix which equals its own transpose: $A = A^T$. That is, it has reflection symmetry (hence the name) across the main diagonal. For example, the following matrix is symmetric:
 
 $$\begin{bmatrix}
     1 & 2 & 3 \\
@@ -306,7 +306,7 @@ $$(AB)^T = B^TA^T$$
     "title": "Conjugate" 
 })
 
-The next important single-matrix operation is the **matrix conjugate**, denoted as $\overline{A}$. This operation makes sense only for complex-valued matrices; as the name might suggest, it involves taking the complex conjugate of every element of the matrix: if
+The next important single-matrix operation is the **matrix conjugate**, denoted as $\overline{A}$. This operation makes sense only for complex-valued matrices; as the name might suggest, it involves taking the complex conjugate of every element of the matrix. For example, if
 
 $$A =
 \begin{bmatrix}
@@ -375,7 +375,7 @@ $$(AB)^\dagger = B^\dagger A^\dagger$$
     "title": "Unitary Matrices" 
 })
 
-**Unitary matrices** are very important for quantum computing. A matrix is unitary when it is invertible, and its inverse is equal to its adjoint: $U^{-1} = U^\dagger$. That is, an $n \times n$ square matrix $U$ is unitary if and only if $UU^\dagger = U^\dagger U = I_n$.
+**Unitary matrices** are very important for quantum computing. A matrix is unitary when it's invertible, and its inverse is equal to its adjoint: $U^{-1} = U^\dagger$. That is, an $n \times n$ square matrix $U$ is unitary if, and only if, $UU^\dagger = U^\dagger U = I_n$.
 
 ## 🔎 Analyze
 
@@ -417,8 +417,7 @@ To check whether the input matrix is unitary, you need to perform the following 
         0 & 1
     \end{bmatrix}$$
 
-If the multiplication result $AA^\dagger$ is an identity matrix, which is indeed the case, 
-and the product $A^\dagger A$ is also an identity matrix (which you can verify in a similar manner),
+If the multiplication result $AA^\dagger$ is an identity matrix and the product $A^\dagger A$ is also an identity matrix (which you can verify in a similar manner),
 the matrix is unitary.
 
 </details>
@@ -433,13 +432,13 @@ The **inner product** is yet another important matrix operation that is only app
 
 $$\langle V , W \rangle = V^\dagger W$$
 
-Let's break this down so it's a bit easier to understand. A $1 \times n$ matrix (the adjoint of an $n \times 1$ vector) multiplied by an $n \times 1$ vector results in a $1 \times 1$ matrix (which is equivalent to a scalar). The result of an inner product is that scalar. 
+Let's break this down so it's a bit easier to understand. A $1 \times n$ matrix (the adjoint of an $n \times 1$ vector) multiplied by an $n \times 1$ vector results in a $1 \times 1$ matrix, which is equivalent to a scalar. The result of an inner product is that scalar. 
 
-To put it another way, to calculate the inner product of two vectors, take the corresponding elements $V_k$ and $W_k$, multiply the complex conjugate of $V_k$ by $W_k$, and add up those products:
+That is, to calculate the inner product of two vectors, take the corresponding elements $V_k$ and $W_k$, multiply the complex conjugate of $V_k$ by $W_k$, and add up those products:
 
 $$\langle V , W \rangle = \sum_{k=0}^{n-1}\overline{V_k}W_k$$
 
-If you are familiar with the **dot product**, you will notice that it is equivalent to inner product for real-numbered vectors.
+If you're familiar with the **dot product**, you'll notice that it's equivalent to inner product for real-numbered vectors.
 
 > We use our definition for these tutorials because it matches the notation used in quantum computing. You might encounter other sources which define the inner product a little differently: $\langle V , W \rangle = W^\dagger V = V^T\overline{W}$, in contrast to the $V^\dagger W$ that it's used here. These definitions are almost equivalent, with some differences in the scalar multiplication by a complex number.
 
@@ -452,7 +451,7 @@ The inner product has the following properties:
 * Skew symmetry: $\langle V , W \rangle = \overline{\langle W , V \rangle}$
 * Multiplying a vector by a unitary matrix **preserves the vector's inner product with itself** (and therefore the vector's norm): $\langle UV , UV \rangle = \langle V , V \rangle$
 
-> Note that just like matrix multiplication, the inner product is **not commutative**: $\langle V , W \rangle$ won't always equal $\langle W , V \rangle$.
+> Note that just like matrix multiplication, the inner product **isn't commutative**: $\langle V , W \rangle$ won't always equal $\langle W , V \rangle$.
 
 @[exercise]({ 
     "id": "linear_algebra__inner_product_ex", 
@@ -478,7 +477,7 @@ The inner product has the following properties:
     "title": "Outer Product" 
 })
 
-The **outer product** of two vectors $V$ and $W$ is defined as $VW^\dagger$. That is, the outer product of an $n \times 1$ vector and an $m \times 1$ vector is an $n \times m$ matrix. If we denote the outer product of $V$ and $W$ as $X$, then $X_{i,j} = V_i \cdot \overline{W_j}$. 
+The **outer product** of two vectors $V$ and $W$ is defined as $VW^\dagger$. That is, the outer product of an $n \times 1$ vector and an $m \times 1$ vector is an $n \times m$ matrix. If we denote the outer product of $V$ and $W$ as $X$, then $X_{i,j} = V_i \cdot \overline{W_j}$.
 
 @[exercise]({ 
     "id": "linear_algebra__outer_product_ex", 
