@@ -1,3 +1,3 @@
-**Input:** A qubit which is guaranteed to be in either the $|0\rangle$ or the $|1\rangle$ state.
+**Input:** A qubit which is guaranteed to be in either the $\ket{0}$ or the $\ket{1}$ state.
 
-**Output:**  `true` if the qubit was in the $|0\rangle$ state, or `false` if it was in the $|1\rangle$ state. The state of the qubit at the end of the operation does not matter.
+**Output:**  `true` if the qubit was in the $\ket{0}$ state, or `false` if it was in the $\ket{1}$ state. The state of the qubit at the end of the operation does not matter.

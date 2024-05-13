@@ -88,8 +88,10 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
     }
 
     let name = parts.pop().expect("path should have at least one part");
-    let namespace = match (parts.first(), parts.last()) {
-        (Some(_), Some(_)) => Some(
+    let namespace = if parts.is_empty() {
+        None
+    } else {
+        Some(
             parts
                 .iter()
                 .map(|part| Ident {
@@ -99,8 +101,7 @@ pub(super) fn path(s: &mut ParserContext) -> Result<Box<Path>> {
                 })
                 .collect::<Vec<_>>()
                 .into(),
-        ),
-        _ => None,
+        )
     };
 
     Ok(Box::new(Path {

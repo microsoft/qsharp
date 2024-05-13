@@ -3,7 +3,7 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{compile, CompileUnit, Error, PackageStore, SourceMap};
+use super::{compile, longest_common_prefix, CompileUnit, Error, PackageStore, SourceMap};
 use crate::compile::TargetCapabilityFlags;
 
 use expect_test::expect;
@@ -1349,7 +1349,7 @@ fn reject_bad_filename_implicit_namespace() {
                 .into(),
             ),
             (
-                "Namespace.Foo.qs   ".into(),
+                "Namespace.Foo.qs".into(),
                 indoc! {"
                     operation Bar() : Unit {}
             "}
@@ -1400,4 +1400,42 @@ fn reject_bad_filename_implicit_namespace() {
         ]
     "#]]
     .assert_debug_eq(&unit.errors);
+}
+
+#[test]
+fn test_longest_common_prefix_1() {
+    assert_eq!(longest_common_prefix(&["/a/b/c", "/a/b/d"]), "/a/b/");
+}
+#[test]
+fn test_longest_common_prefix_2() {
+    assert_eq!(longest_common_prefix(&["foo", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_3() {
+    assert_eq!(longest_common_prefix(&["baz", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_4() {
+    assert_eq!(longest_common_prefix(&["baz", "bar"]), "");
+}
+
+#[test]
+fn test_longest_common_prefix_5() {
+    assert_eq!(
+        longest_common_prefix(&[
+            "code\\project\\src\\Main.qs",
+            "code\\project\\src\\Helper.qs"
+        ]),
+        "code\\project\\src\\"
+    );
+}
+
+#[test]
+fn test_longest_common_prefix_6() {
+    assert_eq!(
+        longest_common_prefix(&["code/project/src/Bar.qs", "code/project/src/Baz.qs"]),
+        "code/project/src/"
+    );
 }

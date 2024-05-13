@@ -48,10 +48,7 @@ impl<'a> Overrider<'a> {
                                 runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
                                 value_kind: ValueKind::Element(RuntimeKind::Dynamic),
                             }),
-                            dynamic_content_static_size: ComputeKind::Quantum(QuantumProperties {
-                                runtime_features: RuntimeFeatureFlags::empty(),
-                                value_kind: ValueKind::Element(RuntimeKind::Static),
-                            }),
+                            dynamic_content_static_size: ComputeKind::Classical,
                             dynamic_content_dynamic_size: ComputeKind::Quantum(QuantumProperties {
                                 runtime_features: RuntimeFeatureFlags::UseOfDynamicallySizedArray,
                                 value_kind: ValueKind::Element(RuntimeKind::Dynamic),
@@ -206,7 +203,7 @@ impl<'a> Visitor<'a> for Overrider<'a> {
             .items
             .iter()
             .filter_map(|(_, item)| match &item.kind {
-                ItemKind::Namespace(ident, items) => Some((ident.name(), items)),
+                ItemKind::Namespace(ident, items) => Some((ident.name.to_string(), items)),
                 _ => None,
             });
         for (namespace_ident, namespace_items) in namespaces {

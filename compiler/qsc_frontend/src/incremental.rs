@@ -183,7 +183,6 @@ impl Compiler {
                 names: self.resolver.names().clone(),
                 locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
-                namespaces: self.resolver.namespaces().clone(),
             },
             hir,
         })
@@ -223,7 +222,6 @@ impl Compiler {
                 names: self.resolver.names().clone(),
                 locals: self.resolver.locals().clone(),
                 tys: self.checker.table().clone(),
-                namespaces: self.resolver.namespaces().clone(),
             },
             hir,
         })

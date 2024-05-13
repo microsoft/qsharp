@@ -132,11 +132,15 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
         Ok(TopLevelNode::Stmt(stmt))
     }
 }
-pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Result<Namespace> {
+pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
+    if items.is_empty() || s.peek().kind != TokenKind::Eof {
+        return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
+    }
     let span = s.span(lo);
-    let namespace_name = file_name_to_namespace_name(file_name, span)?;
+    let namespace_name = source_name_to_namespace_name(source_name, span)?;
+
     Ok(Namespace {
         id: NodeId::default(),
         span,
@@ -148,13 +152,13 @@ pub fn parse_implicit_namespace(file_name: &str, s: &mut ParserContext) -> Resul
 
 /// Given a file name, convert it to a namespace name.
 /// For example, `foo/bar.qs` becomes `foo.bar`.
-fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
+fn source_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
     let path = std::path::Path::new(raw);
     let mut namespace = Vec::new();
     for component in path.components() {
         match component {
             std::path::Component::Normal(name) => {
-                // strip the extension off], if there is one
+                // strip the extension off, if there is one
                 let mut name = name
                     .to_str()
                     .ok_or(Error(ErrorKind::InvalidFileName(error_span)))?;
@@ -164,13 +168,10 @@ fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
                 }
                 // verify that the component only contains alphanumeric characters, and doesn't start with a number
 
-                validate_namespace_name(error_span, name)?;
+                let mut ident = validate_namespace_name(error_span, name)?;
+                ident.span = error_span;
 
-                namespace.push(Ident {
-                    id: NodeId::default(),
-                    span: error_span,
-                    name: name.into(),
-                });
+                namespace.push(ident);
             }
             _ => return Err(Error(ErrorKind::InvalidFileName(error_span))),
         }
@@ -180,28 +181,16 @@ fn file_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> {
 }
 
 /// Validates that a string could be a valid namespace name component
-fn validate_namespace_name(error_span: Span, name: &str) -> Result<()> {
+fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
     let mut s = ParserContext::new(name, LanguageFeatures::default());
     // if it could be a valid identifier, then it is a valid namespace name
     // we just directly use the ident parser here instead of trying to recreate
     // validation rules
-    let _ = ident(&mut s).map_err(|_| Error(ErrorKind::InvalidFileName(error_span)))?;
+    let ident = ident(&mut s).map_err(|_| Error(ErrorKind::InvalidFileName(error_span)))?;
     if s.peek().kind != TokenKind::Eof {
         return Err(Error(ErrorKind::InvalidFileName(error_span)));
     }
-    Ok(())
-}
-
-// unit tests for file_name_to_namespace_name
-#[test]
-fn test_file_name_to_namespace_name() {
-    let raw = "foo/bar.qs";
-    let error_span = Span::default();
-    let namespace =
-        file_name_to_namespace_name(raw, error_span).expect("test should not fail here");
-    assert_eq!(namespace.0.len(), 2);
-    assert_eq!(&*namespace.0[0].name, "foo");
-    assert_eq!(&*namespace.0[1].name, "bar");
+    Ok(*ident)
 }
 
 fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {

@@ -71,7 +71,7 @@ We introduced the single-qubit measurements in different Pauli bases in the Meas
 and then the general case of joint measurements in the Measurements in Multi-Qubit Systems kata.
 Let's take a closer look at the kinds of joint measurements we'll be using in this kata.
 
-A multi-qubit Pauli measurement on $n$ qubits corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_j$ being from the set of gates $\\{X,Y,Z,I\\}$, and at least one of the $M_j$ is not the identity matrix. (If $M_j = I$, you can think of it as qubit $j$ not being involved in the measurement.) The measurement can produce one of the two outcomes: `Zero` corresponding to eigenvalue $+1$ of this operator, or `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces. The operator $M_1 \otimes \dotsc \otimes M_n$ is referred to as the _measurement basis_.
+A multi-qubit Pauli measurement on $n$ qubits corresponds to an operator $M_1 \otimes \dotsc \otimes M_n$, with each $M_j$ being from the set of gates $\{X,Y,Z,I\}$, and at least one of the $M_j$ is not the identity matrix. (If $M_j = I$, you can think of it as qubit $j$ not being involved in the measurement.) The measurement can produce one of the two outcomes: `Zero` corresponding to eigenvalue $+1$ of this operator, or `One` corresponding to the eigenvalue $-1$. The corresponding projection operators are the projections onto the corresponding eigenspaces. The operator $M_1 \otimes \dotsc \otimes M_n$ is referred to as the _measurement basis_.
 
 For example, the first two joint measurements we'll encounter later in this kata are two-qubit measurements in $ZZ$ and $XX$ bases. They can be described as follows:
 
@@ -214,7 +214,7 @@ However, if a $Z$ error happens on any one of these qubits, we won't be able to 
     "title": "Phase Flip Code"
 })
 
-What kind of code could detect and correct a $Z$ error? We detected an $X$ error using the fact that in the $\\{\ket{0}, \ket{1}\\}$ basis the error changed the basis state. Similarly, we can detect a $Z$ error using the $\\{\ket{+}, \ket{-}\\}$ basis, in which the $Z$ gate converts $\ket{+}$ to $\ket{-}$ and vice versa, acting as a basis change operation.
+What kind of code could detect and correct a $Z$ error? We detected an $X$ error using the fact that in the $\{\ket{0}, \ket{1}\}$ basis the error changed the basis state. Similarly, we can detect a $Z$ error using the $\{\ket{+}, \ket{-}\}$ basis, in which the $Z$ gate converts $\ket{+}$ to $\ket{-}$ and vice versa, acting as a basis change operation.
 
 Based on this idea, we can construct the **phase flip code** that uses the following encoding:
 
@@ -296,7 +296,14 @@ $$\ket{0} \rightarrow \ket{0_L} = \frac1{2\sqrt2} (\ket{000} + \ket{111}) \otime
 $$\ket{1} \rightarrow \ket{1_L} = \frac1{2\sqrt2} (\ket{000} - \ket{111}) \otimes (\ket{000} - \ket{111}) \otimes (\ket{000} - \ket{111})$$
 $$\alpha \ket{0} + \beta \ket{1} \rightarrow \alpha \ket{0_L} + \beta \ket{1_L}$$
 
-How can we detect and correct errors using this encoding?
+> Shor code was created as a *concatenation* of bit flip and phase flip codes. Encoding a qubit into its 9-qubit representation happens in two steps:
+>
+> 1. A qubit is encoded in three qubits using the phase flip code.
+> 2. After that, each of those three qubits is encoded again using the bit flip code.
+>
+> Concatenation is a commonly used method of combining several error correction codes by encoding the qubit state using the first code, followed by encoding each qubit of the resulting state using the second code, and so on.
+
+How can we detect and correct errors using Shor code?
 
 ### Detect and Correct X Errors
 
@@ -349,6 +356,18 @@ To correct a $Z$ error, we can no longer simply apply a $Z$ gate to the affected
     "id": "qec_shor__error_discretization",
     "title": "Discretization of Quantum Errors"
 })
+
+The key idea that enables quantum error correction is discretization of quantum errors: being able to correct any kind of error using a code that explicitly allows us to correct only a discrete set of Pauli errors.
+
+> The high-level mathematical reasoning behind our ability to discretize quantum errors is as follows.
+>
+> Let's consider a single-qubit error acting on one of the qubits of the encoded state, converting the entire state from $\ket{\psi_L}$ to $E\ket{\psi_L}$.
+> We can represent the state with this error as some superposition of four orthogonal states: $\ket{\psi_L}$, $X\ket{\psi_L}$, $Z\ket{\psi_L}$, and $XZ\ket{\psi_L}$ (this is possible because the Pauli matrices $I, X, Y, Z$ form a basis for $2 \times 2$ Hermitian matrices, so the operator representing the error can be decomposed as their linear combination).
+> 
+> Doing the set of parity measurements we need to detect $X$ and $Z$ errors will collapse the state $E\ket{\psi_L}$ into other of these four states, yielding measurement results that match that state. For example, if parity measurements yield a set of results indicating that an $X$ error happened, the state $E\ket{\psi_L}$ will collapse to $X\ket{\psi_L}$. 
+>
+> Then, we can use the results of parity measurements to correct the error that they indicate, bringing our state back to the error-free state $\ket{\psi_L}$.
+
 
 Does Shor code indeed correct all errors, and not just the set of Pauli errors $X$, $Y$, and $Z$? 
 Let's try it out!

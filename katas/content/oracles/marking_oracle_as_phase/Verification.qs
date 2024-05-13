@@ -25,7 +25,7 @@ namespace Kata.Verification {
                 let sol = Kata.ApplyMarkingOracleAsPhaseOracle(marking, _);
                 let ref = ApplyMarkingOracleAsPhaseOracle_Reference(marking, _);
 
-                let isCorrect = CheckOperationsEquivalenceStrict(sol, ref, N);
+                let isCorrect = CheckOperationsAreEqualStrict(N, sol, ref);
 
                 if not isCorrect {
                     Message("Incorrect.");

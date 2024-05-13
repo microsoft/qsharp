@@ -167,7 +167,7 @@ fn get_namespace(package: &Package, item: &Item) -> Option<Rc<str>> {
                     if name.starts_with("QIR") {
                         None // We ignore "QIR" namespaces
                     } else {
-                        Some(Rc::from(name.name()))
+                        Some(name.name())
                     }
                 }
                 _ => None,

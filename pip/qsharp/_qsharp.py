@@ -29,9 +29,9 @@ class Config:
         language_features: Optional[List[str]],
         manifest: Optional[str],
     ):
-        if target_profile == TargetProfile.Quantinuum:
-            self._config = {"targetProfile": "quantinuum"}
-            warn("The Quantinuum target profile is a preview feature.")
+        if target_profile == TargetProfile.Adaptive_RI:
+            self._config = {"targetProfile": "adaptive_ri"}
+            warn("The Adaptive_RI target profile is a preview feature.")
             warn("Functionality may be incomplete or incorrect.")
         elif target_profile == TargetProfile.Base:
             self._config = {"targetProfile": "base"}
@@ -342,6 +342,9 @@ class StateDump:
 
     def _repr_html_(self) -> str:
         return self.__data._repr_html_()
+
+    def _repr_latex_(self) -> Optional[str]:
+        return self.__data._repr_latex_()
 
     def check_eq(
         self, state: Union[Dict[int, complex], List[complex]], tolerance: float = 1e-10

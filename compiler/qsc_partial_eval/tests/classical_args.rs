@@ -121,7 +121,9 @@ fn calls_to_intrinsic_operation_using_variables() {
         &expect![[r#"
             Block:
                 Call id(1), args( Double(2), )
+                Variable(0, Double) = Store Double(4)
                 Call id(1), args( Double(4), )
+                Variable(0, Double) = Store Double(8)
                 Call id(1), args( Double(8), )
                 Call id(2), args( Integer(0), Pointer, )
                 Return"#]],

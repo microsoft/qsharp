@@ -48,16 +48,13 @@ pub trait MutVisitor: Sized {
         walk_ident(self, ident);
     }
 
-    fn visit_span(&mut self, _: &mut Span) {}
     fn visit_idents(&mut self, ident: &mut crate::hir::Idents) {
         walk_idents(self, ident);
     }
+
+    fn visit_span(&mut self, _: &mut Span) {}
 }
-pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::hir::Idents) {
-    for ref mut ident in ident.0.iter_mut() {
-        vis.visit_ident(ident);
-    }
-}
+
 pub fn walk_package(vis: &mut impl MutVisitor, package: &mut Package) {
     package.items.values_mut().for_each(|i| vis.visit_item(i));
     package.stmts.iter_mut().for_each(|s| vis.visit_stmt(s));
@@ -235,4 +232,10 @@ pub fn walk_qubit_init(vis: &mut impl MutVisitor, init: &mut QubitInit) {
 
 pub fn walk_ident(vis: &mut impl MutVisitor, ident: &mut Ident) {
     vis.visit_span(&mut ident.span);
+}
+
+pub fn walk_idents(vis: &mut impl MutVisitor, ident: &mut crate::hir::Idents) {
+    for ref mut ident in ident.0.iter_mut() {
+        vis.visit_ident(ident);
+    }
 }

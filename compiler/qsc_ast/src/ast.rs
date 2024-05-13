@@ -1436,7 +1436,10 @@ impl Idents {
     /// The stringified dot-separated path of the idents in this [`Idents`]
     /// E.g. `a.b.c`
     #[must_use]
-    pub fn name(&self) -> String {
+    pub fn name(&self) -> Rc<str> {
+        if self.0.len() == 1 {
+            return self.0[0].name.clone();
+        }
         let mut buf = String::new();
         for ident in self.0.iter() {
             if !buf.is_empty() {
@@ -1444,7 +1447,7 @@ impl Idents {
             }
             buf.push_str(&ident.name);
         }
-        buf
+        Rc::from(buf)
     }
 
     /// The number of idents in this [`Idents`].

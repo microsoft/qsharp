@@ -3,12 +3,13 @@
 
 #![allow(clippy::needless_raw_string_hashes)]
 
-use super::{parse, parse_attr, parse_spec_decl};
+use super::{parse, parse_attr, parse_spec_decl, source_name_to_namespace_name};
 use crate::{
     scan::ParserContext,
     tests::{check, check_vec, check_vec_v2_preview},
 };
 use expect_test::expect;
+use qsc_data_structures::span::Span;
 
 fn parse_namespaces(s: &mut ParserContext) -> Result<Vec<qsc_ast::ast::Namespace>, crate::Error> {
     super::parse_namespaces(s)
@@ -38,6 +39,18 @@ fn adjoint_invert() {
         parse_spec_decl,
         "adjoint invert;",
         &expect!["SpecDecl _id_ [0-15] (Adj): Gen: Invert"],
+    );
+}
+
+// unit tests for file_name_to_namespace_name
+#[test]
+fn file_name_to_namespace_name() {
+    let raw = "foo/bar.qs";
+    let error_span = Span::default();
+    check(
+        |_| source_name_to_namespace_name(raw, error_span),
+        "",
+        &expect![[r#"[Ident _id_ [0-0] "foo", Ident _id_ [0-0] "bar"]"#]],
     );
 }
 
@@ -1683,7 +1696,7 @@ fn namespace_with_conflicting_names() {
     );
 }
 
-// We technically broke this syntax. Although we don't think anybody was using it,
+// We technically broke this syntax as of May 2024. Although we don't think anybody was using it,
 // we want to make sure we provide a helpful error message.
 #[test]
 fn helpful_error_on_dotted_alias() {

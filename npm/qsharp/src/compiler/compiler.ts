@@ -213,7 +213,7 @@ export class Compiler implements ICompiler {
     return this.wasm.get_ast(
       code,
       languageFeatures ?? [],
-      profile ?? "quantinuum",
+      profile ?? "adaptive_ri",
     );
   }
 
@@ -225,7 +225,7 @@ export class Compiler implements ICompiler {
     return this.wasm.get_hir(
       code,
       languageFeatures ?? [],
-      profile ?? "quantinuum",
+      profile ?? "adaptive_ri",
     );
   }
 

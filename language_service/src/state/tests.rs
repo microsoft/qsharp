@@ -149,14 +149,45 @@ async fn close_last_doc_in_project() {
                         offset: 59,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
             }
         "#]],
         &expect![[r#"
-            []
+            [
+                (
+                    "project/src/this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        ExpectedItem(
+                                            ClosedBinOp(
+                                                Slash,
+                                            ),
+                                            Span {
+                                                lo: 59,
+                                                hi: 59,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "project/src/this_file.qs",
+                    None,
+                    [],
+                ),
+            ]
         "#]],
     );
     updater.close_document("project/src/other_file.qs").await;
@@ -282,7 +313,7 @@ async fn rca_errors_are_reported_when_compilation_succeeds() {
     let mut updater = new_updater(&errors);
 
     updater.update_configuration(WorkspaceConfigurationUpdate {
-        target_profile: Some(Profile::Quantinuum),
+        target_profile: Some(Profile::AdaptiveRI),
         package_type: Some(PackageType::Lib),
     });
 
@@ -665,9 +696,9 @@ fn notebook_document_lints() {
                                     lo: 74,
                                     hi: 79,
                                 },
-                                level: Warn,
+                                level: Error,
                                 message: "attempt to divide by zero",
-                                help: "division by zero is not allowed",
+                                help: "division by zero will fail at runtime",
                             },
                         ),
                     ],
@@ -880,7 +911,7 @@ async fn update_doc_updates_project() {
                         offset: 59,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -973,14 +1004,45 @@ async fn close_doc_prioritizes_fs() {
                         offset: 59,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
             }
         "#]],
         &expect![[r#"
-            []
+            [
+                (
+                    "project/src/this_file.qs",
+                    Some(
+                        1,
+                    ),
+                    [
+                        Frontend(
+                            Error(
+                                Parse(
+                                    Error(
+                                        ExpectedItem(
+                                            ClosedBinOp(
+                                                Slash,
+                                            ),
+                                            Span {
+                                                lo: 59,
+                                                hi: 59,
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+                (
+                    "project/src/this_file.qs",
+                    None,
+                    [],
+                ),
+            ]
         "#]],
     );
 }
@@ -1023,7 +1085,7 @@ async fn delete_manifest() {
                         offset: 71,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -1061,7 +1123,7 @@ async fn delete_manifest() {
                         offset: 0,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/this_file.qs",
                 ),
                 entry: None,
@@ -1108,7 +1170,7 @@ async fn delete_manifest_then_close() {
                         offset: 71,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -1172,7 +1234,7 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,
@@ -1225,7 +1287,7 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,
@@ -1277,7 +1339,7 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,
@@ -1323,7 +1385,7 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,
@@ -1384,7 +1446,8 @@ async fn loading_lints_config_from_manifest() {
 
 #[tokio::test]
 async fn lints_update_after_manifest_change() {
-    let this_file_qs = "namespace Foo { operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
+    let this_file_qs =
+        "namespace Foo { @EntryPoint() operation Main() : Unit { let x = 5 / 0 + (2 ^ 4); } }";
     let fs = FsNode::Dir(
         [dir(
             "project",
@@ -1424,8 +1487,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 58,
-                        hi: 65,
+                        lo: 72,
+                        hi: 79,
                     },
                     level: Error,
                     message: "unnecessary parentheses",
@@ -1435,12 +1498,12 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 50,
-                        hi: 55,
+                        lo: 64,
+                        hi: 69,
                     },
                     level: Error,
                     message: "attempt to divide by zero",
-                    help: "division by zero is not allowed",
+                    help: "division by zero will fail at runtime",
                 },
             ),
         ]"#]],
@@ -1466,8 +1529,8 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 58,
-                        hi: 65,
+                        lo: 72,
+                        hi: 79,
                     },
                     level: Warn,
                     message: "unnecessary parentheses",
@@ -1477,12 +1540,12 @@ async fn lints_update_after_manifest_change() {
             Lint(
                 Lint {
                     span: Span {
-                        lo: 50,
-                        hi: 55,
+                        lo: 64,
+                        hi: 69,
                     },
                     level: Warn,
                     message: "attempt to divide by zero",
-                    help: "division by zero is not allowed",
+                    help: "division by zero will fail at runtime",
                 },
             ),
         ]"#]],

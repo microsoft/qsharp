@@ -420,3 +420,12 @@ pub const USE_ENTRY_POINT_STATIC_INT_IN_TUPLE: &str = r#"
             (M(q), 42)
         }
     }"#;
+
+pub const USE_ENTRY_POINT_INT_ARRAY_IN_TUPLE: &str = r#"
+    namespace Test {
+        @EntryPoint()
+        operation Foo() : (Result, Int[]) {
+            use q = Qubit();
+            (M(q), [1, 2, 3])
+        }
+    }"#;

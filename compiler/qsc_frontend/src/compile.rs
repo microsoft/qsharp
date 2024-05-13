@@ -25,7 +25,6 @@ use qsc_ast::{
 use qsc_data_structures::{
     index_map::{self, IndexMap},
     language_features::LanguageFeatures,
-    namespaces::NamespaceTreeRoot,
     span::Span,
     target::TargetCapabilityFlags,
 };
@@ -55,14 +54,15 @@ pub struct AstPackage {
     pub tys: Table,
     pub names: Names,
     pub locals: Locals,
-    pub namespaces: NamespaceTreeRoot,
 }
 
 #[derive(Debug, Default)]
 pub struct SourceMap {
     sources: Vec<Source>,
-    /// if the sources are from a project, then this is the project root directory.
-    project_root_dir: Option<Arc<str>>,
+    /// The common prefix of the sources
+    /// e.g. if the sources all start with `/Users/microsoft/code/qsharp/src`, then this value is
+    /// `/Users/microsoft/code/qsharp/src`.
+    common_prefix: Option<Arc<str>>,
     entry: Option<Source>,
 }
 
@@ -93,7 +93,7 @@ impl SourceMap {
         // Each source has a name, which is a string. The project root dir is calculated as the
         // common prefix of all of the sources.
         // Calculate the common prefix.
-        let project_root_dir: String = longest_common_prefix(
+        let common_prefix: String = longest_common_prefix(
             &offset_sources
                 .iter()
                 .map(|source| source.name.as_ref())
@@ -101,14 +101,14 @@ impl SourceMap {
         )
         .to_string();
 
-        let project_root_dir: Arc<str> = Arc::from(project_root_dir);
+        let common_prefix: Arc<str> = Arc::from(common_prefix);
 
         Self {
             sources: offset_sources,
-            project_root_dir: if project_root_dir.is_empty() {
+            common_prefix: if common_prefix.is_empty() {
                 None
             } else {
-                Some(project_root_dir)
+                Some(common_prefix)
             },
             entry: entry_source,
         }
@@ -146,20 +146,17 @@ impl SourceMap {
 
     /// Returns the sources as an iter, but with the project root directory subtracted
     /// from the individual source names.
-    pub(crate) fn localized_project_sources(&self) -> impl Iterator<Item = Source> + '_ {
+    pub(crate) fn relative_project_sources(&self) -> impl Iterator<Item = Source> + '_ {
         self.sources.iter().map(move |source| {
             let name = source.name.as_ref();
-            let localized_name = if let Some(project_root_dir) = &self.project_root_dir {
-                let localized_name = name
-                    .strip_prefix(&*project_root_dir.clone())
-                    .unwrap_or(name);
-                localized_name
+            let relative_name = if let Some(common_prefix) = &self.common_prefix {
+                name.strip_prefix(&*common_prefix.clone()).unwrap_or(name)
             } else {
                 name
             };
 
             Source {
-                name: localized_name.into(),
+                name: relative_name.into(),
                 contents: source.contents.clone(),
                 offset: source.offset,
             }
@@ -366,7 +363,7 @@ pub fn compile_ast(
     ast_assigner.visit_package(&mut ast_package);
     AstValidator::default().visit_package(&ast_package);
     let mut hir_assigner = HirAssigner::new();
-    let (names, locals, name_errors, namespaces) = resolve_all(
+    let (names, locals, name_errors) = resolve_all(
         store,
         dependencies,
         &mut hir_assigner,
@@ -397,7 +394,6 @@ pub fn compile_ast(
             tys,
             names,
             locals,
-            namespaces,
         },
         assigner: hir_assigner,
         sources,
@@ -466,7 +462,7 @@ fn parse_all(
 ) -> (ast::Package, Vec<qsc_parse::Error>) {
     let mut namespaces = Vec::new();
     let mut errors = Vec::new();
-    for source in sources.localized_project_sources() {
+    for source in sources.relative_project_sources() {
         let (source_namespaces, source_errors) =
             qsc_parse::namespaces(&source.contents, Some(&source.name), features);
         for mut namespace in source_namespaces {
@@ -503,7 +499,7 @@ fn resolve_all(
     assigner: &mut HirAssigner,
     package: &ast::Package,
     mut dropped_names: Vec<TrackedName>,
-) -> (Names, Locals, Vec<resolve::Error>, NamespaceTreeRoot) {
+) -> (Names, Locals, Vec<resolve::Error>) {
     let mut globals = resolve::GlobalTable::new();
     if let Some(unit) = store.get(PackageId::CORE) {
         globals.add_external_package(PackageId::CORE, &unit.package);
@@ -521,9 +517,9 @@ fn resolve_all(
     let mut errors = globals.add_local_package(assigner, package);
     let mut resolver = Resolver::new(globals, dropped_names);
     resolver.with(assigner).visit_package(package);
-    let (names, locals, mut resolver_errors, namespaces) = resolver.into_result();
+    let (names, locals, mut resolver_errors, _namespaces) = resolver.into_result();
     errors.append(&mut resolver_errors);
-    (names, locals, errors, namespaces)
+    (names, locals, errors)
 }
 
 fn typeck_all(
@@ -578,7 +574,7 @@ fn assert_no_errors(sources: &SourceMap, errors: &mut Vec<Error>) {
 }
 
 #[must_use]
-pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
+pub fn longest_common_prefix_old<'a>(strs: &'a [&'a str]) -> &'a str {
     let Some(common_prefix_so_far) = strs.first() else {
         return "";
     };
@@ -591,5 +587,31 @@ pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
         }
     }
 
+    common_prefix_so_far
+}
+
+#[must_use]
+pub fn longest_common_prefix<'a>(strs: &'a [&'a str]) -> &'a str {
+    let Some(common_prefix_so_far) = strs.first() else {
+        return "";
+    };
+
+    for (i, character) in common_prefix_so_far.chars().enumerate() {
+        for string in strs {
+            if string.chars().nth(i) != Some(character) {
+                let prefix = &common_prefix_so_far[0..i];
+                // Find the last occurrence of the path separator in the prefix
+                let last_separator_index = common_prefix_so_far
+                    .rfind('/')
+                    .or_else(|| common_prefix_so_far.rfind('\\'));
+                if let Some(last_separator_index) = last_separator_index {
+                    // Return the prefix up to and including the last path separator
+                    return &prefix[0..=last_separator_index];
+                }
+                // If there's no path separator in the prefix, return an empty string
+                return "";
+            }
+        }
+    }
     common_prefix_so_far
 }
