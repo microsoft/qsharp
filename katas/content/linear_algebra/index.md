@@ -86,7 +86,7 @@ $$= \begin{bmatrix}
     x_{n-1,0} + y_{n-1,0} & x_{n-1,1} + y_{n-1,1} & \dotsb & x_{n-1,m-1} + y_{n-1,m-1}
 \end{bmatrix}$$
 
-Similarly, we can compute $A - B$ by subtracting elements of $B$ from corresponding elements of $A$.
+Similarly, you can compute $A - B$ by subtracting elements of $B$ from corresponding elements of $A$.
 
 Matrix addition has the following properties:
 
@@ -148,7 +148,7 @@ Scalar multiplication has the following properties:
 **Matrix multiplication** is a very important and somewhat unusual operation. The unusual thing about it is that neither its operands nor its output are the same size: an $n \times m$ matrix multiplied by an $m \times k$ matrix results in an $n \times k$ matrix. 
 That is, for matrix multiplication to be applicable, the number of columns in the first matrix must equal the number of rows in the second matrix.
 
-Here is how matrix product is calculated: if we are calculating $AB = C$, then
+Here is how matrix product is calculated: if you're calculating $AB = C$, then
 
 $$C_{i,j} = A_{i,0} \cdot B_{0,j} + A_{i,1} \cdot B_{1,j} + \dotsb + A_{i,m-1} \cdot B_{m-1,j} = \sum_{t = 0}^{m-1} A_{i,t} \cdot B_{t,j}$$
 
@@ -228,7 +228,7 @@ A square matrix has a property called the **determinant**, with the determinant 
 
 For a $2 \times 2$ matrix $A$, the determinant is defined as $|A| = A_{0,0} \cdot A_{1,1} - A_{0,1} \cdot A_{1,0}$.
 
-For larger matrices, the determinant is defined through determinants of sub-matrices. You can learn more from [Wikipedia](https://en.wikipedia.org/wiki/Determinant) or from [Wolfram MathWorld](http://mathworld.wolfram.com/Determinant.html).
+For larger matrices, the determinant is defined through determinants of sub-matrices. You can learn more about the determinant of matrices from [Wikipedia](https://en.wikipedia.org/wiki/Determinant) or from [Wolfram MathWorld](http://mathworld.wolfram.com/Determinant.html).
 
 @[exercise]({ 
     "id": "linear_algebra__inverse_matrix_ex", 
@@ -392,30 +392,30 @@ $$A = \begin{bmatrix}
 
 <details>
 <summary><b>Solution</b></summary>
-To check whether the input matrix is unitary, we will need to perform the following steps:
+To check whether the input matrix is unitary, you need to perform the following steps:
 
 1. Calculate the adjoint of the input matrix $A^\dagger$.
 
-$$A^\dagger = \frac{1}{\sqrt{2}} \begin{bmatrix}
-    1 & -i \\
-    1 & i
-\end{bmatrix}$$
+    $$A^\dagger = \frac{1}{\sqrt{2}} \begin{bmatrix}
+        1 & -i \\
+        1 & i
+    \end{bmatrix}$$
 
-2. Multiply it by the input matrix.
+1. Multiply it by the input matrix.
 
-$$AA^\dagger = \frac12 \begin{bmatrix}
-    1 & 1 \\
-    i & -i
-\end{bmatrix} \begin{bmatrix}
-    1 & -i \\
-    1 & i
-\end{bmatrix} = \frac12 \begin{bmatrix}
-    1 \cdot 1 + 1 \cdot 1 & 1 \cdot (-i) + 1 \cdot i \\
-    i \cdot 1 + (-i) \cdot 1 & i \cdot (-i) + (-i) \cdot i
-\end{bmatrix} = \begin{bmatrix}
-    1 & 0 \\
-    0 & 1
-\end{bmatrix}$$
+    $$AA^\dagger = \frac12 \begin{bmatrix}
+        1 & 1 \\
+        i & -i
+    \end{bmatrix} \begin{bmatrix}
+        1 & -i \\
+        1 & i
+    \end{bmatrix} = \frac12 \begin{bmatrix}
+        1 \cdot 1 + 1 \cdot 1 & 1 \cdot (-i) + 1 \cdot i \\
+        i \cdot 1 + (-i) \cdot 1 & i \cdot (-i) + (-i) \cdot i
+    \end{bmatrix} = \begin{bmatrix}
+        1 & 0 \\
+        0 & 1
+    \end{bmatrix}$$
 
 If the multiplication result $AA^\dagger$ is an identity matrix, which is indeed the case, 
 and the product $A^\dagger A$ is also an identity matrix (which you can verify in a similar manner),
@@ -441,7 +441,7 @@ $$\langle V , W \rangle = \sum_{k=0}^{n-1}\overline{V_k}W_k$$
 
 If you are familiar with the **dot product**, you will notice that it is equivalent to inner product for real-numbered vectors.
 
-> We use our definition for these tutorials because it matches the notation used in quantum computing. You might encounter other sources which define the inner product a little differently: $\langle V , W \rangle = W^\dagger V = V^T\overline{W}$, in contrast to the $V^\dagger W$ that we use. These definitions are almost equivalent, with some differences in the scalar multiplication by a complex number.
+> We use our definition for these tutorials because it matches the notation used in quantum computing. You might encounter other sources which define the inner product a little differently: $\langle V , W \rangle = W^\dagger V = V^T\overline{W}$, in contrast to the $V^\dagger W$ that it's used here. These definitions are almost equivalent, with some differences in the scalar multiplication by a complex number.
 
 An immediate application for the inner product is computing the **vector norm**. The norm of vector $V$ is defined as $||V|| = \sqrt{\langle V , V \rangle}$. This condenses the vector down to a single non-negative real value. If the vector represents coordinates in space, the norm happens to be the length of the vector. A vector is called **normalized** if its norm is equal to $1$.
 
