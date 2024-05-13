@@ -516,24 +516,11 @@ fn call_to_dynamic_operation_yields_errors() {
 }
 
 #[test]
-fn call_to_unresolved_yields_errors() {
+fn call_to_unresolved_allowed() {
     check_profile(
         CALL_UNRESOLVED_FUNCTION,
         &expect![[r#"
-            [
-                UseOfDynamicDouble(
-                    Span {
-                        lo: 172,
-                        hi: 180,
-                    },
-                ),
-                CallToUnresolvedCallee(
-                    Span {
-                        lo: 172,
-                        hi: 180,
-                    },
-                ),
-            ]
+            []
         "#]],
     );
 }

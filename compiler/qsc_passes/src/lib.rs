@@ -43,7 +43,7 @@ pub enum Error {
     BaseProfCk(baseprofck::Error),
     BorrowCk(borrowck::Error),
     CallableLimits(callable_limits::Error),
-    CapabilitiesCk(capabilitiesck::Error),
+    CapabilitiesCk(qsc_rca::errors::Error),
     ConjInvert(conjugate_invert::Error),
     EntryPoint(entry_point::Error),
     SpecGen(spec_gen::Error),

@@ -8,6 +8,7 @@
 mod evaluation_context;
 mod management;
 
+use core::panic;
 use evaluation_context::{
     Arg, BlockNode, BranchControlFlow, EvalControlFlow, EvaluationContext, MutableKind, MutableVar,
     Scope,
@@ -32,7 +33,12 @@ use qsc_fir::{
     },
     ty::{Prim, Ty},
 };
-use qsc_rca::{ComputeKind, ComputePropertiesLookup, PackageStoreComputeProperties};
+use qsc_rca::errors::{generate_errors_from_runtime_features, get_missing_runtime_features};
+use qsc_rca::{
+    errors::Error as CapabilityError, ComputeKind, ComputePropertiesLookup,
+    PackageStoreComputeProperties,
+};
+use qsc_rca::{ItemComputeProperties, QuantumProperties, RuntimeFeatureFlags};
 use qsc_rir::{
     builder,
     rir::{
@@ -59,6 +65,17 @@ pub fn partially_evaluate(
 /// A partial evaluation error.
 #[derive(Clone, Debug, Diagnostic, Error)]
 pub enum Error {
+    #[error(transparent)]
+    #[diagnostic(transparent)]
+    CapabilityError(CapabilityError),
+
+    #[error("use of unanalyzed dynamic value")]
+    #[diagnostic(code("Qsc.PartialEval.UnexpectedDynamicValue"))]
+    #[diagnostic(help(
+        "analysis is limited for callables that cannot be uniquely resolved at compile time, try invoking the desired callable directly"
+    ))]
+    UnexpectedDynamicValue(#[label] Span),
+
     #[error("partial evaluation failed with error {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(String, #[label] Span),
@@ -678,7 +695,7 @@ impl<'a> PartialEvaluator<'a> {
             }
             ExprKind::Block(block_id) => self.try_eval_block(*block_id),
             ExprKind::Call(callee_expr_id, args_expr_id) => {
-                self.eval_expr_call(*callee_expr_id, *args_expr_id)
+                self.eval_expr_call(expr_id, *callee_expr_id, *args_expr_id)
             }
             ExprKind::Closure(args, callable) => {
                 let closure = resolve_closure(
@@ -900,27 +917,12 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval_expr_call(
         &mut self,
+        call_expr_id: ExprId,
         callee_expr_id: ExprId,
         args_expr_id: ExprId,
     ) -> Result<EvalControlFlow, Error> {
-        // Visit the both the callee and arguments expressions to get their values.
-        let callee_control_flow = self.try_eval_expr(callee_expr_id)?;
-        if callee_control_flow.is_return() {
-            let callee_expr = self.get_expr(callee_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in callee".to_string(),
-                callee_expr.span,
-            ));
-        }
-
-        let args_control_flow = self.try_eval_expr(args_expr_id)?;
-        if args_control_flow.is_return() {
-            let args_expr = self.get_expr(args_expr_id);
-            return Err(Error::Unexpected(
-                "embedded return in call arguments".to_string(),
-                args_expr.span,
-            ));
-        }
+        let (callee_control_flow, args_control_flow) =
+            self.try_eval_callee_and_args(callee_expr_id, args_expr_id)?;
 
         // Get the callable.
         let (store_item_id, functor_app, fixed_args) = match callee_control_flow.into_value() {
@@ -937,28 +939,130 @@ impl<'a> PartialEvaluator<'a> {
             panic!("global is not a callable");
         };
 
+        // Set up the scope for the call, which allows additional error checking if the callable was
+        // previously unresolved.
+        let spec_decl = if let CallableImpl::Spec(spec_impl) = &callable_decl.implementation {
+            Some(get_spec_decl(spec_impl, functor_app))
+        } else {
+            None
+        };
+
+        let args_value = args_control_flow.into_value();
+        let ctls = if let Some(Some(ctls_pat_id)) = spec_decl.map(|spec_decl| spec_decl.input) {
+            assert!(
+                functor_app.controlled > 0,
+                "control qubits count was expected to be greater than zero"
+            );
+            Some((
+                StorePatId::from((store_item_id.package, ctls_pat_id)),
+                functor_app.controlled,
+            ))
+        } else {
+            assert!(
+                functor_app.controlled == 0,
+                "control qubits count was expected to be zero"
+            );
+            None
+        };
+        let (args, ctls_arg) = self.resolve_args(
+            (store_item_id.package, callable_decl.input).into(),
+            args_value.clone(),
+            ctls,
+            fixed_args,
+        );
+        let call_scope = Scope::new(
+            store_item_id.package,
+            Some((store_item_id.item, functor_app)),
+            args,
+            ctls_arg,
+        );
+
+        // If the call has the unresolved flag, it tells us that RCA could not perform static analysis on this call site.
+        // Now that we are in evaluation, we have a distinct callable resolved and can perform runtime capability check
+        // ahead of performing the actual call and return the appropriate capabilities error if this call is not supported
+        // by the target.
+        let call_expr_compute_kind = self.get_expr_compute_kind(call_expr_id);
+        let call_was_unresolved = match call_expr_compute_kind {
+            ComputeKind::Quantum(props) => props
+                .runtime_features
+                .contains(RuntimeFeatureFlags::CallToUnresolvedCallee),
+            ComputeKind::Classical => false,
+        };
+        if call_was_unresolved {
+            let call_compute_kind = self.get_call_compute_kind(&call_scope);
+            if let ComputeKind::Quantum(QuantumProperties {
+                runtime_features,
+                value_kind,
+            }) = call_compute_kind
+            {
+                let missing_features = get_missing_runtime_features(
+                    runtime_features,
+                    self.program.config.capabilities,
+                ) & !RuntimeFeatureFlags::CallToUnresolvedCallee;
+                if !missing_features.is_empty() {
+                    if let Some(error) = generate_errors_from_runtime_features(
+                        missing_features,
+                        self.get_expr(call_expr_id).span,
+                    )
+                    .drain(..)
+                    .next()
+                    {
+                        return Err(Error::CapabilityError(error));
+                    }
+                }
+
+                // If the call produces a dynamic value, we treat it as an error because we know that later
+                // analysis has not taken that dynamism into account and further partial evaluation may fail
+                // when it encounters that value.
+                if value_kind.is_dynamic() {
+                    return Err(Error::UnexpectedDynamicValue(
+                        self.get_expr(call_expr_id).span,
+                    ));
+                }
+            }
+        }
+
         // We generate instructions differently depending on whether we are calling an intrinsic or a specialization
         // with an implementation.
-        let value = match &callable_decl.implementation {
-            CallableImpl::Intrinsic => {
+        let value = match spec_decl {
+            None => {
                 let callee_expr = self.get_expr(callee_expr_id);
                 self.eval_expr_call_to_intrinsic(
                     store_item_id,
                     callable_decl,
-                    args_control_flow.into_value(),
+                    args_value,
                     callee_expr.span,
                 )?
             }
-            CallableImpl::Spec(spec_impl) => self.eval_expr_call_to_spec(
-                store_item_id,
-                functor_app,
-                spec_impl,
-                callable_decl.input,
-                args_control_flow.into_value(),
-                fixed_args,
-            )?,
+            Some(spec_decl) => {
+                self.eval_expr_call_to_spec(call_scope, store_item_id, functor_app, spec_decl)?
+            }
         };
         Ok(EvalControlFlow::Continue(value))
+    }
+
+    fn try_eval_callee_and_args(
+        &mut self,
+        callee_expr_id: ExprId,
+        args_expr_id: ExprId,
+    ) -> Result<(EvalControlFlow, EvalControlFlow), Error> {
+        let callee_control_flow = self.try_eval_expr(callee_expr_id)?;
+        if callee_control_flow.is_return() {
+            let callee_expr = self.get_expr(callee_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in callee".to_string(),
+                callee_expr.span,
+            ));
+        }
+        let args_control_flow = self.try_eval_expr(args_expr_id)?;
+        if args_control_flow.is_return() {
+            let args_expr = self.get_expr(args_expr_id);
+            return Err(Error::Unexpected(
+                "embedded return in call arguments".to_string(),
+                args_expr.span,
+            ));
+        }
+        Ok((callee_control_flow, args_control_flow))
     }
 
     fn eval_expr_call_to_intrinsic(
@@ -1036,44 +1140,11 @@ impl<'a> PartialEvaluator<'a> {
 
     fn eval_expr_call_to_spec(
         &mut self,
+        call_scope: Scope,
         global_callable_id: StoreItemId,
         functor_app: FunctorApp,
-        spec_impl: &SpecImpl,
-        args_pat: PatId,
-        args_value: Value,
-        fixed_args: Option<Rc<[Value]>>,
+        spec_decl: &SpecDecl,
     ) -> Result<Value, Error> {
-        let spec_decl = get_spec_decl(spec_impl, functor_app);
-
-        // Create new call scope.
-        let ctls = if let Some(ctls_pat_id) = spec_decl.input {
-            assert!(
-                functor_app.controlled > 0,
-                "control qubits count was expected to be greater than zero"
-            );
-            Some((
-                StorePatId::from((global_callable_id.package, ctls_pat_id)),
-                functor_app.controlled,
-            ))
-        } else {
-            assert!(
-                functor_app.controlled == 0,
-                "control qubits count was expected to be zero"
-            );
-            None
-        };
-        let (args, ctls_arg) = self.resolve_args(
-            (global_callable_id.package, args_pat).into(),
-            args_value,
-            ctls,
-            fixed_args,
-        );
-        let call_scope = Scope::new(
-            global_callable_id.package,
-            Some((global_callable_id.item, functor_app)),
-            args,
-            ctls_arg,
-        );
         self.eval_context.push_scope(call_scope);
         let block_value = self.try_eval_block(spec_decl.block)?.into_value();
         let popped_scope = self.eval_context.pop_scope();
@@ -1561,6 +1632,40 @@ impl<'a> PartialEvaluator<'a> {
         let expr_generator_set = self.compute_properties.get_expr(store_expr_id);
         let callable_scope = self.eval_context.get_current_scope();
         expr_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
+    }
+
+    fn get_call_compute_kind(&self, callable_scope: &Scope) -> ComputeKind {
+        let store_item_id = StoreItemId::from((
+            callable_scope.package_id,
+            callable_scope
+                .callable
+                .expect("callable should be present")
+                .0,
+        ));
+        let ItemComputeProperties::Callable(callable_compute_properties) =
+            self.compute_properties.get_item(store_item_id)
+        else {
+            panic!("item compute properties not found");
+        };
+        let callable_generator_set = match &callable_scope.callable {
+            Some((_, functor_app)) => match (functor_app.adjoint, functor_app.controlled) {
+                (false, 0) => &callable_compute_properties.body,
+                (false, _) => callable_compute_properties
+                    .ctl
+                    .as_ref()
+                    .expect("controlled should be supported"),
+                (true, 0) => callable_compute_properties
+                    .adj
+                    .as_ref()
+                    .expect("adjoint should be supported"),
+                (true, _) => callable_compute_properties
+                    .ctl_adj
+                    .as_ref()
+                    .expect("controlled adjoint should be supported"),
+            },
+            None => panic!("call compute kind should have callable"),
+        };
+        callable_generator_set.generate_application_compute_kind(&callable_scope.args_value_kind)
     }
 
     fn try_create_mutable_variable(

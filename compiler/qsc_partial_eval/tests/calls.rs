@@ -11,8 +11,13 @@ pub mod test_utils;
 
 use expect_test::expect;
 use indoc::indoc;
+use qsc::TargetCapabilityFlags;
 use qsc_rir::rir::{BlockId, CallableId};
-use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
+use test_utils::{
+    assert_block_instructions, assert_blocks, assert_callable, assert_error,
+    get_partial_evaluation_error_with_capabilities, get_rir_program,
+    get_rir_program_with_capabilities,
+};
 
 #[test]
 fn call_to_single_qubit_unitary_with_two_calls_to_the_same_intrinsic() {
@@ -1198,5 +1203,88 @@ fn call_to_closue_with_one_bound_local_two_unbound() {
                 Call id(1), args( Double(1), Qubit(0), )
                 Call id(2), args( Integer(0), Pointer, )
                 Return"#]],
+    );
+}
+
+#[test]
+fn call_to_unresolved_callee_with_classical_arg_allowed() {
+    let program = get_rir_program_with_capabilities(
+        indoc! {"
+        namespace Test {
+            open Microsoft.Quantum.Convert;
+            operation Op(i : Int, q : Qubit) : Unit {
+                Rx(IntAsDouble(i), q);
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let f = [Op][0];
+                f(1, q);
+            }
+        }"},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_block_instructions(
+        &program,
+        BlockId(0),
+        &expect![[r#"
+        Block:
+            Call id(1), args( Double(1), Qubit(0), )
+            Call id(2), args( Integer(0), Pointer, )
+            Return"#]],
+    );
+}
+
+#[test]
+fn call_to_unresolved_callee_with_dynamic_arg_fails() {
+    let error = get_partial_evaluation_error_with_capabilities(
+        indoc! {"
+        namespace Test {
+            open Microsoft.Quantum.Convert;
+            operation Op(i : Int, q : Qubit) : Unit {
+                Rx(IntAsDouble(i), q);
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let i = if MResetZ(q) == One { 1 } else { 0 };
+                let f = [Op][0];
+                f(i, q);
+            }
+        }"},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_error(
+        &error,
+        &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 298, hi: 305 }))"],
+    );
+}
+
+#[test]
+fn call_to_unresolved_callee_producing_dynamic_value_fails() {
+    let error = get_partial_evaluation_error_with_capabilities(
+        indoc! {"
+        namespace Test {
+            open Microsoft.Quantum.Convert;
+            operation Op(i : Int, q : Qubit) : Int {
+                X(q);
+                i
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let i = if MResetZ(q) == One { 1 } else { 0 };
+                let f = [Op][0];
+                let _ = f(i, q);
+            }
+        }"},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_error(
+        &error,
+        &expect!["UnexpectedDynamicValue(Span { lo: 298, hi: 305 })"],
     );
 }
