@@ -1,5 +1,5 @@
 **Input:** Two unentangled qubits (stored in an array of length 2).
-The first qubit will be in state $|\psi\rangle = \alpha |0\rangle + \beta |1\rangle$, the second - in state $|0\rangle$
-(this can be written as two-qubit state $\big(\alpha |0\rangle + \beta |1\rangle \big) \otimes |0\rangle = \alpha |00\rangle + \beta |10\rangle$).
+The first qubit will be in state $\ket{\psi} = \alpha \ket{0} + \beta \ket{1}$, the second - in state $\ket{0}$
+(this can be written as two-qubit state $\big(\alpha \ket{0} + \beta \ket{1} \big) \otimes \ket{0} = \alpha \ket{00} + \beta \ket{10}$).
 
-**Goal:** Change the two-qubit state to $\alpha |00\rangle + \beta |11\rangle$.
+**Goal:** Change the two-qubit state to $\alpha \ket{00} + \beta \ket{11}$.

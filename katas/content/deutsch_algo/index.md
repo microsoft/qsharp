@@ -53,11 +53,11 @@ What about the quantum scenario?
 In the quantum scenario, the classical function we're working with is implemented as a quantum oracle - a "black box" operation used as input to another algorithm. This operation is implemented in a way which allows to perform calculations not only on individual inputs, but also on superpositions of inputs. 
 
 The oracle has to act on quantum states instead of classical values. 
-To enable this, integer input $x$ is represented as a qubit state $|x\rangle$.
+To enable this, integer input $x$ is represented as a qubit state $\ket{x}$.
 
 The type of oracles used in this tutorial are called *phase oracles*. A phase oracle $U_f$ encodes the value of the classical function $f$ it implements in the phase of the qubit state as follows:
 
-$$U_f |x \rangle = (-1)^{f(x)} |x \rangle$$
+$$U_f \ket{x} = (-1)^{f(x)} \ket{x}$$
 
 In our case $f$ can return only two values, 0 or 1, which result in no phase change or multiplication by a relative phase $-1$, respectively.
 
@@ -70,7 +70,7 @@ There are only four single-bit functions, so we can see how to implement them al
 
 This is the easiest function to implement: if $f(x) \equiv 0$, 
 
-$$U_f |x\rangle \equiv (-1)^0 |x\rangle = |x\rangle$$
+$$U_f \ket{x} \equiv (-1)^0 \ket{x} = \ket{x}$$
 
 This means that $U_f$ is an identity - a transformation which does absolutely nothing! 
 
@@ -78,7 +78,7 @@ This means that $U_f$ is an identity - a transformation which does absolutely no
 
 The second constant function is slightly trickier: if $f(x) \equiv 1$
 
-$$U_f |x\rangle \equiv (-1)^1 |x\rangle = - |x\rangle$$
+$$U_f \ket{x} \equiv (-1)^1 \ket{x} = - \ket{x}$$
 
 Now $U_f$ is a negative identity, i.e., a transformation which applies a global phase of $-1$ to the state. 
 A lot of algorithms just ignore the global phase accumulated in them, since it is not observable. 
@@ -87,9 +87,9 @@ When called with `PauliI` axis, this operation applies a global phase to the giv
 
 3. $f(x) = x$
 
-$$U_f |x\rangle = (-1)^{f(x)} |x\rangle = (-1)^{x} |x\rangle$$
+$$U_f \ket{x} = (-1)^{f(x)} \ket{x} = (-1)^{x} \ket{x}$$
 
-This means that we need to do nothing if the qubit is in the $|0\rangle$ state, and apply a phase of $-1$ if it is in the $|1\rangle$ state. This is exactly the effect of the $Z$ gate!
+This means that we need to do nothing if the qubit is in the $\ket{0}$ state, and apply a phase of $-1$ if it is in the $\ket{1}$ state. This is exactly the effect of the $Z$ gate!
 
 In this demo we will see how to implement the first three one-bit functions as quantum oracles, and their effect on a qubit state.
 After that, you'll try to implement the oracle for the fourth function on your own!
@@ -114,24 +114,24 @@ After that, you'll try to implement the oracle for the fourth function on your o
 Now let's return to the problem of figuring out whether the given function is constant or variable for single-bit functions.
 What can we do if we are given a quantum oracle $U_f$ implementing the function $f(x)$?
 
-There are two possible inputs to the function, $|0\rangle$ and $|1\rangle$. Let's see what happens if we apply the oracle to their superposition:
+There are two possible inputs to the function, $\ket{0}$ and $\ket{1}$. Let's see what happens if we apply the oracle to their superposition:
 
-$$U_f \left( \frac{1}{\sqrt2} \big( |0\rangle + |1\rangle \big) \right) 
-= \frac{1}{\sqrt2} \big( U_f |0\rangle + U_f |1\rangle \big) 
-= \frac{1}{\sqrt2} \big( (-1)^{f(0)} |0\rangle + (-1)^{f(1)} |1\rangle \big)$$.
+$$U_f \left( \frac{1}{\sqrt2} \big( \ket{0} + \ket{1} \big) \right) 
+= \frac{1}{\sqrt2} \big( U_f \ket{0} + U_f \ket{1} \big) 
+= \frac{1}{\sqrt2} \big( (-1)^{f(0)} \ket{0} + (-1)^{f(1)} \ket{1} \big)$$.
 
-- If $f(0) = f(1)$, the relative phases of the two basis states are the same, and the resulting state is $|+\rangle = \frac{1}{\sqrt2} \big( |0\rangle + |1\rangle \big)$ (up to a global phase). 
-- If $f(0) \neq f(1)$, the relative phases of the two basis states differ by a factor of $-1$, and the resulting state is $|-\rangle = \frac{1}{\sqrt2} \big( |0\rangle - |1\rangle \big)$ (up to a global phase). 
+- If $f(0) = f(1)$, the relative phases of the two basis states are the same, and the resulting state is $\ket{+} = \frac{1}{\sqrt2} \big( \ket{0} + \ket{1} \big)$ (up to a global phase). 
+- If $f(0) \neq f(1)$, the relative phases of the two basis states differ by a factor of $-1$, and the resulting state is $\ket{-} = \frac{1}{\sqrt2} \big( \ket{0} - \ket{1} \big)$ (up to a global phase). 
 
-Now, the states $|+\rangle$ and $|-\rangle$ can be distinguished using measurement: if you apply the H gate to each of them, you'll get $H|+\rangle = |0\rangle$ if $f(0) = f(1)$, or $H|-\rangle = |1\rangle$ if $f(0) \neq f(1)$. This means that one oracle call does not let you calculate both $f(0)$ and $f(1)$, but it allows you to figure out whether $f(0) = f(1)$!
+Now, the states $\ket{+}$ and $\ket{-}$ can be distinguished using measurement: if you apply the H gate to each of them, you'll get $H\ket{+} = \ket{0}$ if $f(0) = f(1)$, or $H\ket{-} = \ket{1}$ if $f(0) \neq f(1)$. This means that one oracle call does not let you calculate both $f(0)$ and $f(1)$, but it allows you to figure out whether $f(0) = f(1)$!
 
 Overll, the algorithm is very straightforward:
 
-1. Start with a qubit in the $|0\rangle$ state.
+1. Start with a qubit in the $\ket{0}$ state.
 2. Apply the $H$ gate to the qubit.
 3. Apply the oracle.
 4. Apply the $H$ gate to the qubit again.
-5. Measure the qubit: if it is in the $|0\rangle$ state, the function is constant, otherwise it is variable.
+5. Measure the qubit: if it is in the $\ket{0}$ state, the function is constant, otherwise it is variable.
 
 Note that this algorithm requires only **1** oracle call, and always produces the correct result (is deterministic).
 

@@ -342,12 +342,12 @@ fn get_terms_for_state(state: &Vec<(BigUint, Complex64)>) -> Vec<Term> {
 }
 
 /// Get the state represented as a formula in the LaTeX format if possible.
-/// Empty string is returned if the resulting formula is not nice, i.e.
+/// `None` is returned if the resulting formula is not nice, i.e.
 /// if the formula consists of more than 16 terms or if more than two coefficients are not recognized.
 #[must_use]
-pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> String {
+pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Option<String> {
     if state.len() > 16 {
-        return String::new();
+        return None;
     }
 
     let terms: Vec<Term> = get_terms_for_state(state);
@@ -361,7 +361,7 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Strin
                 bad_term_count += 1;
             };
             if bad_term_count > 2 {
-                return String::new();
+                return None;
             }
         }
     }
@@ -378,7 +378,7 @@ pub fn get_latex(state: &Vec<(BigUint, Complex64)>, qubit_count: usize) -> Strin
     latex.push('$');
     latex.shrink_to_fit();
 
-    latex
+    Some(latex)
 }
 
 /// Write latex for one term of quantum state.

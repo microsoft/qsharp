@@ -2,7 +2,7 @@ When you start learning the basic quantum gates, one of the first gates describe
 
 $$H = \frac{1}{\sqrt2} \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}$$
 
-This gate converts $|0\rangle$ into $|+\rangle = \frac{1}{\sqrt{2}} \big(|0\rangle + |1\rangle\big)$ and $|1\rangle$ into $|−\rangle = \frac{1}{\sqrt{2}} \big(|0\rangle - |1\rangle\big)$.  The first of these transformations is exactly the one we're looking for!
+This gate converts $\ket{0}$ into $\ket{+} = \frac{1}{\sqrt{2}} \big(\ket{0} + \ket{1}\big)$ and $\ket{1}$ into $\ket{−} = \frac{1}{\sqrt{2}} \big(\ket{0} - \ket{1}\big)$.  The first of these transformations is exactly the one we're looking for!
 
 Hadamard gate is one of the built-in gates in Q#, available in the `Microsoft.Quantum.Intrinsic` namespace.
 It is open in any Q# source files by default, so you can use it right away.
