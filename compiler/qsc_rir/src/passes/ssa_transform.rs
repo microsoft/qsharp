@@ -17,18 +17,18 @@ pub fn transform_to_ssa(program: &mut Program, preds: &IndexMap<BlockId, Vec<Blo
     // Ensure that the graph is acyclic before proceeding. Current approach does not support cycles.
     ensure_acyclic(preds);
 
-    // First, remove store instructions and propagate variables through individual blocks.
-    // This produces a per-block map of dynamic variables to their values.
-    // Orphan variables may be left behind where a variable is defined in one block and used in another, which
-    // will be resolved by inserting phi nodes.
-    let mut block_var_map = map_store_to_dominated_ssa(program, preds);
-
     // Get the next available variable ID for use in newly generated phi nodes.
     let mut next_var_id = get_variable_assignments(program)
         .iter()
         .last()
         .map(|(var_id, _)| var_id.successor())
         .unwrap_or_default();
+
+    // First, remove store instructions and propagate variables through individual blocks.
+    // This produces a per-block map of dynamic variables to their values.
+    // Orphan variables may be left behind where a variable is defined in one block and used in another, which
+    // will be resolved by inserting phi nodes.
+    let mut block_var_map = map_store_to_dominated_ssa(program, preds);
 
     // Insert phi nodes where necessary, mapping any remaining orphaned uses to the new variable
     // created by the phi node.
@@ -239,17 +239,25 @@ impl VariableMapper for FxHashMap<VariableId, Operand> {
     }
 
     fn to_operand(&self, var: Variable) -> Operand {
-        self.get(&var.variable_id)
-            .copied()
-            .unwrap_or(Operand::Variable(var))
+        let mut var = var;
+        while let Some(operand) = self.get(&var.variable_id) {
+            if let Operand::Variable(new_var) = operand {
+                var = *new_var;
+            } else {
+                return *operand;
+            }
+        }
+        Operand::Variable(var)
     }
 
     fn to_variable(&self, var: Variable) -> Variable {
-        self.get(&var.variable_id)
-            .copied()
-            .map_or(var, |operand| match operand {
-                Operand::Literal(_) => panic!("literal not supported in this context"),
-                Operand::Variable(var) => var,
-            })
+        let mut var = var;
+        while let Some(operand) = self.get(&var.variable_id) {
+            let Operand::Variable(new_var) = operand else {
+                panic!("literal not supported in this context");
+            };
+            var = *new_var;
+        }
+        var
     }
 }

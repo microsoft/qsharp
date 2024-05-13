@@ -4,7 +4,7 @@
 #[cfg(test)]
 mod tests;
 
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, ops::Sub};
 
 use qsc_data_structures::index_map::IndexMap;
 use rustc_hash::FxHashMap;
@@ -47,7 +47,7 @@ pub fn reindex_qubits(program: &mut Program) {
         used_cx,
         cx_id,
         mresetz_id,
-        highest_used_id: program.num_qubits - 1,
+        highest_used_id: program.num_qubits.max(1).sub(1),
     };
 
     let pred_map = build_predecessors_map(program);
