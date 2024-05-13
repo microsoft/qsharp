@@ -358,6 +358,13 @@ impl Output {
         }
     }
 
+    fn _repr_latex_(&self) -> Option<String> {
+        match &self.0 {
+            DisplayableOutput::State(state) => state.to_latex(),
+            DisplayableOutput::Message(_) => None,
+        }
+    }
+
     fn state_dump(&self) -> Option<StateDumpData> {
         match &self.0 {
             DisplayableOutput::State(state) => Some(StateDumpData(state.clone())),
@@ -415,6 +422,10 @@ impl StateDumpData {
 
     fn _repr_html_(&self) -> String {
         self.0.to_html()
+    }
+
+    fn _repr_latex_(&self) -> Option<String> {
+        self.0.to_latex()
     }
 }
 

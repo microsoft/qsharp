@@ -4,7 +4,7 @@ $$f(x) = x_0$$
 
 and its effect on the quantum state as 
 
-$$U_f |x\rangle = (-1)^{f(x)} |x\rangle = (-1)^{x_0} |x\rangle = (-1)^{x_0} |x_{0} \rangle \otimes |x_1\rangle \otimes \cdots \otimes |x_{N-1}\rangle$$
+$$U_f \ket{x} = (-1)^{f(x)} \ket{x} = (-1)^{x_0} \ket{x} = (-1)^{x_0} \ket{x_{0} } \otimes \ket{x_1} \otimes \cdots \otimes \ket{x_{N-1}}$$
 
 As we've seen in the previous oracle, this can be achieved by applying a $Z$ gate to the first qubit.
 

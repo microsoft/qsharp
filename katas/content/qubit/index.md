@@ -97,33 +97,33 @@ This means that these vectors form an **orthonormal basis**. The basis of $\begi
     "title": "Dirac Notation"
 })
 
-Dirac notation is a shorthand notation that eases writing quantum states and computing linear algebra. In Dirac notation, a vector is denoted by a symbol called a **ket**. For example, a qubit in state $0$ is represented by the ket $|0\rangle$, and a qubit in state $1$ is represented by the ket $|1\rangle$:
+Dirac notation is a shorthand notation that eases writing quantum states and computing linear algebra. In Dirac notation, a vector is denoted by a symbol called a **ket**. For example, a qubit in state $0$ is represented by the ket $\ket{0}$, and a qubit in state $1$ is represented by the ket $\ket{1}$:
 
 <table>
     <tr>
-        <td>$$|0\rangle = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$$</td>
-        <td>$$|1\rangle = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$</td>
+        <td>$$\ket{0} = \begin{bmatrix} 1 \\ 0 \end{bmatrix}$$</td>
+        <td>$$\ket{1} = \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$</td>
     </tr>
 </table>
 
 These two kets represent basis states, so they can be used to represent any other state:
 
-$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
+$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha\ket{0} + \beta\ket{1}$$
 
 Dirac notation is not only restricted to vectors $0$ and $1$; it can be used to represent any vector, similar to how variable names are used in algebra. For example, we can call the state above "the state $\psi$" and write it as:
 
-$$|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$$
+$$\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$$
 
 Several ket symbols have a generally accepted use, so you will see them often:
 
 <table>
     <tr>
-        <td>$$|+\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + |1\rangle\big)$$</td>
-        <td>$$|-\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - |1\rangle\big)$$</td>
+        <td>$$\ket{+} = \frac{1}{\sqrt{2}}\big(\ket{0} + \ket{1}\big)$$</td>
+        <td>$$\ket{-} = \frac{1}{\sqrt{2}}\big(\ket{0} - \ket{1}\big)$$</td>
     </tr>
     <tr>
-        <td>$$|i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle + i|1\rangle\big)$$</td>
-        <td>$$|-i\rangle = \frac{1}{\sqrt{2}}\big(|0\rangle - i|1\rangle\big)$$</td>
+        <td>$$\ket{i} = \frac{1}{\sqrt{2}}\big(\ket{0} + i\ket{1}\big)$$</td>
+        <td>$$\ket{-i} = \frac{1}{\sqrt{2}}\big(\ket{0} - i\ket{1}\big)$$</td>
     </tr>
 </table>
 
@@ -140,9 +140,9 @@ Complex numbers have a parameter called the phase. If a complex number $z = x + 
 > between $-\pi$ and $\pi$ that has $\cos \theta = x$ and $\sin \theta = y$. Unlike using $\tan^{-1}(\frac{y}{x})$, `atan2` computes
 > the correct quadrant for the angle, since it preserves information about the signs of both sine and cosine of the angle.
 
-The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}|0\rangle + \frac{1 - i}{2}|1\rangle$. If you do the math, you see that the phase of $|0\rangle$ is $atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $|1\rangle$ is $atan2(\frac12, -\frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
+The probability amplitudes $\alpha$ and $\beta$ are complex numbers, therefore $\alpha$ and $\beta$ have a phase. For example, consider a qubit in state $\frac{1 + i}{2}\ket{0} + \frac{1 - i}{2}\ket{1}$. If you do the math, you see that the phase of $\ket{0}$ is $atan2(\frac12, \frac12) = \frac{\pi}{4}$, and the phase of $\ket{1}$ is $atan2(\frac12, -\frac12) = -\frac{\pi}{4}$. The difference between these two phases is known as **relative phase**.
 
-Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha|0\rangle + \beta|1\rangle$ has the same relative phase as $e^{i\theta}\big(\alpha|0\rangle + \beta|1\rangle\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
+Multiplying the state of the entire system by $e^{i\theta}$ doesn't affect the relative phase: $\alpha\ket{0} + \beta\ket{1}$ has the same relative phase as $e^{i\theta}\big(\alpha\ket{0} + \beta\ket{1}\big)$. In the second expression, $\theta$ is known as the system's **global phase**.
 
 The state of a qubit (or, more generally, the state of a quantum system) is defined by its relative phase - global phase arises as a consequence of using linear algebra to represent qubits, and has no physical meaning. That is, applying a phase to the entire state of a system (multiplying the entire vector by $e^{i\theta}$ for any real $\theta$) doesn't actually affect the state of the system. Because of this, global phase is sometimes known as **unobservable phase** or **hidden phase**.
 
@@ -157,7 +157,7 @@ That being said, when you run Q# code on a quantum simulator instead of a physic
 
 The qubits aren't an ordinary data type, so the variables of this type have to be declared and initialized ("allocated") a little differently. The `use` statement allocates a qubit (or multiple) that can be used until the end of the scope in which the statement was used: `use q = Qubit();` allocates a qubit and binds it to the variable `q`.
 
-Freshly allocated qubits start out in state $|0\rangle$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $|0\rangle$, it will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
+Freshly allocated qubits start out in state $\ket{0}$, and have to be returned to that state by the time they are released. If you attempt to release a qubit in any state other than $\ket{0}$, it will result in a runtime error. We will see why it is important later, when we look at multi-qubit systems.
 
 ## Visualizing Quantum State
 
@@ -168,7 +168,7 @@ Before we continue, let's learn some techniques to visualize the quantum state o
 Let's start with a simple scenario: a program that acts on a single qubit.
 The state of the quantum system used by this program can be represented as a complex vector of length 2, or, using Dirac notation,
 
-$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha|0\rangle + \beta|1\rangle$$
+$$\begin{bmatrix} \alpha \\ \beta \end{bmatrix} = \alpha\ket{0} + \beta\ket{1}$$
 
 If this program runs on a physical quantum system, there is no way to get the information about the values of $\alpha$ and $\beta$ at a certain point of the program execution from a single observation.
 You would need to run the program repeatedly up to this point, perform a measurement on the system, and aggregate the results of multiple measurements to estimate $\alpha$ and $\beta$.
@@ -204,7 +204,7 @@ Note that each row has the following format:
     </thead>
 </table>
 
-For example, the state $|0\rangle$ would be represented as follows:
+For example, the state $\ket{0}$ would be represented as follows:
 
 <table>
     <tbody>
@@ -236,5 +236,5 @@ Congratulations! In this kata you learned the basics of qubits and qubit states.
 
 - A qubit is a basic unit of quantum information, analogous to a bit in classical computing.
 - Superposition is a quantum phenomenon where a qubit is in a combination of both 0 and 1 states. When measured, a qubit goes from being in superposition to one of the classical states.
-- A qubit can be represented as $|\psi\rangle = \alpha|0\rangle + \beta|1\rangle$, where $\alpha$ and $\beta$ are complex numbers and state vectors $|0\rangle$ and $|1\rangle$ are $0$ and $1$ states respectively.
+- A qubit can be represented as $\ket{\psi} = \alpha\ket{0} + \beta\ket{1}$, where $\alpha$ and $\beta$ are complex numbers and state vectors $\ket{0}$ and $\ket{1}$ are $0$ and $1$ states respectively.
 - In Q#, qubits are represented by the `Qubit` data type. When simulating a quantum program, you can use `DumpMachine` to inspect the state of a qubit without disturbing it.
