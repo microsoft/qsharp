@@ -101,7 +101,7 @@ async fn clear_error() {
 }
 
 #[tokio::test]
-    async fn close_last_doc_in_project() {
+async fn close_last_doc_in_project() {
     let received_errors = RefCell::new(Vec::new());
     let mut updater = new_updater(&received_errors);
 
@@ -116,7 +116,7 @@ async fn clear_error() {
         .update_document(
             "project/src/this_file.qs",
             1,
-            "namespace Foo.Bar { operation Main() : Unit { 5 }  }",
+            "/* this should not show up in the final state */ we should not see compile errors",
         )
         .await;
 
@@ -149,7 +149,7 @@ async fn clear_error() {
                         offset: 59,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -165,14 +165,15 @@ async fn clear_error() {
                     [
                         Frontend(
                             Error(
-                                Type(
+                                Parse(
                                     Error(
-                                        TyMismatch(
-                                            "Unit",
-                                            "Int",
+                                        ExpectedItem(
+                                            ClosedBinOp(
+                                                Slash,
+                                            ),
                                             Span {
-                                                lo: 105,
-                                                hi: 106,
+                                                lo: 59,
+                                                hi: 59,
                                             },
                                         ),
                                     ),
@@ -910,7 +911,7 @@ async fn update_doc_updates_project() {
                         offset: 59,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -971,7 +972,7 @@ async fn close_doc_prioritizes_fs() {
         .update_document(
             "project/src/this_file.qs",
             1,
-            "namespace Foo.Bar { @EntryPoint() operation Main() : NotAType {} }",
+            "/* this should not show up in the final state */ we should not see compile errors",
         )
         .await;
 
@@ -1003,7 +1004,7 @@ async fn close_doc_prioritizes_fs() {
                         offset: 59,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -1019,13 +1020,17 @@ async fn close_doc_prioritizes_fs() {
                     [
                         Frontend(
                             Error(
-                                Resolve(
-                                    NotFound(
-                                        "NotAType",
-                                        Span {
-                                            lo: 112,
-                                            hi: 120,
-                                        },
+                                Parse(
+                                    Error(
+                                        ExpectedItem(
+                                            ClosedBinOp(
+                                                Slash,
+                                            ),
+                                            Span {
+                                                lo: 59,
+                                                hi: 59,
+                                            },
+                                        ),
                                     ),
                                 ),
                             ),
@@ -1080,7 +1085,7 @@ async fn delete_manifest() {
                         offset: 71,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -1118,7 +1123,7 @@ async fn delete_manifest() {
                         offset: 0,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/this_file.qs",
                 ),
                 entry: None,
@@ -1165,7 +1170,7 @@ async fn delete_manifest_then_close() {
                         offset: 71,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "project/src/",
                 ),
                 entry: None,
@@ -1229,7 +1234,7 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,
@@ -1282,7 +1287,7 @@ async fn doc_switches_project() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,
@@ -1334,7 +1339,7 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,
@@ -1380,7 +1385,7 @@ async fn doc_switches_project_on_close() {
                         offset: 15,
                     },
                 ],
-                project_root_dir: Some(
+                common_prefix: Some(
                     "nested_projects/src/subdir/src/",
                 ),
                 entry: None,

@@ -135,6 +135,9 @@ fn parse_top_level_node(s: &mut ParserContext) -> Result<TopLevelNode> {
 pub fn parse_implicit_namespace(source_name: &str, s: &mut ParserContext) -> Result<Namespace> {
     let lo = s.peek().span.lo;
     let items = parse_namespace_block_contents(s)?;
+    if items.is_empty() || s.peek().kind != TokenKind::Eof {
+        return Err(Error(ErrorKind::ExpectedItem(s.peek().kind, s.span(lo))));
+    }
     let span = s.span(lo);
     let namespace_name = source_name_to_namespace_name(source_name, span)?;
 
