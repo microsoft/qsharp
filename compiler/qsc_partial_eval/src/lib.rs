@@ -68,6 +68,13 @@ pub enum Error {
     #[diagnostic(transparent)]
     CapabilityError(CapabilityError),
 
+    #[error("use of unanalyzed dynamic value")]
+    #[diagnostic(code("Qsc.PartialEval.UnexpectedDynamicValue"))]
+    #[diagnostic(help(
+        "analysis is limited for callables that cannot be uniquely resolved at compile time, try invoking the desired callable directly"
+    ))]
+    UnexpectedDynamicValue(#[label] Span),
+
     #[error("partial evaluation failed with error {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(String, #[label] Span),
@@ -744,7 +751,7 @@ impl<'a> PartialEvaluator<'a> {
         };
 
         // Set up the scope for the call, which allows additional error checking if the callable was
-        // previusly unresolved.
+        // previously unresolved.
         let spec_decl = if let CallableImpl::Spec(spec_impl) = &callable_decl.implementation {
             Some(get_spec_decl(spec_impl, functor_app))
         } else {
@@ -795,7 +802,8 @@ impl<'a> PartialEvaluator<'a> {
         if call_was_unresolved {
             let call_compute_kind = self.get_call_compute_kind(&call_scope);
             if let ComputeKind::Quantum(QuantumProperties {
-                runtime_features, ..
+                runtime_features,
+                value_kind,
             }) = call_compute_kind
             {
                 let missing_features = get_missing_runtime_features(
@@ -811,6 +819,15 @@ impl<'a> PartialEvaluator<'a> {
                     {
                         return Err(Error::CapabilityError(error.clone()));
                     }
+                }
+
+                // If the call produces a dynamic value, we treat it as an error because we know that later
+                // analysis has not taken that dynamism into account and further partial evaluation may fail
+                // when it encounters that value.
+                if value_kind.is_dynamic() {
+                    return Err(Error::UnexpectedDynamicValue(
+                        self.get_expr(call_expr_id).span,
+                    ));
                 }
             }
         }

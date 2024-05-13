@@ -1261,3 +1261,30 @@ fn call_to_unresolved_callee_with_dynamic_arg_fails() {
         &expect!["CapabilityError(UseOfDynamicDouble(Span { lo: 298, hi: 305 }))"],
     );
 }
+
+#[test]
+fn call_to_unresolved_callee_producing_dynamic_value_fails() {
+    let error = get_partial_evaluation_error_with_capabilities(
+        indoc! {"
+        namespace Test {
+            open Microsoft.Quantum.Convert;
+            operation Op(i : Int, q : Qubit) : Int {
+                X(q);
+                i
+            }
+            @EntryPoint()
+            operation Main() : Unit {
+                use q = Qubit();
+                let i = if MResetZ(q) == One { 1 } else { 0 };
+                let f = [Op][0];
+                let _ = f(i, q);
+            }
+        }"},
+        TargetCapabilityFlags::Adaptive | TargetCapabilityFlags::IntegerComputations,
+    );
+
+    assert_error(
+        &error,
+        &expect!["UnexpectedDynamicValue(Span { lo: 298, hi: 305 })"],
+    );
+}

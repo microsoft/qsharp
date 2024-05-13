@@ -558,7 +558,7 @@ pub struct QuantumProperties {
     /// The runtime features used by the program element.
     pub runtime_features: RuntimeFeatureFlags,
     /// The kind of value of the program element.
-    pub(crate) value_kind: ValueKind,
+    pub value_kind: ValueKind,
 }
 
 impl Display for QuantumProperties {
