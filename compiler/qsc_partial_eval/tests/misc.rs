@@ -7,10 +7,7 @@ pub mod test_utils;
 
 use expect_test::expect;
 use indoc::indoc;
-use qsc_rir::{
-    passes::check_and_transform,
-    rir::{BlockId, CallableId},
-};
+use qsc_rir::rir::{BlockId, CallableId};
 use test_utils::{assert_block_instructions, assert_blocks, assert_callable, get_rir_program};
 
 #[test]
