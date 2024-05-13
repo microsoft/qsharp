@@ -28,7 +28,8 @@ struct Compilation {
 }
 
 impl Compilation {
-    /// Creates a new `Compilation` by compiling sources.
+    /// Creates a new `Compilation` by compiling standard library
+    /// and additional sources.
     pub(crate) fn new(
         additional_sources: Option<SourceMap>,
         capabilities: Option<TargetCapabilityFlags>,
@@ -50,7 +51,7 @@ impl Compilation {
                 actual_language_features,
             );
             // We ignore errors here (unit.errors vector) and use whatever
-            // documentation we can produce. If future we may consider
+            // documentation we can produce. In future we may consider
             // displaying the fact of error presence on documentation page.
 
             package_store.insert(unit);
@@ -127,6 +128,8 @@ impl Lookup for Compilation {
     }
 }
 
+/// Generates and returns documentation files for the standard library
+/// and additional sources (if specified.)
 #[must_use]
 pub fn generate_docs(
     additional_sources: Option<SourceMap>,
