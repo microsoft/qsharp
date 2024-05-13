@@ -6,7 +6,7 @@
 })
 
 This kata introduces you to the basics of linear algebra. Linear algebra is a branch of mathematics dedicated to studying the properties of matrices and vectors, which are used extensively in quantum computing to represent quantum states and operations on them.
-This kata doesn't come close to covering the full breadth of the topic, but it should be enough to get you comfortable with the main concepts of linear algebra used in quantum computing.
+This kata doesn't come close to covering the full breadth of the topic, but it helps you get started with the main concepts of linear algebra used in quantum computing.
 
 **This kata covers the following topics:**
 
@@ -18,7 +18,7 @@ This kata doesn't come close to covering the full breadth of the topic, but it s
 
 **What you should know to start working on this kata:**
 
-* Complex numbers. If you need a review of this topic, we recommend that you complete the Complex Arithmetic kata before tackling this one.
+* Basic knowledge of complex numbers. If you need a review of this topic, you can check out the Complex Arithmetic kata before tackling this one.
 
 *In this kata, the exercises focus on pen-and-paper work rather than on writing programs, since you're much more likely to do the linear algebra for a quantum computing problem before you start writing the code for it than to do it in Q#. Every task asks you to fill in the results of a math calculation for a specific example that you can do by hand. The Q# code is used as a way to check the results of the calculations rather than as a way to carry them out.*
 
@@ -32,7 +32,7 @@ A **matrix** is set of numbers arranged in a rectangular grid. Here is a $2$ by 
 $$A =
 \begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}$$
 
-$A_{i,j}$ refers to the element in row $i$ and column $j$ of matrix $A$ (all indices are 0-based). In the above example, $A_{0,1} = 2$.
+The notation $A_{i,j}$ refers to the element in row $i$ and column $j$ of matrix $A$ (all indices are 0-based). In the above example, $A_{0,1} = 2$.
 
 An $n \times m$ matrix will have $n$ rows and $m$ columns:
 
