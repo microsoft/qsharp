@@ -968,7 +968,7 @@ impl<'a> PartialEvaluator<'a> {
             (store_item_id.package, callable_decl.input).into(),
             args_value.clone(),
             ctls,
-            fixed_args.clone(),
+            fixed_args,
         );
         let call_scope = Scope::new(
             store_item_id.package,
@@ -1004,9 +1004,10 @@ impl<'a> PartialEvaluator<'a> {
                         missing_features,
                         self.get_expr(call_expr_id).span,
                     )
-                    .first()
+                    .drain(..)
+                    .next()
                     {
-                        return Err(Error::CapabilityError(error.clone()));
+                        return Err(Error::CapabilityError(error));
                     }
                 }
 

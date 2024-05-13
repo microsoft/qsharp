@@ -483,8 +483,9 @@ impl<'a> Analyzer<'a> {
 
         // If the callee could not be resolved, return a compute kind with certain runtime features.
         let Some(callee) = maybe_callee else {
-            // The value kind of a call expression with an unresolved callee is dynamic but its specific variant depends
-            // on the expression's type.
+            // The value kind of a call expression with an unresolved callee is not known, so to avoid
+            // spurious errors in later analysis where the value is used we assume static.
+            // During partial-evaluation, the callable is known the actual return kind will be checked.
             let value_kind = ValueKind::new_static_from_type(expr_type);
             let compute_kind = ComputeKind::Quantum(QuantumProperties {
                 runtime_features: RuntimeFeatureFlags::CallToUnresolvedCallee,
