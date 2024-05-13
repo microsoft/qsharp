@@ -412,6 +412,9 @@ impl<'a> Analyzer<'a> {
 
         // Derive the compute kind based on the value kind of the arguments.
         let arg_value_kinds = if let Some(fixed_args) = fixed_args {
+            // In items that come from lifted lambdas, fixed arguments that capture local variables, if any, come before
+            // other arguments, so we use the `fixed_args` as the base of the chain of values and concatenate the rest of
+            // the arguments when building the full list of arguments for a callable application.
             fixed_args
                 .into_iter()
                 .map(|local_var_id| {
