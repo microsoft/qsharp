@@ -135,11 +135,6 @@ pub enum Error {
     #[diagnostic(code("Qsc.CapabilitiesCk.LoopWithDynamicCondition"))]
     LoopWithDynamicCondition(#[label] Span),
 
-    #[error("cannot use a closure")]
-    #[diagnostic(help("closures are not supported by the current target"))]
-    #[diagnostic(code("Qsc.CapabilitiesCk.UseOfClosure"))]
-    UseOfClosure(#[label] Span),
-
     #[error("cannot use a bool value as an output")]
     #[diagnostic(help("using a bool value as an output is not supported by the current target"))]
     #[diagnostic(code("Qsc.CapabilitiesCk.UseOfBoolOutput"))]
@@ -231,9 +226,6 @@ pub fn generate_errors_from_runtime_features(
     }
     if runtime_features.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
         errors.push(Error::LoopWithDynamicCondition(span));
-    }
-    if runtime_features.contains(RuntimeFeatureFlags::UseOfClosure) {
-        errors.push(Error::UseOfClosure(span));
     }
     if runtime_features.contains(RuntimeFeatureFlags::UseOfBoolOutput) {
         errors.push(Error::UseOfBoolOutput(span));

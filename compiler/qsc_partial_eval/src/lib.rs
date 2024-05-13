@@ -76,7 +76,7 @@ pub enum Error {
     ))]
     UnexpectedDynamicValue(#[label] Span),
 
-    #[error("partial evaluation failed with error {0}")]
+    #[error("partial evaluation failed with error: {0}")]
     #[diagnostic(code("Qsc.PartialEval.EvaluationFailed"))]
     EvaluationFailed(String, #[label] Span),
 
@@ -90,7 +90,7 @@ pub enum Error {
     #[error("an unexpected error occurred related to: {0}")]
     #[diagnostic(code("Qsc.PartialEval.Unexpected"))]
     #[diagnostic(help(
-        "this is probably a bug. please consider reporting this as an issue to the development team"
+        "this is probably a bug, please consider reporting this as an issue to the development team"
     ))]
     Unexpected(String, #[label] Span),
 
@@ -1099,7 +1099,12 @@ impl<'a> PartialEvaluator<'a> {
                     callee_expr_span,
                 ))
             }
-            _ => Ok(self.eval_expr_call_to_intrinsic_qis(store_item_id, callable_decl, args_value)),
+            _ => self.eval_expr_call_to_intrinsic_qis(
+                store_item_id,
+                callable_decl,
+                args_value,
+                callee_expr_span,
+            ),
         }
     }
 
@@ -1108,9 +1113,18 @@ impl<'a> PartialEvaluator<'a> {
         store_item_id: StoreItemId,
         callable_decl: &CallableDecl,
         args_value: Value,
-    ) -> Value {
+        callee_expr_span: Span,
+    ) -> Result<Value, Error> {
         // Intrinsic callables that make it to this point are expected to be unitary.
-        assert_eq!(callable_decl.output, Ty::UNIT);
+        if callable_decl.output != Ty::UNIT {
+            return Err(Error::Unexpected(
+                format!(
+                    "non-classical call to non-Unit intrinsic `{}`",
+                    callable_decl.name.name
+                ),
+                callee_expr_span,
+            ));
+        }
 
         // Check if the callable is already in the program, and if not add it.
         let callable = self.create_intrinsic_callable(store_item_id, callable_decl);
@@ -1135,7 +1149,7 @@ impl<'a> PartialEvaluator<'a> {
         let instruction = Instruction::Call(callable_id, args_operands, None);
         let current_block = self.get_current_rir_block_mut();
         current_block.0.push(instruction);
-        Value::unit()
+        Ok(Value::unit())
     }
 
     fn eval_expr_call_to_spec(

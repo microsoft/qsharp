@@ -756,16 +756,14 @@ bitflags! {
         const ReturnWithinDynamicScope = 1 << 19;
         /// A loop with a dynamic condition.
         const LoopWithDynamicCondition = 1 << 20;
-        /// Use of a closure.
-        const UseOfClosure = 1 << 21;
         /// Use of an advanced type as output of a computation.
-        const UseOfAdvancedOutput = 1 << 22;
+        const UseOfAdvancedOutput = 1 << 21;
         // Use of a `Bool` as output of a computation.
-        const UseOfBoolOutput = 1 << 23;
+        const UseOfBoolOutput = 1 << 22;
         // Use of a `Double` as output of a computation.
-        const UseOfDoubleOutput = 1 << 24;
+        const UseOfDoubleOutput = 1 << 23;
         // Use of an `Int` as output of a computation.
-        const UseOfIntOutput = 1 << 25;
+        const UseOfIntOutput = 1 << 24;
     }
 }
 
@@ -849,9 +847,6 @@ impl RuntimeFeatureFlags {
         }
         if self.contains(RuntimeFeatureFlags::LoopWithDynamicCondition) {
             capabilities |= TargetCapabilityFlags::BackwardsBranching;
-        }
-        if self.contains(RuntimeFeatureFlags::UseOfClosure) {
-            capabilities |= TargetCapabilityFlags::HigherLevelConstructs;
         }
         if self.contains(RuntimeFeatureFlags::UseOfBoolOutput) {
             capabilities |= TargetCapabilityFlags::Adaptive;
