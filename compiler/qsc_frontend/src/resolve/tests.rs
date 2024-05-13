@@ -86,13 +86,9 @@ impl<'a> Renamer<'a> {
 
 impl Visitor<'_> for Renamer<'_> {
     fn visit_path(&mut self, path: &Path) {
-        dbg!(&path);
         if let Some(&id) = self.names.get(path.id) {
-            println!("{path} did exist");
             self.changes.push((path.span, id.into()));
         } else {
-            println!("{path} did not exist");
-
             visit::walk_path(self, path);
         }
     }
@@ -3203,15 +3199,18 @@ fn import_namespace() {
             }
         "},
         &expect![[r#"
-            namespace namespace7 {
+            namespace namespace8 {
                 function item1() : Unit {}
             }
-            namespace namespace8 {
-                import namespace7;
+            namespace namespace9 {
+                import namespace7.Bar;
                 operation item3() : Unit {
-                    item1();
+                    Bar.Baz();
                 }
             }
+
+            // NotFound("Bar", Span { lo: 83, hi: 86 })
+            // NotFound("Baz", Span { lo: 130, hi: 133 })
         "#]],
     );
 }
@@ -3233,13 +3232,14 @@ fn import_non_existent_item() {
             namespace namespace7 {
             }
             namespace namespace8 {
-                import Foo.Bar;
+                import namespace7.Bar;
                 operation item2() : Unit {
                     Bar();
                 }
             }
 
-            // NotFound("Foo.Bar", Span { lo: 60, hi: 67 })
+            // NotFound("Bar", Span { lo: 50, hi: 53 })
+            // NotFound("Bar", Span { lo: 93, hi: 96 })
         "#]],
     );
 }
@@ -3260,7 +3260,16 @@ fn import_shadowing() {
             }
         "},
         &expect![[r#"
-            // ConflictingImportSymbolAlreadyExists
+            namespace namespace7 {
+                function item1() : Unit {}
+            }
+            namespace namespace8 {
+                function item3() : Unit {}
+                import item1;
+                operation item4() : Unit {
+                    item1();
+                }
+            }
         "#]],
     );
 }
@@ -3302,7 +3311,15 @@ fn import_non_item() {
                 }
             }
         "},
-        &expect![[r#" "#]],
+        &expect![[r#"
+            namespace namespace7 {
+                import Unit;
+                operation item1() : Unit {
+                }
+            }
+
+            // ImportedNonItem(Span { lo: 28, hi: 32 })
+        "#]],
     );
 }
 
@@ -3320,6 +3337,261 @@ fn import_namespace_nested() {
                 }
             }
         "},
-        &expect![[r#" "#]],
+        &expect![[r#"
+            namespace namespace9 {
+                operation item1() : Unit {}
+            }
+            namespace namespace10 {
+                import namespace7.Bar;
+                operation item3() : Unit {
+                    Bar.Baz.Quux();
+                }
+            }
+
+            // NotFound("Bar", Span { lo: 89, hi: 92 })
+            // NotFound("Quux", Span { lo: 140, hi: 144 })
+        "#]],
+    );
+}
+// TODO
+// #[test]
+// fn import_single_namespace() {
+//     check(
+//         indoc! {"
+//             namespace Foo {
+//                 operation Bar() : Unit {}
+//             }
+//             namespace Main {
+//                 import Foo;
+//
+//                 operation Main() : Unit {
+//                     Foo.Bar();
+//                 }
+//             }
+//         "},
+//         &expect![[r#"
+//             namespace namespace7 {
+//                 operation item1() : Unit {}
+//             }
+//             namespace namespace8 {
+//                 operation item3() : Unit {
+//                     let item4 = 5;
+//                     import namespace7;
+//                     item1();
+//                 }
+//             }
+//         "#]],
+//     );
+// }
+
+#[test]
+fn import_shadowing_function() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                operation Bar() : Unit {}
+                operation Main() : Unit {
+                    import Foo;
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                operation item3() : Unit {}
+                operation item4() : Unit {
+                    import namespace7;
+                    item1();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_non_existent_namespace() {
+    check(
+        indoc! {"
+            namespace Main {
+                operation Main() : Unit {
+                    import NonExistent;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                    import NonExistent;
+                }
+            }
+
+            // NotFound("NonExistent", Span { lo: 50, hi: 61 })
+        "#]],
+    );
+}
+
+#[test]
+fn import_empty_namespace() {
+    check(
+        indoc! {"
+            namespace Foo {}
+            namespace Main {
+                operation Main() : Unit {
+                    import Foo;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {}
+            namespace namespace8 {
+                operation item2() : Unit {
+                    import namespace7;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_self() {
+    check(
+        indoc! {"
+            namespace Main {
+                operation Main() : Unit {
+                    import Main;
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {
+                    import namespace7;
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_single_level() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+                operation Baz() : Unit {}
+            }
+            namespace Main {
+                import Foo.{Bar, Baz};
+
+                operation Main() : Unit {
+                    Bar();
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+                operation item2() : Unit {}
+            }
+            namespace namespace8 {
+                operation item5() : Unit {
+                    item1();
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_multi_level() {
+    check(
+        indoc! {"
+            namespace Foo.Bar {
+                operation Baz() : Unit {}
+            }
+            namespace Main {
+                import Foo.{Bar.{Baz}};
+
+                operation Main() : Unit {
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace8 {
+                operation item2() : Unit {}
+            }
+            namespace namespace9 {
+                operation item4() : Unit {
+                    item2();
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_non_existent_item() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                import Foo.{Baz};
+
+                operation Main() : Unit {
+                    Baz();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                operation item3() : Unit {
+                    // NotFound("Baz", Span { lo: 50, hi: 53 })
+                }
+            }
+        "#]],
+    );
+}
+
+#[test]
+fn import_tree_shadowing() {
+    check(
+        indoc! {"
+            namespace Foo {
+                operation Bar() : Unit {}
+            }
+            namespace Main {
+                operation Bar() : Unit {}
+                import Foo.{Bar};
+
+                operation Main() : Unit {
+                    Bar();
+                }
+            }
+        "},
+        &expect![[r#"
+            namespace namespace7 {
+                operation item1() : Unit {}
+            }
+            namespace namespace8 {
+                operation item2() : Unit {}
+                operation item4() : Unit {
+                    item2();
+                }
+            }
+        "#]],
     );
 }
