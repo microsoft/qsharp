@@ -168,13 +168,10 @@ fn source_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> 
                 }
                 // verify that the component only contains alphanumeric characters, and doesn't start with a number
 
-                validate_namespace_name(error_span, name)?;
+                let mut ident = validate_namespace_name(error_span, name)?;
+                ident.span = error_span;
 
-                namespace.push(Ident {
-                    id: NodeId::default(),
-                    span: error_span,
-                    name: name.into(),
-                });
+                namespace.push(ident);
             }
             _ => return Err(Error(ErrorKind::InvalidFileName(error_span))),
         }
@@ -184,16 +181,16 @@ fn source_name_to_namespace_name(raw: &str, error_span: Span) -> Result<Idents> 
 }
 
 /// Validates that a string could be a valid namespace name component
-fn validate_namespace_name(error_span: Span, name: &str) -> Result<()> {
+fn validate_namespace_name(error_span: Span, name: &str) -> Result<Ident> {
     let mut s = ParserContext::new(name, LanguageFeatures::default());
     // if it could be a valid identifier, then it is a valid namespace name
     // we just directly use the ident parser here instead of trying to recreate
     // validation rules
-    let _ = ident(&mut s).map_err(|_| Error(ErrorKind::InvalidFileName(error_span)))?;
+    let ident = ident(&mut s).map_err(|_| Error(ErrorKind::InvalidFileName(error_span)))?;
     if s.peek().kind != TokenKind::Eof {
         return Err(Error(ErrorKind::InvalidFileName(error_span)));
     }
-    Ok(())
+    Ok(*ident)
 }
 
 fn parse_namespace(s: &mut ParserContext) -> Result<Namespace> {
