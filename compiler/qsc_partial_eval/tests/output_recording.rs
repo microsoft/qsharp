@@ -429,7 +429,7 @@ fn output_recording_for_literal_int() {
                     output_type: <VOID>
                     body: 0
                 Callable 1: Callable:
-                    name: __quantum__rt__integer_record_output
+                    name: __quantum__rt__int_record_output
                     call_type: OutputRecording
                     input_type:
                         [0]: Integer
