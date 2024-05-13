@@ -9,16 +9,17 @@ import { loadProject } from "./projectSystem";
 import { sendMessageToPanel } from "./webviewPanel";
 
 export async function showDocumentationCommand(extensionUri: Uri) {
+  const editor = window.activeTextEditor;
+  if (!editor || !isQsharpDocument(editor.document)) {
+    throw new Error("The currently active window is not a Q# file");
+  }
+
   // Reveal panel and show 'Loading...' for immediate feedback.
   sendMessageToPanel(
     "documentation", // This is needed to route the message to the proper panel
     true, // Reveal panel
     null, // With no message
   );
-  const editor = window.activeTextEditor;
-  if (!editor || !isQsharpDocument(editor.document)) {
-    throw new Error("The currently active window is not a Q# file");
-  }
 
   const docUri = editor.document.uri;
   const program = await loadProject(docUri);
